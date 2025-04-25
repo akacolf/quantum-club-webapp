@@ -1,14 +1,13 @@
 "use client";
 import React, { createContext, useState, useContext } from "react";
 
+type DataContextProviderProps = {
+    children:React.ReactNode;
+};
+
 const GameContext = createContext(null);
-export const GameProvider = ({ children }: { children: React.ReactNode }) => {
-  const [username, setUsername] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("username");
-    }
-    return "";
-  });
+export default function GameProvider ({ children }: DataContextProviderProps) {
+  const [username, setUsername] = useState<UserData>();
   const [telegramId, setTelegramId] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("telegramId");
