@@ -1,5 +1,5 @@
 "use client";
-import { Icon } from "@iconify-icon/react";
+//import { Icon } from "@iconify-icon/react";
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import {
   doc,
@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 //import "@/app/animations/text-animations/appwide-text-animation.css";
 import tasks from "@/app/earn/tasks";
 import { usePathname } from "next/navigation";
-import { ButtonLoader } from "../loaders/ButtonLoader";
+//import { ButtonLoader } from "../loaders/ButtonLoader";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
 import { useTonConnectUI } from "@tonconnect/ui-react";
@@ -2170,8 +2170,8 @@ const HomePageContent = () => {
                       Active wallet
                     </div>
                     <div className="font-medium text-base">
-                      {toUserFriendlyAddress(walletAddress).slice(0, 4)}...
-                      {toUserFriendlyAddress(walletAddress).slice(-4)}
+                      {toUserFriendlyAddress(walletAddress||"").slice(0, 4)}...
+                      {toUserFriendlyAddress(walletAddress||"").slice(-4)}
                     </div>
                   </div>
                   <svg
