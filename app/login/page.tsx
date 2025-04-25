@@ -8,7 +8,7 @@ import { useGameContext } from "@/app/contexts/MiningContext";
 import "../app/globals.css";
 import deviceTypeDetector from "@/utils/deviceDetection";
 import { useLBoardContext } from "./contexts/LeaderboardContext";
-import { authenticateUser } from "./components/telegramAuth";
+import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
 import { TelegramAnalytics } from "@/lib/telegramAnalytics";
 import Loader from "./loading";

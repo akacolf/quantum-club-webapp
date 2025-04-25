@@ -1,0 +1,2315 @@
+"use client";
+import { Icon } from "@iconify-icon/react";
+import { dbfs } from "../firebaseConfig/firebaseConfig";
+import {
+  getDocs,
+  collection,
+  getDoc,
+  setDoc,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { useCallback, useEffect, useState } from "react";
+import { useGameContext } from "../contexts/MiningContext";
+import CheckStory from "../components/CheckStory";
+import { motion, AnimatePresence } from "framer-motion";
+import "../../app/animations/text-animations/appwide-text-animation.css";
+import tasks from "../earn/tasks";
+import { usePathname } from "next/navigation";
+import { ButtonLoader } from "../loaders/ButtonLoader";
+import { toUserFriendlyAddress } from "@tonconnect/sdk";
+import { useRouter } from "next/navigation";
+import { useTonConnectUI } from "@tonconnect/ui-react";
+import toast, { ToastBar, Toaster } from "react-hot-toast";
+import Link from "next/link";
+import { toNano } from "@ton/core";
+const calculateRemainingTime = (timestamp) => {
+  const now = new Date();
+  const targetTime = new Date(timestamp);
+  const diffMs = targetTime.getTime() - now.getTime();
+
+  if (diffMs <= 0) return null;
+
+  const minutes = String(Math.floor((diffMs / 1000 / 60) % 60)).padStart(
+    2,
+    "0"
+  );
+  const hours = String(Math.floor((diffMs / 1000 / 60 / 60) % 24)).padStart(
+    2,
+    "0"
+  );
+  return ` ${hours}h ${minutes}m`;
+};
+const HomePageContent = () => {
+  const {
+    MainQuantAmount,
+    SetMainQuantAmount,
+    rank,
+    telegramId,
+    daily,
+    setDaily,
+    walletAddress,
+    setWalletAddress,
+    setRemainingSolveToEarn,
+  } = useGameContext();
+  const router = useRouter();
+  const [rankIcon, setRankIcon] = useState("");
+  const [taskhistoryList, setTaskhistoryList] = useState([]);
+  const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState(false);
+  const task = tasks.find(
+    (task) => task.id === "ba1e3046074448f8acb2bfe9797436db"
+  );
+  const [isClaimDay, setIsclaimDay] = useState(true);
+  const [loadingDay, setLoadingDay] = useState(false);
+  const [tonConnectUI, setOptions] = useTonConnectUI();
+  const [isActiveWalletTab, setActiveWalletTab] = useState(false);
+  const handleWalletConnection = useCallback((address) => {
+    setWalletAddress(address);
+  }, []);
+
+  const handleWalletDisconnection = useCallback(() => {
+    setWalletAddress("");
+  }, []);
+
+  useEffect(() => {
+    if (!tonConnectUI) return;
+
+    let isMounted = true;
+    let unsubscribe;
+
+    const setup = async () => {
+      try {
+        await tonConnectUI.connectionRestored;
+
+        if (!isMounted) return; // Bileşen hala bağlı mı kontrol et
+
+        // Bağlı cüzdan varsa state'i güncelle
+        if (tonConnectUI.account?.address) {
+          handleWalletConnection(tonConnectUI.account.address);
+        } else {
+          if (walletAddress) {
+            handleWalletConnection(walletAddress);
+          }
+        }
+
+        // Durum değişikliklerini dinle (SADECE BURADA VERİTABANI GÜNCELLE)
+        unsubscribe = tonConnectUI.onStatusChange((wallet) => {
+          if (wallet) {
+            const address = wallet.account.address;
+            const walletAddressFr = toUserFriendlyAddress(address);
+            updateWalletInDB(walletAddressFr, address);
+            handleWalletConnection(address);
+          } else {
+            updateWalletInDB("", "");
+            handleWalletDisconnection();
+          }
+        });
+      } catch (error) {
+        console.error("Could not check wallet connection: ", error);
+      }
+    };
+
+    setup();
+
+    // Temizlik fonksiyonu: Dinleyiciyi kaldır ve bayrağı güncelle
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [tonConnectUI, handleWalletConnection, handleWalletDisconnection]);
+
+  const handleWalletAction = async () => {
+    try {
+      if (!tonConnectUI) throw new Error("TON Connect is not ready yet");
+
+      // Bağlıysa bağlantıyı kes, değilse modal aç
+      tonConnectUI.connected
+        ? await tonConnectUI.disconnect()
+        : await tonConnectUI.openModal();
+    } catch (error) {
+      console.error("Wallet connection unsuccessful:", error.message);
+    }
+  };
+  const updateWalletInDB = async (walletAddress, address) => {
+    const response = await fetch("/api/tonconnections/tonConnectDB", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: telegramId,
+        walletAddress: walletAddress,
+        address: address,
+      }),
+    });
+    if (!response.ok) {
+      const errorData = await response.text();
+      const parsedError = JSON.parse(errorData); // we parse it as json to throw the error //
+      throw new Error(`API Error: ${parsedError.error}`);
+    }
+  };
+  const formatAddress = (address) => {
+    const tempAddress = toUserFriendlyAddress(address);
+    return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
+  };
+  useEffect(() => {
+    fetch("/story");
+    router.prefetch("/home/roadmap-page");
+    const fetchTasks = async () => {
+      try {
+        setTaskhistoryList([]);
+        const tasksRef = collection(dbfs, `user/${telegramId}/tasks`);
+        const snapshotTasks = await getDocs(tasksRef);
+        const rewardsRef = collection(
+          dbfs,
+          `user/${telegramId}/rewardsHistory`
+        );
+        const snapshotRewards = await getDocs(rewardsRef);
+        //Task History
+        const tasks = !snapshotTasks.empty
+          ? snapshotTasks.docs.map((doc) => {
+              let platform = doc.data().platform;
+              if (
+                platform === "telegram" ||
+                platform === "ic:baseline-telegram"
+              ) {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="#FFF"
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19c-.14.75-.42 1-.68 1.03c-.58.05-1.02-.38-1.58-.75c-.88-.58-1.38-.94-2.23-1.5c-.99-.65-.35-1.01.22-1.59c.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02c-.09.02-1.49.95-4.22 2.79c-.4.27-.76.41-1.08.4c-.36-.01-1.04-.2-1.55-.37c-.63-.2-1.12-.31-1.08-.66c.02-.18.27-.36.74-.55c2.92-1.27 4.86-2.11 5.83-2.51c2.78-1.16 3.35-1.36 3.73-1.36c.08 0 .27.02.39.12c.1.08.13.19.14.27c-.01.06.01.24 0 .38"
+                    ></path>
+                  </svg>
+                );
+              }
+              if (platform === "twitter" || platform === "pajamas:twitter") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      fill="#FFF"
+                      d="M9.294 6.928L14.357 1h-1.2L8.762 6.147L5.25 1H1.2l5.31 7.784L1.2 15h1.2l4.642-5.436L10.751 15h4.05zM7.651 8.852l-.538-.775L2.832 1.91h1.843l3.454 4.977l.538.775l4.491 6.47h-1.843z"
+                    ></path>
+                  </svg>
+                );
+              }
+              if (platform === "chemist") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="#FFF"
+                      d="M2 4v2h2V4zm18 0v2h2V4zM2 7v2h2V7zm3 0v2h2V7zm9 0v2h2V7zm3 0v2h2V7zm3 0v2h2V7zM2 10v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zM2 13v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zM5 17v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2zm3 0v2h2v-2z"
+                    ></path>
+                  </svg>
+                );
+              }
+              if (platform === "instagram") {
+                platform = (
+                  <div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="2.5em"
+                      height="2.5em"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="#fff"
+                        d="M12.001 9a3 3 0 1 0 0 6a3 3 0 0 0 0-6m0-2a5 5 0 1 1 0 10a5 5 0 0 1 0-10m6.5-.25a1.25 1.25 0 0 1-2.5 0a1.25 1.25 0 0 1 2.5 0M12.001 4c-2.474 0-2.878.007-4.029.058c-.784.037-1.31.142-1.798.332a2.9 2.9 0 0 0-1.08.703a2.9 2.9 0 0 0-.704 1.08c-.19.49-.295 1.015-.331 1.798C4.007 9.075 4 9.461 4 12c0 2.475.007 2.878.058 4.029c.037.783.142 1.31.331 1.797c.17.435.37.748.702 1.08c.337.336.65.537 1.08.703c.494.191 1.02.297 1.8.333C9.075 19.994 9.461 20 12 20c2.475 0 2.878-.007 4.029-.058c.782-.037 1.308-.142 1.797-.331a2.9 2.9 0 0 0 1.08-.703c.337-.336.538-.649.704-1.08c.19-.492.296-1.018.332-1.8c.052-1.103.058-1.49.058-4.028c0-2.474-.007-2.878-.058-4.029c-.037-.782-.143-1.31-.332-1.798a2.9 2.9 0 0 0-.703-1.08a2.9 2.9 0 0 0-1.08-.704c-.49-.19-1.016-.295-1.798-.331C14.926 4.006 14.54 4 12 4m0-2c2.717 0 3.056.01 4.123.06c1.064.05 1.79.217 2.427.465c.66.254 1.216.598 1.772 1.153a4.9 4.9 0 0 1 1.153 1.772c.247.637.415 1.363.465 2.428c.047 1.066.06 1.405.06 4.122s-.01 3.056-.06 4.122s-.218 1.79-.465 2.428a4.9 4.9 0 0 1-1.153 1.772a4.9 4.9 0 0 1-1.772 1.153c-.637.247-1.363.415-2.427.465c-1.067.047-1.406.06-4.123.06s-3.056-.01-4.123-.06c-1.064-.05-1.789-.218-2.427-.465a4.9 4.9 0 0 1-1.772-1.153a4.9 4.9 0 0 1-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.012 15.056 2 14.717 2 12s.01-3.056.06-4.122s.217-1.79.465-2.428a4.9 4.9 0 0 1 1.153-1.772A4.9 4.9 0 0 1 5.45 2.525c.637-.248 1.362-.415 2.427-.465C8.945 2.013 9.284 2 12.001 2"
+                      />
+                    </svg>
+                  </div>
+                );
+              }
+              if (platform === "referrals") {
+                platform = (
+                  <div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="2.5em"
+                      height="2.5em"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        fill="#fff"
+                        d="M8 4.5a2.5 2.5 0 1 1-5 0a2.5 2.5 0 0 1 5 0M11.5 6a5.5 5.5 0 0 0-1.578.23a2 2 0 1 1 3.155 0A5.5 5.5 0 0 0 11.5 6M3 8h4.257A5.48 5.48 0 0 0 6 11.5q0 .501.087.977q-.279.023-.587.023c-4 0-4-2.925-4-2.925V9.5A1.5 1.5 0 0 1 3 8m13 3.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-4-2a.5.5 0 0 0-1 0V11H9.5a.5.5 0 0 0 0 1H11v1.5a.5.5 0 0 0 1 0V12h1.5a.5.5 0 0 0 0-1H12z"
+                      />
+                    </svg>
+                  </div>
+                );
+              }
+              if (platform === "referrals10") {
+                platform = (
+                  <div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="2.5em"
+                      height="2.5em"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        fill="#fff"
+                        d="M8 4.5a2.5 2.5 0 1 1-5 0a2.5 2.5 0 0 1 5 0M11.5 6a5.5 5.5 0 0 0-1.578.23a2 2 0 1 1 3.155 0A5.5 5.5 0 0 0 11.5 6M3 8h4.257A5.48 5.48 0 0 0 6 11.5q0 .501.087.977q-.279.023-.587.023c-4 0-4-2.925-4-2.925V9.5A1.5 1.5 0 0 1 3 8m13 3.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-4-2a.5.5 0 0 0-1 0V11H9.5a.5.5 0 0 0 0 1H11v1.5a.5.5 0 0 0 1 0V12h1.5a.5.5 0 0 0 0-1H12z"
+                      />
+                    </svg>
+                  </div>
+                );
+              }
+              if (platform === "checktelegramAgain") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="#FFF"
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19c-.14.75-.42 1-.68 1.03c-.58.05-1.02-.38-1.58-.75c-.88-.58-1.38-.94-2.23-1.5c-.99-.65-.35-1.01.22-1.59c.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02c-.09.02-1.49.95-4.22 2.79c-.4.27-.76.41-1.08.4c-.36-.01-1.04-.2-1.55-.37c-.63-.2-1.12-.31-1.08-.66c.02-.18.27-.36.74-.55c2.92-1.27 4.86-2.11 5.83-2.51c2.78-1.16 3.35-1.36 3.73-1.36c.08 0 .27.02.39.12c.1.08.13.19.14.27c-.01.06.01.24 0 .38"
+                    ></path>
+                  </svg>
+                );
+              }
+              if (platform === "onchain") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="none"
+                      stroke="#fff"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M18.1 6q-1.65 4.37-2.4 6c-1.879 4.088-3.713 6-6 6c-2.4 0-4.8-2.4-4.8-6s2.4-6 4.8-6c2.267 0 4.135 1.986 6 6q.768 1.653 2.4 6"
+                    />
+                  </svg>
+                );
+              }
+              if (platform === "userMilestone") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 256 256"
+                  >
+                    <path
+                      fill="#fff"
+                      d="M244.8 150.4a8 8 0 0 1-11.2-1.6A51.6 51.6 0 0 0 192 128a8 8 0 0 1-7.37-4.89a8 8 0 0 1 0-6.22A8 8 0 0 1 192 112a24 24 0 1 0-23.24-30a8 8 0 1 1-15.5-4A40 40 0 1 1 219 117.51a67.94 67.94 0 0 1 27.43 21.68a8 8 0 0 1-1.63 11.21M190.92 212a8 8 0 1 1-13.84 8a57 57 0 0 0-98.16 0a8 8 0 1 1-13.84-8a72.06 72.06 0 0 1 33.74-29.92a48 48 0 1 1 58.36 0A72.06 72.06 0 0 1 190.92 212M128 176a32 32 0 1 0-32-32a32 32 0 0 0 32 32m-56-56a8 8 0 0 0-8-8a24 24 0 1 1 23.24-30a8 8 0 1 0 15.5-4A40 40 0 1 0 37 117.51a67.94 67.94 0 0 0-27.4 21.68a8 8 0 1 0 12.8 9.61A51.6 51.6 0 0 1 64 128a8 8 0 0 0 8-8"
+                    />
+                  </svg>
+                );
+              }
+              if (platform === "connectwallet") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 24 24"
+                  >
+                    <g
+                      fill="currentColor"
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      strokeWidth="0.5"
+                      stroke="currentColor"
+                    >
+                      <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
+                      <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
+                    </g>
+                  </svg>
+                );
+              }
+              if (platform === "solvetoearnExplore") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 48 48"
+                  >
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M24 39.173c-.14.751-1.539 4.272-4.424 4.325c-4.699.087-3.629-3.141-7.502-5.947s-3.597-4.847-3.939-7.148"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.602 31.892c-2.816-1.399-3.333-8.332-1.159-7.22c0 0-1.959-6.78 1.594-8.53"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M11.333 19.176s-3.282-5.802 1.42-8.724"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12.933 12.384c-.034-.244-1.432-5.291 3.937-6.107m-.312 1.069s2.3-6 7.443-.577M19.58 40.743c-.947.048-2.822.382-5.227-4.112m4.412-1.13a3.79 3.79 0 0 1 2.943 2.852m-8.297-6.232a5.23 5.23 0 0 1-2.42-4.578c.23-2.985-.85-4.2-.85-4.2m3.507-.967s1.663-.206 2.357 2.435a1.515 1.515 0 0 0 2.512.789m.728-2.408s1.888.3 2.367-1.05m-5.036-.522a6.55 6.55 0 0 0-.554-3.88c-.849-1.662.364-4.299.364-4.299m2.127-.972s-2.891-1.71.453-4.611m1.039 2.464c.507 2.57 1.238 5.281-.327 9.275m-5.842 14.801c.187 0 4.582.127 2.978-3.53s-2.851-3.043-3.216-6.683"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21.028 30.72s-1.371 1.956-4.656-.777M24 39.173c.14.751 1.539 4.272 4.424 4.325c4.699.087 3.629-3.141 7.502-5.947s3.597-4.847 3.939-7.148"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M38.398 31.892c2.816-1.399 3.333-8.332 1.159-7.22c0 0 1.959-6.78-1.594-8.53"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M36.667 19.176s3.282-5.802-1.42-8.724"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M35.067 12.384c.034-.244 1.433-5.291-3.937-6.107m.313 1.069s-2.302-6-7.444-.577m4.421 33.974c.947.048 2.822.382 5.227-4.112m-4.412-1.13a3.79 3.79 0 0 0-2.943 2.852m8.297-6.232a5.23 5.23 0 0 0 2.42-4.578c-.23-2.985.85-4.2.85-4.2m-3.507-.967s-1.663-.206-2.357 2.435a1.515 1.515 0 0 1-2.512.789m-.728-2.408s-1.888.3-2.367-1.05m5.036-.522a6.55 6.55 0 0 1 .554-3.88c.849-1.662-.364-4.299-.364-4.299m-2.127-.972s2.891-1.71-.453-4.611m-1.039 2.464c-.507 2.57-1.238 5.281.327 9.275m5.842 14.801c-.187 0-4.582.127-2.978-3.53s2.852-3.043 3.216-6.683"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M26.972 30.72s1.371 1.956 4.656-.777"
+                      strokeWidth="1"
+                    />
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      d="M24 39.173V6.77"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                );
+              }
+
+              return {
+                id: doc.id,
+                quant: doc.data().quant,
+                date: doc.data().Date,
+                platform,
+                title: "Task reward",
+              };
+            })
+          : [];
+        setTaskhistoryList(tasks);
+        //Claim Day History
+        const rewardsHistory = !snapshotRewards.empty
+          ? snapshotRewards.docs.map((doc) => {
+              let platform = doc.data().platform;
+              if (platform === "dailycheck-in-reward") {
+                platform = (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      fill="#fff"
+                      fillRule="evenodd"
+                      d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16m3.65-10.857L6.91 9.8L4.35 7.286a.5.5 0 0 0-.7.714l2.909 2.857a.5.5 0 0 0 .7 0l5.091-5a.5.5 0 1 0-.7-.714"
+                    />
+                  </svg>
+                );
+              } else {
+                platform = "telegram";
+              }
+              return {
+                id: doc.id,
+                quant: doc.data().quant,
+                date: doc.data().Date,
+                platform,
+                title: "Daily check-in",
+              };
+            })
+          : [];
+        setTaskhistoryList((prevList) => [...prevList, ...rewardsHistory]);
+        const combinedList = [...tasks, ...rewardsHistory];
+        const convertDate = (dateStr) => {
+          const [day, month, year] = dateStr.split("/");
+          const formattedDate = `${year}-${month}-${day}`;
+          return formattedDate;
+        };
+        // Tarihe göre sırala
+        const sortedList = combinedList.sort(
+          (a, b) =>
+            new Date(convertDate(b.date)).getTime() -
+            new Date(convertDate(a.date)).getTime()
+        );
+
+        // State'i güncelle
+        setTaskhistoryList(sortedList);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+  const convertToDate = (dateStr) => {
+    const [day, month, year] = dateStr.split("/");
+    return new Date(`${year}-${month}-${day}`);
+  };
+  const addNewTask = (newTask) => {
+    setTaskhistoryList((prevList) => {
+      const updatedList = [...newTask, ...prevList];
+      // Yeni eleman eklendikten sonra sırala
+      return updatedList.sort(
+        (a, b) => convertToDate(a.date).getTime() - convertToDate(b.date)
+      );
+    });
+  };
+
+  const send = () => async () => {
+    try {
+      if (!tonConnectUI.connected) {
+        await handleWalletAction();
+      }
+      const tx = {
+        messages: [
+          {
+            address: "UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U",
+            amount: toNano(0.1).toString(),
+          },
+        ],
+      };
+      const { boc } = await tonConnectUI.sendTransaction(tx);
+      console.error(boc);
+    } catch (e) {
+      console.error("Error", e);
+    }
+  };
+  const handleJoinTask = () => {
+    openTelegramGroup(task.link, task);
+  };
+  const openTelegramGroup = () => {
+    if (!task.link.startsWith("http://") && !task.link.startsWith("https://")) {
+      task.link = "https://" + task.link;
+    }
+    if (typeof window !== "undefined") {
+      const tg = window.Telegram.WebApp;
+      tg.openTelegramLink(task.link);
+    }
+  };
+  useEffect(() => {
+    if (rank == "OG") {
+      setRankIcon(
+        <Icon icon="eos-icons:atom-electron" width="1.2rem" height="1.2rem" />
+      );
+    } else if (rank == "LEGEND") {
+      setRankIcon(
+        <Icon icon="hugeicons:champion" width="1.2rem" height="1.2rem" />
+      );
+    } else if (rank == "STAR") {
+      setRankIcon(<Icon icon="line-md:star" width="1.2rem" height="1.2rem" />); // setRankTxt içerisine düzenleyebilirsin
+    } else {
+      setRankIcon("");
+    }
+  }, []);
+  useEffect(() => {
+    const checkButton = async () => {
+      try {
+        const solveToEarnValue = doc(
+          dbfs,
+          "user",
+          telegramId,
+          "miningData",
+          "values"
+        );
+        const snapshotSolveToEarn = await getDoc(solveToEarnValue);
+        if (snapshotSolveToEarn.exists()) {
+          const remainingSolveToEarn =
+            snapshotSolveToEarn.data()?.remainingSolveToEarn;
+          if (remainingSolveToEarn != null) {
+            setRemainingSolveToEarn(remainingSolveToEarn);
+            sessionStorage.setItem(
+              "remainingSolveToEarn",
+              remainingSolveToEarn
+            );
+          }
+        }
+        //dailycheckin
+        const checkTimeRef = doc(
+          dbfs,
+          "user",
+          telegramId,
+          "miningData",
+          "checkTime"
+        );
+        const snapshot = await getDoc(checkTimeRef);
+        if (snapshot.exists()) {
+          const checktime = snapshot.data().checktime;
+          if (checktime) {
+            const formattedDate = new Intl.DateTimeFormat("en-US", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              timeZone: "UTC",
+            }).format(new Date());
+            const [month, day, year] = formattedDate.split("/");
+            const formattedDateISO = `${year}-${month}-${day}`;
+            const diffInMs = Math.abs(
+              new Date(formattedDateISO).getTime() -
+                new Date(checktime).getTime()
+            );
+            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+            if (diffInDays > 2) {
+              setDoc(
+                checkTimeRef,
+                {
+                  daily: 1,
+                },
+                { merge: true }
+              );
+              setDaily(1);
+              localStorage.setItem("daily", 1);
+              setIsclaimDay(false);
+            } else if (diffInDays >= 1 && diffInDays < 2) {
+              setIsclaimDay(false);
+            } else {
+              setIsclaimDay(true);
+            }
+          } else {
+            setDaily(1);
+            setIsclaimDay(false);
+          }
+        } else {
+          //console.error("Snapshot yok");
+          setDoc(checkTimeRef, {
+            daily: 1,
+          });
+          setDaily(1);
+          setIsclaimDay(false);
+          localStorage.setItem("daily", 1);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    checkButton();
+  }, []);
+  const toastQueue = [];
+  async function ClaimDaily() {
+    const claim = async () => {
+      try {
+        setLoadingDay(true);
+        const date = new Date(
+          Date.UTC(
+            new Date().getUTCFullYear(),
+            new Date().getUTCMonth(),
+            new Date().getUTCDate()
+          )
+        );
+        const formattedDate =
+          `${date.getUTCDate().toString().padStart(2, "0")}/` +
+          `${(date.getUTCMonth() + 1).toString().padStart(2, "0")}/` +
+          `${date.getUTCFullYear()}`;
+        const solveToEarnValue = doc(
+          dbfs,
+          "user",
+          telegramId,
+          "miningData",
+          "values"
+        );
+        const snapshotSolveToEarn = await getDoc(solveToEarnValue);
+        if (snapshotSolveToEarn.exists()) {
+          const remainingSolveToEarn =
+            snapshotSolveToEarn.data()?.remainingSolveToEarn;
+          const lastSolveToEarnDt =
+            snapshotSolveToEarn.data().lastSolveToEarnDate;
+          if (remainingSolveToEarn != null) {
+            const [day, month, year] = formattedDate.split("/");
+            const formattedDateISO = `${year}-${month}-${day}`;
+            const [daySTE, monthSTE, yearSTE] = lastSolveToEarnDt.split("/");
+            const solveToEarnDateConvert = `${yearSTE}-${monthSTE}-${daySTE}`;
+            const diffInMs = Math.abs(
+              new Date(formattedDateISO) - new Date(solveToEarnDateConvert)
+            );
+            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+            setRemainingSolveToEarn(remainingSolveToEarn);
+            sessionStorage.setItem(
+              "remainingSolveToEarn",
+              remainingSolveToEarn
+            );
+            if (diffInDays >= 1) {
+              const updatedSolveToEarn = remainingSolveToEarn + 7;
+              updateDoc(solveToEarnValue, {
+                remainingSolveToEarn: updatedSolveToEarn,
+                lastSolveToEarnDate: formattedDate,
+              });
+              setRemainingSolveToEarn(updatedSolveToEarn);
+              sessionStorage.setItem(
+                "remainingSolveToEarn",
+                updatedSolveToEarn
+              );
+              toast.success("+7 passes has been added", {
+                icon: (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="1.5em"
+                    height="1.5em"
+                    viewBox="0 0 32 32"
+                  >
+                    <g fill="none">
+                      <g filter="url(#f796id2)">
+                        <path
+                          fill="url(#f796id1)"
+                          fillRule="evenodd"
+                          d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
+                          clip-rule="evenodd"
+                        />
+                      </g>
+                      <path
+                        fill="url(#f796id0)"
+                        fillRule="evenodd"
+                        d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
+                        clip-rule="evenodd"
+                      />
+                      <defs>
+                        <radialGradient
+                          id="f796id0"
+                          cx="0"
+                          cy="0"
+                          r="1"
+                          gradientTransform="matrix(-16.24995 15.50005 -7.89314 -8.27501 19.328 13.719)"
+                          gradientUnits="userSpaceOnUse"
+                        >
+                          <stop
+                            offset=".935"
+                            stopColor="#f18849"
+                            stopOpacity="0"
+                          />
+                          <stop offset="1" stopColor="#cc6946" />
+                        </radialGradient>
+                        <linearGradient
+                          id="f796id1"
+                          x1="17.864"
+                          x2="17.493"
+                          y1="7.457"
+                          y2="29.939"
+                          gradientUnits="userSpaceOnUse"
+                        >
+                          <stop stopColor="#ffdc46" />
+                          <stop offset="1" stopColor="#f38e4a" />
+                        </linearGradient>
+                        <filter
+                          id="f796id2"
+                          width="28.573"
+                          height="28.392"
+                          x="1.781"
+                          y="1.924"
+                          colorInterpolationFilters="sRGB"
+                          filterUnits="userSpaceOnUse"
+                        >
+                          <feFlood
+                            flood-opacity="0"
+                            result="BackgroundImageFix"
+                          />
+                          <feBlend
+                            in="SourceGraphic"
+                            in2="BackgroundImageFix"
+                            result="shape"
+                          />
+                          <feColorMatrix
+                            in="SourceAlpha"
+                            result="hardAlpha"
+                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                          />
+                          <feOffset dx=".35" dy="-.1" />
+                          <feGaussianBlur stdDeviation=".3" />
+                          <feComposite
+                            in2="hardAlpha"
+                            k2="-1"
+                            k3="1"
+                            operator="arithmetic"
+                          />
+                          <feColorMatrix values="0 0 0 0 0.803922 0 0 0 0 0.623529 0 0 0 0 0.294118 0 0 0 1 0" />
+                          <feBlend
+                            in2="shape"
+                            result="effect1_innerShadow_18_23714"
+                          />
+                          <feColorMatrix
+                            in="SourceAlpha"
+                            result="hardAlpha"
+                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                          />
+                          <feOffset dy="-.15" />
+                          <feGaussianBlur stdDeviation=".3" />
+                          <feComposite
+                            in2="hardAlpha"
+                            k2="-1"
+                            k3="1"
+                            operator="arithmetic"
+                          />
+                          <feColorMatrix values="0 0 0 0 0.796078 0 0 0 0 0.505882 0 0 0 0 0.411765 0 0 0 1 0" />
+                          <feBlend
+                            in2="effect1_innerShadow_18_23714"
+                            result="effect2_innerShadow_18_23714"
+                          />
+                          <feColorMatrix
+                            in="SourceAlpha"
+                            result="hardAlpha"
+                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                          />
+                          <feOffset dx="-.4" dy=".4" />
+                          <feGaussianBlur stdDeviation=".2" />
+                          <feComposite
+                            in2="hardAlpha"
+                            k2="-1"
+                            k3="1"
+                            operator="arithmetic"
+                          />
+                          <feColorMatrix values="0 0 0 0 0.996078 0 0 0 0 0.996078 0 0 0 0 0.423529 0 0 0 1 0" />
+                          <feBlend
+                            in2="effect2_innerShadow_18_23714"
+                            result="effect3_innerShadow_18_23714"
+                          />
+                        </filter>
+                      </defs>
+                    </g>
+                  </svg>
+                ),
+              });
+            }
+          } else {
+            setDoc(
+              solveToEarnValue,
+              {
+                remainingSolveToEarn: 7,
+                lastSolveToEarnDate: formattedDate,
+              },
+              { merge: true }
+            );
+            setRemainingSolveToEarn(7);
+            sessionStorage.setItem("remainingSolveToEarn", 7);
+            toast.success("+7 passes has been added", {
+              icon: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1.5em"
+                  height="1.5em"
+                  viewBox="0 0 32 32"
+                >
+                  <g fill="none">
+                    <g filter="url(#f796id2)">
+                      <path
+                        fill="url(#f796id1)"
+                        fillRule="evenodd"
+                        d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
+                        clip-rule="evenodd"
+                      />
+                    </g>
+                    <path
+                      fill="url(#f796id0)"
+                      fillRule="evenodd"
+                      d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
+                      clip-rule="evenodd"
+                    />
+                    <defs>
+                      <radialGradient
+                        id="f796id0"
+                        cx="0"
+                        cy="0"
+                        r="1"
+                        gradientTransform="matrix(-16.24995 15.50005 -7.89314 -8.27501 19.328 13.719)"
+                        gradientUnits="userSpaceOnUse"
+                      >
+                        <stop
+                          offset=".935"
+                          stopColor="#f18849"
+                          stopOpacity="0"
+                        />
+                        <stop offset="1" stopColor="#cc6946" />
+                      </radialGradient>
+                      <linearGradient
+                        id="f796id1"
+                        x1="17.864"
+                        x2="17.493"
+                        y1="7.457"
+                        y2="29.939"
+                        gradientUnits="userSpaceOnUse"
+                      >
+                        <stop stopColor="#ffdc46" />
+                        <stop offset="1" stopColor="#f38e4a" />
+                      </linearGradient>
+                      <filter
+                        id="f796id2"
+                        width="28.573"
+                        height="28.392"
+                        x="1.781"
+                        y="1.924"
+                        colorInterpolationFilters="sRGB"
+                        filterUnits="userSpaceOnUse"
+                      >
+                        <feFlood
+                          flood-opacity="0"
+                          result="BackgroundImageFix"
+                        />
+                        <feBlend
+                          in="SourceGraphic"
+                          in2="BackgroundImageFix"
+                          result="shape"
+                        />
+                        <feColorMatrix
+                          in="SourceAlpha"
+                          result="hardAlpha"
+                          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                        />
+                        <feOffset dx=".35" dy="-.1" />
+                        <feGaussianBlur stdDeviation=".3" />
+                        <feComposite
+                          in2="hardAlpha"
+                          k2="-1"
+                          k3="1"
+                          operator="arithmetic"
+                        />
+                        <feColorMatrix values="0 0 0 0 0.803922 0 0 0 0 0.623529 0 0 0 0 0.294118 0 0 0 1 0" />
+                        <feBlend
+                          in2="shape"
+                          result="effect1_innerShadow_18_23714"
+                        />
+                        <feColorMatrix
+                          in="SourceAlpha"
+                          result="hardAlpha"
+                          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                        />
+                        <feOffset dy="-.15" />
+                        <feGaussianBlur stdDeviation=".3" />
+                        <feComposite
+                          in2="hardAlpha"
+                          k2="-1"
+                          k3="1"
+                          operator="arithmetic"
+                        />
+                        <feColorMatrix values="0 0 0 0 0.796078 0 0 0 0 0.505882 0 0 0 0 0.411765 0 0 0 1 0" />
+                        <feBlend
+                          in2="effect1_innerShadow_18_23714"
+                          result="effect2_innerShadow_18_23714"
+                        />
+                        <feColorMatrix
+                          in="SourceAlpha"
+                          result="hardAlpha"
+                          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                        />
+                        <feOffset dx="-.4" dy=".4" />
+                        <feGaussianBlur stdDeviation=".2" />
+                        <feComposite
+                          in2="hardAlpha"
+                          k2="-1"
+                          k3="1"
+                          operator="arithmetic"
+                        />
+                        <feColorMatrix values="0 0 0 0 0.996078 0 0 0 0 0.996078 0 0 0 0 0.423529 0 0 0 1 0" />
+                        <feBlend
+                          in2="effect2_innerShadow_18_23714"
+                          result="effect3_innerShadow_18_23714"
+                        />
+                      </filter>
+                    </defs>
+                  </g>
+                </svg>
+              ),
+              duration: 2000,
+            });
+          }
+        }
+        //dailycheckin
+        const checkTimeRef = doc(
+          dbfs,
+          "user",
+          telegramId,
+          "miningData",
+          "checkTime"
+        );
+        const snapshot = await getDoc(checkTimeRef);
+        if (snapshot.exists()) {
+          const checktime = snapshot.data().checktime;
+          const dailyDay = snapshot.data().daily;
+          const valueRef = doc(
+            dbfs,
+            "user",
+            telegramId,
+            "miningData",
+            "values"
+          );
+          const rewardsHistory = doc(
+            dbfs,
+            "user",
+            telegramId,
+            "rewardsHistory",
+            Date.now().toString()
+          );
+          const snapshotValue = await getDoc(valueRef);
+          let quant;
+          if (snapshotValue.exists()) {
+            quant = snapshotValue.data().QuantAmount;
+          }
+          if (!checktime) {
+            const formattedD = new Intl.DateTimeFormat("tr-TR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              timeZone: "UTC",
+            }).format(new Date());
+            const [day, month, year] = formattedD.split(".");
+            const formattedDate = `${month}/${day}/${year}`;
+            const formattedslash = `${day}/${month}/${year}`;
+            setDoc(
+              checkTimeRef,
+              {
+                checktime: formattedDate,
+                daily: 1,
+              },
+              { merge: true }
+            );
+            setDaily(1);
+            setTimeout(() => {
+              addToQueue(`You've got +${50} QNTM`, { duration: 3000 });
+            }, 3000);
+            const rewardDay = quant + 50;
+            const formattedAmount = rewardDay.toLocaleString("en-US", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            });
+            updateDoc(
+              valueRef,
+              {
+                QuantAmount: rewardDay,
+              },
+              { merge: true }
+            );
+            SetMainQuantAmount(formattedAmount);
+            setDoc(rewardsHistory, {
+              quant: 50,
+              platform: "dailycheck-in-reward",
+              Date: formattedslash,
+            });
+            const list = [
+              {
+                id: Date.now().toString(),
+                quant: 50,
+                date: formattedslash,
+                platform: (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2.5em"
+                    height="2.5em"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      fill="#fff"
+                      fillRule="evenodd"
+                      d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16m3.65-10.857L6.91 9.8L4.35 7.286a.5.5 0 0 0-.7.714l2.909 2.857a.5.5 0 0 0 .7 0l5.091-5a.5.5 0 1 0-.7-.714"
+                    />
+                  </svg>
+                ),
+                title: "Daily check-in",
+              },
+            ];
+            addNewTask(list);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("QAmount", rewardDay);
+            }
+            if (typeof window !== "undefined") {
+              localStorage.setItem("daily", 1);
+            }
+          } else {
+            try {
+              const formattedD = new Intl.DateTimeFormat("tr-TR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                timeZone: "UTC",
+              }).format(new Date());
+              const [day, month, year] = formattedD.split(".");
+              const formattedDateISO = `${year}-${month}-${day}`;
+              const formattedDate = `${month}/${day}/${year}`;
+              const formattedslash = `${day}/${month}/${year}`;
+              const diffInMs = Math.abs(
+                new Date(formattedDateISO).getTime() -
+                  new Date(checktime).getTime()
+              ); // use get time for accurate calc//
+              const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+              const quantReward = dailyDay <= 7 ? (daily - 1) * 100 + 50 : 650;
+              const rewardDay = quant + quantReward;
+              if (diffInDays >= 1 && diffInDays < 2) {
+                setDoc(
+                  checkTimeRef,
+                  {
+                    checktime: formattedDate,
+                    daily: dailyDay + 1,
+                  },
+                  { merge: true }
+                );
+                updateDoc(
+                  valueRef,
+                  {
+                    QuantAmount: rewardDay,
+                  },
+                  { merge: true }
+                );
+                setDoc(rewardsHistory, {
+                  quant: quantReward,
+                  platform: "dailycheck-in-reward",
+                  Date: formattedslash,
+                });
+                const list = [
+                  {
+                    id: Date.now().toString(),
+                    quant: quantReward,
+                    date: formattedslash,
+                    platform: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="2.5em"
+                        height="2.5em"
+                        viewBox="0 0 16 16"
+                      >
+                        <path
+                          fill="#fff"
+                          fillRule="evenodd"
+                          d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16m3.65-10.857L6.91 9.8L4.35 7.286a.5.5 0 0 0-.7.714l2.909 2.857a.5.5 0 0 0 .7 0l5.091-5a.5.5 0 1 0-.7-.714"
+                        />
+                      </svg>
+                    ),
+                    title: "Daily check-in",
+                  },
+                ];
+                addNewTask(list);
+                const formattedAmount = rewardDay.toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                });
+
+                SetMainQuantAmount(formattedAmount);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("QAmount", rewardDay);
+                }
+                setDaily(dailyDay + 1);
+                setTimeout(() => {
+                  addToQueue(`You've got +${quantReward} QNTM`, {
+                    duration: 3000,
+                  });
+                }, 3000);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("daily", dailyDay + 1);
+                }
+                console.error("Claimed");
+              } else if (diffInDays >= 2) {
+                const rewardDay = quant + 50;
+                setDoc(
+                  checkTimeRef,
+                  {
+                    checktime: formattedDate,
+                    daily: 1,
+                  },
+                  { merge: true }
+                );
+                updateDoc(
+                  valueRef,
+                  {
+                    QuantAmount: rewardDay,
+                  },
+                  { merge: true }
+                );
+                const formattedAmount = rewardDay.toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                });
+                setDoc(rewardsHistory, {
+                  quant: 50,
+                  platform: "dailycheck-in-reward",
+                  Date: formattedslash,
+                });
+                const list = [
+                  {
+                    id: Date.now().toString(),
+                    quant: 50,
+                    date: formattedslash,
+                    platform: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="2.5em"
+                        height="2.5em"
+                        viewBox="0 0 16 16"
+                      >
+                        <path
+                          fill="#fff"
+                          fillRule="evenodd"
+                          d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16m3.65-10.857L6.91 9.8L4.35 7.286a.5.5 0 0 0-.7.714l2.909 2.857a.5.5 0 0 0 .7 0l5.091-5a.5.5 0 1 0-.7-.714"
+                        />
+                      </svg>
+                    ),
+                    title: "Daily check-in",
+                  },
+                ];
+                addNewTask(list);
+                SetMainQuantAmount(formattedAmount);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("QAmount", rewardDay);
+                }
+                setDaily(1);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("daily", 1);
+                }
+                setTimeout(() => {
+                  addToQueue(`You've got +${50} QNTM`, { duration: 3000 });
+                }, 3000);
+                console.error("Claimed");
+              } else {
+                setIsclaimDay(true);
+              }
+            } catch (error) {
+              console.error(error);
+            }
+          }
+        } else {
+          const formattedDate = new Intl.DateTimeFormat("tr-TR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            timeZone: "UTC",
+          }).format(new Date());
+          setDoc(
+            checkTimeRef,
+            {
+              checktime: formattedDate,
+              daily: 2,
+            },
+            { merge: true }
+          );
+          const valueRef = doc(
+            dbfs,
+            "user",
+            telegramId,
+            "miningData",
+            "values"
+          );
+          const snapshotValue = await getDoc(valueRef);
+          let quant;
+          if (snapshotValue.exists()) {
+            quant = snapshotValue.data().QuantAmount;
+          }
+          const rewardDay = quant + 50;
+          const formattedAmount = rewardDay.toLocaleString("en-US", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          });
+          updateDoc(
+            valueRef,
+            {
+              QuantAmount: rewardDay,
+            },
+            { merge: true }
+          );
+          setDoc(rewardsHistory, {
+            quant: 50,
+            platform: "dailycheck-in-reward",
+            Date: formattedslash,
+          });
+          const list = [
+            {
+              id: Date.now().toString(),
+              quant: quantReward,
+              date: formattedslash,
+              platform: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="2.5em"
+                  height="2.5em"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    fill="#fff"
+                    fillRule="evenodd"
+                    d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16m3.65-10.857L6.91 9.8L4.35 7.286a.5.5 0 0 0-.7.714l2.909 2.857a.5.5 0 0 0 .7 0l5.091-5a.5.5 0 1 0-.7-.714"
+                  />
+                </svg>
+              ),
+              title: "Daily check-in",
+            },
+          ];
+          addNewTask(list);
+          SetMainQuantAmount(formattedAmount);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("QAmount", formattedAmount);
+          }
+          setDaily(1);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("daily", 1);
+          }
+          setTimeout(() => {
+            addToQueue(`You've got +${50} QNTM`, { duration: 3000 });
+          }, 3000);
+        }
+      } catch (error) {
+        console.error(error.message);
+      } finally {
+        setLoadingDay(false);
+        setIsclaimDay(true);
+      }
+    };
+    claim();
+  }
+  const addToQueue = (message) => {
+    toastQueue.push(message);
+    if (toastQueue.length === 1) processQueue();
+  };
+
+  const processQueue = () => {
+    if (toastQueue.length === 0) return;
+
+    const currentMessage = toastQueue[0];
+    toast.success(currentMessage, {
+      duration: 2000,
+      onClose: () => {
+        toastQueue.shift();
+        processQueue();
+      },
+    });
+  };
+  const TaskTimer = () => {
+    const now = new Date();
+    const tomorrowMidnightUTC = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1,
+        0,
+        0,
+        0,
+        0
+      )
+    );
+
+    const tomorrowMidnightUTCTimestamp = tomorrowMidnightUTC.getTime();
+    const [remainingTime, setRemainingTime] = useState(
+      calculateRemainingTime(tomorrowMidnightUTCTimestamp)
+    );
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setRemainingTime(calculateRemainingTime(tomorrowMidnightUTCTimestamp));
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, [tomorrowMidnightUTCTimestamp]);
+
+    return <div>{remainingTime}</div>;
+  };
+  return (
+    <main className="flex flex-col overflow-auto">
+      <div className="main-wrapper">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div>
+              <Toaster
+                toastOptions={{
+                  duration: 3000,
+                  success: {
+                    iconTheme: {
+                      primary: "white",
+                      secondary: "black",
+                    },
+                  },
+                  error: {
+                    iconTheme: {
+                      primary: "red",
+                      secondary: "white",
+                    },
+                  },
+                  className: "mt-14 font-medium",
+                  style: {
+                    padding: "0px",
+                    background: "#202021",
+                    color: "#fff",
+                  },
+                }}
+                position="top-center"
+              >
+                {(t) => (
+                  <ToastBar toast={t}>
+                    {({ icon, message }) => (
+                      <div
+                        className={`flex items-center p-2 rounded-lg ${
+                          t.type === "success"
+                            ? "bg-[#202021] text-white"
+                            : t.type === "error"
+                            ? "bg-[#202021] text-white"
+                            : "bg-[#202021] text-white"
+                        }`}
+                      >
+                        {icon}
+                        <span>{message}</span>
+                      </div>
+                    )}
+                  </ToastBar>
+                )}
+              </Toaster>
+              {/* Tab navigation mining and home  */}
+              <div className="flex flex-col w-full justify-center items-center px-4 py-4 gap-0 md:flex-row">
+                <div className="inline-flex h-9 items-baseline bg-[#202021] justify-start p-1 rounded-lg sm:w-auto">
+                  <Link
+                    href={"/home"}
+                    className="group inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-medium transition-all duration-300 ease-in-out min-w-[30px]
+                  gap-3 text-xs h-7 w-full rounded-lg px-3 sm:w-auto text-black bg-white"
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    href={"/mine"}
+                    className="group inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-medium transition-all duration-300 ease-in-out min-w-[30px]
+                  gap-3 text-xs h-7 w-full rounded-lg px-3 sm:w-auto"
+                  >
+                    Mining
+                  </Link>
+                </div>
+                <button
+                  onClick={send()}
+                  className="flex bg-[#202021] items-center font-medium rounded-lg mt-3 px-3 py-2"
+                >
+                  Initiate transaction
+                </button>
+              </div>
+              {/* Connect wallet button */}
+              {walletAddress ? (
+                <button
+                  onClick={() => setActiveWalletTab(true)}
+                  className="w-full flex justify-center mt-6 mb-8"
+                >
+                  <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="1.5em"
+                      height="1.5em"
+                      viewBox="0 0 24 24"
+                    >
+                      <g fill="#fff" fillRule="evenodd" clipRule="evenodd">
+                        <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
+                        <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
+                      </g>
+                    </svg>
+                    <div>{formatAddress(walletAddress)}</div>
+                    <div>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="1.2em"
+                        height="1.2em"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          fill="#fff"
+                          fillRule="evenodd"
+                          d="m6 7l6 6l6-6l2 2l-8 8l-8-8z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    handleWalletAction();
+                  }}
+                  className="w-full flex justify-center mt-6 mb-8"
+                >
+                  <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="1.5em"
+                      height="1.5em"
+                      viewBox="0 0 24 24"
+                    >
+                      <g fill="#fff" fillRule="evenodd" clipRule="evenodd">
+                        <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
+                        <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
+                      </g>
+                    </svg>
+                    <span>Connect wallet</span>
+                  </div>
+                </button>
+              )}
+
+              {/* QNTM Balance */}
+              <div className="flex flex-col items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="7em"
+                  height="7em"
+                  className="mb-3"
+                  viewBox="0 0 32 32"
+                >
+                  <path
+                    fill="#fff"
+                    d="M27.328 12.036c-2.912-1.239-6.823-2.041-11-2.26a32 32 0 0 0-1.932-.057c3.088-3.771 6.401-6.303 8.583-6.385q.644-.022 1.084.26c.943.615 1.203 2.36.724 4.787c-.052.333.161.661.479.724a.61.61 0 0 0 .724-.479c.599-3.041.156-5.131-1.255-6.052c-.505-.333-1.12-.491-1.803-.464c-2.729.104-6.583 3.068-10.12 7.631a35 35 0 0 0-4.307.38c-.86-3.865-.521-6.636.792-7.303c.181-.099.38-.145.609-.167c.932-.072 2.213.527 3.615 1.693c.26.213.645.187.859-.079a.606.606 0 0 0-.077-.859c-1.683-1.391-3.229-2.073-4.496-1.98a3 3 0 0 0-1.072.292c-1.589.812-2.224 3.104-1.828 6.453c.093.692.213 1.416.391 2.156c-4.376.875-7.161 2.631-7.281 4.833c-.084 1.563 1.151 3.047 3.572 4.297a.61.61 0 0 0 .824-.265a.607.607 0 0 0-.267-.824c-1.932-.995-2.973-2.115-2.911-3.14c.068-1.443 2.364-2.923 6.349-3.708a36 36 0 0 0 1.4 4.119c-1.359 2.516-2.344 4.996-2.848 7.199c-.751 3.287-.349 5.631 1.145 6.599c.479.312 1.036.469 1.661.469c1.245 0 2.755-.615 4.464-1.833a.611.611 0 1 0-.71-.995c-2.057 1.473-3.791 1.963-4.749 1.337c-1.011-.661-1.235-2.588-.609-5.301c.421-1.849 1.208-3.907 2.276-6.027q.4.875.839 1.751c1.901 3.729 4.229 6.968 6.547 9.131c1.849 1.719 3.568 2.615 4.979 2.615c.469 0 .907-.1 1.303-.297c1.525-.781 2.188-2.948 1.864-6.099c-.296-2.953-1.411-6.548-3.14-10.136a.614.614 0 0 0-.812-.287a.614.614 0 0 0-.292.819c3.583 7.468 3.839 13.583 1.828 14.609c-2.125 1.088-7.235-3.141-11.188-10.907a36 36 0 0 1-1.203-2.573c.453-.807.932-1.625 1.464-2.437a44 44 0 0 1 1.629-2.328h.527c.719 0 1.5.016 2.312.063c8.703.459 14.631 3.416 14.511 5.781c-.052 1.02-1.235 2.052-3.235 2.828a.612.612 0 0 0 .443 1.14c2.541-.984 3.937-2.339 4.016-3.905c.093-1.772-1.557-3.48-4.667-4.803v-.011zm-16.557.563a39 39 0 0 0-1.016 1.661a31 31 0 0 1-.963-2.953a33 33 0 0 1 3.077-.323a33 33 0 0 0-1.093 1.615v-.015zm5.234 1.568c-2.443 0-2.443 3.667 0 3.667c2.448 0 2.448-3.667 0-3.667"
+                  />
+                </svg>
+                <div className="flex items-center gap-2 text-center">
+                  <div className="text-5xl font-bold mb-1">
+                    <AnimatePresence mode="popLayout">
+                      <motion.div
+                        key={MainQuantAmount}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {MainQuantAmount}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                  <div className="text-2xl">QNTM</div>
+                </div>
+                <div className="flex items-center justify-center gap-1 text-[#868686] rounded-full px-4 py-1.5 mt-1 cursor-pointer">
+                  <span>{rank}</span>
+                  <span className="flex items-center justify-center">
+                    {rankIcon}
+                  </span>
+                  <span>RANK</span>
+                </div>
+                <div className="flex items-center">
+                  <button onClick={() => setActiveTab(!activeTab)}>
+                    <span>Rewards history</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="1.2em"
+                      height="1.2em"
+                      className="inline align-middle"
+                      viewBox="-6 0 24 24"
+                    >
+                      <path
+                        fill="#fff"
+                        fillRule="evenodd"
+                        d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between bg-[#ffd8a8] rounded-2xl max-w-80 mx-auto p-4 mt-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="2.5em"
+                      height="2.5em"
+                      viewBox="0 0 32 32"
+                    >
+                      <g fill="none">
+                        <path
+                          fill="url(#f517id0)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <path
+                          fill="url(#f517id1)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <path
+                          fill="url(#f517idb)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <path
+                          fill="url(#f517id2)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <path
+                          fill="url(#f517id3)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <path
+                          fill="url(#f517id4)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <path
+                          fill="url(#f517id5)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <path
+                          fill="url(#f517id6)"
+                          d="M12.555 8.935c1.537-2.397 2.447-4.611 2.921-6.177c.182-.6.95-.845 1.406-.415c6.873 6.481 9.12 11.43 9.567 17.148c.328 5.531-2.39 10.453-9.687 10.453c-6.85 0-11.907-4.781-11.22-12.36c.412-4.528 2.173-7.979 3.58-10.033c.438-.639 1.351-.648 1.856-.06l1.259 1.466c.087.101.246.09.318-.022"
+                        />
+                        <g filter="url(#f517idf)">
+                          <path
+                            fill="url(#f517id7)"
+                            d="M10.178 19.877c1.302-3.1 3.975-6.529 5.78-8.39a1.336 1.336 0 0 1 1.872-.038c3.461 3.189 4.503 6.072 5.387 9.428c.92 3.492 0 9.118-6.921 9.118c-5.96 0-8.026-5.578-6.118-10.118"
+                          />
+                          <path
+                            fill="url(#f517id8)"
+                            d="M10.178 19.877c1.302-3.1 3.975-6.529 5.78-8.39a1.336 1.336 0 0 1 1.872-.038c3.461 3.189 4.503 6.072 5.387 9.428c.92 3.492 0 9.118-6.921 9.118c-5.96 0-8.026-5.578-6.118-10.118"
+                          />
+                          <path
+                            fill="url(#f517id9)"
+                            d="M10.178 19.877c1.302-3.1 3.975-6.529 5.78-8.39a1.336 1.336 0 0 1 1.872-.038c3.461 3.189 4.503 6.072 5.387 9.428c.92 3.492 0 9.118-6.921 9.118c-5.96 0-8.026-5.578-6.118-10.118"
+                          />
+                        </g>
+                        <path
+                          fill="url(#f517idc)"
+                          d="M10.178 19.877c1.302-3.1 3.975-6.529 5.78-8.39a1.336 1.336 0 0 1 1.872-.038c3.461 3.189 4.503 6.072 5.387 9.428c.92 3.492 0 9.118-6.921 9.118c-5.96 0-8.026-5.578-6.118-10.118"
+                        />
+                        <path
+                          fill="url(#f517ida)"
+                          d="M10.178 19.877c1.302-3.1 3.975-6.529 5.78-8.39a1.336 1.336 0 0 1 1.872-.038c3.461 3.189 4.503 6.072 5.387 9.428c.92 3.492 0 9.118-6.921 9.118c-5.96 0-8.026-5.578-6.118-10.118"
+                        />
+                        <g filter="url(#f517idg)">
+                          <path
+                            fill="url(#f517idd)"
+                            d="M11.814 11.539c2.315-3.39 3.67-7.058 4.083-7.962c-.603 4.634-2.36 8.028-5.668 12.398c-2.646 3.496-3.124 6.488-3.101 7.217c-.827-5.562 1.791-7.416 4.686-11.653"
+                          />
+                        </g>
+                        <g filter="url(#f517idh)">
+                          <path
+                            fill="url(#f517ide)"
+                            d="M9.814 7.874c-1.3 1.614-3.884 6.09-3.82 11.084c1.28-5.122 4.275-6.736 3.82-11.084"
+                          />
+                        </g>
+                        <defs>
+                          <radialGradient
+                            id="f517id0"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="rotate(-179.474 12.046 9.805)scale(17.0988 25.7861)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ff953d" />
+                            <stop offset="1" stopColor="#ff5141" />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id1"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="rotate(-157.937 6.712 6.816)scale(10.3441 17.8495)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ce5327" />
+                            <stop
+                              offset="1"
+                              stopColor="#ce5327"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id2"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="rotate(24.015 -31.353 18.85)scale(3.10465 25.6991)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ffaa7b" />
+                            <stop
+                              offset="1"
+                              stopColor="#ffaa7b"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id3"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="matrix(.843 3.74668 -4.675 1.05188 9.31 6.25)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ff5e47" />
+                            <stop
+                              offset="1"
+                              stopColor="#ff5e47"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id4"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="matrix(.37467 10.13047 -9.3768 .3468 16.429 1.366)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ff2f3c" />
+                            <stop
+                              offset="1"
+                              stopColor="#ff2f3c"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id5"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="matrix(2.07795 .9835 -1.9737 4.17002 13.9 4.8)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ff846c" />
+                            <stop
+                              offset="1"
+                              stopColor="#ff846c"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id6"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="matrix(-.89842 2.09375 -.4798 -.20588 12.458 8.21)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ffa682" />
+                            <stop
+                              offset="1"
+                              stopColor="#ffa682"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id7"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="rotate(-168.558 11.823 11.126)scale(10.0291 12.4891)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ffda2f" />
+                            <stop offset="1" stopColor="#ff8e41" />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id8"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="matrix(5.05808 13.20705 -11.47512 4.39478 12.4 8.592)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#fd5639" />
+                            <stop
+                              offset="1"
+                              stopColor="#fe5533"
+                              stopOpacity="0"
+                            />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517id9"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="matrix(-9.74917 .98358 -2.40823 -23.87023 19.239 20.629)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop
+                              offset=".628"
+                              stopColor="#d7812d"
+                              stopOpacity="0"
+                            />
+                            <stop offset="1" stopColor="#d7812d" />
+                          </radialGradient>
+                          <radialGradient
+                            id="f517ida"
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            gradientTransform="rotate(143.063 8.353 13.24)scale(16.0546 11.6174)"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop
+                              offset=".772"
+                              stopColor="#f18a52"
+                              stopOpacity="0"
+                            />
+                            <stop offset="1" stopColor="#f18a52" />
+                          </radialGradient>
+                          <linearGradient
+                            id="f517idb"
+                            x1="18.336"
+                            x2="18.336"
+                            y1="29.944"
+                            y2="24.846"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ff7583" />
+                            <stop
+                              offset="1"
+                              stopColor="#ff7583"
+                              stopOpacity="0"
+                            />
+                          </linearGradient>
+                          <linearGradient
+                            id="f517idc"
+                            x1="16.503"
+                            x2="16.503"
+                            y1="10.612"
+                            y2="14.259"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#f95131" />
+                            <stop
+                              offset="1"
+                              stopColor="#f95131"
+                              stopOpacity="0"
+                            />
+                          </linearGradient>
+                          <linearGradient
+                            id="f517idd"
+                            x1="14.996"
+                            x2="7.655"
+                            y1="4.255"
+                            y2="22.732"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ff7558" />
+                            <stop offset="1" stopColor="#f38758" />
+                          </linearGradient>
+                          <linearGradient
+                            id="f517ide"
+                            x1="9.541"
+                            x2="5.582"
+                            y1="8.144"
+                            y2="19.479"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop stopColor="#ff815b" />
+                            <stop offset="1" stopColor="#ff9c6d" />
+                          </linearGradient>
+                          <filter
+                            id="f517idf"
+                            width="14.525"
+                            height="18.91"
+                            x="9.49"
+                            y="11.085"
+                            colorInterpolationFilters="sRGB"
+                            filterUnits="userSpaceOnUse"
+                          >
+                            <feFlood
+                              floodOpacity="0"
+                              result="BackgroundImageFix"
+                            />
+                            <feBlend
+                              in="SourceGraphic"
+                              in2="BackgroundImageFix"
+                              result="shape"
+                            />
+                            <feColorMatrix
+                              in="SourceAlpha"
+                              result="hardAlpha"
+                              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                            />
+                            <feOffset dx=".5" />
+                            <feGaussianBlur stdDeviation=".25" />
+                            <feComposite
+                              in2="hardAlpha"
+                              k2="-1"
+                              k3="1"
+                              operator="arithmetic"
+                            />
+                            <feColorMatrix values="0 0 0 0 0.952941 0 0 0 0 0.615686 0 0 0 0 0.364706 0 0 0 1 0" />
+                            <feBlend
+                              in2="shape"
+                              result="effect1_innerShadow_18_15821"
+                            />
+                          </filter>
+                          <filter
+                            id="f517idg"
+                            width="11.424"
+                            height="22.115"
+                            x="5.723"
+                            y="2.327"
+                            colorInterpolationFilters="sRGB"
+                            filterUnits="userSpaceOnUse"
+                          >
+                            <feFlood
+                              floodOpacity="0"
+                              result="BackgroundImageFix"
+                            />
+                            <feBlend
+                              in="SourceGraphic"
+                              in2="BackgroundImageFix"
+                              result="shape"
+                            />
+                            <feGaussianBlur
+                              result="effect1_foregroundBlur_18_15821"
+                              stdDeviation=".625"
+                            />
+                          </filter>
+                          <filter
+                            id="f517idh"
+                            width="6.868"
+                            height="14.084"
+                            x="4.492"
+                            y="6.374"
+                            colorInterpolationFilters="sRGB"
+                            filterUnits="userSpaceOnUse"
+                          >
+                            <feFlood
+                              floodOpacity="0"
+                              result="BackgroundImageFix"
+                            />
+                            <feBlend
+                              in="SourceGraphic"
+                              in2="BackgroundImageFix"
+                              result="shape"
+                            />
+                            <feGaussianBlur
+                              result="effect1_foregroundBlur_18_15821"
+                              stdDeviation=".75"
+                            />
+                          </filter>
+                        </defs>
+                      </g>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="font-normal text-black text-sm">
+                      {daily} days check-in
+                    </div>
+                    <div className="font-normal text-black text-sm">
+                      Claimable in{" "}
+                      <div className="inline-block">
+                        <TaskTimer />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <button
+                    id="dailyClaimButton"
+                    onClick={() => ClaimDaily()}
+                    disabled={isClaimDay}
+                    className={
+                      !isClaimDay
+                        ? "w-16 h-9 rounded-full bg-orange-500 text-white text-sm" //Claim
+                        : "w-16 h-9 rounded-full bg-gray-500 opacity-30 text-black text-sm"
+                    } // Claimed
+                  >
+                    {loadingDay ? (
+                      <ButtonLoader />
+                    ) : isClaimDay ? (
+                      <div className="flex items-center justify-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="1.2em"
+                          height="1.2em"
+                          viewBox="0 0 24 24"
+                        >
+                          <g fill="#fff">
+                            <path d="M10.243 16.314L6 12.07l1.414-1.414l2.829 2.828l5.656-5.657l1.415 1.415z" />
+                            <path
+                              fillRule="evenodd"
+                              d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12m11 9a9 9 0 1 1 0-18a9 9 0 0 1 0 18"
+                              clipRule="evenodd"
+                            />
+                          </g>
+                        </svg>
+                      </div>
+                    ) : (
+                      <div>Claim</div>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="px-4 mt-3">
+                <div className="flex items-center justify-between p-4 bg-[#151516] rounded-2xl max-w-80 mx-auto">
+                  <div className="flex flex-col">
+                    <div className="font-medium text-xl">TGE Progress</div>
+                    <div className="font-medium text-base mt-1 text-gray-500">
+                      Currently in Building Phase.
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => router.push("/home/roadmap-page")}
+                        className="font-normal text-sm rounded-full bg-white text-black py-2 px-4 mt-4 opacity"
+                      >
+                        Roadmap
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative size-40 flex items-center justify-center">
+                    <svg
+                      className="size-full -rotate-90"
+                      viewBox="0 0 36 36"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        cx={18}
+                        cy={18}
+                        r={13}
+                        fill="none"
+                        className="stroke-current text-neutral-700"
+                        strokeWidth={2}
+                      ></circle>
+                      {/*progress circle*/}
+                      <circle
+                        cx={18}
+                        cy={18}
+                        r={13}
+                        fill="none"
+                        className="stroke-current text-blue-500"
+                        strokeWidth={2}
+                        strokeDasharray={100}
+                        strokeDashoffset={97}
+                        strokeLinecap="round"
+                      ></circle>
+                    </svg>
+                    <div className="absolute top-1/2 start-1/2 transform -translate-y-1/2 -translate-x-1/2">
+                      <div className="text-center font-semibold text-2xl">
+                        3%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3">
+                <CheckStory />
+              </div>
+              {/* scrollable container */}
+              <div className="flex overflow-x-scroll snap-x snap-mandatory scrollbar-hide space-x-4 px-12 scroll-smooth">
+                {/*Card 1*/}
+                <div className="snap-center min-w-[20rem] mt-3 p-6 bg-[#202020] border border-black rounded-xl shadow dark:border-black">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="3em"
+                    height="3em"
+                    viewBox="0 0 256 256"
+                  >
+                    <defs>
+                      <linearGradient
+                        id="logosTelegram0"
+                        x1="50%"
+                        x2="50%"
+                        y1="0%"
+                        y2="100%"
+                      >
+                        <stop offset="0%" stopColor="#2aabee" />
+                        <stop offset="100%" stopColor="#229ed9" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      fill="url(#logosTelegram0)"
+                      d="M128 0C94.06 0 61.48 13.494 37.5 37.49A128.04 128.04 0 0 0 0 128c0 33.934 13.5 66.514 37.5 90.51C61.48 242.506 94.06 256 128 256s66.52-13.494 90.5-37.49c24-23.996 37.5-56.576 37.5-90.51s-13.5-66.514-37.5-90.51C194.52 13.494 161.94 0 128 0"
+                    />
+                    <path
+                      fill="#fff"
+                      d="M57.94 126.648q55.98-24.384 74.64-32.152c35.56-14.786 42.94-17.354 47.76-17.441c1.06-.017 3.42.245 4.96 1.49c1.28 1.05 1.64 2.47 1.82 3.467c.16.996.38 3.266.2 5.038c-1.92 20.24-10.26 69.356-14.5 92.026c-1.78 9.592-5.32 12.808-8.74 13.122c-7.44.684-13.08-4.912-20.28-9.63c-11.26-7.386-17.62-11.982-28.56-19.188c-12.64-8.328-4.44-12.906 2.76-20.386c1.88-1.958 34.64-31.748 35.26-34.45c.08-.338.16-1.598-.6-2.262c-.74-.666-1.84-.438-2.64-.258c-1.14.256-19.12 12.152-54 35.686c-5.1 3.508-9.72 5.218-13.88 5.128c-4.56-.098-13.36-2.584-19.9-4.708c-8-2.606-14.38-3.984-13.82-8.41c.28-2.304 3.46-4.662 9.52-7.072"
+                    />
+                  </svg>
+                  <h5 className="mb-2 text-2xl font-semibold tracking-tight  dark:text-white mt-2">
+                    Home of OGs
+                  </h5>
+                  <p className="mb-3 font-normal text-gray-500 dark:text-gray-400">
+                    Join our Telegram club so you don't miss the latest
+                    announcements.
+                  </p>
+                  <button
+                    id="joinbutton"
+                    onClick={() => handleJoinTask()}
+                    className="text-black bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 focus:outline-none"
+                  >
+                    Join community
+                  </button>
+                </div>
+                {/*Card 2*/}
+                {/*<div className="snap-center min-w-[20rem] mt-3 p-6 bg-[#202020] border border-black rounded-xl shadow dark:border-black">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="3em"
+                    height="3em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="#fff"
+                      d="M11.415 2.311c-.309.171-.6.331-.655.356a52 52 0 0 0-1.115.606c-.037.023-.995.544-1.093.594c-.05.025-.858.467-1.66.906c-.244.134-.461.25-.482.258a1 1 0 0 0-.126.064c-.048.028-.353.2-.678.375l-.885.486c-.162.09-.347.189-.41.219a9 9 0 0 0-.464.25c-.049.029-.329.183-.623.344l-.8.438c-.145.08-.269.146-.277.147a.4.4 0 0 0-.085.04l-.07.039V19.7h1.171v-3.864h1.126V19.7h4.263v-1.17H5.47v-3.864H3.163V8.143l.3-.163l.681-.374l.519-.282C4.866 7.216 6 6.6 6.142 6.518a26 26 0 0 1 .661-.361c.12-.061 1.549-.839 1.645-.9c.13-.076.484-.268.574-.31c.071-.034.382-.2.553-.3a1 1 0 0 1 .1-.051s.005.288 0 .64v.641l-.175.097c-.094.051-.268.144-.388.205s-.308.162-.416.222s-.442.244-.743.408s-.576.316-.612.338c-.1.061-.374.207-.386.207s-.757.4-.767.415s-.249.139-.547.3s-.58.316-.628.345a1.2 1.2 0 0 1-.205.109s-.125.063-.266.139l-.256.14v4.738h2.681v3.76h1.169v-3.88c0-2.194 0-3.88-.009-3.88A1 1 0 0 0 8 9.611a1 1 0 0 1-.135.072c-.007 0-.129.069-.27.152l-.44.258l-.183.107v2.16H5.47V9.506l.29-.16c.818-.45 1.533-.84 1.6-.874a60 60 0 0 0 1.1-.6a53 53 0 0 1 1.067-.58c.189-.098 1.2-.648 1.265-.691l.063-.039V3.946l.117-.064a25 25 0 0 0 .956-.514l.062-.038l.074.043c.144.084.748.409.816.439c.037.017.122.062.188.1l.7.384c.318.174.584.32.59.325c.021.017.612.336.667.361s.374.2.574.311l.082.047v1.28l-.134-.074c-.359-.2-.63-.346-.669-.363a7 7 0 0 1-.309-.163c-.146-.08-.536-.3-.868-.478a32 32 0 0 1-.671-.37a2 2 0 0 0-.2-.1c-.076-.031-.29-.152-.484-.257S12 4.621 12 4.624s-.008 1.213-.012 2.69A204 204 0 0 1 11.972 10a.1.1 0 0 1-.033-.02a11 11 0 0 0-.524-.3a7 7 0 0 1-.336-.191c-.439-.257-1.4-.816-1.414-.82s-.009.894-.009 2v2l.035.023c.062.041.745.432.773.443s.348.192.372.212c.009.007.28.166.6.352s.637.37.7.408l.2.119c.109.06.11.052-.011.113a4 4 0 0 0-.222.123c-.066.04-.376.22-.688.4s-.576.337-.585.345s-.017-.016-.019-.279v-.3l-.052-.033a9 9 0 0 0-.441-.251a7 7 0 0 1-.352-.2a6 6 0 0 0-.309-.176c-.003 0 0 .733 0 1.628v1.629s.234-.131.511-.292l.522-.3l1.2-.688a.3.3 0 0 0 .049-.032s.181-.107.4-.23a210 210 0 0 0 2.236-1.295a2 2 0 0 0 .192-.12a2 2 0 0 0-.219-.136c-.12-.07-.232-.137-.25-.149s-.3-.174-.617-.36s-.6-.346-.615-.357a41 41 0 0 1-1.101-.632a44 44 0 0 0-1.087-.623a.1.1 0 0 1-.041-.011l-.023-.019v-1.293l.06.035l.109.062c.1.054.959.549 1.022.59c.112.071 1.033.6 1.045.6a.6.6 0 0 1 .119.065a2 2 0 0 0 .381.2l.25-.14c.746-.427.891-.512.891-.522a2 2 0 0 0-.21-.133a44 44 0 0 0-1.036-.594c-.008 0-.076-.038-.157-.084l-.149-.084V9.469c0-.668 0-1.592.007-2.052l.008-.838l.044.027c.044.026.782.427 1.755.954c.262.141.515.28.563.308c.172.1 1.119.612 1.135.612a.02.02 0 0 1 .02.009a1.3 1.3 0 0 0 .178.1s.006-.585.006-1.3v-1.3l.243.124c.134.069.359.188.5.267l.853.467c.328.178.6.331.612.338s.073.042.142.077c.12.059.586.312 1.29.7l.322.178v6.124H19.7V8.8l-.232-.124l-.358-.189a2 2 0 0 1-.142-.076c-.027-.022-.946-.52-.96-.52a5 5 0 0 0-.008.664v.665l.268.145l.267.146V11l-.13-.076a1 1 0 0 0-.141-.076c-.012 0-.391-.218-.455-.262a27 27 0 0 0-.623-.366c-.323-.185-.636-.37-.705-.412a2 2 0 0 0-.186-.1a24 24 0 0 1-.814-.468a60 60 0 0 0-1.18-.683c-.009 0-.006.3-.006.675v.674l.04.027l.614.359c.314.183.6.349.63.369s.109.065.175.1c.131.069.918.523.944.545s.507.3 1.511.874l.325.187v3.065h2.3v5.4H19.7v-4.264h-1.17v4.263h-7.672V19.7h6.547v-1.17h-3.312v-1.06l.074-.046c.04-.025.334-.2.653-.381l.623-.364a1 1 0 0 1 .093-.052c.052-.025.962-.551 1.054-.609l.432-.254l.377-.219v-2.411l-.373-.216c-.206-.118-.381-.22-.388-.227a27 27 0 0 0-.81-.462a3 3 0 0 0-.309.175c-.024.016-.224.133-.446.262a4 4 0 0 0-.4.245a3 3 0 0 0 .363.214c.067.035.2.113.306.173s.345.2.539.314l.352.205v1.049l-.358.209l-.546.32c-.1.061-.2.116-.218.122a24 24 0 0 0-.753.434c-.009.007-.269.16-.579.339s-.583.339-.608.356a.3.3 0 0 1-.056.031a1 1 0 0 0-.1.051l-.088.05v1.757h-3.25v2.3H1.994V22h20.012V7.431L21.9 7.38a14 14 0 0 1-.631-.34c-.03-.018-.288-.159-.574-.314s-.543-.3-.573-.315a7 7 0 0 0-.409-.22c-.026-.008-.2-.1-.4-.216c-1.006-.552-1.535-.84-1.729-.943c-.118-.062-.383-.207-.591-.32c-.715-.393-1.448-.794-1.541-.842s-.741-.4-1.659-.905a15 15 0 0 0-.52-.278a1 1 0 0 1-.122-.063A42 42 0 0 0 11.993 2c-.015 0-.268.141-.578.311"
+                    />
+                  </svg>
+                  <h5 className="mb-2 text-2xl font-semibold tracking-tight  dark:text-white mt-2">
+                    {t('solvetoearnTire')}
+                  </h5>
+                  <p className="mb-3 font-normal text-gray-500 dark:text-gray-400">
+                  {t('solveText')} 
+                  </p>
+                  <button className="text-white bg-gradient-to-br from-pink-500 to-orange-400 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 focus:outline-none">
+                    Let's go
+                  </button>
+                </div>*/}
+                {/* card 3*/}
+                {/*<div className="snap-center mt-3 min-w-[20rem] p-6 bg-[#202020] border border-black rounded-xl shadow dark:border-black">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="3em"
+                    height="3em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="none"
+                      stroke="#fff"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M2 20a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1a2.4 2.4 0 0 1 2-1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1a2.4 2.4 0 0 1 2-1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1M4 18l-1-5h18l-2 4M5 13V7h8l4 6M7 7V3H6"
+                    />
+                  </svg>
+                  <h5 className="mb-2 text-2xl font-semibold tracking-tight dark:text-white mt-2">
+                    {t('upcominghistory')}
+                  </h5>
+                 { <p className="mb-3 font-normal text-gray-500 dark:text-gray-400">
+                    {t('glimpse')} <br/>{t('fren')}
+                  </p>}
+                  <button className="text-white bg-gradient-to-r from-cyan-500 to-blue-500 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 focus:outline-none">
+                    {t('exploreButton')}
+                  </button>
+                </div>*/}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+        <AnimatePresence>
+          {/*Wallet Tab */}
+          {isActiveWalletTab && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="bg-black/50 flex justify-center items-end z-50 fixed inset-0"
+              onClick={() => setActiveWalletTab(false)}
+            >
+              <motion.div
+                initial={{ y: "50%" }}
+                animate={{ y: 30 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="bg-black rounded-t-2xl w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center border-b border-b-[#303031] p-4">
+                  <div className="flex-1 text-center font-semibold text-xl">
+                    Wallet
+                  </div>
+                  <button onClick={() => setActiveWalletTab(false)}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="1.3em"
+                      height="1.3em"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="#606060"
+                        d="m12 13.4l-4.9 4.9q-.275.275-.7.275t-.7-.275t-.275-.7t.275-.7l4.9-4.9l-4.9-4.9q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l4.9 4.9l4.9-4.9q.275-.275.7-.275t.7.275t.275.7t-.275.7L13.4 12l4.9 4.9q.275.275.275.7t-.275.7t-.7.275t-.7-.275z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex justify-between items-center bg-[#202021] rounded-xl p-4 w-[20rem] mx-auto mt-4">
+                  <div className="flex flex-col">
+                    <div className="font-medium text-base text-green-500">
+                      Active wallet
+                    </div>
+                    <div className="font-medium text-base">
+                      {toUserFriendlyAddress(walletAddress).slice(0, 4)}...
+                      {toUserFriendlyAddress(walletAddress).slice(-4)}
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="2em"
+                    height="2em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="#22c55e"
+                      d="M23 12c0 6.075-4.925 11-11 11S1 18.075 1 12S5.925 1 12 1s11 4.925 11 11M9.305 18.11l9.402-9.403l-1.414-1.414l-7.883 7.883l-2.476-3.01l-1.511 1.31l3.882 4.633z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex items-center justify-center mt-4">
+                  <button
+                    onClick={() => {
+                      setActiveWalletTab(false);
+                      handleWalletAction();
+                    }}
+                    className="bg-red-500 px-3 py-3 rounded-xl w-[20rem] mx-auto"
+                  >
+                    <div className="flex items-center justify-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="1.2em"
+                        height="1.2em"
+                        className="mr-1"
+                        viewBox="0 0 1024 1024"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M832.6 191.4c-84.6-84.6-221.5-84.6-306 0l-96.9 96.9l51 51l96.9-96.9c53.8-53.8 144.6-59.5 204 0c59.5 59.5 53.8 150.2 0 204l-96.9 96.9l51.1 51.1l96.9-96.9c84.4-84.6 84.4-221.5-.1-306.1M446.5 781.6c-53.8 53.8-144.6 59.5-204 0c-59.5-59.5-53.8-150.2 0-204l96.9-96.9l-51.1-51.1l-96.9 96.9c-84.6 84.6-84.6 221.5 0 306s221.5 84.6 306 0l96.9-96.9l-51-51zM260.3 209.4a8.03 8.03 0 0 0-11.3 0L209.4 249a8.03 8.03 0 0 0 0 11.3l554.4 554.4c3.1 3.1 8.2 3.1 11.3 0l39.6-39.6c3.1-3.1 3.1-8.2 0-11.3z"
+                        />
+                      </svg>
+                      Disconnect
+                    </div>
+                  </button>
+                </div>
+                <div className="flex items-center justify-center mt-4">
+                  <button
+                    onClick={() => setActiveWalletTab(false)}
+                    className="bg-white text-black px-3 py-3 rounded-xl w-[20rem] mx-auto"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="h-[10vh]"></div>
+              </motion.div>
+            </motion.div>
+          )}
+          {/*Rewards History Tab */}
+          {activeTab && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex justify-center items-end z-50"
+              onClick={() => setActiveTab(false)}
+            >
+              <motion.div
+                initial={{ y: "75%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="bg-black p-6 rounded-t-2xl w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-white">Rewards</h2>
+                  <button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setActiveTab(false)}
+                    className="text-gray-400 hover:text-gray-200"
+                  >
+                    <span className="sr-only">Close</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="h-[35vh] overflow-auto">
+                  {taskhistoryList.length > 0 ? (
+                    <div className="space-y-3">
+                      {taskhistoryList.map((task) => (
+                        <div
+                          key={task.id}
+                          className="bg-[#151516] rounded-lg p-4 flex items-center justify-between"
+                        >
+                          {/*Left Section*/}
+                          <div className="flex items-center space-x-3">
+                            {/*Icon container*/}
+                            <div className="flex items-center justify-center">
+                              {/*Main Icon*/}
+                              {task.platform}
+                            </div>
+                            {/*text content*/}
+                            <div>
+                              <p className="font-semibold">{task.title}</p>
+                              <p className="text-gray-400 text-sm">
+                                {task.date}
+                              </p>
+                            </div>
+                          </div>
+                          {/*right section*/}
+                          <div className="text-right">
+                            <p className="text-green-500 font-semibold">
+                              +{task.quant} QNTM
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-gray-400">
+                      No tasks available
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {activeTab && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="bg-black/50 z-50 flex justify-center items-center"
+              onClick={() => setActiveTab(false)}
+            ></motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </main>
+  );
+};
+export default HomePageContent;
