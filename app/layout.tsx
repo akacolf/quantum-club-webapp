@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google";
 import "./globals.css";
+import UserProvider from "./contexts/MiningContext";
 
 const interTight = Inter_Tight({
   variable: "--font-inter-tight",
@@ -23,7 +24,9 @@ export default function RootLayout({
         className={`${interTight.variable} ${interTight.variable} antialiased`}
       >
         <script src="https://telegram.org/js/telegram-web-app.js?57"></script>
+        <UserProvider>
         {children}
+        </UserProvider>
       </body>
     </html>
   );

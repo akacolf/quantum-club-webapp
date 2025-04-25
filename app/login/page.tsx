@@ -1,15 +1,15 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import "../app/globals.css";
-import deviceTypeDetector from "./utils/deviceDetection";
+import deviceTypeDetector from "@/utils/deviceDetection";
 import { useLBoardContext } from "./contexts/LeaderboardContext";
 import { authenticateUser } from "./components/telegramAuth";
-import { getMaintenance } from "./lib/getMaintenance";
+import { getMaintenance } from "@/lib/getMaintenance";
 import { TelegramAnalytics } from "@/lib/telegramAnalytics";
 import Loader from "./loading";
 
@@ -56,6 +56,7 @@ if (typeof window !== "undefined") {
 }
 
 const LoginScreen = () => {
+    const router = useRouter();
   if (typeof window !== "undefined") {
     if (!window.Telegram?.WebApp?.initData) {
       //why don't we check initDataUnsafe here?//
@@ -68,7 +69,8 @@ const LoginScreen = () => {
       type DeviceProps = "mobile" | "desktop" | "tablet"; // Define the DeviceProps type
       const deviceType: DeviceProps = await deviceTypeDetector(window.navigator.userAgent);
       if (typeof window !== "undefined") {
-        const WebApp = window.Telegram.WebApp;
+        const WebApp = window?.Telegram?.WebApp;
+        if(!WebApp) return;
         WebApp.ready();
         WebApp.setHeaderColor("#000000");
         WebApp.setBackgroundColor("#000000");
@@ -79,7 +81,7 @@ const LoginScreen = () => {
         if (authenticated) {
           await registerAndAuth();
         }
-        window.Telegram.WebApp.BackButton.hide();
+        window?.Telegram?.WebApp.BackButton.hide();
       }
     };
     deviceDetect();
@@ -98,9 +100,6 @@ const LoginScreen = () => {
       `${right}px`
     );
   }
-  const [introComplete, setIntroComplete] = useState(true);
-  const router = useRouter();
-  const [fetchLoading, setFetchLoading] = useState(false);
   const {
     setTelegramId,
     SetMainQuantAmount,
@@ -109,7 +108,6 @@ const LoginScreen = () => {
     setUsername,
     setWalletAddress,
     setLastActiveTime,
-    lastActiveTime,
   } = useGameContext();
   const { setUserRank } = useLBoardContext();
 
@@ -122,13 +120,13 @@ const LoginScreen = () => {
       sessionStorage.setItem("maintenance", maintenance);
       let WebApp;
       if (typeof window !== "undefined") {
-        WebApp = window.Telegram.WebApp;
+        WebApp = window?.Telegram?.WebApp;
       }
       if (process.env.NODE_ENV === "production" && maintenance) {
         router.push(`/maintenance-page`);
         return;
       }
-      const user = WebApp.initDataUnsafe.user;
+      const user = WebApp?.initDataUnsafe.user;
       if (user) {
         const telegramId = user.id;
 
@@ -163,7 +161,6 @@ const LoginScreen = () => {
         setRank(rank);
 
         let newUser;
-        let userId;
 
         const stringID = String(telegramId);
         const rawData = encryptData(stringID);
@@ -174,7 +171,7 @@ const LoginScreen = () => {
         setTelegramId(telegramIdEncrypted);
 
         //firebase auth
-        userId = await userAuth(telegramIdEncrypted);
+        const userId = await userAuth(telegramIdEncrypted);
         //have user?
         const userReferance = doc(dbfs, "user", userId);
         const userDataSnapshot = await getDoc(userReferance);
@@ -184,11 +181,7 @@ const LoginScreen = () => {
           newUser = false;
         }
         if (newUser) {
-          const referrerID = WebApp.initDataUnsafe.start_param;
-          let referred = true;
-          if (!referrerID) {
-            referred = true;
-          }
+          const referrerID = WebApp?.initDataUnsafe.start_param;
           let isBotBoolean = false;
           let isPremiumBoolean = false;
           if (user.is_bot) {
@@ -261,7 +254,7 @@ const LoginScreen = () => {
                     "values"
                   );
                   const snapshotReferredValue = await getDoc(referredReferance);
-                  if (snapshotReferredValue.exists) {
+                  if (snapshotReferredValue.exists()) {
                     const referredValueData = snapshotReferredValue.data();
                     const referredAmount = referredValueData?.QuantAmount;
                     let referredTenAmount = 0;
@@ -278,7 +271,6 @@ const LoginScreen = () => {
                     });
                   }
                 }
-                referred = true;
               } catch (error) {
                 console.error(error.message);
               }
@@ -450,7 +442,7 @@ const LoginScreen = () => {
             }
           } else {
             if (typeof window !== "undefined") {
-              localStorage.setItem("walletAddress", null);
+              localStorage.setItem("walletAddress", "");
             }
             setWalletAddress(null);
           }
@@ -466,7 +458,7 @@ const LoginScreen = () => {
       console.error(error);
     }
   };
-  async function encryptData(telegramId) {
+  async function encryptData(telegramId:string) {
     const response = await fetch("/api/encryptID", {
       method: "POST",
       headers: {
@@ -483,7 +475,7 @@ const LoginScreen = () => {
     const encryptedData = JSON.stringify(firstData.encryptedBase64);
     return encryptedData;
   }
-  async function userAuth(telegramIdEncrypted) {
+  async function userAuth(telegramIdEncrypted:string) {
     const uid = String(telegramIdEncrypted);
     const responseAuth = await fetch("/api/auth/telegram", {
       method: "POST",
@@ -514,7 +506,7 @@ const LoginScreen = () => {
       console.error(error);
     }
   }
-  return <div>{introComplete === true && <Loader />}</div>;
+  return <div><Loader /></div>;
 };
 
 export default LoginScreen;
