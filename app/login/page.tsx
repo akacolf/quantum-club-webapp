@@ -5,13 +5,13 @@ import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
-import "../app/globals.css";
+import "@/app/globals.css";
 import deviceTypeDetector from "@/utils/deviceDetection";
-import { useLBoardContext } from "./contexts/LeaderboardContext";
+import { useLBoardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
 import { TelegramAnalytics } from "@/lib/telegramAnalytics";
-import Loader from "./loading";
+//import Loader from "./loading";
 
 // declaring global values for window //
 
@@ -506,7 +506,7 @@ const LoginScreen = () => {
       console.error(error);
     }
   }
-  return <div><Loader /></div>;
+  return <div>{/*<Loader />*/}</div>;
 };
 
 export default LoginScreen;
