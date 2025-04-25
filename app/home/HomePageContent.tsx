@@ -1,6 +1,6 @@
 "use client";
 import { Icon } from "@iconify-icon/react";
-import { dbfs } from "../firebaseConfig/firebaseConfig";
+import { dbfs } from "@/app/firebase/firebaseConfig";
 import {
   getDocs,
   collection,
@@ -11,9 +11,9 @@ import {
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
 import { useGameContext } from "../contexts/MiningContext";
-import CheckStory from "../components/CheckStory";
+import CheckStory from "@/components/CheckStory";
 import { motion, AnimatePresence } from "framer-motion";
-import "../../app/animations/text-animations/appwide-text-animation.css";
+//import "@/app/animations/text-animations/appwide-text-animation.css";
 import tasks from "../earn/tasks";
 import { usePathname } from "next/navigation";
 import { ButtonLoader } from "../loaders/ButtonLoader";
