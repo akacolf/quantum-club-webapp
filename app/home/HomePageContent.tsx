@@ -11,10 +11,10 @@ import {
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
 import { useGameContext } from "../contexts/MiningContext";
-import CheckStory from "@/components/CheckStory";
+import CheckStory from "@/app/components/CheckStory";
 import { motion, AnimatePresence } from "framer-motion";
 //import "@/app/animations/text-animations/appwide-text-animation.css";
-import tasks from "../earn/tasks";
+import tasks from "@/app/earn/tasks";
 import { usePathname } from "next/navigation";
 import { ButtonLoader } from "../loaders/ButtonLoader";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
@@ -23,7 +23,7 @@ import { useTonConnectUI } from "@tonconnect/ui-react";
 import toast, { ToastBar, Toaster } from "react-hot-toast";
 import Link from "next/link";
 import { toNano } from "@ton/core";
-const calculateRemainingTime = (timestamp) => {
+const calculateRemainingTime = (timestamp:number) => {
   const now = new Date();
   const targetTime = new Date(timestamp);
   const diffMs = targetTime.getTime() - now.getTime();
@@ -64,7 +64,7 @@ const HomePageContent = () => {
   const [loadingDay, setLoadingDay] = useState(false);
   const [tonConnectUI, setOptions] = useTonConnectUI();
   const [isActiveWalletTab, setActiveWalletTab] = useState(false);
-  const handleWalletConnection = useCallback((address) => {
+  const handleWalletConnection = useCallback((address:string) => {
     setWalletAddress(address);
   }, []);
 
@@ -133,7 +133,7 @@ const HomePageContent = () => {
       console.error("Wallet connection unsuccessful:", error.message);
     }
   };
-  const updateWalletInDB = async (walletAddress, address) => {
+  const updateWalletInDB = async (walletAddress:string, address:string) => {
     const response = await fetch("/api/tonconnections/tonConnectDB", {
       method: "POST",
       headers: {
@@ -151,7 +151,7 @@ const HomePageContent = () => {
       throw new Error(`API Error: ${parsedError.error}`);
     }
   };
-  const formatAddress = (address) => {
+  const formatAddress = (address:string) => {
     const tempAddress = toUserFriendlyAddress(address);
     return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
   };
@@ -475,7 +475,7 @@ const HomePageContent = () => {
           : [];
         setTaskhistoryList((prevList) => [...prevList, ...rewardsHistory]);
         const combinedList = [...tasks, ...rewardsHistory];
-        const convertDate = (dateStr) => {
+        const convertDate = (dateStr:string) => {
           const [day, month, year] = dateStr.split("/");
           const formattedDate = `${year}-${month}-${day}`;
           return formattedDate;
@@ -533,11 +533,12 @@ const HomePageContent = () => {
     openTelegramGroup(task.link, task);
   };
   const openTelegramGroup = () => {
-    if (!task.link.startsWith("http://") && !task.link.startsWith("https://")) {
-      task.link = "https://" + task.link;
+    if (!task?.link?.startsWith("http://") && !task?.link?.startsWith("https://")) {
+      task?.link = "https://" + task?.link;
     }
     if (typeof window !== "undefined") {
-      const tg = window.Telegram.WebApp;
+      const tg = window?.Telegram?.WebApp;
+      if(!tg) return;
       tg.openTelegramLink(task.link);
     }
   };
@@ -612,7 +613,7 @@ const HomePageContent = () => {
                 { merge: true }
               );
               setDaily(1);
-              localStorage.setItem("daily", 1);
+              localStorage.setItem("daily", "1");
               setIsclaimDay(false);
             } else if (diffInDays >= 1 && diffInDays < 2) {
               setIsclaimDay(false);
@@ -630,7 +631,7 @@ const HomePageContent = () => {
           });
           setDaily(1);
           setIsclaimDay(false);
-          localStorage.setItem("daily", 1);
+          localStorage.setItem("daily", "1");
         }
       } catch (error) {
         console.error(error);
