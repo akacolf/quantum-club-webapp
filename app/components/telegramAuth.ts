@@ -10,7 +10,8 @@ export async function authenticateUser() {
         checkAuth()
     }finally{
 
-        const WebApp = window.Telegram.WebApp
+        const WebApp = window?.Telegram?.WebApp
+        if(!WebApp) return false;
         WebApp.ready()
         const initData = WebApp.initData;
         if(initData) {
