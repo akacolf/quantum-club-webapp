@@ -2,14 +2,14 @@
 import { Icon } from "@iconify-icon/react";
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import {
+  doc,
   getDocs,
   collection,
   getDoc,
   setDoc,
-  doc,
   updateDoc,
 } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { useGameContext } from "../contexts/MiningContext";
 import CheckStory from "@/app/components/CheckStory";
 import { motion, AnimatePresence } from "framer-motion";
@@ -53,7 +53,7 @@ const HomePageContent = () => {
     setRemainingSolveToEarn,
   } = useGameContext();
   const router = useRouter();
-  const [rankIcon, setRankIcon] = useState("");
+  const [rankIcon, setRankIcon] = useState<ReactNode>();
   const [taskhistoryList, setTaskhistoryList] = useState([]);
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(false);
@@ -560,6 +560,7 @@ const HomePageContent = () => {
   useEffect(() => {
     const checkButton = async () => {
       try {
+        if(!telegramId) return;
         const solveToEarnValue = doc(
           dbfs,
           "user",
@@ -639,7 +640,7 @@ const HomePageContent = () => {
     };
     checkButton();
   }, []);
-  const toastQueue = [];
+  const toastQueue:string[] = [];
   async function ClaimDaily() {
     const claim = async () => {
       try {
@@ -655,6 +656,7 @@ const HomePageContent = () => {
           `${date.getUTCDate().toString().padStart(2, "0")}/` +
           `${(date.getUTCMonth() + 1).toString().padStart(2, "0")}/` +
           `${date.getUTCFullYear()}`;
+          if(!telegramId) return;
         const solveToEarnValue = doc(
           dbfs,
           "user",
@@ -832,7 +834,7 @@ const HomePageContent = () => {
               { merge: true }
             );
             setRemainingSolveToEarn(7);
-            sessionStorage.setItem("remainingSolveToEarn", 7);
+            sessionStorage.setItem("remainingSolveToEarn", "7");
             toast.success("+7 passes has been added", {
               icon: (
                 <svg
@@ -1015,7 +1017,7 @@ const HomePageContent = () => {
             );
             setDaily(1);
             setTimeout(() => {
-              addToQueue(`You've got +${50} QNTM`, { duration: 3000 });
+              addToQueue(`You've got +${50} QNTM`);
             }, 3000);
             const rewardDay = quant + 50;
             const formattedAmount = rewardDay.toLocaleString("en-US", {
@@ -1062,7 +1064,7 @@ const HomePageContent = () => {
               localStorage.setItem("QAmount", rewardDay);
             }
             if (typeof window !== "undefined") {
-              localStorage.setItem("daily", 1);
+              localStorage.setItem("daily", "1");
             }
           } else {
             try {
@@ -1138,9 +1140,7 @@ const HomePageContent = () => {
                 }
                 setDaily(dailyDay + 1);
                 setTimeout(() => {
-                  addToQueue(`You've got +${quantReward} QNTM`, {
-                    duration: 3000,
-                  });
+                  addToQueue(`You've got +${quantReward} QNTM`);
                 }, 3000);
                 if (typeof window !== "undefined") {
                   localStorage.setItem("daily", dailyDay + 1);
@@ -1201,10 +1201,10 @@ const HomePageContent = () => {
                 }
                 setDaily(1);
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("daily", 1);
+                  localStorage.setItem("daily", "1");
                 }
                 setTimeout(() => {
-                  addToQueue(`You've got +${50} QNTM`, { duration: 3000 });
+                  addToQueue(`You've got +${50} QNTM`);
                 }, 3000);
                 console.error("Claimed");
               } else {
@@ -1221,6 +1221,8 @@ const HomePageContent = () => {
             year: "numeric",
             timeZone: "UTC",
           }).format(new Date());
+          const [day, month, year] = formattedDate.split(".");
+          const formattedslash = `${day}/${month}/${year}`;
           setDoc(
             checkTimeRef,
             {
@@ -1253,6 +1255,14 @@ const HomePageContent = () => {
             },
             { merge: true }
           );
+          const rewardsHistory = doc(
+            dbfs,
+            "user",
+            telegramId,
+            "rewardsHistory",
+            Date.now().toString()
+          );
+          
           setDoc(rewardsHistory, {
             quant: 50,
             platform: "dailycheck-in-reward",
@@ -1261,7 +1271,7 @@ const HomePageContent = () => {
           const list = [
             {
               id: Date.now().toString(),
-              quant: quantReward,
+              quant: 50,
               date: formattedslash,
               platform: (
                 <svg
@@ -1287,10 +1297,10 @@ const HomePageContent = () => {
           }
           setDaily(1);
           if (typeof window !== "undefined") {
-            localStorage.setItem("daily", 1);
+            localStorage.setItem("daily", "1");
           }
           setTimeout(() => {
-            addToQueue(`You've got +${50} QNTM`, { duration: 3000 });
+            addToQueue(`You've got +${50} QNTM`);
           }, 3000);
         }
       } catch (error) {
@@ -1302,11 +1312,10 @@ const HomePageContent = () => {
     };
     claim();
   }
-  const addToQueue = (message) => {
+  const addToQueue = (message:string) => {
     toastQueue.push(message);
     if (toastQueue.length === 1) processQueue();
   };
-
   const processQueue = () => {
     if (toastQueue.length === 0) return;
 
@@ -2054,7 +2063,7 @@ const HomePageContent = () => {
                     Home of OGs
                   </h5>
                   <p className="mb-3 font-normal text-gray-500 dark:text-gray-400">
-                    Join our Telegram club so you don't miss the latest
+                    Join our Telegram club so you don&apos;t miss the latest
                     announcements.
                   </p>
                   <button
