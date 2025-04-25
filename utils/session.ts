@@ -1,6 +1,6 @@
 import {jwtVerify,SignJWT } from "jose"
 import { cookies } from "next/headers"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 const key = new TextEncoder().encode(process.env.JWT_SECRET)
 export const SESSION_DURATION = 60*60*1000
@@ -27,7 +27,7 @@ export async function getSession() {
     return await decrypt(session)
 }
 
-export async function updateSession(request) {
+export async function updateSession(request:NextRequest) {
     const session = request.cookies.get("session")?.value
     if(!session) return
 
