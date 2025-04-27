@@ -1,37 +1,41 @@
-import { onValue } from "firebase/database";
-import { useContext, createContext, useState } from "react";
+'use client';
+import React, { useContext, createContext, useState, ReactNode } from "react";
 
-const LeaderboardContext = createContext({
+interface LeaderboardContextType {
   leaderboardContext: [],
-  setLeaderBoardContext: (value: any) => {},
-  userRank: "",
-  setUserRank: (value: string) => {},
-  totalUsers: [],
-  setTotalUsers: (value: any[]) => {},
-  totalQuant: [],
-  setTotalQuant: (value: any[]) => {},
-});
+  setLeaderboardContext: (value: any) => void;
+  userRank: string | null;
+  setUserRank: (value: string | null) => void;
+  totalUsers: string | null;
+  setTotalUsers: (value: string | null) => void;
+  totalQuant: string;
+  setTotalQuant: (value: string) => void;
+}
 
-export const LeaderBoardProvider = ({ children }: { children: React.ReactNode }) => {
-  const [leaderboardContext, setLeaderBoardContext] = useState(() => {
+const LeaderboardContext = createContext<LeaderboardContextType>({} as LeaderboardContextType);
+
+export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
+  const [leaderboardContext, setLeaderboardContext] = useState(() => {
     if (typeof window !== "undefined") {
       const savedBoards = sessionStorage.getItem("lboard");
       return savedBoards ? JSON.parse(savedBoards) : [];
     }
   });
-  const [userRank, setUserRank] = useState(() => {
+  const [userRank, setUserRank] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       const userRank = sessionStorage.getItem("userLeaderRank");
       return userRank;
     }
+    return null;
   });
-  const [totalUsers, setTotalUsers] = useState<any[]>(() => {
+  const [totalUsers, setTotalUsers] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       const userRank = sessionStorage.getItem("totalusers");
       return userRank ? JSON.parse(userRank) : [];
     }
+    return null;
   });
-  const [totalQuant, setTotalQuant] = useState<any[]>(() => {
+  const [totalQuant, setTotalQuant] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const userRank = sessionStorage.getItem("totalquant");
       return userRank ? JSON.parse(userRank) : [];
@@ -42,7 +46,7 @@ export const LeaderBoardProvider = ({ children }: { children: React.ReactNode })
     <LeaderboardContext.Provider
       value={{
         leaderboardContext,
-        setLeaderBoardContext,
+        setLeaderboardContext,
         userRank,
         setUserRank,
         totalUsers,
@@ -55,6 +59,6 @@ export const LeaderBoardProvider = ({ children }: { children: React.ReactNode })
       </LeaderboardContext.Provider>
   );
 };
-export const useLBoardContext = () => {
+export const useLeaderboardContext = () => {
   return useContext(LeaderboardContext);
 };

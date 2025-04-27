@@ -1,16 +1,11 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 const CheckStory = () => {
-  const router = useRouter();
   
-  router.prefetch(`/story`);
-  const storynavigation = () => {
-    {
-      /* Your Story |> */
-    }
-    router.push(`/story`);
+  const StoryNavigation = () => {
+      <Link href={'/story'}/>
   };
   return (
    <div className="flex items-center justify-between bg-gray-300 p-4 rounded-2xl max-w-80 mx-auto">
@@ -18,7 +13,7 @@ const CheckStory = () => {
     <span className="text-lg text-black font-semibold">Quantum Era of Telegram</span>
     <span className="text-sm font-semibold text-black">Check your TG story.</span>
     <div>
-    <button className="font-normal text-sm rounded-full bg-black text-white py-2 px-4 mt-4" onClick={storynavigation}>
+    <button className="font-normal text-sm rounded-full bg-black text-white py-2 px-4 mt-4" onClick={StoryNavigation}>
       Explore
     </button>
     </div>
