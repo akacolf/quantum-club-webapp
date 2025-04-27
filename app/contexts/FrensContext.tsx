@@ -1,10 +1,5 @@
 "use client";
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, {createContext, useContext, useEffect, useState, ReactNode} from "react";
 
 const FrensContext = createContext({
   referralsContext: [],
@@ -14,7 +9,7 @@ const FrensContext = createContext({
   setReferralNum: (value: number) => {},
 });
 
-export const FrensProvider = ({ children }: { children: React.ReactNode }) => {
+export const FrensProvider = ({ children }: { children: ReactNode }) => {
   const [referralsContext, setReferralsContext] = useState(() => {
     if (typeof window !== "undefined") {
       const savedReferrals = sessionStorage.getItem("referrals");
