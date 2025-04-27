@@ -1,13 +1,20 @@
 "use client";
 import React, {createContext, useContext, useEffect, useState, ReactNode} from "react";
 
-const FrensContext = createContext({
+interface FrensContextType {
+  referralsContext: [],
+  setReferralsContext: (value: any) => void;
+}
+
+
+const FrensContext = createContext<FrensContextType>({} as FrensContextType);
+/*const FrensContext = createContext({
   referralsContext: [],
   setReferralsContext: (value: any) => {},
   addReferral: (newReferral: any) => {},
   referralsNum: 0,
   setReferralNum: (value: number) => {},
-});
+});*/
 
 export const FrensProvider = ({ children }: { children: ReactNode }) => {
   const [referralsContext, setReferralsContext] = useState(() => {
