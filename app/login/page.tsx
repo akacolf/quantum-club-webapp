@@ -7,9 +7,10 @@ import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import "@/app/globals.css";
 import deviceTypeDetector from "@/utils/deviceDetection";
-import { useLBoardContext } from "@/app/contexts/LeaderboardContext";
+import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
+import Loader from "../loading";
 import { TelegramAnalytics } from "@/lib/telegramAnalytics";
 //import Loader from "./loading";
 
@@ -109,7 +110,7 @@ const LoginScreen = () => {
     setWalletAddress,
     setLastActiveTime,
   } = useGameContext();
-  const { setUserRank } = useLBoardContext();
+  const { setUserRank } = useLeaderboardContext();
 
   const registerAndAuth = async () => {
     try {
@@ -506,7 +507,7 @@ const LoginScreen = () => {
       console.error(error);
     }
   }
-  return <div>{/*<Loader />*/}</div>;
+  return <Loader />;
 };
 
 export default LoginScreen;

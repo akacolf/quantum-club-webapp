@@ -32,3 +32,5 @@ const Loader: React.FC<LoaderProps> = ({ size = "md", color = "#202021" }) => {
     </AnimatePresence>
   );
 };
+
+export default Loader;
