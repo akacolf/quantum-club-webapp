@@ -693,9 +693,9 @@ const HomePageContent = () => {
             const [day, month, year] = formattedDate.split("/");
             const formattedDateISO = `${year}-${month}-${day}`;
             const [daySTE, monthSTE, yearSTE] = lastSolveToEarnDt.split("/");
-            const solveToEarnDateConvert = `${yearSTE}-${monthSTE}-${daySTE}`;
+            const solveToEarnDateConvert:string = `${yearSTE}-${monthSTE}-${daySTE}`;
             const diffInMs = Math.abs(
-              new Date(formattedDateISO) - new Date(solveToEarnDateConvert)
+              new Date(formattedDateISO).getTime() - new Date(solveToEarnDateConvert).getTime()
             );
             const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
             setRemainingSolveToEarn(remainingSolveToEarn);
@@ -1323,7 +1323,9 @@ const HomePageContent = () => {
           }, 3000);
         }
       } catch (error) {
-        console.error(error.message);
+        if(error as Error) {
+          console.error((error as Error).message);
+        }
       } finally {
         setLoadingDay(false);
         setIsclaimDay(true);
