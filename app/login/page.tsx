@@ -23,6 +23,7 @@ declare global {
         initData: {};
         initDataUnsafe: {
           user?: any;
+          start_param?: any;
         };
         ready: () => void;
         setHeaderColor: (color: string) => void;
@@ -47,13 +48,6 @@ declare global {
 }
 
 //device type interface//
-export interface DeviceState {
-  isDesktop: boolean
-  isMobile: boolean
-  isTablet: boolean
-  isLandscapeOrientation: () => boolean
-  isPortraitOrientation: () => boolean
-}
 
 if (typeof window !== "undefined") {
   if (window?.Telegram?.WebApp.initDataUnsafe.user) {
@@ -78,7 +72,7 @@ const LoginScreen = () => {
   useEffect(() => {
     const deviceDetect = async () => {
       type DeviceProps = "mobile" | "desktop" | "tablet"; // Define the DeviceProps type
-      const deviceType: DeviceProps = await deviceTypeDetector(window.navigator.userAgent);
+      const deviceType = await deviceTypeDetector(window.navigator.userAgent) as DeviceProps;
       if (typeof window !== "undefined") {
         const WebApp = window?.Telegram?.WebApp;
         if(!WebApp) return;
@@ -283,7 +277,11 @@ const LoginScreen = () => {
                   }
                 }
               } catch (error) {
-                console.error(error.message);
+                if (error instanceof Error) {
+                  console.error(error.message);
+                } else {
+                  console.error("An unknown error occurred:", error);
+                }
               }
             }
           }
@@ -449,7 +447,11 @@ const LoginScreen = () => {
               }
               setWalletAddress(walletAddressRes);
             } catch (error) {
-              console.error(error.message);
+              if (error instanceof Error) {
+                console.error(error.message);
+              } else {
+                console.error("An unknown error occurred:", error);
+              }
             }
           } else {
             if (typeof window !== "undefined") {
