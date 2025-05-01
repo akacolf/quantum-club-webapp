@@ -20,16 +20,31 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp: {
-        initData: {};
+        initData: {
+          user?: {
+            is_premium:boolean,
+            is_bot:boolean,
+            id: number,
+            username: string | null;
+            first_name: string;
+          }
+          start_param?: string;
+        };
         initDataUnsafe: {
-          user?: any;
-          start_param?: any;
+          user?: {
+            is_premium:boolean,
+            is_bot:boolean,
+            id: number,
+            username: string | null;
+            first_name: string;
+          }
+          start_param?: string;
         };
         ready: () => void;
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
         requestFullscreen: () => void;
-        openTelegramLink: () => void;
+        openTelegramLink: (link:string|undefined) => void;
         navigator: () => void;
         BackButton: {
           hide: () => void;
@@ -61,21 +76,21 @@ if (typeof window !== "undefined") {
 
 const LoginScreen = () => {
     const router = useRouter();
-  if (typeof window !== "undefined") {
-    if (!window.Telegram?.WebApp?.initData) {
-      //why don't we check initDataUnsafe here?//
-      window.location.href = "https://t.me/QuantumClubBot";
-      return;
-    }
-  }
-
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (!window.Telegram?.WebApp?.initData) {
+        //why don't we check initDataUnsafe here?//
+        window.location.href = "https://t.me/QuantumClubBot";
+        return;
+      }
+    }
+
     const deviceDetect = async () => {
       type DeviceProps = "mobile" | "desktop" | "tablet"; // Define the DeviceProps type
-      const deviceType = await deviceTypeDetector(window.navigator.userAgent) as DeviceProps;
+      const deviceType = await deviceTypeDetector(window?.navigator?.userAgent) as DeviceProps;
       if (typeof window !== "undefined") {
         const WebApp = window?.Telegram?.WebApp;
-        if(!WebApp) return;
+        if (!WebApp) return;
         WebApp.ready();
         WebApp.setHeaderColor("#000000");
         WebApp.setBackgroundColor("#000000");
@@ -510,7 +525,7 @@ const LoginScreen = () => {
     try {
       await signInWithCustomToken(authTg, customToken);
       if (authTg.currentUser) {
-        localStorage.setItem("telegramId", authTg.currentUser.uid);
+        localStorage.setItem("telegramId", authTg?.currentUser?.uid);
         return authTg.currentUser.uid;
       } else {
         throw new Error("The user has not logged in.");

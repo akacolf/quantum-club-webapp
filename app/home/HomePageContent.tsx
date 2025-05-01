@@ -55,7 +55,15 @@ const HomePageContent = () => {
   } = useGameContext();
   const router = useRouter();
   const [rankIcon, setRankIcon] = useState<ReactNode>();
-  const [taskhistoryList, setTaskhistoryList] = useState([]);
+  interface TaskHistory {
+    id: string;
+    quant: number;
+    date: string;
+    platform: ReactNode;
+    title: string;
+  }
+  
+  const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(false);
   const task = tasks.find(
@@ -77,7 +85,7 @@ const HomePageContent = () => {
     if (!tonConnectUI) return;
 
     let isMounted = true;
-    let unsubscribe;
+    let unsubscribe:(() => void) | undefined;
 
     const setup = async () => {
       try {
@@ -127,9 +135,11 @@ const HomePageContent = () => {
       if (!tonConnectUI) throw new Error("TON Connect is not ready yet");
 
       // Bağlıysa bağlantıyı kes, değilse modal aç
-      tonConnectUI.connected
-        ? await tonConnectUI.disconnect()
-        : await tonConnectUI.openModal();
+      if (tonConnectUI.connected) {
+        await tonConnectUI.disconnect();
+      } else {
+        await tonConnectUI.openModal();
+      }
     } catch (error) {
       if(error instanceof Error){
         console.error("Wallet connection unsuccessful:", error?.message);
@@ -503,27 +513,29 @@ const HomePageContent = () => {
     const [day, month, year] = dateStr.split("/");
     return new Date(`${year}-${month}-${day}`);
   };
-  const addNewTask = (newTask) => {
+  interface TaskHistory {
+    id: string;
+    quant:number;
+    date:string;
+    platform:ReactNode;
+    title:string;
+  }
+  const addNewTask = (newTask:TaskHistory) => {
     setTaskhistoryList((prevList) => {
-      const updatedList = [...newTask, ...prevList];
+      const updatedList = [newTask, ...prevList];
       // Yeni eleman eklendikten sonra sırala
       return updatedList.sort(
-        (a, b) => convertToDate(a.date).getTime() - convertToDate(b.date)
+        (a, b) => convertToDate(a.date).getTime() - convertToDate(b.date).getTime()
       );
     });
   };
-  interface BlockchainTransaction {
-    messages: {
-      address: string;
-      amount: string;
-    }[];
-  }
+ 
   const send = () => async () => {
     try {
       if (!tonConnectUI.connected) {
         await handleWalletAction();
       }
-      const tx:BlockchainTransaction = {
+      const tx = {
         messages: [
           {
             address: "UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U",
@@ -1046,7 +1058,7 @@ const HomePageContent = () => {
             updateDoc(
               valueRef,
               {
-                QuantAmount: rewardDay,
+               QuantAmount: rewardDay,
               },
               { merge: true }
             );
@@ -1343,11 +1355,11 @@ const HomePageContent = () => {
     const currentMessage = toastQueue[0];
     toast.success(currentMessage, {
       duration: 2000,
-      onClose: () => {
-        toastQueue.shift();
-        processQueue();
-      },
     });
+    setTimeout(() => {
+      toastQueue.shift();
+      processQueue();
+    }, 2000);
   };
   const TaskTimer = () => {
     const now = new Date();

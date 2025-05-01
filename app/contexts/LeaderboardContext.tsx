@@ -1,9 +1,13 @@
 'use client';
 import React, { useContext, createContext, useState, ReactNode } from "react";
 
+interface Leaderboard {
+username:string;
+QuantAmount:number;
+}
 interface LeaderboardContextType {
   leaderboardContext: [],
-  setLeaderboardContext: (value: any) => void;
+  setLeaderboardContext: (value: Array<Leaderboard>) => void;
   userRank: number | null;
   setUserRank: (value: number | null) => void;
   totalUsers: string | null;

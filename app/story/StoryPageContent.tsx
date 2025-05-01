@@ -11,9 +11,9 @@ const StoryPageContent = () => {
   useEffect(() => {
     router.prefetch("/story");
     router.prefetch("/home");
-  }, []);
+  });
   const [isPaused, setIsPaused] = useState(false);
-  const timer = useRef(null);
+  const timer = useRef<NodeJS.Timeout | null>(null);
   const [quantValue] = useState(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("firstQuant");
@@ -78,7 +78,7 @@ const StoryPageContent = () => {
               className="px-32 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20"
               onClick={goToNextStory}
             >
-              Let's go
+              Let&apos;s go
             </button>
           </div>
         </div>
@@ -261,7 +261,9 @@ const StoryPageContent = () => {
 
   const handleDown = () => {
     setIsPaused(true);
-    clearInterval(timer.current);
+    if (timer.current) {
+      clearInterval(timer.current);
+    }
   };
   const handleUp = () => {
     setIsPaused(false);
