@@ -530,16 +530,18 @@ const HomePageContent = () => {
     }
   };
   const handleJoinTask = () => {
+    
     openTelegramGroup(task.link, task);
   };
   const openTelegramGroup = () => {
+    let newLink = task?.link
     if (!task?.link?.startsWith("http://") && !task?.link?.startsWith("https://")) {
-      task?.link = "https://" + task?.link;
+       newLink = "https://" + task?.link;
     }
     if (typeof window !== "undefined") {
       const tg = window?.Telegram?.WebApp;
       if(!tg) return;
-      tg.openTelegramLink(task.link);
+      tg.openTelegramLink(newLink);
     }
   };
   useEffect(() => {

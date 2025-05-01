@@ -12,7 +12,6 @@ import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
 import Loader from "../loading";
 import { TelegramAnalytics } from "@/lib/telegramAnalytics";
-import { strict } from "assert";
 //import Loader from "./loading";
 
 // declaring global values for window //
