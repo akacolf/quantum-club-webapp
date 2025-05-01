@@ -78,7 +78,7 @@ const LoginScreen = () => {
 
   useEffect(() => {
     const deviceDetect = async () => {
-      //type DeviceProps = "isMobile" | "isDesktop" | "isTablet"; // Define the DeviceProps type//
+      type DeviceProps = "mobile" | "desktop" | "tablet"; // Define the DeviceProps type
       const deviceType: DeviceProps = await deviceTypeDetector(window.navigator.userAgent);
       if (typeof window !== "undefined") {
         const WebApp = window?.Telegram?.WebApp;
