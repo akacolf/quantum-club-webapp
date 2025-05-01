@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${intertight.variable} ${intertight.variable} antialiased`}
+      className={`${intertight.variable} ${intertight.variable} antialiased`}
       >
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <GameProvider>
