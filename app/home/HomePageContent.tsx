@@ -23,7 +23,7 @@ import { useTonConnectUI } from "@tonconnect/ui-react";
 import toast, { ToastBar, Toaster } from "react-hot-toast";
 import Link from "next/link";
 import { toNano } from "@ton/core";
-
+import { TaskHistory } from "@/lib/interfaces";
 const calculateRemainingTime = (timestamp:number) => {
   const now = new Date();
   const targetTime = new Date(timestamp);
@@ -55,13 +55,7 @@ const HomePageContent = () => {
   } = useGameContext();
   const router = useRouter();
   const [rankIcon, setRankIcon] = useState<ReactNode>();
-  interface TaskHistory {
-    id: string;
-    quant: number;
-    date: string;
-    platform: ReactNode;
-    title: string;
-  }
+
   
   const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
   const pathname = usePathname();
@@ -1137,7 +1131,7 @@ const HomePageContent = () => {
                   platform: "dailycheck-in-reward",
                   Date: formattedslash,
                 });
-                const list = [
+                const list:TaskHistory = 
                   {
                     id: Date.now().toString(),
                     quant: quantReward,
@@ -1157,8 +1151,8 @@ const HomePageContent = () => {
                       </svg>
                     ),
                     title: "Daily check-in",
-                  },
-                ];
+                  }
+
                 addNewTask(list);
                 const formattedAmount = rewardDay.toLocaleString("en-US", {
                   minimumFractionDigits: 0,
@@ -1225,7 +1219,7 @@ const HomePageContent = () => {
                     title: "Daily check-in",
                   },
                 ];
-                addNewTask(list);
+                addNewTask(list:TaskHistory);
                 SetMainQuantAmount(formattedAmount);
                 if (typeof window !== "undefined") {
                   localStorage.setItem("QAmount", rewardDay);
@@ -2276,8 +2270,6 @@ const HomePageContent = () => {
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-white">Rewards</h2>
                   <button
-                    variant="ghost"
-                    size="icon"
                     onClick={() => setActiveTab(false)}
                     className="text-gray-400 hover:text-gray-200"
                   >
