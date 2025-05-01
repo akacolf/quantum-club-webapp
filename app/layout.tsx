@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+"use client"
 import { Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { GameProvider } from "./contexts/MiningContext";
@@ -9,16 +9,12 @@ import { FrensProvider } from "./contexts/FrensContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
-const interTight = Inter_Tight({
-  variable: "--font-inter-tight",
+const intertight = Inter_Tight({
   subsets: ["latin"],
+  weight: "variable",
+  variable: "--font-intertight",
+  display: "swap",
 });
-
-export const metadata: Metadata = {
-  title: "Quantum Club",
-  description: "Developed by the Quantum Club Team",
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${interTight.variable} ${interTight.variable} antialiased`}
+        className={`${intertight.variable} ${intertight.variable} antialiased`}
       >
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <GameProvider>
