@@ -8,7 +8,7 @@ type LoaderProps = {
   color?: string;
 };
 
-const Loader: React.FC<LoaderProps> = ({ size = "md", color = "#202021" }) => {
+const Loader: React.FC<LoaderProps> = ({ size = "lg" }) => {
   const sizeClasses = {
     sm: "h-4 w-4",
     md: "h-8 w-8",
@@ -24,9 +24,8 @@ const Loader: React.FC<LoaderProps> = ({ size = "md", color = "#202021" }) => {
         className="fixed inset-0 flex items-center justify-center"
       >
         <div
-          className={`${sizeClasses[size]} border-[5px] border-b-[#fff] rounded-full inline-block
+          className={`${sizeClasses[size]} border-[5px] border-[#202021] border-b-[#fff] rounded-full inline-block
             box-border animate-spin [animation-duration:3s]`}
-          style={{ borderColor: color }}
         ></div>
       </motion.div>
     </AnimatePresence>

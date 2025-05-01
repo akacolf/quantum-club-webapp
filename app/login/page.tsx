@@ -47,6 +47,15 @@ declare global {
   }
 }
 
+//device type interface//
+export interface DeviceState {
+  isDesktop: boolean
+  isMobile: boolean
+  isTablet: boolean
+  isLandscapeOrientation: () => boolean
+  isPortraitOrientation: () => boolean
+}
+
 if (typeof window !== "undefined") {
   if (window?.Telegram?.WebApp.initDataUnsafe.user) {
     TelegramAnalytics();
@@ -66,9 +75,10 @@ const LoginScreen = () => {
       return;
     }
   }
+
   useEffect(() => {
     const deviceDetect = async () => {
-      type DeviceProps = "mobile" | "desktop" | "tablet"; // Define the DeviceProps type
+      //type DeviceProps = "isMobile" | "isDesktop" | "isTablet"; // Define the DeviceProps type//
       const deviceType: DeviceProps = await deviceTypeDetector(window.navigator.userAgent);
       if (typeof window !== "undefined") {
         const WebApp = window?.Telegram?.WebApp;
