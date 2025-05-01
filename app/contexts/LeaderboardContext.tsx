@@ -4,8 +4,8 @@ import React, { useContext, createContext, useState, ReactNode } from "react";
 interface LeaderboardContextType {
   leaderboardContext: [],
   setLeaderboardContext: (value: any) => void;
-  userRank: string | null;
-  setUserRank: (value: string | null) => void;
+  userRank: number | null;
+  setUserRank: (value: number | null) => void;
   totalUsers: string | null;
   setTotalUsers: (value: string | null) => void;
   totalQuant: string;
@@ -21,13 +21,7 @@ export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
       return savedBoards ? JSON.parse(savedBoards) : [];
     }
   });
-  const [userRank, setUserRank] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      const userRank = sessionStorage.getItem("userLeaderRank");
-      return userRank;
-    }
-    return null;
-  });
+  const [userRank, setUserRank] = useState<number | null>(0);
   const [totalUsers, setTotalUsers] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       const userRank = sessionStorage.getItem("totalusers");
