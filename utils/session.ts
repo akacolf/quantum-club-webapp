@@ -1,11 +1,17 @@
-import { jwtVerify,SignJWT } from "jose"
+import { JWTPayload, jwtVerify,SignJWT } from "jose"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 
 const key = new TextEncoder().encode(process.env.JWT_SECRET)
 export const SESSION_DURATION = 60*60*1000
+interface Payload extends JWTPayload {
+    user: {
+      telegramId: string;
+    };
+    expires: Date; // ISO date string
+  }
 
-export async function encrypt(payload) {
+export async function encrypt(payload:Payload) {
     return await new SignJWT(payload)
         .setProtectedHeader({alg:"HS256"})
         .setIssuedAt()
@@ -13,11 +19,23 @@ export async function encrypt(payload) {
         .sign(key)
 }
 
-export async function decrypt(input) {
-    const {payload} = await jwtVerify(input, key, {
+export async function decrypt(input:string) {
+    const { payload } = await jwtVerify(input, key, {
         algorithms: ["HS256"],
-    })
-    return payload
+      });
+    
+      // Validate that the payload matches the Payload type
+      if (
+        typeof payload.user === "object" &&
+        payload.user !== null && // Ensure it's not null
+        "telegramId" in payload.user && // Check if 'telegramId' exists
+        typeof (payload.user as { telegramId: unknown }).telegramId === "number" &&
+        typeof payload.expires === "string"
+      ) {
+        return payload as Payload; // Safe to cast now
+      }
+    
+      throw new Error("Invalid payload structure");
 }
 
 export async function getSession() {
@@ -32,13 +50,13 @@ export async function updateSession(request:NextRequest) {
     if(!session) return
 
     const parsed = await decrypt(session)
-    parsed.expires = new Date(Date.now() + SESSION_DURATION)
+    parsed.expires = new Date(Date.now() + SESSION_DURATION) // updating the expires date to 1 hour from now //
     const res = NextResponse.next()
     res.cookies.set({
         name:   "session",
         value:  await encrypt(parsed),
         httpOnly: true,
-        expires: parsed.expires as Date, // explicitly stating the date of the parsed session //
+        expires: new Date(parsed.expires), // explicitly stating the date of the parsed session //
     })
     return res;
 }
