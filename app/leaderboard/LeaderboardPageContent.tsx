@@ -3,28 +3,26 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import Loader from "../loading";
-import { useLBoardContext } from "../contexts/LeaderboardContext";
-import { useGameContext } from "../contexts/MiningContext";
+import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
+import { useGameContext } from "@/app/contexts/MiningContext";
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
   updateDoc,
 } from "firebase/firestore";
-import { dbfs } from "../firebaseConfig/firebaseConfig";
+import { dbfs } from "@/app/firebase/firebaseConfig";
 import { bgLeaderboardCard } from "../images";
 const LeaderboardPageContent = () => {
   const pathname = usePathname();
   const {
     leaderboardContext,
-    setLeaderBoardContext,
+    setLeaderboardContext,
     userRank,
     totalUsers,
     setTotalUsers,
     totalQuant,
     setTotalQuant,
-  } = useLBoardContext();
+  } = useLeaderboardContext();
   const { MainQuantAmount, telegramId, username } = useGameContext();
   const [pageLoading, setPageLoading] = useState(true);
   useEffect(() => {
@@ -37,7 +35,7 @@ const LeaderboardPageContent = () => {
             if (rankSnapshot.exists()) {
               const userRef = doc(dbfs, `user/${telegramId}/miningData/values`);
               const snapshotValue = await getDoc(userRef);
-              const quantValue = snapshotValue.data().QuantAmount;
+              const quantValue = snapshotValue.data()?.QuantAmount;
               updateDoc(userRankRef, {
                 QuantAmount: quantValue,
               });
@@ -51,30 +49,31 @@ const LeaderboardPageContent = () => {
               throw new Error("Network response was not ok");
             }
             const data = await response.json();
-            setLeaderBoardContext(data.allValues);
-            const totalquant = data.totalAmount;
+            setLeaderboardContext(data.allValues);
+            const totalquant:number = data.totalAmount;
             setTotalUsers(data.userCount);
             sessionStorage.setItem("lboard", JSON.stringify(data.allValues));
-            const formattedAmount = (total) => {
+            const formattedAmount = (total:number) => {
               const amount = total;
+              let totally:string = ""
               if (amount >= 100_000_000_000)
-                return Math.round(amount / 1_000_000_000) + "B";
+                totally= Math.round(amount / 1_000_000_000) + "B";
               if (amount >= 10_000_000_000)
-                return Math.round(amount / 1_000_000_000) + "B";
+                totally= Math.round(amount / 1_000_000_000) + "B";
               if (amount >= 1_000_000_000)
-                return Math.round(amount / 1_000_000_000) + "B";
+                totally= Math.round(amount / 1_000_000_000) + "B";
               if (amount >= 100_000_000)
-                return (amount / 1_000_000).toFixed(1) + "M";
+                totally= (amount / 1_000_000).toFixed(1) + "M";
               if (amount >= 10_000_000)
-                return (amount / 1_000_000).toFixed(1) + "M";
+                totally= (amount / 1_000_000).toFixed(1) + "M";
               if (amount >= 1_000_000)
-                return (amount / 1_000_000).toFixed(1) + "M";
-              if (amount >= 100_000) return Math.round(amount / 1_000) + "K";
-              if (amount >= 10_000) return Math.round(amount / 1_000) + "K";
-              if (amount >= 1_000) return Math.round(amount / 1_000) + "K";
-              return amount;
+                totally= (amount / 1_000_000).toFixed(1) + "M";
+              if (amount >= 100_000) totally= Math.round(amount / 1_000) + "K";
+              if (amount >= 10_000) totally= Math.round(amount / 1_000) + "K";
+              if (amount >= 1_000) totally= Math.round(amount / 1_000) + "K";
+              return totally;
             };
-            const total = formattedAmount(totalquant);
+            const total:string = formattedAmount(totalquant);
             sessionStorage.setItem("totalquant", total);
             setTotalQuant(total);
           }
@@ -87,7 +86,7 @@ const LeaderboardPageContent = () => {
 
       fetchData();
     }
-  }, []);
+  });
 
   return (
     <div>

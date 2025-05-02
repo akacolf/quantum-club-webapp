@@ -6,7 +6,7 @@ username:string;
 QuantAmount:number;
 }
 interface LeaderboardContextType {
-  leaderboardContext: [],
+  leaderboardContext: Array<Leaderboard>,
   setLeaderboardContext: (value: Array<Leaderboard>) => void;
   userRank: number | null;
   setUserRank: (value: number | null) => void;
