@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useFrenContext } from '@/app/contexts/FrensContext';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-import { dbfs } from '@/app/firebaseConfig/firebaseConfig';
+import { dbfs } from '@/app/firebase/firebaseConfig';
 import { useGameContext } from '@/app/contexts/MiningContext';
 import Loader from '@/app/loading';
-import { ButtonLoader } from '@/app/loaders/ButtonLoader';
+import { ButtonLoader } from '@/app/components/ButtonLoader';
 const ReferralsPage = () => {
 
 	const router = useRouter();

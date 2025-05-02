@@ -24,7 +24,7 @@ const InvitePopup = () => {
         window.open(telegramUrl, '_blank');
       };
     
-      function handleCopyLink =()=> {
+      function handleCopyLink() {
         toast.success("Invitation link copied")
         navigator.clipboard.writeText(inviteLink);
       };
