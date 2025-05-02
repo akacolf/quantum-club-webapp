@@ -1,16 +1,10 @@
 'use server';
 import { userAgent } from 'next/server';
 import { headers } from 'next/headers';
-import React from 'react';
 
-interface Device {
-  type: string;
-}
 
-interface DeviceProps {
-  device?: Device; // device opsiyonel
-}
-const deviceTypeDetector: React.FC<DeviceProps> = async () => {
+
+const deviceTypeDetector = async () => {
     // Await the headers() function
     const headerValues = await headers();
     const { device } = userAgent({ headers: headerValues });

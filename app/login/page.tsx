@@ -87,7 +87,7 @@ const LoginScreen = () => {
 
     const deviceDetect = async () => {
       type DeviceProps = "mobile" | "desktop"; // Define the DeviceProps type
-      const rawDeviceType = await deviceTypeDetector(window?.navigator?.userAgent); // Get the raw string
+      const rawDeviceType = await deviceTypeDetector(); // Get the raw string
       const validDeviceTypes: DeviceProps[] = ["mobile", "desktop"]; // Define valid types
 
       // Validate the rawDeviceType against the allowed values
