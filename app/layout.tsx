@@ -16,6 +16,10 @@ const intertight = Inter_Tight({
   variable: "--font-intertight",
   display: "swap",
 });
+const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
+const hideNavbar = hiddenPaths.includes(pathname);
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,7 +39,7 @@ export default function RootLayout({
                   <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
                     <FrensProvider>
                       {children}
-                      <NavigationBar/>
+                      {hideNavbar && <NavigationBar/>}
                     </FrensProvider>
                     <Analytics />
                     <SpeedInsights/>

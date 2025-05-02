@@ -1,8 +1,8 @@
 'use client';
 
 import React, {  useEffect } from 'react';
-import FriendsPageContent from './FriendsPageContent/FriendsPageContent'; // Asıl içeriği başka bir dosyaya taşıyoruz.
 import { getAuth } from 'firebase/auth';
+import FriendsPageContent from './FriendsPageContent/FriendsPageContent';
 
 const FriendsPage = () => {
  
