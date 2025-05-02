@@ -1,11 +1,11 @@
-import {JWTPayload, jwtVerify,SignJWT } from "jose"
+import { jwtVerify,SignJWT } from "jose"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 
 const key = new TextEncoder().encode(process.env.JWT_SECRET)
 export const SESSION_DURATION = 60*60*1000
 
-export async function encrypt(payload: JWTPayload | undefined) {
+export async function encrypt(payload) {
     return await new SignJWT(payload)
         .setProtectedHeader({alg:"HS256"})
         .setIssuedAt()
@@ -13,7 +13,7 @@ export async function encrypt(payload: JWTPayload | undefined) {
         .sign(key)
 }
 
-export async function decrypt(input: string | Uint8Array<ArrayBufferLike>) {
+export async function decrypt(input) {
     const {payload} = await jwtVerify(input, key, {
         algorithms: ["HS256"],
     })
