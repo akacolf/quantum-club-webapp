@@ -112,7 +112,7 @@ const LoginScreen = () => {
       }
     };
     deviceDetect();
-  });
+  },[]);
 
   if (typeof window !== "undefined" && window.Telegram?.WebApp) {
     const { top, bottom, left, right } = window.Telegram.WebApp.safeAreaInset;
