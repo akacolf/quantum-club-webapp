@@ -589,7 +589,7 @@ const HomePageContent = () => {
     } else {
       setRankIcon("");
     }
-  });
+  },[]);
   useEffect(() => {
     const checkButton = async () => {
       try {
@@ -672,7 +672,7 @@ const HomePageContent = () => {
       }
     };
     checkButton();
-  });
+  },[]);
   const toastQueue:string[] = [];
   async function ClaimDaily() {
     const claim = async () => {
