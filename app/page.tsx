@@ -1,7 +1,7 @@
-"use server"
+"use client"
 import LoginScreen from "./login/page";
 
-export default async function Page() {
+export default function Page() {
   return (
   <>
     <LoginScreen />
