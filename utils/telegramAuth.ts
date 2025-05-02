@@ -2,7 +2,7 @@ import crypto from 'crypto'
 
 export function validateTelegramWebAppData(telegramInitData: string | Record<string, string> | URLSearchParams | string[][] | undefined) {
   let BOT_TOKEN = process.env.BOT_TOKEN;
-  if(process.env.VERCEL_ENV ==="production"){
+  if(process.env.NEXT_PUBLIC_VERCEL_ENV ==="production"){
     BOT_TOKEN = process.env.BOT_TOKEN
   }else{
     BOT_TOKEN = process.env.DEV_BOT_TOKEN
