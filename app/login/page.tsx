@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
-import { dbfs } from "@/app/firebase/firebaseConfig";
+import { dbfs } from "../firebase/firebaseConfig";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth, signInWithCustomToken, User } from "firebase/auth";
 import { useRouter } from "next/navigation";
