@@ -538,7 +538,7 @@ const HomePageContent = () => {
             amount: toNano(0.1).toString(),
           },
         ],
-        validUntil: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+        validUntil: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 1 Day
       };
       const { boc } = await tonConnectUI.sendTransaction(tx);
       console.error(boc);
