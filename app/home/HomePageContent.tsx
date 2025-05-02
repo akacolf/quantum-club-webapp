@@ -507,13 +507,6 @@ const HomePageContent = () => {
     const [day, month, year] = dateStr.split("/");
     return new Date(`${year}-${month}-${day}`);
   };
-  interface TaskHistory {
-    id: string;
-    quant:number;
-    date:string;
-    platform:ReactNode;
-    title:string;
-  }
   const addNewTask = (newTask:TaskHistory) => {
     setTaskhistoryList((prevList) => {
       const updatedList = [newTask, ...prevList];
@@ -1062,7 +1055,7 @@ const HomePageContent = () => {
               platform: "dailycheck-in-reward",
               Date: formattedslash,
             });
-            const list = [
+            const list:TaskHistory = 
               {
                 id: Date.now().toString(),
                 quant: 50,
@@ -1082,8 +1075,8 @@ const HomePageContent = () => {
                   </svg>
                 ),
                 title: "Daily check-in",
-              },
-            ];
+              }
+            
             addNewTask(list);
             if (typeof window !== "undefined") {
               localStorage.setItem("QAmount", rewardDay);
@@ -1197,7 +1190,7 @@ const HomePageContent = () => {
                   platform: "dailycheck-in-reward",
                   Date: formattedslash,
                 });
-                const list = [
+                const list:TaskHistory = 
                   {
                     id: Date.now().toString(),
                     quant: 50,
@@ -1217,9 +1210,9 @@ const HomePageContent = () => {
                       </svg>
                     ),
                     title: "Daily check-in",
-                  },
-                ];
-                addNewTask(list:TaskHistory);
+                  }
+                
+                addNewTask(list);
                 SetMainQuantAmount(formattedAmount);
                 if (typeof window !== "undefined") {
                   localStorage.setItem("QAmount", rewardDay);
@@ -1293,7 +1286,7 @@ const HomePageContent = () => {
             platform: "dailycheck-in-reward",
             Date: formattedslash,
           });
-          const list = [
+          const list = 
             {
               id: Date.now().toString(),
               quant: 50,
@@ -1313,8 +1306,8 @@ const HomePageContent = () => {
                 </svg>
               ),
               title: "Daily check-in",
-            },
-          ];
+            }
+          
           addNewTask(list);
           SetMainQuantAmount(formattedAmount);
           if (typeof window !== "undefined") {

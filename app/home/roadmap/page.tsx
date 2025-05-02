@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 
 const Roadmap = () => {
-    const router = useRouter();
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const tg = window.Telegram.WebApp;
+      const tg = window?.Telegram?.WebApp;
+      if(!tg) return;
       tg.BackButton.show();
 
       tg.BackButton.onClick = () => {

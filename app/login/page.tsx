@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import { getAuth, signInWithCustomToken } from "firebase/auth";
+import { getAuth, signInWithCustomToken, User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import "@/app/globals.css";
@@ -86,8 +86,15 @@ const LoginScreen = () => {
     }
 
     const deviceDetect = async () => {
-      type DeviceProps = "mobile" | "desktop" | "tablet"; // Define the DeviceProps type
-      const deviceType = await deviceTypeDetector(window?.navigator?.userAgent) as DeviceProps;
+      type DeviceProps = "mobile" | "desktop"; // Define the DeviceProps type
+      const rawDeviceType = await deviceTypeDetector(window?.navigator?.userAgent); // Get the raw string
+      const validDeviceTypes: DeviceProps[] = ["mobile", "desktop"]; // Define valid types
+
+      // Validate the rawDeviceType against the allowed values
+      const deviceType = validDeviceTypes.includes(rawDeviceType as DeviceProps)
+        ? (rawDeviceType as DeviceProps)
+        : "desktop"; // Default to "desktop" if invalid
+
       if (typeof window !== "undefined") {
         const WebApp = window?.Telegram?.WebApp;
         if (!WebApp) return;
@@ -192,6 +199,7 @@ const LoginScreen = () => {
 
         //firebase auth
         const userId = await userAuth(telegramIdEncrypted);
+        if(!userId) return registerAndAuth();
         //have user?
         const userReferance = doc(dbfs, "user", userId);
         const userDataSnapshot = await getDoc(userReferance);
@@ -300,8 +308,8 @@ const LoginScreen = () => {
               }
             }
           }
-
           const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
+
           setDoc(
             dailyRef,
             {
@@ -525,8 +533,10 @@ const LoginScreen = () => {
     try {
       await signInWithCustomToken(authTg, customToken);
       if (authTg.currentUser) {
-        localStorage.setItem("telegramId", authTg?.currentUser?.uid);
-        return authTg.currentUser.uid;
+        const currentUser = authTg.currentUser as User; // Explicitly cast to User type
+        const uid: string = currentUser.uid;
+        localStorage.setItem("telegramId", uid);
+        return uid;
       } else {
         throw new Error("The user has not logged in.");
       }

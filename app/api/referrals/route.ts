@@ -1,6 +1,6 @@
-import {NextResponse,NextRequest} from 'next/server';
+import {NextRequest, NextResponse} from 'next/server';
 
-export async function POST(request) {
+export async function POST(request:NextRequest) {
     
     const {userId, referrerId} = await request.json();
     if(!userId || !referrerId){
@@ -8,14 +8,18 @@ export async function POST(request) {
     }
     return NextResponse.json({succes:true});
 }
-
-export async function GET(request) {
+interface Ireferrals {
+    id:number,
+    username:string
+}
+export async function GET(request:NextRequest) {
+    
     const userId = request.nextUrl.searchParams.get('userId');
     if(!userId){
         return NextResponse.json({error:'Missing userId'}, {status:400});
     }
 
-    const referrals = []; // Example: Initialize referrals as an empty array
+    const referrals:Array<Ireferrals> = []; // Example: Initialize referrals as an empty array
     const referrer = null; // Example: Initialize referrer as null
     return NextResponse.json({referrals, referrer}); // return NextResponse.json({referrals,referrer});//
 }

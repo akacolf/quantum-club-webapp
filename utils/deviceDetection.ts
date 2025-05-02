@@ -14,7 +14,7 @@ const deviceTypeDetector: React.FC<DeviceProps> = async () => {
     // Await the headers() function
     const headerValues = await headers();
     const { device } = userAgent({ headers: headerValues });
-    const deviceType = device?.type === "mobile" ? "mobile" : "desktop";
+    const deviceType:string = device?.type === "mobile" ? "mobile" : "desktop";
     return deviceType;
 };
 
