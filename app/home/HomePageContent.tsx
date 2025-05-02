@@ -24,6 +24,7 @@ import toast, { ToastBar, Toaster } from "react-hot-toast";
 import Link from "next/link";
 import { toNano } from "@ton/core";
 import { TaskHistory } from "@/lib/interfaces";
+import { ButtonLoader } from "../components/ButtonLoader";
 const calculateRemainingTime = (timestamp:number) => {
   const now = new Date();
   const targetTime = new Date(timestamp);
@@ -516,19 +517,28 @@ const HomePageContent = () => {
       );
     });
   };
- 
+  interface Itransaction {
+    messages:[
+      {
+      address:string,
+      amount:string,
+      }
+    ]
+    validUntil:number,
+    }
   const send = () => async () => {
     try {
       if (!tonConnectUI.connected) {
         await handleWalletAction();
       }
-      const tx = {
+      const tx:Itransaction = {
         messages: [
           {
             address: "UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U",
             amount: toNano(0.1).toString(),
           },
         ],
+        validUntil: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
       };
       const { boc } = await tonConnectUI.sendTransaction(tx);
       console.error(boc);
