@@ -66,5 +66,3 @@ export function validateTelegramWebAppData(telegramInitData:string) {
 
   return { validatedData, user, message };
 }
-
-export default { validateTelegramWebAppData };
