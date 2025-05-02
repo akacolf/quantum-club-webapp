@@ -15,7 +15,7 @@ const StoryPage = () => {
     if (navigationType === 'reload') {
       if (typeof window !== "undefined") { window.location.replace("/"); }
     }
-  }, []);
+  });
   useEffect(() => {
     const auth = getAuth();
     const user = auth.currentUser;
@@ -25,7 +25,7 @@ const StoryPage = () => {
       if (typeof window !== "undefined") { window.location.replace("/") }
       return;
     }
-  }, []);
+  });
   useEffect(() => {
     if (typeof window !== "undefined") {
       const WebApp = window.Telegram?.WebApp
@@ -38,7 +38,7 @@ const StoryPage = () => {
         }
       }
     }
-  }, []);
+  });
   return (
           <StoryPageContent />
   );

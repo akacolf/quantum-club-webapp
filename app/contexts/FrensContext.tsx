@@ -1,9 +1,13 @@
 "use client";
+import { Referral } from "@/lib/interfaces";
 import React, {createContext, useContext, useEffect, useState, ReactNode} from "react";
 
 interface FrensContextType {
-  referralsContext: [],
-  setReferralsContext: (value: any) => void;
+  referralsContext: Array<Referral>[],
+  setReferralsContext: (value: Array<Referral>) => void;
+  addReferral: (newReferral: Referral) => void;
+  referralsNum: number;
+  setReferralNum: (value: number) => void;
 }
 
 
@@ -47,8 +51,8 @@ export const FrensProvider = ({ children }: { children: ReactNode }) => {
   }, [referralsContext]);
 
   // Yeni referans eklerken benzersiz olmasına dikkat et
-  const addReferral = (newReferral) => {
-    setReferralsContext((prevState) => {
+  const addReferral = (newReferral: Referral) => {
+    setReferralsContext((prevState: Array<Referral>) => {
       const isAlreadyExist = prevState.some(
         (referral) => referral.id === newReferral.id
       ); // Benzersiz kontrolü için userName kullanıyoruz

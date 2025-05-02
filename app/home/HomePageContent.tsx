@@ -19,7 +19,7 @@ import { usePathname } from "next/navigation";
 //import { ButtonLoader } from "../loaders/ButtonLoader";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
-import { useTonConnectUI } from "@tonconnect/ui-react";
+import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
 import toast, { ToastBar, Toaster } from "react-hot-toast";
 import Link from "next/link";
 import { toNano } from "@ton/core";
@@ -66,19 +66,24 @@ const HomePageContent = () => {
   );
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
-  const [tonConnectUI, setOptions] = useTonConnectUI();
+  const [tonConnectUI] = useTonConnectUI();
   const [isActiveWalletTab, setActiveWalletTab] = useState(false);
-  const handleWalletConnection = useCallback((address:string) => {
+  const handleWalletConnection = useCallback((address: string) => {
     setWalletAddress(address);
-  }, []);
-
+  }, [setWalletAddress]); // Add dependencies
+  
   const handleWalletDisconnection = useCallback(() => {
     setWalletAddress("");
-  }, []);
+  }, [setWalletAddress]); 
 
   useEffect(() => {
     if (!tonConnectUI) return;
-
+    tonConnectUI.uiOptions = {
+      language: 'en',
+      uiPreferences: {
+          theme: THEME.DARK
+      }
+  };
     let isMounted = true;
     let unsubscribe:(() => void) | undefined;
 
@@ -503,7 +508,7 @@ const HomePageContent = () => {
     };
 
     fetchTasks();
-  }, []);
+  });
   const convertToDate = (dateStr:string) => {
     const [day, month, year] = dateStr.split("/");
     return new Date(`${year}-${month}-${day}`);
@@ -584,7 +589,7 @@ const HomePageContent = () => {
     } else {
       setRankIcon("");
     }
-  }, []);
+  });
   useEffect(() => {
     const checkButton = async () => {
       try {
@@ -667,7 +672,7 @@ const HomePageContent = () => {
       }
     };
     checkButton();
-  }, []);
+  });
   const toastQueue:string[] = [];
   async function ClaimDaily() {
     const claim = async () => {
@@ -1047,7 +1052,7 @@ const HomePageContent = () => {
             setTimeout(() => {
               addToQueue(`You've got +${50} QNTM`);
             }, 3000);
-            const rewardDay = quant + 50;
+            const rewardDay:number = quant + 50;
             const formattedAmount = rewardDay.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -1057,7 +1062,6 @@ const HomePageContent = () => {
               {
                QuantAmount: rewardDay,
               },
-              { merge: true }
             );
             SetMainQuantAmount(formattedAmount);
             setDoc(rewardsHistory, {
@@ -1089,7 +1093,7 @@ const HomePageContent = () => {
             
             addNewTask(list);
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", rewardDay);
+              localStorage.setItem("QAmount", `${rewardDay}`);
             }
             if (typeof window !== "undefined") {
               localStorage.setItem("daily", "1");
@@ -1127,7 +1131,6 @@ const HomePageContent = () => {
                   {
                     QuantAmount: rewardDay,
                   },
-                  { merge: true }
                 );
                 setDoc(rewardsHistory, {
                   quant: quantReward,
@@ -1189,7 +1192,6 @@ const HomePageContent = () => {
                   {
                     QuantAmount: rewardDay,
                   },
-                  { merge: true }
                 );
                 const formattedAmount = rewardDay.toLocaleString("en-US", {
                   minimumFractionDigits: 0,
@@ -1281,7 +1283,6 @@ const HomePageContent = () => {
             {
               QuantAmount: rewardDay,
             },
-            { merge: true }
           );
           const rewardsHistory = doc(
             dbfs,

@@ -9,6 +9,7 @@ import { FrensProvider } from "./contexts/FrensContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
+import NavigationBar from "./navigation/NavigationBar";
 const intertight = Inter_Tight({
   subsets: ["latin"],
   weight: "variable",
@@ -32,7 +33,10 @@ export default function RootLayout({
               <div className="inner-content">
                 <LeaderboardProvider>
                   <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
-                    <FrensProvider>{children}</FrensProvider>
+                    <FrensProvider>
+                      {children}
+                      <NavigationBar/>
+                    </FrensProvider>
                     <Analytics />
                     <SpeedInsights/>
                   </TonConnectUIProvider>

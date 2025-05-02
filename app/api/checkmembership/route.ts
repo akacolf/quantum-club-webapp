@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req) {
+export async function POST(req:NextRequest) {
   const botToken = process.env.BOT_TOKEN;
 
   if (!botToken) {
@@ -50,10 +50,10 @@ export async function POST(req) {
         { status: 500 }
       );
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
-        error: `Failed to check channel membership: ${error.message} || 'Unkown Error'}`,
+        error: `Failed to check channel membership: 'Unkown Error'}`,
       },
       { status: 500 }
     );

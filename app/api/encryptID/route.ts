@@ -1,8 +1,8 @@
 // app/api/encrypt/route.js
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createCipheriv } from 'node:crypto';
 
-export async function POST(request) {
+export async function POST(request:NextRequest) {
   try {
     const session = request.cookies.get('session')?.value
     if(!session) {
@@ -25,7 +25,7 @@ export async function POST(request) {
     }
 
     // 5. Encryption with AES-256-GCM
-    const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY, 'base64'); // 32 byte
+    const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64'); // 32 byte
     const iv = Buffer.from("00000000000000000000000000000000",'utf8') // GCM için 12 byte IV
     const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
     
@@ -43,7 +43,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Encryption error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

@@ -7,3 +7,9 @@ export interface TaskHistory {
     platform: ReactNode;
     title: string;
   }
+
+export interface Referral {
+    id: string;
+    username: string;
+    quantamount:number;
+}

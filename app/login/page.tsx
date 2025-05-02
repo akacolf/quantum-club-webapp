@@ -78,7 +78,7 @@ const LoginScreen = () => {
     const router = useRouter();
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (!window.Telegram?.WebApp?.initData) {
+      if (!window.Telegram?.WebApp?.initDataUnsafe) {
         //why don't we check initDataUnsafe here?//
         window.location.href = "https://t.me/QuantumClubBot";
         return;
