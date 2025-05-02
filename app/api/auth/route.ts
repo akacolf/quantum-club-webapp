@@ -5,7 +5,9 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(request:NextRequest) {
     const {initData} =await request.json()
-    
+    if(!initData) {
+        return NextResponse.json({message:'No initData provided'},{status:400})
+    }
     const validationResult = validateTelegramWebAppData(initData)
     if(validationResult.validatedData) {
         const user = {telegramId: (validationResult.user as { id: string }).id} // id should be explicitly defined cuz it returns an empty object //
