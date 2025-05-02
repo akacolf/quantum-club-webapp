@@ -1,11 +1,9 @@
 'use client';
 
-import React, {  useEffect, useState } from 'react';
+import React, {  useEffect } from 'react';
 import { getAuth } from 'firebase/auth';
 import LeaderboardPageContent from './LeaderboardPageContent';
 const LeaderBoardPage = () => {
-  const [maintenance, setMaintenance] = useState(true);
-  const [isReloading, setIsReloading] = useState(false);
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (!window.Telegram?.WebApp?.initData) {
@@ -15,10 +13,7 @@ const LeaderBoardPage = () => {
     }
     const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
     if (navigationType === 'reload') {
-      setIsReloading(true);
       if (typeof window !== "undefined") { window.location.replace("/"); }
-    } else {
-      setIsReloading(false);
     }
   }, []);
   useEffect(() => {
@@ -38,7 +33,6 @@ const LeaderBoardPage = () => {
         return;
       } else {
         const mp = sessionStorage.getItem('maintenance');
-        setMaintenance(mp === "true");
         if (mp === "true") {
           if (typeof window !== "undefined") { window.location.replace("/maintenance-page") }
         }

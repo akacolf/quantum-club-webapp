@@ -6,7 +6,7 @@ import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const NavigationBar = ({invite, isPopupOpen, PopupClose, inviteFren, CopyLink } : {invite: void; isPopupOpen: void; PopupClose: void; inviteFren: void; CopyLink: void;}) => {
+const NavigationBar = () => {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("home");
   const router = useRouter();
@@ -15,7 +15,7 @@ const NavigationBar = ({invite, isPopupOpen, PopupClose, inviteFren, CopyLink } 
     router.prefetch("/frens");
     router.prefetch("/earn");
     router.prefetch("/leaderboard");
-  }, []);
+  });
   useEffect(() => {
     if (typeof window !== "undefined") {
       // Tarayıcıya özel kodlar burada çalışır
@@ -46,7 +46,7 @@ const NavigationBar = ({invite, isPopupOpen, PopupClose, inviteFren, CopyLink } 
     <div className="flex justify-center w-full mt-20">
       <nav className="fixed bottom-0 w-full bg-black max-w-md">
         {activeTab === "frens" && (
-          <InvitePopup invite={invite} isPopupOpen={isPopupOpen} PopupClose={PopupClose} inviteFren={inviteFren} CopyLink={CopyLink} />
+          <InvitePopup />
         )}
         <ul className="flex flex-row text-center items-center justify-center gap-0">
           <li>
