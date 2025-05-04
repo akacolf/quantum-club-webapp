@@ -10,12 +10,14 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
+
 const intertight = Inter_Tight({
   subsets: ["latin"],
-  weight: "variable",
   variable: "--font-intertight",
   display: "swap",
-});
+  weight: "variable",
+})
+
 const pathname = typeof window !== "undefined" ? window.location.pathname : "";
 const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
 const hideNavbar = hiddenPaths.includes(pathname);
