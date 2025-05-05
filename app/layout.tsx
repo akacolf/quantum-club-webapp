@@ -1,6 +1,7 @@
 "use client"
 import { Inter_Tight } from "next/font/google";
 import "./globals.css";
+import { usePathname } from "next/navigation";
 import { GameProvider } from "./contexts/MiningContext";
 import { TabProvider } from "./contexts/TabContext";
 import { LeaderboardProvider } from "./contexts/LeaderboardContext";
@@ -18,15 +19,14 @@ const intertight = Inter_Tight({
   weight: "variable",
 })
 
-const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
-const hideNavbar = hiddenPaths.includes(pathname);
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
+  const hideNavbar = hiddenPaths.includes(pathname);
   return (
     <html lang="en">
       <body
