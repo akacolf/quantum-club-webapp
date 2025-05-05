@@ -139,7 +139,7 @@ const tasks = [
 ];
 
 // Görevleri Filtreleme İşlevi
-export const filterTasksByGroup = (category) => {
+export const filterTasksByGroup = (category:string) => {
   return tasks.filter((task) => task.category === category);
 };
 
