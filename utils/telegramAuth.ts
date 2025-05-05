@@ -17,7 +17,6 @@ export function validateTelegramWebAppData(telegramInitData:string) {
 
   const initData = new URLSearchParams(telegramInitData);
   const hash = initData.get('hash');
-  console.log('Hash',initData.get('hash'));
   if (!hash) {
     return { message: 'Hash is missing from initData', validatedData: null, user: {} };
   }
@@ -42,10 +41,8 @@ export function validateTelegramWebAppData(telegramInitData:string) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
-  console.log('BOT_TOKEN:', BOT_TOKEN);
   const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
   const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-  console.log('calculatedHash:', calculatedHash);
   if (calculatedHash === hash) {
     validatedData = Object.fromEntries(initData.entries());
     message = 'Validation successful';
