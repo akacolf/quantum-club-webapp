@@ -1,5 +1,5 @@
 "use client"
-import { Inter_Tight } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { usePathname } from "next/navigation";
 import { GameProvider } from "./contexts/MiningContext";
@@ -12,11 +12,31 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
 
-const intertight = Inter_Tight({
-  subsets: ["latin"],
-  variable: "--font-intertight",
-  display: "swap",
-  weight: "variable",
+const interdisplay = localFont({
+  src: [
+    {
+      path: './fonts/InterDisplay-Regular.otf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: './fonts/InterDisplay-Medium.otf',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: './fonts/InterDisplay-SemiBold.otf',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: './fonts/InterDisplay-Bold.otf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-interdisplay',
+  display: 'swap',
 })
 
 export default function RootLayout({
@@ -30,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-      className={`${intertight.variable} antialiased`}
+      className={`${interdisplay.variable} antialiased`}
       >
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <GameProvider>
@@ -47,7 +67,6 @@ export default function RootLayout({
                     <SpeedInsights/>
                   </TonConnectUIProvider>
                 </LeaderboardProvider>
-              
               </div>
             </div>
           </TabProvider>
