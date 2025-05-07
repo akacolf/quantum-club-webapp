@@ -555,9 +555,9 @@ const HomePageContent = () => {
     openTelegramGroup();
   };
   const openTelegramGroup = () => {
-    let newLink = task?.link
-    if (!task?.link?.startsWith("http://") && !task?.link?.startsWith("https://")) {
-       newLink = "https://" + task?.link;
+    let newLink = task?.url
+    if (!task?.url?.startsWith("http://") && !task?.url?.startsWith("https://")) {
+       newLink = "https://" + task?.url;
     }
     if (typeof window !== "undefined") {
       const tg = window?.Telegram?.WebApp;
