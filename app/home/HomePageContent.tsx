@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
 import toast, { ToastBar, Toaster } from "react-hot-toast";
 import Link from "next/link";
-import { toNano } from "@ton/core";
+/*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
 import { ButtonLoader } from "../components/ButtonLoader";
 const calculateRemainingTime = (timestamp:number) => {
@@ -520,7 +520,7 @@ const HomePageContent = () => {
       );
     });
   };
-  interface Itransaction {
+  {/*interface Itransaction {
     messages:[
       {
       address:string,
@@ -528,7 +528,7 @@ const HomePageContent = () => {
       }
     ]
     validUntil:number,
-    }
+    }*/}
   {/*const send = () => async () => {
     try {
       if (!tonConnectUI.connected) {
