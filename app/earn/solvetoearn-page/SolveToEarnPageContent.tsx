@@ -28,15 +28,23 @@ const SolveToEarnPageContent = () => {
     correctRef.current = correctAnswer;
   }, [correctAnswer]);
   useEffect(() => {
-    if (typeof window !== "undefined") {
       const tg = window.Telegram?.WebApp;
       if(tg){
+      tg.ready();
+      const handleBackButtonClick = () => {
+        router.replace('/earn');
+      };
       tg.BackButton.show();
-      tg.BackButton.onClick = (() => {
-        router.push('/earn');
-      })
+      tg.BackButton.onClick(handleBackButtonClick);
+      return () => {
+        tg.BackButton.offClick(handleBackButtonClick);
+       
+      };
+      }else{
+        console.error("Telegram WebApp not available");
       }
-    }
+      
+    
   }, [router])
   useEffect(() => {
     const MathCreator = async () => {

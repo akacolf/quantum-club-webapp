@@ -33,10 +33,12 @@ const SolveToEarnPage = () => {
         if(!WebApp?.initDataUnsafe.user){
           return;
         }else{
-          const mp:boolean = Boolean(sessionStorage.getItem('maintenance'));
-          if(mp == true){
+          const mp = sessionStorage.getItem('maintenance');
+          if(mp === "true"){
             if(typeof window !== "undefined")
-              { window.location.replace("/maintenance")}
+              { 
+               window.location.replace("/maintenance")
+              }
           }
         }
         }

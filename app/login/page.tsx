@@ -49,7 +49,8 @@ declare global {
         BackButton: {
           hide: () => void;
           show: () => void;
-          onClick: () => void;
+          onClick: (callback:()=>void) => void;
+          offClick: (callback:()=>void) => () => void;
         };
         safeAreaInset: {
           top: number;

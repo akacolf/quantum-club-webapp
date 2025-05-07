@@ -22,26 +22,24 @@ const ReferralsPage = () => {
 	const [totalReferralSize, setTotalReferralSize] = useState(0)
 	const [viewButton, setViewButton] = useState<string |React.ReactNode>("View more")
 	useEffect(() => {
-		if (typeof window !== "undefined") {
-			const tg = window.Telegram?.WebApp;
-			tg?.BackButton.show();
-
-			const handleBackButtonClick = () => {
-				router.push('/frens');
-			};
-
-			if (tg?.BackButton) {
-				tg.BackButton.onClick = handleBackButtonClick;
-			}
-
-			// Cleanup function
-			return () => {
-				if(tg?.BackButton) {
-				tg.BackButton.onClick = () => {};
-				}
-			};
+		const tg = window.Telegram?.WebApp;
+		if(tg){
+		tg.ready();
+		const handleBackButtonClick = () => {
+		  router.replace('/frens');
+		};
+		tg.BackButton.show();
+		tg.BackButton.onClick(handleBackButtonClick);
+		return () => {
+		  tg.BackButton.offClick(handleBackButtonClick);
+		 
+		};
+		}else{
+		  console.error("Telegram WebApp not available");
 		}
-	}, [router]);
+		
+	  
+	}, [router])
 	useEffect(() => {
 		const fetchReferralsData = async () => {
 			try {

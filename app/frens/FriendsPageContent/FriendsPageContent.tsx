@@ -822,7 +822,7 @@ const FriendsPageContent = () => {
               <div className="font-semibold text-blue-500">Referrals</div>
               <div
                 onClick={() => {
-                  router.push("/frens/referrals-page");
+                  router.push("/frens/referrals");
                 }}
                 className="flex justify-between items-center cursor-pointer bg-[#202021] p-2 rounded-lg mt-3"
               >
