@@ -47,7 +47,7 @@ const EarnPageContent = () => {
   const [limitedTimestamp, setLimitedstamp] = useState(0)
   const claimTEXT = 'Claim';
   const { telegramId, SetMainQuantAmount, remainingSolveToEarn, setRemainingSolveToEarn } = useGameContext();
-  const solvetoearnRemaining = useState(remainingSolveToEarn);
+  const [solvetoearnRemaining] = useState<number>(remainingSolveToEarn);
   const { totalUsers } = useLeaderboardContext();
   const [activeTaskId, setActiveTaskId] = useState(null);
   const router = useRouter();
@@ -1461,7 +1461,7 @@ const EarnPageContent = () => {
                           </radialGradient>
                         </defs>
                       </g>
-                    </svg> {`${solvetoearnRemaining}`})</div></button>
+                    </svg> {solvetoearnRemaining})</div></button>
                 </div>
               </div>
               {/*user completed tasks and limited task duration cards*/}

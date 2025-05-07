@@ -34,7 +34,7 @@ const LeaderBoardPage = () => {
       } else {
         const mp = sessionStorage.getItem('maintenance');
         if (mp === "true") {
-          if (typeof window !== "undefined") { window.location.replace("/maintenance-page") }
+          if (typeof window !== "undefined") { window.location.replace("/maintenance") }
         }
       }
     }

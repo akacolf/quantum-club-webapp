@@ -57,7 +57,7 @@ const HomePage = () => {
         const mp = sessionStorage.getItem('maintenance');
         setMaintenance(mp === 'true');
         if (mp === 'true') {
-          if (typeof window !== "undefined") { window.location.replace("/maintenance-page") }
+          if (typeof window !== "undefined") { window.location.replace("/maintenance") }
         }
       }
     }

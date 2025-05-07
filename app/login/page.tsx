@@ -150,7 +150,7 @@ const LoginScreen = () => {
         WebApp = window?.Telegram?.WebApp;
       }
       if (process.env.NODE_ENV === "production" && maintenance) {
-        router.push(`/maintenance-page`);
+        router.push(`/maintenance`);
         return;
       }
       const user = WebApp?.initDataUnsafe.user;

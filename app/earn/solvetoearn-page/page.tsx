@@ -36,7 +36,7 @@ const SolveToEarnPage = () => {
           const mp:boolean = Boolean(sessionStorage.getItem('maintenance'));
           if(mp == true){
             if(typeof window !== "undefined")
-              { window.location.replace("/maintenance-page")}
+              { window.location.replace("/maintenance")}
           }
         }
         }
