@@ -32,7 +32,7 @@ const SolveToEarnPageContent = () => {
       const tg = window.Telegram?.WebApp;
       if(tg){
       tg.BackButton.show();
-      tg.BackButton.onClick(() => {
+      tg.BackButton.onClick = (() => {
         router.push('/earn');
       })
       }
@@ -47,7 +47,7 @@ const SolveToEarnPageContent = () => {
         }
         const generateDecoys = (correct:number) => {
           const offset = getRandomInteger(5, 15);
-          const decoys = new Set();
+          const decoys = new Set<number>();
 
           while (decoys.size < 3) {
             const variation = Math.random() < 0.5
@@ -58,7 +58,7 @@ const SolveToEarnPageContent = () => {
               decoys.add(variation)
             };
           }
-          const shuffleArray = (array) => {
+          const shuffleArray = (array: number[]) => {
             for (let i = array.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [array[i], array[j]] = [array[j], array[i]];
@@ -66,7 +66,7 @@ const SolveToEarnPageContent = () => {
             return array;
           };
           const newOptions = shuffleArray([...decoys, correct]);
-          setOptions(newOptions);
+          setOptions(newOptions.map(option => option.toString()));
           return [...decoys];
         };
         const process = getRandomInteger(0, 3);
@@ -81,12 +81,44 @@ const SolveToEarnPageContent = () => {
             const v2 = getRandomInteger(1, 4);
             const v3 = getRandomInteger(1, 4);
             const v4 = getRandomInteger(1, 4)
-            v1 == 1 ? s1 = "first" : v1 == 2 ? s1 = "second" : v1 == 3 ? s1 = "third" : s1 = "fourth";
-            v2 == 1 ? s2 = "first" : v2 == 2 ? s2 = "second" : v2 == 3 ? s2 = "third" : s2 = "fourth";
-            v3 == 1 ? s3 = "first" : v3 == 2 ? s3 = "second" : v3 == 3 ? s3 = "third" : s3 = "fourth";
-            v4 == 1 ? s4 = "first" : v4 == 2 ? s4 = "second" : v4 == 3 ? s4 = "third" : s4 = "fourth";
+            if (v1 === 1) {
+              s1 = "first";
+            } else if (v1 === 2) {
+              s1 = "second";
+            } else if (v1 === 3) {
+              s1 = "third";
+            } else {
+              s1 = "fourth";
+            }
+            if (v2 === 1) {
+              s2 = "first";
+            } else if (v2 === 2) {
+              s2 = "second";
+            } else if (v2 === 3) {
+              s2 = "third";
+            } else {
+              s2 = "fourth";
+            }
+            if (v3 === 1) {
+              s3 = "first";
+            } else if (v3 === 2) {
+              s3 = "second";
+            } else if (v3 === 3) {
+              s3 = "third";
+            } else {
+              s3 = "fourth";
+            }
+            if (v4 === 1) {
+              s4 = "first";
+            } else if (v4 === 2) {
+              s4 = "second";
+            } else if (v4 === 3) {
+              s4 = "third";
+            } else {
+              s4 = "fourth";
+            }
           } while (s1 === s2 || s1 === s3 || s2 === s3 || s1 === s4 || s2 === s4 || s4 === s3);
-          generateDecoys(value1 + value2, s1, s2, s3, s4);
+          generateDecoys(value1 + value2);
           return;
         }
         if (processies[process] === "-") {
@@ -99,12 +131,44 @@ const SolveToEarnPageContent = () => {
             const v2 = getRandomInteger(1, 4);
             const v3 = getRandomInteger(1, 4);
             const v4 = getRandomInteger(1, 4)
-            v1 == 1 ? s1 = "first" : v1 == 2 ? s1 = "second" : v1 == 3 ? s1 = "third" : s1 = "fourth";
-            v2 == 1 ? s2 = "first" : v2 == 2 ? s2 = "second" : v2 == 3 ? s2 = "third" : s2 = "fourth";
-            v3 == 1 ? s3 = "first" : v3 == 2 ? s3 = "second" : v3 == 3 ? s3 = "third" : s3 = "fourth";
-            v4 == 1 ? s4 = "first" : v4 == 2 ? s4 = "second" : v4 == 3 ? s4 = "third" : s4 = "fourth";
+            if (v1 === 1) {
+              s1 = "first";
+            } else if (v1 === 2) {
+              s1 = "second";
+            } else if (v1 === 3) {
+              s1 = "third";
+            } else {
+              s1 = "fourth";
+            }
+            if (v2 === 1) {
+              s2 = "first";
+            } else if (v2 === 2) {
+              s2 = "second";
+            } else if (v2 === 3) {
+              s2 = "third";
+            } else {
+              s2 = "fourth";
+            }
+            if (v3 === 1) {
+              s3 = "first";
+            } else if (v3 === 2) {
+              s3 = "second";
+            } else if (v3 === 3) {
+              s3 = "third";
+            } else {
+              s3 = "fourth";
+            }
+            if (v4 === 1) {
+              s4 = "first";
+            } else if (v4 === 2) {
+              s4 = "second";
+            } else if (v4 === 3) {
+              s4 = "third";
+            } else {
+              s4 = "fourth";
+            }
           } while (s1 === s2 || s1 === s3 || s2 === s3 || s1 === s4 || s2 === s4 || s4 === s3);
-          generateDecoys(Math.max(value1, value2) - Math.min(value1, value2), s1, s2, s3, s4);
+          generateDecoys(Math.max(value1, value2) - Math.min(value1, value2));
           return;
         }
         if (processies[process] === "*") {
@@ -117,12 +181,44 @@ const SolveToEarnPageContent = () => {
             const v2 = getRandomInteger(1, 4);
             const v3 = getRandomInteger(1, 4);
             const v4 = getRandomInteger(1, 4)
-            v1 == 1 ? s1 = "first" : v1 == 2 ? s1 = "second" : v1 == 3 ? s1 = "third" : s1 = "fourth";
-            v2 == 1 ? s2 = "first" : v2 == 2 ? s2 = "second" : v2 == 3 ? s2 = "third" : s2 = "fourth";
-            v3 == 1 ? s3 = "first" : v3 == 2 ? s3 = "second" : v3 == 3 ? s3 = "third" : s3 = "fourth";
-            v4 == 1 ? s4 = "first" : v4 == 2 ? s4 = "second" : v4 == 3 ? s4 = "third" : s4 = "fourth";
+            if (v1 === 1) {
+              s1 = "first";
+            } else if (v1 === 2) {
+              s1 = "second";
+            } else if (v1 === 3) {
+              s1 = "third";
+            } else {
+              s1 = "fourth";
+            }
+            if (v2 === 1) {
+              s2 = "first";
+            } else if (v2 === 2) {
+              s2 = "second";
+            } else if (v2 === 3) {
+              s2 = "third";
+            } else {
+              s2 = "fourth";
+            }
+            if (v3 === 1) {
+              s3 = "first";
+            } else if (v3 === 2) {
+              s3 = "second";
+            } else if (v3 === 3) {
+              s3 = "third";
+            } else {
+              s3 = "fourth";
+            }
+            if (v4 === 1) {
+              s4 = "first";
+            } else if (v4 === 2) {
+              s4 = "second";
+            } else if (v4 === 3) {
+              s4 = "third";
+            } else {
+              s4 = "fourth";
+            }
           } while (s1 === s2 || s1 === s3 || s2 === s3 || s1 === s4 || s2 === s4 || s4 === s3);
-          generateDecoys(value1 * value2, s1, s2, s3);
+          generateDecoys(value1 * value2);
           return;
         }
         if (processies[process] === "/") {
@@ -137,12 +233,44 @@ const SolveToEarnPageContent = () => {
             const v2 = getRandomInteger(1, 4);
             const v3 = getRandomInteger(1, 4);
             const v4 = getRandomInteger(1, 4)
-            v1 == 1 ? s1 = "first" : v1 == 2 ? s1 = "second" : v1 == 3 ? s1 = "third" : s1 = "fourth";
-            v2 == 1 ? s2 = "first" : v2 == 2 ? s2 = "second" : v2 == 3 ? s2 = "third" : s2 = "fourth";
-            v3 == 1 ? s3 = "first" : v3 == 2 ? s3 = "second" : v3 == 3 ? s3 = "third" : s3 = "fourth";
-            v4 == 1 ? s4 = "first" : v4 == 2 ? s4 = "second" : v4 == 3 ? s4 = "third" : s4 = "fourth";
+            if (v1 === 1) {
+              s1 = "first";
+            } else if (v1 === 2) {
+              s1 = "second";
+            } else if (v1 === 3) {
+              s1 = "third";
+            } else {
+              s1 = "fourth";
+            }
+            if (v2 === 1) {
+              s2 = "first";
+            } else if (v2 === 2) {
+              s2 = "second";
+            } else if (v2 === 3) {
+              s2 = "third";
+            } else {
+              s2 = "fourth";
+            }
+            if (v3 === 1) {
+              s3 = "first";
+            } else if (v3 === 2) {
+              s3 = "second";
+            } else if (v3 === 3) {
+              s3 = "third";
+            } else {
+              s3 = "fourth";
+            }
+            if (v4 === 1) {
+              s4 = "first";
+            } else if (v4 === 2) {
+              s4 = "second";
+            } else if (v4 === 3) {
+              s4 = "third";
+            } else {
+              s4 = "fourth";
+            }
           } while (s1 === s2 || s1 === s3 || s2 === s3 || s1 === s4 || s2 === s4 || s4 === s3);
-          generateDecoys(Math.max(value1, value2) / Math.min(value1, value2), s1, s2, s3);
+          generateDecoys(Math.max(value1, value2) / Math.min(value1, value2));
           return;
         }
       } catch (error) {
@@ -153,7 +281,7 @@ const SolveToEarnPageContent = () => {
     }
     MathCreator();
   }, [again]);
-  const checkAnswer = (sort) => {
+  const checkAnswer = (sort:number) => {
     const mathprocessSplit = mathProcess.split(" ");
     const value1 = Number(mathprocessSplit[0]);
     const value2 = Number(mathprocessSplit[2]);
@@ -234,7 +362,7 @@ const SolveToEarnPageContent = () => {
       }
     }
   }
-  const dbSave = async (answersR, correctR) => {
+  const dbSave = async (answersR:number, correctR:number) => {
     try {
       const date = new Date(Date.now());
       const formattedDate =
@@ -245,14 +373,14 @@ const SolveToEarnPageContent = () => {
       const solveToEarnSet = doc(dbfs, `user/${telegramId}/miningData/values`);
       const snapshotSolveToEarn = await getDoc(solveToEarnSet);
       const remainingSolveToEarn = snapshotSolveToEarn.data()?.remainingSolveToEarn;
-      const totalQuant = snapshotSolveToEarn.data().QuantAmount;
+      const totalQuant = snapshotSolveToEarn.data()?.QuantAmount;
       const totallyQ = totalQuant + answersR;
       let formattedQuant = Number(totallyQ);
       formattedQuant = totallyQ.toLocaleString("en-US", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       });
-      sessionStorage.setItem("correctAnswers", correctR);
+      sessionStorage.setItem("correctAnswers", `${correctR}`);
       if (snapshotSolveToEarn.exists() && remainingSolveToEarn) {
         if (Number(remainingSolveToEarn) > 0) {
           updateDoc(solveToEarnSet, {
@@ -264,8 +392,8 @@ const SolveToEarnPageContent = () => {
             quant: answersR,
             platform: "solvetoearn"
           }, { merge: true });
-          SetMainQuantAmount(formattedQuant);
-          sessionStorage.setItem("TotalCorrectSolveToEarn", answersR);
+          SetMainQuantAmount(`${formattedQuant}`);
+          sessionStorage.setItem("TotalCorrectSolveToEarn", `${answersR}`);
         }
       }
     } finally {
