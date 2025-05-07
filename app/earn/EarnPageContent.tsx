@@ -683,10 +683,22 @@ const EarnPageContent = () => {
       if (task.whichPlatform === "connectwallet") {
         if (task.buttonText === "Check") {
           task.buttonText = <ButtonLoader />;
-          const walletRef = doc(dbfs, `userAddresses/${telegramId}`);
-          const snapshotWallet = await getDoc(walletRef);
-          if (snapshotWallet.exists()) {
-            const walletData = snapshotWallet.data()
+          console.error(telegramId)
+          
+          const checkWallet = await fetch(
+            "/api/tonconnections/checktonWallet",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ userId: telegramId }),
+            }
+          );
+          const responseCheckWallet = await checkWallet.json();
+          const haveWallet = responseCheckWallet.haveWallet;
+          if (haveWallet) {
+            const walletData = responseCheckWallet;
             const address = walletData.address
             if (address && address !== "") {
               task.buttonText = claimTEXT;
@@ -744,6 +756,7 @@ const EarnPageContent = () => {
       if (task.whichPlatform === "solvetoearnExplore") {
         if (task.buttonText === "Check") {
           task.buttonText = <ButtonLoader />;
+          console.error(telegramId)
           const valueRef = doc(dbfs, `user/${telegramId}/miningData/values`);
           const snapshotWallet = await getDoc(valueRef);
           if (snapshotWallet.exists()) {
@@ -807,7 +820,7 @@ const EarnPageContent = () => {
       }
     } catch (error) {
       if(error instanceof Error) {
-      console.error("The task could not be completed:",error.message);
+      console.error("The task could not be completed:",error);
       }
     }
   };
