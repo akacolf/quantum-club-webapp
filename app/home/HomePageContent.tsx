@@ -1389,15 +1389,13 @@ const HomePageContent = () => {
     return <div>{remainingTime}</div>;
   };
   return (
-    <main className="flex flex-col overflow-auto">
+    <div className="flex flex-col overflow-auto">
       <div className="main-wrapper">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div
-            key={pathname}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <div>
               <Toaster
@@ -1443,29 +1441,31 @@ const HomePageContent = () => {
                   </ToastBar>
                 )}
               </Toaster>
-              {/* Tab navigation mining and home  */}
-              <div className="flex flex-col w-full justify-center items-center px-4 py-4 gap-0 md:flex-row">
-                <div className="inline-flex h-9 items-baseline bg-[#202021] justify-start p-1 rounded-lg sm:w-auto">
-                  <Link
-                    href={"/home"}
-                    className="group inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-medium transition-all duration-300 ease-in-out min-w-[30px]
-                  gap-3 text-xs h-7 w-full rounded-lg px-3 sm:w-auto text-black bg-white"
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    href={"/mine"}
-                    className="group inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-medium transition-all duration-300 ease-in-out min-w-[30px]
-                  gap-3 text-xs h-7 w-full rounded-lg px-3 sm:w-auto"
-                  >
-                    Mining
-                  </Link>
+              {/* Telegram channel banner */}
+              <div className="flex items-center justify-between bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 rounded-xl p-4 max-w-80 mx-auto mt-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="2.5em" height="2.5em" viewBox="0 0 256 256">
+	<defs>
+		<linearGradient id="logosTelegram0" x1="50%" x2="50%" y1="0%" y2="100%">
+			<stop offset="0%" stopColor="#2aabee" />
+			<stop offset="100%" stopColor="#229ed9" />
+		</linearGradient>
+	</defs>
+	<path fill="url(#logosTelegram0)" d="M128 0C94.06 0 61.48 13.494 37.5 37.49A128.04 128.04 0 0 0 0 128c0 33.934 13.5 66.514 37.5 90.51C61.48 242.506 94.06 256 128 256s66.52-13.494 90.5-37.49c24-23.996 37.5-56.576 37.5-90.51s-13.5-66.514-37.5-90.51C194.52 13.494 161.94 0 128 0" />
+	<path fill="#fff" d="M57.94 126.648q55.98-24.384 74.64-32.152c35.56-14.786 42.94-17.354 47.76-17.441c1.06-.017 3.42.245 4.96 1.49c1.28 1.05 1.64 2.47 1.82 3.467c.16.996.38 3.266.2 5.038c-1.92 20.24-10.26 69.356-14.5 92.026c-1.78 9.592-5.32 12.808-8.74 13.122c-7.44.684-13.08-4.912-20.28-9.63c-11.26-7.386-17.62-11.982-28.56-19.188c-12.64-8.328-4.44-12.906 2.76-20.386c1.88-1.958 34.64-31.748 35.26-34.45c.08-.338.16-1.598-.6-2.262c-.74-.666-1.84-.438-2.64-.258c-1.14.256-19.12 12.152-54 35.686c-5.1 3.508-9.72 5.218-13.88 5.128c-4.56-.098-13.36-2.584-19.9-4.708c-8-2.606-14.38-3.984-13.82-8.41c.28-2.304 3.46-4.662 9.52-7.072" />
+</svg>
+                  </div>
+                <div className="text-black">
+                  <div className="font-semibold text-base">The Club of OGs</div>
+                  <div className="font-normal text-xs">Stay updated with our Telegram channel.</div>
                 </div>
-                <button
-                  onClick={send()}
-                  className="flex bg-[#202021] items-center font-medium rounded-lg mt-3 px-3 py-2"
-                >
-                  Initiate transaction
+                </div>
+                <button 
+                id="joinbutton"
+                onClick={() => handleJoinTask()}
+                className="px-3 py-2 bg-white text-black rounded-full">
+                  Join
                 </button>
               </div>
               {/* Connect wallet button */}
@@ -1583,7 +1583,8 @@ const HomePageContent = () => {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between bg-[#ffd8a8] rounded-2xl max-w-80 mx-auto p-4 mt-4">
+              {/*daily check-in*/}
+              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl max-w-80 mx-auto p-4 mt-4">
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center justify-center">
                     <svg
@@ -2005,20 +2006,19 @@ const HomePageContent = () => {
                   </button>
                 </div>
               </div>
-              <div className="px-4 mt-3">
-                <div className="flex items-center justify-between p-4 bg-[#151516] rounded-2xl max-w-80 mx-auto">
+              {/*TGE Progress Card*/}
+              <div className="px-4 mt-4">
+                <div onClick={() => <Link href={"/home/roadmap"} />} className="px-4 flex items-center justify-between text-gray-300">
+                  <div className="font-semibold">Roadmap</div>
+                  <div><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="-6 0 24 24">
+	<path fill="currentColor" fillRule="evenodd" d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414" />
+</svg></div>
+                </div>
+                <div className="mt-2 flex items-center justify-between p-4 bg-[#151516] rounded-xl max-w-80 mx-auto">
                   <div className="flex flex-col">
                     <div className="font-medium text-xl">TGE Progress</div>
                     <div className="font-medium text-base mt-1 text-gray-500">
                       Currently in Building Phase.
-                    </div>
-                    <div>
-                      <button
-                        onClick={() => router.push("/home/roadmap-page")}
-                        className="font-normal text-sm rounded-full bg-white text-black py-2 px-4 mt-4 opacity"
-                      >
-                        Roadmap
-                      </button>
                     </div>
                   </div>
                   <div className="relative size-40 flex items-center justify-center">
@@ -2041,16 +2041,16 @@ const HomePageContent = () => {
                         cy={18}
                         r={13}
                         fill="none"
-                        className="stroke-current text-blue-500"
+                        className="stroke-current text-white"
                         strokeWidth={2}
                         strokeDasharray={100}
-                        strokeDashoffset={97}
+                        strokeDashoffset={95}
                         strokeLinecap="round"
                       ></circle>
                     </svg>
                     <div className="absolute top-1/2 start-1/2 transform -translate-y-1/2 -translate-x-1/2">
                       <div className="text-center font-semibold text-2xl">
-                        3%
+                        5%
                       </div>
                     </div>
                   </div>
@@ -2058,103 +2058,6 @@ const HomePageContent = () => {
               </div>
               <div className="mt-3">
                 <CheckStory />
-              </div>
-              {/* scrollable container */}
-              <div className="flex overflow-x-scroll snap-x snap-mandatory scrollbar-hide space-x-4 px-12 scroll-smooth">
-                {/*Card 1*/}
-                <div className="snap-center min-w-[20rem] mt-3 p-6 bg-[#202020] border border-black rounded-xl shadow dark:border-black">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="3em"
-                    height="3em"
-                    viewBox="0 0 256 256"
-                  >
-                    <defs>
-                      <linearGradient
-                        id="logosTelegram0"
-                        x1="50%"
-                        x2="50%"
-                        y1="0%"
-                        y2="100%"
-                      >
-                        <stop offset="0%" stopColor="#2aabee" />
-                        <stop offset="100%" stopColor="#229ed9" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      fill="url(#logosTelegram0)"
-                      d="M128 0C94.06 0 61.48 13.494 37.5 37.49A128.04 128.04 0 0 0 0 128c0 33.934 13.5 66.514 37.5 90.51C61.48 242.506 94.06 256 128 256s66.52-13.494 90.5-37.49c24-23.996 37.5-56.576 37.5-90.51s-13.5-66.514-37.5-90.51C194.52 13.494 161.94 0 128 0"
-                    />
-                    <path
-                      fill="#fff"
-                      d="M57.94 126.648q55.98-24.384 74.64-32.152c35.56-14.786 42.94-17.354 47.76-17.441c1.06-.017 3.42.245 4.96 1.49c1.28 1.05 1.64 2.47 1.82 3.467c.16.996.38 3.266.2 5.038c-1.92 20.24-10.26 69.356-14.5 92.026c-1.78 9.592-5.32 12.808-8.74 13.122c-7.44.684-13.08-4.912-20.28-9.63c-11.26-7.386-17.62-11.982-28.56-19.188c-12.64-8.328-4.44-12.906 2.76-20.386c1.88-1.958 34.64-31.748 35.26-34.45c.08-.338.16-1.598-.6-2.262c-.74-.666-1.84-.438-2.64-.258c-1.14.256-19.12 12.152-54 35.686c-5.1 3.508-9.72 5.218-13.88 5.128c-4.56-.098-13.36-2.584-19.9-4.708c-8-2.606-14.38-3.984-13.82-8.41c.28-2.304 3.46-4.662 9.52-7.072"
-                    />
-                  </svg>
-                  <h5 className="mb-2 text-2xl font-semibold tracking-tight  dark:text-white mt-2">
-                    Home of OGs
-                  </h5>
-                  <p className="mb-3 font-normal text-gray-500 dark:text-gray-400">
-                    Join our Telegram club so you don&apos;t miss the latest
-                    announcements.
-                  </p>
-                  <button
-                    id="joinbutton"
-                    onClick={() => handleJoinTask()}
-                    className="text-black bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 focus:outline-none"
-                  >
-                    Join community
-                  </button>
-                </div>
-                {/*Card 2*/}
-                {/*<div className="snap-center min-w-[20rem] mt-3 p-6 bg-[#202020] border border-black rounded-xl shadow dark:border-black">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="3em"
-                    height="3em"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fill="#fff"
-                      d="M11.415 2.311c-.309.171-.6.331-.655.356a52 52 0 0 0-1.115.606c-.037.023-.995.544-1.093.594c-.05.025-.858.467-1.66.906c-.244.134-.461.25-.482.258a1 1 0 0 0-.126.064c-.048.028-.353.2-.678.375l-.885.486c-.162.09-.347.189-.41.219a9 9 0 0 0-.464.25c-.049.029-.329.183-.623.344l-.8.438c-.145.08-.269.146-.277.147a.4.4 0 0 0-.085.04l-.07.039V19.7h1.171v-3.864h1.126V19.7h4.263v-1.17H5.47v-3.864H3.163V8.143l.3-.163l.681-.374l.519-.282C4.866 7.216 6 6.6 6.142 6.518a26 26 0 0 1 .661-.361c.12-.061 1.549-.839 1.645-.9c.13-.076.484-.268.574-.31c.071-.034.382-.2.553-.3a1 1 0 0 1 .1-.051s.005.288 0 .64v.641l-.175.097c-.094.051-.268.144-.388.205s-.308.162-.416.222s-.442.244-.743.408s-.576.316-.612.338c-.1.061-.374.207-.386.207s-.757.4-.767.415s-.249.139-.547.3s-.58.316-.628.345a1.2 1.2 0 0 1-.205.109s-.125.063-.266.139l-.256.14v4.738h2.681v3.76h1.169v-3.88c0-2.194 0-3.88-.009-3.88A1 1 0 0 0 8 9.611a1 1 0 0 1-.135.072c-.007 0-.129.069-.27.152l-.44.258l-.183.107v2.16H5.47V9.506l.29-.16c.818-.45 1.533-.84 1.6-.874a60 60 0 0 0 1.1-.6a53 53 0 0 1 1.067-.58c.189-.098 1.2-.648 1.265-.691l.063-.039V3.946l.117-.064a25 25 0 0 0 .956-.514l.062-.038l.074.043c.144.084.748.409.816.439c.037.017.122.062.188.1l.7.384c.318.174.584.32.59.325c.021.017.612.336.667.361s.374.2.574.311l.082.047v1.28l-.134-.074c-.359-.2-.63-.346-.669-.363a7 7 0 0 1-.309-.163c-.146-.08-.536-.3-.868-.478a32 32 0 0 1-.671-.37a2 2 0 0 0-.2-.1c-.076-.031-.29-.152-.484-.257S12 4.621 12 4.624s-.008 1.213-.012 2.69A204 204 0 0 1 11.972 10a.1.1 0 0 1-.033-.02a11 11 0 0 0-.524-.3a7 7 0 0 1-.336-.191c-.439-.257-1.4-.816-1.414-.82s-.009.894-.009 2v2l.035.023c.062.041.745.432.773.443s.348.192.372.212c.009.007.28.166.6.352s.637.37.7.408l.2.119c.109.06.11.052-.011.113a4 4 0 0 0-.222.123c-.066.04-.376.22-.688.4s-.576.337-.585.345s-.017-.016-.019-.279v-.3l-.052-.033a9 9 0 0 0-.441-.251a7 7 0 0 1-.352-.2a6 6 0 0 0-.309-.176c-.003 0 0 .733 0 1.628v1.629s.234-.131.511-.292l.522-.3l1.2-.688a.3.3 0 0 0 .049-.032s.181-.107.4-.23a210 210 0 0 0 2.236-1.295a2 2 0 0 0 .192-.12a2 2 0 0 0-.219-.136c-.12-.07-.232-.137-.25-.149s-.3-.174-.617-.36s-.6-.346-.615-.357a41 41 0 0 1-1.101-.632a44 44 0 0 0-1.087-.623a.1.1 0 0 1-.041-.011l-.023-.019v-1.293l.06.035l.109.062c.1.054.959.549 1.022.59c.112.071 1.033.6 1.045.6a.6.6 0 0 1 .119.065a2 2 0 0 0 .381.2l.25-.14c.746-.427.891-.512.891-.522a2 2 0 0 0-.21-.133a44 44 0 0 0-1.036-.594c-.008 0-.076-.038-.157-.084l-.149-.084V9.469c0-.668 0-1.592.007-2.052l.008-.838l.044.027c.044.026.782.427 1.755.954c.262.141.515.28.563.308c.172.1 1.119.612 1.135.612a.02.02 0 0 1 .02.009a1.3 1.3 0 0 0 .178.1s.006-.585.006-1.3v-1.3l.243.124c.134.069.359.188.5.267l.853.467c.328.178.6.331.612.338s.073.042.142.077c.12.059.586.312 1.29.7l.322.178v6.124H19.7V8.8l-.232-.124l-.358-.189a2 2 0 0 1-.142-.076c-.027-.022-.946-.52-.96-.52a5 5 0 0 0-.008.664v.665l.268.145l.267.146V11l-.13-.076a1 1 0 0 0-.141-.076c-.012 0-.391-.218-.455-.262a27 27 0 0 0-.623-.366c-.323-.185-.636-.37-.705-.412a2 2 0 0 0-.186-.1a24 24 0 0 1-.814-.468a60 60 0 0 0-1.18-.683c-.009 0-.006.3-.006.675v.674l.04.027l.614.359c.314.183.6.349.63.369s.109.065.175.1c.131.069.918.523.944.545s.507.3 1.511.874l.325.187v3.065h2.3v5.4H19.7v-4.264h-1.17v4.263h-7.672V19.7h6.547v-1.17h-3.312v-1.06l.074-.046c.04-.025.334-.2.653-.381l.623-.364a1 1 0 0 1 .093-.052c.052-.025.962-.551 1.054-.609l.432-.254l.377-.219v-2.411l-.373-.216c-.206-.118-.381-.22-.388-.227a27 27 0 0 0-.81-.462a3 3 0 0 0-.309.175c-.024.016-.224.133-.446.262a4 4 0 0 0-.4.245a3 3 0 0 0 .363.214c.067.035.2.113.306.173s.345.2.539.314l.352.205v1.049l-.358.209l-.546.32c-.1.061-.2.116-.218.122a24 24 0 0 0-.753.434c-.009.007-.269.16-.579.339s-.583.339-.608.356a.3.3 0 0 1-.056.031a1 1 0 0 0-.1.051l-.088.05v1.757h-3.25v2.3H1.994V22h20.012V7.431L21.9 7.38a14 14 0 0 1-.631-.34c-.03-.018-.288-.159-.574-.314s-.543-.3-.573-.315a7 7 0 0 0-.409-.22c-.026-.008-.2-.1-.4-.216c-1.006-.552-1.535-.84-1.729-.943c-.118-.062-.383-.207-.591-.32c-.715-.393-1.448-.794-1.541-.842s-.741-.4-1.659-.905a15 15 0 0 0-.52-.278a1 1 0 0 1-.122-.063A42 42 0 0 0 11.993 2c-.015 0-.268.141-.578.311"
-                    />
-                  </svg>
-                  <h5 className="mb-2 text-2xl font-semibold tracking-tight  dark:text-white mt-2">
-                    {t('solvetoearnTire')}
-                  </h5>
-                  <p className="mb-3 font-normal text-gray-500 dark:text-gray-400">
-                  {t('solveText')} 
-                  </p>
-                  <button className="text-white bg-gradient-to-br from-pink-500 to-orange-400 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 focus:outline-none">
-                    Let's go
-                  </button>
-                </div>*/}
-                {/* card 3*/}
-                {/*<div className="snap-center mt-3 min-w-[20rem] p-6 bg-[#202020] border border-black rounded-xl shadow dark:border-black">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="3em"
-                    height="3em"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fill="none"
-                      stroke="#fff"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M2 20a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1a2.4 2.4 0 0 1 2-1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1a2.4 2.4 0 0 1 2-1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1M4 18l-1-5h18l-2 4M5 13V7h8l4 6M7 7V3H6"
-                    />
-                  </svg>
-                  <h5 className="mb-2 text-2xl font-semibold tracking-tight dark:text-white mt-2">
-                    {t('upcominghistory')}
-                  </h5>
-                 { <p className="mb-3 font-normal text-gray-500 dark:text-gray-400">
-                    {t('glimpse')} <br/>{t('fren')}
-                  </p>}
-                  <button className="text-white bg-gradient-to-r from-cyan-500 to-blue-500 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 focus:outline-none">
-                    {t('exploreButton')}
-                  </button>
-                </div>*/}
               </div>
             </div>
           </motion.div>
@@ -2348,7 +2251,7 @@ const HomePageContent = () => {
           )}
         </AnimatePresence>
       </div>
-    </main>
+    </div>
   );
 };
 export default HomePageContent;
