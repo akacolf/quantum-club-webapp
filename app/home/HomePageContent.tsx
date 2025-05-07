@@ -15,7 +15,6 @@ import CheckStory from "@/app/components/CheckStory";
 import { motion, AnimatePresence } from "framer-motion";
 //import "@/app/animations/text-animations/appwide-text-animation.css";
 import tasks from "@/app/earn/tasks";
-import { usePathname } from "next/navigation";
 //import { ButtonLoader } from "../loaders/ButtonLoader";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
@@ -59,7 +58,6 @@ const HomePageContent = () => {
 
   
   const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
-  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(false);
   const task = tasks.find(
     (task) => task.id === "ba1e3046074448f8acb2bfe9797436db"
@@ -531,7 +529,7 @@ const HomePageContent = () => {
     ]
     validUntil:number,
     }
-  const send = () => async () => {
+  {/*const send = () => async () => {
     try {
       if (!tonConnectUI.connected) {
         await handleWalletAction();
@@ -550,7 +548,7 @@ const HomePageContent = () => {
     } catch (e) {
       console.error("Error", e);
     }
-  };
+  };*/}
   const handleJoinTask = () => {
     openTelegramGroup();
   };
