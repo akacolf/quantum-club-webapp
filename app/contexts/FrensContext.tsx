@@ -3,7 +3,7 @@ import { Referral } from "@/lib/interfaces";
 import React, {createContext, useContext, useEffect, useState, ReactNode} from "react";
 
 interface FrensContextType {
-  referralsContext: Array<Referral>[],
+  referralsContext: Array<Referral>,
   setReferralsContext: (value: Array<Referral>) => void;
   addReferral: (newReferral: Referral) => void;
   referralsNum: number;

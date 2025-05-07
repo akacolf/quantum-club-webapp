@@ -17,24 +17,28 @@ const ReferralsPage = () => {
 		addReferral,
 	} = useFrenContext();
 	const { telegramId } = useGameContext();
-	const [errorMessage, setErrorMessage] = useState("");
+	const [errorMessage, setErrorMessage] = useState<string | React.ReactNode>("");
 	const [loading, setLoading] = useState(true);
 	const [totalReferralSize, setTotalReferralSize] = useState(0)
-	const [viewButton, setViewButton] = useState("View more")
+	const [viewButton, setViewButton] = useState<string |React.ReactNode>("View more")
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			const tg = window.Telegram.WebApp;
-			tg.BackButton.show();
+			const tg = window.Telegram?.WebApp;
+			tg?.BackButton.show();
 
 			const handleBackButtonClick = () => {
 				router.push('/frens');
 			};
 
-			tg.BackButton.onClick(handleBackButtonClick);
+			if (tg?.BackButton) {
+				tg.BackButton.onClick = handleBackButtonClick;
+			}
 
 			// Cleanup function
 			return () => {
-				tg.BackButton.offClick(handleBackButtonClick);
+				if(tg?.BackButton) {
+				tg.BackButton.onClick = () => {};
+				}
 			};
 		}
 	}, [router]);
@@ -69,7 +73,7 @@ const ReferralsPage = () => {
 					const snapshotSize = Number(snapshot.size)
 					setTotalReferralSize(snapshotSize)
 
-					sessionStorage.setItem("Num", snapshot.size);
+					sessionStorage.setItem("Num", String(snapshot.size));
 					const referralLocalSize = Number(referralsContext.length)
 					if (snapshotSize === referralLocalSize || (snapshotSize !== referralLocalSize && referralsContext.length % 2 === 0 && referralsContext.length !== 0)) {
 						return;
@@ -80,10 +84,10 @@ const ReferralsPage = () => {
 							if (checkUser === 21) break;
 							const referredTelegramId = docSnapshot.id;
 							try {
-								let username;
+								let username="";
 								const referredRef = doc(dbfs, `user/${referredTelegramId}`)
 								const referredData = await getDoc(referredRef)
-								username = referredData.data().username;
+								username = referredData.data()?.username;
 								const coinsRef = doc(
 									dbfs,
 									`user/${referredTelegramId}/miningData/values`
@@ -94,7 +98,7 @@ const ReferralsPage = () => {
 										? parseFloat(coinsSnapshot.data().firstQuant).toFixed(0)
 										: "0.00";
 								const amount = Number(coins);
-								const newReferral = { id: referredTelegramId, userName: username, quantamount: amount };
+								const newReferral = { id: referredTelegramId, username: username, quantamount: amount };
 								addReferral(newReferral);
 								checkUser++
 							} catch (error) {
@@ -157,14 +161,14 @@ const ReferralsPage = () => {
 							if (contextTotal >= checkReferral + 20) {
 								return;
 							}
-							let username;
+							let username="";
 							const foundUser = referralsContext.find(user => user.id === referredTelegramId);
 							if (foundUser) {
 								continue;
 							}
 							const referredRef = doc(dbfs, `user/${referredTelegramId}`)
 							const referredData = await getDoc(referredRef)
-							username = referredData.data().username;
+							username = referredData.data()?.username;
 							const coinsRef = doc(
 								dbfs,
 								`user/${referredTelegramId}/miningData/values`
@@ -175,7 +179,7 @@ const ReferralsPage = () => {
 									? parseFloat(coinsSnapshot.data().firstQuant).toFixed(0)
 									: "0.00";
 							const amount = Number(coins);
-							const newReferral = { id: referredTelegramId, userName: username, quantamount: amount };
+							const newReferral = { id: referredTelegramId, username: username, quantamount: amount };
 							addReferral(newReferral);
 							contextTotal++
 						} catch (error) {
@@ -241,7 +245,7 @@ const ReferralsPage = () => {
 													</svg>
 												</div>
 												<div>
-													<div className="font-semibold text-sm">{referral.userName}</div>
+													<div className="font-semibold text-sm">{referral.username}</div>
 												</div>
 											</div>
 											<div className="font-semibold text-sm">{"+" +
