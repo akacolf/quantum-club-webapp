@@ -1,11 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import SolveToEarnPageContent from "./SolveToEarnPageContent";
 import { getAuth } from "firebase/auth";
 
 const SolveToEarnPage = () => {
-    const [isReloading, setIsReloading] = useState(false);
-    const [maintenance,setMaintenance] = useState(true);
     useEffect(() =>{
       if(typeof window !== "undefined"){
         if(!window.Telegram?.WebApp?.initData){
@@ -13,12 +11,10 @@ const SolveToEarnPage = () => {
           return;
         }
       }
-      const navigationType = performance.getEntriesByType("navigation")[0]?.type;
+      const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
       if (navigationType === "reload") {
-        setIsReloading(true);
         window.location.replace("/");
       } else {
-        setIsReloading(false);
       }
     },[]);
    useEffect(()=>{
@@ -37,8 +33,7 @@ const SolveToEarnPage = () => {
         if(!WebApp?.initDataUnsafe.user){
           return;
         }else{
-          const mp = sessionStorage.getItem('maintenance');
-          setMaintenance(mp==true ? true : false);
+          const mp:boolean = Boolean(sessionStorage.getItem('maintenance'));
           if(mp == true){
             if(typeof window !== "undefined")
               { window.location.replace("/maintenance-page")}

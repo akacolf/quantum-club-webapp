@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameContext } from "@/app/contexts/MiningContext";
-import { dbfs } from "@/app/firebaseConfig/firebaseConfig";
+import { dbfs } from "@/app/firebase/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,8 +11,7 @@ import { rocketEmoji } from "@/app/images";
 import Image from "next/image";
 
 import { useEffect, useState } from "react";
-const solveToEarnResults = () => {
-  const [isReloading, setIsReloading] = useState(false);
+const SolveToEarnResults = () => {
   const [buttonClicked, setButtonClicked] = useState(false);
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -21,12 +20,10 @@ const solveToEarnResults = () => {
         return;
       }
     }
-    const navigationType = performance.getEntriesByType("navigation")[0]?.type;
+    const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
     if (navigationType === "reload") {
-      setIsReloading(true);
       window.location.replace("/");
     } else {
-      setIsReloading(false);
     }
   }, []);
   useEffect(() => {
@@ -45,7 +42,7 @@ const solveToEarnResults = () => {
       if (!WebApp?.initDataUnsafe.user) {
         return;
       } else {
-        const mp = sessionStorage.getItem('maintenance');
+        const mp = Boolean(sessionStorage.getItem('maintenance'));
         if (mp == true) {
           if (typeof window !== "undefined") { window.location.replace("/maintenance-page") }
         }
@@ -57,14 +54,19 @@ const solveToEarnResults = () => {
   const router = useRouter();
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const tg = window.Telegram.WebApp;
+      const tg = window.Telegram?.WebApp;
+      if (!tg) {
+        return;
+      }
+
+
       tg.BackButton.show();
-      tg.BackButton.onClick(() => {
+      tg.BackButton.onClick = () => {
         router.push('/earn');
-      })
+      };
     }
   }, [router])
-  const totalCorrect = useState(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("TotalCorrectSolveToEarn") || 0 } })
+  const totalCorrect = useState<string>(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("TotalCorrectSolveToEarn") || "0" }else{return "0"} });
   const totalCorrectAnswers = useState(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("correctAnswers") || 0 } })
 
   useEffect(() => {
@@ -103,7 +105,7 @@ const solveToEarnResults = () => {
               height={100}
             />
 
-            <div className="font-semibold text-center text-lg mt-3">You've been solving non-stop! <br />Keep going!</div>
+            <div className="font-semibold text-center text-lg mt-3">You&apos;ve been solving non-stop! <br />Keep going!</div>
             {/*informational cards*/}
             <div className="space-x-3 flex">
               {/*card 1*/}
@@ -117,7 +119,7 @@ const solveToEarnResults = () => {
                     </div>
                     <div className="font-medium">
                       <div className="text-sm whitespace-nowrap">Total earned</div>
-                      <div className="text-sm animate-gradient-text">+{totalCorrect} QNTM</div>
+                      <div className="text-sm animate-gradient-text">+{`${totalCorrect}`} QNTM</div>
                     </div>
                   </div>
                 </div>
@@ -133,7 +135,7 @@ const solveToEarnResults = () => {
                     </div>
                     <div className="font-medium">
                       <div className="text-sm whitespace-nowrap">Total correct</div>
-                      <div className="text-sm animate-gradient-text">{totalCorrectAnswers}</div>
+                      <div className="text-sm animate-gradient-text">{`${totalCorrectAnswers}`}</div>
                     </div>
                   </div>
                 </div>
@@ -243,7 +245,7 @@ const solveToEarnResults = () => {
                 </radialGradient>
               </defs>
             </g>
-          </svg></div>{solvetoearnremaining})</button>)}
+          </svg></div>{`${solvetoearnremaining}`})</button>)}
 
 
         </div>
@@ -253,4 +255,4 @@ const solveToEarnResults = () => {
   )
 }
 
-export default solveToEarnResults;
+export default SolveToEarnResults;
