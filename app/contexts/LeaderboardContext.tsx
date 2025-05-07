@@ -10,8 +10,8 @@ interface LeaderboardContextType {
   setLeaderboardContext: (value: Array<Leaderboard>) => void;
   userRank: number | null;
   setUserRank: (value: number | null) => void;
-  totalUsers: string | null;
-  setTotalUsers: (value: string | null) => void;
+  totalUsers: number | null;
+  setTotalUsers: (value: number | null) => void;
   totalQuant: string;
   setTotalQuant: (value: string) => void;
 }
@@ -26,10 +26,10 @@ export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
     }
   });
   const [userRank, setUserRank] = useState<number | null>(0);
-  const [totalUsers, setTotalUsers] = useState<string | null>(() => {
+  const [totalUsers, setTotalUsers] = useState<number | null>(() => {
     if (typeof window !== "undefined") {
       const userRank = sessionStorage.getItem("totalusers");
-      return userRank ? JSON.parse(userRank) : [];
+      return userRank ? Number(JSON.parse(userRank)) : 0;
     }
     return null;
   });

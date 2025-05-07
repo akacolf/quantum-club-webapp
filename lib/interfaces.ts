@@ -13,3 +13,17 @@ export interface Referral {
     username: string;
     quantamount:number;
 }
+
+export interface EarnTask {
+  id: string;
+  description:string | React.ReactNode;
+  completed:boolean;
+  category:string;
+  platform:React.ReactNode;
+  buttontitle:string;
+  buttonText:React.ReactNode|string;
+  url:string |undefined;
+  quant:number;
+  whichPlatform:string;
+  timestamp:number;
+}
