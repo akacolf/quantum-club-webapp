@@ -1,8 +1,8 @@
 'use client';
 
 import { useGameContext } from '@/app/contexts/MiningContext';
-import { dbfs } from '@/app/firebaseConfig/firebaseConfig';
-import { doc, getDoc, increment, setDoc, updateDoc } from 'firebase/firestore';
+import { dbfs } from '@/app/firebase/firebaseConfig';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -10,22 +10,9 @@ import React, { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 export default function AnswerPage() {
-    if (typeof window !== "undefined") {
-        if (!window.Telegram?.WebApp?.initData) {
-            window.location.href = "https://t.me/QuantumClubBot";
-            return;
-        }
-    }
-    if (typeof window !== "undefined") {
-        const tg = window.Telegram.WebApp;
-        tg.BackButton.show();
-        tg.BackButton.onClick = () => {
-            <Link href={'/earn'}/>
-        };
-    }
     const { telegramId, SetMainQuantAmount } = useGameContext();
     const [taskId, setTaskId] = useState("");
-    const pathname = usePathname();
+    const pathname:string = usePathname();
     const [textBox, setTextBox] = useState("");
     useEffect(() => {
         router.prefetch('/earn/9CXx152NbBKOKE2');
@@ -35,7 +22,21 @@ export default function AnswerPage() {
     const router = useRouter();
     const [isLoading, setIsReloading] = useState(false);
     useEffect(() => {
-        const navigationType = performance.getEntriesByType('navigation')[0]?.type;
+        if (typeof window !== "undefined") {
+            if (!window.Telegram?.WebApp?.initData) {
+                window.location.href = "https://t.me/QuantumClubBot";
+                return;
+            }
+        }
+        if (typeof window !== "undefined") {
+            const tg = window.Telegram?.WebApp;
+            if(!tg) return;
+            tg.BackButton.show();
+            tg.BackButton.onClick = () => {
+                <Link href={'/earn'}/>
+            };
+        }
+        const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
         if (navigationType === 'reload') {
             if (typeof window !== "undefined") {
                 setIsReloading(true);
@@ -147,7 +148,7 @@ export default function AnswerPage() {
     return (
         <AnimatePresence>
             <motion.div
-                key={{ pathname }}
+                key={pathname}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -162,7 +163,8 @@ export default function AnswerPage() {
                                 type="text" id="answerWrong"
                                 className={`${isCorrect ? "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5" : "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5 border border-red-600"}`}
                                 onInput={(e) => {
-                                    setTextBox(e.target.value = e.target.value.toUpperCase());
+                                    const input = e.target as HTMLInputElement;
+                                    setTextBox(input.value = input.value.toUpperCase());
                                     ; setIsCorrect(true)
                                 }}>
                             </input>
