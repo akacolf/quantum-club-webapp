@@ -50,24 +50,7 @@ const EarnPageContent = () => {
   const { totalUsers } = useLeaderboardContext();
   const [activeTaskId, setActiveTaskId] = useState(null);
   const router = useRouter();
-  useEffect(() => {
-    try {
-      const checkSolveToEarn = async () => {
-        const solveToEarnRef = doc(dbfs, `user/${telegramId}/miningData/values`);
-        const snapshotSolveToEarn = await getDoc(solveToEarnRef);
-        const remainingSolveToEarnDB = snapshotSolveToEarn.exists() ? snapshotSolveToEarn.data().remainingSolveToEarn : 0;
-        setRemainingSolveToEarn(remainingSolveToEarnDB);
-      }
-      checkSolveToEarn()
-      if (remainingSolveToEarn > 0) {
-        router.prefetch("/earn/solvetoearn-page");
-      }
-    } catch (error) {
-      if(error instanceof Error) {
-      console.error(error.message);
-          }
-    }
-  },[])
+ 
   useEffect(() => {
     const totalCompletedCheck = async () => {
       const totalCompleted = collection(dbfs, `user/${telegramId}/tasks`);

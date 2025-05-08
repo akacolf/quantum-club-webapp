@@ -198,7 +198,24 @@ const HomePageContent = () => {
         router.push("/earn/solvetoearn-page")
       }
     }
-    
+    useEffect(() => {
+      try {
+        const checkSolveToEarn = async () => {
+          const solveToEarnRef = doc(dbfs, `user/${telegramId}/miningData/values`);
+          const snapshotSolveToEarn = await getDoc(solveToEarnRef);
+          const remainingSolveToEarnDB = snapshotSolveToEarn.exists() ? snapshotSolveToEarn.data().remainingSolveToEarn : 0;
+          setRemainingSolveToEarn(remainingSolveToEarnDB);
+        }
+        checkSolveToEarn()
+        if (remainingSolveToEarn > 0) {
+          router.prefetch("/earn/solvetoearn-page");
+        }
+      } catch (error) {
+        if(error instanceof Error) {
+        console.error(error.message);
+            }
+      }
+    },[router]);
   useEffect(() => {
     fetch("/story");
     router.prefetch("/home/roadmap-page");
