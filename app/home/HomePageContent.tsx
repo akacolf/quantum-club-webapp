@@ -1676,7 +1676,7 @@ const HomePageContent = () => {
             
               {/*Roadmap href*/}
               <div onClick={() => <Link href={"/home/roadmap"} />} className="flex items-center mt-3 p-4">
-                  <div className="font-semibold">Roadmap</div>
+                  <div className="font-semibold text-lg">Roadmap</div>
                   <div><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="-6 0 24 24">
 	<path fill="currentColor" fillRule="evenodd" d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414" />
 </svg></div>
@@ -1728,8 +1728,10 @@ const HomePageContent = () => {
               <div className="mt-4">
                 <CheckStory />
               </div>
-              <div className="flex flex-col mt-3 p-4">
-                  <div className="font-semibold">Solve-to-Earn</div>
+              {/*solve to earn header */}
+              <div className="flex mt-3 p-4">
+                  <div className="font-semibold text-lg">Solve-to-Earn</div>
+              </div>
                    {/*solve-to-earn card*/}
               <div className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4 mt-4"
                 style={{ backgroundImage: `url(${bgSolveToEarnCard.src})` }}
@@ -2044,7 +2046,6 @@ const HomePageContent = () => {
                       </g>
                     </svg> {solvetoearnRemaining})</div></button>
                 </div>
-              </div>
               </div>
           </motion.div>
         </AnimatePresence>
