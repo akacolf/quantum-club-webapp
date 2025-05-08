@@ -1699,7 +1699,7 @@ const HomePageContent = () => {
 </svg></div>
               </div>
               {/*TGE Progress Card*/}
-                <div className="mt-2 flex items-center justify-between p-4 bg-cover bg-center rounded-xl max-w-80 mx-auto"
+                <div className="flex items-center justify-between p-4 bg-cover bg-center rounded-xl max-w-80 mx-auto"
                 style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}
                 >
                   <div className="flex flex-col">
@@ -1750,7 +1750,7 @@ const HomePageContent = () => {
                   <div className="font-semibold text-lg">Solve-to-Earn</div>
               </div>
                    {/*solve-to-earn card*/}
-              <div className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4 mt-4"
+              <div className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4 max-w-80 mx-auto"
                 style={{ backgroundImage: `url(${bgSolveToEarnCard.src})` }}
               >
                 <div className="flex items-center space-x-3">
