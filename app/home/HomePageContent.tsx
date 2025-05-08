@@ -215,7 +215,7 @@ const HomePageContent = () => {
         console.error(error.message);
             }
       }
-    },[router]);
+    },[remainingSolveToEarn, router, setRemainingSolveToEarn, telegramId]);
   useEffect(() => {
     fetch("/story");
     router.prefetch("/home/roadmap-page");
@@ -2059,7 +2059,7 @@ const HomePageContent = () => {
                           </radialGradient>
                         </defs>
                       </g>
-                    </svg> {solvetoearnRemaining})</div></button>
+                    </svg> {remainingSolveToEarn})</div></button>
                 </div>
               </div>
               </div>
