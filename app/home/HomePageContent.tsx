@@ -1674,14 +1674,14 @@ const HomePageContent = () => {
                 </div>
               </div>
             
-              {/*Roadmap href and TGE Progress Card*/}
-              <div className="flex flex-col">
-              <div onClick={() => <Link href={"/home/roadmap"} />} className="flex items-center mt-3">
-                  <div className="font-semibold ml-5">Roadmap</div>
+              {/*Roadmap href*/}
+              <div onClick={() => <Link href={"/home/roadmap"} />} className="flex items-center mt-3 p-4">
+                  <div className="font-semibold">Roadmap</div>
                   <div><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="-6 0 24 24">
 	<path fill="currentColor" fillRule="evenodd" d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414" />
 </svg></div>
               </div>
+              {/*TGE Progress Card*/}
                 <div className="mt-2 flex items-center justify-between p-4 bg-cover bg-center rounded-xl max-w-80 mx-auto"
                 style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}
                 >
@@ -1725,11 +1725,10 @@ const HomePageContent = () => {
                     </div>
                   </div>
                 </div>
-              </div>
               <div className="mt-4">
                 <CheckStory />
               </div>
-              <div className="flex flex-col mt-3 ml-5">
+              <div className="flex flex-col mt-3 p-4">
                   <div className="font-semibold">Solve-to-Earn</div>
                    {/*solve-to-earn card*/}
               <div className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4 mt-4"
