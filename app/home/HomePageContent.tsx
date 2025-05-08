@@ -508,7 +508,7 @@ const HomePageContent = () => {
     };
 
     fetchTasks();
-  },[]);
+  },[router,telegramId]);
   const convertToDate = (dateStr:string) => {
     const [day, month, year] = dateStr.split("/");
     return new Date(`${year}-${month}-${day}`);
@@ -672,7 +672,7 @@ const HomePageContent = () => {
       }
     };
     checkButton();
-  },[]);
+  },[setDaily,setRemainingSolveToEarn,telegramId]);
   const toastQueue:string[] = [];
   async function ClaimDaily() {
     const claim = async () => {
