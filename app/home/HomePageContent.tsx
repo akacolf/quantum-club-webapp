@@ -589,7 +589,7 @@ const HomePageContent = () => {
     } else {
       setRankIcon("");
     }
-  },[]);
+  },[rank]);
   useEffect(() => {
     const checkButton = async () => {
       try {

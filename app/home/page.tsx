@@ -5,27 +5,8 @@ import HomePageContent from './HomePageContent';
 import { getAuth } from 'firebase/auth';
 const HomePage = () => {
   const [maintenance, setMaintenance] = useState(true);
-  const [isReloading, setIsReloading] = useState(false);
 
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (!window.Telegram?.WebApp?.initData) {
-        window.location.href = "https://t.me/QuantumClubBot";
-        return;
-      }
-    }
-    if (typeof window !== "undefined") {
-      window?.Telegram?.WebApp.BackButton.hide();
-    }
-    const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
-    if (navigationType === 'reload') {
-      setIsReloading(true);
-      if (typeof window !== "undefined") { window.location.replace("/"); }
-    } else {
-      setIsReloading(false);
-    }
-  }, []);
+ 
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (!window.Telegram?.WebApp?.initData) {
@@ -64,15 +45,12 @@ const HomePage = () => {
   }, []);
 
   return (
-      isReloading ?
-        (<div></div>) :
-        (
+      
           maintenance ? (
             <div></div>
           ) : (
             <HomePageContent />
           )
-        )
   );
 };
 
