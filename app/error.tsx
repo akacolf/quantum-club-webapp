@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-export default function Error({ reset }) {
+export default function Error({ reset }: { reset: () => void }) {
 
 
   return (
