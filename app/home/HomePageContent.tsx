@@ -1642,14 +1642,15 @@ const HomePageContent = () => {
                   </button>
                 </div>
               </div>
-              {/*Roadmap href*/}
-              <div onClick={() => <Link href={"/home/roadmap"} />} className="pl-4 flex items-center mt-3">
-                  <div className="font-semibold">Roadmap</div>
+            
+              {/*Roadmap href and TGE Progress Card*/}
+              <div className="flex flex-col">
+              <div onClick={() => <Link href={"/home/roadmap"} />} className="flex items-center mt-3">
+                  <div className="font-semibold ml-5">Roadmap</div>
                   <div><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="-6 0 24 24">
 	<path fill="currentColor" fillRule="evenodd" d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414" />
 </svg></div>
               </div>
-              {/*TGE Progress Card*/}
                 <div className="mt-2 flex items-center justify-between p-4 bg-cover bg-center rounded-xl max-w-80 mx-auto"
                 style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}
                 >
@@ -1693,11 +1694,327 @@ const HomePageContent = () => {
                     </div>
                   </div>
                 </div>
+              </div>
               <div className="mt-4">
                 <CheckStory />
               </div>
-              <div className="flex flex-col mt-3 px-4">
+              <div className="flex flex-col mt-3 ml-5">
                   <div className="font-semibold">Solve-to-Earn</div>
+                   {/*solve-to-earn card*/}
+              <div className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4 mt-4"
+                style={{ backgroundImage: `url(${bgSolveToEarnCard.src})` }}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="2.5em" height="2.5em" viewBox="0 0 32 32">
+                      <g fill="none">
+                        <path fill="url(#f730id0)" d="M4.949 23.844c1.048-.161 1.757-1.438 1.914-2.25c.539-3.657 1.258-8.399 1.601-11.625c.09-.84-.305-1.54-.734-1.867c-.852-.632-1.719-.29-2.469.437c-.822.787-1.43 1.524-2.758 3.133c-.478.58-.81 1.906 0 2.523c.571.418 1.383.125 1.883-.226c-.383 2.71-.906 6.312-1.086 8.383c.002 1.059.531 1.664 1.649 1.492" />
+                        <path fill="url(#f730id1)" d="M4.949 23.844c1.048-.161 1.757-1.438 1.914-2.25c.539-3.657 1.258-8.399 1.601-11.625c.09-.84-.305-1.54-.734-1.867c-.852-.632-1.719-.29-2.469.437c-.822.787-1.43 1.524-2.758 3.133c-.478.58-.81 1.906 0 2.523c.571.418 1.383.125 1.883-.226c-.383 2.71-.906 6.312-1.086 8.383c.002 1.059.531 1.664 1.649 1.492" />
+                        <g filter="url(#f730idk)">
+                          <path fill="url(#f730id2)" d="m6.738 11.813l-2.078 2l-1 8.109l1.859.125z" />
+                        </g>
+                        <path fill="url(#f730id3)" d="M5.408 23.696a1.6 1.6 0 0 1-.46.148c-1.117.172-1.646-.433-1.648-1.492c.162-1.86.6-4.954.965-7.53l.113-.792l.032-.046l2.625-1.75z" />
+                        <path fill="url(#f730id4)" d="M9.042 15.383c-.109 1.203-.224 2.762.711 3.828c.86.97 1.68 1.18 3.235 1.086c1.523-.281 2.828-1.266 3.437-1.875c.89-.89 1.743-2.333 1.985-3.82c.181-.983.278-2.123.445-3.118c.305-1.812.164-3.18-.563-4.172c-.53-.828-1.646-1.341-2.914-1.265c-1.317.079-2.909.834-4.03 2.148a8.15 8.15 0 0 0-1.89 4.087c-.119.913-.283 2.109-.416 3.1m3.61-.086c.18-1.438.32-2.594.531-4.086c.141-.82.883-1.29 1.328-1.29c.639-.037.91.452.813 1.29c-.157 1.336-.304 2.617-.524 3.89c-.141.82-.71 1.335-1.35 1.373c-.532.032-.853-.333-.798-1.177" />
+                        <path fill="url(#f730idu)" d="M9.042 15.383c-.109 1.203-.224 2.762.711 3.828c.86.97 1.68 1.18 3.235 1.086c1.523-.281 2.828-1.266 3.437-1.875c.89-.89 1.743-2.333 1.985-3.82c.181-.983.278-2.123.445-3.118c.305-1.812.164-3.18-.563-4.172c-.53-.828-1.646-1.341-2.914-1.265c-1.317.079-2.909.834-4.03 2.148a8.15 8.15 0 0 0-1.89 4.087c-.119.913-.283 2.109-.416 3.1m3.61-.086c.18-1.438.32-2.594.531-4.086c.141-.82.883-1.29 1.328-1.29c.639-.037.91.452.813 1.29c-.157 1.336-.304 2.617-.524 3.89c-.141.82-.71 1.335-1.35 1.373c-.532.032-.853-.333-.798-1.177" />
+                        <path fill="url(#f730id5)" d="M9.042 15.383c-.109 1.203-.224 2.762.711 3.828c.86.97 1.68 1.18 3.235 1.086c1.523-.281 2.828-1.266 3.437-1.875c.89-.89 1.743-2.333 1.985-3.82c.181-.983.278-2.123.445-3.118c.305-1.812.164-3.18-.563-4.172c-.53-.828-1.646-1.341-2.914-1.265c-1.317.079-2.909.834-4.03 2.148a8.15 8.15 0 0 0-1.89 4.087c-.119.913-.283 2.109-.416 3.1m3.61-.086c.18-1.438.32-2.594.531-4.086c.141-.82.883-1.29 1.328-1.29c.639-.037.91.452.813 1.29c-.157 1.336-.304 2.617-.524 3.89c-.141.82-.71 1.335-1.35 1.373c-.532.032-.853-.333-.798-1.177" />
+                        <path fill="url(#f730id6)" d="M9.042 15.383c-.109 1.203-.224 2.762.711 3.828c.86.97 1.68 1.18 3.235 1.086c1.523-.281 2.828-1.266 3.437-1.875c.89-.89 1.743-2.333 1.985-3.82c.181-.983.278-2.123.445-3.118c.305-1.812.164-3.18-.563-4.172c-.53-.828-1.646-1.341-2.914-1.265c-1.317.079-2.909.834-4.03 2.148a8.15 8.15 0 0 0-1.89 4.087c-.119.913-.283 2.109-.416 3.1m3.61-.086c.18-1.438.32-2.594.531-4.086c.141-.82.883-1.29 1.328-1.29c.639-.037.91.452.813 1.29c-.157 1.336-.304 2.617-.524 3.89c-.141.82-.71 1.335-1.35 1.373c-.532.032-.853-.333-.798-1.177" />
+                        <path fill="url(#f730id7)" d="M19.843 13.07c-.11 1.203-.225 2.762.71 3.828c.86.97 1.68 1.18 3.235 1.086c1.524-.28 2.828-1.265 3.438-1.875c.89-.89 1.742-2.333 1.984-3.82c.182-.983.278-2.123.445-3.117c.305-1.813.164-3.18-.562-4.172c-.531-.828-1.646-1.342-2.914-1.266c-1.318.08-2.91.835-4.031 2.149a8.15 8.15 0 0 0-1.889 4.086c-.12.914-.283 2.11-.416 3.101m3.61-.086c.179-1.437.32-2.593.53-4.086c.142-.82.883-1.289 1.329-1.289c.639-.038.91.451.812 1.29c-.156 1.335-.304 2.617-.523 3.89c-.142.82-.711 1.334-1.35 1.373c-.532.031-.854-.334-.799-1.178" />
+                        <path fill="url(#f730idv)" d="M19.843 13.07c-.11 1.203-.225 2.762.71 3.828c.86.97 1.68 1.18 3.235 1.086c1.524-.28 2.828-1.265 3.438-1.875c.89-.89 1.742-2.333 1.984-3.82c.182-.983.278-2.123.445-3.117c.305-1.813.164-3.18-.562-4.172c-.531-.828-1.646-1.342-2.914-1.266c-1.318.08-2.91.835-4.031 2.149a8.15 8.15 0 0 0-1.889 4.086c-.12.914-.283 2.11-.416 3.101m3.61-.086c.179-1.437.32-2.593.53-4.086c.142-.82.883-1.289 1.329-1.289c.639-.038.91.451.812 1.29c-.156 1.335-.304 2.617-.523 3.89c-.142.82-.711 1.334-1.35 1.373c-.532.031-.854-.334-.799-1.178" />
+                        <path fill="url(#f730id8)" d="M19.843 13.07c-.11 1.203-.225 2.762.71 3.828c.86.97 1.68 1.18 3.235 1.086c1.524-.28 2.828-1.265 3.438-1.875c.89-.89 1.742-2.333 1.984-3.82c.182-.983.278-2.123.445-3.117c.305-1.813.164-3.18-.562-4.172c-.531-.828-1.646-1.342-2.914-1.266c-1.318.08-2.91.835-4.031 2.149a8.15 8.15 0 0 0-1.889 4.086c-.12.914-.283 2.11-.416 3.101m3.61-.086c.179-1.437.32-2.593.53-4.086c.142-.82.883-1.289 1.329-1.289c.639-.038.91.451.812 1.29c-.156 1.335-.304 2.617-.523 3.89c-.142.82-.711 1.334-1.35 1.373c-.532.031-.854-.334-.799-1.178" />
+                        <path fill="url(#f730id9)" d="M19.843 13.07c-.11 1.203-.225 2.762.71 3.828c.86.97 1.68 1.18 3.235 1.086c1.524-.28 2.828-1.265 3.438-1.875c.89-.89 1.742-2.333 1.984-3.82c.182-.983.278-2.123.445-3.117c.305-1.813.164-3.18-.562-4.172c-.531-.828-1.646-1.342-2.914-1.266c-1.318.08-2.91.835-4.031 2.149a8.15 8.15 0 0 0-1.889 4.086c-.12.914-.283 2.11-.416 3.101m3.61-.086c.179-1.437.32-2.593.53-4.086c.142-.82.883-1.289 1.329-1.289c.639-.038.91.451.812 1.29c-.156 1.335-.304 2.617-.523 3.89c-.142.82-.711 1.334-1.35 1.373c-.532.031-.854-.334-.799-1.178" />
+                        <g filter="url(#f730idl)">
+                          <path stroke="url(#f730ida)" strokeLinecap="round" d="M25.398 5.36c.385-.157 1.337-.326 2.062.25c.906.718.781 1.75.656 2.406c-.1.525-.395 3.854-.656 5.406" />
+                        </g>
+                        <g filter="url(#f730idm)">
+                          <path stroke="url(#f730idb)" strokeLinecap="round" d="M25.116 14.953c-.312.388-1.469.963-2.194.388c-.906-.719-.781-1.75-.656-2.406c.1-.525.396-2.149.656-3.7" />
+                        </g>
+                        <path fill="url(#f730idc)" fillRule="evenodd" d="M27.672 19.63a1.05 1.05 0 0 1-.814 1.242l-8.634 1.795l-6.586 1.467a1.05 1.05 0 0 1-.457-2.05l6.601-1.47l8.648-1.798a1.05 1.05 0 0 1 1.242.814" clipRule="evenodd" />
+                        <path fill="url(#f730idd)" fillRule="evenodd" d="M25.53 23.844a1.05 1.05 0 0 1-.808 1.245l-8.792 1.874l-6.594 1.438a1.05 1.05 0 1 1-.447-2.052l6.599-1.439l8.797-1.875a1.05 1.05 0 0 1 1.245.808" clipRule="evenodd" />
+                        <g filter="url(#f730idn)">
+                          <circle cx="7.331" cy="9.344" r=".781" fill="#ff596f" />
+                        </g>
+                        <g filter="url(#f730ido)">
+                          <path stroke="url(#f730ide)" strokeLinecap="round" strokeWidth="0.75" d="m5.785 21.516l1.53-11.032" />
+                        </g>
+                        <g filter="url(#f730idp)">
+                          <path stroke="url(#f730idf)" strokeLinecap="round" strokeWidth="0.75" d="m3.66 13.184l1.937-2.313" />
+                        </g>
+                        <g filter="url(#f730idq)">
+                          <path stroke="url(#f730idg)" strokeLinecap="round" d="M14.597 7.672c.386-.156 1.338-.325 2.063.25c.906.719.78 1.75.656 2.406c-.1.525-.396 3.854-.656 5.406" />
+                        </g>
+                        <g filter="url(#f730idr)">
+                          <path stroke="url(#f730idh)" strokeLinecap="round" d="M14.316 17.266c-.313.387-1.47.962-2.194.387c-.907-.718-.782-1.75-.657-2.406c.1-.525.396-2.148.657-3.7" />
+                        </g>
+                        <g filter="url(#f730ids)">
+                          <ellipse cx="26.753" cy="19.711" fill="url(#f730idi)" rx=".703" ry=".461" transform="rotate(-12.626 26.753 19.71)" />
+                        </g>
+                        <g filter="url(#f730idt)">
+                          <ellipse cx="24.535" cy="23.992" fill="url(#f730idj)" rx=".703" ry=".461" transform="rotate(-12.626 24.535 23.992)" />
+                        </g>
+                        <defs>
+                          <linearGradient id="f730id0" x1="6.812" x2="4.094" y1="23.903" y2="3.713" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ec008c" />
+                            <stop offset="1" stopColor="#e81123" />
+                          </linearGradient>
+                          <linearGradient id="f730id1" x1="3.816" x2=".024" y1="14.359" y2="12.359" gradientUnits="userSpaceOnUse">
+                            <stop offset=".151" stopColor="#a11749" stopOpacity="0" />
+                            <stop offset=".895" stopColor="#a21749" />
+                          </linearGradient>
+                          <linearGradient id="f730id2" x1="5.941" x2="4.941" y1="11.797" y2="18.828" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#db1136" />
+                            <stop offset="1" stopColor="#db1136" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f730id3" x1="4.878" x2="3.3" y1="16.891" y2="16.672" gradientUnits="userSpaceOnUse">
+                            <stop offset=".151" stopColor="#a11749" stopOpacity="0" />
+                            <stop offset=".895" stopColor="#a21749" />
+                          </linearGradient>
+                          <linearGradient id="f730id4" x1="14.495" x2="13.984" y1="23.228" y2="6.484" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ec008c" />
+                            <stop offset="1" stopColor="#e81123" />
+                          </linearGradient>
+                          <linearGradient id="f730id5" x1="11.152" x2="7.666" y1="11.823" y2="8.102" gradientUnits="userSpaceOnUse">
+                            <stop offset=".151" stopColor="#a11749" stopOpacity="0" />
+                            <stop offset=".895" stopColor="#a21749" />
+                          </linearGradient>
+                          <linearGradient id="f730id6" x1="15.566" x2="18.941" y1="16.797" y2="20.047" gradientUnits="userSpaceOnUse">
+                            <stop offset=".151" stopColor="#a11749" stopOpacity="0" />
+                            <stop offset=".895" stopColor="#a21749" />
+                          </linearGradient>
+                          <linearGradient id="f730id7" x1="25.296" x2="24.784" y1="20.916" y2="4.172" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ec008c" />
+                            <stop offset="1" stopColor="#e81123" />
+                          </linearGradient>
+                          <linearGradient id="f730id8" x1="21.952" x2="18.467" y1="9.51" y2="5.789" gradientUnits="userSpaceOnUse">
+                            <stop offset=".151" stopColor="#a11749" stopOpacity="0" />
+                            <stop offset=".895" stopColor="#a21749" />
+                          </linearGradient>
+                          <linearGradient id="f730id9" x1="26.366" x2="29.741" y1="14.484" y2="17.734" gradientUnits="userSpaceOnUse">
+                            <stop offset=".151" stopColor="#a11749" stopOpacity="0" />
+                            <stop offset=".895" stopColor="#a21749" />
+                          </linearGradient>
+                          <linearGradient id="f730ida" x1="28.366" x2="28.491" y1="2.422" y2="16.141" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff6579" stopOpacity="0" />
+                            <stop offset=".367" stopColor="#ff6579" />
+                            <stop offset="1" stopColor="#ff596f" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f730idb" x1="22.016" x2="21.891" y1="18.528" y2="4.81" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff6579" stopOpacity="0" />
+                            <stop offset=".367" stopColor="#ff6579" />
+                            <stop offset="1" stopColor="#ff596f" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f730idc" x1="18.316" x2="17.628" y1="22.797" y2="19.172" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ec008c" />
+                            <stop offset=".828" stopColor="#e81123" />
+                          </linearGradient>
+                          <linearGradient id="f730idd" x1="17.753" x2="16.517" y1="26.297" y2="21.505" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ec008c" />
+                            <stop offset=".668" stopColor="#e81123" />
+                          </linearGradient>
+                          <linearGradient id="f730ide" x1="7.785" x2="5.378" y1="12.172" y2="28.109" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff6579" />
+                            <stop offset="1" stopColor="#ff596f" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f730idf" x1="6.19" x2="6.105" y1="11.225" y2="14.64" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff47b4" stopOpacity="0" />
+                            <stop offset="1" stopColor="#ff47b4" />
+                          </linearGradient>
+                          <linearGradient id="f730idg" x1="17.566" x2="17.691" y1="4.734" y2="18.453" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff6579" stopOpacity="0" />
+                            <stop offset=".367" stopColor="#ff6579" />
+                            <stop offset="1" stopColor="#ff596f" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f730idh" x1="11.215" x2="11.09" y1="20.841" y2="7.122" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff6579" stopOpacity="0" />
+                            <stop offset=".367" stopColor="#ff6579" />
+                            <stop offset="1" stopColor="#ff596f" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f730idi" x1="27.607" x2="25.689" y1="19.902" y2="19.961" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff5e84" />
+                            <stop offset="1" stopColor="#ff698d" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f730idj" x1="25.388" x2="23.47" y1="24.183" y2="24.242" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ff5e84" />
+                            <stop offset="1" stopColor="#ff698d" stopOpacity="0" />
+                          </linearGradient>
+                          <filter id="f730idk" width="3.578" height="10.734" x="3.41" y="11.563" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".125" />
+                          </filter>
+                          <filter id="f730idl" width="5.806" height="11.213" x="23.897" y="3.709" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".5" />
+                          </filter>
+                          <filter id="f730idm" width="5.937" height="9.35" x="20.679" y="7.734" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".5" />
+                          </filter>
+                          <filter id="f730idn" width="3.563" height="3.563" x="5.55" y="7.563" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".5" />
+                          </filter>
+                          <filter id="f730ido" width="4.281" height="13.781" x="4.41" y="9.109" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".5" />
+                          </filter>
+                          <filter id="f730idp" width="4.688" height="5.063" x="2.285" y="9.496" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".5" />
+                          </filter>
+                          <filter id="f730idq" width="5.806" height="11.213" x="13.097" y="6.022" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".5" />
+                          </filter>
+                          <filter id="f730idr" width="5.937" height="9.35" x="9.879" y="10.047" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".5" />
+                          </filter>
+                          <filter id="f730ids" width="1.987" height="1.551" x="25.76" y="18.935" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".15" />
+                          </filter>
+                          <filter id="f730idt" width="1.987" height="1.551" x="23.541" y="23.217" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_7137_6158" stdDeviation=".15" />
+                          </filter>
+                          <radialGradient id="f730idu" cx="0" cy="0" r="1" gradientTransform="rotate(-172.166 7.451 6.232)scale(1.74657 4.54588)" gradientUnits="userSpaceOnUse">
+                            <stop offset=".417" stopColor="#b50a47" />
+                            <stop offset="1" stopColor="#ce0d52" stopOpacity="0" />
+                          </radialGradient>
+                          <radialGradient id="f730idv" cx="0" cy="0" r="1" gradientTransform="rotate(-172.166 12.772 4.706)scale(1.74657 4.54588)" gradientUnits="userSpaceOnUse">
+                            <stop offset=".417" stopColor="#b50a47" />
+                            <stop offset="1" stopColor="#ce0d52" stopOpacity="0" />
+                          </radialGradient>
+                        </defs>
+                      </g>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Solve-to-earn</div>
+                    <div className="font-normal text-xs text-gray-500 mt-1">Welcome to solve-to-earn <br />on Telegram.</div>
+                  </div>
+                </div>
+                <div>
+                  <button id="solvetoearnbutton" onClick={() => goToSolveToEarn()} disabled={remainingSolveToEarn == 0}
+                    className=
+                    {remainingSolveToEarn > 0 ?
+                      "font-medium w-24 h-9 text-xs bg-white text-black rounded-full"
+                      : "font-medium w-24 opacity-30 h-9 text-xs bg-white text-black rounded-full"
+                    }>Solve (<div className="inline-flex items-center align-middle"><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" className="mr-0.5" viewBox="0 0 32 32">
+                      <g fill="none">
+                        <g filter="url(#f1543id9)">
+                          <path fill="url(#f1543id0)" d="m6.118 26.455l5.047-5.047l3.21 3.211a1.286 1.286 0 0 1-1.039 2.19l-1.08-.11a.87.87 0 0 0-.954.931l.084 1.072a1.214 1.214 0 0 1-2.069.952z" />
+                        </g>
+                        <g filter="url(#f1543ida)">
+                          <path fill="url(#f1543id1)" d="m16.397 12.172l3.407 3.406L6.865 28.516a2.409 2.409 0 0 1-3.406-3.407z" />
+                        </g>
+                        <g filter="url(#f1543idb)">
+                          <path fill="url(#f1543id2)" fillRule="evenodd" d="M21.882 18a7.969 7.969 0 1 0 0-15.937a7.969 7.969 0 0 0 0 15.937m0-4a3.969 3.969 0 1 0 0-7.937a3.969 3.969 0 0 0 0 7.937" clipRule="evenodd" />
+                        </g>
+                        <rect width="6.165" height="1.528" x="13.28" y="14.242" fill="url(#f1543id3)" rx=".764" transform="rotate(45 13.28 14.242)" />
+                        <rect width="6.165" height="1.528" x="13.28" y="14.242" fill="url(#f1543idd)" rx=".764" transform="rotate(45 13.28 14.242)" />
+                        <rect width="6.165" height="1.528" x="13.28" y="14.242" fill="url(#f1543id4)" rx=".764" transform="rotate(45 13.28 14.242)" />
+                        <rect width="6.165" height="1.528" x="14.361" y="13.162" fill="url(#f1543id5)" rx=".764" transform="rotate(45 14.36 13.162)" />
+                        <rect width="6.165" height="1.528" x="14.361" y="13.162" fill="url(#f1543ide)" rx=".764" transform="rotate(45 14.36 13.162)" />
+                        <rect width="6.165" height="1.528" x="14.361" y="13.162" fill="url(#f1543id6)" rx=".764" transform="rotate(45 14.36 13.162)" />
+                        <g filter="url(#f1543idc)">
+                          <circle cx="22.309" cy="9.604" r="6.309" stroke="url(#f1543id7)" strokeWidth="1.25" />
+                          <circle cx="22.309" cy="9.604" r="6.309" stroke="url(#f1543id8)" strokeWidth="1.25" />
+                        </g>
+                        <defs>
+                          <linearGradient id="f1543id0" x1="11.632" x2="9.632" y1="27.875" y2="25.709" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#f4b954" />
+                            <stop offset=".908" stopColor="#eca84f" />
+                          </linearGradient>
+                          <linearGradient id="f1543id1" x1="8.038" x2="11.279" y1="21.031" y2="24.188" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#f7c250" />
+                            <stop offset="1" stopColor="#f8ab54" />
+                          </linearGradient>
+                          <linearGradient id="f1543id2" x1="21.882" x2="21.882" y1="2.813" y2="18" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#f8cf4d" />
+                            <stop offset="1" stopColor="#ed9953" />
+                          </linearGradient>
+                          <linearGradient id="f1543id3" x1="14.087" x2="18.329" y1="15.107" y2="15.152" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#f6bf4e" />
+                            <stop offset="1" stopColor="#ea994d" />
+                          </linearGradient>
+                          <linearGradient id="f1543id4" x1="16.683" x2="16.678" y1="15.98" y2="15.322" gradientUnits="userSpaceOnUse">
+                            <stop offset=".186" stopColor="#e29226" />
+                            <stop offset="1" stopColor="#ec9b4f" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f1543id5" x1="15.167" x2="19.41" y1="14.027" y2="14.071" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#f6bf4e" />
+                            <stop offset="1" stopColor="#ea994d" />
+                          </linearGradient>
+                          <linearGradient id="f1543id6" x1="17.764" x2="17.759" y1="14.9" y2="14.241" gradientUnits="userSpaceOnUse">
+                            <stop offset=".186" stopColor="#e29226" />
+                            <stop offset="1" stopColor="#e29226" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f1543id7" x1="27.32" x2="21.468" y1="4.298" y2="9.259" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#ffdd67" />
+                            <stop offset="1" stopColor="#ffdd67" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="f1543id8" x1="17.632" x2="19.007" y1="14" y2="11.813" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#feb765" />
+                            <stop offset="1" stopColor="#feb765" stopOpacity="0" />
+                          </linearGradient>
+                          <filter id="f1543id9" width="8.635" height="8.752" x="6.118" y="21.258" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
+                            <feOffset dy="-.15" />
+                            <feGaussianBlur stdDeviation=".25" />
+                            <feComposite in2="hardAlpha" k2="-1" k3="1" operator="arithmetic" />
+                            <feColorMatrix values="0 0 0 0 0.839216 0 0 0 0 0.592157 0 0 0 0 0.34902 0 0 0 1 0" />
+                            <feBlend in2="shape" result="effect1_innerShadow_18_23735" />
+                          </filter>
+                          <filter id="f1543ida" width="17.049" height="17.549" x="2.754" y="11.672" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
+                            <feOffset dy="-.5" />
+                            <feGaussianBlur stdDeviation=".75" />
+                            <feComposite in2="hardAlpha" k2="-1" k3="1" operator="arithmetic" />
+                            <feColorMatrix values="0 0 0 0 0.85098 0 0 0 0 0.541176 0 0 0 0 0.34902 0 0 0 1 0" />
+                            <feBlend in2="shape" result="effect1_innerShadow_18_23735" />
+                          </filter>
+                          <filter id="f1543idb" width="15.938" height="16.337" x="13.913" y="1.663" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
+                            <feOffset dy="-.4" />
+                            <feGaussianBlur stdDeviation=".5" />
+                            <feComposite in2="hardAlpha" k2="-1" k3="1" operator="arithmetic" />
+                            <feColorMatrix values="0 0 0 0 0.815686 0 0 0 0 0.505882 0 0 0 0 0.337255 0 0 0 1 0" />
+                            <feBlend in2="shape" result="effect1_innerShadow_18_23735" />
+                          </filter>
+                          <filter id="f1543idc" width="16.368" height="16.368" x="14.125" y="1.42" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur result="effect1_foregroundBlur_18_23735" stdDeviation=".625" />
+                          </filter>
+                          <radialGradient id="f1543idd" cx="0" cy="0" r="1" gradientTransform="matrix(-.01573 .32677 -1.89283 -.09112 16.743 14.626)" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#fcbc66" />
+                            <stop offset="1" stopColor="#fcbc66" stopOpacity="0" />
+                          </radialGradient>
+                          <radialGradient id="f1543ide" cx="0" cy="0" r="1" gradientTransform="matrix(-.01573 .32677 -1.89283 -.09112 17.823 13.545)" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#fbb865" />
+                            <stop offset="1" stopColor="#fbb865" stopOpacity="0" />
+                          </radialGradient>
+                        </defs>
+                      </g>
+                    </svg> {solvetoearnRemaining})</div></button>
+                </div>
+              </div>
               </div>
           </motion.div>
         </AnimatePresence>
