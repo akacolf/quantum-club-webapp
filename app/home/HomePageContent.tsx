@@ -1651,7 +1651,8 @@ const HomePageContent = () => {
               </div>
               {/*TGE Progress Card*/}
                 <div className="mt-2 flex items-center justify-between p-4 bg-cover bg-center rounded-xl max-w-80 mx-auto"
-                style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}>
+                style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}
+                >
                   <div className="flex flex-col">
                     <div className="font-medium text-xl">TGE Progress</div>
                     <div className="font-medium text-base mt-1 bg-gradient-to-r from-slate-400 to-red-300 bg-clip-text text-transparent">
