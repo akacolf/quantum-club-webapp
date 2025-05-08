@@ -77,7 +77,7 @@ const HomePageContent = () => {
   const handleWalletDisconnection = useCallback(() => {
     setWalletAddress("");
   }, [setWalletAddress]); 
-  const updateWalletInDB = async (walletAddress:string, address:string) => {
+  const updateWalletInDB = useCallback(async (walletAddress: string, address: string) => {
     const response = await fetch("/api/tonconnections/tonConnectDB", {
       method: "POST",
       headers: {
@@ -94,7 +94,7 @@ const HomePageContent = () => {
       const parsedError = JSON.parse(errorData); // we parse it as json to throw the error //
       throw new Error(`API Error: ${parsedError.error}`);
     }
-  };
+  }, [telegramId]);
   useEffect(() => {
     if (!tonConnectUI) return;
     tonConnectUI.uiOptions = {
