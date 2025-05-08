@@ -77,7 +77,24 @@ const HomePageContent = () => {
   const handleWalletDisconnection = useCallback(() => {
     setWalletAddress("");
   }, [setWalletAddress]); 
-
+  const updateWalletInDB = async (walletAddress:string, address:string) => {
+    const response = await fetch("/api/tonconnections/tonConnectDB", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: telegramId,
+        walletAddress: walletAddress,
+        address: address,
+      }),
+    });
+    if (!response.ok) {
+      const errorData = await response.text();
+      const parsedError = JSON.parse(errorData); // we parse it as json to throw the error //
+      throw new Error(`API Error: ${parsedError.error}`);
+    }
+  };
   useEffect(() => {
     if (!tonConnectUI) return;
     tonConnectUI.uiOptions = {
@@ -130,7 +147,7 @@ const HomePageContent = () => {
         unsubscribe();
       }
     };
-  }, [tonConnectUI, handleWalletConnection, handleWalletDisconnection]);
+  }, [tonConnectUI, handleWalletConnection, handleWalletDisconnection,updateWalletInDB,walletAddress]);
 
   const handleWalletAction = async () => {
     try {
@@ -148,24 +165,7 @@ const HomePageContent = () => {
       }
     }
   };
-  const updateWalletInDB = async (walletAddress:string, address:string) => {
-    const response = await fetch("/api/tonconnections/tonConnectDB", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: telegramId,
-        walletAddress: walletAddress,
-        address: address,
-      }),
-    });
-    if (!response.ok) {
-      const errorData = await response.text();
-      const parsedError = JSON.parse(errorData); // we parse it as json to throw the error //
-      throw new Error(`API Error: ${parsedError.error}`);
-    }
-  };
+ 
   const formatAddress = (address:string) => {
     const tempAddress = toUserFriendlyAddress(address);
     return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
