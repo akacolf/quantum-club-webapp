@@ -56,7 +56,6 @@ const HomePageContent = () => {
     setRemainingSolveToEarn,
     remainingSolveToEarn
   } = useGameContext();
-  const [solvetoearnRemaining] = useState<number>(remainingSolveToEarn);
   const router = useRouter();
   const [rankIcon, setRankIcon] = useState<ReactNode>();
 
