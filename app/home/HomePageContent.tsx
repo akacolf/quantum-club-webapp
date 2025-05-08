@@ -25,7 +25,7 @@ import Link from "next/link";
 /*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
 import { ButtonLoader } from "../components/ButtonLoader";
-import { bgTgeProgressCard, fireEmoji } from "../images";
+import { bgSolveToEarnCard, bgTgeProgressCard, fireEmoji } from "../images";
 const calculateRemainingTime = (timestamp:number) => {
   const now = new Date();
   const targetTime = new Date(timestamp);
@@ -54,7 +54,9 @@ const HomePageContent = () => {
     walletAddress,
     setWalletAddress,
     setRemainingSolveToEarn,
+    remainingSolveToEarn
   } = useGameContext();
+  const [solvetoearnRemaining] = useState<number>(remainingSolveToEarn);
   const router = useRouter();
   const [rankIcon, setRankIcon] = useState<ReactNode>();
 
@@ -168,6 +170,35 @@ const HomePageContent = () => {
     const tempAddress = toUserFriendlyAddress(address);
     return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
   };
+  async function goToSolveToEarn() {
+      const taskElement = document.getElementById("solvetoearnbutton");
+      if (taskElement) {
+        (taskElement as HTMLButtonElement).disabled = true;
+      }
+      const date = new Date(Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate()
+      ));
+  
+      const formattedDate =
+        `${date.getUTCDate().toString().padStart(2, '0')}/` +
+        `${(date.getUTCMonth() + 1).toString().padStart(2, '0')}/` +
+        `${date.getUTCFullYear()}`;
+      const solveToEarnSet = doc(dbfs, `user/${telegramId}/miningData/values`);
+      const snapshotSolveToEarn = await getDoc(solveToEarnSet);
+      const remainingSolveToEarn: number = snapshotSolveToEarn.data()?.remainingSolveToEarn;
+      if (remainingSolveToEarn > 0) {
+        updateDoc(solveToEarnSet, {
+          remainingSolveToEarn: remainingSolveToEarn - 1,
+          lastSolveToEarnDate: formattedDate,
+        });
+        setRemainingSolveToEarn(remainingSolveToEarn - 1);
+        sessionStorage.setItem("remainingSolveToEarn", `${remainingSolveToEarn - 1}`);
+        router.push("/earn/solvetoearn-page")
+      }
+    }
+    
   useEffect(() => {
     fetch("/story");
     router.prefetch("/home/roadmap-page");

@@ -47,7 +47,6 @@ const EarnPageContent = () => {
   const [limitedTimestamp, setLimitedstamp] = useState(0)
   const claimTEXT = 'Claim';
   const { telegramId, SetMainQuantAmount, remainingSolveToEarn, setRemainingSolveToEarn } = useGameContext();
-  const [solvetoearnRemaining] = useState<number>(remainingSolveToEarn);
   const { totalUsers } = useLeaderboardContext();
   const [activeTaskId, setActiveTaskId] = useState(null);
   const router = useRouter();
@@ -68,7 +67,7 @@ const EarnPageContent = () => {
       console.error(error.message);
           }
     }
-  })
+  },[])
   useEffect(() => {
     const totalCompletedCheck = async () => {
       const totalCompleted = collection(dbfs, `user/${telegramId}/tasks`);
