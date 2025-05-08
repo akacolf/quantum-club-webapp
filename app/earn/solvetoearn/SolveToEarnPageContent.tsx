@@ -21,7 +21,7 @@ const SolveToEarnPageContent = () => {
   const answersRef = useRef(answers);
   const correctRef = useRef(correctAnswer);
   useEffect(() => {
-    router.prefetch("/earn/solvetoearn-page/solveToEarnResults");
+    router.prefetch("/earn/solvetoearn/solveToEarnResults");
     answersRef.current = answers;
   }, [answers]);
   useEffect(() => {
@@ -405,7 +405,7 @@ const SolveToEarnPageContent = () => {
         }
       }
     } finally {
-      router.replace("/earn/solvetoearn-page/solveToEarnResults")
+      router.replace("/earn/solvetoearn/solveToEarnResults")
     }
   }
   useEffect(() => {

@@ -119,7 +119,7 @@ const SolveToEarnResults = () => {
                     </div>
                     <div className="font-medium">
                       <div className="text-sm whitespace-nowrap">Total earned</div>
-                      <div className="text-sm animate-gradient-text">+{`${totalCorrect}`} QNTM</div>
+                      <div className="text-sm animate-gradient-text">+{totalCorrect[0]} QNTM</div>
                     </div>
                   </div>
                 </div>
@@ -135,7 +135,7 @@ const SolveToEarnResults = () => {
                     </div>
                     <div className="font-medium">
                       <div className="text-sm whitespace-nowrap">Total correct</div>
-                      <div className="text-sm animate-gradient-text">{`${totalCorrectAnswers}`}</div>
+                      <div className="text-sm animate-gradient-text">{totalCorrectAnswers[0]}</div>
                     </div>
                   </div>
                 </div>
@@ -245,7 +245,7 @@ const SolveToEarnResults = () => {
                 </radialGradient>
               </defs>
             </g>
-          </svg></div>{`${solvetoearnremaining}`})</button>)}
+          </svg></div>{solvetoearnremaining[0]})</button>)}
 
 
         </div>
