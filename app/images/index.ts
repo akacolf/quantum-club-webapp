@@ -5,6 +5,7 @@ import bgSolveToEarnCard from './bg-solve-to-earn-card.png';
 import bgSolveToEarnResultsPage from './bg-solvetoearnresults-page.png';
 import rocketEmoji from './rocket.webp';
 import fireEmoji from './fire.webp';
+import bgTgeProgressCard from './bg-tge-progress-card.svg';
 
 export {
     bgEarnPageCard,
@@ -14,4 +15,5 @@ export {
     bgSolveToEarnResultsPage,
     rocketEmoji,
     fireEmoji,
+    bgTgeProgressCard,
 }

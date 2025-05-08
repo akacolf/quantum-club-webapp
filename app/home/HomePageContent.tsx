@@ -25,7 +25,7 @@ import Link from "next/link";
 /*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
 import { ButtonLoader } from "../components/ButtonLoader";
-import { fireEmoji } from "../images";
+import { bgTgeProgressCard, fireEmoji } from "../images";
 const calculateRemainingTime = (timestamp:number) => {
   const now = new Date();
   const targetTime = new Date(timestamp);
@@ -1396,7 +1396,6 @@ const HomePageContent = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div>
               <Toaster
                 toastOptions={{
                   duration: 3000,
@@ -1651,10 +1650,11 @@ const HomePageContent = () => {
 </svg></div>
               </div>
               {/*TGE Progress Card*/}
-                <div className="mt-2 flex items-center justify-between p-4 bg-[#151516] rounded-xl max-w-80 mx-auto">
+                <div className="mt-2 flex items-center justify-between p-4 bg-cover bg-center rounded-xl max-w-80 mx-auto"
+                style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}>
                   <div className="flex flex-col">
                     <div className="font-medium text-xl">TGE Progress</div>
-                    <div className="font-medium text-base mt-1 bg-gradient-to-r from-slate-300 to-slate-500 bg-clip-text text-transparent">
+                    <div className="font-medium text-base mt-1 bg-gradient-to-r from-slate-400 to-red-300 bg-clip-text text-transparent">
                       Currently in Building Phase.
                     </div>
                   </div>
@@ -1692,13 +1692,12 @@ const HomePageContent = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center pl-4">
-                    <div className="font-semibold">Your story</div>
-                </div>
-              <div className="mt-3">
+              <div className="mt-4">
                 <CheckStory />
               </div>
-            </div>
+              <div className="flex flex-col mt-3 px-4">
+                  <div className="font-semibold">Solve-to-Earn</div>
+              </div>
           </motion.div>
         </AnimatePresence>
         <AnimatePresence>
