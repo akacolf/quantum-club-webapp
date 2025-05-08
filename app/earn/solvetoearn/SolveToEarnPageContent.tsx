@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
@@ -23,7 +23,7 @@ const SolveToEarnPageContent = () => {
   useEffect(() => {
     router.prefetch("/earn/solvetoearn/solveToEarnResults");
     answersRef.current = answers;
-  }, [answers]);
+  }, [answers,router]);
   useEffect(() => {
     correctRef.current = correctAnswer;
   }, [correctAnswer]);
@@ -370,7 +370,7 @@ const SolveToEarnPageContent = () => {
       }
     }
   }
-  const dbSave = async (answersR:number, correctR:number) => {
+  const dbSave = useCallback(async (answersR:number, correctR:number) => {
     try {
       const date = new Date(Date.now());
       const formattedDate =
@@ -407,7 +407,7 @@ const SolveToEarnPageContent = () => {
     } finally {
       router.replace("/earn/solvetoearn/solveToEarnResults")
     }
-  }
+  }, [router, SetMainQuantAmount, telegramId]);
   useEffect(() => {
     const interval = setInterval(() => {
       setLeftTime(prevTime => {
@@ -421,7 +421,7 @@ const SolveToEarnPageContent = () => {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [dbSave]);
   return (
     <AnimatePresence>
       <motion.div
