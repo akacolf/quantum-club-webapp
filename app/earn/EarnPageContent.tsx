@@ -1470,7 +1470,7 @@ const EarnPageContent = () => {
                           </radialGradient>
                         </defs>
                       </g>
-                    </svg> {solvetoearnRemaining})</div></button>
+                    </svg> {/*solvetoearnRemaining*/})</div></button>
                 </div>
               </div>
               {/*user completed tasks and limited task duration cards*/}
