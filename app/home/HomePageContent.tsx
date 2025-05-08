@@ -56,7 +56,6 @@ const HomePageContent = () => {
     setRemainingSolveToEarn,
     remainingSolveToEarn
   } = useGameContext();
-  const [solvetoearnRemaining] = useState<number>(remainingSolveToEarn);
   const router = useRouter();
   const [rankIcon, setRankIcon] = useState<ReactNode>();
 
@@ -195,7 +194,7 @@ const HomePageContent = () => {
         });
         setRemainingSolveToEarn(remainingSolveToEarn - 1);
         sessionStorage.setItem("remainingSolveToEarn", `${remainingSolveToEarn - 1}`);
-        router.push("/earn/solvetoearn-page")
+        router.push("/earn/solvetoearn")
       }
     }
     useEffect(() => {
@@ -208,7 +207,7 @@ const HomePageContent = () => {
         }
         checkSolveToEarn()
         if (remainingSolveToEarn > 0) {
-          router.prefetch("/earn/solvetoearn-page");
+          router.prefetch("/earn/solvetoearn");
         }
       } catch (error) {
         if(error instanceof Error) {
