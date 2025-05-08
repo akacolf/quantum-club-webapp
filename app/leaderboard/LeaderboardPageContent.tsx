@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
 import Loader from "../loading";
 import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { useGameContext } from "@/app/contexts/MiningContext";
@@ -13,7 +12,6 @@ import {
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import { bgLeaderboardCard } from "../images";
 const LeaderboardPageContent = () => {
-  const pathname = usePathname();
   const {
     leaderboardContext,
     setLeaderboardContext,
@@ -46,7 +44,7 @@ const LeaderboardPageContent = () => {
               body: JSON.stringify({ telegramId: telegramId }),
             });
             if (!response.ok) {
-              throw new Error("Network response was not ok");
+              throw new Error("Network response was not okay");
             }
             const data = await response.json();
             setLeaderboardContext(data.allValues);
@@ -91,13 +89,11 @@ const LeaderboardPageContent = () => {
   return (
     <div>
       {!pageLoading ? (
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div
-            key={pathname}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="bg-black overflow-auto"
           >
             {/*welcoming card*/}
