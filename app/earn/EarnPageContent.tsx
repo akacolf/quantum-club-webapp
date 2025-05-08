@@ -77,8 +77,6 @@ const EarnPageContent = () => {
 
     }
     totalCompletedCheck();
-  }, []);
-  useEffect(() => {
     const fetchTasks = async () => {
       if (typeof window !== "undefined") {
         window?.Telegram?.WebApp.BackButton.hide();
@@ -155,8 +153,7 @@ const EarnPageContent = () => {
     };
 
     fetchTasks();
-  }, []);
-
+  }, [telegramId,totalUsers]);
   const TaskTimer: React.FC<{ timestamp: number }> = ({ timestamp }) => {
     const [remainingTime, setRemainingTime] = useState(calculateRemainingTime(timestamp));
 

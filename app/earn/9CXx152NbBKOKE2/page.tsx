@@ -14,12 +14,12 @@ export default function AnswerPage() {
     const [taskId, setTaskId] = useState("");
     const pathname:string = usePathname();
     const [textBox, setTextBox] = useState("");
+    const router = useRouter();
     useEffect(() => {
         router.prefetch('/earn/9CXx152NbBKOKE2');
-    }, []);
+    }, [router]);
 
     const [isCorrect, setIsCorrect] = useState(true);
-    const router = useRouter();
     const [isLoading, setIsReloading] = useState(false);
     useEffect(() => {
         if (typeof window !== "undefined") {
