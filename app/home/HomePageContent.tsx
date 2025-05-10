@@ -1487,7 +1487,7 @@ const HomePageContent = () => {
                 )}
               </Toaster>
               {/* Telegram channel banner */}
-              <div className="flex items-center justify-between bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 rounded-xl p-3 md:p-4 lg:p-5 max-w-xs mx-auto">
+              <div className="flex items-center justify-between bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 rounded-xl p-3 w-full max-w-xs mx-auto">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="2.5em" height="2.5em" viewBox="0 0 256 256">
@@ -1629,7 +1629,7 @@ const HomePageContent = () => {
                 </div>
               </div>
               {/*daily check-in*/}
-              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl max-w-xs mx-auto p-4 mt-6">
+              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-full max-w-xs mx-auto p-4 mt-6">
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center justify-center">
                     <Image 
@@ -1659,7 +1659,7 @@ const HomePageContent = () => {
                     disabled={isClaimDay}
                     className={
                       !isClaimDay
-                        ? "w-16 h-9 rounded-full bg-orange-500 text-white text-sm" //Claim
+                        ? "w-16 h-9 rounded-full bg-white text-black text-sm" //Claim
                         : "w-16 h-9 rounded-full bg-gray-500 opacity-30 text-black text-sm"
                     } // Claimed
                   >
@@ -1690,8 +1690,7 @@ const HomePageContent = () => {
                 </div>
               </div>
             
-              {/*Roadmap href*/}
-              {/*TGE Progress Card*/}
+              {/*TGE Progress Card and roadmap href*/}
               <div className="w-full max-w-xs mx-auto">
               <div onClick={() => router.push('/home/roadmap')} className="flex items-center mt-4 mb-3">
                   <div className="font-semibold text-lg">Roadmap</div>
@@ -1746,12 +1745,11 @@ const HomePageContent = () => {
               <div className="mt-4">
                 <CheckStory />
               </div>
-              {/*solve to earn header */}
-              <div className="flex mt-3 p-4">
-                  <div className="font-semibold text-lg">Solve-to-Earn</div>
-              </div>
-                   {/*solve-to-earn card*/}
-              <div className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4 max-w-80 mx-auto"
+              
+              {/*solve-to-earn card*/}
+            <div className="w-full max-w-xs mx-auto mt-4">
+              <div className="font-semibold text-lg mb-3">Solve-to-Earn</div>
+              <div className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4"
                 style={{ backgroundImage: `url(${bgSolveToEarnCard.src})` }}
               >
                 <div className="flex items-center space-x-3">
@@ -1772,11 +1770,12 @@ const HomePageContent = () => {
                   <button id="solvetoearnbutton" onClick={() => goToSolveToEarn()} disabled={remainingSolveToEarn == 0}
                     className=
                     {remainingSolveToEarn > 0 ?
-                      "font-medium w-24 h-9 text-sm bg-white text-black rounded-full"
-                      : "font-medium w-24 opacity-30 h-9 text-xs bg-white text-black rounded-full"
+                      "font-medium w-16 h-9 text-sm bg-white text-black rounded-full"
+                      : "font-medium w-16 h-9 opacity-30 text-xs bg-white text-black rounded-full"
                     }>Solve</button>
                 </div>
               </div>
+            </div>
           </motion.div>
         </AnimatePresence>
         <AnimatePresence>
