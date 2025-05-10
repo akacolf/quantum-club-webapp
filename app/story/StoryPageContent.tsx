@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { GameProvider } from "../contexts/MiningContext";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-//import "../animations/text-animations/appwide-text-animation.css";
 const StoryPageContent = () => {
   const pathname = usePathname();
   const router = useRouter();

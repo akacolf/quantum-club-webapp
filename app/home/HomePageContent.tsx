@@ -21,7 +21,6 @@ import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
 import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
 import toast, { ToastBar, Toaster } from "react-hot-toast";
-import Link from "next/link";
 /*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
 import { ButtonLoader } from "../components/ButtonLoader";

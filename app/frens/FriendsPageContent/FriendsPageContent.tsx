@@ -5,7 +5,6 @@ import {
   getCountFromServer,
 } from "firebase/firestore";
 import { dbfs } from "@/app/firebase/firebaseConfig";
-import "@/app/animations/text-animations/appwide-text-animation.css";
 import { useFrenContext } from "@/app/contexts/FrensContext";
 import CopyLinkNotification from "./copied-notification-info";
 import { motion, AnimatePresence } from "framer-motion";
