@@ -1487,7 +1487,7 @@ const HomePageContent = () => {
                 )}
               </Toaster>
               {/* Telegram channel banner */}
-              <div className="flex items-center justify-between bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 rounded-xl p-3 md:p-4 lg:p-5 max-w-80 mx-auto mt-4">
+              <div className="flex items-center justify-between bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 rounded-xl p-3 md:p-4 lg:p-5 max-w-xs mx-auto">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="2.5em" height="2.5em" viewBox="0 0 256 256">
@@ -1517,7 +1517,7 @@ const HomePageContent = () => {
               {walletAddress ? (
                 <button
                   onClick={() => setActiveWalletTab(true)}
-                  className="w-full flex justify-center mt-6 mb-8"
+                  className="w-full flex justify-center mt-8"
                 >
                   <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold">
                     <svg
@@ -1553,7 +1553,7 @@ const HomePageContent = () => {
                   onClick={() => {
                     handleWalletAction();
                   }}
-                  className="w-full flex justify-center mt-6 mb-8"
+                  className="w-full flex justify-center mt-8"
                 >
                   <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold">
                     <svg
@@ -1578,7 +1578,7 @@ const HomePageContent = () => {
                   xmlns="http://www.w3.org/2000/svg"
                   width="7em"
                   height="7em"
-                  className="mb-3"
+                  className="mb-3 mt-8"
                   viewBox="0 0 32 32"
                 >
                   <path
@@ -1629,7 +1629,7 @@ const HomePageContent = () => {
                 </div>
               </div>
               {/*daily check-in*/}
-              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl max-w-80 mx-auto p-4 mt-4">
+              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl max-w-xs mx-auto p-4 mt-6">
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center justify-center">
                     <Image 
@@ -1691,14 +1691,15 @@ const HomePageContent = () => {
               </div>
             
               {/*Roadmap href*/}
-              <div onClick={() => router.push('/home/roadmap')} className="flex items-center mt-3 p-4">
+              {/*TGE Progress Card*/}
+              <div className="w-full max-w-xs mx-auto">
+              <div onClick={() => router.push('/home/roadmap')} className="flex items-center mt-4 mb-3">
                   <div className="font-semibold text-lg">Roadmap</div>
                   <div><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="-6 0 24 24">
 	<path fill="currentColor" fillRule="evenodd" d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414" />
 </svg></div>
               </div>
-              {/*TGE Progress Card*/}
-                <div className="flex items-center justify-between p-4 bg-cover bg-center rounded-xl max-w-80 mx-auto"
+                <div className="flex items-center justify-between p-4 bg-cover bg-center rounded-2xl h-40"
                 style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}
                 >
                   <div className="flex flex-col">
@@ -1741,6 +1742,7 @@ const HomePageContent = () => {
                     </div>
                   </div>
                 </div>
+              </div>
               <div className="mt-4">
                 <CheckStory />
               </div>

@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect } from 'react';
-//import '@/app/animations/text-animations/maintenance-text-animation.css';
 const MaintenanceScreen = () => {
     
     const openTelegramGroup = () => {

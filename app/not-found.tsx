@@ -1,6 +1,5 @@
 "use client";
 import { motion } from "framer-motion";
-import '../app/animations/text-animations/maintenance-text-animation.css';
 export default function NotFound() {
     return (
         <main className="min-h-screen flex flex-col items-center justify-center bg-black text-white text-center space-y-6">
