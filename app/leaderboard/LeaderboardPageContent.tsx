@@ -12,7 +12,6 @@ import {
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import Image from 'next/image';
 import { trophy } from "../images";
-import { ImageError } from "next/dist/server/image-optimizer";
 const LeaderboardPageContent = () => {
   const {
     leaderboardContext,
@@ -107,6 +106,8 @@ const LeaderboardPageContent = () => {
           </div>
           </div>
             {/*general stats: total users and total QNTM*/}
+            <div>{totalUsers}</div>
+            <div>{totalQuant}</div>
             {/*user stats card*/}
             <div className="px-4">
               <div className="font-semibold mt-4">Your stats</div>

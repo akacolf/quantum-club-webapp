@@ -1,6 +1,6 @@
 'use client';
 
-export function RewardsHistory() {
+export default function RewardsHistory() {
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <h1 className="text-2xl font-bold">Rewards History</h1>
