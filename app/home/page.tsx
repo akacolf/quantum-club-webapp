@@ -9,6 +9,7 @@ const HomePage = () => {
  
   useEffect(() => {
     if (typeof window !== "undefined") {
+      window.Telegram?.WebApp.BackButton.hide();
       if (!window.Telegram?.WebApp?.initData) {
         window.location.href = "https://t.me/QuantumClubBot";
         return;

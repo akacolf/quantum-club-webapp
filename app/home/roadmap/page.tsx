@@ -2,20 +2,29 @@
 
 import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const Roadmap = () => {
+  const router = useRouter();
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const tg = window?.Telegram?.WebApp;
-      if(!tg) return;
-      tg.BackButton.show();
-
-      tg.BackButton.onClick = () => {
-        <Link href={"/home"} />;
+      const tg = window.Telegram?.WebApp;
+      if(tg){
+      tg.ready();
+      const handleBackButtonClick = () => {
+        router.replace('/home');
       };
-    }
-  });
+      tg.BackButton.show();
+      tg.BackButton.onClick(handleBackButtonClick);
+      return () => {
+        tg.BackButton.offClick(handleBackButtonClick);
+       
+      };
+      }else{
+        console.error("Telegram WebApp not available");
+      }
+      
+      
+    }, [router])
 
   return (
     <AnimatePresence>
