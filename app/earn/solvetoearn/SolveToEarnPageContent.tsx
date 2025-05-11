@@ -11,7 +11,7 @@ import Loader from "@/app/loading";
 const SolveToEarnPageContent = () => {
   const [again, setAgain] = useState(true);
   const [answers, setAnswers] = useState(0);
-  const [leftTime, setLeftTime] = useState(3);
+  const [leftTime, setLeftTime] = useState(60);
   const router = useRouter();
   const [mathProcess, setMathProcess] = useState("");
   const [options, setOptions] = useState(["first", "second", "third", "fourth"]);
