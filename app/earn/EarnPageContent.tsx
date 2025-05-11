@@ -198,7 +198,7 @@ const EarnPageContent = () => {
             });
             if (!response.ok) {
               const errorData = await response.json();
-              task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
               setActiveTaskId(null);
               task.completed = false;
               throw new Error(errorData.error || 'Failed to check membership');
@@ -251,7 +251,7 @@ const EarnPageContent = () => {
               {openTelegramGroup(task.url, task);
               setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
               setTimeout(() => {
-                task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
                 return;
               }, 2000);}
             }
@@ -429,7 +429,7 @@ const EarnPageContent = () => {
           }
           setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           setTimeout(() => {
-            task.buttonText = claimTEXT;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: claimTEXT} : item));
             return;
           }, 2000);
         } else if (task.buttonText === claimTEXT) {
@@ -600,12 +600,12 @@ const EarnPageContent = () => {
           if (totalUserDB >= value) {
           setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
             setTimeout(() => {
-              task.buttonText = claimTEXT;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: claimTEXT} : item));
               return;
             }, 2000);
             return;
           } else {
-            task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
             return;
           }
         }
@@ -681,13 +681,13 @@ const EarnPageContent = () => {
             const walletData = responseCheckWallet;
             const address = walletData.address
             if (address && address !== "") {
-              task.buttonText = claimTEXT;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: claimTEXT} : item));
               return;
             } else {
-              task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
             }
           } else {
-            task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
           }
 
         } else if (task.buttonText === claimTEXT) {
@@ -744,15 +744,15 @@ const EarnPageContent = () => {
             const remainingSolveToEarnDB = valueData.remainingSolveToEarn
             if (remainingSolveToEarnDB < 7) {
               setTimeout(() => {
-                task.buttonText = claimTEXT;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: claimTEXT} : item));
                 return;
               }, 1000);
 
             } else {
-              task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
             }
           } else {
-            task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
           }
 
         } else if (task.buttonText === claimTEXT) {
