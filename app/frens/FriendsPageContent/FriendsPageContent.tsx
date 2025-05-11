@@ -16,15 +16,6 @@ const FriendsPageContent = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { telegramId } = useGameContext();
-  useEffect(() => {
-    router.prefetch("/frens/referrals");
-    const getReferralsNum = async () => {
-      const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
-      const snapshot = await getCountFromServer(referralsRef);
-      setReferralNum(snapshot.data().count);
-    };
-    getReferralsNum();
-  });
     const {
       referralsContext,
       addReferral,
@@ -53,6 +44,13 @@ const FriendsPageContent = () => {
       
     }, [router])
     useEffect(() => {
+      router.prefetch("/frens/referrals");
+    const getReferralsNum = async () => {
+      const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
+      const snapshot = await getCountFromServer(referralsRef);
+      setReferralNum(snapshot.data().count);
+    };
+    getReferralsNum();
       const fetchReferralsData = async () => {
         try {
           // if(referralsContext.length > 0) return;
@@ -154,7 +152,7 @@ const FriendsPageContent = () => {
       };
   
       fetchReferralsData();
-    }); // referralsContext'e de bağımlılık ekledik
+    },[]); // referralsContext'e de bağımlılık ekledik
   
     async function lookViewMore() {
       try {

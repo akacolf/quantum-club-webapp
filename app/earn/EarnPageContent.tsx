@@ -177,8 +177,7 @@ const EarnPageContent = () => {
 
       if (task.whichPlatform === "telegram") {
         if (task.buttonText === "Join" && task.url) {
-          openTelegramGroup(task?.url, task);
-
+          window.Telegram?.WebApp?.openTelegramLink(task.url);
           setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
 
           
@@ -810,7 +809,7 @@ const EarnPageContent = () => {
       link = "https://" + link;
     }
     const tg = window.Telegram?.WebApp;
-    if(tg){tg.openTelegramLink(link); completeTask(task);}
+    if(tg){completeTask(task);}
    
 
   };
