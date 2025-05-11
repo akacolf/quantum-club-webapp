@@ -265,7 +265,7 @@ const EarnPageContent = () => {
       if (task.whichPlatform === "checktelegramAgain") {
         if (task.buttonText === "Check") {
           try {
-            task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/>} : item));
             const response = await fetch('/api/checkmembership', {
               method: 'POST',
               headers: {
@@ -278,22 +278,22 @@ const EarnPageContent = () => {
             });
             if (!response.ok) {
               const errorData = await response.json();
-              task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
               setActiveTaskId(null);
               task.completed = false;
               throw new Error(errorData.error || 'Failed to check membership');
             }
             const data = await response.json();
             if (data.isMember) {
-              task.buttonText = claimTEXT;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: claimTEXT} : item));
               return;
             } else {
-              task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
               setActiveTaskId(null);
               task.completed = false;
             }
           } catch {
-            task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle} : item));
             setActiveTaskId(null);
             task.completed = false;
           }
@@ -356,7 +356,7 @@ const EarnPageContent = () => {
           }
           setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           setTimeout(() => {
-            task.buttonText = claimTEXT;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: claimTEXT} : item));
             return;
           }, 2000);
         } else if (task.buttonText === claimTEXT) {
@@ -519,11 +519,11 @@ const EarnPageContent = () => {
             task.completed = true;
             setActiveTaskId(null);
           } else {
-            task.buttonText = "Check";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Check"} : item));
 
           }
         } else {
-          task.buttonText = "Check";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Check"} : item));
         }
       }
       if (task.whichPlatform === "referrals10") {
@@ -1657,7 +1657,13 @@ const EarnPageContent = () => {
 
                             }
                           >
-                            {task.buttonText}
+                            {task.buttonText === "Joined" ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 16 16">
+                                <path fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="m2.75 8.75l3.5 3.5l7-7.5" />
+                              </svg>
+                            ) : (
+                              task.buttonText
+                            )}
                           </button>
                         </div>
                       </div>
