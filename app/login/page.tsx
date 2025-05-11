@@ -136,6 +136,7 @@ const LoginScreen = () => {
     setUsername,
     setWalletAddress,
     setLastActiveTime,
+    setRemainingSolveToEarn,
   } = useGameContext();
   const { setUserRank } = useLeaderboardContext();
 
@@ -352,6 +353,8 @@ const LoginScreen = () => {
           if (snapshot.exists()) {
             const data = snapshot.data();
             const Amount = Number(data.QuantAmount);
+            const remainingSolveToEarn = data.remainingSolveToEarn;
+            setRemainingSolveToEarn(remainingSolveToEarn);
             const firstQuant = Number(data.firstQuant);
             const formattedAmount = Amount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
