@@ -9,7 +9,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useGameContext } from "../contexts/MiningContext";
 import Image from "next/image";
 import CheckStory from "@/app/components/CheckStory";
@@ -56,6 +56,7 @@ const HomePageContent = () => {
     setRemainingSolveToEarn,
     remainingSolveToEarn
   } = useGameContext();
+  const remainingSolveToEarnRef = useRef(remainingSolveToEarn);
   const router = useRouter();
   const [rankIcon, setRankIcon] = useState<ReactNode>();
 
@@ -1762,7 +1763,7 @@ const HomePageContent = () => {
                   </div>
                   <div>
                     <div className="font-medium text-sm">Solve-to-Earn</div>
-                    <div className="font-normal text-xs text-gray-500 mt-1">{remainingSolveToEarn} passes</div>
+                    <div className="font-normal text-xs text-gray-500 mt-1">{remainingSolveToEarnRef.current} passes</div>
                   </div>
                 </div>
                 <div>

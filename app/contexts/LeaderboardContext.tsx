@@ -25,7 +25,13 @@ export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
       return savedBoards ? JSON.parse(savedBoards) : [];
     }
   });
-  const [userRank, setUserRank] = useState<number | null>(0);
+  const [userRank, setUserRank] = useState<number | null>(() => {
+    if (typeof window !== "undefined") {
+      const rank = sessionStorage.getItem("userLeaderRank");
+      return rank ? Number(rank) : 0;
+    }
+    return null;
+  });
   const [totalUsers, setTotalUsers] = useState<number | null>(() => {
     if (typeof window !== "undefined") {
       const totalusers = sessionStorage.getItem("totalusers");

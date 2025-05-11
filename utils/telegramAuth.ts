@@ -27,16 +27,7 @@ export function validateTelegramWebAppData(telegramInitData:string) {
   if (!authDate) {
     return { message: 'auth_date is missing from initData', validatedData: null, user: {} };
   }
-
-  const authTimestamp = parseInt(authDate, 10);
-  const currentTimestamp = Math.floor(Date.now() / 1000);
-  const timeDifference = currentTimestamp - authTimestamp;
-  const tenMinutesInSeconds = 10 * 60;
-
-  if (timeDifference > tenMinutesInSeconds) {
-    return { message: 'Telegram data is older than 10 minutes', validatedData: null, user: {} };
-  }
-
+  
   const dataCheckString = Array.from(initData.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)
