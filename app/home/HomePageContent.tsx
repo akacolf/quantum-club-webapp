@@ -1508,7 +1508,7 @@ const HomePageContent = () => {
                 <button 
                 id="joinbutton"
                 onClick={() => handleJoinTask()}
-                className="px-3 py-2 bg-white text-black rounded-full">
+                className="px-3 py-2 bg-white text-black rounded-full cursor-pointer">
                   Join
                 </button>
               </div>
@@ -1518,7 +1518,7 @@ const HomePageContent = () => {
                   onClick={() => setActiveWalletTab(true)}
                   className="w-full flex justify-center mt-8"
                 >
-                  <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold">
+                  <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold cursor-pointer">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="1.5em"
@@ -1554,7 +1554,7 @@ const HomePageContent = () => {
                   }}
                   className="w-full flex justify-center mt-8"
                 >
-                  <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold">
+                  <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold cursor-pointer">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="1.5em"
@@ -1601,7 +1601,7 @@ const HomePageContent = () => {
                   </div>
                   <div className="text-2xl">QNTM</div>
                 </div>
-                <div className="flex items-center justify-center gap-1 text-[#868686] rounded-full px-4 py-1.5 mt-1 cursor-pointer">
+                <div className="flex items-center justify-center gap-1 text-[#868686] rounded-full px-4 py-1.5 mt-1">
                   <span>{rank}</span>
                   <span className="flex items-center justify-center">
                     {rankIcon}
@@ -1609,7 +1609,7 @@ const HomePageContent = () => {
                   <span>RANK</span>
                 </div>
                 <div className="flex items-center">
-                  <button onClick={() => setActiveTab(!activeTab)}>
+                  <button onClick={() => setActiveTab(!activeTab)} className="cursor-pointer">
                     <span>Rewards history</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -1658,8 +1658,8 @@ const HomePageContent = () => {
                     disabled={isClaimDay}
                     className={
                       !isClaimDay
-                        ? "w-16 h-9 rounded-full bg-white text-black text-sm" //Claim
-                        : "w-16 h-9 rounded-full bg-gray-500 opacity-30 text-black text-sm"
+                        ? "w-16 h-9 rounded-full bg-white text-black text-sm cursor-pointer" //Claim
+                        : "w-16 h-9 rounded-full bg-gray-500 opacity-30 text-black text-sm cursor-pointer"
                     } // Claimed
                   >
                     {loadingDay ? (
@@ -1691,12 +1691,12 @@ const HomePageContent = () => {
             
               {/*TGE Progress Card and roadmap href*/}
               <div className="w-full max-w-xs mx-auto">
-              <div onClick={() => router.push('/home/roadmap')} className="flex items-center mt-4 mb-3">
+              <button onClick={() => router.push('/home/roadmap')} className="flex items-center mt-4 mb-3 cursor-pointer">
                   <div className="font-semibold text-lg">Roadmap</div>
                   <div><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="-6 0 24 24">
 	<path fill="currentColor" fillRule="evenodd" d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414" />
 </svg></div>
-              </div>
+              </button>
                 <div className="flex items-center justify-between p-4 bg-cover bg-center rounded-2xl h-40"
                 style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}
                 >
@@ -1769,8 +1769,8 @@ const HomePageContent = () => {
                   <button id="solvetoearnbutton" onClick={() => goToSolveToEarn()} disabled={remainingSolveToEarn == 0}
                     className=
                     {remainingSolveToEarn > 0 ?
-                      "font-medium w-16 h-9 text-sm bg-white text-black rounded-full"
-                      : "font-medium w-16 h-9 opacity-30 text-xs bg-white text-black rounded-full"
+                      "font-medium w-16 h-9 text-sm bg-white text-black rounded-full cursor-pointer"
+                      : "font-medium w-16 h-9 opacity-30 text-xs bg-white text-black rounded-full cursor-pointer"
                     }>Solve</button>
                 </div>
               </div>
@@ -1799,7 +1799,7 @@ const HomePageContent = () => {
                   <div className="flex-1 text-center font-semibold text-xl">
                     Wallet
                   </div>
-                  <button onClick={() => setActiveWalletTab(false)}>
+                  <button onClick={() => setActiveWalletTab(false)} className="cursor-pointer">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="1.3em"
@@ -1841,7 +1841,7 @@ const HomePageContent = () => {
                       setActiveWalletTab(false);
                       handleWalletAction();
                     }}
-                    className="bg-red-500 px-3 py-3 rounded-xl w-[20rem] mx-auto"
+                    className="bg-red-500 px-3 py-3 rounded-xl w-[20rem] mx-auto cursor-pointer"
                   >
                     <div className="flex items-center justify-center">
                       <svg
@@ -1863,7 +1863,7 @@ const HomePageContent = () => {
                 <div className="flex items-center justify-center mt-4">
                   <button
                     onClick={() => setActiveWalletTab(false)}
-                    className="bg-white text-black px-3 py-3 rounded-xl w-[20rem] mx-auto"
+                    className="bg-white text-black px-3 py-3 rounded-xl w-[20rem] mx-auto cursor-pointer"
                   >
                     Close
                   </button>
