@@ -50,25 +50,20 @@ const LeaderboardPageContent = () => {
             setLeaderboardContext(data.allValues);
             const totalquant:number = data.totalAmount;
             setTotalUsers(data.userCount);
+            sessionStorage.setItem("totalusers", JSON.stringify(data.userCount));
             sessionStorage.setItem("lboard", JSON.stringify(data.allValues));
             const formattedAmount = (total:number) => {
               const amount = total;
               let totally:string = ""
-              if (amount >= 100_000_000_000)
-                totally= Math.round(amount / 1_000_000_000) + "B";
-              if (amount >= 10_000_000_000)
-                totally= Math.round(amount / 1_000_000_000) + "B";
-              if (amount >= 1_000_000_000)
-                totally= Math.round(amount / 1_000_000_000) + "B";
-              if (amount >= 100_000_000)
-                totally= (amount / 1_000_000).toFixed(1) + "M";
-              if (amount >= 10_000_000)
-                totally= (amount / 1_000_000).toFixed(1) + "M";
-              if (amount >= 1_000_000)
-                totally= (amount / 1_000_000).toFixed(1) + "M";
-              if (amount >= 100_000) totally= Math.round(amount / 1_000) + "K";
-              if (amount >= 10_000) totally= Math.round(amount / 1_000) + "K";
-              if (amount >= 1_000) totally= Math.round(amount / 1_000) + "K";
+              if (amount >= 100_000_000_000) {return totally= Math.round(amount / 1_000_000_000) + "B";}
+              else if (amount >= 10_000_000_000){ return totally= Math.round(amount / 1_000_000_000) + "B";}
+              else if (amount >= 1_000_000_000) {return totally= Math.round(amount / 1_000_000_000) + "B";}
+              else if (amount >= 100_000_000) {return totally= (amount / 1_000_000).toFixed(1) + "M";}
+              else if (amount >= 10_000_000){ return totally= (amount / 1_000_000).toFixed(1) + "M";}
+              else if (amount >= 1_000_000) { return totally= (amount / 1_000_000).toFixed(1) + "M";}
+              else if (amount >= 100_000) {return totally= Math.round(amount / 1_000) + "K";}
+              else if (amount >= 10_000){ return totally= Math.round(amount / 1_000) + "K";}
+              else if (amount >= 1_000){ return totally= Math.round(amount / 1_000) + "K";}
               return totally;
             };
             const total:string = formattedAmount(totalquant);

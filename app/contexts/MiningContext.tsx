@@ -58,7 +58,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [MainQuantAmount, SetMainQuantAmount] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const amount = localStorage.getItem("QAmount");
-      return amount ? `${parseFloat(amount)}` : "0";
+      console.error(amount)
+      return amount ? `${amount}` : "0";
     }
     return "0";
   });

@@ -179,11 +179,12 @@ const EarnPageContent = () => {
         if (task.buttonText === "Join" && task.url) {
           openTelegramGroup(task?.url, task);
 
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
+
           
         }
         if (task.buttonText === claimTEXT) {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           try {
             const response = await fetch('/api/checkmembership', {
               method: 'POST',
@@ -231,7 +232,7 @@ const EarnPageContent = () => {
                   localStorage.setItem("QAmount", formattedAmount);
                 }
                 SetMainQuantAmount(formattedAmount);
-                task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined"} : item));
                 setTasks((prevTasks) => {
                   const updatedTasks = prevTasks.map((t) =>
                     t.id === task.id ? { ...t, completed: true } : t
@@ -248,14 +249,14 @@ const EarnPageContent = () => {
             } else {
               if(task && task.url)
               {openTelegramGroup(task.url, task);
-              task.buttonText = <ButtonLoader />;
+              setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
               setTimeout(() => {
                 task.buttonText = task.buttontitle;
                 return;
               }, 2000);}
             }
           } catch {
-            task.buttonText = task.buttontitle;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: task.buttontitle } : item));
             setActiveTaskId(null);
             task.completed = false;
           }
@@ -298,7 +299,7 @@ const EarnPageContent = () => {
           }
         }
         if (task.buttonText === claimTEXT) {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           const date = new Date(Date.now());
           const formattedDate =
             `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
@@ -326,7 +327,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             setTasks((prevTasks) => {
               const updatedTasks = prevTasks.map((t) =>
                 t.id === task.id ? { ...t, completed: true } : t
@@ -353,13 +354,13 @@ const EarnPageContent = () => {
           if (task?.whichPlatform && task.whichPlatform !== "telegram" as string) {
             window.open(task.url, "_blank");
           }
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           setTimeout(() => {
             task.buttonText = claimTEXT;
             return;
           }, 2000);
         } else if (task.buttonText === claimTEXT) {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           if (!taskSnapshot.exists()) {
             const date = new Date(Date.now());
             const formattedDate =
@@ -388,7 +389,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+            setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
               (taskElement as HTMLButtonElement).disabled = true;
@@ -426,13 +427,13 @@ const EarnPageContent = () => {
           if (task.whichPlatform != "telegram" as string) {
             window.open(task.url, "_blank");
           }
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           setTimeout(() => {
             task.buttonText = claimTEXT;
             return;
           }, 2000);
         } else if (task.buttonText === claimTEXT) {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           if (!taskSnapshot.exists()) {
             const date = new Date(Date.now());
             const formattedDate =
@@ -460,7 +461,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
               (taskElement as HTMLButtonElement).disabled = true;
@@ -475,7 +476,7 @@ const EarnPageContent = () => {
         }
       }
       if (task.whichPlatform === "referrals") {
-        task.buttonText = <ButtonLoader />;
+        setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
         const userReferalls = collection(dbfs, `user/${telegramId}/referrals`);
         const needRefValue = doc(dbfs, `tasks/${task.id}`);
         const snapshotNeedRefValue = await getDoc(needRefValue);
@@ -509,7 +510,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined"} : item));
             setCompletedTasks(completedTasks + 1);
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
@@ -526,7 +527,7 @@ const EarnPageContent = () => {
         }
       }
       if (task.whichPlatform === "referrals10") {
-        task.buttonText = <ButtonLoader />;
+        setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader /> } : item));
         const userReferalls = collection(dbfs, `user/${telegramId}/referrals`);
         const needRefValue = doc(dbfs, `tasks/${task.id}`);
         const snapshotNeedRefValue = await getDoc(needRefValue);
@@ -560,7 +561,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             setCompletedTasks(completedTasks + 1);
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
@@ -569,11 +570,11 @@ const EarnPageContent = () => {
             task.completed = true;
             setActiveTaskId(null);
           } else {
-            task.buttonText = "Check";
+        setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Check" } : item));
 
           }
         } else {
-          task.buttonText = "Check";
+        setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Check" } : item));
         }
       }
       if (task.whichPlatform === "onchain") {
@@ -597,7 +598,7 @@ const EarnPageContent = () => {
         const value = snapshotValue.exists() && snapshotValue.data().value;
         if (task.buttonText !== claimTEXT) {
           if (totalUserDB >= value) {
-            task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
             setTimeout(() => {
               task.buttonText = claimTEXT;
               return;
@@ -609,7 +610,7 @@ const EarnPageContent = () => {
           }
         }
         if (task.buttonText === claimTEXT) {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           if (!taskSnapshot.exists()) {
             const date = new Date(Date.now());
             const formattedDate =
@@ -637,7 +638,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
               (taskElement as HTMLButtonElement).disabled = true;
@@ -647,7 +648,7 @@ const EarnPageContent = () => {
             setActiveTaskId(null);
             console.error("The task has been successfully created and completed.");
           } else {
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
               (taskElement as HTMLButtonElement).disabled = true;
@@ -661,7 +662,7 @@ const EarnPageContent = () => {
       }
       if (task.whichPlatform === "connectwallet") {
         if (task.buttonText === "Check") {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           console.error(telegramId)
           
           const checkWallet = await fetch(
@@ -690,7 +691,7 @@ const EarnPageContent = () => {
           }
 
         } else if (task.buttonText === claimTEXT) {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           if (!taskSnapshot.exists()) {
             const date = new Date(Date.now());
             const formattedDate =
@@ -718,7 +719,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
               (taskElement as HTMLButtonElement).disabled = true;
@@ -734,7 +735,7 @@ const EarnPageContent = () => {
       }
       if (task.whichPlatform === "solvetoearnExplore") {
         if (task.buttonText === "Check") {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           console.error(telegramId)
           const valueRef = doc(dbfs, `user/${telegramId}/miningData/values`);
           const snapshotWallet = await getDoc(valueRef);
@@ -755,7 +756,7 @@ const EarnPageContent = () => {
           }
 
         } else if (task.buttonText === claimTEXT) {
-          task.buttonText = <ButtonLoader />;
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: <ButtonLoader/> } : item));
           if (!taskSnapshot.exists()) {
             const date = new Date(Date.now());
             const formattedDate =
@@ -783,7 +784,7 @@ const EarnPageContent = () => {
               localStorage.setItem("QAmount", formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
-            task.buttonText = "Joined";
+          setTasks(items => items.map(item => item.id === task.id ? { ...item, buttonText: "Joined" } : item));
             const taskElement = document.getElementById(task.id);
             if (taskElement) {
               (taskElement as HTMLButtonElement).disabled = true;
@@ -1593,7 +1594,7 @@ const EarnPageContent = () => {
                       } rounded-lg`}
                     onClick={() => setActiveTab(tab)}
                   >
-                    {tab} {" "}{/* Boşluk nasıl bırakılıyor bilemedim */}
+                    {tab} {" "}{/*  */}
                     {tab === limitedTXT && limitedTasks.filter(task => !task.completed).length >= 1
                       ? <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#808080]">{limitedTasks.filter(task => !task.completed).length}</div>
                       : tab === ingameTXT && ingameTasks.filter(task => !task.completed).length >= 1
@@ -1656,13 +1657,7 @@ const EarnPageContent = () => {
 
                             }
                           >
-                            {task.buttonText === "Joined" ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 16 16">
-                                <path fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="m2.75 8.75l3.5 3.5l7-7.5" />
-                              </svg>
-                            ) : (
-                              task.buttonText
-                            )}
+                            {task.buttonText}
                           </button>
                         </div>
                       </div>

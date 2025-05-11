@@ -28,17 +28,23 @@ export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
   const [userRank, setUserRank] = useState<number | null>(0);
   const [totalUsers, setTotalUsers] = useState<number | null>(() => {
     if (typeof window !== "undefined") {
-      const userRank = sessionStorage.getItem("totalusers");
-      return userRank ? Number(JSON.parse(userRank)) : 0;
+      const totalusers = sessionStorage.getItem("totalusers");
+      console.error(totalusers)
+      return totalusers ? Number(totalusers) : 0;
     }
     return null;
   });
   const [totalQuant, setTotalQuant] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const userRank = sessionStorage.getItem("totalquant");
-      return userRank ? JSON.parse(userRank) : [];
+  if (typeof window !== "undefined") {
+    const totalquant = sessionStorage.getItem("totalquant");
+    try {
+      return totalquant ?? "";
+    } catch {
+      console.error("Invalid JSON in sessionStorage for 'totalquant'");
     }
-  });
+  }
+  return "";
+});
 
   return (
     <LeaderboardContext.Provider

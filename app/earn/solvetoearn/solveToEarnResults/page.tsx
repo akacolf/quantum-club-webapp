@@ -53,24 +53,29 @@ const SolveToEarnResults = () => {
   const solvetoearnremaining = useState(remainingSolveToEarn);
   const router = useRouter();
   useEffect(() => {
-    if (typeof window !== "undefined") {
       const tg = window.Telegram?.WebApp;
-      if (!tg) {
-        return;
-      }
-
-
-      tg.BackButton.show();
-      tg.BackButton.onClick = () => {
-        router.push('/earn');
+      if(tg){
+      tg.ready();
+      const handleBackButtonClick = () => {
+        router.replace('/home');
       };
-    }
+      tg.BackButton.show();
+      tg.BackButton.onClick(handleBackButtonClick);
+      return () => {
+        tg.BackButton.offClick(handleBackButtonClick);
+       
+      };
+      }else{
+        console.error("Telegram WebApp not available");
+      }
+      
+    
   }, [router])
   const totalCorrect = useState<string>(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("TotalCorrectSolveToEarn") || "0" }else{return "0"} });
   const totalCorrectAnswers = useState(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("correctAnswers") || 0 } })
 
   useEffect(() => {
-    router.prefetch("/earn/solvetoearn-page");
+    router.prefetch("/earn/solvetoearn");
   })
   async function checkRemainingSolveToEarn() {
     setButtonClicked(true)
@@ -82,7 +87,7 @@ const SolveToEarnResults = () => {
         { remainingSolveToEarn: remainingSolveToEarnDB - 1, }
       )
       setRemainingSolveToEarn(remainingSolveToEarnDB - 1)
-      router.push("/earn/solvetoearn-page");
+      router.push("/earn/solvetoearn");
     } else {
       router.push("/earn")
     }

@@ -25,6 +25,7 @@ import toast, { ToastBar, Toaster } from "react-hot-toast";
 import { TaskHistory } from "@/lib/interfaces";
 import { ButtonLoader } from "../components/ButtonLoader";
 import { bgSolveToEarnCard, bgTgeProgressCard, fireEmoji, hundredEmoji } from "../images";
+import Link from "next/link";
 const calculateRemainingTime = (timestamp:number) => {
   const now = new Date();
   const targetTime = new Date(timestamp);
@@ -216,7 +217,6 @@ const HomePageContent = () => {
     },[remainingSolveToEarn, router, setRemainingSolveToEarn, telegramId]);
   useEffect(() => {
     fetch("/story");
-    router.prefetch("/home/roadmap-page");
     const fetchTasks = async () => {
       try {
         setTaskhistoryList([]);
@@ -1691,12 +1691,12 @@ const HomePageContent = () => {
             
               {/*TGE Progress Card and roadmap href*/}
               <div className="w-full max-w-xs mx-auto">
-              <button onClick={() => router.push('/home/roadmap')} className="flex items-center mt-4 mb-3 cursor-pointer">
+              <Link href={'/home/roadmap'} className="flex items-center mt-4 mb-3 cursor-pointer">
                   <div className="font-semibold text-lg">Roadmap</div>
                   <div><svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="-6 0 24 24">
 	<path fill="currentColor" fillRule="evenodd" d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414" />
 </svg></div>
-              </button>
+              </Link>
                 <div className="flex items-center justify-between p-4 bg-cover bg-center rounded-2xl h-40"
                 style={{backgroundImage: `url(${bgTgeProgressCard.src})`}}
                 >

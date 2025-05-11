@@ -3,7 +3,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-export function ButtonLoader() {
+export const ButtonLoader:React.FC= () => {
   return (
     <AnimatePresence>
       <motion.div

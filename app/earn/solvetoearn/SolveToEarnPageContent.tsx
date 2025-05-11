@@ -11,7 +11,7 @@ import Loader from "@/app/loading";
 const SolveToEarnPageContent = () => {
   const [again, setAgain] = useState(true);
   const [answers, setAnswers] = useState(0);
-  const [leftTime, setLeftTime] = useState(60);
+  const [leftTime, setLeftTime] = useState(3);
   const router = useRouter();
   const [mathProcess, setMathProcess] = useState("");
   const [options, setOptions] = useState(["first", "second", "third", "fourth"]);
@@ -32,7 +32,7 @@ const SolveToEarnPageContent = () => {
       if(tg){
       tg.ready();
       const handleBackButtonClick = () => {
-        router.replace('/earn');
+        router.replace('/home');
       };
       tg.BackButton.show();
       tg.BackButton.onClick(handleBackButtonClick);
