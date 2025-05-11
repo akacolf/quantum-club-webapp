@@ -29,7 +29,6 @@ export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
   const [totalUsers, setTotalUsers] = useState<number | null>(() => {
     if (typeof window !== "undefined") {
       const totalusers = sessionStorage.getItem("totalusers");
-      console.error(totalusers)
       return totalusers ? Number(totalusers) : 0;
     }
     return null;
