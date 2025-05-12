@@ -2,10 +2,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { GameProvider } from "../contexts/MiningContext";
-import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 const StoryPageContent = () => {
-  const pathname = usePathname();
   const router = useRouter();
   useEffect(() => {
     router.prefetch("/story");
@@ -82,7 +80,7 @@ const StoryPageContent = () => {
           </div>
         </div>
       ),
-      duration: 120, // Hikaye süresi saniye cinsinden
+      duration: 120, // story duration in seconds
     },
 
     {
@@ -231,13 +229,13 @@ const StoryPageContent = () => {
   const [progress, setProgress] = useState(0);
   const currentStory = stories[currentStoryIndex];
 
-  // Zamanlayıcı ve ProgressBar güncelleme
+  // Timer and progress bar updation //
   useEffect(() => {
     if (!isPaused) {
       const interval = setInterval(() => {
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
-            goToNextStory(); // diğer story geçiş için burayı aç ****
+            goToNextStory(); // open here for the next story
             return stories[currentStoryIndex].duration; // Reset time for next story
           }
           return prevTime - 1;
@@ -247,7 +245,7 @@ const StoryPageContent = () => {
       return () => clearInterval(interval);
     }
   }, [currentStoryIndex, isPaused]);
-  // Progress bar'ı güncelle
+  // Update the progress bar //
   useEffect(() => {
     if (!isPaused) {
       setProgress(
@@ -270,15 +268,12 @@ const StoryPageContent = () => {
   return (
     <AnimatePresence>
       <motion.div
-        key={pathname}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         <div
-          className=" bg-black fixed"
-          /*{{ width:'100%',height:'100%', backgroundColor:'black',position:'fixed' }}*/ onTouchStart={
+          className=" bg-black fixed" onTouchStart={
             handleDown
           }
           onTouchEnd={handleUp}
@@ -286,15 +281,15 @@ const StoryPageContent = () => {
           <GameProvider>
             {/* Progress Bar */}
             <div
-              className="flex justify-between" /*{{ display: 'flex', justifyContent: 'space-between' }}*/
+              className="flex justify-between"
             >
               {stories.map((_, index) => (
                 <div
                   key={index}
-                  className="flex-1 mx-2" /*{{ flex: 1, margin: '0 5px' }}*/
+                  className="flex-1 mx-2"
                 >
                   <div
-                    className="bg-gray-300 rounded" /*{{ width: '100%', background: '#e0e0e0', borderRadius: '5px' }}*/
+                    className="bg-gray-300 rounded"
                   >
                     <div
                       className="h-1 bg-white-600 rounded transition-width duration-500 ease-out"
@@ -306,7 +301,7 @@ const StoryPageContent = () => {
                             : index === currentStoryIndex
                             ? progress
                             : 0
-                        }%`, // Önceki hikayeler full, geçerli hikaye doluyor
+                        }%`, // The completed story is done, now the current story is in progress
                         backgroundColor: "rgb(0,122,255)",
                         borderRadius: "10px",
                         transition: "width 0.5s ease-out",
@@ -318,7 +313,7 @@ const StoryPageContent = () => {
             </div>
 
             <div>
-              {/* Tıklama Alanları */}
+              {/* Clicking areas */}
               <div
                 onClick={goToPreviousStory}
                 style={{
@@ -327,7 +322,7 @@ const StoryPageContent = () => {
                   top: "0",
                   bottom: "0",
                   height: "100%",
-                  width: "50%", // Sol taraf
+                  width: "50%", // Left side
                   cursor: "pointer",
                   zIndex: 10,
                 }}
@@ -339,7 +334,7 @@ const StoryPageContent = () => {
                   right: "0",
                   top: "0",
                   bottom: "0",
-                  width: "50%", // Sağ taraf
+                  width: "50%", // Right side
                   height: "100%",
                   cursor: "pointer",
                   zIndex: 10,
@@ -347,29 +342,8 @@ const StoryPageContent = () => {
               />
             </div>
             <div>
-              {/*<h5 style=
-        {{
-            whiteSpace:'pre-line',
-            color:'white', 
-            fontSize:35,
-            opacity:0,
-            transform:'translateY(50%)',
-            animation: 'slideIn 1s ease-out forwards', 
-            }}>*/}
               {currentStory.content}
             </div>
-            <style jsx>{`
-              @keyframes slideIn {
-                0% {
-                  opacity: 0;
-                  transform: translateX(20%) translateY(50%) translateX(-20%);
-                }
-                100% {
-                  opacity: 1;
-                  transform: translateX(10%) translateY(50%) translateX(0);
-                }
-              }
-            `}</style>
           </GameProvider>
         </div>
       </motion.div>
