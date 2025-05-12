@@ -8,8 +8,8 @@ const CheckStory = () => {
     <div className="flex flex-col">
     <span className="text-lg text-black font-semibold">The Quantum Era of Telegram is here.</span>
     <span className="text-sm font-semibold text-black mt-2">Your TG story matters.</span>
-    <div>
-    <Link className="font-normal text-sm rounded-full bg-black text-white py-2 px-4 mt-4 cursor-pointer" href={"/story"}>
+    <div className="mt-4">
+    <Link className="font-normal text-sm rounded-full bg-black text-white py-2 px-4 cursor-pointer" href={"/story"}>
       Explore
     </Link>
     </div>
