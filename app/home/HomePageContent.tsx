@@ -1828,9 +1828,9 @@ const HomePageContent = () => {
             </div>
           </div>
           {/*farming QNTM*/}
-          <div className="w-full max-w-xs mx-auto mt-3">
+          <div className="w-full max-w-xs mx-auto mt-3 mb-5">
             <div className="font-semibold text-lg">Farm</div>
-          <div className="flex items-center justify-between bg-black rounded-xl p-2">
+          <div className="flex items-center justify-between bg-black rounded-xl p-1 mt-3">
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 32 32">
