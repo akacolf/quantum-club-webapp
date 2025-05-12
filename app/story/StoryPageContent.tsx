@@ -66,7 +66,7 @@ const StoryPageContent = () => {
           </div>
           <h5 className="text-xl font-semibold leading-relaxed text-left ml-4 text-white">
             <div>
-              The <span className="animate-gradient-text"> Quantum Era </span>{" "}
+              The <span> Quantum Era </span>{" "}
               of <span className="text-[#24a1de]">Telegram</span> <br />
               is here. Explore Quantum Club <br />
               and get rewarded.
@@ -74,10 +74,10 @@ const StoryPageContent = () => {
           </h5>
           <div className="items-center justify-center flex">
             <button
-              className="px-32 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20"
+              className="px-32 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20 cursor-pointer"
               onClick={goToNextStory}
             >
-              Let&apos;s go
+              Let's go
             </button>
           </div>
         </div>
@@ -108,14 +108,14 @@ const StoryPageContent = () => {
               Your participation in the{" "}
               <span className="text-[#24a1de]">Telegram</span> ecosystem is
               important. You have earned{" "}
-              <span className="animate-gradient-text">{quantValue} QNTM</span>{" "}
+              <span>{quantValue} QNTM</span>{" "}
               tokens. You have achieved the{" "}
-              <span className="animate-gradient-text">{rank}</span> rank.
+              <span>{rank}</span> rank.
             </div>
           </h5>
           <div className="items-center justify-center flex">
             <button
-              className="px-36 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20"
+              className="px-36 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20 cursor-pointer"
               onClick={goToNextStory}
             >
               Cool
@@ -209,13 +209,13 @@ const StoryPageContent = () => {
             </svg>
           </div>
           <h5 className="text-xl font-semibold leading-relaxed ml-4 text-white">
-            <span className="animate-gradient-text">Solve-to-earn</span> has
+            <span>Solve-to-earn</span> has
             arrived. <br />
             Have fun.
           </h5>
           <div className="items-center justify-center flex">
             <button
-              className="px-28 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20"
+              className="px-28 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20 cursor-pointer"
               onClick={goToNextStory}
             >
               I will
