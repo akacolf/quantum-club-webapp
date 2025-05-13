@@ -3,19 +3,11 @@ import React, { useState, useEffect } from "react";
 /*import { Icon } from "@iconify-icon/react";*/
 import { usePathname } from "next/navigation";
 import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const NavigationBar = () => {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("home");
-  const router = useRouter();
-  useEffect(() => {
-    router.prefetch("/home"); // prefetches pages //
-    router.prefetch("/frens");
-    router.prefetch("/earn");
-    router.prefetch("/leaderboard");
-  });
   useEffect(() => {
     if (typeof window !== "undefined") {
       // Tarayıcıya özel kodlar burada çalışır

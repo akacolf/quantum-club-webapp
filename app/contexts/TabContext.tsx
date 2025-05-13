@@ -1,13 +1,13 @@
 "use client";
 import { createContext, useContext, useState } from "react";
 
-const TabContext = createContext<{ popupOpener: boolean; setPopupOpener: React.Dispatch<React.SetStateAction<boolean>> } | undefined>(undefined);
+const TabContext = createContext<{ loadingTab: boolean; setLoadingTab: React.Dispatch<React.SetStateAction<boolean>> } | undefined>(undefined);
 
 export function TabProvider({ children }: { children: React.ReactNode }) {
-  const [popupOpener, setPopupOpener] = useState(false);
+  const [loadingTab, setLoadingTab] = useState(false);
 
   return (
-    <TabContext.Provider value={{ popupOpener, setPopupOpener }}>
+    <TabContext.Provider value={{ loadingTab, setLoadingTab }}>
       {children}
     </TabContext.Provider>
   );

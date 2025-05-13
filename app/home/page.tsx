@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import HomePageContent from './HomePageContent';
+import React, { Suspense, useEffect, useState } from 'react';
+const HomePageContent = React.lazy(() => import('./HomePageContent'));
 import { getAuth } from 'firebase/auth';
+import Loader from '../loading';
 const HomePage = () => {
   const [maintenance, setMaintenance] = useState(true);
 
@@ -50,7 +51,10 @@ const HomePage = () => {
           maintenance ? (
             <div></div>
           ) : (
-            <HomePageContent />
+            
+            <Suspense fallback={<Loader/>}>
+              <HomePageContent />
+            </Suspense>
           )
   );
 };
