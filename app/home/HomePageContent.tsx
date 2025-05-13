@@ -244,7 +244,6 @@ const HomePageContent = () => {
     }
   }, [remainingSolveToEarn, router, setRemainingSolveToEarn, telegramId]);
   useEffect(() => {
-    fetch("/story");
     const fetchTasks = async () => {
       try {
         setTaskhistoryList([]);
