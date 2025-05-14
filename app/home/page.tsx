@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 const HomePageContent = React.lazy(() => import('./HomePageContent'));
 import { getAuth } from 'firebase/auth';
-import Loader from '../loadingss';
+import Loader from '../components/loader';
 const HomePage = () => {
   const [maintenance, setMaintenance] = useState(true);
 
