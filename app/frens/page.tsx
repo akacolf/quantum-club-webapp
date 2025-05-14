@@ -3,10 +3,12 @@
 import React, {  useEffect } from 'react';
 import { getAuth } from 'firebase/auth';
 import FriendsPageContent from './FriendsPageContent/FriendsPageContent';
+import { useTab } from '../contexts/TabContext';
+import Loader from '../loading';
 
 const FriendsPage = () => {
  
-
+const {loadingTab} = useTab();
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (!window.Telegram?.WebApp?.initData) {
@@ -39,7 +41,7 @@ const FriendsPage = () => {
     }
   }, []);
   return (
-            <FriendsPageContent />
+            !loadingTab ? (<FriendsPageContent />) : (<Loader/>)
   );
 };
 

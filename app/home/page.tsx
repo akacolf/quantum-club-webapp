@@ -4,8 +4,10 @@ import React, { Suspense, useEffect, useState } from 'react';
 const HomePageContent = React.lazy(() => import('./HomePageContent'));
 import { getAuth } from 'firebase/auth';
 import Loader from '../loading';
+import { useTab } from '../contexts/TabContext';
 const HomePage = () => {
   const [maintenance, setMaintenance] = useState(true);
+  const {loadingTab} = useTab();
 
  
   useEffect(() => {
@@ -53,7 +55,7 @@ const HomePage = () => {
           ) : (
             
             <Suspense fallback={<Loader/>}>
-              <HomePageContent />
+             {!loadingTab ?  <HomePageContent />: <Loader/>}
             </Suspense>
           )
   );

@@ -75,7 +75,7 @@ const StoryPageContent = () => {
               className="px-32 py-4 bg-white text-black font-semibold rounded-lg text-lg z-20 cursor-pointer"
               onClick={goToNextStory}
             >
-              Let's go
+              Let&apos;s go
             </button>
           </div>
         </div>
