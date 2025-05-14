@@ -7,6 +7,7 @@ import fireEmoji from './fire.webp';
 import bgTgeProgressCard from './bg-tge-progress-card.svg';
 import hundredEmoji from './hundred.webp';
 import trophy from './trophy.png';
+import smiling from './smiling.webp';
 
 export {
     bgEarnPageCard,
@@ -18,4 +19,5 @@ export {
     bgTgeProgressCard,
     hundredEmoji,
     trophy,
+    smiling,
 }
