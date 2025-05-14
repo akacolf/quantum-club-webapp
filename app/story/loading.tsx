@@ -1,7 +1,7 @@
 'use client';
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import Loader from "../loading";
+import Loader from "../loadingss";
 
 export default function StoryLoading() {
     return (

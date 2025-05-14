@@ -9,7 +9,7 @@ import {
   getDocs,
   collection,
 } from "firebase/firestore";
-import Loader from "../loading";
+import Loader from "../loadingss";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import { getAuth } from "firebase/auth";
 import { ButtonLoader } from "../components/ButtonLoader";

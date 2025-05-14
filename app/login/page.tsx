@@ -10,7 +10,7 @@ import deviceTypeDetector from "@/utils/deviceDetection";
 import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
-import Loader from "../loading";
+import Loader from "../loadingss";
 import { TelegramAnalytics } from "@/lib/telegramAnalytics";
 //import Loader from "./loading";
 
@@ -70,20 +70,14 @@ if (typeof window !== "undefined") {
     TelegramAnalytics();
   }
 } else {
-  if (typeof window !== "undefined") {
-    (window as Window).location.href = "https://t.me/QuantumClubBot";
-  }
+ 
 }
 
 const LoginScreen = () => {
     const router = useRouter();
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (!window.Telegram?.WebApp?.initDataUnsafe) {
-        //why don't we check initDataUnsafe here?//
-        window.location.href = "https://t.me/QuantumClubBot";
-        return;
-      }
+      
     }
 
     const deviceDetect = async () => {

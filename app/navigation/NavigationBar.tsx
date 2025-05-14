@@ -12,6 +12,7 @@ type NavigationBarProps = {
 const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("home");
+  const [clickedTab, setClickedTab] = useState("home");
    const handleHide = () => setShowContent(false);
   const handleShow = () => setShowContent(true);
   useEffect(() => {
@@ -57,16 +58,16 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
             <Link
               id="home"
               href={"/home"}
-              onClick={handleHide}
+              onClick={()=>{handleHide();setClickedTab("home")}}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className={`flex flex-col-reverse items-center justify-center text-[1.5rem] w-16 h-16 ${
-                activeTab === "home" ? "active" : "text-[#727272]"
+                (clickedTab) === "home" ? "active" : "text-[#727272]"
               }`}
             >
               <span
                 className={`text-[0.75rem] leading-4 ${
-                  activeTab === "home" ? "active" : ""
+                  (clickedTab) === "home" ? "active" : ""
                 }`}
               >
                 Home
@@ -81,17 +82,17 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
             <Link
               id="leaderboard"
               href={"/leaderboard"}
-              onClick={handleHide}
+              onClick={()=>{handleHide();setClickedTab("ranking")}}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               
               className={`flex flex-col-reverse items-center justify-center text-[1.5rem] w-16 h-16 ${
-                activeTab === "ranking" ? "active" : "text-[#727272]"
+                (clickedTab) === "ranking" ? "active" : "text-[#727272]"
               }`}
             >
               <span
                 className={`text-[0.75rem] leading-4 ${
-                  activeTab === "ranking" ? "active" : ""
+                  (clickedTab) === "ranking" ? "active" : ""
                 }`}
               >
                 Ranks
@@ -106,16 +107,16 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
             <Link
               id="frens"
               href={"/frens"}
-              onClick={handleHide}
+              onClick={()=>{handleHide();setClickedTab("frens")}}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className={`flex flex-col-reverse items-center justify-center text-[1.5rem] w-16 h-16 ${
-                activeTab === "frens" ? "active" : "text-[#727272]"
+                (clickedTab) === "frens" ? "active" : "text-[#727272]"
               }`}
             >
               <span
                 className={`text-[0.75rem] leading-4 ${
-                  activeTab === "frens" ? "active" : ""
+                  (clickedTab) === "frens" ? "active" : ""
                 }`}
               >
                 Frens
@@ -131,16 +132,16 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
             <Link
               id="tasks"
               href={"/earn"}
-              onClick={handleHide}
+              onClick={()=>{handleHide();setClickedTab("tasks")}}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className={`flex flex-col-reverse items-center justify-center text-[1.5rem] w-16 h-16 ${
-                activeTab === "tasks" ? "active" : "text-[#727272]"
+                (clickedTab) === "tasks" ? "active" : "text-[#727272]"
               }`}
             >
               <span
                 className={`text-[0.75rem] leading-4 ${
-                  activeTab === "tasks" ? "active" : ""
+                  (clickedTab) === "tasks" ? "active" : ""
                 }`}
               >
                 Earn
