@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { usePathname } from "next/navigation";
 import { GameProvider } from "./contexts/MiningContext";
-import { TabProvider, useTab } from "./contexts/TabContext";
 import { LeaderboardProvider } from "./contexts/LeaderboardContext";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { FrensProvider } from "./contexts/FrensContext";
@@ -57,7 +56,6 @@ export default function RootLayout({
       >
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <GameProvider>
-          <TabProvider>
             <div className="main-content">
               <div className="inner-content">
                 <LeaderboardProvider>
@@ -72,7 +70,6 @@ export default function RootLayout({
                 </LeaderboardProvider>
               </div>
             </div>
-          </TabProvider>
         </GameProvider>
       </body>
     </html>
