@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 /*import { Icon } from "@iconify-icon/react";*/
 import { usePathname } from "next/navigation";
 import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
@@ -13,13 +13,11 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("home");
   const [clickedTab, setClickedTab] = useState("home");
-   const handleHide = () => setShowContent(false);
-  const handleShow = () => setShowContent(true);
+   const handleHide = useCallback(() => setShowContent(false),[setShowContent]);
   useEffect(() => {
     try{
  if (typeof window !== "undefined") {
-      // Tarayıcıya özel kodlar burada çalışır
-      const path = window.location.pathname; // Geçerli URL yolunu al;
+      const path = window.location.pathname;
       if (path.includes("/earn")) {
         setActiveTab("tasks");
         return;
@@ -42,10 +40,10 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
       }
     }
     }finally{
-      handleShow();
+    setShowContent(true);
     }
    
-  }, [pathname]);
+  }, [pathname,setShowContent]);
 
   return (
     <div className="flex justify-center w-full mt-20">
