@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-/*import { Icon } from "@iconify-icon/react";*/
 import { usePathname } from "next/navigation";
 import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
 import Link from "next/link";
