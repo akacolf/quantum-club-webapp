@@ -4,42 +4,46 @@ import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
 import Link from "next/link";
-import { useTab } from "../contexts/TabContext";
 
-const NavigationBar = () => {
+type NavigationBarProps = {
+  setShowContent: (show: boolean) => void;
+};
+
+const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("home");
-  const {setLoadingTab} = useTab();
+   const handleHide = () => setShowContent(false);
+  const handleShow = () => setShowContent(true);
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    try{
+ if (typeof window !== "undefined") {
       // Tarayıcıya özel kodlar burada çalışır
       const path = window.location.pathname; // Geçerli URL yolunu al;
       if (path.includes("/earn")) {
         setActiveTab("tasks");
-        setLoadingTab(false);
         return;
       }
       if (path.includes("/frens")) {
         setActiveTab("frens");
-        setLoadingTab(false);
         return;
       }
       if (path.includes("/airdrop")) {
         setActiveTab("airdrop");
-        setLoadingTab(false);
         return;
       }
       if (path.includes("/home")) {
         setActiveTab("home");
-        setLoadingTab(false);
-
         return;
       }
       if (path.includes("leaderboard")) {
         setActiveTab("ranking");
-        setLoadingTab(false);
+        return;
       }
     }
+    }finally{
+      handleShow();
+    }
+   
   }, [pathname]);
 
   return (
@@ -53,7 +57,7 @@ const NavigationBar = () => {
             <Link
               id="home"
               href={"/home"}
-              onClick={()=> setLoadingTab(true)}
+              onClick={handleHide}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className={`flex flex-col-reverse items-center justify-center text-[1.5rem] w-16 h-16 ${
@@ -77,7 +81,7 @@ const NavigationBar = () => {
             <Link
               id="leaderboard"
               href={"/leaderboard"}
-              onClick={()=> setLoadingTab(true)}
+              onClick={handleHide}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               
@@ -102,7 +106,7 @@ const NavigationBar = () => {
             <Link
               id="frens"
               href={"/frens"}
-              onClick={()=> setLoadingTab(true)}
+              onClick={handleHide}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className={`flex flex-col-reverse items-center justify-center text-[1.5rem] w-16 h-16 ${
@@ -127,7 +131,7 @@ const NavigationBar = () => {
             <Link
               id="tasks"
               href={"/earn"}
-              onClick={()=> setLoadingTab(true)}
+              onClick={handleHide}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className={`flex flex-col-reverse items-center justify-center text-[1.5rem] w-16 h-16 ${

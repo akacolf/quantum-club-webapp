@@ -11,6 +11,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
+import { useState } from "react";
+import Loader from "./loading";
 
 const interdisplay = localFont({
   src: [
@@ -47,6 +49,7 @@ export default function RootLayout({
   const pathname = usePathname();
   const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
   const hideNavbar = hiddenPaths.includes(pathname);
+  const [showContent,setShowContent] = useState(true);
   return (
     <html lang="en">
       <body
@@ -60,8 +63,8 @@ export default function RootLayout({
                 <LeaderboardProvider>
                   <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
                     <FrensProvider>
-                      {children}
-                      {hideNavbar && <NavigationBar/>}
+                      {showContent ? children:<Loader/>}
+                      {hideNavbar && <NavigationBar setShowContent={setShowContent}/>}
                     </FrensProvider>
                     <Analytics />
                     <SpeedInsights/>
