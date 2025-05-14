@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { usePathname } from "next/navigation";
 import { GameProvider } from "./contexts/MiningContext";
-import { TabProvider, useTab } from "./contexts/TabContext";
+import { TabProvider } from "./contexts/TabContext";
 import { LeaderboardProvider } from "./contexts/LeaderboardContext";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { FrensProvider } from "./contexts/FrensContext";
