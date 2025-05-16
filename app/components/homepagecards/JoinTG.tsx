@@ -26,7 +26,7 @@ const JoinTG = () => {
     }
   };
   return (
-    <div className="flex items-center justify-between bg-gradient-to-tr from-neutral-300 to-stone-400 p-4 rounded-xl max-w-xs w-full h-40 mx-auto">
+    <div className="flex items-center justify-between bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 p-4 rounded-xl max-w-xs w-full h-40 mx-auto">
       <div className="flex flex-col">
         <span className="text-lg text-black font-semibold">
           The Club of OGs
