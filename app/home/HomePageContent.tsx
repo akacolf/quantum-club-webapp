@@ -1,5 +1,5 @@
 "use client";
-//import { Icon } from "@iconify-icon/react";
+
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import {
   doc,
@@ -12,7 +12,8 @@ import {
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useGameContext } from "../contexts/MiningContext";
 import Image from "next/image";
-import CheckStory from "@/app/components/CheckStory";
+import CheckStory from "@/app/components/homepagecards/CheckStory";
+import JoinTG from "@/app/components/homepagecards/JoinTG";
 import { motion, AnimatePresence } from "framer-motion";
 import tasks from "@/app/earn/tasks";
 //import { ButtonLoader } from "../loaders/ButtonLoader";
@@ -30,6 +31,7 @@ import {
   hundredEmoji,
 } from "../images";
 import Link from "next/link";
+import useEmblaCarousel from "embla-carousel-react";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -48,7 +50,9 @@ const calculateRemainingTime = (timestamp: number) => {
   );
   return ` ${hours}h ${minutes}m`;
 };
+
 const HomePageContent = () => {
+  const [emblaRef] = useEmblaCarousel();
   const {
     MainQuantAmount,
     SetMainQuantAmount,
@@ -1848,8 +1852,15 @@ const HomePageContent = () => {
             </div>
           </div>
         </div>
-          <div className="mt-4">
-            <CheckStory />
+          {/*carousel*/}
+          <div className="overflow-hidden" ref={emblaRef}>
+            {/* this element is the container */}
+            <div className="flex">
+              {/* card #1*/}
+              <div className="min-w-0 flex-none w-full"><JoinTG /></div>
+              {/* card #2*/}
+                <div className="min-w-0 flex-none w-full"><CheckStory /></div>
+            </div>
           </div>
 
           {/*solve-to-earn card*/}
