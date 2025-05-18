@@ -90,17 +90,17 @@ const LeaderboardPageContent = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-black overflow-auto"
+            className="bg-black flex flex-col overflow-auto"
           >
           {/*leaderboard page header*/}
-          <div className="flex items-center pl-4">
+          <div className="flex items-center gap-3">
             <Image 
             src={trophy}
             alt="trophy"
             width={45}
             height={45}
             />
-          <div className="flex flex-col ml-2">
+          <div className="flex flex-col pl-2">
             <div className="text-2xl font-bold">Leaderboard</div>
             <div className="text-base font-normal text-zinc-500">Climb up the ranks with your frens.</div>
           </div>

@@ -46,7 +46,7 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
 
   return (
     <div className="flex justify-center w-full mt-20">
-      <nav className="fixed bottom-0 w-full bg-black/50 backdrop-blur-sm max-w-md">
+      <nav className="fixed bottom-0 w-full bg-black/80 backdrop-blur-sm max-w-md">
         {activeTab === "frens" && (
           <InvitePopup />
         )}

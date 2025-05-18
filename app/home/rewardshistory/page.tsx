@@ -1,10 +1,21 @@
 'use client';
 
+import { AnimatePresence, motion } from "framer-motion";
+
 export default function RewardsHistory() {
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-2xl font-bold">Rewards History</h1>
-      <p className="mt-4 text-gray-600">This feature is coming soon!</p>
-    </div>
+    <AnimatePresence>
+      <motion.div
+      initial={{opacity: 0}}
+      animate={{opacity: 1}}
+      exit={{opacity: 0}}
+      className="flex flex-col overflow-auto"
+      >
+        <div className="flex items-center justify-center h-screen">
+          <div>This feature is under development.</div>
+        </div>
+
+      </motion.div>
+    </AnimatePresence>
   );
 }
