@@ -13,7 +13,7 @@ import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useGameContext } from "../contexts/MiningContext";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import tasks from "@/app/earn/tasks";
+//import tasks from "@/app/earn/tasks";//
 //import { ButtonLoader } from "../loaders/ButtonLoader";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
@@ -68,9 +68,9 @@ const HomePageContent = () => {
 
   const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
   const [activeTab, setActiveTab] = useState(false);
-  const task = tasks.find(
+  /*const task = tasks.find(
     (task) => task.id === "ba1e3046074448f8acb2bfe9797436db"
-  );
+  );*/
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
   const [tonConnectUI] = useTonConnectUI();
@@ -632,7 +632,7 @@ const HomePageContent = () => {
   };
   };*/
   }
-  const handleJoinTask = () => {
+  /*const handleJoinTask = () => {
     openTelegramGroup();
   };
   const openTelegramGroup = () => {
@@ -648,7 +648,7 @@ const HomePageContent = () => {
       if (!tg) return;
       tg.openTelegramLink(newLink);
     }
-  };
+  };*/
   useEffect(() => {
     if (rank == "OG") {
       setRankIcon(
