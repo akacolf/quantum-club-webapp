@@ -90,10 +90,10 @@ const LeaderboardPageContent = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-black flex flex-col overflow-auto"
+            className="bg-black flex flex-col pl-4 overflow-auto"
           >
           {/*leaderboard page header*/}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <Image 
             src={trophy}
             alt="trophy"
@@ -106,7 +106,7 @@ const LeaderboardPageContent = () => {
           </div>
           </div>
             {/*general stats: total users and total QNTM*/}
-            <div className="pl-4 flex flex-col mt-8">
+            <div className="flex flex-col mt-8">
               <div className="text-base font-medium">General stats</div>
                 <div className="flex items-center justify-center gap-x-16 mt-5">
                   <div className="flex flex-col items-center">
@@ -129,9 +129,9 @@ const LeaderboardPageContent = () => {
                 </div>
               </div>
             {/*user stats card*/}
-            <div className="mt-4">
-              <div className="font-medium pl-4">Your stats</div>
-              <div className="bg-orange-200 p-6 rounded-2xl w-full max-w-xs pl-4 mx-auto mt-3">
+            <div className="mt-5">
+              <div className="font-medium">Your stats</div>
+              <div className="bg-orange-200 p-6 rounded-2xl max-w-xs mt-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div>
@@ -160,15 +160,15 @@ const LeaderboardPageContent = () => {
                 </div>
               </div>
             </div>
-            <div className="font-semibold px-4 mt-4">Ranks</div>
             {/*leaderboard list*/}
+            <div className="font-semibold mt-5">Ranks</div>
             <div className="mt-3 space-y-0 rounded-2xl">
               {leaderboardContext ? (
                 leaderboardContext.length > 0 ? (
                   leaderboardContext.map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-4 bg-black"
+                      className="flex justify-between p-4 bg-black"
                     >
                       <div className="flex items-center gap-2">
                         <div>

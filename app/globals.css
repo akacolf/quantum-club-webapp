@@ -38,7 +38,7 @@ body {
   padding-right: var(--content-safe-area-right, 0vw);
 }
 
-::-webkit-scrollbar {
+/*::-webkit-scrollbar {
   display: none;
 }
 
@@ -48,4 +48,4 @@ body {
 
 * {
   -ms-overflow-style: none;
-}
+}*/
