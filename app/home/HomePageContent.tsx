@@ -30,6 +30,9 @@ import {
 } from "../images";
 import Link from "next/link";
 import HomeCarousel from "../components/homepagecarousel/Carousel";
+import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import hundredAnimationData from "../images/hundred-lottie.json";
+import fireAnimationData from "../images/fire-lottie.json";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -50,6 +53,7 @@ const calculateRemainingTime = (timestamp: number) => {
 };
 
 const HomePageContent = () => {
+  const lottieRef = useRef<LottieRefCurrentProps>(null);
   const {
     MainQuantAmount,
     SetMainQuantAmount,
@@ -1662,11 +1666,12 @@ const HomePageContent = () => {
           <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-full max-w-xs mx-auto p-4 mt-6">
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center">
-                <Image
-                  src={fireEmoji}
-                  alt="fire emoji"
-                  width={40}
-                  height={40}
+                <Lottie 
+                lottieRef={lottieRef}
+                animationData={fireAnimationData}
+                loop={true}
+                autoplay={true}
+                style={{ width: "2.5em", height: "2.5em" }}
                 />
               </div>
               <div>
@@ -1827,11 +1832,12 @@ const HomePageContent = () => {
             >
               <div className="flex items-center space-x-3">
                 <div className="flex items-center justify-center">
-                  <Image
-                    src={hundredEmoji}
-                    alt="hundred emoji"
-                    width={40}
-                    height={40}
+                  <Lottie 
+                  lottieRef={lottieRef}
+                  animationData={hundredAnimationData}
+                  loop={true}
+                  autoplay={true}
+                  style={{ width: "2.5em", height: "2.5em" }}
                   />
                 </div>
                 <div>
