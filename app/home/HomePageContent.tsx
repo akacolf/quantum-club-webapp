@@ -1720,7 +1720,8 @@ const HomePageContent = () => {
               </button>
             </div>
           </div>
-
+          {/*carousel*/}
+          <HomeCarousel />
           {/*TGE Progress Card and roadmap href*/}
           <div className="w-full max-w-xs mx-auto">
             <Link
@@ -1818,8 +1819,6 @@ const HomePageContent = () => {
               </div>
             </div>
           </div>
-          {/*carousel*/}
-            <HomeCarousel />
           {/*solve-to-earn card*/}
           <div className="w-full max-w-xs mx-auto mt-4">
             <div className="font-semibold text-lg mb-3">Solve-to-Earn</div>

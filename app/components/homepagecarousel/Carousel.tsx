@@ -6,6 +6,7 @@ import Autoplay from "embla-carousel-autoplay";
 import Link from "next/link";
 import tasks from "@/app/earn/tasks";
 import { DotButton, useDotButton } from "./CarouselDotButton";
+import { carouselBgJoinTG, carouselBgStory } from "@/app/images";
 
 const HomeCarousel: React.FC = () => {
   const [emblaRef, emblaApi] = useEmblaCarousel({loop: true}, [Autoplay({stopOnInteraction: false, delay: 5000})]);
@@ -35,17 +36,19 @@ const HomeCarousel: React.FC = () => {
   };
   return (
     /*parent container should include overflow-hidden class*/
-    <div className="overflow-hidden" ref={emblaRef}>
+    <div className="overflow-hidden mt-5" ref={emblaRef}>
       {/* this element is the container */}
       <div className="flex">
-        {/* TG story card*/}
+        {/* TG story card (card #1)*/}
         <div className="min-w-0 flex-none w-full">
-          <div className="flex items-center justify-between bg-gradient-to-tr from-neutral-300 to-stone-400 p-4 rounded-xl max-w-xs w-full h-40 mx-auto">
+          <div className="flex items-center justify-between bg-cover bg-center p-4 rounded-xl max-w-xs w-full h-40 mx-auto"
+          style={{ backgroundImage: `url(${carouselBgStory.src})`}}
+          >
             <div className="flex flex-col">
-              <span className="text-lg text-black font-semibold">
+              <span className="text-lg text-white font-semibold">
                 The Quantum Era of Telegram
               </span>
-              <span className="text-sm font-semibold text-black mt-2">
+              <span className="text-sm font-semibold text-white mt-2">
                 Your TG story matters.
               </span>
               <div className="mt-4">
@@ -74,19 +77,21 @@ const HomeCarousel: React.FC = () => {
         </div>
         {/* card #2*/}
         <div className="min-w-0 flex-none w-full">
-          <div className="flex items-center justify-between bg-gradient-to-r from-red-200 via-red-300 to-yellow-200 p-4 rounded-xl max-w-xs w-full h-40 mx-auto">
+          <div className="flex items-center justify-between bg-cover bg-center p-4 rounded-xl max-w-xs w-full h-40 mx-auto"
+          style={{ backgroundImage: `url(${carouselBgJoinTG.src})`}}
+          >
             <div className="flex flex-col">
-              <span className="text-lg text-black font-semibold">
+              <span className="text-lg text-white font-semibold">
                 The Club of OGs
               </span>
-              <span className="text-sm font-semibold text-black mt-2">
-                Join our Telegram channel to stay updated with the latest news.
+              <span className="text-sm font-semibold text-white mt-2">
+                Stay updated with our Telegram channel.
               </span>
               <div className="mt-4">
                 <button
                   id="joinbutton"
                   onClick={() => handleJoinTask()}
-                  className="px-4 py-1 bg-white text-black rounded-full cursor-pointer"
+                  className="px-4 py-1 bg-black text-white rounded-full cursor-pointer"
                 >
                   Join
                 </button>
