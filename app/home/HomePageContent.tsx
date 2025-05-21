@@ -11,7 +11,6 @@ import {
 } from "firebase/firestore";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useGameContext } from "../contexts/MiningContext";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 //import tasks from "@/app/earn/tasks";//
 //import { ButtonLoader } from "../loaders/ButtonLoader";
@@ -25,8 +24,6 @@ import { ButtonLoader } from "../components/ButtonLoader";
 import {
   bgSolveToEarnCard,
   bgTgeProgressCard,
-  fireEmoji,
-  hundredEmoji,
 } from "../images";
 import Link from "next/link";
 import HomeCarousel from "../components/homepagecarousel/Carousel";
