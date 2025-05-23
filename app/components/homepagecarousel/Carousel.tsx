@@ -1,22 +1,39 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import Link from "next/link";
 import tasks from "@/app/earn/tasks";
 import { DotButton, useDotButton } from "./CarouselDotButton";
 import { carouselBgJoinTG, carouselBgStory } from "@/app/images";
+import Loader from "../loader";
 
 const HomeCarousel: React.FC = () => {
   const [emblaRef, emblaApi] = useEmblaCarousel({loop: true}, [Autoplay({stopOnInteraction: false, delay: 5000})]);
+  const [loadingImage,setLoadingImage] = useState(0)
   const { selectedIndex, scrollSnaps, onDotButtonClick } =
     useDotButton(emblaApi);
 
   const task = tasks.find(
     (task) => task.id === "ba1e3046074448f8acb2bfe9797436db"
   );
-
+  useEffect(()=>{
+    if(loadingImage>=2) return;
+    const carouselBgStoryimg = new Image()
+    const carouselBgJoinTGimg = new Image()
+    carouselBgJoinTGimg.src =carouselBgJoinTG.src
+    carouselBgStoryimg.src = carouselBgStory.src
+    const handleLoad = () => {
+      setLoadingImage((prev) => {
+        if (prev >= 2) return 2; // limit aşılmasın
+        return prev + 1;
+      });
+    };
+    carouselBgJoinTGimg.onload = handleLoad;
+    carouselBgStoryimg.onload = handleLoad;
+    
+  },[])
   const handleJoinTask = () => {
     openTelegramGroup();
   };
@@ -38,8 +55,10 @@ const HomeCarousel: React.FC = () => {
     /*parent container should include overflow-hidden class*/
     <div className="overflow-hidden mt-5" ref={emblaRef}>
       {/* this element is the container */}
-      <div className="flex">
-        {/* TG story card (card #1)*/}
+        { loadingImage===2 ?
+        (
+          <div className="flex">
+          {/* TG story card (card #1)*/}
         <div className="min-w-0 flex-none w-full">
           <div className="flex items-center justify-between bg-cover bg-center p-4 rounded-xl max-w-xs w-full h-40 mx-auto"
           style={{ backgroundImage: `url(${carouselBgStory.src})`}}
@@ -128,7 +147,9 @@ const HomeCarousel: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+        ):(<div className="flex"><div className="flex items-center justify-between bg-cover bg-center p-4 rounded-xl max-w-xs w-full h-40 mx-auto"><Loader/></div></div>)
+        }
       {/* dot buttons */}
       <div className="flex justify-center mt-4 mb-2">
         <div className="flex items-center gap-3">
