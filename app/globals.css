@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@plugin "daisyui" {
+  themes: black --default, black --prefersdark;
+  exclude: rootscrollgutter;
+};
 
 :root {
   --background: #000000;
@@ -37,15 +41,3 @@ body {
   padding-left: var(--content-safe-area-left, 0vw);
   padding-right: var(--content-safe-area-right, 0vw);
 }
-
-/*::-webkit-scrollbar {
-  display: none;
-}
-
-* {
-  scrollbar-width: none;
-}
-
-* {
-  -ms-overflow-style: none;
-}*/
