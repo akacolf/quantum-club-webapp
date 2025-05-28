@@ -11,9 +11,9 @@ import {
   carouselBg,
   carouselBgJoinTG,
   bgTgeProgressCard,
-} from "@/app/images";
+} from "@/public/images";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
-import storyAnimationData from "../../images/story-lottie.json";
+import storyAnimationData from "../../../public/images/story-lottie.json";
 
 const HomeCarousel: React.FC = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);

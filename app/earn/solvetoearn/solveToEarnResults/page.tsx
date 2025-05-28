@@ -6,8 +6,8 @@ import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { bgSolveToEarnResultsPage } from "@/app/images";
-import { rocketEmoji } from "@/app/images";
+import { bgSolveToEarnResultsPage } from "@/public/images";
+import { rocketEmoji } from "@/public/images";
 import Image from "next/image";
 
 import { useEffect, useState } from "react";

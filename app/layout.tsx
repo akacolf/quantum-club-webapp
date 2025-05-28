@@ -16,22 +16,22 @@ import Loader from "./components/Loader";
 const interdisplay = localFont({
   src: [
     {
-      path: './fonts/InterDisplay-Regular.otf',
+      path: '../public/fonts/InterDisplay-Regular.otf',
       weight: '400',
       style: 'normal',
     },
     {
-      path: './fonts/InterDisplay-Medium.otf',
+      path: '../public/fonts/InterDisplay-Medium.otf',
       weight: '500',
       style: 'normal',
     },
     {
-      path: './fonts/InterDisplay-SemiBold.otf',
+      path: '../public/fonts/InterDisplay-SemiBold.otf',
       weight: '600',
       style: 'normal',
     },
     {
-      path: './fonts/InterDisplay-Bold.otf',
+      path: '../public/fonts/InterDisplay-Bold.otf',
       weight: '700',
       style: 'normal',
     },

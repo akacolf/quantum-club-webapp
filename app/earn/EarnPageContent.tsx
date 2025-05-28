@@ -16,7 +16,7 @@ import { ButtonLoader } from "../components/ButtonLoader";
 import { getAllTasks } from "./tasks";
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from "next/navigation";
-import { bgEarnPageCard, bgSolveToEarnCard } from "../images";
+import { bgEarnPageCard, bgSolveToEarnCard } from "../../public/images";
 import { useLeaderboardContext } from "../contexts/LeaderboardContext";
 import { EarnTask } from "@/lib/interfaces";
 const calculateRemainingTime = (timestamp:number) => {

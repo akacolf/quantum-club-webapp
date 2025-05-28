@@ -5,7 +5,7 @@ import { useFrenContext } from "@/app/contexts/FrensContext";
 import CopyLinkNotification from "./copied-notification-info";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
-import { bgFrensPageCard } from "@/app/images";
+import { bgFrensPageCard } from "@/public/images";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import Loader from "@/app/components/Loader";

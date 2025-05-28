@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import Image from 'next/image';
-import { trophy, smiling } from "../images";
+import { trophy, smiling } from "../../public/images";
 const LeaderboardPageContent = () => {
   const {
     leaderboardContext,
