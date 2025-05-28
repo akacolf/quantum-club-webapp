@@ -8,6 +8,7 @@ import trophy from './trophy.png';
 import smiling from './smiling.webp';
 import carouselBgJoinTG from './carousel-bg-join-tg.svg';
 import carouselBgStory from './carousel-bg-story.svg';
+import carouselBg from './carousel-bg.svg';
 
 export {
     bgEarnPageCard,
@@ -20,4 +21,5 @@ export {
     smiling,
     carouselBgJoinTG,
     carouselBgStory,
+    carouselBg,
 }

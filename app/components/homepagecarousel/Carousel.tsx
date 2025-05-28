@@ -1,14 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import Link from "next/link";
 import tasks from "@/app/earn/tasks";
 import { DotButton, useDotButton } from "./CarouselDotButton";
-import { carouselBgJoinTG, carouselBgStory } from "@/app/images";
+import {
+  carouselBgStory,
+  carouselBg,
+  carouselBgJoinTG,
+  bgTgeProgressCard,
+} from "@/app/images";
+import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import storyAnimationData from "../../images/story-lottie.json";
 
 const HomeCarousel: React.FC = () => {
+  const lottieRef = useRef<LottieRefCurrentProps>(null);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
     Autoplay({ stopOnInteraction: false, delay: 5000 }),
   ]);
@@ -21,18 +29,25 @@ const HomeCarousel: React.FC = () => {
   );
   useEffect(() => {
     if (loadingImage >= 2) return;
-    const carouselBgStoryimg = new Image();
     const carouselBgJoinTGimg = new Image();
+    const carouselBgStoryimg = new Image();
+    const tgeProgressCardimg = new Image();
+    const carouselBgimg = new Image();
+
+    tgeProgressCardimg.src = bgTgeProgressCard.src;
     carouselBgJoinTGimg.src = carouselBgJoinTG.src;
     carouselBgStoryimg.src = carouselBgStory.src;
+    carouselBgimg.src = carouselBg.src;
     const handleLoad = () => {
       setLoadingImage((prev) => {
         if (prev >= 2) return 2; // limit aşılmasın
         return prev + 1;
       });
     };
-    carouselBgJoinTGimg.onload = handleLoad;
+    tgeProgressCardimg.onload = handleLoad;
     carouselBgStoryimg.onload = handleLoad;
+    carouselBgimg.onload = handleLoad;
+    carouselBgJoinTGimg.onload = handleLoad;
   }, []);
   const handleJoinTask = () => {
     openTelegramGroup();
@@ -60,30 +75,63 @@ const HomeCarousel: React.FC = () => {
           {/* TG story card (card #1)*/}
           <div className="min-w-0 flex-none w-full">
             <div
-              className="flex items-center justify-between bg-cover bg-center p-4 rounded-xl max-w-xs w-full h-40 mx-auto"
-              style={{ backgroundImage: `url(${carouselBgStory.src})` }}
+              className="card flex justify-between bg-cover bg-center rounded-xl max-w-xs h-40 w-full mx-auto"
+              style={{ backgroundImage: `url(${carouselBg.src})` }} //items-center //
             >
-              <div className="flex flex-col">
-                <span className="text-lg text-white font-semibold">
-                  The Quantum Era of Telegram
-                </span>
-                <span className="text-sm font-semibold text-white mt-2">
-                  Your TG story matters.
-                </span>
-                <div className="mt-4">
-                  <Link
-                    className="font-normal text-sm rounded-full bg-black text-white py-2 px-4 cursor-pointer"
-                    href={"/story"}
-                  >
-                    Explore
-                  </Link>
+              <div className="card-body flex flex-row items-center justify-between p-4">
+                {/*text and button*/}
+                <div>
+                  <h2 className="text-lg font-semibold leading-tight">
+                    The Quantum Era of <br />
+                    Telegram
+                  </h2>
+                  <p className="text-sm font-normal mt-2">
+                    Your TG story is here.
+                  </p>
+                  <div className="mt-6">
+                    <Link
+                      className="font-normal text-sm rounded-full bg-white text-black py-1 px-3 cursor-pointer"
+                      href={"/story"}
+                    >
+                      Explore
+                    </Link>
+                  </div>
                 </div>
+                {/*icon*/}
+                <Lottie
+                  lottieRef={lottieRef}
+                  animationData={storyAnimationData}
+                  loop={true}
+                  autoplay={true}
+                  style={{ width: "4em", height: "4em" }}
+                />
               </div>
-              <div className="flex items-center justify-center">
+            </div>
+          </div>
+          {/* card #2*/}
+          <div className="min-w-0 flex-none w-full">
+            <div
+              className="card flex justify-between bg-cover bg-center rounded-xl max-w-xs h-40 w-full mx-auto"
+              style={{ backgroundImage: `url(${carouselBgJoinTG.src})` }}
+            >
+              <div className="card-body flex flex-row items-center justify-between p-4">
+                <div>
+                  <h2 className="font-semibold text-lg">The Club of OGs</h2>
+                  <p className="text-sm font-normal mt-2">
+                    Stay updated with our Telegram channel.
+                  </p>
+                  <button
+                    id="joinbutton"
+                    onClick={() => handleJoinTask()}
+                    className="font-normal text-sm rounded-full bg-white text-black py-1 px-4 mt-4 cursor-pointer"
+                  >
+                    Join
+                  </button>
+                </div>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="4em"
-                  height="4em"
+                  width="5em"
+                  height="5em"
                   viewBox="0 0 24 24"
                 >
                   <path
@@ -94,57 +142,59 @@ const HomeCarousel: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* card #2*/}
+          {/*card 3*/}
           <div className="min-w-0 flex-none w-full">
-            <div
-              className="flex items-center justify-between bg-cover bg-center p-4 rounded-xl max-w-xs w-full h-40 mx-auto"
-              style={{ backgroundImage: `url(${carouselBgJoinTG.src})` }}
-            >
-              <div className="flex flex-col">
-                <div className="text-lg text-white font-semibold">
-                  The Club of OGs
-                </div>
-                <div className="text-sm font-semibold text-white mt-2">
-                  Stay updated with our Telegram channel.
-                </div>
-                <div className="mt-4">
-                  <button
-                    id="joinbutton"
-                    onClick={() => handleJoinTask()}
-                    className="px-4 py-1 bg-black text-white rounded-full cursor-pointer"
+            <div className="w-full max-w-xs mx-auto">
+              <div
+                className="flex items-center justify-between p-4 bg-cover bg-center rounded-2xl h-40"
+                style={{ backgroundImage: `url(${bgTgeProgressCard.src})` }}
+              >
+                <div className="flex flex-col">
+                  <div className="font-medium text-xl">TGE Progress</div>
+                  <div className="font-medium text-base mt-1 bg-gradient-to-r from-slate-400 to-red-300 bg-clip-text text-transparent">
+                    Currently in Building Phase.
+                  </div>
+                  <div className="mt-3">
+                  <Link
+                    id="roadmapbutton"
+                    href={"/home/roadmap"}
+                    className="mt-2 font-normal text-sm rounded-full bg-white text-black py-1 px-3 cursor-pointer"
                   >
-                    Join
-                  </button>
+                    Roadmap
+                  </Link>
                 </div>
-              </div>
-              <div className="flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="4em"
-                  height="4em"
-                  viewBox="0 0 256 256"
-                >
-                  <defs>
-                    <linearGradient
-                      id="logosTelegram0"
-                      x1="50%"
-                      x2="50%"
-                      y1="0%"
-                      y2="100%"
-                    >
-                      <stop offset="0%" stopColor="#2aabee" />
-                      <stop offset="100%" stopColor="#229ed9" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    fill="url(#logosTelegram0)"
-                    d="M128 0C94.06 0 61.48 13.494 37.5 37.49A128.04 128.04 0 0 0 0 128c0 33.934 13.5 66.514 37.5 90.51C61.48 242.506 94.06 256 128 256s66.52-13.494 90.5-37.49c24-23.996 37.5-56.576 37.5-90.51s-13.5-66.514-37.5-90.51C194.52 13.494 161.94 0 128 0"
-                  />
-                  <path
-                    fill="#fff"
-                    d="M57.94 126.648q55.98-24.384 74.64-32.152c35.56-14.786 42.94-17.354 47.76-17.441c1.06-.017 3.42.245 4.96 1.49c1.28 1.05 1.64 2.47 1.82 3.467c.16.996.38 3.266.2 5.038c-1.92 20.24-10.26 69.356-14.5 92.026c-1.78 9.592-5.32 12.808-8.74 13.122c-7.44.684-13.08-4.912-20.28-9.63c-11.26-7.386-17.62-11.982-28.56-19.188c-12.64-8.328-4.44-12.906 2.76-20.386c1.88-1.958 34.64-31.748 35.26-34.45c.08-.338.16-1.598-.6-2.262c-.74-.666-1.84-.438-2.64-.258c-1.14.256-19.12 12.152-54 35.686c-5.1 3.508-9.72 5.218-13.88 5.128c-4.56-.098-13.36-2.584-19.9-4.708c-8-2.606-14.38-3.984-13.82-8.41c.28-2.304 3.46-4.662 9.52-7.072"
-                  />
-                </svg>
+                </div>
+                <div className="relative size-40 flex items-center justify-center">
+                  <svg
+                    className="size-full -rotate-90"
+                    viewBox="0 0 36 36"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      cx={18}
+                      cy={18}
+                      r={13}
+                      fill="none"
+                      className="stroke-current text-neutral-700"
+                      strokeWidth={2}
+                    ></circle>
+                    {/*progress circle*/}
+                    <circle
+                      cx={18}
+                      cy={18}
+                      r={13}
+                      fill="none"
+                      className="stroke-current text-white"
+                      strokeWidth={2}
+                      strokeDasharray={100}
+                      strokeDashoffset={95}
+                      strokeLinecap="round"
+                    ></circle>
+                  </svg>
+                  <div className="absolute top-1/2 start-1/2 transform -translate-y-1/2 -translate-x-1/2">
+                    <div className="text-center font-semibold text-2xl">5%</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -152,7 +202,7 @@ const HomeCarousel: React.FC = () => {
       ) : (
         // loading skeleton //
         <div className="min-w-0 flex-none w-full">
-          <div className="skeleton flex items-center justify-between p-4 rounded-xl max-w-xs w-full h-40 mx-auto"></div>
+          <div className="skeleton card flex items-center rounded-xl max-w-xs h-40 w-full mx-auto"></div>
         </div>
       )}
       {/* dot buttons */}
@@ -169,7 +219,7 @@ const HomeCarousel: React.FC = () => {
                         : "bg-black border-white"
                     }
                     hover:bg-white hover:bg-opacity-20
-                    focus:outline-none focus:ring-2 focus:ring-white
+                    
                     `}
             />
           ))}

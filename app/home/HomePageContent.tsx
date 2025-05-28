@@ -23,9 +23,7 @@ import { TaskHistory } from "@/lib/interfaces";
 import { ButtonLoader } from "../components/ButtonLoader";
 import {
   bgSolveToEarnCard,
-  bgTgeProgressCard,
 } from "../images";
-import Link from "next/link";
 import HomeCarousel from "../components/homepagecarousel/Carousel";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import hundredAnimationData from "../images/hundred-lottie.json";
@@ -1722,71 +1720,7 @@ const HomePageContent = () => {
           </div>
           {/*carousel*/}
           <HomeCarousel />
-          {/*TGE Progress Card and roadmap href*/}
-          <div className="w-full max-w-xs mx-auto">
-            <Link
-              href={"/home/roadmap"}
-              className="flex items-center mt-4 mb-3 cursor-pointer"
-            >
-              <div className="font-semibold text-lg">Roadmap</div>
-              <div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.2em"
-                  height="1.2em"
-                  viewBox="-6 0 24 24"
-                >
-                  <path
-                    fill="currentColor"
-                    fillRule="evenodd"
-                    d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414"
-                  />
-                </svg>
-              </div>
-            </Link>
-            <div
-              className="flex items-center justify-between p-4 bg-cover bg-center rounded-2xl h-40"
-              style={{ backgroundImage: `url(${bgTgeProgressCard.src})` }}
-            >
-              <div className="flex flex-col">
-                <div className="font-medium text-xl">TGE Progress</div>
-                <div className="font-medium text-base mt-1 bg-gradient-to-r from-slate-400 to-red-300 bg-clip-text text-transparent">
-                  Currently in Building Phase.
-                </div>
-              </div>
-              <div className="relative size-40 flex items-center justify-center">
-                <svg
-                  className="size-full -rotate-90"
-                  viewBox="0 0 36 36"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <circle
-                    cx={18}
-                    cy={18}
-                    r={13}
-                    fill="none"
-                    className="stroke-current text-neutral-700"
-                    strokeWidth={2}
-                  ></circle>
-                  {/*progress circle*/}
-                  <circle
-                    cx={18}
-                    cy={18}
-                    r={13}
-                    fill="none"
-                    className="stroke-current text-white"
-                    strokeWidth={2}
-                    strokeDasharray={100}
-                    strokeDashoffset={95}
-                    strokeLinecap="round"
-                  ></circle>
-                </svg>
-                <div className="absolute top-1/2 start-1/2 transform -translate-y-1/2 -translate-x-1/2">
-                  <div className="text-center font-semibold text-2xl">5%</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          
           {/*farming QNTM*/}
           <div className="w-full max-w-xs mx-auto mt-3 mb-6">
             <div className="font-semibold text-lg">Farm</div>

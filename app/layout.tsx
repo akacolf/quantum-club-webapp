@@ -11,7 +11,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
 import { useState } from "react";
-import Loader from "./components/loader";
+import Loader from "./components/Loader";
 
 const interdisplay = localFont({
   src: [

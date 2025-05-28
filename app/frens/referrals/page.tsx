@@ -7,7 +7,7 @@ import { useFrenContext } from '@/app/contexts/FrensContext';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { dbfs } from '@/app/firebase/firebaseConfig';
 import { useGameContext } from '@/app/contexts/MiningContext';
-import Loader from '@/app/components/loader';
+import Loader from '@/app/components/Loader';
 import { ButtonLoader } from '@/app/components/ButtonLoader';
 const ReferralsPage = () => {
 
