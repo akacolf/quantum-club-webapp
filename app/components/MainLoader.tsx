@@ -12,11 +12,13 @@ export default function Loader() {
         exit={{ opacity: 0 }}
         className="fixed inset-0 flex items-center justify-center"
       >
-        <div
-          className="w-14 h-14 border-[5px] border-[#202021] border-b-[#fff] rounded-full inline-block
-            box-border animate-spin [animation-duration:3s]"
-        ></div>
+        <div className="loading loading-spinner loading-xl" />
       </motion.div>
     </AnimatePresence>
   );
 };
+
+//<div
+  //className="w-14 h-14 border-[5px] border-[#202021] border-b-[#fff] rounded-full inline-block
+  // box-border animate-spin [animation-duration:3s]"
+ // ></div>
