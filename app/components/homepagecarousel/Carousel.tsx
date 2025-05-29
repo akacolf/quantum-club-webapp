@@ -7,7 +7,6 @@ import Link from "next/link";
 import tasks from "@/app/earn/tasks";
 import { DotButton, useDotButton } from "./CarouselDotButton";
 import {
-  carouselBgStory,
   carouselBg,
   carouselBgJoinTG,
   bgTgeProgressCard,
@@ -30,13 +29,11 @@ const HomeCarousel: React.FC = () => {
   useEffect(() => {
     if (loadingImage >= 2) return;
     const carouselBgJoinTGimg = new Image();
-    const carouselBgStoryimg = new Image();
     const tgeProgressCardimg = new Image();
     const carouselBgimg = new Image();
 
     tgeProgressCardimg.src = bgTgeProgressCard.src;
     carouselBgJoinTGimg.src = carouselBgJoinTG.src;
-    carouselBgStoryimg.src = carouselBgStory.src;
     carouselBgimg.src = carouselBg.src;
     const handleLoad = () => {
       setLoadingImage((prev) => {
@@ -45,7 +42,6 @@ const HomeCarousel: React.FC = () => {
       });
     };
     tgeProgressCardimg.onload = handleLoad;
-    carouselBgStoryimg.onload = handleLoad;
     carouselBgimg.onload = handleLoad;
     carouselBgJoinTGimg.onload = handleLoad;
   }, []);
@@ -75,70 +71,78 @@ const HomeCarousel: React.FC = () => {
           {/* TG story card (card #1)*/}
           <div className="min-w-0 flex-none w-full">
             <div
-              className="card flex justify-between bg-cover bg-center rounded-xl max-w-xs h-40 w-full mx-auto"
-              style={{ backgroundImage: `url(${carouselBg.src})` }} //items-center //
+              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs mx-auto"
+              style={{ backgroundImage: `url(${carouselBg.src})` }}
             >
-              <div className="card-body flex flex-row items-center justify-between p-4">
-                {/*text and button*/}
-                <div>
-                  <h2 className="text-lg font-semibold leading-tight">
-                    The Quantum Era of <br />
-                    Telegram
-                  </h2>
-                  <p className="text-sm font-normal mt-2">
-                    Your TG story is here.
-                  </p>
-                  <div className="mt-6">
-                    <Link
-                      className="font-normal text-sm rounded-full bg-white text-black py-1 px-3 cursor-pointer"
-                      href={"/story"}
-                    >
-                      Explore
-                    </Link>
+              <div className="flex items-center justify-between">
+                <div className="card-body p-4">
+                  {/*text and button*/}
+                  <div>
+                    <div className="text-base font-semibold">
+                      The Quantum Era in Telegram
+                    </div>
+                    <div className="text-sm font-normal mt-2 text-neutral-400">
+                      Your TG story is here.
+                    </div>
+                    <div className="mt-6">
+                      <Link
+                        className="px-3 py-2 bg-white text-black text-xs rounded-full"
+                        href={"/story"}
+                      >
+                        Explore
+                      </Link>
+                    </div>
                   </div>
                 </div>
-                {/*icon*/}
-                <Lottie
-                  lottieRef={lottieRef}
-                  animationData={storyAnimationData}
-                  loop={true}
-                  autoplay={true}
-                  style={{ width: "4em", height: "4em" }}
-                />
+                <div className="card-body items-center justify-center">
+                  {/*icon*/}
+                  <Lottie
+                    lottieRef={lottieRef}
+                    animationData={storyAnimationData}
+                    loop={true}
+                    autoplay={true}
+                    style={{ width: "4em", height: "4em" }}
+                  />
+                </div>
               </div>
             </div>
           </div>
           {/* card #2*/}
           <div className="min-w-0 flex-none w-full">
             <div
-              className="card flex justify-between bg-cover bg-center rounded-xl max-w-xs h-40 w-full mx-auto"
+              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs mx-auto"
               style={{ backgroundImage: `url(${carouselBgJoinTG.src})` }}
             >
-              <div className="card-body flex flex-row items-center justify-between p-4">
-                <div>
-                  <h2 className="font-semibold text-lg">The Club of OGs</h2>
-                  <p className="text-sm font-normal mt-2">
-                    Stay updated with our Telegram channel.
-                  </p>
-                  <button
-                    id="joinbutton"
-                    onClick={() => handleJoinTask()}
-                    className="font-normal text-sm rounded-full bg-white text-black py-1 px-4 mt-4 cursor-pointer"
-                  >
-                    Join
-                  </button>
+              <div className="flex items-center justify-between">
+                <div className="card-body p-4">
+                  <div>
+                    <div className="font-semibold text-base">The Club of OGs</div>
+                    <div className="text-sm font-normal mt-2 text-neutral-400">
+                      Stay updated with our Telegram channel.
+                    </div>
+                    <button
+                      id="joinbutton"
+                      onClick={() => handleJoinTask()}
+                      className="font-normal text-sm rounded-full bg-white text-black py-2 px-3 mt-4 cursor-pointer"
+                    >
+                      Join
+                    </button>
+                  </div>
+                  
                 </div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="5em"
-                  height="5em"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19c-.14.75-.42 1-.68 1.03c-.58.05-1.02-.38-1.58-.75c-.88-.58-1.38-.94-2.23-1.5c-.99-.65-.35-1.01.22-1.59c.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02c-.09.02-1.49.95-4.22 2.79c-.4.27-.76.41-1.08.4c-.36-.01-1.04-.2-1.55-.37c-.63-.2-1.12-.31-1.08-.66c.02-.18.27-.36.74-.55c2.92-1.27 4.86-2.11 5.83-2.51c2.78-1.16 3.35-1.36 3.73-1.36c.08 0 .27.02.39.12c.1.08.13.19.14.27c-.01.06.01.24 0 .38"
-                  />
-                </svg>
+                <div className="card-body items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="5em"
+                    height="5em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19c-.14.75-.42 1-.68 1.03c-.58.05-1.02-.38-1.58-.75c-.88-.58-1.38-.94-2.23-1.5c-.99-.65-.35-1.01.22-1.59c.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02c-.09.02-1.49.95-4.22 2.79c-.4.27-.76.41-1.08.4c-.36-.01-1.04-.2-1.55-.37c-.63-.2-1.12-.31-1.08-.66c.02-.18.27-.36.74-.55c2.92-1.27 4.86-2.11 5.83-2.51c2.78-1.16 3.35-1.36 3.73-1.36c.08 0 .27.02.39.12c.1.08.13.19.14.27c-.01.06.01.24 0 .38"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -155,14 +159,14 @@ const HomeCarousel: React.FC = () => {
                     Currently in Building Phase.
                   </div>
                   <div className="mt-3">
-                  <Link
-                    id="roadmapbutton"
-                    href={"/home/roadmap"}
-                    className="mt-2 font-normal text-sm rounded-full bg-white text-black py-1 px-3 cursor-pointer"
-                  >
-                    Roadmap
-                  </Link>
-                </div>
+                    <Link
+                      id="roadmapbutton"
+                      href={"/home/roadmap"}
+                      className="mt-2 font-normal text-sm rounded-full bg-white text-black py-2 px-3 cursor-pointer"
+                    >
+                      Roadmap
+                    </Link>
+                  </div>
                 </div>
                 <div className="relative size-40 flex items-center justify-center">
                   <svg
