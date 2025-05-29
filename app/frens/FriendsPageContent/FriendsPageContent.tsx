@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { bgFrensPageCard } from "@/public/images";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
-import Loader from "@/app/components/Loader";
+import Loader from "@/app/components/MainLoader";
 import { collection, doc, getDoc, getDocs,getCountFromServer } from 'firebase/firestore';
 import { ButtonLoader } from "@/app/components/ButtonLoader";
 const FriendsPageContent = () => {

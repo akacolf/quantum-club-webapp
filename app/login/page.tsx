@@ -10,7 +10,7 @@ import deviceTypeDetector from "@/utils/deviceDetection";
 import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
-import Loader from "../components/Loader";
+import Loader from "../components/MainLoader";
 import { TelegramAnalytics } from "@/lib/telegramAnalytics";
 //import Loader from "./loading";
 
