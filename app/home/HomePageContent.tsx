@@ -1545,7 +1545,7 @@ const HomePageContent = () => {
               onClick={() => setActiveWalletTab(true)}
               className="w-full flex justify-center mt-8"
             >
-              <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold cursor-pointer">
+              <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-base-200 font-semibold cursor-pointer">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="1.5em"
@@ -1581,7 +1581,7 @@ const HomePageContent = () => {
               }}
               className="w-full flex justify-center mt-8"
             >
-              <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-[#202021] font-semibold cursor-pointer">
+              <div className="px-3 py-1.5 rounded-lg flex items-center gap-2 bg-base-200 font-semibold cursor-pointer">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="1.5em"

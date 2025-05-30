@@ -13,6 +13,7 @@ import {
 } from "@/public/images";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import storyAnimationData from "../../../public/images/story-lottie.json";
+import goldmedalAnimationData from "../../../public/images/gold-medal-lottie.json";
 
 const HomeCarousel: React.FC = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
@@ -107,7 +108,38 @@ const HomeCarousel: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* card #2*/}
+          {/*card #2 */}
+          <div className="min-w-0 flex-none w-full">
+            <div className="card bg-base-200 rounded-xl h-40 w-full max-w-xs mx-auto">
+              <div className="flex items-center justify-between">
+                <div className="card-body p-4">
+                  <div>
+                    <div className="font-semibold text-base">Check the leaderboard</div>
+                    <div className="text-sm font-normal mt-2 text-neutral-400">Your standings determine how ahead you're in the game.</div>
+                    <div className="mt-3">
+                    <Link className="px-3 py-2 bg-white text-black text-xs rounded-full"
+                    href={"/leaderboard"}
+                    id="leaderboardbutton"
+                    >
+                    View
+                    </Link>
+                  </div>
+                  </div>
+                </div>
+                <div className="card-body flex items-center justify-center">
+                  <Lottie
+                    lottieRef={lottieRef}
+                    animationData={goldmedalAnimationData}
+                    loop={true}
+                    autoplay={true}
+                    style={{ width: "4em", height: "4em" }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* card #3*/}
           <div className="min-w-0 flex-none w-full">
             <div
               className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs mx-auto"
@@ -146,7 +178,7 @@ const HomeCarousel: React.FC = () => {
               </div>
             </div>
           </div>
-          {/*card 3*/}
+          {/*card 4*/}
           <div className="min-w-0 flex-none w-full">
             <div className="w-full max-w-xs mx-auto">
               <div

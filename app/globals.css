@@ -36,8 +36,8 @@ body {
 }
 
 .inner-content {
-  padding-top: var(--content-safe-area-top, 8vh);
-  padding-bottom: var(--content-safe-area-bottom, 0vh);
+  padding-top: var(--content-safe-area-top, 4vh);
+  padding-bottom: var(--content-safe-area-bottom, 8vh);
   padding-left: var(--content-safe-area-left, 0vw);
   padding-right: var(--content-safe-area-right, 0vw);
 }
