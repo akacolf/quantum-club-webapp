@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import localFont from "next/font/local";
 import "./globals.css";
 import { usePathname } from "next/navigation";
@@ -16,29 +16,29 @@ import Loader from "./components/MainLoader";
 const interdisplay = localFont({
   src: [
     {
-      path: '../public/fonts/InterDisplay-Regular.otf',
-      weight: '400',
-      style: 'normal',
+      path: "../public/fonts/InterDisplay-Regular.otf",
+      weight: "400",
+      style: "normal",
     },
     {
-      path: '../public/fonts/InterDisplay-Medium.otf',
-      weight: '500',
-      style: 'normal',
+      path: "../public/fonts/InterDisplay-Medium.otf",
+      weight: "500",
+      style: "normal",
     },
     {
-      path: '../public/fonts/InterDisplay-SemiBold.otf',
-      weight: '600',
-      style: 'normal',
+      path: "../public/fonts/InterDisplay-SemiBold.otf",
+      weight: "600",
+      style: "normal",
     },
     {
-      path: '../public/fonts/InterDisplay-Bold.otf',
-      weight: '700',
-      style: 'normal',
+      path: "../public/fonts/InterDisplay-Bold.otf",
+      weight: "700",
+      style: "normal",
     },
   ],
-  variable: '--font-interdisplay',
-  display: 'swap',
-})
+  variable: "--font-interdisplay",
+  display: "swap",
+});
 
 export default function RootLayout({
   children,
@@ -48,28 +48,28 @@ export default function RootLayout({
   const pathname = usePathname();
   const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
   const hideNavbar = hiddenPaths.includes(pathname);
-  const [showContent,setShowContent] = useState(true);
+  const [showContent, setShowContent] = useState(true);
   return (
     <html lang="en">
-      <body
-      className={`${interdisplay.variable} antialiased`}
-      >
+      <body className={`${interdisplay.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <GameProvider>
-            <div className="main-content">
-              <div className="inner-content">
-                <LeaderboardProvider>
-                  <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
-                    <FrensProvider>
-                      {showContent ? children:<Loader/>}
-                      {hideNavbar && <NavigationBar setShowContent={setShowContent}/>}
-                    </FrensProvider>
-                    <Analytics />
-                    <SpeedInsights/>
-                  </TonConnectUIProvider>
-                </LeaderboardProvider>
-              </div>
+          <div className="main-content">
+            <div className="inner-content">
+              <LeaderboardProvider>
+                <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
+                  <FrensProvider>
+                    {showContent ? children : <Loader />}
+                    {hideNavbar && (
+                      <NavigationBar setShowContent={setShowContent} />
+                    )}
+                  </FrensProvider>
+                  <Analytics />
+                  <SpeedInsights />
+                </TonConnectUIProvider>
+              </LeaderboardProvider>
             </div>
+          </div>
         </GameProvider>
       </body>
     </html>
