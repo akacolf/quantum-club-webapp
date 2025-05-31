@@ -4,7 +4,6 @@ import { dbfs } from "@/app/firebase/firebaseConfig";
 import { useFrenContext } from "@/app/contexts/FrensContext";
 import CopyLinkNotification from "./copied-notification-info";
 import { motion, AnimatePresence } from "framer-motion";
-import { bgFrensPageCard } from "@/public/images";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import Loader from "@/app/components/MainLoader";

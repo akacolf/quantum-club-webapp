@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
-import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
+//import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
 import Link from "next/link";
 import Head from "next/head";
 
@@ -11,7 +11,7 @@ type NavigationBarProps = {
 
 const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
   const pathname = usePathname();
-  const [activeTab, setActiveTab] = useState("home");
+  const [/*activeTab*/, setActiveTab] = useState("home");
   const [clickedTab, setClickedTab] = useState("home");
   const handleHide = useCallback(() => setShowContent(false), [setShowContent]);
   useEffect(() => {

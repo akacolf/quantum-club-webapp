@@ -115,7 +115,7 @@ const HomeCarousel: React.FC = () => {
                 <div className="card-body p-4">
                   <div>
                     <div className="font-semibold text-base">Check the leaderboard</div>
-                    <div className="text-sm font-normal mt-2 text-neutral-400">Your standings determine how ahead you're in the game.</div>
+                    <div className="text-sm font-normal mt-2 text-neutral-400">Your standings determine how ahead you&apos;re in the game.</div>
                     <div className="mt-3">
                     <Link className="px-3 py-2 bg-white text-black text-xs rounded-full"
                     href={"/leaderboard"}

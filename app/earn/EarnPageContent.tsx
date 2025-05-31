@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from "next/navigation";
 import { useLeaderboardContext } from "../contexts/LeaderboardContext";
 import { EarnTask } from "@/lib/interfaces";
-const calculateRemainingTime = (timestamp:number) => {
+/*const calculateRemainingTime = (timestamp:number) => {
   const now:Date = new Date();
   const targetTime:Date = new Date(timestamp);
   const diffMs = targetTime.getTime() - now.getTime();
@@ -29,7 +29,7 @@ const calculateRemainingTime = (timestamp:number) => {
   const minutes = String(Math.floor((diffMs / 1000 / 60) % 60)).padStart(2, "0");
   const hours = String(Math.floor((diffMs / 1000 / 60 / 60) % 24)).padStart(2, "0");
   return ` ${hours}:${minutes}:${seconds}`;
-};
+};*/
 
 const EarnPageContent = () => {
   const [taskS, setTasks] = useState<EarnTask[]>([]);
@@ -42,9 +42,9 @@ const EarnPageContent = () => {
   const [ingameTasks, setInGameTasks] = useState<EarnTask[]>([]);
   const [partnersTasks, setPartnersTasks] = useState<EarnTask[]>([]);
   const [completedTasks, setCompletedTasks] = useState(0);
-  const [limitedTimestamp, setLimitedstamp] = useState(0)
+  //const [limitedTimestamp, setLimitedstamp] = useState(0)
   const claimTEXT = 'Claim';
-  const { telegramId, SetMainQuantAmount, remainingSolveToEarn, setRemainingSolveToEarn } = useGameContext();
+  const { telegramId, SetMainQuantAmount, /*remainingSolveToEarn, setRemainingSolveToEarn*/ } = useGameContext();
   const { totalUsers } = useLeaderboardContext();
   const [activeTaskId, setActiveTaskId] = useState(null);
   const router = useRouter();
@@ -94,7 +94,7 @@ const EarnPageContent = () => {
             const taskSnapshot = await getDoc(taskRef);
             const completed = taskSnapshot.exists() && taskSnapshot.data().completed;
             if (Date.now() > timestamp && timestamp !== 0) return null;
-            if(timestamp > 0){ setLimitedstamp(timestamp)};
+            //if(timestamp > 0){ setLimitedstamp(timestamp)};
             return {
               ...task,
               id: task.id,
@@ -134,10 +134,10 @@ const EarnPageContent = () => {
 
     fetchTasks();
   }, [telegramId,totalUsers]);
-  const TaskTimer: React.FC<{ timestamp: number }> = ({ timestamp }) => {
-    const [remainingTime, setRemainingTime] = useState(calculateRemainingTime(timestamp));
+  //const TaskTimer: React.FC<{ timestamp: number }> = ({ timestamp }) => {
+    //const [remainingTime, setRemainingTime] = useState(calculateRemainingTime(timestamp));
 
-    useEffect(() => {
+    /*useEffect(() => {
       const interval = setInterval(() => {
         setRemainingTime(calculateRemainingTime(timestamp));
       }, 1000); // Her saniyede bir güncelle
@@ -145,7 +145,7 @@ const EarnPageContent = () => {
       return () => clearInterval(interval);
     }, [timestamp]);
     return <div>{remainingTime ? remainingTime : "00:00:00"}</div>;
-  };
+  };*/
   // Tab değiştiğinde, sadece o tab'a ait görevleri göster
   useEffect(() => {
     if (activeTab === limitedTXT) {
@@ -811,7 +811,7 @@ const EarnPageContent = () => {
    
 
   };
-  async function goToSolveToEarn() {
+  /*async function goToSolveToEarn() {
     const taskElement = document.getElementById("solvetoearnbutton");
     if (taskElement) {
       (taskElement as HTMLButtonElement).disabled = true;
@@ -838,7 +838,7 @@ const EarnPageContent = () => {
       sessionStorage.setItem("remainingSolveToEarn", `${remainingSolveToEarn - 1}`);
       router.push("/earn/solvetoearn-page")
     }
-  }
+  };*/
   return (
 
     <div className="overflow-auto">
