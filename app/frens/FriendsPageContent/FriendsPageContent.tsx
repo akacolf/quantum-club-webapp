@@ -261,7 +261,6 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
                   </div>
                   <div className="stat-title">Invited Frens</div>
                   <div className="stat-value bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">{referralsNum}</div>
-                  <div className="stat-desc"></div>
                 </div>
               </div>
 

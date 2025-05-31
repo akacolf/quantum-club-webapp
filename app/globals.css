@@ -1,13 +1,12 @@
 @import "tailwindcss";
 @plugin "daisyui" {
   themes: black --default, black --prefersdark;
-  exclude: rootscrollgutter;
 };
 
-:root {
+/*:root {
   --background: #000000;
   --foreground: #ffffff;
-}
+};
 
 @theme inline {
   --color-background: var(--background);
@@ -19,14 +18,14 @@
     --background: #000000;
     --foreground: #ffffff;
   }
-}
+};*/
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  /*background: var(--background);
+  color: var(--foreground);*/
   font-family: var(--font-interdisplay);
   user-select: none;
-}
+};
 
 .main-content {
   padding-top: var(--safe-area-top);
@@ -37,7 +36,7 @@ body {
 
 .inner-content {
   padding-top: var(--content-safe-area-top, 4vh);
-  padding-bottom: var(--content-safe-area-bottom, 8vh);
+  padding-bottom: var(--content-safe-area-bottom, 10vh);
   padding-left: var(--content-safe-area-left, 0vw);
   padding-right: var(--content-safe-area-right, 0vw);
 }
