@@ -11,7 +11,6 @@ import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
 import Loader from "../components/MainLoader";
-import { TelegramAnalytics } from "@/lib/telegramAnalytics";
 //import Loader from "./loading";
 
 // declaring global values for window //
@@ -64,14 +63,9 @@ declare global {
 }
 
 //device type interface//
+//telegram analytics//
 
-if (typeof window !== "undefined") {
-  if (window?.Telegram?.WebApp.initDataUnsafe.user) {
-    TelegramAnalytics();
-  }
-} else {
- 
-}
+
 
 const LoginScreen = () => {
     const router = useRouter();
