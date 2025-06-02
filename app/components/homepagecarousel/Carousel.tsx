@@ -14,6 +14,7 @@ import {
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import storyAnimationData from "../../../public/images/story-lottie.json";
 import goldmedalAnimationData from "../../../public/images/gold-medal-lottie.json";
+import diamondAnimationData from "../../../public/images/diamond-lottie.json";
 
 const HomeCarousel: React.FC = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
@@ -69,6 +70,36 @@ const HomeCarousel: React.FC = () => {
       {/* this element is the container */}
       {loadingImage === 2 ? (
         <div className="flex">
+          {/*card #1*/}
+          <div className="min-w-0 flex-none w-full">
+            <div className="card rounded-xl bg-base-200 h-40 w-full max-w-xs mx-auto">
+              <div className="flex items-center justify-between">
+                <div className="card-body p-4">
+                  <div>
+                    <div className="text-base font-semibold">
+                      AI-powered trading is coming
+                    </div>
+                    <div className="text-sm font-normal mt-2 text-neutral-400">
+                      Your tokens on the secure and scalable TON blockchain.
+                    </div>
+                    <button className="btn btn-disabled mt-2 w-16 h-7 bg-white text-black text-xs rounded-full">
+                      Trade
+                    </button>
+                  </div>
+                </div>
+                <div className="card-body items-center justify-center ">
+                  <Lottie 
+                  lottieRef={lottieRef}
+                  animationData={diamondAnimationData}
+                  autoplay={true}
+                  loop={true}
+                  style={{ width: "4em", height: "4em" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
           {/* TG story card (card #1)*/}
           <div className="min-w-0 flex-none w-full">
             <div
