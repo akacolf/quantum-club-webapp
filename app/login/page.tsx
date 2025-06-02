@@ -11,7 +11,6 @@ import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
 import Loader from "../components/MainLoader";
-//import Loader from "./loading";
 
 // declaring global values for window //
 
