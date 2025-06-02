@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { GameProvider } from "../contexts/MiningContext";
+import { GameProvider, useGameContext } from "../contexts/MiningContext";
 import { motion, AnimatePresence } from "framer-motion";
 const StoryPageContent = () => {
   const router = useRouter();
@@ -18,12 +18,7 @@ const StoryPageContent = () => {
     return "";
   });
 
-  const [rank] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("rank") || "";
-    }
-    return "";
-  });
+  const {rank} = useGameContext()
   const goToNextStory = () => {
     if (currentStoryIndex <= stories.length) {
       if (currentStoryIndex != 2) {
