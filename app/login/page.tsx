@@ -64,16 +64,15 @@ declare global {
 
 //device type interface//
 //telegram analytics//
-const env = process.env.NODE_ENV === "production" ? "prod" : "stg";
-
+if(typeof window !== "undefined" && !window.Telegram) {
 TelegramAnalytics.init({
-  token: process.env.NEXT_PUBLIC_TG1 || "",
-  appName: process.env.NEXT_PUBLIC_TGAPPNAME || "",
-  env: env as "STG" | "PROD",
+  token: process.env.NEXT_PUBLIC_TG1!,
+  appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
 });
+}
 
 
-const LoginScreen = () => {
+export default function LoginScreen() {
     const router = useRouter();
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -545,4 +544,3 @@ const LoginScreen = () => {
   return <Loader />;
 };
 
-export default LoginScreen;
