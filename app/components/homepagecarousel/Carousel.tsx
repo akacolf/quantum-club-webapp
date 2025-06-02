@@ -100,7 +100,7 @@ const HomeCarousel: React.FC = () => {
             </div>
 
           </div>
-          {/* TG story card (card #1)*/}
+          {/*card #2*/}
           <div className="min-w-0 flex-none w-full">
             <div
               className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs mx-auto"
@@ -139,7 +139,7 @@ const HomeCarousel: React.FC = () => {
               </div>
             </div>
           </div>
-          {/*card #2 */}
+          {/*card #3 */}
           <div className="min-w-0 flex-none w-full">
             <div className="card bg-base-200 rounded-xl h-40 w-full max-w-xs mx-auto">
               <div className="flex items-center justify-between">
@@ -170,7 +170,7 @@ const HomeCarousel: React.FC = () => {
             </div>
           </div>
 
-          {/* card #3*/}
+          {/* card #4*/}
           <div className="min-w-0 flex-none w-full">
             <div
               className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs mx-auto"
@@ -209,7 +209,7 @@ const HomeCarousel: React.FC = () => {
               </div>
             </div>
           </div>
-          {/*card 4*/}
+          {/*card 5*/}
           <div className="min-w-0 flex-none w-full">
             <div className="w-full max-w-xs mx-auto">
               <div
