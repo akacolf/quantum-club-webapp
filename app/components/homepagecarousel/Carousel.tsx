@@ -10,6 +10,7 @@ import {
   carouselBg,
   carouselBgJoinTG,
   bgTgeProgressCard,
+  bgTradingCardImg,
 } from "@/public/images";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import storyAnimationData from "../../../public/images/story-lottie.json";
@@ -33,10 +34,12 @@ const HomeCarousel: React.FC = () => {
     const carouselBgJoinTGimg = new Image();
     const tgeProgressCardimg = new Image();
     const carouselBgimg = new Image();
+    const bgTradingCard = new Image();
 
     tgeProgressCardimg.src = bgTgeProgressCard.src;
     carouselBgJoinTGimg.src = carouselBgJoinTG.src;
     carouselBgimg.src = carouselBg.src;
+    bgTradingCard.src = bgTradingCardImg.src;
     const handleLoad = () => {
       setLoadingImage((prev) => {
         if (prev >= 2) return 2; // limit aşılmasın
@@ -46,6 +49,7 @@ const HomeCarousel: React.FC = () => {
     tgeProgressCardimg.onload = handleLoad;
     carouselBgimg.onload = handleLoad;
     carouselBgJoinTGimg.onload = handleLoad;
+    bgTradingCard.onload = handleLoad;
   }, []);
   const handleJoinTask = () => {
     openTelegramGroup();
@@ -72,7 +76,9 @@ const HomeCarousel: React.FC = () => {
         <div className="flex">
           {/*card #1*/}
           <div className="min-w-0 flex-none w-full">
-            <div className="card rounded-xl bg-base-200 h-40 w-full max-w-xs mx-auto">
+            <div className="card rounded-xl bg-cover bg-center h-40 w-full max-w-xs mx-auto"
+            style={{ backgroundImage: `url(${bgTradingCardImg.src})`}}
+            >
               <div className="flex items-center justify-between">
                 <div className="card-body p-4">
                   <div>
