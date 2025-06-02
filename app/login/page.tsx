@@ -11,6 +11,7 @@ import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
 import Loader from "../components/MainLoader";
+import TelegramAnalytics from "@telegram-apps/analytics";
 
 // declaring global values for window //
 
@@ -63,7 +64,13 @@ declare global {
 
 //device type interface//
 //telegram analytics//
+const env = process.env.NODE_ENV === "production" ? "prod" : "stg";
 
+TelegramAnalytics.init({
+  token: process.env.NEXT_PUBLIC_TG1 || "",
+  appName: process.env.NEXT_PUBLIC_TGAPPNAME || "",
+  env: env as "STG" | "PROD",
+});
 
 
 const LoginScreen = () => {
