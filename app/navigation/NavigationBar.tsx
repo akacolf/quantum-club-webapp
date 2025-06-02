@@ -54,7 +54,11 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         <Link
           id="home"
           href={"/home"}
-          onClick={() => {
+          onClick={e => {
+            if (pathname === "/home") {
+              e.preventDefault(); // Prevent navigation if already on home
+              return;
+            }
             handleHide();
             setClickedTab("home");
           }}
@@ -83,7 +87,11 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         <Link
           id="tasks"
           href={"/earn"}
-          onClick={() => {
+          onClick={e => {
+            if (pathname === "/earn") {
+              e.preventDefault(); // Prevent navigation if already on tasks
+              return;
+            }
             handleHide();
             setClickedTab("tasks");
           }}
@@ -110,7 +118,11 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
          <Link
           id="frens"
           href={"/frens"}
-          onClick={() => {
+          onClick={e => {
+            if (pathname === "/frens") {
+              e.preventDefault(); // Prevent navigation if already on frens
+              return;
+            }
             handleHide();
             setClickedTab("frens");
           }}

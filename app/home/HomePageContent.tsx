@@ -1914,7 +1914,7 @@ const HomePageContent = () => {
                 <h2 className="text-xl font-semibold text-white">Rewards</h2>
                 <button
                   onClick={() => setActiveTab(false)}
-                  className="text-gray-400 hover:text-gray-200"
+                  className="text-gray-400 hover:text-gray-200 cursor-pointer"
                 >
                   <span className="sr-only">Close</span>
                   <svg

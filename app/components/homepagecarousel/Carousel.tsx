@@ -223,12 +223,12 @@ const HomeCarousel: React.FC = () => {
                       className="stroke-current text-white"
                       strokeWidth={2}
                       strokeDasharray={100}
-                      strokeDashoffset={95}
+                      strokeDashoffset={90}
                       strokeLinecap="round"
                     ></circle>
                   </svg>
                   <div className="absolute top-1/2 start-1/2 transform -translate-y-1/2 -translate-x-1/2">
-                    <div className="text-center font-semibold text-2xl">5%</div>
+                    <div className="text-center font-semibold text-2xl">10%</div>
                   </div>
                 </div>
               </div>

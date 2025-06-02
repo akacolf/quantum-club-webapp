@@ -859,7 +859,7 @@ const EarnPageContent = () => {
                 {[limitedTXT, ingameTXT, ParnersTXT].map((tab) => (
                   <button
                     key={tab}
-                    className={`group inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-semibold transition-all duration-300 ease-in-out disabled:cursor-not-allowed
+                    className={`group cursor-pointer inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-semibold transition-all duration-300 ease-in-out disabled:cursor-not-allowed
                   min-w-[32px] gap-1.5 text-xs h-7 w-full rounded-lg
                     px-3 drop-shadow sm:w-auto ${activeTab === tab ? "text-black bg-white" : "text-white"
                       } rounded-lg`}

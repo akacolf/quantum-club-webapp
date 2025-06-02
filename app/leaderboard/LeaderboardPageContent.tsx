@@ -12,6 +12,21 @@ import trophyAnimationData from "@/public/images/trophy-lottie.json";
 import smilingAnimationData from "@/public/images/smiling-lottie.json";
 import { useRouter } from "next/navigation";
 const LeaderboardPageContent = () => {
+  const [loadingImage, setLoadingImage] = useState(0);
+  useEffect(() => {
+    if (loadingImage >= 1) return;
+
+    const userStatsImg = new Image();
+
+    userStatsImg.src = leaderboardStatImg.src;
+    const handleLoad = () => {
+      setLoadingImage((prev) => {
+        if (prev >= 1) return 1;
+        return prev + 1;
+      });
+    };
+    userStatsImg.onload = handleLoad;
+   }, []);
   const router = useRouter();
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
