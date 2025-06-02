@@ -11,7 +11,7 @@ import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { authenticateUser } from "@/app/components/telegramAuth";
 import { getMaintenance } from "@/lib/getMaintenance";
 import Loader from "../components/MainLoader";
-import TelegramAnalytics from "@telegram-apps/analytics";
+import telegramAnalytics from '@telegram-apps/analytics';
 
 // declaring global values for window //
 
@@ -65,10 +65,15 @@ declare global {
 //device type interface//
 //telegram analytics//
 if(typeof window !== "undefined" && !window.Telegram) {
-TelegramAnalytics.init({
-  token: process.env.NEXT_PUBLIC_TG1!,
-  appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
-});
+telegramAnalytics.init({
+        token: process.env.NEXT_PUBLIC_TG1!,
+        appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
+      });
+    
+      telegramAnalytics.init({
+        token: process.env.NEXT_PUBLIC_TG2!,
+        appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
+      });
 }
 
 
