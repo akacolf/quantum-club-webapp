@@ -24,7 +24,7 @@ const Roadmap = () => {
       }
       
       
-    }, [router])
+    }, [router]);
 
   return (
     <AnimatePresence>

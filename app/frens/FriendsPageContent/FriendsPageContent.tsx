@@ -54,7 +54,7 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
     getReferralsNum();
       const fetchReferralsData = async () => {
         try {
-          // if(referralsContext.length > 0) return;
+           if(referralsContext.length > 0) return;
           if (sessionStorage.getItem("FrenLoad") == "InviteFren") {
             setErrorMessage(
               <div className="flex flex-col font-bold text-lg justify-center">
@@ -232,6 +232,7 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
     <div className="frens overflow-auto">
       <CopyLinkNotification />
       <div>
+        {!loading ? (
         <AnimatePresence>
           <motion.div
             initial={{ opacity: 0 }}
@@ -248,7 +249,7 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
                   <div className="stat-value">10%</div>
                   <div className="stat-desc">FROM YOUR INVITES</div>
                 </div>
-                <div className="stat">
+                <div className="stat mb-4">
                   <div className="stat-figure text-secondary">
                     <Lottie
                       lottieRef={lottieRef}
@@ -273,10 +274,7 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
             <div className="p-4">
               <div className="font-semibold text-blue-500">Referrals</div>
                 <div className="flex flex-col">
-                        {loading ? (
-                          <Loader />
-                        ) : (
-                          <>
+                        
                             {/*friends list*/}
                             <div className="space-y-0">
                               {
@@ -314,12 +312,17 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
               
                               <div className="text-center py-4">{errorMessage}</div>
                             </div>
-                          </>
-                        )}
+                         
+                       
                       </div>
             </div>
           </motion.div>
         </AnimatePresence>
+        ) : (
+          <div className="fixed inset-0 flex items-center justify-center">
+            <Loader />
+          </div>
+        )}
       </div>
     </div>
   );

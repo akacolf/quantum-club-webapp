@@ -1740,14 +1740,14 @@ const HomePageContent = () => {
                   </svg>
                 </div>
                 <div>
-                  <div className="font-normal text-xs">10,390 QNTM</div>
+                  <div className="font-normal text-xs">0 QNTM</div>
                   <div className="font-normal text-xs text-stone-500 mt-1">
-                    Next claim in 8h 32m
+                    Next claim in 0h 0m
                   </div>
                 </div>
               </div>
               <div>
-                <button className="w-16 h-9 rounded-full bg-white text-black text-sm cursor-pointer">
+                <button className="btn btn-disabled w-16 h-9 rounded-full bg-white text-black text-sm">
                   Access
                 </button>
               </div>

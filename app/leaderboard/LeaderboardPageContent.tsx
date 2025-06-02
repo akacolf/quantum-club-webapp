@@ -10,7 +10,26 @@ import { leaderboardStatImg } from "../../public/images";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import trophyAnimationData from "@/public/images/trophy-lottie.json";
 import smilingAnimationData from "@/public/images/smiling-lottie.json";
+import { useRouter } from "next/navigation";
 const LeaderboardPageContent = () => {
+  const router = useRouter();
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      const handleBackButtonClick = () => {
+        router.replace("/home");
+      }
+      tg.BackButton.show();
+      tg.BackButton.onClick(handleBackButtonClick);
+      return () => {
+        tg.BackButton.offClick(handleBackButtonClick);
+      };
+    } else {
+      console.error("Telegram WebApp is not available");
+    }
+  }, [router]);
+
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const {
     leaderboardContext,
@@ -105,7 +124,7 @@ const LeaderboardPageContent = () => {
             className="bg-black flex flex-col overflow-auto"
           >
             {/*leaderboard page header*/}
-            <div className="pl-6 flex items-center justify-between">
+            <div className="p-4 flex items-center justify-between">
               <div className="flex items-center justify-center space-x-2">
                 <div>
                   <Lottie
