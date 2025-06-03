@@ -83,7 +83,7 @@ const HomeCarousel: React.FC = () => {
                 <div className="card-body p-4">
                   <div>
                     <div className="text-base font-semibold">
-                      AI-powered trading is coming
+                      AI-Powered Trading Is Coming
                     </div>
                     <div className="text-sm font-normal mt-2 text-neutral-400">
                       Your tokens on the secure and scalable TON blockchain.
