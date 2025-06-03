@@ -46,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
+  const hiddenPaths = ["/home", "/frens", "/earn", "/mining"];
   const hideNavbar = hiddenPaths.includes(pathname);
   const [showContent, setShowContent] = useState(true);
   return (
