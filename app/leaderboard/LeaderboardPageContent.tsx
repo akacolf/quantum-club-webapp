@@ -197,7 +197,7 @@ const LeaderboardPageContent = () => {
             {/*user stats card*/}
             <div className="pl-6 flex flex-col mt-5">
               <div className="font-medium">Your stats</div>
-              {loadingImage===1?(<div
+              {loadingImage>=1?(<div
                 className="bg-cover bg-center p-6 rounded-xl max-w-xs mt-3"
                 style={{ backgroundImage: `url(${leaderboardStatImg.src})` }}
               >
