@@ -76,14 +76,14 @@ const HomeCarousel: React.FC = () => {
         <div className="flex">
           {/*card #1*/}
           <div className="min-w-0 flex-none w-full">
-            <div className="card rounded-xl bg-cover bg-center h-40 w-full max-w-xs mx-auto"
+            <div className="card rounded-xl bg-cover bg-center h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto"
             style={{ backgroundImage: `url(${bgTradingCardImg.src})`}}
             >
               <div className="flex items-center justify-between">
                 <div className="card-body p-4">
                   <div>
                     <div className="text-base font-semibold">
-                      AI-powered trading is coming
+                      AI-Powered Trading Is Coming
                     </div>
                     <div className="text-sm font-normal mt-2 text-neutral-400">
                       Your tokens on the secure and scalable TON blockchain.
@@ -109,7 +109,7 @@ const HomeCarousel: React.FC = () => {
           {/*card #2*/}
           <div className="min-w-0 flex-none w-full">
             <div
-              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs mx-auto"
+              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto"
               style={{ backgroundImage: `url(${carouselBg.src})` }}
             >
               <div className="flex items-center justify-between">
@@ -147,7 +147,7 @@ const HomeCarousel: React.FC = () => {
           </div>
           {/*card #3 */}
           <div className="min-w-0 flex-none w-full">
-            <div className="card bg-base-200 rounded-xl h-40 w-full max-w-xs mx-auto">
+            <div className="card bg-base-200 rounded-xl h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
               <div className="flex items-center justify-between">
                 <div className="card-body p-4">
                   <div>
@@ -179,7 +179,7 @@ const HomeCarousel: React.FC = () => {
           {/* card #4*/}
           <div className="min-w-0 flex-none w-full">
             <div
-              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs mx-auto"
+              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto"
               style={{ backgroundImage: `url(${carouselBgJoinTG.src})` }}
             >
               <div className="flex items-center justify-between">
@@ -217,7 +217,7 @@ const HomeCarousel: React.FC = () => {
           </div>
           {/*card 5*/}
           <div className="min-w-0 flex-none w-full">
-            <div className="w-full max-w-xs mx-auto">
+            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
               <div
                 className="flex items-center justify-between p-4 bg-cover bg-center rounded-2xl h-40"
                 style={{ backgroundImage: `url(${bgTgeProgressCard.src})` }}
@@ -275,7 +275,7 @@ const HomeCarousel: React.FC = () => {
       ) : (
         // loading skeleton //
         <div className="min-w-0 flex-none w-full">
-          <div className="skeleton card flex items-center rounded-xl max-w-xs h-40 w-full mx-auto"></div>
+          <div className="skeleton card flex items-center rounded-xl max-w-xs sm:max-w-sm md:max-w-md h-40 w-full mx-auto"></div>
         </div>
       )}
       {/* dot buttons */}

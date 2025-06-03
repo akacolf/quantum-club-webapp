@@ -34,7 +34,7 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
           setActiveTab("home");
           return;
         }
-        if (path.includes("leaderboard")) {
+        if (path.includes("/leaderboard")) {
           setActiveTab("ranking");
           return;
         }

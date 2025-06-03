@@ -12,6 +12,19 @@ import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
 import { useState } from "react";
 import Loader from "./components/MainLoader";
+import TelegramAnalytics from "@telegram-apps/analytics";
+//telegram analytics//
+if(typeof window !== "undefined" && window.Telegram?.WebApp.initDataUnsafe.user) {
+TelegramAnalytics.init({
+  token: process.env.NEXT_PUBLIC_TG1!,
+  appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
+});
+TelegramAnalytics.init({
+  token: process.env.NEXT_PUBLIC_TG2!,
+  appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
+});
+
+}
 
 const interdisplay = localFont({
   src: [
@@ -46,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const hiddenPaths = ["/home", "/frens", "/earn", "/leaderboard", "/mining"];
+  const hiddenPaths = ["/home", "/frens", "/earn", "/mining"];
   const hideNavbar = hiddenPaths.includes(pathname);
   const [showContent, setShowContent] = useState(true);
   return (
