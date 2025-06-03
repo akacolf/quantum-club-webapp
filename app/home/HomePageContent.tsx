@@ -28,6 +28,7 @@ import HomeCarousel from "../components/homepagecarousel/Carousel";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import hundredAnimationData from "../../public/images/hundred-lottie.json";
 import fireAnimationData from "../../public/images/fire-lottie.json";
+import Loader from "../components/MainLoader";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -705,8 +706,10 @@ const HomePageContent = () => {
       setRankIcon("");
     }
   }, [rank]);
+  const [loadingButtonDay, setLoadingButtonDay] = useState(true);
   useEffect(() => {
     const checkButton = async () => {
+      setLoadingButtonDay(true);
       try {
         if (!telegramId) return;
         const solveToEarnValue = doc(
@@ -784,6 +787,8 @@ const HomePageContent = () => {
         }
       } catch (error) {
         console.error(error);
+      }finally{
+        setLoadingButtonDay(false);
       }
     };
     checkButton();
@@ -1692,7 +1697,8 @@ const HomePageContent = () => {
                     : "w-16 h-9 rounded-full bg-gray-500 opacity-30 text-black text-sm cursor-pointer"
                 } // Claimed
               >
-                {loadingDay ? (
+                {!loadingButtonDay ?
+                (loadingDay ? (
                   <ButtonLoader />
                 ) : isClaimDay ? (
                   <div className="flex items-center justify-center">
@@ -1714,7 +1720,7 @@ const HomePageContent = () => {
                   </div>
                 ) : (
                   <div>Claim</div>
-                )}
+                )):(<div><ButtonLoader/></div>)}
               </button>
             </div>
           </div>
