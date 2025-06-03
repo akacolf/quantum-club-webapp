@@ -23,6 +23,7 @@ TelegramAnalytics.init({
   token: process.env.NEXT_PUBLIC_TG2!,
   appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
 });
+
 }
 
 const interdisplay = localFont({
