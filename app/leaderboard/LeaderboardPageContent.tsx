@@ -197,7 +197,7 @@ const LeaderboardPageContent = () => {
             {/*user stats card*/}
             <div className="pl-6 flex flex-col mt-5">
               <div className="font-medium">Your stats</div>
-              <div
+              {loadingImage===1?(<div
                 className="bg-cover bg-center p-6 rounded-xl max-w-xs mt-3"
                 style={{ backgroundImage: `url(${leaderboardStatImg.src})` }}
               >
@@ -227,7 +227,7 @@ const LeaderboardPageContent = () => {
                   </div>
                   <div className="font-medium text-white">#{userRank}</div>
                 </div>
-              </div>
+              </div>):(<Loader/>)}
             </div>
             {/*leaderboard list*/}
             <div className="font-semibold mt-5 pl-6">Ranks</div>
