@@ -12,19 +12,7 @@ import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
 import { useState } from "react";
 import Loader from "./components/MainLoader";
-import TelegramAnalytics from "@telegram-apps/analytics";
-//telegram analytics//
-if(typeof window !== "undefined" && window.Telegram?.WebApp.initDataUnsafe.user) {
-TelegramAnalytics.init({
-  token: process.env.NEXT_PUBLIC_TG1!,
-  appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
-});
-TelegramAnalytics.init({
-  token: process.env.NEXT_PUBLIC_TG2!,
-  appName: process.env.NEXT_PUBLIC_TGAPPNAME!,
-});
 
-}
 
 const interdisplay = localFont({
   src: [
