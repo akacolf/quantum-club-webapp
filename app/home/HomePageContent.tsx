@@ -1663,7 +1663,10 @@ const HomePageContent = () => {
             </div>
           </div>
           {/*daily check-in*/}
-          <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4 mt-6">
+          {loadingButtonDay ? (
+            <div className="skeleton card flex items-center rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto h-18 mt-6"></div>
+            ) : (
+              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4 mt-6">
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center">
                 <Lottie 
@@ -1720,10 +1723,12 @@ const HomePageContent = () => {
                   </div>
                 ) : (
                   <div>Claim</div>
-                )):(<div className="skeleton card flex items-center rounded-xl max-w-xs sm:max-w-sm md:max-w-md w-full mx-auto"></div>)}
+                )):(<div><ButtonLoader/></div>)}
               </button>
             </div>
           </div>
+          )}
+          
           {/*carousel*/}
           <HomeCarousel />
           

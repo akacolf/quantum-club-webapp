@@ -51,7 +51,7 @@ declare global {
           offClick: (callback:()=>void) => () => void;
         };
         safeAreaInset: {
-          top: number;
+          top: number; 
           bottom: number;
           left: number;
           right: number;
@@ -88,6 +88,7 @@ export default function LoginScreen() {
         WebApp.ready();
         WebApp.setHeaderColor("#000000");
         WebApp.setBackgroundColor("#000000");
+        
         if (deviceType === "mobile") {
           WebApp.requestFullscreen();
         }

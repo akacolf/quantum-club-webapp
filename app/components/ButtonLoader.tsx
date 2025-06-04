@@ -10,12 +10,13 @@ export const ButtonLoader:React.FC= () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
       >
         <div className="flex items-center justify-center">
-          <div className="w-5 h-5 border-[2px] border-[#202021] border-b-[#ffffff] rounded-full inline-block box-border animate-spin [animation-duration:3s]"></div>
+          <div className="loading loading-spinner loading-sm" />
         </div>
       </motion.div>
     </AnimatePresence>
   );
 }
+
+// <div className="w-5 h-5 border-[2px] border-[#202021] border-b-[#ffffff] rounded-full inline-block box-border animate-spin [animation-duration:3s]"></div>//
