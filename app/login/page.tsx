@@ -44,6 +44,7 @@ declare global {
         requestFullscreen: () => void;
         openTelegramLink: (link:string|undefined) => void;
         navigator: () => void;
+        disableVerticalSwipes: () => void;
         BackButton: {
           hide: () => void;
           show: () => void;
@@ -88,7 +89,7 @@ export default function LoginScreen() {
         WebApp.ready();
         WebApp.setHeaderColor("#000000");
         WebApp.setBackgroundColor("#000000");
-        
+        WebApp.disableVerticalSwipes();
         if (deviceType === "mobile") {
           WebApp.requestFullscreen();
         }
