@@ -28,7 +28,6 @@ import HomeCarousel from "../components/homepagecarousel/Carousel";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import hundredAnimationData from "../../public/images/hundred-lottie.json";
 import fireAnimationData from "../../public/images/fire-lottie.json";
-import Loader from "../components/MainLoader";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
