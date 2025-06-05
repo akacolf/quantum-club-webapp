@@ -1663,9 +1663,9 @@ const HomePageContent = () => {
           </div>
           {/*daily check-in*/}
           {loadingButtonDay ? (
-            <div className="skeleton card flex items-center rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto h-18 mt-6"></div>
+            <div className="skeleton card flex items-center rounded-xl w-9/10 mx-auto h-18 mt-6"></div> //w-full max-w-xs sm:max-w-sm md:max-w-md
             ) : (
-              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4 mt-6">
+              <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-9/10 mx-auto p-4 mt-6">
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center">
                 <Lottie 
@@ -1732,7 +1732,7 @@ const HomePageContent = () => {
           <HomeCarousel />
           
           {/*farming QNTM*/}
-          <div className="w-full max-w-xs mx-auto mt-3 mb-6">
+          <div className="w-9/10 mx-auto mt-3 mb-6">
             <div className="font-semibold text-lg">Farm</div>
             <div className="flex items-center justify-between bg-black rounded-xl p-1 mt-3">
               <div className="flex items-center space-x-3">
@@ -1764,7 +1764,7 @@ const HomePageContent = () => {
             </div>
           </div>
           {/*solve-to-earn card*/}
-          <div className="w-full max-w-xs mx-auto mt-4">
+          <div className="w-9/10 mx-auto mt-4">
             <div className="font-semibold text-lg mb-3">Solve-to-Earn</div>
             <div
               className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4"

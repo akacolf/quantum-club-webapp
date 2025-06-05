@@ -76,7 +76,7 @@ const HomeCarousel: React.FC = () => {
         <div className="flex">
           {/*card #1*/}
           <div className="min-w-0 flex-none w-full">
-            <div className="card rounded-xl bg-cover bg-center h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto"
+            <div className="card rounded-xl bg-cover bg-center h-40 w-9/10 mx-auto"
             style={{ backgroundImage: `url(${bgTradingCardImg.src})`}}
             >
               <div className="flex items-center justify-between">
@@ -109,7 +109,7 @@ const HomeCarousel: React.FC = () => {
           {/*card #2*/}
           <div className="min-w-0 flex-none w-full">
             <div
-              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto"
+              className="card bg-cover bg-center rounded-xl h-40 w-9/10 mx-auto"
               style={{ backgroundImage: `url(${carouselBg.src})` }}
             >
               <div className="flex items-center justify-between">
@@ -147,13 +147,13 @@ const HomeCarousel: React.FC = () => {
           </div>
           {/*card #3 */}
           <div className="min-w-0 flex-none w-full">
-            <div className="card bg-base-200 rounded-xl h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+            <div className="card bg-base-200 rounded-xl h-40 w-9/10 mx-auto">
               <div className="flex items-center justify-between">
                 <div className="card-body p-4">
                   <div>
                     <div className="font-semibold text-base">Check the leaderboard</div>
                     <div className="text-sm font-normal mt-2 text-neutral-400">Your standings determine how ahead you&apos;re in the game.</div>
-                    <div className="mt-3">
+                    <div className="mt-6">
                     <Link className="px-3 py-2 bg-white text-black text-xs rounded-full"
                     href={"/leaderboard"}
                     id="leaderboardbutton"
@@ -179,7 +179,7 @@ const HomeCarousel: React.FC = () => {
           {/* card #4*/}
           <div className="min-w-0 flex-none w-full">
             <div
-              className="card bg-cover bg-center rounded-xl h-40 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto"
+              className="card bg-cover bg-center rounded-xl h-40 w-9/10 mx-auto"
               style={{ backgroundImage: `url(${carouselBgJoinTG.src})` }}
             >
               <div className="flex items-center justify-between">
@@ -217,7 +217,7 @@ const HomeCarousel: React.FC = () => {
           </div>
           {/*card 5*/}
           <div className="min-w-0 flex-none w-full">
-            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+            <div className="w-9/10 mx-auto">
               <div
                 className="flex items-center justify-between p-4 bg-cover bg-center rounded-2xl h-40"
                 style={{ backgroundImage: `url(${bgTgeProgressCard.src})` }}
