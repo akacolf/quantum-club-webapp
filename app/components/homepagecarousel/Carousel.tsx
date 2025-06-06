@@ -275,7 +275,7 @@ const HomeCarousel: React.FC = () => {
       ) : (
         // loading skeleton //
         <div className="min-w-0 flex-none w-full">
-          <div className="skeleton card flex items-center rounded-xl max-w-xs sm:max-w-sm md:max-w-md h-40 w-full mx-auto"></div>
+          <div className="skeleton card flex items-center rounded-xl w-9/10 h-40 mx-auto"></div>
         </div>
       )}
       {/* dot buttons */}
