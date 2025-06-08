@@ -11,9 +11,10 @@ type NavigationBarProps = {
 
 const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
   const pathname = usePathname();
-  const [/*activeTab*/, setActiveTab] = useState("home");
+  const [, /*activeTab*/ setActiveTab] = useState("home");
   const [clickedTab, setClickedTab] = useState("home");
   const handleHide = useCallback(() => setShowContent(false), [setShowContent]);
+
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -49,12 +50,14 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
       <Head>
         <meta name="viewport" content="viewport-fit=cover" />
       </Head>
-      
-      <div className="dock dock-sm bg-black/80 backdrop-blur-md">
+
+      <div className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[4.5rem]"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
+      >
         <Link
           id="home"
           href={"/home"}
-          onClick={e => {
+          onClick={(e) => {
             if (pathname === "/home") {
               e.preventDefault(); // Prevent navigation if already on home
               return;
@@ -80,14 +83,10 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
           <div className="dock-label font-medium">Home</div>
         </Link>
 
-        
-
-       
-
         <Link
           id="tasks"
           href={"/earn"}
-          onClick={e => {
+          onClick={(e) => {
             if (pathname === "/earn") {
               e.preventDefault(); // Prevent navigation if already on tasks
               return;
@@ -115,10 +114,10 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
           <div className="dock-label font-medium">Earn</div>
         </Link>
 
-         <Link
+        <Link
           id="frens"
           href={"/frens"}
-          onClick={e => {
+          onClick={(e) => {
             if (pathname === "/frens") {
               e.preventDefault(); // Prevent navigation if already on frens
               return;
