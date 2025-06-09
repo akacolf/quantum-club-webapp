@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 const Roadmap = () => {
@@ -27,13 +26,7 @@ const Roadmap = () => {
     }, [router]);
 
   return (
-    <AnimatePresence>
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="bg-black p-4 overflow-auto"
-      >
+      <div className="p-4">
         <div className="font-medium text-3xl">Roadmap</div>
         <ol className="relative border-s border-[#303030] mt-8">
           <li className="mb-10 ms-6">
@@ -238,8 +231,7 @@ const Roadmap = () => {
             </p>
           </li>
         </ol>
-      </motion.main>
-    </AnimatePresence>
+      </div>
   );
 };
 

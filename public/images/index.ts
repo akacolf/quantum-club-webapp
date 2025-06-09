@@ -6,6 +6,9 @@ import carouselBgJoinTG from './carousel-bg-join-tg.svg';
 import carouselBg from './carousel-bg.svg';
 import leaderboardStatImg from './bg-leaderboard-stats.svg';
 import bgTradingCardImg from './carousel-bg-trading.svg';
+import firstPlaceMedal from './1st-place-medal.svg';
+import secondPlaceMedal from './2nd-place-medal.svg';
+import thirdPlaceMedal from './3rd-place-medal.svg';
 
 export {
     bgSolveToEarnCard,
@@ -16,4 +19,7 @@ export {
     carouselBg,
     leaderboardStatImg,
     bgTradingCardImg,
+    firstPlaceMedal,
+    secondPlaceMedal,
+    thirdPlaceMedal,
 }

@@ -14,7 +14,6 @@ import { useGameContext } from "@/app/contexts/MiningContext";
 import { getAuth } from "firebase/auth";
 import { ButtonLoader } from "../components/ButtonLoader";
 import { getAllTasks } from "./tasks";
-import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from "next/navigation";
 import { useLeaderboardContext } from "../contexts/LeaderboardContext";
 import { EarnTask } from "@/lib/interfaces";
@@ -839,115 +838,106 @@ const EarnPageContent = () => {
       router.push("/earn/solvetoearn-page")
     }
   };*/
-  return (
-
-    <div className="overflow-auto">
-      {!loading ?
-        (<AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {/*top section card */}
-            <div className="p-4">
-              <div className="text-3xl font-bold">Earn</div>
-            </div>
-            {/*task navigation*/}
-            <div className="flex w-full flex-col items-center justify-center p-4 gap-0 md:flex-row">
-              <div className="inline-flex h-9 w-full items-baseline justify-start bg-base-200 p-1 rounded-lg sm:w-auto">
-                {[limitedTXT, ingameTXT, ParnersTXT].map((tab) => (
-                  <button
-                    key={tab}
-                    className={`group cursor-pointer inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-semibold transition-all duration-300 ease-in-out disabled:cursor-not-allowed
-                  min-w-[32px] gap-1.5 text-xs h-7 w-full rounded-lg
-                    px-3 drop-shadow sm:w-auto ${activeTab === tab ? "text-black bg-white" : "text-white"
-                      } rounded-lg`}
-                    onClick={() => setActiveTab(tab)}
-                  >
-                    {tab} {" "}{/*  */}
-                    {tab === limitedTXT && limitedTasks.filter(task => !task.completed).length >= 1
-                      ? <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#808080]">{limitedTasks.filter(task => !task.completed).length}</div>
-                      : tab === ingameTXT && ingameTasks.filter(task => !task.completed).length >= 1
-                        ? <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#808080]">{ingameTasks.filter(task => !task.completed).length}</div>
-                        : tab === ParnersTXT && partnersTasks.filter(task => !task.completed).length >= 1
-                          ? <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#808080]">{partnersTasks.filter(task => !task.completed).length}</div>
-                          : null
-                    }
-                  </button>
-                ))}
-              </div>
-
-            </div>
-            {/* Tasks */}
-
-            {loading ? (
-              <div className="flex justify-center items-center">
-                <Loader />
-              </div>
-            ) : (
-              taskS.length > 0 ? (
-
-
-                taskS.map((task) => (
-                  <div
-                    key={task.id}
-                  >
-                    <div className="flex items-center px-4 py-2">
-                      {/*Left Section */}
-                      <div className="pr-4 pb-3">
-                        {/*Icon*/}
-                        <div>
-                          {task.platform}
-                        </div>
-                      </div>
-                      {/*Text*/}
-                      <div className="flex flex-1 items-center border-b-[1px] border-[#222622] justify-between pr-2 pb-3">
-                        <div>
-                          <div className="text-white font-normal text-sm">{task.description}</div>
-                          <div className="text-gray-400 font-normal text-sm">+{task.quant} QNTM</div>
-                        </div>
-                        {/*Right Section */}
-                        <div>
-                          <button id={task.id} onClick={() => handleJoinTask(task)} disabled={(activeTaskId !== null && activeTaskId != task.id) || (task.completed)}
-                            className={
-                              task.whichPlatform === "userMilestone" ? (
-                                totalUsers && totalUsers >= 1000 ?
-                                  (task.buttonText === "Claim" ? "bg-orange-500 text-white w-16 h-10 text-sm font-medium rounded-full"
-                                    : task.buttonText === "Check" ? "bg-white font-medium text-black h-10 w-16 text-sm rounded-full"
-                                      : task.buttonText === "Joined" ? "bg-black font-medium text-black w-16 h-10 text-sm flex items-center justify-center rounded-full"
-                                        : "bg-white font-medium text-black h-10 w-16 text-sm rounded-full")
-                                  : "bg-white text-black opacity-30 w-16 h-10 text-sm font-medium rounded-full"
-                              ) :
-                                (task.buttonText === "Claim"
-                                  ? "bg-orange-500 text-white w-16 h-10 text-sm font-medium rounded-full" /*Claim */
-                                  : task.buttonText === "Joined"
-                                    ? "bg-black font-medium text-black w-16 h-10 text-sm flex items-center justify-center rounded-full" /*Joined */
-                                    : "bg-white font-medium text-black h-10 w-16 text-sm rounded-full" /*Join */
-                                )
-
-                            }
-                          >
-                            {task.buttonText === "Joined" ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 16 16">
-                                <path fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="m2.75 8.75l3.5 3.5l7-7.5" />
-                              </svg>
-                            ) : (
-                              task.buttonText
-                            )}
-                          </button>
-                        </div>
-                      </div>
+return (
+  <div>
+    {!loading ? (
+      <>
+        {/*top section card */}
+        <div className="p-4">
+          <div className="text-3xl font-bold">Earn</div>
+        </div>
+        {/*task navigation*/}
+        <div className="flex w-full flex-col items-center justify-center p-4 gap-0 md:flex-row">
+          <div className="inline-flex h-9 w-full items-baseline justify-start bg-base-200 p-1 rounded-lg sm:w-auto">
+            {[limitedTXT, ingameTXT, ParnersTXT].map((tab) => (
+              <button
+                key={tab}
+                className={`group cursor-pointer inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-semibold transition-all duration-300 ease-in-out disabled:cursor-not-allowed
+              min-w-[32px] gap-1.5 text-xs h-7 w-full rounded-lg
+                px-3 drop-shadow sm:w-auto ${activeTab === tab ? "text-black bg-white" : "text-white"
+                  } rounded-lg`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab} {" "}{/*  */}
+                {tab === limitedTXT && limitedTasks.filter(task => !task.completed).length >= 1
+                  ? <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#606060]">{limitedTasks.filter(task => !task.completed).length}</div>
+                  : tab === ingameTXT && ingameTasks.filter(task => !task.completed).length >= 1
+                    ? <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#606060]">{ingameTasks.filter(task => !task.completed).length}</div>
+                    : tab === ParnersTXT && partnersTasks.filter(task => !task.completed).length >= 1
+                      ? <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#606060]">{partnersTasks.filter(task => !task.completed).length}</div>
+                      : null
+                }
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Tasks */}
+        {loading ? (
+          <div className="flex justify-center items-center">
+            <Loader />
+          </div>
+        ) : (
+          taskS.length > 0 ? (
+            taskS.map((task) => (
+              <div
+                key={task.id}
+              >
+                <div className="flex items-center px-4 py-2">
+                  {/*Left Section */}
+                  <div className="pr-4 pb-3">
+                    {/*Icon*/}
+                    <div>
+                      {task.platform}
                     </div>
                   </div>
-                ))
-              ) : (<div className="flex justify-center items-center">No tasks available</div>)
-            )}
-          </motion.div>
-        </AnimatePresence>) : (<div className="fixed inset-0 flex justify-center items-center"><Loader /></div>)}
-    </div>
+                  {/*Text*/}
+                  <div className="flex flex-1 items-center border-b-[1px] border-[#222622] justify-between pr-2 pb-3">
+                    <div>
+                      <div className="text-white font-normal text-sm">{task.description}</div>
+                      <div className="text-gray-400 font-normal text-sm">+{task.quant} QNTM</div>
+                    </div>
+                    {/*Right Section */}
+                    <div>
+                      <button id={task.id} onClick={() => handleJoinTask(task)} disabled={(activeTaskId !== null && activeTaskId != task.id) || (task.completed)}
+                        className={
+                          task.whichPlatform === "userMilestone" ? (
+                            totalUsers && totalUsers >= 1000 ?
+                              (task.buttonText === "Claim" ? "bg-orange-500 text-white w-16 h-10 text-sm font-medium rounded-full"
+                                : task.buttonText === "Check" ? "bg-white font-medium text-black h-10 w-16 text-sm rounded-full"
+                                  : task.buttonText === "Joined" ? "bg-black font-medium text-black w-16 h-10 text-sm flex items-center justify-center rounded-full"
+                                    : "bg-white font-medium text-black h-10 w-16 text-sm rounded-full")
+                              : "bg-white text-black opacity-30 w-16 h-10 text-sm font-medium rounded-full"
+                          ) :
+                            (task.buttonText === "Claim"
+                              ? "bg-orange-500 text-white w-16 h-10 text-sm font-medium rounded-full" /*Claim */
+                              : task.buttonText === "Joined"
+                                ? "bg-black font-medium text-black w-16 h-10 text-sm flex items-center justify-center rounded-full" /*Joined */
+                                : "bg-white font-medium text-black h-10 w-16 text-sm rounded-full" /*Join */
+                            )
 
-  );
+                        }
+                      >
+                        {task.buttonText === "Joined" ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 16 16">
+                            <path fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="m2.75 8.75l3.5 3.5l7-7.5" />
+                          </svg>
+                        ) : (
+                          task.buttonText
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (<div className="flex justify-center items-center">No tasks available</div>)
+        )}
+      </>
+    ) : (
+      <div className="fixed inset-0 flex justify-center items-center"><Loader /></div>
+    )}
+  </div>
+);
 };
 
 export default EarnPageContent;
