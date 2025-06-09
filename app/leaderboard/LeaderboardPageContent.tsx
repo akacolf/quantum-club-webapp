@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Loader from "../components/MainLoader";
 import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { useGameContext } from "@/app/contexts/MiningContext";
