@@ -149,7 +149,7 @@ const LeaderboardPageContent = () => {
                 />
               </div>
               <div>
-                <div className="text-2xl font-bold">Leaderboard</div>
+                <div className="text-3xl font-bold">Leaderboard</div>
               </div>
             </div>
           </div>
