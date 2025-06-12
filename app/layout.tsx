@@ -1,5 +1,5 @@
 "use client";
-import localFont from "next/font/local";
+//import localFont from "next/font/local";//
 import "./globals.css";
 import { usePathname } from "next/navigation";
 import { GameProvider } from "./contexts/MiningContext";
@@ -12,9 +12,16 @@ import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
 import { useState } from "react";
 import Loader from "./components/MainLoader";
+import { Fustat } from 'next/font/google';
 
+const fustat = Fustat({
+  subsets: ["latin"],
+  weight: "variable",
+  variable: "--font-fustat",
+  display: "swap",
+})
 
-const interdisplay = localFont({
+{/*const interdisplay = localFont({
   src: [
     {
       path: "../public/fonts/InterDisplay-Regular.otf",
@@ -39,7 +46,7 @@ const interdisplay = localFont({
   ],
   variable: "--font-interdisplay",
   display: "swap",
-});
+});*/}
 
 export default function RootLayout({
   children,
@@ -52,7 +59,7 @@ export default function RootLayout({
   const [showContent, setShowContent] = useState(true);
   return (
     <html lang="en">
-      <body className={`${interdisplay.variable} antialiased`}>
+      <body className={`${fustat.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <GameProvider>
           <div className="main-content">
