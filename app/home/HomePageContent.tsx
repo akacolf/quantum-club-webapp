@@ -1611,7 +1611,7 @@ const HomePageContent = () => {
             </svg>
 
             <div className="flex items-center gap-2 text-center mt-2">
-              <div className="text-4xl font-semibold mb-1">
+              <div className="text-5xl font-semibold mb-1">
                 {MainQuantAmount}
               </div>
               <div className="text-xl">QNTM</div>
