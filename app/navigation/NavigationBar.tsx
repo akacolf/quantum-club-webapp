@@ -27,10 +27,6 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
           setActiveTab("frens");
           return;
         }
-        if (path.includes("/airdrop")) {
-          setActiveTab("airdrop");
-          return;
-        }
         if (path.includes("/home")) {
           setActiveTab("home");
           return;
@@ -51,8 +47,9 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         <meta name="viewport" content="viewport-fit=cover" />
       </Head>
 
-      <div className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[4.5rem]"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
+      <div
+        className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[4.5rem]"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
       >
         <Link
           id="home"
