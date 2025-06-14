@@ -150,7 +150,7 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
           <div className="dock-label font-medium">Frens</div>
         </Link>
 
-        <Link
+        {/*<Link
           id="ecosystem"
           href={"/ecosystem"}
           onClick={(e) => {
@@ -183,7 +183,7 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
             />
           </svg>
           <div className="dock-label font-medium">Ecosystem</div>
-        </Link>
+        </Link>*/}
       </div>
     </div>
   );
