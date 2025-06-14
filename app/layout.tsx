@@ -11,7 +11,7 @@ import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
 import { useEffect, useState } from "react";
 import Loader from "./components/MainLoader";
-import { Fustat } from 'next/font/google';
+import { Fustat } from "next/font/google";
 import telegramAnalytics from "@telegram-apps/analytics";
 
 const fustat = Fustat({
@@ -19,7 +19,7 @@ const fustat = Fustat({
   weight: "variable",
   variable: "--font-fustat",
   display: "swap",
-})
+});
 
 export default function RootLayout({
   children,
@@ -27,10 +27,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   useEffect(() => {
-  telegramAnalytics.init({
-  token: 'eyJhcHBfbmFtZSI6InFfY2x1Yl8zOTAxIiwiYXBwX3VybCI6Imh0dHBzOi8vdC5tZS9RdWFudHVtQ2x1YkJvdCIsImFwcF9kb21haW4iOiJodHRwczovL3d3dy5xdWFudHVtY2x1Yi5zcGFjZS8ifQ==!jZPSceSMdMSx0S9SaAcGgbIYARHmiPMSW59Y3KIZln4=',
-  appName: 'q_club_3901',
-});
+  if (typeof window !== "undefined" && window.Telegram?.WebApp?.initData) {
+    telegramAnalytics.init({
+      token:
+        "eyJhcHBfbmFtZSI6InFfY2x1Yl8zOTAxIiwiYXBwX3VybCI6Imh0dHBzOi8vdC5tZS9RdWFudHVtQ2x1YkJvdCIsImFwcF9kb21haW4iOiJodHRwczovL3d3dy5xdWFudHVtY2x1Yi5zcGFjZS8ifQ==!jZPSceSMdMSx0S9SaAcGgbIYARHmiPMSW59Y3KIZln4=",
+      appName: "q_club_3901",
+    });
+  }
 }, []);
   const pathname = usePathname();
   const hiddenPaths = ["/home", "/frens", "/earn", "/mining"];
