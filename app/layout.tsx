@@ -10,7 +10,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
 import { useState } from "react";
-import Loader from "./components/MainLoader";
+//import Loader from "./components/MainLoader";
 import { Fustat } from 'next/font/google';
 
 const fustat = Fustat({
@@ -28,7 +28,7 @@ export default function RootLayout({
   const pathname = usePathname();
   const hiddenPaths = ["/home", "/frens", "/earn", "/mining"];
   const hideNavbar = hiddenPaths.includes(pathname);
-  const [showContent, setShowContent] = useState(true);
+  const [/*showContent*/, setShowContent] = useState(true);
   return (
     <html lang="en">
       <body className={`${fustat.variable} antialiased`}>
@@ -39,7 +39,7 @@ export default function RootLayout({
               <LeaderboardProvider>
                 <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
                   <FrensProvider>
-                    {showContent ? children: <Loader />}
+                    {children} {/*showContent ? children: <Loader />*/}
                     {hideNavbar && (
                       <NavigationBar setShowContent={setShowContent} />
                     )}
