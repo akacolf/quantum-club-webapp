@@ -934,9 +934,14 @@ return (
         )}
       </>
     ) : (
+    <div>
       <div className="p-4">
-        <div className="skeleton h-10 w-10 rounded-xl"></div>
+        <div className="skeleton h-9 w-17 rounded-lg"></div>
       </div>
+      <div className="flex w-full items-center justify-center p-4">
+          <div className="skeleton h-9 w-full p-1 rounded-lg"></div>
+      </div>
+    </div>
     )}
   </div>
 );
