@@ -76,7 +76,7 @@ const EarnPageContent = () => {
             let description: string | React.ReactNode;
             if (whichPlatform == "userMilestone") {
               description = <div>
-                Road to 1K - <span className="animate-gradient-text">{totalUsers} / 1000</span>
+                Road to 1K - <span>{totalUsers} / 1000</span>
               </div>;
             } else {
               description = task.description;
@@ -330,7 +330,7 @@ const EarnPageContent = () => {
               );
 
               setActiveTaskId(null);
-              console.error("Görev Tamamlandı");
+              console.error("Task has been completed");
               sessionStorage.setItem("tasks", JSON.stringify(updatedTasks));
               setCompletedTasks(completedTasks + 1);
               return updatedTasks;
@@ -934,7 +934,9 @@ return (
         )}
       </>
     ) : (
-      <div className="fixed inset-0 flex justify-center items-center"><Loader /></div>
+      <div className="p-4">
+        <div className="skeleton h-10 w-10 rounded-xl"></div>
+      </div>
     )}
   </div>
 );

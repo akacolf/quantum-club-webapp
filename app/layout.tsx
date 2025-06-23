@@ -9,10 +9,9 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import NavigationBar from "./navigation/NavigationBar";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Loader from "./components/MainLoader";
 import { Fustat } from 'next/font/google';
-import telegramAnalytics from "@telegram-apps/analytics";
 
 const fustat = Fustat({
   subsets: ["latin"],
@@ -26,12 +25,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  useEffect(() => {
-  telegramAnalytics.init({
-  token: 'eyJhcHBfbmFtZSI6InFfY2x1Yl8zOTAxIiwiYXBwX3VybCI6Imh0dHBzOi8vdC5tZS9RdWFudHVtQ2x1YkJvdCIsImFwcF9kb21haW4iOiJodHRwczovL3d3dy5xdWFudHVtY2x1Yi5zcGFjZS8ifQ==!jZPSceSMdMSx0S9SaAcGgbIYARHmiPMSW59Y3KIZln4=',
-  appName: 'q_club_3901',
-});
-}, []);
   const pathname = usePathname();
   const hiddenPaths = ["/home", "/frens", "/earn", "/mining"];
   const hideNavbar = hiddenPaths.includes(pathname);
@@ -46,7 +39,7 @@ export default function RootLayout({
               <LeaderboardProvider>
                 <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
                   <FrensProvider>
-                    {showContent ? children : <Loader />}
+                    {showContent ? children: <Loader />}
                     {hideNavbar && (
                       <NavigationBar setShowContent={setShowContent} />
                     )}

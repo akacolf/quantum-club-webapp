@@ -52,8 +52,8 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
       </Head>
 
       <div
-        className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[4.5rem]"
-        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
+        className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[5rem]"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1.5rem)" }}
       >
         <Link
           id="home"
