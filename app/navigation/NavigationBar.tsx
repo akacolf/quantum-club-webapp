@@ -1,49 +1,17 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import { usePathname } from "next/navigation";
-//import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
 import Link from "next/link";
 import Head from "next/head";
 
-type NavigationBarProps = {
-  setShowContent: (show: boolean) => void;
-};
-
-const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
+const NavigationBar = () => {
   const pathname = usePathname();
-  const [, /*activeTab*/ setActiveTab] = useState("home");
-  const [clickedTab, setClickedTab] = useState("home");
-  const handleHide = useCallback(() => setShowContent(false), [setShowContent]);
 
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const path = window.location.pathname;
-        if (path.includes("/earn")) {
-          setActiveTab("tasks");
-          return;
-        }
-        if (path.includes("/frens")) {
-          setActiveTab("frens");
-          return;
-        }
-        if (path.includes("/home")) {
-          setActiveTab("home");
-          return;
-        }
-        if (path.includes("/leaderboard")) {
-          setActiveTab("ranking");
-          return;
-        }
-        if (path.includes("/ecosystem")) {
-          setActiveTab("ecosystem");
-          return;
-        }
-      }
-    } finally {
-      setShowContent(true);
-    }
-  }, [pathname, setShowContent]);
+  let activeTab = "home";
+  if (pathname.includes("/earn")) activeTab = "earn";
+  else if (pathname.includes("/frens")) activeTab = "frens";
+  //else if (pathname.includes("/leaderboard")) activeTab = "leaderboard";
+  else if (pathname.includes("/ecosystem")) activeTab = "ecosystem";
 
   return (
     <div>
@@ -58,17 +26,10 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         <Link
           id="home"
           href={"/home"}
-          onClick={(e) => {
-            if (pathname === "/home") {
-              e.preventDefault(); // Prevent navigation if already on home
-              return;
-            }
-            handleHide();
-            setClickedTab("home");
-          }}
-          className={`${clickedTab === "home" ? "active" : "text-neutral-500"}`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+          onClick={e => pathname === "/home" && e.preventDefault()}
+          className={activeTab === "home" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -85,21 +46,12 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         </Link>
 
         <Link
-          id="tasks"
+          id="earn"
           href={"/earn"}
-          onClick={(e) => {
-            if (pathname === "/earn") {
-              e.preventDefault(); // Prevent navigation if already on tasks
-              return;
-            }
-            handleHide();
-            setClickedTab("tasks");
-          }}
-          className={` ${
-            clickedTab === "tasks" ? "active" : "text-neutral-500"
-          }`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+          onClick={e => pathname === "/earn" && e.preventDefault()}
+          className={activeTab === "earn" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -118,19 +70,10 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         <Link
           id="frens"
           href={"/frens"}
-          onClick={(e) => {
-            if (pathname === "/frens") {
-              e.preventDefault(); // Prevent navigation if already on frens
-              return;
-            }
-            handleHide();
-            setClickedTab("frens");
-          }}
-          className={` ${
-            clickedTab === "frens" ? "active" : "text-neutral-500"
-          }`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+          onClick={e => pathname === "/frens" && e.preventDefault()}
+          className={activeTab === "frens" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -150,22 +93,13 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
           <div className="dock-label font-medium">Frens</div>
         </Link>
 
-        {/*<Link
+        <Link
           id="ecosystem"
           href={"/ecosystem"}
-          onClick={(e) => {
-            if (pathname === "/ecosystem") {
-              e.preventDefault(); // Prevent navigation if already on ecosystem
-              return;
-            }
-            handleHide();
-            setClickedTab("ecosystem");
-          }}
-          className={` ${
-            clickedTab === "ecosystem" ? "active" : "text-neutral-500"
-          }`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+          onClick={e => pathname === "/ecosystem" && e.preventDefault()}
+          className={activeTab === "ecosystem" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -183,7 +117,7 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
             />
           </svg>
           <div className="dock-label font-medium">Ecosystem</div>
-        </Link>*/}
+        </Link>
       </div>
     </div>
   );

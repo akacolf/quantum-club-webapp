@@ -1,57 +1,37 @@
-"use client";
 import "./globals.css";
-import { usePathname } from "next/navigation";
-import { GameProvider } from "./contexts/MiningContext";
-import { LeaderboardProvider } from "./contexts/LeaderboardContext";
-import { TonConnectUIProvider } from "@tonconnect/ui-react";
-import { FrensProvider } from "./contexts/FrensContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
-import NavigationBar from "./navigation/NavigationBar";
-import { useState } from "react";
-//import Loader from "./components/MainLoader";
-import { Fustat } from 'next/font/google';
+import { Fustat } from "next/font/google";
+import ClientProviders from "./providers/ClientProviders";
 
 const fustat = Fustat({
   subsets: ["latin"],
   weight: "variable",
   variable: "--font-fustat",
   display: "swap",
-})
+});
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const hiddenPaths = ["/home", "/frens", "/earn", "/mining"];
-  const hideNavbar = hiddenPaths.includes(pathname);
-  const [/*showContent*/, setShowContent] = useState(true);
   return (
     <html lang="en">
       <body className={`${fustat.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
-        <GameProvider>
+        <ClientProviders>
           <div className="main-content">
             <div className="inner-content">
-              <LeaderboardProvider>
-                <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
-                  <FrensProvider>
-                    {children} {/*showContent ? children: <Loader />*/}
-                    {hideNavbar && (
-                      <NavigationBar setShowContent={setShowContent} />
-                    )}
-                  </FrensProvider>
-                  <Analytics />
-                  <SpeedInsights />
-                </TonConnectUIProvider>
-              </LeaderboardProvider>
+              {children}
+
+              <Analytics />
+              <SpeedInsights />
             </div>
           </div>
-        </GameProvider>
+        </ClientProviders>
       </body>
     </html>
   );
-}
+};
