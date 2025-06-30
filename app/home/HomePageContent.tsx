@@ -10,8 +10,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { useGameContext } from "../contexts/MiningContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { useGameContext } from "@/app/contexts/MiningContext";
 //import tasks from "@/app/earn/tasks";//
 //import { ButtonLoader } from "../loaders/ButtonLoader";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
@@ -20,9 +20,9 @@ import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
 import toast, { ToastBar, Toaster } from "react-hot-toast";
 /*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
-import { ButtonLoader } from "../components/ButtonLoader";
-import { bgSolveToEarnCard } from "../../public/images";
-import HomeCarousel from "../components/homepagecarousel/Carousel";
+import { ButtonLoader } from "@/app/components/ButtonLoader";
+import { bgSolveToEarnCard } from "@/public/images";
+import HomeCarousel from "@/app/components/homepagecarousel/Carousel";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import hundredAnimationData from "../../public/images/hundred-lottie.json";
 import fireAnimationData from "../../public/images/fire-lottie.json";

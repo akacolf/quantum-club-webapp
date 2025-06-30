@@ -1,45 +1,17 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import { usePathname } from "next/navigation";
-//import InvitePopup from "@/app/frens/FriendsPageContent/invite-popup";
 import Link from "next/link";
 import Head from "next/head";
 
-type NavigationBarProps = {
-  setShowContent: (show: boolean) => void;
-};
-
-const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
+const NavigationBar = () => {
   const pathname = usePathname();
-  const [, /*activeTab*/ setActiveTab] = useState("home");
-  const [clickedTab, setClickedTab] = useState("home");
-  const handleHide = useCallback(() => setShowContent(false), [setShowContent]);
 
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const path = window.location.pathname;
-        if (path.includes("/earn")) {
-          setActiveTab("tasks");
-          return;
-        }
-        if (path.includes("/frens")) {
-          setActiveTab("frens");
-          return;
-        }
-        if (path.includes("/home")) {
-          setActiveTab("home");
-          return;
-        }
-        if (path.includes("/leaderboard")) {
-          setActiveTab("ranking");
-          return;
-        }
-      }
-    } finally {
-      setShowContent(true);
-    }
-  }, [pathname, setShowContent]);
+  let activeTab = "home";
+  if (pathname.includes("/earn")) activeTab = "earn";
+  else if (pathname.includes("/frens")) activeTab = "frens";
+  //else if (pathname.includes("/leaderboard")) activeTab = "leaderboard";
+  else if (pathname.includes("/ecosystem")) activeTab = "ecosystem";
 
   return (
     <div>
@@ -48,23 +20,16 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
       </Head>
 
       <div
-        className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[4.5rem]"
-        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
+        className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[5rem]"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1.5rem)" }}
       >
         <Link
           id="home"
           href={"/home"}
-          onClick={(e) => {
-            if (pathname === "/home") {
-              e.preventDefault(); // Prevent navigation if already on home
-              return;
-            }
-            handleHide();
-            setClickedTab("home");
-          }}
-          className={`${clickedTab === "home" ? "active" : "text-neutral-500"}`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+          onClick={e => pathname === "/home" && e.preventDefault()}
+          className={activeTab === "home" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -81,21 +46,12 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         </Link>
 
         <Link
-          id="tasks"
+          id="earn"
           href={"/earn"}
-          onClick={(e) => {
-            if (pathname === "/earn") {
-              e.preventDefault(); // Prevent navigation if already on tasks
-              return;
-            }
-            handleHide();
-            setClickedTab("tasks");
-          }}
-          className={` ${
-            clickedTab === "tasks" ? "active" : "text-neutral-500"
-          }`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+          onClick={e => pathname === "/earn" && e.preventDefault()}
+          className={activeTab === "earn" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -114,19 +70,10 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
         <Link
           id="frens"
           href={"/frens"}
-          onClick={(e) => {
-            if (pathname === "/frens") {
-              e.preventDefault(); // Prevent navigation if already on frens
-              return;
-            }
-            handleHide();
-            setClickedTab("frens");
-          }}
-          className={` ${
-            clickedTab === "frens" ? "active" : "text-neutral-500"
-          }`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+          onClick={e => pathname === "/frens" && e.preventDefault()}
+          className={activeTab === "frens" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -144,6 +91,32 @@ const NavigationBar = ({ setShowContent }: NavigationBarProps) => {
             />
           </svg>
           <div className="dock-label font-medium">Frens</div>
+        </Link>
+
+        <Link
+          id="ecosystem"
+          href={"/ecosystem"}
+          onClick={e => pathname === "/ecosystem" && e.preventDefault()}
+          className={activeTab === "ecosystem" ? "active" : "text-neutral-500"}
+          onContextMenu={e => e.preventDefault()}
+          onMouseDown={e => e.button === 1 && e.preventDefault()}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1.5em"
+            height="1.5em"
+            viewBox="0 0 16 16"
+          >
+            <path
+              fill="currentColor"
+              d="M11 8a2.64 2.64 0 0 0-.53-1.59l1.33-1.32a2.2 2.2 0 0 0 .82.17a1.94 1.94 0 0 0 2-1.88a2 2 0 0 0-4 0a1.76 1.76 0 0 0 .24.88L9.53 5.59A3.14 3.14 0 0 0 8 5.19a3 3 0 0 0-2.93 2.19h-.69A2 2 0 0 0 2.5 6.13A1.94 1.94 0 0 0 .5 8a1.94 1.94 0 0 0 2 1.88a2 2 0 0 0 1.88-1.25h.69A3 3 0 0 0 8 10.82A2.91 2.91 0 0 0 11 8m1.62-5.24a.69.69 0 0 1 .75.62a.76.76 0 0 1-1.5 0a.7.7 0 0 1 .75-.62M2.5 8.63A.7.7 0 0 1 1.75 8a.7.7 0 0 1 .75-.62a.7.7 0 0 1 .75.62a.7.7 0 0 1-.75.63m5.5.94A1.67 1.67 0 0 1 6.25 8A1.66 1.66 0 0 1 8 6.44A1.67 1.67 0 0 1 9.75 8A1.68 1.68 0 0 1 8 9.57"
+            />
+            <path
+              fill="currentColor"
+              d="M2.5 4.38a2 2 0 0 0 .82-.17L5.08 6A3.7 3.7 0 0 1 6 5.13L4.26 3.38a1.76 1.76 0 0 0 .24-.88a1.94 1.94 0 0 0-2-1.87a1.94 1.94 0 0 0-2 1.87a1.94 1.94 0 0 0 2 1.88m0-2.5a.7.7 0 0 1 .75.62a.7.7 0 0 1-.75.63a.7.7 0 0 1-.75-.63a.7.7 0 0 1 .75-.62m11 9.75a2 2 0 0 0-.82.17L10.92 10a3.7 3.7 0 0 1-.93.84l1.74 1.74a1.75 1.75 0 0 0-.23.88a2 2 0 0 0 4 0a1.94 1.94 0 0 0-2-1.83m0 2.5a.7.7 0 0 1-.75-.63a.76.76 0 0 1 1.5 0a.7.7 0 0 1-.75.63"
+            />
+          </svg>
+          <div className="dock-label font-medium">Ecosystem</div>
         </Link>
       </div>
     </div>

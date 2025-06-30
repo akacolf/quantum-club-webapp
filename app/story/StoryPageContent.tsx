@@ -268,7 +268,7 @@ const StoryPageContent = () => {
         exit={{ opacity: 0 }}
       >
         <div
-          className=" bg-black fixed" onTouchStart={
+          className="bg-black fixed mt-3" onTouchStart={
             handleDown
           }
           onTouchEnd={handleUp}
