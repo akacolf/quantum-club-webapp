@@ -5,41 +5,41 @@ import { getAuth } from "firebase/auth";
 import EcosystemPageContent from "./EcosystemPageContent";
 
 const EcosystemPage = () => {
-    useEffect(() => {
-         if (typeof window !== "undefined") {
-        if (!window.Telegram?.WebApp?.initData) {
-            window.location.href = "https://t.me/QuantumClubBot";
-            return;
-        }
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      //telegram check
+      if (!window.Telegram?.WebApp?.initData) {
+        window.location.href = "https://t.me/QuantumClubBot";
+        return;
+      }
     }
-    if (typeof window !== 'undefined') {
-        window?.Telegram?.WebApp.BackButton.hide();
+    //hide back button
+    if (typeof window !== "undefined") {
+      window?.Telegram?.WebApp.BackButton.hide();
     }
-    const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
-    if (navigationType === 'reload') {
+    //reload check
+    const navigationType = (
+      performance.getEntriesByType(
+        "navigation"
+      )[0] as PerformanceNavigationTiming
+    )?.type;
+    if (navigationType === "reload") {
       window.location.replace("/");
+      return;
     }
 
-    }, []);
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-          if (!window.Telegram?.WebApp?.initData) {
-            window.location.href = "https://t.me/QuantumClubBot";
-            return;
-          }
-        }
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (user) {
-        } else {
-          console.error("Permisson denied");
-          window.location.replace("/")
-          return;
-        }
-      }, []);
-      return (
-        <EcosystemPageContent />
-      );
+    //firebase auth check
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (user) {
+    } else {
+      console.error("Permisson denied");
+      window.location.replace("/");
+      return;
+    }
+  }, []);
+
+  return <EcosystemPageContent />;
 };
 
 export default EcosystemPage;
