@@ -1,9 +1,15 @@
 'use client';
 
-import React, { Suspense, useEffect, useState } from 'react';
-const HomePageContent = React.lazy(() => import('./HomePageContent'));
+import React, { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
 import Loader from '@/app/components/MainLoader';
+import dynamic from 'next/dynamic';
+
+const HomePageContent = dynamic(() => import('./HomePageContent'), {
+  loading: () => <Loader />,
+  ssr: false,
+});
+
 const HomePage = () => {
   const [maintenance, setMaintenance] = useState(true);
 
@@ -24,8 +30,6 @@ const HomePage = () => {
       if (typeof window !== "undefined") { window.location.replace("/") }
       return;
     }
-  }, []);
-  useEffect(() => {
     if (typeof window !== "undefined") {
       if (!window.Telegram?.WebApp?.initData) {
         window.location.href = "https://t.me/QuantumClubBot";
@@ -46,17 +50,15 @@ const HomePage = () => {
     }
   }, []);
 
-  return (
-      
-          maintenance ? (
-            <div></div>
-          ) : (
-            
-            <Suspense fallback={<Loader/>}>
-             {<HomePageContent />}
-            </Suspense>
-          )
-  );
+ return (
+  maintenance ? (
+    <div />
+  ) : (
+
+    <HomePageContent />
+ )
+
+ );
 };
 
 export default HomePage;

@@ -21,7 +21,7 @@ export default function NotFound() {
                 transition={{ delay: 0.3, duration: 0.5 }} 
                 className="text-lg text-white"
             >
-                <span className="font-normal">This page doesn&apost exist.</span>
+                <span className="font-normal">This page doesn&apos;t exist.</span>
             </motion.p>
 
             <motion.div 
