@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { Fustat } from "next/font/google";
 import ClientProviders from "./providers/ClientProviders";
+import TelegramAnalyticsInit from "./components/TelegramAnalyticsInit";
 
 const fustat = Fustat({
   subsets: ["latin"],
@@ -12,7 +13,7 @@ const fustat = Fustat({
   display: "swap",
 });
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -25,7 +26,7 @@ export default async function RootLayout({
           <div className="main-content">
             <div className="inner-content">
               {children}
-
+              <TelegramAnalyticsInit />
               <Analytics />
               <SpeedInsights />
             </div>
