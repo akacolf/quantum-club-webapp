@@ -1,10 +1,10 @@
 import "./globals.css";
+import React from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { Fustat } from "next/font/google";
 import ClientProviders from "./providers/ClientProviders";
-import TelegramAnalyticsInit from "./components/TelegramAnalyticsInit";
 
 const fustat = Fustat({
   subsets: ["latin"],
@@ -26,7 +26,6 @@ export default function RootLayout({
           <div className="main-content">
             <div className="inner-content">
               {children}
-              <TelegramAnalyticsInit />
               <Analytics />
               <SpeedInsights />
             </div>
