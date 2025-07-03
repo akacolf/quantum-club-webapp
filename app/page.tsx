@@ -1,10 +1,10 @@
 import LoginScreen from "./login/page";
-import TelegramAnalyticsInit from "./components/TelegramAnalyticsInit";
+import TelegramAnalytics from "./components/telegramAnalytics";
 
 export default function Page() {
   return (
     <>
-    <TelegramAnalyticsInit />
+    <TelegramAnalytics />
     <LoginScreen />
     </>
   )
