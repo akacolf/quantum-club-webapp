@@ -14,5 +14,4 @@ export default function TelegramAnalytics() {
         appName: "quantum_club",
         env: "PROD",
       })
-      return null;
     };
