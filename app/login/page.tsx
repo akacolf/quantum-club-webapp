@@ -62,17 +62,9 @@ declare global {
   }
 }
 
-//device type interface//
-
-
-
 export default function LoginScreen() {
     const router = useRouter();
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      
-    }
-
     const deviceDetect = async () => {
       type DeviceProps = "mobile" | "desktop"; // Define the DeviceProps type
       const rawDeviceType = await deviceTypeDetector(); // Get the raw string
