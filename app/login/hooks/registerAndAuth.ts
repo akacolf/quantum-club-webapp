@@ -74,16 +74,12 @@ export function useRegisterAndAuth() {
       if (typeof window !== "undefined" && !window.Telegram?.WebApp) {
         return;
       }
-      const maintenance = await getMaintenance();
-      sessionStorage.setItem("maintenance", maintenance);
       let WebApp;
       if (typeof window !== "undefined") {
         WebApp = window?.Telegram?.WebApp;
       }
-      if (process.env.NODE_ENV === "production" && maintenance) {
-        router.push(`/maintenance`);
-        return;
-      }
+      //const maintenance = await getMaintenance();
+      
       const user = WebApp?.initDataUnsafe.user;
       if (user) {
         const telegramId = user.id;
@@ -94,7 +90,7 @@ export function useRegisterAndAuth() {
           username = "Quantum User";
           setUsername("Quantum User");
         } else {
-          username = username;
+          //username = username;
           setUsername(username);
         }
 
@@ -121,19 +117,38 @@ export function useRegisterAndAuth() {
         let newUser;
 
         const stringID = String(telegramId);
-        const rawData = encryptData(stringID);
-        const cleanData = (await rawData).toString();
+        //paralelling maintenance and rawData
+        const [maintenance, rawData] = await Promise.all([
+          getMaintenance(),
+          encryptData(stringID),
+        ]);
+        sessionStorage.setItem("maintenance", maintenance);
+      
+      if (process.env.NODE_ENV === "production" && maintenance) {
+        router.push(`/maintenance`);
+        return;
+      }
+        //const rawData = encryptData(stringID);
+        //update cleanData
+        const cleanData = rawData.toString();
         const telegramIdEncrypted = cleanData
           .replace(/['"]+/g, "")
           .replace(/[^a-zA-Z0-9]/g, "");
         setTelegramId(telegramIdEncrypted);
-
+        
+  
         //firebase auth
         const userId = await userAuth(telegramIdEncrypted);
         if (!userId) return registerAndAuth();
         //have user?
         const userReferance = doc(dbfs, "user", userId);
-        const userDataSnapshot = await getDoc(userReferance);
+        //const userDataSnapshot = await getDoc(userReferance);
+        const valueData = doc(dbfs, "user", userId, "miningData", "values");
+        //const valueDataSnapshot = await getDoc(valueData);
+        const [userDataSnapshot, valueDataSnapshot] = await Promise.all([
+          getDoc(userReferance),
+          getDoc(valueData),
+        ]);
         if (!userDataSnapshot.data()) {
           newUser = true;
         } else {
@@ -151,7 +166,7 @@ export function useRegisterAndAuth() {
           }
           const now = new Date().toISOString();
           const userArray = `telegramId=${telegramId}&&isBot=${isBotBoolean}&&isPremium=${isPremiumBoolean}&&referred=true&&rank=${rank}&&createdAt=${now}`;
-          setDoc(
+          await setDoc(
             userReferance,
             {
               userArray: userArray,
@@ -180,31 +195,13 @@ export function useRegisterAndAuth() {
           localStorage.setItem("QAmount", String(quantValue));
           if (referrerID) {
             if (referrerID != userId) {
-              try {
-                const haveUser = doc(
-                  dbfs,
-                  "user",
-                  referrerID,
-                  "miningData",
-                  "values"
-                );
-                const haveUserSnap = await getDoc(haveUser);
-                const referrerIDinDB = haveUserSnap.exists();
-                if (referrerIDinDB) {
-                  const userReferance = doc(
+                const userReferance = doc(
                     dbfs,
                     "user",
                     referrerID,
                     "referrals",
                     userId
                   );
-                  const snapshotReferance = await getDoc(userReferance);
-
-                  if (!snapshotReferance.exists()) {
-                    await setDoc(userReferance, {
-                      telegramId: userId,
-                    });
-                  }
                   const referredReferance = doc(
                     dbfs,
                     "user",
@@ -212,9 +209,28 @@ export function useRegisterAndAuth() {
                     "miningData",
                     "values"
                   );
-                  const snapshotReferredValue = await getDoc(referredReferance);
-                  if (snapshotReferredValue.exists()) {
-                    const referredValueData = snapshotReferredValue.data();
+
+                  const [referredSnap, snapshotReferance] = await Promise.all([
+                    getDoc(userReferance),
+                    getDoc(referredReferance),
+                  ]);
+              try {
+                
+                //const haveUserSnap = await getDoc(haveUser);
+                const referrerIDinDB = referredSnap.exists();
+                if (referrerIDinDB) {
+                  
+                  //const snapshotReferance = await getDoc(userReferance);
+
+                  if (!snapshotReferance.exists()) {
+                    await setDoc(userReferance, {
+                      telegramId: userId,
+                    });
+                  }
+                  
+                  //const snapshotReferredValue = await getDoc(referredReferance);
+                  if (referredSnap.exists()) {
+                    const referredValueData = referredSnap.data();
                     const referredAmount = referredValueData?.QuantAmount;
                     let referredTenAmount = 0;
                     if (referredAmount) {
@@ -239,9 +255,10 @@ export function useRegisterAndAuth() {
               }
             }
           }
+          
           const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
 
-          setDoc(
+          await setDoc(
             dailyRef,
             {
               daily: 1,
@@ -272,15 +289,15 @@ export function useRegisterAndAuth() {
           if (userSnapshot.exists()) {
             const dataUsername = userSnapshot.data().username;
             if (username !== dataUsername) {
-              updateDoc(userRef, {
+              await updateDoc(userRef, {
                 username: username,
               });
             }
           }
-          const valueData = doc(dbfs, "user", userId, "miningData", "values");
-          const snapshot = await getDoc(valueData);
-          if (snapshot.exists()) {
-            const data = snapshot.data();
+          //const valueData = doc(dbfs, "user", userId, "miningData", "values");
+          //const snapshot = await getDoc(valueData);
+          if (valueDataSnapshot.exists()) {
+            const data = valueDataSnapshot.data();
             const Amount = Number(data.QuantAmount);
             const remainingSolveToEarn = data.remainingSolveToEarn;
             setRemainingSolveToEarn(remainingSolveToEarn);
@@ -342,7 +359,7 @@ export function useRegisterAndAuth() {
                 ); // using get time we have to convert them to operations otherwise they're not gonna be subtracted //
                 const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
                 if (diffInDays >= 2) {
-                  setDoc(
+                  await setDoc(
                     dailyRef,
                     {
                       daily: 1,
@@ -361,7 +378,7 @@ export function useRegisterAndAuth() {
                 }
               }
             } else {
-              setDoc(
+              await setDoc(
                 dailyRef,
                 {
                   daily: 1,
@@ -374,7 +391,7 @@ export function useRegisterAndAuth() {
               }
             }
           } else {
-            setDoc(dailyRef, {
+            await setDoc(dailyRef, {
               daily: 1,
             });
             setDaily(1);
