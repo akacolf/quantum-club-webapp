@@ -1,63 +1,11 @@
-"use client";
-import React from "react";
 import "@/app/globals.css";
-import DeviceDetection from "./components/DeviceDetection";
-import { useRegisterAndAuth } from "./hooks/registerAndAuth";
-import Loader from "../components/MainLoader";
-import { useSafeArea } from "./hooks/safeArea";
+import LoginClient from "./components/LoginClient";
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: {
-        initData: {
-          user?: {
-            is_premium:boolean,
-            is_bot:boolean,
-            id: number,
-            username: string | null;
-            first_name: string;
-          }
-          start_param?: string;
-        };
-        initDataUnsafe: {
-          user?: {
-            is_premium:boolean,
-            is_bot:boolean,
-            id: number,
-            username: string | null;
-            first_name: string;
-          }
-          start_param?: string;
-        };
-        ready: () => void;
-        setHeaderColor: (color: string) => void;
-        setBackgroundColor: (color: string) => void;
-        requestFullscreen: () => void;
-        openTelegramLink: (link:string|undefined) => void;
-        navigator: () => void;
-        disableVerticalSwipes: () => void;
-        BackButton: {
-          hide: () => void;
-          show: () => void;
-          onClick: (callback:()=>void) => void;
-          offClick: (callback:()=>void) => () => void;
-        };
-        safeAreaInset: {
-          top: number; 
-          bottom: number;
-          left: number;
-          right: number;
-        };
-      };
-    };
-  }
+export default function LoginScreen() {
+  return <LoginClient />;
 };
 
-export default function Login() {
-  useRegisterAndAuth();
-  useSafeArea();
-
+{
   {/*async function encryptData(telegramId:string) {
     const response = await fetch("/api/encryptID", {
       method: "POST",
@@ -108,11 +56,5 @@ export default function Login() {
       console.error(error);
     }
   }*/}
-  return (
-    <>
-    <DeviceDetection />
-    <Loader />
-    </>
-  )
-};
+}
 

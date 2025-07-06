@@ -1,4 +1,3 @@
-"use client";
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";

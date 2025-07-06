@@ -1,10 +1,9 @@
-"use client";
 import { useEffect } from "react";
-import { useRegisterAndAuth } from "../hooks/registerAndAuth";
+import { useRegisterAndAuth } from "./registerAndAuth";
 import deviceTypeDetector from "@/utils/deviceDetection";
 import { authenticateUser } from "@/app/components/telegramAuth";
 
-export default function DeviceDetection() {
+export function useDeviceDetection() {
   const { registerAndAuth } = useRegisterAndAuth();
   useEffect(() => {
     const deviceDetect = async () => {
@@ -31,11 +30,9 @@ export default function DeviceDetection() {
         if (authenticated) {
           await registerAndAuth();
         }
-        window?.Telegram?.WebApp.BackButton.hide();
+        WebApp.BackButton.hide(); //window?.Telegram?.WebApp.BackButton.hide();
       }
     };
     deviceDetect();
-  }, []);
-
-  return null;
+  }, [registerAndAuth]);
 };

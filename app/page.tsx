@@ -1,5 +1,5 @@
-import Login from "./login/page";
+import LoginScreen from "./login/page";
 
 export default function Page() {
-  return <Login />;
+  return <LoginScreen />;
 }
