@@ -442,7 +442,20 @@ export function useRegisterAndAuth() {
             }
             setWalletAddress(null);
           };
-          {/*const checkWallet = await fetch(
+          
+          router.push("/home");
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return { registerAndAuth };
+};
+
+//check wallet
+{/*const checkWallet = await fetch(
             "/api/tonconnections/checktonWallet",
             {
               method: "POST",
@@ -479,13 +492,3 @@ export function useRegisterAndAuth() {
             localStorage.setItem("lastactivetime", `${Date.now()}`);
           }
           setLastActiveTime(`${Date.now()}`);*/}
-          router.push("/home");
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return { registerAndAuth };
-};
