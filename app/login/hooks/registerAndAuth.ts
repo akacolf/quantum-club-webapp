@@ -296,6 +296,13 @@ export function useRegisterAndAuth() {
           }
           //const valueData = doc(dbfs, "user", userId, "miningData", "values");
           //const snapshot = await getDoc(valueData);
+          const userRankRef = doc(dbfs, "userRanks", userId);
+            const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
+            //paralleling rank and daily
+            const [rankSnapshot, snapshotDaily] = await Promise.all([
+              getDoc(userRankRef),
+              getDoc(dailyRef),
+            ]);
           if (valueDataSnapshot.exists()) {
             const data = valueDataSnapshot.data();
             const Amount = Number(data.QuantAmount);
@@ -313,8 +320,10 @@ export function useRegisterAndAuth() {
             SetMainQuantAmount(formattedAmount);
             sessionStorage.setItem("firstQuant", formattedfirstQuant);
             localStorage.setItem("QAmount", formattedAmount);
-            const userRankRef = doc(dbfs, "userRanks", userId);
-            const rankSnapshot = await getDoc(userRankRef);
+            
+            //const rankSnapshot = await getDoc(userRankRef);
+            
+            
             if (rankSnapshot.exists()) {
               const userRank = rankSnapshot.data().rank;
               setUserRank(userRank);
@@ -336,8 +345,8 @@ export function useRegisterAndAuth() {
               setUserRank(data.rank);
             }
           }
-          const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
-          const snapshotDaily = await getDoc(dailyRef);
+          //const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
+          //const snapshotDaily = await getDoc(dailyRef);
           if (snapshotDaily.exists()) {
             const checktime = snapshotDaily.data()?.checktime;
             const daily = snapshotDaily.data()?.daily;
@@ -400,7 +409,40 @@ export function useRegisterAndAuth() {
             }
           }
           //CHECK WALLET
-          const checkWallet = await fetch(
+          const walletPromise = fetch("/api/tonconnections/checktonWallet", {
+            method: "POST",
+            headers: { "Content-Type" : "application/json" },
+            body: JSON.stringify({ userId }),
+          });
+          const lastActiveTime = Date.now();
+          if (typeof window !== "undefined") {
+            localStorage.setItem("lastactivetime", `${lastActiveTime}`);
+          }
+          setLastActiveTime(`${lastActiveTime}`);
+          const checkWallet = await walletPromise;
+          const responseCheckWallet = await checkWallet.json();
+          const haveWallet = responseCheckWallet.haveWallet;
+          const walletAddressRes = responseCheckWallet.address;
+          if (haveWallet) {
+            try {
+              if (typeof window !== "undefined") {
+                localStorage.setItem("walletAddress", walletAddressRes);
+              }
+              setWalletAddress(walletAddressRes);
+            } catch (error) {
+              if (error instanceof Error) {
+                console.error(error.message);
+              } else {
+                console.error("An unknown error occurred:", error);
+              }
+            }
+          } else {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("walletAddress", "");
+            }
+            setWalletAddress(null);
+          };
+          {/*const checkWallet = await fetch(
             "/api/tonconnections/checktonWallet",
             {
               method: "POST",
@@ -431,12 +473,12 @@ export function useRegisterAndAuth() {
               localStorage.setItem("walletAddress", "");
             }
             setWalletAddress(null);
-          }
+          }*/}
 
-          if (typeof window !== "undefined") {
+          {/*if (typeof window !== "undefined") {
             localStorage.setItem("lastactivetime", `${Date.now()}`);
           }
-          setLastActiveTime(`${Date.now()}`);
+          setLastActiveTime(`${Date.now()}`);*/}
           router.push("/home");
         }
       }
@@ -446,4 +488,4 @@ export function useRegisterAndAuth() {
   };
 
   return { registerAndAuth };
-}
+};
