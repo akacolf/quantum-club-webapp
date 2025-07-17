@@ -9,7 +9,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { /*ReactNode*/ useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameContext } from "@/app/contexts/MiningContext";
 //import tasks from "@/app/earn/tasks";//
