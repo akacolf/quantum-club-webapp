@@ -1,32 +1,9 @@
-"use client";
+import RoadmapClient from "./RoadmapClient";
 
-import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-const Roadmap = () => {
-  const router = useRouter();
-  useEffect(() => {
-      const tg = window.Telegram?.WebApp;
-      if(tg){
-      tg.ready();
-      const handleBackButtonClick = () => {
-        router.replace('/home');
-      };
-      tg.BackButton.show();
-      tg.BackButton.onClick(handleBackButtonClick);
-      return () => {
-        tg.BackButton.offClick(handleBackButtonClick);
-       
-      };
-      }else{
-        console.error("Telegram WebApp not available");
-      }
-      
-      
-    }, [router]);
-
+export default function Roadmap() {
   return (
       <div className="p-4">
+        <RoadmapClient />
         <div className="font-medium text-3xl">Roadmap</div>
         <ol className="relative border-s border-[#303030] mt-8">
           <li className="mb-10 ms-6">
@@ -234,5 +211,3 @@ const Roadmap = () => {
       </div>
   );
 };
-
-export default Roadmap;
