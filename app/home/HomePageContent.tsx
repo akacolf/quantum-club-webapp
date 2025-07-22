@@ -9,7 +9,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { /*ReactNode*/ useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameContext } from "@/app/contexts/MiningContext";
 //import tasks from "@/app/earn/tasks";//
@@ -907,7 +907,7 @@ const HomePageContent = () => {
                           filterUnits="userSpaceOnUse"
                         >
                           <feFlood
-                            flood-opacity="0"
+                            floodOpacity="0"
                             result="BackgroundImageFix"
                           />
                           <feBlend
@@ -1047,7 +1047,7 @@ const HomePageContent = () => {
                         filterUnits="userSpaceOnUse"
                       >
                         <feFlood
-                          flood-opacity="0"
+                          floodOpacity="0"
                           result="BackgroundImageFix"
                         />
                         <feBlend
