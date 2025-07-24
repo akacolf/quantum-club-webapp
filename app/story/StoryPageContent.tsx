@@ -1,12 +1,13 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { GameProvider, useGameContext } from "../contexts/MiningContext";
+import { useGameContext } from "../contexts/MiningContext";
 import { motion, AnimatePresence } from "framer-motion";
+
 const StoryPageContent = () => {
   const router = useRouter();
   useEffect(() => {
-    router.prefetch("/story");
     router.prefetch("/home");
   });
   const [isPaused, setIsPaused] = useState(false);
@@ -38,7 +39,7 @@ const StoryPageContent = () => {
       setProgress(0);
     }
   };
-  const stories = [
+  const stories = useMemo(() => [
     {
       id: 1,
       title: "Story 1",
@@ -218,7 +219,7 @@ const StoryPageContent = () => {
       ),
       duration: 120,
     },
-  ];
+  ], [quantValue, rank]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(stories[currentStoryIndex].duration);
   const [progress, setProgress] = useState(0);
@@ -237,7 +238,10 @@ const StoryPageContent = () => {
         });
       }, 75);
       timer.current = interval;
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        timer.current = null;
+      };
     }
   }, [currentStoryIndex, isPaused]);
   // Update the progress bar //
@@ -255,6 +259,7 @@ const StoryPageContent = () => {
     setIsPaused(true);
     if (timer.current) {
       clearInterval(timer.current);
+      timer.current = null;
     }
   };
   const handleUp = () => {
@@ -273,7 +278,6 @@ const StoryPageContent = () => {
           }
           onTouchEnd={handleUp}
         >
-          <GameProvider>
             {/* Progress Bar */}
             <div
               className="flex justify-between"
@@ -299,7 +303,7 @@ const StoryPageContent = () => {
                         }%`, // The completed story is done, now the current story is in progress
                         backgroundColor: "rgb(0,122,255)",
                         borderRadius: "10px",
-                        transition: "width 0.5s ease-out",
+                        
                       }}
                     />
                   </div>
@@ -339,7 +343,6 @@ const StoryPageContent = () => {
             <div>
               {currentStory.content}
             </div>
-          </GameProvider>
         </div>
       </motion.div>
     </AnimatePresence>

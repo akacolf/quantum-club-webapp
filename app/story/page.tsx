@@ -1,4 +1,10 @@
-'use client';
+import StoryClient from "./StoryClient";
+
+export default function StoryPage() {
+  return <StoryClient />;
+};
+
+/*'use client';
 
 import React, {  useEffect } from 'react';
 import StoryPageContent from './StoryPageContent';
@@ -44,4 +50,4 @@ const StoryPage = () => {
   );
 };
 
-export default StoryPage;
+export default StoryPage;*/
