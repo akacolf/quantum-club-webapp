@@ -10,10 +10,10 @@ import {
   leaderboardStatImg,
   secondPlaceMedal,
   thirdPlaceMedal,
-} from "../../public/images";
+} from "../../public";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
-import trophyAnimationData from "@/public/images/trophy-lottie.json";
-import smilingAnimationData from "@/public/images/smiling-lottie.json";
+import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
+import smilingAnimationData from "@/public/lottie/smiling-lottie.json";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 const LeaderboardPageContent = () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import ecosystemAnimationData from "../../public/images/ecosystem-lottie.json";
+import ecosystemAnimationData from "@/public/lottie/ecosystem-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 
 const EcosystemPageContent = () => {
