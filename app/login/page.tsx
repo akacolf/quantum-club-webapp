@@ -1,4 +1,3 @@
-import "@/app/globals.css";
 import LoginClient from "./components/LoginClient";
 
 export default function LoginScreen() {

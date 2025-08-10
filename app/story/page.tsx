@@ -1,4 +1,4 @@
-import StoryClient from "./StoryClient";
+import StoryClient from "./client/StoryClient";
 
 export default function StoryPage() {
   return <StoryClient />;
