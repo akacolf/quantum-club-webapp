@@ -270,7 +270,7 @@ export function useRegisterAndAuth() {
           setDaily(1);
           SetMainQuantAmount(formattedQuant);
           setUsername(username);
-          router.push("/story");
+          router.push("/home");
           return;
         } else {
           /*if (lastActiveTime) {

@@ -6,12 +6,13 @@ import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { bgSolveToEarnResultsPage } from "@/public/images";
-import { rocketEmoji } from "@/public/images";
-import Image from "next/image";
+import { bgSolveToEarnResultsPage } from "@/public";
+import rocketAnimationData from "@/public/lottie/rocket-lottie.json";
+import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import { useEffect, useRef, useState } from "react";
 
-import { useEffect, useState } from "react";
 const SolveToEarnResults = () => {
+  const lottieRef = useRef<LottieRefCurrentProps>(null);
   const [buttonClicked, setButtonClicked] = useState(false);
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -103,12 +104,14 @@ const SolveToEarnResults = () => {
           style={{ backgroundImage: `url(${bgSolveToEarnResultsPage.src})` }}
         >
           <div className="flex flex-col items-center justify-center flex-grow">
-            <Image
-              src={rocketEmoji}
-              alt="rocket"
-              width={100}
-              height={100}
+            <Lottie 
+            lottieRef={lottieRef}
+            animationData={rocketAnimationData} 
+            loop={true}
+            autoplay={true}
+            style={{width: "5em", height: "5em"}}
             />
+
 
             <div className="font-semibold text-center text-lg mt-3">You&apos;ve been solving non-stop! <br />Keep going!</div>
             {/*informational cards*/}

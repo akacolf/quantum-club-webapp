@@ -9,7 +9,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { /*ReactNode*/ useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameContext } from "@/app/contexts/MiningContext";
 //import tasks from "@/app/earn/tasks";//
@@ -21,11 +21,11 @@ import toast, { ToastBar, Toaster } from "react-hot-toast";
 /*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
 import { ButtonLoader } from "@/app/components/ButtonLoader";
-import { bgSolveToEarnCard } from "@/public/images";
+import { bgSolveToEarnCard } from "@/public";
 import HomeCarousel from "@/app/components/homepagecarousel/Carousel";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
-import hundredAnimationData from "../../public/images/hundred-lottie.json";
-import fireAnimationData from "../../public/images/fire-lottie.json";
+import hundredAnimationData from "@/public/lottie/hundred-lottie.json";
+import fireAnimationData from "@/public/lottie/fire-lottie.json";
 import Link from "next/link";
 
 const calculateRemainingTime = (timestamp: number) => {
@@ -907,7 +907,7 @@ const HomePageContent = () => {
                           filterUnits="userSpaceOnUse"
                         >
                           <feFlood
-                            flood-opacity="0"
+                            floodOpacity="0"
                             result="BackgroundImageFix"
                           />
                           <feBlend
@@ -1047,7 +1047,7 @@ const HomePageContent = () => {
                         filterUnits="userSpaceOnUse"
                       >
                         <feFlood
-                          flood-opacity="0"
+                          floodOpacity="0"
                           result="BackgroundImageFix"
                         />
                         <feBlend

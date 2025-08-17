@@ -9,7 +9,7 @@ import Loader from "@/app/components/MainLoader";
 import { collection, doc, getDoc, getDocs,getCountFromServer } from 'firebase/firestore';
 import { ButtonLoader } from "@/app/components/ButtonLoader";
 import InvitePopup from "./invite-popup";
-import handshakeAnimationData from "@/public/images/handshake-lottie.json";
+import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 const FriendsPageContent = () => {
 const lottieRef = useRef<LottieRefCurrentProps>(null);

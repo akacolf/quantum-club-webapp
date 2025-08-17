@@ -11,11 +11,11 @@ import {
   carouselBgJoinTG,
   bgTgeProgressCard,
   bgTradingCardImg,
-} from "@/public/images";
+} from "@/public";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
-import storyAnimationData from "../../../public/images/story-lottie.json";
-import goldmedalAnimationData from "../../../public/images/gold-medal-lottie.json";
-import diamondAnimationData from "../../../public/images/diamond-lottie.json";
+import storyAnimationData from "@/public/lottie/story-lottie.json";
+import goldmedalAnimationData from "@/public/lottie/gold-medal-lottie.json";
+import diamondAnimationData from "@/public/lottie/diamond-lottie.json";
 
 const HomeCarousel: React.FC = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
