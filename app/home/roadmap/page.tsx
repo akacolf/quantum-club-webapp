@@ -1,9 +1,10 @@
-import RoadmapClient from "./RoadmapClient";
+'use client';
+import { useTelegramBackButton } from "@/app/hooks/useBackButton";
 
 export default function Roadmap() {
+  useTelegramBackButton();
   return (
       <div className="p-4">
-        <RoadmapClient />
         <div className="font-medium text-3xl">Roadmap</div>
         <ol className="relative border-s border-[#303030] mt-8">
           <li className="mb-10 ms-6">

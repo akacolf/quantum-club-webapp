@@ -50,7 +50,7 @@ const StoryPageContent = () => {
  useTelegramBackButton();
 
   return (
-    <div className="mt-6 flex flex-col">
+    <div className="mt-6 flex flex-col space-y-4">
       <div className="card bg-base-200 rounded-xl h-20 w-9/10 mx-auto">
         <div className="flex items-center justify-between">
           <div className="card-body p-4">
@@ -72,7 +72,7 @@ const StoryPageContent = () => {
         </div>
       </div>
 
-      <div className="stats mt-6">
+      <div className="stats">
         <div className="stat place-items-center">
           <div className="stat-title">QNTM Earned</div>
           <div className="stat-value">{quantValue}</div>
@@ -93,6 +93,7 @@ const StoryPageContent = () => {
           </div>
         </div>
       </div>
+      {/*Include trading stats in the future */}
     </div>
   );
 };

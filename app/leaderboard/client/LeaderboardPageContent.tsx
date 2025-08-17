@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import Loader from "../components/MainLoader";
+import Loader from "../../components/MainLoader";
 import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -10,12 +10,12 @@ import {
   leaderboardStatImg,
   secondPlaceMedal,
   thirdPlaceMedal,
-} from "../../public";
+} from "../../../public";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
 import smilingAnimationData from "@/public/lottie/smiling-lottie.json";
 import Image from "next/image";
-import { useTelegramBackButton } from "../hooks/useBackButton";
+import { useTelegramBackButton } from "../../hooks/useBackButton";
 import { SvgProps } from "@/types/svg";
 
 const Logo = React.memo(({ width = "2.5em", height = "2.5em"}: SvgProps) => (
