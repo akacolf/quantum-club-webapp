@@ -2,9 +2,9 @@
 
 import React, { useEffect } from "react";
 import { getAuth } from "firebase/auth";
-import EcosystemPageContent from "./EcosystemPageContent";
+import EcosystemContent from "./Content";
 
-const EcosystemPage = () => {
+const Ecosystem = () => {
   useEffect(() => {
     if (typeof window !== "undefined") {
       //telegram check
@@ -39,7 +39,7 @@ const EcosystemPage = () => {
     }
   }, []);
 
-  return <EcosystemPageContent />;
+  return <EcosystemContent />;
 };
 
-export default EcosystemPage;
+export default Ecosystem;

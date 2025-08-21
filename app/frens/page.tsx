@@ -2,9 +2,9 @@
 
 import React, {  useEffect } from 'react';
 import { getAuth } from 'firebase/auth';
-import FriendsPageContent from './FriendsPageContent/FriendsPageContent';
+import FrensContent from './Content/Content';
 
-const FriendsPage = () => {
+const Frens = () => {
  
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -37,9 +37,8 @@ const FriendsPage = () => {
       return;
     }
   }, []);
-  return (
-            <FriendsPageContent />
-  );
+  
+  return <FrensContent />;
 };
 
-export default FriendsPage;
+export default Frens;

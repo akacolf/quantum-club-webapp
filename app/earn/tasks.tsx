@@ -1,8 +1,6 @@
-// Tasks List//
-
 import { EarnTask } from "@/lib/interfaces";
 
-const tasks:EarnTask[] = [
+const tasks: EarnTask[] = [
   //Limited
   {
     id: "UGhWGdH0R9PADRNQdw2XkLsJw",
@@ -172,15 +170,15 @@ const tasks:EarnTask[] = [
   //Partners
 ];
 
-// Görevleri Filtreleme İşlevi
+// filtering tasks function
 export const filterTasksByGroup = (category:string) => {
   return tasks.filter((task) => task.category === category);
 };
 
-// Tüm Görevleri Alma
+// getting all the tasks
 export const getAllTasks = () => {
   return tasks;
 };
 
-// Varsayılan Olarak Tüm Görevler
+//exporting default tasks
 export default tasks;

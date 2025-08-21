@@ -1,7 +1,8 @@
 'use client';
 
 import { ToastBar, Toaster } from "react-hot-toast";
-const CopyLinkNotification = () => {
+
+const CopyToaster = () => {
     return(
         <Toaster toastOptions={{
             duration: 3000,
@@ -43,4 +44,4 @@ const CopyLinkNotification = () => {
     )
 }
 
-export default CopyLinkNotification;
+export default CopyToaster;

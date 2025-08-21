@@ -9,6 +9,7 @@ import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
+
 export default function AnswerPage() {
     const { telegramId, SetMainQuantAmount } = useGameContext();
     const [taskId, setTaskId] = useState("");

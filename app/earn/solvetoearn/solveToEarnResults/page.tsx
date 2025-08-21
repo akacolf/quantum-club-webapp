@@ -6,7 +6,6 @@ import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { bgSolveToEarnResultsPage } from "@/public";
 import rocketAnimationData from "@/public/lottie/rocket-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import { useEffect, useRef, useState } from "react";
@@ -100,9 +99,7 @@ const SolveToEarnResults = () => {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <div className="fixed inset-0 flex flex-col justify-center items-center bg-cover bg-center h-screen w-full"
-          style={{ backgroundImage: `url(${bgSolveToEarnResultsPage.src})` }}
-        >
+        <div className="fixed inset-0 flex flex-col justify-center items-center h-screen w-full">
           <div className="flex flex-col items-center justify-center flex-grow">
             <Lottie 
             lottieRef={lottieRef}

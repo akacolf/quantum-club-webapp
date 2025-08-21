@@ -30,7 +30,7 @@ import { EarnTask } from "@/lib/interfaces";
   return ` ${hours}:${minutes}:${seconds}`;
 };*/
 
-const EarnPageContent = () => {
+const EarnContent = () => {
   const [taskS, setTasks] = useState<EarnTask[]>([]);
   const [loading, setLoading] = useState(true);
   const limitedTXT = "Limited";
@@ -1314,4 +1314,4 @@ const EarnPageContent = () => {
   );
 };
 
-export default EarnPageContent;
+export default EarnContent;

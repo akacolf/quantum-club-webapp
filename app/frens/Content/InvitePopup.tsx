@@ -19,11 +19,16 @@ const InvitePopup = () => {
       setIsOpen(false); //unmount the popup after the animation//
     }, 200); //match animation duration//
   };
-  const handleSendInviteLink = () => () => {
+
+  const handleSendInviteLink = () => {
     const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(
       inviteLink
     )}&text=The Quantum Era on Telegram has begun.`;
-    window.open(telegramUrl, "_blank");
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openTelegramLink(inviteLink);
+    } else {
+      window.open(telegramUrl, "_blank");
+    }
   };
 
   function handleCopyLink() {

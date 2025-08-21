@@ -4,7 +4,7 @@ import React, { useRef } from "react";
 import ecosystemAnimationData from "@/public/lottie/ecosystem-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 
-const EcosystemPageContent = () => {
+const EcosystemContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
 
   return (
@@ -21,11 +21,4 @@ const EcosystemPageContent = () => {
   )
 };
 
-export default EcosystemPageContent;
-
-{
-  /*<div className="p-4 text-4xl font-bold">
-            Ecosystem
-        </div>*/
-
-}
+export default EcosystemContent;

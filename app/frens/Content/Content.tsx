@@ -1,17 +1,19 @@
 "use client";
+
 import React, {  useEffect, useState, useRef } from "react";
 import { dbfs } from "@/app/firebase/firebaseConfig";
 import { useFrenContext } from "@/app/contexts/FrensContext";
-import CopyLinkNotification from "./copied-notification-info";
+import CopyLinkNotification from "./CopyToaster";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import Loader from "@/app/components/MainLoader";
 import { collection, doc, getDoc, getDocs,getCountFromServer } from 'firebase/firestore';
 import { ButtonLoader } from "@/app/components/ButtonLoader";
-import InvitePopup from "./invite-popup";
+import InvitePopup from "./InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
-const FriendsPageContent = () => {
+
+const FrensContent = () => {
 const lottieRef = useRef<LottieRefCurrentProps>(null);
   const { referralsNum, setReferralNum } = useFrenContext();
   const router = useRouter();
@@ -315,4 +317,4 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
   );
 };
 
-export default FriendsPageContent;
+export default FrensContent;

@@ -8,7 +8,7 @@ import { dbfs } from "@/app/firebase/firebaseConfig";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import Loader from "@/app/components/MainLoader";
 
-const SolveToEarnPageContent = () => {
+const SolveToEarnContent = () => {
   const [again, setAgain] = useState(true);
   const [answers, setAnswers] = useState(0);
   const [leftTime, setLeftTime] = useState(60);
@@ -469,4 +469,4 @@ const SolveToEarnPageContent = () => {
     </AnimatePresence>
   )
 }
-export default SolveToEarnPageContent;
+export default SolveToEarnContent;
