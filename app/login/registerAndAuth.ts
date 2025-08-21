@@ -7,6 +7,7 @@ import { getMaintenance } from "@/lib/getMaintenance";
 import { getAuth, signInWithCustomToken, User } from "firebase/auth";
 
 export function useRegisterAndAuth() {
+
   //encrypt data
   async function encryptData(telegramId: string): Promise<string> {
     const response = await fetch("/api/encryptID", {
@@ -23,6 +24,7 @@ export function useRegisterAndAuth() {
     const encryptedData = JSON.stringify(firstData.encryptedBase64);
     return encryptedData;
   }
+
   //user auth
   async function userAuth(
     telegramIdEncrypted: string
@@ -78,7 +80,7 @@ export function useRegisterAndAuth() {
       if (typeof window !== "undefined") {
         WebApp = window?.Telegram?.WebApp;
       }
-      //const maintenance = await getMaintenance();
+      
       
       const user = WebApp?.initDataUnsafe.user;
       if (user) {
@@ -90,7 +92,7 @@ export function useRegisterAndAuth() {
           username = "Quantum User";
           setUsername("Quantum User");
         } else {
-          //username = username;
+          
           setUsername(username);
         }
 
@@ -108,7 +110,7 @@ export function useRegisterAndAuth() {
               rank = "STAR";
             }
           } else {
-            rank = "Unkown"; // Eğer ilk karakter sayı değilse
+            rank = "Unknown"; //if the first character is not a number
           }
         }
 
@@ -128,7 +130,7 @@ export function useRegisterAndAuth() {
         router.push(`/maintenance`);
         return;
       }
-        //const rawData = encryptData(stringID);
+        
         //update cleanData
         const cleanData = rawData.toString();
         const telegramIdEncrypted = cleanData
@@ -140,13 +142,13 @@ export function useRegisterAndAuth() {
         //firebase auth
         const userId = await userAuth(telegramIdEncrypted);
         if (!userId) return registerAndAuth();
-        //have user?
-        const userReferance = doc(dbfs, "user", userId);
-        //const userDataSnapshot = await getDoc(userReferance);
+        //does the user exist?
+        const userReference = doc(dbfs, "user", userId);
+        
         const valueData = doc(dbfs, "user", userId, "miningData", "values");
-        //const valueDataSnapshot = await getDoc(valueData);
+       
         const [userDataSnapshot, valueDataSnapshot] = await Promise.all([
-          getDoc(userReferance),
+          getDoc(userReference),
           getDoc(valueData),
         ]);
         if (!userDataSnapshot.data()) {
@@ -167,7 +169,7 @@ export function useRegisterAndAuth() {
           const now = new Date().toISOString();
           const userArray = `telegramId=${telegramId}&&isBot=${isBotBoolean}&&isPremium=${isPremiumBoolean}&&referred=true&&rank=${rank}&&createdAt=${now}`;
           await setDoc(
-            userReferance,
+            userReference,
             {
               userArray: userArray,
               username: username,
@@ -195,14 +197,14 @@ export function useRegisterAndAuth() {
           localStorage.setItem("QAmount", String(quantValue));
           if (referrerID) {
             if (referrerID != userId) {
-                const userReferance = doc(
+                const userReference = doc(
                     dbfs,
                     "user",
                     referrerID,
                     "referrals",
                     userId
                   );
-                  const referredReferance = doc(
+                  const referredReference = doc(
                     dbfs,
                     "user",
                     referrerID,
@@ -210,25 +212,25 @@ export function useRegisterAndAuth() {
                     "values"
                   );
 
-                  const [referredSnap, snapshotReferance] = await Promise.all([
-                    getDoc(userReferance),
-                    getDoc(referredReferance),
+                  const [referredSnap, snapshotReference] = await Promise.all([
+                    getDoc(userReference),
+                    getDoc(referredReference),
                   ]);
               try {
                 
-                //const haveUserSnap = await getDoc(haveUser);
+             
                 const referrerIDinDB = referredSnap.exists();
                 if (referrerIDinDB) {
                   
-                  //const snapshotReferance = await getDoc(userReferance);
+                
 
-                  if (!snapshotReferance.exists()) {
-                    await setDoc(userReferance, {
+                  if (!snapshotReference.exists()) {
+                    await setDoc(userReference, {
                       telegramId: userId,
                     });
                   }
                   
-                  //const snapshotReferredValue = await getDoc(referredReferance);
+                 
                   if (referredSnap.exists()) {
                     const referredValueData = referredSnap.data();
                     const referredAmount = referredValueData?.QuantAmount;
@@ -241,7 +243,7 @@ export function useRegisterAndAuth() {
                     }
                     const referredUpdatedAmount =
                       Number(referredAmount) + Number(referredTenAmount);
-                    await updateDoc(referredReferance, {
+                    await updateDoc(referredReference, {
                       QuantAmount: referredUpdatedAmount,
                     });
                   }
@@ -273,17 +275,7 @@ export function useRegisterAndAuth() {
           router.push("/home");
           return;
         } else {
-          /*if (lastActiveTime) {
-            const now = new Date();
-            const lastActive = Number(lastActiveTime);
-            const todayMidnight = new Date(now);
-            todayMidnight.setUTCHours(0, 0, 0, 0);
-            const isBeforeMidnight = lastActive < todayMidnight.getTime();
-            if (isBeforeMidnight) {
-              router.push("/home");
-              return;
-            }
-          }*/
+         
           const userRef = doc(dbfs, "user", userId);
           const userSnapshot = await getDoc(userRef);
           if (userSnapshot.exists()) {
@@ -294,15 +286,20 @@ export function useRegisterAndAuth() {
               });
             }
           }
-          //const valueData = doc(dbfs, "user", userId, "miningData", "values");
-          //const snapshot = await getDoc(valueData);
+         
           const userRankRef = doc(dbfs, "userRanks", userId);
             const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
-            //paralleling rank and daily
-            const [rankSnapshot, snapshotDaily] = await Promise.all([
+
+            //paralleling rank, daily, and wallet
+            const [rankSnapshot, snapshotDaily, walletResponse] = await Promise.all([
               getDoc(userRankRef),
               getDoc(dailyRef),
-            ]);
+              fetch("/api/tonconnections/checktonWallet", {
+            method: "POST",
+            headers: { "Content-Type" : "application/json" },
+            body: JSON.stringify({ userId }),
+          }),
+          ]);
           if (valueDataSnapshot.exists()) {
             const data = valueDataSnapshot.data();
             const Amount = Number(data.QuantAmount);
@@ -321,7 +318,7 @@ export function useRegisterAndAuth() {
             sessionStorage.setItem("firstQuant", formattedfirstQuant);
             localStorage.setItem("QAmount", formattedAmount);
             
-            //const rankSnapshot = await getDoc(userRankRef);
+          
             
             
             if (rankSnapshot.exists()) {
@@ -338,21 +335,20 @@ export function useRegisterAndAuth() {
                 }),
               });
               if (!response.ok) {
-                throw new Error("Network response was not ok");
+                throw new Error("Network response was not okay.");
               }
               const data = await response.json();
               sessionStorage.setItem("userLeaderRank", data.rank);
               setUserRank(data.rank);
             }
           }
-          //const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
-          //const snapshotDaily = await getDoc(dailyRef);
+         
           if (snapshotDaily.exists()) {
             const checktime = snapshotDaily.data()?.checktime;
             const daily = snapshotDaily.data()?.daily;
             if (checktime) {
               if (daily) {
-                //CheckTime ve Daily varsa
+                //if check time and daily exists
                 const formattedDate = new Intl.DateTimeFormat("en-US", {
                   day: "2-digit",
                   month: "2-digit",
@@ -365,7 +361,7 @@ export function useRegisterAndAuth() {
                 const dateChecktime: Date = new Date(checktime);
                 const diffInMs = Math.abs(
                   dateISO.getTime() - dateChecktime.getTime()
-                ); // using get time we have to convert them to operations otherwise they're not gonna be subtracted //
+                );
                 const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
                 if (diffInDays >= 2) {
                   await setDoc(
@@ -409,17 +405,12 @@ export function useRegisterAndAuth() {
             }
           }
           //CHECK WALLET
-          const walletPromise = fetch("/api/tonconnections/checktonWallet", {
-            method: "POST",
-            headers: { "Content-Type" : "application/json" },
-            body: JSON.stringify({ userId }),
-          });
           const lastActiveTime = Date.now();
           if (typeof window !== "undefined") {
             localStorage.setItem("lastactivetime", `${lastActiveTime}`);
           }
           setLastActiveTime(`${lastActiveTime}`);
-          const checkWallet = await walletPromise;
+          const checkWallet = walletResponse;
           const responseCheckWallet = await checkWallet.json();
           const haveWallet = responseCheckWallet.haveWallet;
           const walletAddressRes = responseCheckWallet.address;
@@ -453,42 +444,3 @@ export function useRegisterAndAuth() {
 
   return { registerAndAuth };
 };
-
-//check wallet
-{/*const checkWallet = await fetch(
-            "/api/tonconnections/checktonWallet",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ userId: userId }),
-            }
-          );
-          const responseCheckWallet = await checkWallet.json();
-          const haveWallet = responseCheckWallet.haveWallet;
-          const walletAddressRes = responseCheckWallet.address;
-          if (haveWallet) {
-            try {
-              if (typeof window !== "undefined") {
-                localStorage.setItem("walletAddress", walletAddressRes);
-              }
-              setWalletAddress(walletAddressRes);
-            } catch (error) {
-              if (error instanceof Error) {
-                console.error(error.message);
-              } else {
-                console.error("An unknown error occurred:", error);
-              }
-            }
-          } else {
-            if (typeof window !== "undefined") {
-              localStorage.setItem("walletAddress", "");
-            }
-            setWalletAddress(null);
-          }*/}
-
-          {/*if (typeof window !== "undefined") {
-            localStorage.setItem("lastactivetime", `${Date.now()}`);
-          }
-          setLastActiveTime(`${Date.now()}`);*/}

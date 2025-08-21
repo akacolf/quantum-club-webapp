@@ -7,6 +7,7 @@ export function useDeviceDetection() {
   const { registerAndAuth } = useRegisterAndAuth();
   useEffect(() => {
     const deviceDetect = async () => {
+      try {
       type DeviceProps = "mobile" | "desktop"; // Define the DeviceProps type
       const rawDeviceType = await deviceTypeDetector(); // Get the raw string
       const validDeviceTypes: DeviceProps[] = ["mobile", "desktop"]; // Define valid types
@@ -31,6 +32,9 @@ export function useDeviceDetection() {
           await registerAndAuth();
         }
         WebApp.BackButton.hide(); //window?.Telegram?.WebApp.BackButton.hide();
+      };
+    } catch (error) {
+      console.error("Device detection error:", error);
       }
     };
     deviceDetect();
