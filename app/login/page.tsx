@@ -1,6 +1,6 @@
 import LoginClient from "./LoginClient";
 
-export default function LoginScreen() {
+export default function Login() {
   return <LoginClient />;
 };
 

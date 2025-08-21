@@ -2,7 +2,7 @@
 
 import { useState, useRef, memo } from "react";
 import { useTelegramBackButton } from "@/app/hooks/useBackButton";
-import { useGameContext } from "../../contexts/MiningContext";
+import { useGameContext } from "../contexts/MiningContext";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import sparklesAnimationData from "@/public/lottie/sparkles-lottie.json";
 
@@ -37,7 +37,7 @@ const TelegramSVG = memo(() => (
     ));
     TelegramSVG.displayName = 'TelegramIcon';
 
-const StoryPageContent = () => {
+const StoryContent = () => {
     const lottieRef = useRef<LottieRefCurrentProps>(null);
   const { rank } = useGameContext();
   const [quantValue] = useState(() => {
@@ -98,4 +98,4 @@ const StoryPageContent = () => {
   );
 };
 
-export default StoryPageContent;
+export default StoryContent;

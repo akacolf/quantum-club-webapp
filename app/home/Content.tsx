@@ -103,7 +103,7 @@ function getRankIcon(rank: string | null) {
       return null;
   };
 
-const HomePageContent = () => {
+const HomeContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const {
     MainQuantAmount,
@@ -1989,4 +1989,4 @@ const HomePageContent = () => {
     </div>
   );
 };
-export default HomePageContent;
+export default HomeContent;

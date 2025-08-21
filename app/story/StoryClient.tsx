@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import StoryPageContent from './StoryPageContent';
+import StoryContent from './Content';
 import { getAuth } from 'firebase/auth';
 
 const StoryClient = () => {
@@ -35,7 +35,7 @@ const StoryClient = () => {
 
   }, []);
 
-  return <StoryPageContent />;
+  return <StoryContent />;
 };
 
 export default StoryClient;

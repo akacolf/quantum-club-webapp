@@ -8,7 +8,7 @@ const MaintenanceIcon = React.memo(() => (
 ));
 MaintenanceIcon.displayName = 'MaintenanceIcon';
 
-const MaintenanceScreen = () => {
+const MaintenanceContent = () => {
     const openTelegramGroup = () => {
         window.open("https://t.me/quantumclubinc", "_blank");
     };
@@ -39,4 +39,4 @@ const MaintenanceScreen = () => {
     )
 }
 
-export default MaintenanceScreen;
+export default MaintenanceContent;

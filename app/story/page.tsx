@@ -1,6 +1,6 @@
-import StoryClient from "./client/StoryClient";
+import StoryClient from "./StoryClient";
 
-export default function StoryPage() {
+export default function Story() {
   return <StoryClient />;
 };
 

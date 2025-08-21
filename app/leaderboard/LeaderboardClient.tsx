@@ -2,7 +2,8 @@
 
 import React, {  useEffect } from 'react';
 import { getAuth } from 'firebase/auth';
-import LeaderboardPageContent from './LeaderboardPageContent';
+import LeaderboardContent from './Content';
+
 const LeaderboardClient = () => {
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -39,8 +40,7 @@ const LeaderboardClient = () => {
       }
     }
   }, []);
-  return (
-          <LeaderboardPageContent />  
-  );
+
+  return <LeaderboardContent />;
 }
 export default LeaderboardClient;

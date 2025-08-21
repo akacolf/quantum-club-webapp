@@ -5,12 +5,12 @@ import { getAuth } from 'firebase/auth';
 import Loader from '@/app/components/MainLoader';
 import dynamic from 'next/dynamic';
 
-const HomePageContent = dynamic(() => import('./HomePageContent'), {
+const HomeContent = dynamic(() => import('./Content'), {
   loading: () => <Loader />,
   ssr: false,
 });
 
-const HomePage = () => {
+const Home = () => {
   const [maintenance, setMaintenance] = useState(true);
 
  
@@ -55,10 +55,10 @@ const HomePage = () => {
     <div />
   ) : (
 
-    <HomePageContent />
+    <HomeContent />
  )
 
  );
 };
 
-export default HomePage;
+export default Home;
