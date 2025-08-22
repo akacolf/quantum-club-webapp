@@ -17,16 +17,17 @@ import { useGameContext } from "@/app/contexts/MiningContext";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
 import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
-import toast, { ToastBar, Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 /*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
-import { ButtonLoader } from "@/app/components/ButtonLoader";
-import { bgSolveToEarnCard } from "@/public";
 import HomeCarousel from "@/app/components/homepagecarousel/Carousel";
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
-import hundredAnimationData from "@/public/lottie/hundred-lottie.json";
-import fireAnimationData from "@/public/lottie/fire-lottie.json";
-import Link from "next/link";
+import { LottieRefCurrentProps } from "lottie-react";
+import ClaimToaster from "./components/ClaimToaster";
+import ConnectWallet from "./components/ConnectWallet";
+import QntmBalance from "./components/QntmBalance";
+import DailyCheckIn from "./components/DailyCheck";
+import FarmingQntm from "./components/FarmingQntm";
+import SolveToEarnCard from "./components/SolveToEarnCard";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -117,15 +118,14 @@ const HomeContent = () => {
     setRemainingSolveToEarn,
     remainingSolveToEarn,
   } = useGameContext();
-  const remainingSolveToEarnRef = useRef(remainingSolveToEarn);
+  //const remainingSolveToEarnRef = useRef(remainingSolveToEarn);
   const router = useRouter();
-  //const [rankIcon, setRankIcon] = useState<ReactNode>();
+  const [toastQueue, setToastQueue] = useState<string[]>([]);
+  const [toastMessage, setToastMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
   const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
   const [activeTab, setActiveTab] = useState(false);
-  /*const task = tasks.find(
-    (task) => task.id === "ba1e3046074448f8acb2bfe9797436db"
-  );*/
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
   const [tonConnectUI] = useTonConnectUI();
@@ -135,7 +135,7 @@ const HomeContent = () => {
       setWalletAddress(address);
     },
     [setWalletAddress]
-  ); // Add dependencies
+  );
 
   const handleWalletDisconnection = useCallback(() => {
     setWalletAddress("");
@@ -155,7 +155,7 @@ const HomeContent = () => {
       });
       if (!response.ok) {
         const errorData = await response.text();
-        const parsedError = JSON.parse(errorData); // we parse it as json to throw the error //
+        const parsedError = JSON.parse(errorData);
         throw new Error(`API Error: ${parsedError.error}`);
       }
     },
@@ -176,9 +176,9 @@ const HomeContent = () => {
       try {
         await tonConnectUI.connectionRestored;
 
-        if (!isMounted) return; // Bileşen hala bağlı mı kontrol et
+        if (!isMounted) return; // is the mount connected or not check it
 
-        // Bağlı cüzdan varsa state'i güncelle
+        // if wallet connected update state
         if (tonConnectUI.account?.address) {
           handleWalletConnection(tonConnectUI.account.address);
         } else {
@@ -187,7 +187,7 @@ const HomeContent = () => {
           }
         }
 
-        // Durum değişikliklerini dinle (SADECE BURADA VERİTABANI GÜNCELLE)
+        // listen to status changes (only update database here)
         unsubscribe = tonConnectUI.onStatusChange((wallet) => {
           if (wallet) {
             const address = wallet.account.address;
@@ -206,7 +206,7 @@ const HomeContent = () => {
 
     setup();
 
-    // Temizlik fonksiyonu: Dinleyiciyi kaldır ve bayrağı güncelle
+    // cleaning function: remove the listener and update the flag
     return () => {
       isMounted = false;
       if (unsubscribe) {
@@ -225,7 +225,7 @@ const HomeContent = () => {
     try {
       if (!tonConnectUI) throw new Error("TON Connect is not ready yet");
 
-      // Bağlıysa bağlantıyı kes, değilse modal aç
+      // if it's connected, disconnect. If not, open the modal to connect.
       if (tonConnectUI.connected) {
         await tonConnectUI.disconnect();
       } else {
@@ -310,6 +310,7 @@ const HomeContent = () => {
           `user/${telegramId}/rewardsHistory`
         );
         const snapshotRewards = await getDocs(rewardsRef);
+
         //Task History
         const tasks = !snapshotTasks.empty
           ? snapshotTasks.docs.map((doc) => {
@@ -584,6 +585,7 @@ const HomeContent = () => {
             })
           : [];
         setTaskhistoryList(tasks);
+
         //Claim Day History
         const rewardsHistory = !snapshotRewards.empty
           ? snapshotRewards.docs.map((doc) => {
@@ -622,14 +624,14 @@ const HomeContent = () => {
           const formattedDate = `${year}-${month}-${day}`;
           return formattedDate;
         };
-        // Tarihe göre sırala
+        // sort based on date
         const sortedList = combinedList.sort(
           (a, b) =>
             new Date(convertDate(b.date)).getTime() -
             new Date(convertDate(a.date)).getTime()
         );
 
-        // State'i güncelle
+        // update the state
         setTaskhistoryList(sortedList);
       } catch (error) {
         console.error(error);
@@ -645,7 +647,7 @@ const HomeContent = () => {
   const addNewTask = (newTask: TaskHistory) => {
     setTaskhistoryList((prevList) => {
       const updatedList = [newTask, ...prevList];
-      // Yeni eleman eklendikten sonra sırala
+      // sort after a new element is added
       return updatedList.sort(
         (a, b) =>
           convertToDate(a.date).getTime() - convertToDate(b.date).getTime()
@@ -729,6 +731,7 @@ const HomeContent = () => {
             );
           }
         }
+
         //dailycheckin
         const checkTimeRef = doc(
           dbfs,
@@ -775,7 +778,6 @@ const HomeContent = () => {
             setIsclaimDay(false);
           }
         } else {
-          //console.error("Snapshot yok");
           setDoc(checkTimeRef, {
             daily: 1,
           });
@@ -791,7 +793,7 @@ const HomeContent = () => {
     };
     checkButton();
   }, [setDaily, setRemainingSolveToEarn, telegramId]);
-  const toastQueue: string[] = [];
+ 
   async function ClaimDaily() {
     const claim = async () => {
       try {
@@ -1118,6 +1120,7 @@ const HomeContent = () => {
             });
           }
         }
+
         //dailycheckin
         const checkTimeRef = doc(
           dbfs,
@@ -1228,7 +1231,7 @@ const HomeContent = () => {
               const diffInMs = Math.abs(
                 new Date(formattedDateISO).getTime() -
                   new Date(checktime).getTime()
-              ); // use get time for accurate calc//
+              );
               const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
               const quantReward = dailyDay <= 7 ? (daily - 1) * 100 + 50 : 650;
               const rewardDay = quant + quantReward;
@@ -1446,22 +1449,25 @@ const HomeContent = () => {
     };
     claim();
   }
-  const addToQueue = (message: string) => {
-    toastQueue.push(message);
-    if (toastQueue.length === 1) processQueue();
-  };
-  const processQueue = () => {
-    if (toastQueue.length === 0) return;
 
-    const currentMessage = toastQueue[0];
-    toast.success(currentMessage, {
-      duration: 2000,
-    });
-    setTimeout(() => {
-      toastQueue.shift();
-      processQueue();
-    }, 2000);
+  const addToQueue = (message: string) => {
+    setToastQueue((prev) => [...prev, message]);
   };
+  
+  useEffect(() => {
+    if (!showToast && toastQueue.length > 0) {
+      setToastMessage(toastQueue[0]);
+      setShowToast(true);
+
+      const timer = setTimeout(() => {
+        setShowToast(false);
+        setToastQueue((prev) => prev.slice(1));
+      }, 2000)
+
+      return () => clearTimeout(timer);
+    }
+  }, [toastQueue, showToast]);
+
   const TaskTimer = () => {
     const now = new Date();
     const tomorrowMidnightUTC = new Date(
@@ -1493,310 +1499,45 @@ const HomeContent = () => {
   };
   return (
     <div className="flex flex-col">
-      
-          <Toaster
-            toastOptions={{
-              duration: 3000,
-              success: {
-                iconTheme: {
-                  primary: "white",
-                  secondary: "black",
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: "red",
-                  secondary: "white",
-                },
-              },
-              className: "mt-14 font-medium",
-              style: {
-                padding: "0px",
-                background: "#202021",
-                color: "#fff",
-              },
-            }}
-            position="top-center"
-          >
-            {(t) => (
-              <ToastBar toast={t}>
-                {({ icon, message }) => (
-                  <div
-                    className={`flex items-center p-2 rounded-lg ${
-                      t.type === "success"
-                        ? "bg-[#202021] text-white"
-                        : t.type === "error"
-                        ? "bg-[#202021] text-white"
-                        : "bg-[#202021] text-white"
-                    }`}
-                  >
-                    {icon}
-                    <span>{message}</span>
-                  </div>
-                )}
-              </ToastBar>
-            )}
-          </Toaster>
-          {/* Connect wallet button */}
-          {walletAddress ? (
-            <button
-              onClick={() => setActiveWalletTab(true)}
-              disabled={true}
-              className="w-full flex justify-center mt-8"
-            >
-              <div className="btn btn-disabled rounded-lg flex items-center gap-2 bg-base-200 font-semibold cursor-pointer">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.5em"
-                  height="1.5em"
-                  viewBox="0 0 24 24"
-                >
-                  <g fill="#fff" fillRule="evenodd" clipRule="evenodd">
-                    <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
-                    <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
-                  </g>
-                </svg>
-                <div>{formatAddress(walletAddress)}</div>
-                <div>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="1.2em"
-                    height="1.2em"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fill="#fff"
-                      fillRule="evenodd"
-                      d="m6 7l6 6l6-6l2 2l-8 8l-8-8z"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                handleWalletAction();
-              }}
-              disabled={true}
-              className="w-full flex justify-center mt-8"
-            >
-              <div className="btn btn-disabled rounded-lg flex items-center gap-2 bg-base-200 font-semibold cursor-pointer">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.5em"
-                  height="1.5em"
-                  viewBox="0 0 24 24"
-                >
-                  <g fill="currentColor" fillRule="evenodd" clipRule="evenodd">
-                    <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
-                    <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
-                  </g>
-                </svg>
-                <span>Connect wallet</span>
-              </div>
-            </button>
-          )}
 
-          {/* QNTM Balance */}
-          <div className="flex flex-col items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="7em"
-              height="7em"
-              className="mb-3 mt-8"
-              viewBox="0 0 32 32"
-            >
-              <path
-                fill="#fff"
-                d="M27.328 12.036c-2.912-1.239-6.823-2.041-11-2.26a32 32 0 0 0-1.932-.057c3.088-3.771 6.401-6.303 8.583-6.385q.644-.022 1.084.26c.943.615 1.203 2.36.724 4.787c-.052.333.161.661.479.724a.61.61 0 0 0 .724-.479c.599-3.041.156-5.131-1.255-6.052c-.505-.333-1.12-.491-1.803-.464c-2.729.104-6.583 3.068-10.12 7.631a35 35 0 0 0-4.307.38c-.86-3.865-.521-6.636.792-7.303c.181-.099.38-.145.609-.167c.932-.072 2.213.527 3.615 1.693c.26.213.645.187.859-.079a.606.606 0 0 0-.077-.859c-1.683-1.391-3.229-2.073-4.496-1.98a3 3 0 0 0-1.072.292c-1.589.812-2.224 3.104-1.828 6.453c.093.692.213 1.416.391 2.156c-4.376.875-7.161 2.631-7.281 4.833c-.084 1.563 1.151 3.047 3.572 4.297a.61.61 0 0 0 .824-.265a.607.607 0 0 0-.267-.824c-1.932-.995-2.973-2.115-2.911-3.14c.068-1.443 2.364-2.923 6.349-3.708a36 36 0 0 0 1.4 4.119c-1.359 2.516-2.344 4.996-2.848 7.199c-.751 3.287-.349 5.631 1.145 6.599c.479.312 1.036.469 1.661.469c1.245 0 2.755-.615 4.464-1.833a.611.611 0 1 0-.71-.995c-2.057 1.473-3.791 1.963-4.749 1.337c-1.011-.661-1.235-2.588-.609-5.301c.421-1.849 1.208-3.907 2.276-6.027q.4.875.839 1.751c1.901 3.729 4.229 6.968 6.547 9.131c1.849 1.719 3.568 2.615 4.979 2.615c.469 0 .907-.1 1.303-.297c1.525-.781 2.188-2.948 1.864-6.099c-.296-2.953-1.411-6.548-3.14-10.136a.614.614 0 0 0-.812-.287a.614.614 0 0 0-.292.819c3.583 7.468 3.839 13.583 1.828 14.609c-2.125 1.088-7.235-3.141-11.188-10.907a36 36 0 0 1-1.203-2.573c.453-.807.932-1.625 1.464-2.437a44 44 0 0 1 1.629-2.328h.527c.719 0 1.5.016 2.312.063c8.703.459 14.631 3.416 14.511 5.781c-.052 1.02-1.235 2.052-3.235 2.828a.612.612 0 0 0 .443 1.14c2.541-.984 3.937-2.339 4.016-3.905c.093-1.772-1.557-3.48-4.667-4.803v-.011zm-16.557.563a39 39 0 0 0-1.016 1.661a31 31 0 0 1-.963-2.953a33 33 0 0 1 3.077-.323a33 33 0 0 0-1.093 1.615v-.015zm5.234 1.568c-2.443 0-2.443 3.667 0 3.667c2.448 0 2.448-3.667 0-3.667"
-              />
-            </svg>
+      <ClaimToaster message={toastMessage} show={showToast}/>
 
-            <div className="flex items-center gap-2 text-center mt-2">
-              <div className="text-5xl font-semibold mb-1">
-                {MainQuantAmount}
-              </div>
-              <div className="text-xl">QNTM</div>
-            </div>
-
-            <div className="flex items-center justify-center gap-1 text-[#868686] px-4 py-1.5 mt-1">
-              {rank}
-              {getRankIcon(rank)}
-              RANK
-            </div>
-
-            <div className="flex items-center">
-              <Link
-              id="rewardsHistoryLink"
-              href={"/home/rewardshistory"}
-                //onClick={() => setActiveTab(!activeTab)}
-                className="cursor-pointer"
-              >
-                Rewards history
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.2em"
-                  height="1.2em"
-                  className="inline align-middle"
-                  viewBox="-6 0 24 24"
-                >
-                  <path
-                    fill="#fff"
-                    fillRule="evenodd"
-                    d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414"
-                  />
-                </svg>
-              </Link>
-            </div>
-          </div>
+          <ConnectWallet 
+          walletAddress={walletAddress}
+          formatAddress={formatAddress}
+          handleWalletAction={handleWalletAction}
+          setActiveWalletTab={setActiveWalletTab}
+          />
+          
+          <QntmBalance 
+          MainQuantAmount={MainQuantAmount}
+          rank={rank}
+          getRankIcon={getRankIcon}
+          />
+          
+          
           {/*daily check-in*/}
-          {loadingButtonDay ? (
-            <div className="skeleton card flex items-center rounded-xl w-9/10 mx-auto h-18 mt-6"></div> //w-full max-w-xs sm:max-w-sm md:max-w-md
-          ) : (
-            <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-9/10 mx-auto p-4 mt-6">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center">
-                  <Lottie
-                    lottieRef={lottieRef}
-                    animationData={fireAnimationData}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: "2.5em", height: "2.5em" }}
-                  />
-                </div>
-                <div>
-                  <div className="font-normal text-black text-sm">
-                    {daily} days check-in
-                  </div>
-                  <div className="font-normal text-black text-sm">
-                    Claimable in{" "}
-                    <div className="inline-block">
-                      <TaskTimer />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <button
-                  id="dailyClaimButton"
-                  onClick={() => ClaimDaily()}
-                  disabled={isClaimDay}
-                  className={
-                    !isClaimDay
-                      ? "w-16 h-9 rounded-full bg-white text-black text-sm cursor-pointer" //Claim
-                      : "w-16 h-9 rounded-full bg-gray-500 opacity-30 text-black text-sm cursor-pointer"
-                  } // Claimed
-                >
-                  {!loadingButtonDay ? (
-                    loadingDay ? (
-                      <ButtonLoader />
-                    ) : isClaimDay ? (
-                      <div className="flex items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="1.2em"
-                          height="1.2em"
-                          viewBox="0 0 24 24"
-                        >
-                          <g fill="#fff">
-                            <path d="M10.243 16.314L6 12.07l1.414-1.414l2.829 2.828l5.656-5.657l1.415 1.415z" />
-                            <path
-                              fillRule="evenodd"
-                              d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12m11 9a9 9 0 1 1 0-18a9 9 0 0 1 0 18"
-                              clipRule="evenodd"
-                            />
-                          </g>
-                        </svg>
-                      </div>
-                    ) : (
-                      <div>Claim</div>
-                    )
-                  ) : (
-                    <div>
-                      <ButtonLoader />
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+          <DailyCheckIn 
+          loadingButtonDay={loadingButtonDay}
+          daily={daily}
+          isClaimDay={isClaimDay}
+          loadingDay={loadingDay}
+          ClaimDaily={ClaimDaily}
+          lottieRef={lottieRef}
+          TaskTimer={TaskTimer}
+          />
 
-          {/*carousel*/}
+         
           <HomeCarousel />
 
-          {/*farming QNTM*/}
-          <div className="w-9/10 mx-auto mt-3 mb-6">
-            <div className="font-semibold text-lg">Farm</div>
-            <div className="flex items-center justify-between bg-black rounded-xl p-1 mt-3">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="1.5em"
-                    height="1.5em"
-                    viewBox="0 0 32 32"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M27.328 12.036c-2.912-1.239-6.823-2.041-11-2.26a32 32 0 0 0-1.932-.057c3.088-3.771 6.401-6.303 8.583-6.385q.644-.022 1.084.26c.943.615 1.203 2.36.724 4.787c-.052.333.161.661.479.724a.61.61 0 0 0 .724-.479c.599-3.041.156-5.131-1.255-6.052c-.505-.333-1.12-.491-1.803-.464c-2.729.104-6.583 3.068-10.12 7.631a35 35 0 0 0-4.307.38c-.86-3.865-.521-6.636.792-7.303c.181-.099.38-.145.609-.167c.932-.072 2.213.527 3.615 1.693c.26.213.645.187.859-.079a.606.606 0 0 0-.077-.859c-1.683-1.391-3.229-2.073-4.496-1.98a3 3 0 0 0-1.072.292c-1.589.812-2.224 3.104-1.828 6.453c.093.692.213 1.416.391 2.156c-4.376.875-7.161 2.631-7.281 4.833c-.084 1.563 1.151 3.047 3.572 4.297a.61.61 0 0 0 .824-.265a.607.607 0 0 0-.267-.824c-1.932-.995-2.973-2.115-2.911-3.14c.068-1.443 2.364-2.923 6.349-3.708a36 36 0 0 0 1.4 4.119c-1.359 2.516-2.344 4.996-2.848 7.199c-.751 3.287-.349 5.631 1.145 6.599c.479.312 1.036.469 1.661.469c1.245 0 2.755-.615 4.464-1.833a.611.611 0 1 0-.71-.995c-2.057 1.473-3.791 1.963-4.749 1.337c-1.011-.661-1.235-2.588-.609-5.301c.421-1.849 1.208-3.907 2.276-6.027q.4.875.839 1.751c1.901 3.729 4.229 6.968 6.547 9.131c1.849 1.719 3.568 2.615 4.979 2.615c.469 0 .907-.1 1.303-.297c1.525-.781 2.188-2.948 1.864-6.099c-.296-2.953-1.411-6.548-3.14-10.136a.614.614 0 0 0-.812-.287a.614.614 0 0 0-.292.819c3.583 7.468 3.839 13.583 1.828 14.609c-2.125 1.088-7.235-3.141-11.188-10.907a36 36 0 0 1-1.203-2.573c.453-.807.932-1.625 1.464-2.437a44 44 0 0 1 1.629-2.328h.527c.719 0 1.5.016 2.312.063c8.703.459 14.631 3.416 14.511 5.781c-.052 1.02-1.235 2.052-3.235 2.828a.612.612 0 0 0 .443 1.14c2.541-.984 3.937-2.339 4.016-3.905c.093-1.772-1.557-3.48-4.667-4.803v-.011zm-16.557.563a39 39 0 0 0-1.016 1.661a31 31 0 0 1-.963-2.953a33 33 0 0 1 3.077-.323a33 33 0 0 0-1.093 1.615v-.015zm5.234 1.568c-2.443 0-2.443 3.667 0 3.667c2.448 0 2.448-3.667 0-3.667"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <div className="font-normal text-xs">0 QNTM</div>
-                  <div className="font-normal text-xs text-stone-500 mt-1">
-                    Next claim in 0h 0m
-                  </div>
-                </div>
-              </div>
-              <div>
-                <button className="btn btn-disabled w-16 h-9 rounded-full bg-white text-black text-sm">
-                  Access
-                </button>
-              </div>
-            </div>
-          </div>
-          {/*solve-to-earn card*/}
-          <div className="w-9/10 mx-auto mt-4">
-            <div className="font-semibold text-lg mb-3">Solve-to-Earn</div>
-            <div
-              className="flex items-center justify-between bg-cover bg-center rounded-2xl p-4"
-              style={{ backgroundImage: `url(${bgSolveToEarnCard.src})` }}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center">
-                  <Lottie
-                    lottieRef={lottieRef}
-                    animationData={hundredAnimationData}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: "2.5em", height: "2.5em" }}
-                  />
-                </div>
-                <div>
-                  <div className="font-medium text-sm">Solve-to-Earn</div>
-                  <div className="font-normal text-xs text-gray-500 mt-1">
-                    {remainingSolveToEarnRef.current} passes
-                  </div>
-                </div>
-              </div>
-              <div>
-                <button
-                  id="solvetoearnbutton"
-                  onClick={() => goToSolveToEarn()}
-                  disabled={remainingSolveToEarn == 0}
-                  className={
-                    remainingSolveToEarn > 0
-                      ? "font-medium w-16 h-9 text-sm bg-white text-black rounded-full cursor-pointer"
-                      : "font-medium w-16 h-9 opacity-30 text-xs bg-white text-black rounded-full cursor-pointer"
-                  }
-                >
-                  Solve
-                </button>
-              </div>
-            </div>
-          </div>
+          <FarmingQntm />
+          
+          <SolveToEarnCard 
+          remainingSolveToEarn={remainingSolveToEarn}
+          lottieRef={lottieRef}
+          goToSolveToEarn={goToSolveToEarn}
+          />
+          
       <AnimatePresence>
         {/*Wallet Tab */}
         {isActiveWalletTab && (
