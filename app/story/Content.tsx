@@ -2,9 +2,9 @@
 
 import { useRef } from "react";
 import { useTelegramBackButton } from "@/app/hooks/useBackButton";
-import StoryHeader from "./components/StoryHeader";
+import StoryHeader from "./components/Header";
 import { LottieRefCurrentProps } from "lottie-react";
-import StoryStats from "./components/StoryStats";
+import StoryStats from "./components/Stats";
 
 const StoryContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);

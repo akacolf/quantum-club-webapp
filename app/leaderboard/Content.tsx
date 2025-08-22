@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Loader from "../components/MainLoader";
 import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
@@ -12,11 +13,11 @@ import {
   thirdPlaceMedal,
 } from "../../public";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
-import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
 import smilingAnimationData from "@/public/lottie/smiling-lottie.json";
 import Image from "next/image";
 import { useTelegramBackButton } from "../hooks/useBackButton";
 import { SvgProps } from "@/types/svg";
+import LeaderboardHeader from "./components/Header";
 
 const Logo = React.memo(({ width = "2.5em", height = "2.5em"}: SvgProps) => (
   <svg
@@ -125,22 +126,7 @@ const LeaderboardContent = () => {
     <div>
       {!pageLoading ? (
         <>
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center justify-center space-x-1">
-              <div>
-                <Lottie
-                  lottieRef={lottieRef}
-                  animationData={trophyAnimationData}
-                  loop={1}
-                  autoplay={true}
-                  style={{ width: "2em", height: "2em" }}
-                />
-              </div>
-              <div>
-                <div className="text-3xl font-bold">Leaderboard</div>
-              </div>
-            </div>
-          </div>
+          <LeaderboardHeader />
           
           <div className="stats mt-8">
             <div className="stat">
