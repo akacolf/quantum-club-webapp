@@ -1,4 +1,3 @@
-"use client";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import sparklesAnimationData from "@/public/lottie/sparkles-lottie.json";
 

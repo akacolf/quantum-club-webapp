@@ -2,9 +2,9 @@ import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
 import { useRef } from "react";
 
-const lottieRef = useRef<LottieRefCurrentProps>(null);
-
 export default function LeaderboardHeader() {
+  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  
     return (
         <div className="items-start p-4 flex justify-between">
             <div className="flex items-center justify-center space-x-1">
