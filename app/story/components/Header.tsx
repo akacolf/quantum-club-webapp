@@ -1,11 +1,9 @@
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import sparklesAnimationData from "@/public/lottie/sparkles-lottie.json";
+import { useRef } from "react";
 
-interface StoryHeaderProps {
-  lottieRef: React.RefObject<LottieRefCurrentProps | null>;
-}
-
-export default function StoryHeader({ lottieRef }: StoryHeaderProps) {
+export default function StoryHeader() {
+  const lottieRef = useRef<LottieRefCurrentProps>(null);
     return (
         <div className="card bg-base-200 rounded-xl h-20 w-9/10 mx-auto">
         <div className="flex items-center justify-between">
