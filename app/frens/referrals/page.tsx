@@ -1,4 +1,4 @@
-{/*'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -217,6 +217,7 @@ const ReferralsPage = () => {
 		}
 	}
 	return (
+		
 		<main className='overflow-auto'>
 				<div className="flex flex-col">
 					{loading ? (
@@ -224,7 +225,7 @@ const ReferralsPage = () => {
 					) : (
 						<>
 							{/*friends list*/}
-							{/*comment block starts from here<div className="space-y-0">
+							<div className="space-y-0">
 								<div className="font-semibold text-2xl p-4 text-blue-500">Referrals</div>
 								{
 									referralsContext && referralsContext.map((referral, index) => (
@@ -268,4 +269,4 @@ const ReferralsPage = () => {
 	)
 }
 
-export default ReferralsPage;*/}
+export default ReferralsPage;
