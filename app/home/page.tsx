@@ -2,18 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
-import Loader from '@/app/components/MainLoader';
-import dynamic from 'next/dynamic';
-
-const HomeContent = dynamic(() => import('./Content'), {
-  loading: () => <Loader />,
-  ssr: false,
-});
+import HomeContent from './Content';
 
 const Home = () => {
+  
   const [maintenance, setMaintenance] = useState(true);
 
- 
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.Telegram?.WebApp.BackButton.hide();

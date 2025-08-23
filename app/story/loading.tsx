@@ -1,5 +1,5 @@
 import Loader from "../components/MainLoader";
 
-export default function StoryLoading() {
+export default function Loading() {
     return <Loader />;
 }
