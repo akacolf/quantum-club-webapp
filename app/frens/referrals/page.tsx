@@ -1,8 +1,7 @@
-'use client';
+{/*'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useFrenContext } from '@/app/contexts/FrensContext';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { dbfs } from '@/app/firebase/firebaseConfig';
@@ -218,20 +217,14 @@ const ReferralsPage = () => {
 		}
 	}
 	return (
-		<AnimatePresence>
-			<motion.main
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				exit={{ opacity: 0 }}
-				className='bg-black overflow-auto'
-			>
+		<main className='overflow-auto'>
 				<div className="flex flex-col">
 					{loading ? (
 						<Loader />
 					) : (
 						<>
 							{/*friends list*/}
-							<div className="space-y-0">
+							{/*comment block starts from here<div className="space-y-0">
 								<div className="font-semibold text-2xl p-4 text-blue-500">Referrals</div>
 								{
 									referralsContext && referralsContext.map((referral, index) => (
@@ -271,9 +264,8 @@ const ReferralsPage = () => {
 						</>
 					)}
 				</div>
-			</motion.main>
-		</AnimatePresence>
+			</main>
 	)
 }
 
-export default ReferralsPage;
+export default ReferralsPage;*/}

@@ -1,11 +1,6 @@
 import Link from "next/link";
-import { JSX } from "react";
+import { QntmBalanceProps } from "@/lib/interfaces";
 
-interface QntmBalanceProps {
-    MainQuantAmount: string;
-    rank: string | null;
-    getRankIcon: (rank: string | null) => JSX.Element | null;
-}
 
 export default function QntmBalance({ MainQuantAmount, rank, getRankIcon}: QntmBalanceProps) {
     return (

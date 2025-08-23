@@ -1,11 +1,6 @@
 import React from "react";
+import { ConnectWalletButtonProps } from "@/lib/interfaces";
 
-interface ConnectWalletButtonProps {
-    walletAddress: string | null;
-    formatAddress: (address: string) => string;
-    handleWalletAction: () => void;
-    setActiveWalletTab: (active: boolean) => void;
-}
 
 export default function ConnectWallet({walletAddress, formatAddress, handleWalletAction, setActiveWalletTab}: ConnectWalletButtonProps) {
     return walletAddress ? (

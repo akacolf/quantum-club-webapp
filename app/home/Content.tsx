@@ -12,8 +12,6 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameContext } from "@/app/contexts/MiningContext";
-//import tasks from "@/app/earn/tasks";//
-//import { ButtonLoader } from "../loaders/ButtonLoader";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
 import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
@@ -118,11 +116,7 @@ const HomeContent = () => {
     setRemainingSolveToEarn,
     remainingSolveToEarn,
   } = useGameContext();
-  //const remainingSolveToEarnRef = useRef(remainingSolveToEarn);
   const router = useRouter();
-  const [toastQueue, setToastQueue] = useState<string[]>([]);
-  const [toastMessage, setToastMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
 
   const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
   const [activeTab, setActiveTab] = useState(false);
@@ -793,6 +787,9 @@ const HomeContent = () => {
     };
     checkButton();
   }, [setDaily, setRemainingSolveToEarn, telegramId]);
+
+  const [toastQueue, setToastQueue] = useState<string[]>([]);
+  const [processing, setProcessing] = useState(false);
  
   async function ClaimDaily() {
     const claim = async () => {
@@ -851,130 +848,9 @@ const HomeContent = () => {
               );
               toast.success("+7 passes has been added", {
                 icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="1.5em"
-                    height="1.5em"
-                    viewBox="0 0 32 32"
-                  >
-                    <g fill="none">
-                      <g filter="url(#f796id2)">
-                        <path
-                          fill="url(#f796id1)"
-                          fillRule="evenodd"
-                          d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
-                          clipRule="evenodd"
-                        />
-                      </g>
-                      <path
-                        fill="url(#f796id0)"
-                        fillRule="evenodd"
-                        d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
-                        clipRule="evenodd"
-                      />
-                      <defs>
-                        <radialGradient
-                          id="f796id0"
-                          cx="0"
-                          cy="0"
-                          r="1"
-                          gradientTransform="matrix(-16.24995 15.50005 -7.89314 -8.27501 19.328 13.719)"
-                          gradientUnits="userSpaceOnUse"
-                        >
-                          <stop
-                            offset=".935"
-                            stopColor="#f18849"
-                            stopOpacity="0"
-                          />
-                          <stop offset="1" stopColor="#cc6946" />
-                        </radialGradient>
-                        <linearGradient
-                          id="f796id1"
-                          x1="17.864"
-                          x2="17.493"
-                          y1="7.457"
-                          y2="29.939"
-                          gradientUnits="userSpaceOnUse"
-                        >
-                          <stop stopColor="#ffdc46" />
-                          <stop offset="1" stopColor="#f38e4a" />
-                        </linearGradient>
-                        <filter
-                          id="f796id2"
-                          width="28.573"
-                          height="28.392"
-                          x="1.781"
-                          y="1.924"
-                          colorInterpolationFilters="sRGB"
-                          filterUnits="userSpaceOnUse"
-                        >
-                          <feFlood
-                            floodOpacity="0"
-                            result="BackgroundImageFix"
-                          />
-                          <feBlend
-                            in="SourceGraphic"
-                            in2="BackgroundImageFix"
-                            result="shape"
-                          />
-                          <feColorMatrix
-                            in="SourceAlpha"
-                            result="hardAlpha"
-                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                          />
-                          <feOffset dx=".35" dy="-.1" />
-                          <feGaussianBlur stdDeviation=".3" />
-                          <feComposite
-                            in2="hardAlpha"
-                            k2="-1"
-                            k3="1"
-                            operator="arithmetic"
-                          />
-                          <feColorMatrix values="0 0 0 0 0.803922 0 0 0 0 0.623529 0 0 0 0 0.294118 0 0 0 1 0" />
-                          <feBlend
-                            in2="shape"
-                            result="effect1_innerShadow_18_23714"
-                          />
-                          <feColorMatrix
-                            in="SourceAlpha"
-                            result="hardAlpha"
-                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                          />
-                          <feOffset dy="-.15" />
-                          <feGaussianBlur stdDeviation=".3" />
-                          <feComposite
-                            in2="hardAlpha"
-                            k2="-1"
-                            k3="1"
-                            operator="arithmetic"
-                          />
-                          <feColorMatrix values="0 0 0 0 0.796078 0 0 0 0 0.505882 0 0 0 0 0.411765 0 0 0 1 0" />
-                          <feBlend
-                            in2="effect1_innerShadow_18_23714"
-                            result="effect2_innerShadow_18_23714"
-                          />
-                          <feColorMatrix
-                            in="SourceAlpha"
-                            result="hardAlpha"
-                            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                          />
-                          <feOffset dx="-.4" dy=".4" />
-                          <feGaussianBlur stdDeviation=".2" />
-                          <feComposite
-                            in2="hardAlpha"
-                            k2="-1"
-                            k3="1"
-                            operator="arithmetic"
-                          />
-                          <feColorMatrix values="0 0 0 0 0.996078 0 0 0 0 0.996078 0 0 0 0 0.423529 0 0 0 1 0" />
-                          <feBlend
-                            in2="effect2_innerShadow_18_23714"
-                            result="effect3_innerShadow_18_23714"
-                          />
-                        </filter>
-                      </defs>
-                    </g>
-                  </svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+	<path fill="#fff" d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18" />
+</svg>
                 ),
               });
             }
@@ -991,132 +867,11 @@ const HomeContent = () => {
             sessionStorage.setItem("remainingSolveToEarn", "7");
             toast.success("+7 passes has been added", {
               icon: (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.5em"
-                  height="1.5em"
-                  viewBox="0 0 32 32"
-                >
-                  <g fill="none">
-                    <g filter="url(#f796id2)">
-                      <path
-                        fill="url(#f796id1)"
-                        fillRule="evenodd"
-                        d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
-                        clipRule="evenodd"
-                      />
-                    </g>
-                    <path
-                      fill="url(#f796id0)"
-                      fillRule="evenodd"
-                      d="M19.064 17.393a7.952 7.952 0 0 0 8.611-12.99a7.95 7.95 0 0 0-12.98 8.638l-3.447 3.448a1.37 1.37 0 0 0-.402.948l-.018 1.032a1.23 1.23 0 0 1-1.11 1.204l-.536.052a1.16 1.16 0 0 0-1.042 1.029l-.058.532a1.276 1.276 0 0 1-1.317 1.136l-.8-.03a1.37 1.37 0 0 0-1.022.401l-1.859 1.859a3.084 3.084 0 0 0 4.361 4.36zm7.16-9.018a1.783 1.783 0 1 1-2.52-2.522a1.783 1.783 0 0 1 2.52 2.522"
-                      clipRule="evenodd"
-                    />
-                    <defs>
-                      <radialGradient
-                        id="f796id0"
-                        cx="0"
-                        cy="0"
-                        r="1"
-                        gradientTransform="matrix(-16.24995 15.50005 -7.89314 -8.27501 19.328 13.719)"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop
-                          offset=".935"
-                          stopColor="#f18849"
-                          stopOpacity="0"
-                        />
-                        <stop offset="1" stopColor="#cc6946" />
-                      </radialGradient>
-                      <linearGradient
-                        id="f796id1"
-                        x1="17.864"
-                        x2="17.493"
-                        y1="7.457"
-                        y2="29.939"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stopColor="#ffdc46" />
-                        <stop offset="1" stopColor="#f38e4a" />
-                      </linearGradient>
-                      <filter
-                        id="f796id2"
-                        width="28.573"
-                        height="28.392"
-                        x="1.781"
-                        y="1.924"
-                        colorInterpolationFilters="sRGB"
-                        filterUnits="userSpaceOnUse"
-                      >
-                        <feFlood
-                          floodOpacity="0"
-                          result="BackgroundImageFix"
-                        />
-                        <feBlend
-                          in="SourceGraphic"
-                          in2="BackgroundImageFix"
-                          result="shape"
-                        />
-                        <feColorMatrix
-                          in="SourceAlpha"
-                          result="hardAlpha"
-                          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                        />
-                        <feOffset dx=".35" dy="-.1" />
-                        <feGaussianBlur stdDeviation=".3" />
-                        <feComposite
-                          in2="hardAlpha"
-                          k2="-1"
-                          k3="1"
-                          operator="arithmetic"
-                        />
-                        <feColorMatrix values="0 0 0 0 0.803922 0 0 0 0 0.623529 0 0 0 0 0.294118 0 0 0 1 0" />
-                        <feBlend
-                          in2="shape"
-                          result="effect1_innerShadow_18_23714"
-                        />
-                        <feColorMatrix
-                          in="SourceAlpha"
-                          result="hardAlpha"
-                          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                        />
-                        <feOffset dy="-.15" />
-                        <feGaussianBlur stdDeviation=".3" />
-                        <feComposite
-                          in2="hardAlpha"
-                          k2="-1"
-                          k3="1"
-                          operator="arithmetic"
-                        />
-                        <feColorMatrix values="0 0 0 0 0.796078 0 0 0 0 0.505882 0 0 0 0 0.411765 0 0 0 1 0" />
-                        <feBlend
-                          in2="effect1_innerShadow_18_23714"
-                          result="effect2_innerShadow_18_23714"
-                        />
-                        <feColorMatrix
-                          in="SourceAlpha"
-                          result="hardAlpha"
-                          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                        />
-                        <feOffset dx="-.4" dy=".4" />
-                        <feGaussianBlur stdDeviation=".2" />
-                        <feComposite
-                          in2="hardAlpha"
-                          k2="-1"
-                          k3="1"
-                          operator="arithmetic"
-                        />
-                        <feColorMatrix values="0 0 0 0 0.996078 0 0 0 0 0.996078 0 0 0 0 0.423529 0 0 0 1 0" />
-                        <feBlend
-                          in2="effect2_innerShadow_18_23714"
-                          result="effect3_innerShadow_18_23714"
-                        />
-                      </filter>
-                    </defs>
-                  </g>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+	<path fill="#fff" d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18" />
+</svg>
               ),
-              duration: 2000,
+              duration: 3000,
             });
           }
         }
@@ -1453,20 +1208,19 @@ const HomeContent = () => {
   const addToQueue = (message: string) => {
     setToastQueue((prev) => [...prev, message]);
   };
-  
+
   useEffect(() => {
-    if (!showToast && toastQueue.length > 0) {
-      setToastMessage(toastQueue[0]);
-      setShowToast(true);
-
+    if (!processing && toastQueue.length > 0) {
+      setProcessing(true);
+      const currentMessage = toastQueue[0];
+      toast.success(currentMessage, { duration: 3000 });
       const timer = setTimeout(() => {
-        setShowToast(false);
         setToastQueue((prev) => prev.slice(1));
-      }, 2000)
-
+        setProcessing(false);
+      }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [toastQueue, showToast]);
+  }, [toastQueue, processing]);
 
   const TaskTimer = () => {
     const now = new Date();
@@ -1500,7 +1254,7 @@ const HomeContent = () => {
   return (
     <div className="flex flex-col">
 
-      <ClaimToaster message={toastMessage} show={showToast}/>
+      <ClaimToaster />
 
           <ConnectWallet 
           walletAddress={walletAddress}

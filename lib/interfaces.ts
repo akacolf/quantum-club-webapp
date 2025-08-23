@@ -1,4 +1,6 @@
 import { ReactNode } from "react";
+import { LottieRefCurrentProps } from "lottie-react";
+import { JSX } from "react";
 
 export interface TaskHistory {
     id: string;
@@ -26,4 +28,33 @@ export interface EarnTask {
   quant:number;
   whichPlatform:string;
   timestamp:number;
+}
+
+export interface ConnectWalletButtonProps {
+    walletAddress: string | null;
+    formatAddress: (address: string) => string;
+    handleWalletAction: () => void;
+    setActiveWalletTab: (active: boolean) => void;
+}
+
+export interface DailyCheckInProps {
+    loadingButtonDay: boolean;
+    daily: number;
+    isClaimDay: boolean;
+    loadingDay: boolean;
+    ClaimDaily: () => void;
+    lottieRef: React.RefObject<LottieRefCurrentProps | null>;
+    TaskTimer: React.FC;
+}
+
+export interface QntmBalanceProps {
+    MainQuantAmount: string;
+    rank: string | null;
+    getRankIcon: (rank: string | null) => JSX.Element | null;
+}
+
+export interface SolveToEarnCardProps {
+    remainingSolveToEarn: number;
+    lottieRef: React.RefObject<LottieRefCurrentProps | null>;
+    goToSolveToEarn: () => void;
 }

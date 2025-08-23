@@ -1,16 +1,8 @@
-import Lottie, {LottieRefCurrentProps} from "lottie-react";
+import Lottie from "lottie-react";
 import fireAnimationData from "@/public/lottie/fire-lottie.json";
 import { ButtonLoader } from "@/app/components/ButtonLoader";
+import { DailyCheckInProps } from "@/lib/interfaces";
 
-interface DailyCheckInProps {
-    loadingButtonDay: boolean;
-    daily: number;
-    isClaimDay: boolean;
-    loadingDay: boolean;
-    ClaimDaily: () => void;
-    lottieRef: React.RefObject<LottieRefCurrentProps | null>;
-    TaskTimer: React.FC;
-}
 
 export default function DailyCheckIn({loadingButtonDay, daily, isClaimDay, loadingDay, ClaimDaily, lottieRef, TaskTimer}: DailyCheckInProps) {
     return loadingButtonDay ? (

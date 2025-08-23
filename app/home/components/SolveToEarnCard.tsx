@@ -1,12 +1,7 @@
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import Lottie from "lottie-react";
 import hundredAnimationData from "@/public/lottie/hundred-lottie.json";
 import { bgSolveToEarnCard } from "@/public";
-
-interface SolveToEarnCardProps {
-    remainingSolveToEarn: number;
-    lottieRef: React.RefObject<LottieRefCurrentProps | null>;
-    goToSolveToEarn: () => void;
-}
+import { SolveToEarnCardProps } from "@/lib/interfaces";
 
 export default function SolveToEarnCard({ remainingSolveToEarn, lottieRef, goToSolveToEarn }: SolveToEarnCardProps) {
     return (
