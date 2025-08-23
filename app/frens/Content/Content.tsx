@@ -5,7 +5,6 @@ import { dbfs } from "@/app/firebase/firebaseConfig";
 import { useFrenContext } from "@/app/contexts/FrensContext";
 import CopyLinkNotification from "./CopyToaster";
 import { useRouter } from "next/navigation";
-import toast, { ToastBar, Toaster } from "react-hot-toast";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import Loader from "@/app/components/MainLoader";
 import { collection, doc, getDoc, getDocs,getCountFromServer } from 'firebase/firestore';
