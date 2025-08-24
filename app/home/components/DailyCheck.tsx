@@ -38,9 +38,9 @@ export default function DailyCheckIn({loadingButtonDay, daily, isClaimDay, loadi
                   disabled={isClaimDay}
                   className={
                     !isClaimDay
-                      ? "w-16 h-9 rounded-full bg-white text-black text-sm cursor-pointer" //Claim
-                      : "w-16 h-9 rounded-full bg-gray-500 opacity-30 text-black text-sm cursor-pointer"
-                  } // Claimed
+                      ? "btn w-16 h-9 btn-circle bg-white text-black text-sm" //Claim
+                      : "btn w-16 h-9 btn-circle" // Claimed
+                  }
                 >
                   {!loadingButtonDay ? (
                     loadingDay ? (
@@ -53,7 +53,7 @@ export default function DailyCheckIn({loadingButtonDay, daily, isClaimDay, loadi
                           height="1.2em"
                           viewBox="0 0 24 24"
                         >
-                          <g fill="#fff">
+                          <g fill="currentColor">
                             <path d="M10.243 16.314L6 12.07l1.414-1.414l2.829 2.828l5.656-5.657l1.415 1.415z" />
                             <path
                               fillRule="evenodd"

@@ -9,7 +9,7 @@ export default function ConnectWallet({walletAddress, formatAddress, handleWalle
               disabled={true}
               className="w-full flex justify-center mt-8"
             >
-              <div className="btn btn-disabled rounded-lg flex items-center gap-2 bg-base-200 font-semibold cursor-pointer">
+              <div className="btn btn-disabled rounded-lg flex items-center gap-2 bg-base-200 font-semibold">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="1.5em"
@@ -46,7 +46,7 @@ export default function ConnectWallet({walletAddress, formatAddress, handleWalle
               disabled={true}
               className="w-full flex justify-center mt-8"
             >
-              <div className="btn btn-disabled rounded-lg flex items-center gap-2 bg-base-200 font-semibold cursor-pointer">
+              <div className="btn btn-disabled rounded-lg flex items-center gap-2 bg-base-200 font-semibold">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="1.5em"

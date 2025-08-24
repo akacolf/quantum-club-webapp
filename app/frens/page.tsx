@@ -2,7 +2,7 @@
 
 import React, {  useEffect } from 'react';
 import { getAuth } from 'firebase/auth';
-import FrensContent from './Content/Content';
+import FrensContent from './Content';
 
 const Frens = () => {
  

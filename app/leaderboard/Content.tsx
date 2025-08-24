@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import Loader from "../components/MainLoader";
 import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
 import { useGameContext } from "@/app/contexts/MiningContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -11,6 +10,7 @@ import LeaderboardHeader from "./components/Header";
 import LeaderboardStats from "./components/Stats";
 import UserStatsCard from "./components/UserStatsCard";
 import LeaderboardList from "./components/Leaderboard";
+import LeaderboardUISkeleton from "./components/UISkeleton";
 
 const LeaderboardContent = () => {
 
@@ -97,7 +97,7 @@ const LeaderboardContent = () => {
 
   return (
     pageLoading ? (
-      <Loader />
+      <LeaderboardUISkeleton />
   ) : (
     <>
       <LeaderboardHeader />
