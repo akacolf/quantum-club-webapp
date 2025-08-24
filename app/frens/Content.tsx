@@ -3,13 +3,13 @@
 import React, {  useEffect, useState, useRef } from "react";
 import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
-import CopyToaster from "./components/CopyToaster";
+import CopyToaster from "./(components)/CopyToaster";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/MainLoader";
 import { collection, doc, getDoc, getDocs,getCountFromServer } from 'firebase/firestore';
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
-import InvitePopup from "./components/InvitePopup";
+import InvitePopup from "./(components)/InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 

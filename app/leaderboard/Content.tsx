@@ -6,11 +6,11 @@ import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { useTelegramBackButton } from "../(hooks)/useBackButton";
-import LeaderboardHeader from "./components/Header";
-import LeaderboardStats from "./components/Stats";
-import UserStatsCard from "./components/UserStatsCard";
-import LeaderboardList from "./components/Leaderboard";
-import LeaderboardUISkeleton from "./components/UISkeleton";
+import LeaderboardHeader from "./(components)/Header";
+import LeaderboardStats from "./(components)/Stats";
+import UserStatsCard from "./(components)/UserStatsCard";
+import LeaderboardList from "./(components)/Leaderboard";
+import LeaderboardUISkeleton from "./(components)/UISkeleton";
 
 const LeaderboardContent = () => {
 

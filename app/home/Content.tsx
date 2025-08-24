@@ -20,12 +20,12 @@ import toast from "react-hot-toast";
 import { TaskHistory } from "@/lib/interfaces";
 import HomeCarousel from "@/app/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
-import ClaimToaster from "./components/ClaimToaster";
-import ConnectWallet from "./components/ConnectWallet";
-import QntmBalance from "./components/QntmBalance";
-import DailyCheckIn from "./components/DailyCheck";
-import FarmingQntm from "./components/FarmingQntm";
-import SolveToEarnCard from "./components/SolveToEarnCard";
+import ClaimToaster from "./(components)/ClaimToaster";
+import ConnectWallet from "./(components)/ConnectWallet";
+import QntmBalance from "./(components)/QntmBalance";
+import DailyCheckIn from "./(components)/DailyCheck";
+import FarmingQntm from "./(components)/FarmingQntm";
+import SolveToEarnCard from "./(components)/SolveToEarnCard";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
