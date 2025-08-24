@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { SvgProps } from "@/types/svg";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import smilingAnimationData from "@/public/lottie/smiling-lottie.json";
-import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
+import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 
 const Logo = React.memo(({ width = "2.5em", height = "2.5em"}: SvgProps) => (
   <svg

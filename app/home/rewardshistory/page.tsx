@@ -1,5 +1,5 @@
 'use client';
-import { useTelegramBackButton } from "@/app/hooks/useBackButton";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Lottie, { LottieRefCurrentProps } from "lottie-react"
 import constructionAnimationData from "@/public/lottie/construction-lottie.json";
 import React from "react";

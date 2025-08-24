@@ -1,6 +1,6 @@
 "use client";
 
-import { useTelegramBackButton } from "@/app/hooks/useBackButton";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import StoryHeader from "./components/Header";
 import StoryStats from "./components/Stats";
 

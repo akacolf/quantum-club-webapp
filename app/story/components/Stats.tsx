@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { useGameContext } from "@/app/contexts/MiningContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 const TelegramSVG = memo(() => (
         <svg

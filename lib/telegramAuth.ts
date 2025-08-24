@@ -30,7 +30,7 @@ export async function authenticateUser() {
                     return false
                 }
             } catch(error) {
-                console.error("Error during authentication:",error)
+                console.error("Error during authentication:", error)
                 return false
             }
         }

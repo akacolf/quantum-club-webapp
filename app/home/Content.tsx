@@ -1,6 +1,6 @@
 "use client";
 
-import { dbfs } from "@/app/firebase/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import {
   doc,
   getDocs,
@@ -11,14 +11,14 @@ import {
 } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGameContext } from "@/app/contexts/MiningContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
 import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
 import toast from "react-hot-toast";
 /*import { toNano } from "@ton/core";*/
 import { TaskHistory } from "@/lib/interfaces";
-import HomeCarousel from "@/app/components/homepagecarousel/Carousel";
+import HomeCarousel from "@/app/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 import ClaimToaster from "./components/ClaimToaster";
 import ConnectWallet from "./components/ConnectWallet";

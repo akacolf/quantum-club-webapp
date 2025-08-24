@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
-import { useGameContext } from "@/app/contexts/MiningContext";
+import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { dbfs } from "@/app/firebase/firebaseConfig";
-import { useTelegramBackButton } from "../hooks/useBackButton";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { useTelegramBackButton } from "../(hooks)/useBackButton";
 import LeaderboardHeader from "./components/Header";
 import LeaderboardStats from "./components/Stats";
 import UserStatsCard from "./components/UserStatsCard";

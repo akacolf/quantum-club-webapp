@@ -1,6 +1,6 @@
 import Lottie from "lottie-react";
 import fireAnimationData from "@/public/lottie/fire-lottie.json";
-import { ButtonLoader } from "@/app/components/ButtonLoader";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { DailyCheckInProps } from "@/lib/interfaces";
 
 

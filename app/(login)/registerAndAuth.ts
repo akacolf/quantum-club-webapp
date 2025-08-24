@@ -1,8 +1,8 @@
-import { dbfs } from "@/app/firebase/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { useGameContext } from "@/app/contexts/MiningContext";
-import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { getMaintenance } from "@/lib/getMaintenance";
 import { getAuth, signInWithCustomToken, User } from "firebase/auth";
 

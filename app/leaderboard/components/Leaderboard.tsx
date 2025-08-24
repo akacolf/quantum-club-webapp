@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { firstPlaceMedal, secondPlaceMedal, thirdPlaceMedal, logoWhite } from "@/public";
-import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext";
+import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 
 export default function LeaderboardList() {
     const { leaderboardContext } = useLeaderboardContext(); 

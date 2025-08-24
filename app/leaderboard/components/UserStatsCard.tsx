@@ -1,7 +1,7 @@
 import Image from "next/image"
 import { leaderboardStatImg } from "@/public"
-import { useLeaderboardContext } from "@/app/contexts/LeaderboardContext"
-import { useGameContext } from "@/app/contexts/MiningContext";
+import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext"
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { SvgProps } from "@/types/svg";
 import React from "react";
 

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useRegisterAndAuth } from "./registerAndAuth";
 import deviceTypeDetector from "@/utils/deviceDetection";
-import { authenticateUser } from "@/app/components/telegramAuth";
+import { authenticateUser } from "@/lib/telegramAuth";
 
 export function useDeviceDetection() {
   const { registerAndAuth } = useRegisterAndAuth();

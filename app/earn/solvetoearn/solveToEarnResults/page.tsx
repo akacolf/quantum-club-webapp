@@ -1,7 +1,7 @@
 'use client';
 
-import { useGameContext } from "@/app/contexts/MiningContext";
-import { dbfs } from "@/app/firebase/firebaseConfig";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";

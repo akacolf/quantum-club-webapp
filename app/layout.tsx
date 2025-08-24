@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { Fustat } from "next/font/google";
-import ClientProviders from "./providers/ClientProviders";
+import ClientProviders from "./(providers)/ClientProviders";
 
 const fustat = Fustat({
   subsets: ["latin"],

@@ -7,5 +7,3 @@ export const ButtonLoader: React.FC = () => {
     </div>
   );
 };
-
-// <div className="w-5 h-5 border-[2px] border-[#202021] border-b-[#ffffff] rounded-full inline-block box-border animate-spin [animation-duration:3s]"></div>//

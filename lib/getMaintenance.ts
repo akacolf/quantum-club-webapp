@@ -1,6 +1,6 @@
 "use server"
 import { doc, getDoc } from "firebase/firestore";
-import { dbfs } from "@/app/firebase/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
 
 export async function getMaintenance() {
     const setRef = doc(dbfs, "set","settings");

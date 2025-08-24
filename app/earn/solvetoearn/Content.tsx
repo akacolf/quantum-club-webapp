@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { dbfs } from "@/app/firebase/firebaseConfig";
-import { useGameContext } from "@/app/contexts/MiningContext";
-import Loader from "@/app/components/MainLoader";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
+import Loader from "@/app/(components)/MainLoader";
 
 const SolveToEarnContent = () => {
   const [again, setAgain] = useState(true);

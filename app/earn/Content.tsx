@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { dbfs } from "@/app/firebase/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import {
   updateDoc,
   doc,
@@ -9,13 +9,13 @@ import {
   getDocs,
   collection,
 } from "firebase/firestore";
-import Loader from "../components/MainLoader";
-import { useGameContext } from "@/app/contexts/MiningContext";
+import Loader from "../(components)/MainLoader";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { getAuth } from "firebase/auth";
-import { ButtonLoader } from "../components/ButtonLoader";
+import { ButtonLoader } from "../(components)/ButtonLoader";
 import { getAllTasks } from "./tasks";
 import { useRouter } from "next/navigation";
-import { useLeaderboardContext } from "../contexts/LeaderboardContext";
+import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
 import { EarnTask } from "@/lib/interfaces";
 /*const calculateRemainingTime = (timestamp:number) => {
   const now:Date = new Date();
