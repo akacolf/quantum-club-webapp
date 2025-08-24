@@ -53,11 +53,11 @@ export default function HomeUISkeleton() {
         <div className="font-semibold text-lg mb-3">
           <div className="skeleton h-6 w-32 rounded" />
         </div>
-        <div className="relative flex items-center justify-between rounded-2xl p-4 overflow-hidden" style={{ minHeight: "100px" }}>
+        <div className="relative flex items-center justify-between rounded-2xl p-4 overflow-hidden">
           <div className="absolute inset-0">
             <div className="skeleton w-full h-full rounded-2xl" />
           </div>
-          <div className="flex items-center space-x-3 z-10">
+          <div className="flex items-center space-x-3">
             <div className="flex items-center justify-center">
               <div className="skeleton rounded-full w-10 h-10" />
             </div>
@@ -66,7 +66,7 @@ export default function HomeUISkeleton() {
               <div className="skeleton h-4 w-16 rounded mt-1" />
             </div>
           </div>
-          <div className="z-10">
+          <div>
             <div className="skeleton h-9 w-16 rounded-full" />
           </div>
         </div>
