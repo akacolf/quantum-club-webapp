@@ -1,5 +1,5 @@
-import HomeUISkeleton from "./(components)/UISkeleton";
+import Loader from "../(components)/MainLoader";
 
 export default function Loading() {
-  return <HomeUISkeleton />;
+  return <Loader />;
 }

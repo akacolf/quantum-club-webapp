@@ -2,7 +2,6 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import Head from "next/head";
 
 const HomeIcon = React.memo(() => (
   <svg
@@ -88,11 +87,6 @@ const NavigationBar = () => {
   else if (pathname.includes("/ecosystem")) activeTab = "ecosystem";
 
   return (
-    <div>
-      <Head>
-        <meta name="viewport" content="viewport-fit=cover" />
-      </Head>
-
       <div
         className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[5rem] z-50"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1.5rem)" }}
@@ -112,7 +106,6 @@ const NavigationBar = () => {
           </Link>
         ))}
       </div>
-    </div>
   );
 };
 
