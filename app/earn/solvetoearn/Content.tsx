@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
-import Loader from "@/app/(components)/MainLoader";
+import Loader from "@/app/(components)/Loader";
 
 const SolveToEarnContent = () => {
   const [again, setAgain] = useState(true);

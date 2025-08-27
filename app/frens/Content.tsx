@@ -6,7 +6,7 @@ import { useFrenContext } from "@/app/(contexts)/FrensContext";
 import CopyToaster from "./(components)/CopyToaster";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
-import Loader from "@/app/(components)/MainLoader";
+import Loader from "@/app/(components)/Loader";
 import { collection, doc, getDoc, getDocs,getCountFromServer } from 'firebase/firestore';
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import InvitePopup from "./(components)/InvitePopup";
