@@ -4,24 +4,25 @@ import { useGameContext } from '@/app/(contexts)/MiningContext';
 import { dbfs } from '@/app/(firebase)/firebaseConfig';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { useTelegramBackButton } from '@/app/(hooks)/useBackButton';
 import React, { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AnswerPage() {
     const { telegramId, SetMainQuantAmount } = useGameContext();
     const [taskId, setTaskId] = useState("");
-    const pathname:string = usePathname();
     const [textBox, setTextBox] = useState("");
     const router = useRouter();
+
+    useTelegramBackButton("/earn");
+
     useEffect(() => {
         router.prefetch('/earn/9CXx152NbBKOKE2');
     }, [router]);
 
     const [isCorrect, setIsCorrect] = useState(true);
     const [isLoading, setIsReloading] = useState(false);
+
     useEffect(() => {
         if (typeof window !== "undefined") {
             if (!window.Telegram?.WebApp?.initData) {
@@ -29,14 +30,7 @@ export default function AnswerPage() {
                 return;
             }
         }
-        if (typeof window !== "undefined") {
-            const tg = window.Telegram?.WebApp;
-            if(!tg) return;
-            tg.BackButton.show();
-            tg.BackButton.onClick = () => {
-                <Link href={'/earn'}/>
-            };
-        }
+
         const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
         if (navigationType === 'reload') {
             if (typeof window !== "undefined") {
@@ -47,6 +41,7 @@ export default function AnswerPage() {
             setIsReloading(false);
         }
     }, []);
+
     useEffect(() => {
         const auth = getAuth();
         const user = auth.currentUser;
@@ -57,6 +52,7 @@ export default function AnswerPage() {
             return;
         }
     }, []);
+
     useEffect(() => {
         const cookies = document.cookie.split('; ');
         const taskIdCookie = cookies.find(cookie => cookie.startsWith('taskId='));
@@ -65,6 +61,7 @@ export default function AnswerPage() {
             setTaskId(taskIdValue);
         }
     }, [])
+
     async function check() {
         const userTaskRef = doc(dbfs, `user/${telegramId}/tasks/${taskId}`);
         const miningDataValue = doc(dbfs, `user/${telegramId}/miningData/values`);
@@ -147,14 +144,6 @@ export default function AnswerPage() {
         }
     }
     return (
-        <AnimatePresence>
-            <motion.div
-                key={pathname}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
                 <div className='bg-black flex flex-col'>
                     {!isLoading &&
                         (<div> <div className='flex flex-col ml-4 mt-28'>
@@ -177,7 +166,5 @@ export default function AnswerPage() {
                             </div>
                         </div>)}
                 </div>
-            </motion.div>
-        </AnimatePresence>
     )
 }

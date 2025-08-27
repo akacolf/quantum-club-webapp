@@ -1306,9 +1306,7 @@ const EarnContent = () => {
           )}
         </>
       ) : (
-        <div className="fixed inset-0 flex items-center justify-center">
-          <div className="loading loading-spinner loading-xl" />
-        </div>
+        <Loader />
       )}
     </div>
   );
