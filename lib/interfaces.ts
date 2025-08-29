@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { LottieRefCurrentProps } from "lottie-react";
 import { JSX } from "react";
 
@@ -6,7 +5,7 @@ export interface TaskHistory {
     id: string;
     quant: number;
     date: string;
-    platform: ReactNode;
+    platform: string;
     title: string;
   }
 
