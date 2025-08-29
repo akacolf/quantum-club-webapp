@@ -1,5 +1,6 @@
 'use client';
-import { useTelegramBackButton } from "@/app/hooks/useBackButton";
+
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function Roadmap() {
   useTelegramBackButton();

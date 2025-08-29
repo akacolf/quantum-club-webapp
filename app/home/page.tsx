@@ -2,18 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
-import Loader from '@/app/components/MainLoader';
-import dynamic from 'next/dynamic';
+import HomeContent from './Content';
 
-const HomePageContent = dynamic(() => import('./HomePageContent'), {
-  loading: () => <Loader />,
-  ssr: false,
-});
-
-const HomePage = () => {
+const Home = () => {
+  
   const [maintenance, setMaintenance] = useState(true);
 
- 
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.Telegram?.WebApp.BackButton.hide();
@@ -55,10 +49,10 @@ const HomePage = () => {
     <div />
   ) : (
 
-    <HomePageContent />
+    <HomeContent />
  )
 
  );
 };
 
-export default HomePage;
+export default Home;

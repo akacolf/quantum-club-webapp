@@ -1,19 +1,19 @@
 'use client';
 
-import { useGameContext } from "@/app/contexts/MiningContext";
-import { dbfs } from "@/app/firebase/firebaseConfig";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { bgSolveToEarnResultsPage } from "@/public";
 import rocketAnimationData from "@/public/lottie/rocket-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import { useEffect, useRef, useState } from "react";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 const SolveToEarnResults = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const [buttonClicked, setButtonClicked] = useState(false);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (!window.Telegram?.WebApp?.initData) {
@@ -27,6 +27,7 @@ const SolveToEarnResults = () => {
     } else {
     }
   }, []);
+
   useEffect(() => {
     const auth = getAuth();
     const user = auth.currentUser;
@@ -37,6 +38,7 @@ const SolveToEarnResults = () => {
       return;
     }
   }, []);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const WebApp = window.Telegram?.WebApp
@@ -50,34 +52,20 @@ const SolveToEarnResults = () => {
       }
     }
   }, []);
+
   const { remainingSolveToEarn, telegramId, setRemainingSolveToEarn } = useGameContext();
   const solvetoearnremaining = useState(remainingSolveToEarn);
   const router = useRouter();
-  useEffect(() => {
-      const tg = window.Telegram?.WebApp;
-      if(tg){
-      tg.ready();
-      const handleBackButtonClick = () => {
-        router.replace('/home');
-      };
-      tg.BackButton.show();
-      tg.BackButton.onClick(handleBackButtonClick);
-      return () => {
-        tg.BackButton.offClick(handleBackButtonClick);
-       
-      };
-      }else{
-        console.error("Telegram WebApp not available");
-      }
-      
-    
-  }, [router])
+
+ useTelegramBackButton();
+
   const totalCorrect = useState<string>(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("TotalCorrectSolveToEarn") || "0" }else{return "0"} });
   const totalCorrectAnswers = useState(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("correctAnswers") || 0 } })
 
   useEffect(() => {
     router.prefetch("/earn/solvetoearn");
   })
+
   async function checkRemainingSolveToEarn() {
     setButtonClicked(true)
     const solveToEarnRef = doc(dbfs, `user/${telegramId}/miningData/values`);
@@ -94,15 +82,7 @@ const SolveToEarnResults = () => {
     }
   }
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <div className="fixed inset-0 flex flex-col justify-center items-center bg-cover bg-center h-screen w-full"
-          style={{ backgroundImage: `url(${bgSolveToEarnResultsPage.src})` }}
-        >
+        <div className="fixed inset-0 flex flex-col justify-center items-center h-screen w-full">
           <div className="flex flex-col items-center justify-center flex-grow">
             <Lottie 
             lottieRef={lottieRef}
@@ -257,9 +237,6 @@ const SolveToEarnResults = () => {
 
 
         </div>
-
-      </motion.div>
-    </AnimatePresence>
   )
 }
 

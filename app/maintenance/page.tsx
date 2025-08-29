@@ -1,5 +1,5 @@
-import MaintenanceScreen from "./client/MaintenanceScreen";
+import MaintenanceContent from "./Content";
 
-export default function MaintenancePage() {
-  return <MaintenanceScreen />;
+export default function Maintenance() {
+  return <MaintenanceContent />;
 }

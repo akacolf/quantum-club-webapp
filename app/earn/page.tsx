@@ -1,8 +1,9 @@
 'use client';
 import React, {  useEffect } from 'react';
-import EarnPageContent from './EarnPageContent';
+import EarnContent from './Content';
 import { getAuth } from 'firebase/auth';
-const EarnPage = () => {
+
+const Earn = () => {
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (!window.Telegram?.WebApp?.initData) {
@@ -25,9 +26,7 @@ const EarnPage = () => {
       return;
     }
   }, []);
-  return (
-        <EarnPageContent />
-  );
+  return <EarnContent />;
 };
 
-export default EarnPage;
+export default Earn;

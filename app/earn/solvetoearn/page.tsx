@@ -1,9 +1,9 @@
 "use client";
 import { useEffect } from "react";
-import SolveToEarnPageContent from "./SolveToEarnPageContent";
+import SolveToEarnContent from "./Content";
 import { getAuth } from "firebase/auth";
 
-const SolveToEarnPage = () => {
+const SolveToEarn = () => {
     useEffect(() =>{
       if(typeof window !== "undefined"){
         if(!window.Telegram?.WebApp?.initData){
@@ -43,11 +43,8 @@ const SolveToEarnPage = () => {
         }
         }
       },[]);
-  return (
-    
-        <SolveToEarnPageContent />
-
-  );
+      
+  return <SolveToEarnContent />;
 };
 
-export default SolveToEarnPage;
+export default SolveToEarn;
