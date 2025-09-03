@@ -100,6 +100,18 @@ function getRankIcon(rank: string | null) {
 }
 
 const HomeContent = () => {
+  const router = useRouter();
+  
+     useEffect(() => {
+      if (typeof window === "undefined") return;
+  
+      const mp = sessionStorage.getItem("maintenance");
+      if (mp === "true") {
+        router.replace("/maintenance");
+        return;
+      }
+    }, [router]);
+
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const {
     MainQuantAmount,
@@ -113,7 +125,6 @@ const HomeContent = () => {
     setRemainingSolveToEarn,
     remainingSolveToEarn,
   } = useGameContext();
-  const router = useRouter();
 
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);

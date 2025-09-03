@@ -2,7 +2,6 @@
 
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { dbfs } from "@/app/(firebase)/firebaseConfig";
-import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import rocketAnimationData from "@/public/lottie/rocket-lottie.json";
@@ -13,45 +12,6 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 const SolveToEarnResults = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const [buttonClicked, setButtonClicked] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (!window.Telegram?.WebApp?.initData) {
-        window.location.href = "https://t.me/QuantumClubBot";
-        return;
-      }
-    }
-    const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
-    if (navigationType === "reload") {
-      window.location.replace("/");
-    } else {
-    }
-  }, []);
-
-  useEffect(() => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    if (user) {
-    } else {
-      console.error("Permisson denied");
-      window.location.replace("/")
-      return;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const WebApp = window.Telegram?.WebApp
-      if (!WebApp?.initDataUnsafe.user) {
-        return;
-      } else {
-        const mp = sessionStorage.getItem('maintenance');
-        if (mp == "true") {
-          if (typeof window !== "undefined") { window.location.replace("/maintenance") }
-        }
-      }
-    }
-  }, []);
 
   const { remainingSolveToEarn, telegramId, setRemainingSolveToEarn } = useGameContext();
   const solvetoearnremaining = useState(remainingSolveToEarn);

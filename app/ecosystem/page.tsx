@@ -1,45 +1,5 @@
-"use client";
-
-import React, { useEffect } from "react";
-import { getAuth } from "firebase/auth";
 import EcosystemContent from "./Content";
 
-const Ecosystem = () => {
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      //telegram check
-      if (!window.Telegram?.WebApp?.initData) {
-        window.location.href = "https://t.me/QuantumClubBot";
-        return;
-      }
-    }
-    //hide back button
-    if (typeof window !== "undefined") {
-      window?.Telegram?.WebApp.BackButton.hide();
-    }
-    //reload check
-    const navigationType = (
-      performance.getEntriesByType(
-        "navigation"
-      )[0] as PerformanceNavigationTiming
-    )?.type;
-    if (navigationType === "reload") {
-      window.location.replace("/");
-      return;
-    }
-
-    //firebase auth check
-    const auth = getAuth();
-    const user = auth.currentUser;
-    if (user) {
-    } else {
-      console.error("Permisson denied");
-      window.location.replace("/");
-      return;
-    }
-  }, []);
-
+export default function Ecosystem() {
   return <EcosystemContent />;
-};
-
-export default Ecosystem;
+}

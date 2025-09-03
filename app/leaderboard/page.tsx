@@ -1,5 +1,5 @@
-import LeaderboardClient from "./LeaderboardClient";
+import LeaderboardContent from "./Content";
 
 export default function Leaderboard() {
-  return <LeaderboardClient />;
+  return <LeaderboardContent />;
 }

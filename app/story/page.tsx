@@ -1,5 +1,5 @@
-import StoryClient from "./StoryClient";
+import StoryContent from "./Content";
 
 export default function Story() {
-  return <StoryClient />;
+  return <StoryContent />;
 };

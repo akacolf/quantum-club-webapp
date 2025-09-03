@@ -34,7 +34,7 @@ const MaintenanceContent = () => {
         <div className='fixed inset-0 flex flex-col items-center justify-center'>
             <MaintenanceIcon />
             <h1 className='text-2xl mt-3'>Fine-tuning experiences</h1>
-            <button onClick={openTelegramGroup} className='px-4 py-2 mt-4 rounded-lg bg-[#303030] text-white'>Check community</button>
+            <button onClick={openTelegramGroup} className='btn mt-4 rounded-lg'>Check community</button>
         </div>
     </div>
     )
