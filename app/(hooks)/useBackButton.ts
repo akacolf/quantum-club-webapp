@@ -17,6 +17,7 @@ export function useTelegramBackButton(path: string = "/home") {
 
         return () => {
             tg?.BackButton.offClick(handleBackButtonClick);
+            tg?.BackButton.hide();
         };
 
     }, [router, path]);
