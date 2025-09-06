@@ -11,20 +11,8 @@ import LeaderboardStats from "./(components)/Stats";
 import UserStatsCard from "./(components)/UserStatsCard";
 import LeaderboardList from "./(components)/Leaderboard";
 import LeaderboardUISkeleton from "./(components)/UISkeleton";
-import { useRouter } from "next/navigation";
 
 const LeaderboardContent = () => {
-  const router = useRouter();
-
-   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const mp = sessionStorage.getItem("maintenance");
-    if (mp === "true") {
-      router.replace("/maintenance");
-      return;
-    }
-  }, [router]);
 
   useTelegramBackButton();
 

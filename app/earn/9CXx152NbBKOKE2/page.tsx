@@ -6,7 +6,6 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useTelegramBackButton } from '@/app/(hooks)/useBackButton';
 import React, { useEffect, useState } from 'react';
-import { getAuth } from 'firebase/auth';
 
 export default function AnswerPage() {
     const { telegramId, SetMainQuantAmount } = useGameContext();
@@ -21,37 +20,7 @@ export default function AnswerPage() {
     }, [router]);
 
     const [isCorrect, setIsCorrect] = useState(true);
-    const [isLoading, setIsReloading] = useState(false);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            if (!window.Telegram?.WebApp?.initData) {
-                window.location.href = "https://t.me/QuantumClubBot";
-                return;
-            }
-        }
-
-        const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
-        if (navigationType === 'reload') {
-            if (typeof window !== "undefined") {
-                setIsReloading(true);
-                window.location.replace("/");
-            }
-        } else {
-            setIsReloading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (user) {
-        } else {
-            console.error("Permisson denied");
-            if (typeof window !== "undefined") { window.location.replace("/") }
-            return;
-        }
-    }, []);
+    const [isLoading] = useState(false);
 
     useEffect(() => {
         const cookies = document.cookie.split('; ');
