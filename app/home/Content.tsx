@@ -101,6 +101,12 @@ function getRankIcon(rank: string | null) {
 
 const HomeContent = () => {
   const router = useRouter();
+
+  useEffect(() => {
+        const tg = window.Telegram?.WebApp;
+
+        tg?.disableClosingConfirmation();
+    }, []);
   
      useEffect(() => {
       if (typeof window === "undefined") return;
