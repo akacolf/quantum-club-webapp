@@ -6,7 +6,8 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
-import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";
+
 
 const SolveToEarnContent = () => {
   const [again, setAgain] = useState(true);
@@ -21,6 +22,8 @@ const SolveToEarnContent = () => {
   const answersRef = useRef(answers);
   const correctRef = useRef(correctAnswer);
 
+  useTelegramCloseConfirmation();
+
   useEffect(() => {
     router.prefetch("/earn/solvetoearn/solveToEarnResults");
     answersRef.current = answers;
@@ -29,8 +32,6 @@ const SolveToEarnContent = () => {
   useEffect(() => {
     correctRef.current = correctAnswer;
   }, [correctAnswer]);
-
-  useTelegramBackButton();
 
   useEffect(() => {
     const MathCreator = async () => {

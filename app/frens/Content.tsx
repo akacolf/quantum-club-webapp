@@ -26,25 +26,7 @@ const lottieRef = useRef<LottieRefCurrentProps>(null);
     const [loading, setLoading] = useState(true);
     const [totalReferralSize, setTotalReferralSize] = useState(0)
     const [viewButton, setViewButton] = useState<string |React.ReactNode>("View more")
-    useEffect(() => {
-      const tg = window.Telegram?.WebApp;
-      if(tg){
-      tg.ready();
-      const handleBackButtonClick = () => {
-        router.replace('/frens');
-      };
-      tg.BackButton.show();
-      tg.BackButton.onClick(handleBackButtonClick);
-      return () => {
-        tg.BackButton.offClick(handleBackButtonClick);
-       
-      };
-      }else{
-        console.error("Telegram WebApp not available");
-      }
-      
-      
-    }, [router])
+ 
     useEffect(() => {
       router.prefetch("/frens/referrals");
     const getReferralsNum = async () => {

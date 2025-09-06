@@ -29,6 +29,8 @@ declare global {
         openTelegramLink: (link:string|undefined) => void;
         navigator: () => void;
         disableVerticalSwipes: () => void;
+        enableClosingConfirmation: () => void;
+
         BackButton: {
           hide: () => void;
           show: () => void;
