@@ -30,6 +30,7 @@ declare global {
         navigator: () => void;
         disableVerticalSwipes: () => void;
         enableClosingConfirmation: () => void;
+        disableClosingConfirmation: () => void;
 
         BackButton: {
           hide: () => void;

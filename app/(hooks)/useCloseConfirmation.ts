@@ -5,5 +5,5 @@ export function useTelegramCloseConfirmation() {
         const tg = window.Telegram?.WebApp;
 
         tg?.enableClosingConfirmation();
-    })
+    }, []);
 }
