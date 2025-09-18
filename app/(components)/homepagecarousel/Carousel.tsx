@@ -86,7 +86,7 @@ const HomeCarousel: React.FC = () => {
                       AI-Powered Trading Is Coming
                     </div>
                     <div className="text-sm font-normal mt-2 text-neutral-400">
-                      Your tokens on the secure and scalable TON blockchain.
+                      Your tokens on the secure and fast TON blockchain.
                     </div>
                     <button className="btn btn-disabled mt-2 w-16 h-7 bg-white text-black text-xs rounded-full">
                       Trade
@@ -153,7 +153,7 @@ const HomeCarousel: React.FC = () => {
                   <div>
                     <div className="font-semibold text-base">Check the leaderboard</div>
                     <div className="text-sm font-normal mt-2 text-neutral-400">Your standings determine how ahead you&apos;re in the game.</div>
-                    <div className="mt-6">
+                    <div className="mt-3">
                     <Link className="px-3 py-2 bg-white text-black text-xs rounded-full"
                     href={"/leaderboard"}
                     id="leaderboardbutton"
