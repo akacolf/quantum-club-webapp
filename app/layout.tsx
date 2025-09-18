@@ -3,15 +3,34 @@ import React from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import ClientProviders from "./(providers)/ClientProviders";
 import type { Metadata } from "next";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
+const interDisplay = localFont({
+  src: [
+    { path: "./(fonts)/Inter_Display/InterDisplay-Thin.woff2", weight: "100", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-ThinItalic.woff2", weight: "100", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-ExtraLight.woff2", weight: "200", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-ExtraLightItalic.woff2", weight: "200", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-Light.woff2", weight: "300", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-LightItalic.woff2", weight: "300", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-Italic.woff2", weight: "400", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-MediumItalic.woff2", weight: "500", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-SemiBoldItalic.woff2", weight: "600", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-Bold.woff2", weight: "700", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-BoldItalic.woff2", weight: "700", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-ExtraBold.woff2", weight: "800", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-ExtraBoldItalic.woff2", weight: "800", style: "italic" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-Black.woff2", weight: "900", style: "normal" },
+    { path: "./(fonts)/Inter_Display/InterDisplay-BlackItalic.woff2", weight: "900", style: "italic" },
+  ],
+  variable: "--font-interDisplay",
   display: "swap",
-})
+});
 
 
 export const metadata: Metadata = {
@@ -29,7 +48,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${interDisplay.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <ClientProviders>
           <div className="main-content">

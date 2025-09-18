@@ -9,7 +9,7 @@ export default function Loader() {
           rounded-full
           box-border
           animate-spin
-          [animation-duration:2.5s]
+          [animation-duration:3s]
         "
       />
     </div>
