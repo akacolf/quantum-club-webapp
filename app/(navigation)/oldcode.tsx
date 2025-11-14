@@ -88,7 +88,7 @@ const NavigationBar = () => {
 
   return (
       <div
-        className="dock dock-sm bg-black/80 backdrop-blur-md min-h-[5rem] z-50"
+        className="dock dock-sm bg-black/80 backdrop-blur-md min-h-20 z-50"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1.5rem)" }}
       >
         {navTabs.map(tab => (
