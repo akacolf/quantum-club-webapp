@@ -1,4 +1,5 @@
 'use client';
+
 import { usePathname } from "next/navigation";
 import NavigationBar from "@/app/(navigation)/NavigationBar"
 export default function HomeLayout({children}: {children: React.ReactNode}) {

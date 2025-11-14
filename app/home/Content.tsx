@@ -15,13 +15,12 @@ import { useRouter } from "next/navigation";
 import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
 import toast from "react-hot-toast";
 /*import { toNano } from "@ton/core";*/
-import HomeCarousel from "@/app/(components)/homepagecarousel/Carousel";
+import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 import ClaimToaster from "./(components)/ClaimToaster";
-import ConnectWallet from "./(components)/ConnectWallet";
+import TabsSwitch from "./(components)/PlatformSwitch";
 import QntmBalance from "./(components)/QntmBalance";
 import DailyCheckIn from "./(components)/DailyCheck";
-import FarmingQntm from "./(components)/FarmingQntm";
 import SolveToEarnCard from "./(components)/SolveToEarnCard";
 
 const calculateRemainingTime = (timestamp: number) => {
@@ -112,7 +111,7 @@ const HomeContent = () => {
       if (typeof window === "undefined") return;
   
       const mp = sessionStorage.getItem("maintenance");
-      if (mp === "true") {
+      if (mp === "false") {
         router.replace("/maintenance");
         return;
       }
@@ -850,20 +849,19 @@ const HomeContent = () => {
   return (
     <div className="flex flex-col">
       <ClaimToaster />
-
-      <ConnectWallet
+      <TabsSwitch />
+      {/*<ConnectWallet
         walletAddress={walletAddress}
         formatAddress={formatAddress}
         handleWalletAction={handleWalletAction}
         setActiveWalletTab={setActiveWalletTab}
-      />
+      />*/}
 
       <QntmBalance
         MainQuantAmount={MainQuantAmount}
         rank={rank}
         getRankIcon={getRankIcon}
       />
-
       {/*daily check-in*/}
       <DailyCheckIn
         loadingButtonDay={loadingButtonDay}
@@ -877,7 +875,7 @@ const HomeContent = () => {
 
       <HomeCarousel />
 
-      <FarmingQntm />
+ 
 
       <SolveToEarnCard
         remainingSolveToEarn={remainingSolveToEarn}

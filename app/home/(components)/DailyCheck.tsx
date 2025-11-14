@@ -2,11 +2,13 @@ import Lottie from "lottie-react";
 import fireAnimationData from "@/public/lottie/fire-lottie.json";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { DailyCheckInProps } from "@/lib/interfaces";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 
 export default function DailyCheckIn({loadingButtonDay, daily, isClaimDay, loadingDay, ClaimDaily, lottieRef, TaskTimer}: DailyCheckInProps) {
     return loadingButtonDay ? (
-        <div className="skeleton card flex items-center rounded-xl w-9/10 mx-auto h-18 mt-6"></div>
+        <Skeleton className="flex items-center rounded-xl w-9/10 mx-auto h-18 mt-6" />
           ) : (
             <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-9/10 mx-auto p-4 mt-6">
               <div className="flex items-center space-x-3">
@@ -32,14 +34,14 @@ export default function DailyCheckIn({loadingButtonDay, daily, isClaimDay, loadi
                 </div>
               </div>
               <div>
-                <button
+                <Button
                   id="dailyClaimButton"
                   onClick={() => ClaimDaily()}
                   disabled={isClaimDay}
                   className={
                     !isClaimDay
-                      ? "btn w-16 h-9 btn-circle bg-white text-black text-sm" //Claim
-                      : "btn w-16 h-9 btn-circle" // Claimed
+                      ? " w-16 h-9 text-sm" //Claim
+                      : "w-16 h-9" // Claimed
                   }
                 >
                   {!loadingButtonDay ? (
@@ -71,7 +73,7 @@ export default function DailyCheckIn({loadingButtonDay, daily, isClaimDay, loadi
                       <ButtonLoader />
                     </div>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
     )

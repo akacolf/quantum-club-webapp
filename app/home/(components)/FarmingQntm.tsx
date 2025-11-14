@@ -1,4 +1,4 @@
-export default function FarmingQntm() {
+/*export default function FarmingQntm() {
     return (
         <div className="w-9/10 mx-auto mt-3 mb-6">
             <div className="font-semibold text-lg">Farm</div>
@@ -32,4 +32,4 @@ export default function FarmingQntm() {
             </div>
           </div>
     )
-}
+}*/

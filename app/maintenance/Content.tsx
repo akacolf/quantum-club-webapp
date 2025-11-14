@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Button } from '@/components/ui/button';
 
 const MaintenanceIcon = React.memo(() => (
     <svg xmlns="http://www.w3.org/2000/svg" width="7em" height="7em" viewBox="0 0 512 512">
@@ -14,27 +15,12 @@ const MaintenanceContent = () => {
         window.open("https://t.me/quantumclubinc", "_blank");
     };
 
-    useEffect(() =>{
-            if (typeof window === "undefined") return;
-
-            if(!window.Telegram?.WebApp?.initData){
-              window.location.href = "https://t.me/QuantumClubBot";
-              return;
-            }
-
-    const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type;
-    if (navigationType === 'reload') {
-        window.location.replace("/");
-        return;
-    }
-    }, []);
-
     return (
-    <div className='bg-black'>
+    <div>
         <div className='fixed inset-0 flex flex-col items-center justify-center'>
             <MaintenanceIcon />
             <h1 className='text-2xl mt-3'>Fine-tuning experiences</h1>
-            <button onClick={openTelegramGroup} className='btn mt-4 rounded-lg'>Check community</button>
+            <Button variant={'secondary'} className='mt-4' onClick={openTelegramGroup}>Check community</Button>
         </div>
     </div>
     )

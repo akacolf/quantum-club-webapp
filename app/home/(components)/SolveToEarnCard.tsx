@@ -3,6 +3,7 @@ import hundredAnimationData from "@/public/lottie/hundred-lottie.json";
 import { bgSolveToEarnCard } from "@/public";
 import { SolveToEarnCardProps } from "@/lib/interfaces";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 export default function SolveToEarnCard({ remainingSolveToEarn, lottieRef, goToSolveToEarn }: SolveToEarnCardProps) {
     return (
@@ -32,18 +33,18 @@ export default function SolveToEarnCard({ remainingSolveToEarn, lottieRef, goToS
                 </div>
               </div>
               <div className="z-10">
-                <button
+                <Button
                   id="solvetoearnbutton"
                   onClick={() => goToSolveToEarn()}
                   disabled={remainingSolveToEarn === 0}
                   className={
                     remainingSolveToEarn > 0
-                      ? "font-medium w-16 h-9 text-sm bg-white text-black btn-circle btn" // active when > 0
-                      : "font-medium w-16 h-9 text-xs btn-circle btn" //disabled when 0
+                      ? "font-medium w-16 h-9 text-sm bg-white text-black" // active when > 0
+                      : "font-medium w-16 h-9 text-xs" //disabled when 0
                   }
                 >
                   Solve
-                </button>
+                </Button>
               </div>
             </div>
           </div>

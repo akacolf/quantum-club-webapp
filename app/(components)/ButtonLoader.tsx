@@ -1,7 +1,7 @@
-export default function ButtonLoader() {
+import { Loader2Icon } from "lucide-react"
+
+export function ButtonLoader() {
   return (
-    <div className="flex items-center justify-center">
-      <div className="loading loading-spinner loading-sm" />
-    </div>
-  );
+      <Loader2Icon size={16} className="animate-spin" />
+  )
 }
