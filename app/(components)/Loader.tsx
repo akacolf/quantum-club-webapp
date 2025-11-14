@@ -5,7 +5,7 @@ export default function Loader() {
         className="
           inline-block
           w-12 h-12
-          border-5 border-neutral-800 border-b-white
+          border-4 border-neutral-800 border-b-white
           rounded-full
           animate-spin
           animation-duration-[3s]
