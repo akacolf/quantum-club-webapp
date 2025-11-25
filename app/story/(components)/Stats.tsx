@@ -1,12 +1,13 @@
 import { memo, useState } from "react";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { Card, CardContent } from "@/components/ui/card";
+import { Trophy, Wallet } from "lucide-react";
 
-const TelegramSVG = memo(() => (
+const TelegramSVG = memo(({ className }: { className?: string }) => (
         <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="15"
-              height="15"
               viewBox="0 0 256 256"
+              className={className}
             >
               <defs>
                 <linearGradient
@@ -39,30 +40,48 @@ export default function StoryStats() {
         if (typeof window !== "undefined") {
           return sessionStorage.getItem("firstQuant");
         }
-        return "";
+        return "0";
       });
 
     return (
-        <div className="stats">
-        <div className="stat place-items-center">
-          <div className="stat-title">QNTM Earned</div>
-          <div className="stat-value">{quantValue}</div>
-          <div className="stat-desc inline-flex items-center gap-1">
-            From
-            <TelegramSVG />
-            Ecosystem Activity
-          </div>
-        </div>
+        <div className="grid gap-4 px-4">
+            <Card className="bg-[#1a1a1a]/60 border-[#333] backdrop-blur-xl overflow-hidden relative group transition-all hover:bg-[#1a1a1a]/80">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-blue-500/20" />
+                <CardContent className="p-5 relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                            <Wallet className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                            <TelegramSVG className="w-3 h-3" />
+                            <span className="text-[10px] font-medium text-blue-300 uppercase tracking-wide">Ecosystem</span>
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="text-sm text-gray-400 font-medium">Total Earned</div>
+                        <div className="text-2xl font-bold text-white">{quantValue} <span className="text-sm text-gray-500 font-normal">QNTM</span></div>
+                    </div>
+                </CardContent>
+            </Card>
 
-        <div className="stat place-items-center">
-          <div className="stat-title">Rank</div>
-          <div className="stat-value">{rank}</div>
-          <div className="stat-desc inline-flex items-center gap-1">
-            Based on
-            <TelegramSVG />
-            Age
-          </div>
-        </div>
+            <Card className="bg-[#1a1a1a]/60 border-[#333] backdrop-blur-xl overflow-hidden relative group transition-all hover:bg-[#1a1a1a]/80">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-purple-500/20" />
+                <CardContent className="p-5 relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20">
+                            <Trophy className="w-6 h-6 text-purple-400" />
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                            <TelegramSVG className="w-3 h-3" />
+                            <span className="text-[10px] font-medium text-purple-300 uppercase tracking-wide">Account Age</span>
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="text-sm text-gray-400 font-medium">Global Rank</div>
+                        <div className="text-2xl font-bold text-white">#{rank}</div>
+                    </div>
+                </CardContent>
+            </Card>
       </div>
     )
 }

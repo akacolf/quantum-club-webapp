@@ -2,13 +2,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-
-const MaintenanceIcon = React.memo(() => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="7em" height="7em" viewBox="0 0 512 512">
-    <path fill="currentColor" fillRule="evenodd" d="M256 42.667c117.627 0 213.334 95.707 213.334 213.333S373.627 469.334 256 469.334c-117.626 0-213.333-95.707-213.333-213.334c0-117.626 95.707-213.333 213.333-213.333m.914 115.448c-20.234-15.39-46.684-20.697-65.64-16.41l32.82 32.82l-16.41 32.82l-32.82 16.411l-32.821-32.82c-4.287 18.956 1.02 45.406 16.41 65.64c20.982 16.138 46.794 21.582 65.64 16.41l74.87 71.075q21.296 18.79 42.593-2.505q22.627-22.627 0-45.255q-69.2-67.893-68.231-72.545c5.17-18.845-.274-44.658-16.41-65.64" strokeWidth="13" stroke="currentColor" />
-</svg>
-));
-MaintenanceIcon.displayName = 'MaintenanceIcon';
+import Lottie from "lottie-react";
+import constructionAnimation from "@/public/lottie/construction-lottie.json";
+import { Users } from "lucide-react";
 
 const MaintenanceContent = () => {
     const openTelegramGroup = () => {
@@ -16,14 +12,43 @@ const MaintenanceContent = () => {
     };
 
     return (
-    <div>
-        <div className='fixed inset-0 flex flex-col items-center justify-center'>
-            <MaintenanceIcon />
-            <h1 className='text-2xl mt-3'>Fine-tuning experiences</h1>
-            <Button variant={'secondary'} className='mt-4' onClick={openTelegramGroup}>Check community</Button>
+        <div className="fixed inset-0 flex flex-col items-center justify-center p-6 bg-black text-white overflow-hidden">
+            {/* Background Gradients */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[100px]" />
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center w-full max-w-sm space-y-8 md:space-y-10">
+                <div className="w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
+                    <Lottie 
+                        animationData={constructionAnimation} 
+                        loop={true} 
+                        autoplay={true}
+                        className="w-full h-full"
+                    />
+                </div>
+                
+                <div className="space-y-4 text-center">
+                    <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-purple-400">
+                        System Upgrade
+                    </h1>
+                    <p className="text-gray-400 text-base md:text-lg leading-relaxed">
+                        We're currently fine-tuning the Quantum experience. 
+                        Please check back shortly for improved performance and new features.
+                    </p>
+                </div>
+
+                <Button 
+                    onClick={openTelegramGroup}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-12 rounded-xl transition-all duration-200 shadow-lg shadow-blue-900/20"
+                >
+                    <Users className="w-5 h-5 mr-2" />
+                    Check Community
+                </Button>
+            </div>
         </div>
-    </div>
-    )
+    );
 }
 
 export default MaintenanceContent;
