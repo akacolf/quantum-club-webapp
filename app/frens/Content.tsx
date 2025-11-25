@@ -12,7 +12,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import InvitePopup from "./(components)/InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, User, Trophy, UserPlus } from "lucide-react";

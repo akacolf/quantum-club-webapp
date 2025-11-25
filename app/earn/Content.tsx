@@ -23,15 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const EarnContent = () => {
-  const [taskS, setTasks] = useState<EarnTask[]>([]);
+  const [tasks, setTasks] = useState<EarnTask[]>([]);
   const [loading, setLoading] = useState(true);
   const limitedTXT = "Limited";
   const ingameTXT = "In-app";
   const ParnersTXT = "Partners";
-  const [activeTab, setActiveTab] = useState(limitedTXT);
-  const [limitedTasks, setLimitedTasks] = useState<EarnTask[]>([]);
-  const [ingameTasks, setInGameTasks] = useState<EarnTask[]>([]);
-  const [partnersTasks, setPartnersTasks] = useState<EarnTask[]>([]);
   const [completedTasks, setCompletedTasks] = useState(0);
   //const [limitedTimestamp, setLimitedstamp] = useState(0)
   const claimTEXT = "Claim";
@@ -121,18 +117,8 @@ const EarnContent = () => {
         sessionStorage.setItem("tasks", JSON.stringify(tasksList));
 
         // Tüm task'ları state'e kaydet
-        setTasks([]);
+        setTasks(tasksList);
 
-        // Tab'lara göre task'ları ayır
-        setLimitedTasks(
-          tasksList?.filter((task) => task.category === limitedTXT)
-        );
-        setInGameTasks(
-          tasksList?.filter((task) => task.category === ingameTXT)
-        );
-        setPartnersTasks(
-          tasksList?.filter((task) => task.category === ParnersTXT)
-        );
         // Button texts setup
       } catch (error) {
         if (error instanceof Error) {
@@ -158,7 +144,7 @@ const EarnContent = () => {
     return <div>{remainingTime ? remainingTime : "00:00:00"}</div>;
   };*/
   // Tab değiştiğinde, sadece o tab'a ait görevleri göster
-  useEffect(() => {
+  /*useEffect(() => {
     if (activeTab === limitedTXT) {
       setTasks(limitedTasks);
     } else if (activeTab === ingameTXT) {
@@ -166,7 +152,7 @@ const EarnContent = () => {
     } else if (activeTab === ParnersTXT) {
       setTasks(partnersTasks);
     }
-  }, [activeTab, limitedTasks, ingameTasks, partnersTasks]);
+  }, [activeTab, limitedTasks, ingameTasks, partnersTasks]);*/
 
   // Helper function to render task list
   const renderTaskList = (tasks: EarnTask[]) => (
@@ -1296,7 +1282,6 @@ const EarnContent = () => {
               <Tabs
                 defaultValue={limitedTXT}
                 className="w-full"
-                onValueChange={setActiveTab}
               >
                 <TabsList className="w-full bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] p-1 h-auto rounded-xl">
                   {[limitedTXT, ingameTXT, ParnersTXT].map((tab) => (
@@ -1308,35 +1293,35 @@ const EarnContent = () => {
                       <div className="flex items-center justify-center gap-2">
                         {tab}
                         {tab === limitedTXT &&
-                          limitedTasks.filter((task) => !task.completed).length >=
+                          tasks.filter((task) => task.category === limitedTXT && !task.completed).length >=
                             1 && (
                             <Badge
                               variant="secondary"
                               className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
                             >
-                              {limitedTasks.filter((task) => !task.completed)
+                              {tasks.filter((task) => task.category === limitedTXT && !task.completed)
                                 .length}
                             </Badge>
                           )}
                         {tab === ingameTXT &&
-                          ingameTasks.filter((task) => !task.completed).length >=
+                          tasks.filter((task) => task.category === ingameTXT && !task.completed).length >=
                             1 && (
                             <Badge
                               variant="secondary"
                               className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
                             >
-                              {ingameTasks.filter((task) => !task.completed)
+                              {tasks.filter((task) => task.category === ingameTXT && !task.completed)
                                 .length}
                             </Badge>
                           )}
                         {tab === ParnersTXT &&
-                          partnersTasks.filter((task) => !task.completed).length >=
+                          tasks.filter((task) => task.category === ParnersTXT && !task.completed).length >=
                             1 && (
                             <Badge
                               variant="secondary"
                               className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
                             >
-                              {partnersTasks.filter((task) => !task.completed)
+                              {tasks.filter((task) => task.category === ParnersTXT && !task.completed)
                                 .length}
                             </Badge>
                           )}
@@ -1347,13 +1332,13 @@ const EarnContent = () => {
 
                 <div className="mt-6">
                   <TabsContent value={limitedTXT}>
-                    {renderTaskList(limitedTasks)}
+                    {renderTaskList(tasks.filter((task) => task.category === limitedTXT))}
                   </TabsContent>
                   <TabsContent value={ingameTXT}>
-                    {renderTaskList(ingameTasks)}
+                    {renderTaskList(tasks.filter((task) => task.category === ingameTXT))}
                   </TabsContent>
                   <TabsContent value={ParnersTXT}>
-                    {renderTaskList(partnersTasks)}
+                    {renderTaskList(tasks.filter((task) => task.category === ParnersTXT))}
                   </TabsContent>
                 </div>
               </Tabs>

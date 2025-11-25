@@ -8,7 +8,6 @@ import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
 import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 const SolveToEarnContent = () => {

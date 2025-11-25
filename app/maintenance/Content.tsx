@@ -34,7 +34,7 @@ const MaintenanceContent = () => {
                         System Upgrade
                     </h1>
                     <p className="text-gray-400 text-base md:text-lg leading-relaxed">
-                        We're currently fine-tuning the Quantum experience. 
+                        We&apos;re currently fine-tuning the Quantum experience. 
                         Please check back shortly for improved performance and new features.
                     </p>
                 </div>

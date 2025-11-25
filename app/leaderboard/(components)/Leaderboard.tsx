@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { firstPlaceMedal, secondPlaceMedal, thirdPlaceMedal, logoWhite } from "@/public";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 
 export default function LeaderboardList() {

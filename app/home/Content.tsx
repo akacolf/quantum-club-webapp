@@ -242,10 +242,10 @@ const HomeContent = () => {
     }
   };
 
-  const formatAddress = (address: string) => {
+  {/*const formatAddress = (address: string) => {
     const tempAddress = toUserFriendlyAddress(address);
     return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
-  };
+  };*/}
   async function goToSolveToEarn() {
     const taskElement = document.getElementById("solvetoearnbutton");
     if (taskElement) {
