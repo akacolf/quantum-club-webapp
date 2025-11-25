@@ -8,7 +8,6 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
@@ -18,6 +17,7 @@ import toast from "react-hot-toast";
 import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 import ClaimToaster from "./(components)/ClaimToaster";
+import TabsSwitch from "./(components)/PlatformSwitch";
 import QntmBalance from "./(components)/QntmBalance";
 import DailyCheckIn from "./(components)/DailyCheck";
 import SolveToEarnCard from "./(components)/SolveToEarnCard";
@@ -130,10 +130,10 @@ const HomeContent = () => {
     remainingSolveToEarn,
   } = useGameContext();
 
+  const [activeTab, setActiveTab] = useState("platform");
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
   const [tonConnectUI] = useTonConnectUI();
-  const [isActiveWalletTab, setActiveWalletTab] = useState(false);
   const handleWalletConnection = useCallback(
     (address: string) => {
       setWalletAddress(address);
@@ -848,138 +848,121 @@ const HomeContent = () => {
   return (
     <div className="flex flex-col">
       <ClaimToaster />
-      {/*<ConnectWallet
-        walletAddress={walletAddress}
-        formatAddress={formatAddress}
-        handleWalletAction={handleWalletAction}
-        setActiveWalletTab={setActiveWalletTab}
-      />*/}
+      <TabsSwitch activeTab={activeTab} onTabChange={setActiveTab} />
+      
+      {activeTab === "platform" ? (
+        <>
+          <QntmBalance
+            MainQuantAmount={MainQuantAmount}
+            rank={rank}
+            getRankIcon={getRankIcon}
+          />
+          {/*daily check-in*/}
+          <DailyCheckIn
+            loadingButtonDay={loadingButtonDay}
+            daily={daily}
+            isClaimDay={isClaimDay}
+            loadingDay={loadingDay}
+            ClaimDaily={ClaimDaily}
+            lottieRef={lottieRef}
+            TaskTimer={TaskTimer}
+          />
 
-      <QntmBalance
-        MainQuantAmount={MainQuantAmount}
-        rank={rank}
-        getRankIcon={getRankIcon}
-      />
-      {/*daily check-in*/}
-      <DailyCheckIn
-        loadingButtonDay={loadingButtonDay}
-        daily={daily}
-        isClaimDay={isClaimDay}
-        loadingDay={loadingDay}
-        ClaimDaily={ClaimDaily}
-        lottieRef={lottieRef}
-        TaskTimer={TaskTimer}
-      />
+          <HomeCarousel />
 
-      <HomeCarousel />
-
- 
-
-      <SolveToEarnCard
-        remainingSolveToEarn={remainingSolveToEarn}
-        lottieRef={lottieRef}
-        goToSolveToEarn={goToSolveToEarn}
-      />
-
-      <AnimatePresence>
-        {/*Wallet Tab */}
-        {isActiveWalletTab && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="bg-black/50 flex justify-center items-end z-50 fixed inset-0"
-            onClick={() => setActiveWalletTab(false)}
-          >
-            <motion.div
-              initial={{ y: "50%" }}
-              animate={{ y: 30 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="bg-black rounded-t-2xl w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center border-b border-b-[#303031] p-4">
-                <div className="flex-1 text-center font-semibold text-xl">
-                  Wallet
-                </div>
-                <button
-                  onClick={() => setActiveWalletTab(false)}
-                  className="cursor-pointer"
-                >
+          <SolveToEarnCard
+            remainingSolveToEarn={remainingSolveToEarn}
+            lottieRef={lottieRef}
+            goToSolveToEarn={goToSolveToEarn}
+          />
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-6 p-4">
+          {walletAddress ? (
+            <div className="w-full max-w-md space-y-4">
+              <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 flex flex-col items-center space-y-4">
+                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="1.3em"
-                    height="1.3em"
+                    width="2em"
+                    height="2em"
                     viewBox="0 0 24 24"
                   >
                     <path
-                      fill="#606060"
-                      d="m12 13.4l-4.9 4.9q-.275.275-.7.275t-.7-.275t-.275-.7t.275-.7l4.9-4.9l-4.9-4.9q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l4.9 4.9l4.9-4.9q.275-.275.7-.275t.7.275t.275.7t-.275.7L13.4 12l4.9 4.9q.275.275.275.7t-.275.7t-.7.275t-.7-.275z"
+                      fill="#22c55e"
+                      d="M23 12c0 6.075-4.925 11-11 11S1 18.075 1 12S5.925 1 12 1s11 4.925 11 11M9.305 18.11l9.402-9.403l-1.414-1.414l-7.883 7.883l-2.476-3.01l-1.511 1.31l3.882 4.633z"
                     />
                   </svg>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-white">Wallet Connected</h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    {toUserFriendlyAddress(walletAddress).slice(0, 4)}...
+                    {toUserFriendlyAddress(walletAddress).slice(-4)}
+                  </p>
+                </div>
+                <button
+                  onClick={handleWalletAction}
+                  className="w-full bg-red-500/10 text-red-500 hover:bg-red-500/20 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="1.2em"
+                    height="1.2em"
+                    viewBox="0 0 1024 1024"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M832.6 191.4c-84.6-84.6-221.5-84.6-306 0l-96.9 96.9l51 51l96.9-96.9c53.8-53.8 144.6-59.5 204 0c59.5 59.5 53.8 150.2 0 204l-96.9 96.9l51.1 51.1l96.9-96.9c84.4-84.6 84.4-221.5-.1-306.1M446.5 781.6c-53.8 53.8-144.6 59.5-204 0c-59.5-59.5-53.8-150.2 0-204l96.9-96.9l-51.1-51.1l-96.9 96.9c-84.6 84.6-84.6 221.5 0 306s221.5 84.6 306 0l96.9-96.9l-51-51zM260.3 209.4a8.03 8.03 0 0 0-11.3 0L209.4 249a8.03 8.03 0 0 0 0 11.3l554.4 554.4c3.1 3.1 8.2 3.1 11.3 0l39.6-39.6c3.1-3.1 3.1-8.2 0-11.3z"
+                    />
+                  </svg>
+                  Disconnect Wallet
                 </button>
               </div>
-              <div className="flex justify-between items-center bg-[#202021] rounded-xl p-4 w-[20rem] mx-auto mt-4">
-                <div className="flex flex-col">
-                  <div className="font-medium text-base text-green-500">
-                    Active wallet
-                  </div>
-                  <div className="font-medium text-base">
-                    {toUserFriendlyAddress(walletAddress || "").slice(0, 4)}...
-                    {toUserFriendlyAddress(walletAddress || "").slice(-4)}
-                  </div>
-                </div>
+            </div>
+          ) : (
+            <div className="w-full max-w-md text-center space-y-6">
+              <div className="w-20 h-20 bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto border border-[#333]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="2em"
-                  height="2em"
+                  width="2.5em"
+                  height="2.5em"
                   viewBox="0 0 24 24"
+                  className="text-gray-400"
                 >
                   <path
-                    fill="#22c55e"
-                    d="M23 12c0 6.075-4.925 11-11 11S1 18.075 1 12S5.925 1 12 1s11 4.925 11 11M9.305 18.11l9.402-9.403l-1.414-1.414l-7.883 7.883l-2.476-3.01l-1.511 1.31l3.882 4.633z"
+                    fill="currentColor"
+                    d="M21 18v1c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1h-9a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5s1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
                   />
                 </svg>
               </div>
-              <div className="flex items-center justify-center mt-4">
-                <button
-                  onClick={() => {
-                    setActiveWalletTab(false);
-                    handleWalletAction();
-                  }}
-                  className="bg-red-500 px-3 py-3 rounded-xl w-[20rem] mx-auto cursor-pointer"
-                >
-                  <div className="flex items-center justify-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="1.2em"
-                      height="1.2em"
-                      className="mr-1"
-                      viewBox="0 0 1024 1024"
-                    >
-                      <path
-                        fill="currentColor"
-                        d="M832.6 191.4c-84.6-84.6-221.5-84.6-306 0l-96.9 96.9l51 51l96.9-96.9c53.8-53.8 144.6-59.5 204 0c59.5 59.5 53.8 150.2 0 204l-96.9 96.9l51.1 51.1l96.9-96.9c84.4-84.6 84.4-221.5-.1-306.1M446.5 781.6c-53.8 53.8-144.6 59.5-204 0c-59.5-59.5-53.8-150.2 0-204l96.9-96.9l-51.1-51.1l-96.9 96.9c-84.6 84.6-84.6 221.5 0 306s221.5 84.6 306 0l96.9-96.9l-51-51zM260.3 209.4a8.03 8.03 0 0 0-11.3 0L209.4 249a8.03 8.03 0 0 0 0 11.3l554.4 554.4c3.1 3.1 8.2 3.1 11.3 0l39.6-39.6c3.1-3.1 3.1-8.2 0-11.3z"
-                      />
-                    </svg>
-                    Disconnect
-                  </div>
-                </button>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-white">Connect Wallet</h3>
+                <p className="text-gray-400 text-sm">
+                  Connect your TON wallet to access exclusive features and manage your assets.
+                </p>
               </div>
-              <div className="flex items-center justify-center mt-4">
-                <button
-                  onClick={() => setActiveWalletTab(false)}
-                  className="bg-white text-black px-3 py-3 rounded-xl w-[20rem] mx-auto cursor-pointer"
+              <button
+                onClick={handleWalletAction}
+                className="w-full bg-white text-black hover:bg-gray-200 py-3.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1.2em"
+                  height="1.2em"
+                  viewBox="0 0 24 24"
                 >
-                  Close
-                </button>
-              </div>
-              <div className="h-[10vh]"></div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  <path
+                    fill="currentColor"
+                    d="M21 18v1c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1h-9a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5s1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
+                  />
+                </svg>
+                Connect TON Wallet
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
