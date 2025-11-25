@@ -1,20 +1,31 @@
-import { Tabs, TabsList } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function TabsSwitch() {
   const pathname = usePathname();
+  const currentTab = pathname.includes("/web3") ? "web3" : "platform";
 
   return (
-<div className="w-full flex justify-center">
-    <Tabs className="w-5/10">
-      <TabsList className="flex bg-base-200 border border-white/10 rounded-lg mt-4 mb-5 mx-auto">
-        <Link href="/home" className={`px-4 py-1 rounded-lg transition-all duration-300
-            ${pathname === "/home" ? "border border-white/20 bg-base-200 text-white" : "bg-transparent text-white"}`}>Platform</Link>
-        <Link href="/web3/wallet" className={`px-4 py-1 rounded-lg transition-all duration-300
-            ${pathname === "/web3/wallet" ? "border border-white/20 bg-base-200 text-white" : "bg-transparent text-white"}`}>Web3</Link>
-      </TabsList>
-    </Tabs>
-</div>
+    <div className="w-full flex justify-center mt-2 mb-4">
+      <Tabs value={currentTab} className="w-auto">
+        <TabsList className="h-11 bg-[#111] border border-[#333] rounded-xl p-1 gap-1">
+          <TabsTrigger 
+            value="platform" 
+            asChild
+            className="rounded-lg px-8 data-[state=active]:bg-[#222] data-[state=active]:text-white text-gray-500 hover:text-gray-300 cursor-pointer"
+          >
+            <Link href="/home">Platform</Link>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="web3" 
+            asChild
+            className="rounded-lg px-8 data-[state=active]:bg-[#222] data-[state=active]:text-white text-gray-500 hover:text-gray-300 cursor-pointer"
+          >
+            <Link href="/web3/wallet">Web3</Link>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    </div>
   );
 }

@@ -17,19 +17,10 @@ import { getAllTasks } from "./tasks";
 import { useRouter } from "next/navigation";
 import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
 import { EarnTask } from "@/lib/interfaces";
-
-/*const calculateRemainingTime = (timestamp:number) => {
-  const now:Date = new Date();
-  const targetTime:Date = new Date(timestamp);
-  const diffMs = targetTime.getTime() - now.getTime();
-
-  if (diffMs <= 0) return null;
-
-  const seconds = String(Math.floor((diffMs / 1000) % 60)).padStart(2, "0");
-  const minutes = String(Math.floor((diffMs / 1000 / 60) % 60)).padStart(2, "0");
-  const hours = String(Math.floor((diffMs / 1000 / 60 / 60) % 24)).padStart(2, "0");
-  return ` ${hours}:${minutes}:${seconds}`;
-};*/
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const EarnContent = () => {
   const [taskS, setTasks] = useState<EarnTask[]>([]);
@@ -176,6 +167,105 @@ const EarnContent = () => {
       setTasks(partnersTasks);
     }
   }, [activeTab, limitedTasks, ingameTasks, partnersTasks]);
+
+  // Helper function to render task list
+  const renderTaskList = (tasks: EarnTask[]) => (
+    <div className="space-y-3">
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader />
+        </div>
+      ) : tasks.length > 0 ? (
+        tasks.map((task) => (
+          <Card
+            key={task.id}
+            className={`border-[#333] bg-[#1a1a1a]/60 backdrop-blur-sm transition-all duration-300 ${
+              task.completed
+                ? "opacity-60"
+                : "hover:bg-[#252525] hover:border-white/10"
+            }`}
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              {/* Icon */}
+              <div className="w-12 h-12 rounded-xl bg-[#252525] flex items-center justify-center border border-[#333] shadow-inner shrink-0">
+                <div className="w-8 h-8 flex items-center justify-center [&_svg]:w-full [&_svg]:h-full text-2xl">
+                  {task.platform}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="text-white font-medium text-sm mb-1 truncate">
+                  {task.description}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider"
+                  >
+                    +{task.quant} QNTM
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <Button
+                id={task.id}
+                onClick={() => handleJoinTask(task)}
+                disabled={
+                  (activeTaskId !== null && activeTaskId != task.id) ||
+                  task.completed
+                }
+                variant={task.completed ? "secondary" : "default"}
+                className={`h-9 px-4 min-w-20 rounded-full font-medium text-xs transition-all duration-300 ${
+                  task.buttonText === "Claim"
+                    ? "bg-orange-500 hover:bg-orange-600 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                    : task.completed
+                    ? "bg-[#333] text-gray-400 hover:bg-[#333]"
+                    : "bg-white text-black hover:bg-gray-200"
+                }`}
+              >
+                {task.buttonText === "Joined" ? (
+                  <div className="flex items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="1.2em"
+                      height="1.2em"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="m9 20.42l-6.21-6.21l2.83-2.83L9 14.77l9.88-9.89l2.83 2.83z"
+                      />
+                    </svg>
+                    <span>Done</span>
+                  </div>
+                ) : (
+                  task.buttonText
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4 text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 48 48">
+	<g fill="currentColor">
+		<path d="M14.807 23.233c-.683-.438-1.183-1.145-1.064-1.883a.5.5 0 0 1 .668-.389c1.818.675 3.846.256 5.642-1.448a.5.5 0 0 1 .818.203c.231.689.024 1.618-.48 2.382a3.8 3.8 0 0 1-2.654 1.665c-1.198.177-2.216-.073-2.93-.53m17.947 0c.683-.438 1.184-1.145 1.065-1.883a.5.5 0 0 0-.668-.389c-1.818.675-3.846.256-5.642-1.448a.5.5 0 0 0-.818.203c-.232.689-.024 1.618.48 2.382a3.8 3.8 0 0 0 2.653 1.665c1.199.177 2.216-.073 2.93-.53m-15.789 8.943c.097-.355.245-.72.431-1.005C18.664 29.225 21.151 28 23.892 28c2.646 0 5.048 1.139 6.354 2.962l.017.023a4 4 0 0 1 .278.403c.164.285.284.637.357.973a3.6 3.6 0 0 1 .076 1.123c-.038.356-.17.9-.64 1.268c-.523.41-1.15.372-1.656.195c-2.394-.782-3.53-1.12-4.648-1.126c-1.116-.006-2.277.317-4.714 1.128l-.008.003l-.008.002c-.56.176-1.222.216-1.772-.187c-.527-.386-.668-.976-.698-1.377a3.7 3.7 0 0 1 .135-1.214" />
+		<path fillRule="evenodd" d="M42 24c0 9.941-8.059 18-18 18S6 33.941 6 24S14.059 6 24 6s18 8.059 18 18m-2 0c0 8.837-7.163 16-16 16S8 32.837 8 24S15.163 8 24 8s16 7.163 16 16" clipRule="evenodd" />
+	</g>
+</svg>
+          </div>
+          <p className="text-gray-400 font-medium">No tasks available</p>
+          <p className="text-gray-600 text-sm mt-1">
+            Check back later for new opportunities
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   const handleJoinTask = (task: EarnTask) => {
     completeTask(task);
   };
@@ -1181,134 +1271,100 @@ const EarnContent = () => {
     }
   };*/
   return (
-    <div>
-      {!loading ? (
-        <>
-          {/*top section card */}
-          <div className="p-4">
-            <div className="text-3xl font-bold">Earn</div>
-          </div>
-          {/*task navigation*/}
-          <div className="flex w-full flex-col items-center justify-center p-4 gap-0 md:flex-row">
-            <div className="inline-flex h-9 w-full items-baseline justify-start bg-base-200 p-1 rounded-lg sm:w-auto">
-              {[limitedTXT, ingameTXT, ParnersTXT].map((tab) => (
-                <button
-                  key={tab}
-                  className={`group cursor-pointer inline-flex items-center justify-center whitespace-nowrap py-2 align-middle font-semibold transition-all duration-300 ease-in-out disabled:cursor-not-allowed
-              min-w-[32px] gap-1.5 text-xs h-7 w-full rounded-lg
-                px-3 drop-shadow sm:w-auto ${
-                  activeTab === tab ? "text-black bg-white" : "text-white"
-                } rounded-lg`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab} {/*  */}
-                  {tab === limitedTXT &&
-                  limitedTasks.filter((task) => !task.completed).length >= 1 ? (
-                    <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#606060]">
-                      {limitedTasks.filter((task) => !task.completed).length}
-                    </div>
-                  ) : tab === ingameTXT &&
-                    ingameTasks.filter((task) => !task.completed).length >=
-                      1 ? (
-                    <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#606060]">
-                      {ingameTasks.filter((task) => !task.completed).length}
-                    </div>
-                  ) : tab === ParnersTXT &&
-                    partnersTasks.filter((task) => !task.completed).length >=
-                      1 ? (
-                    <div className="w-4 h-4 flex items-center justify-center rounded-full bg-[#606060]">
-                      {partnersTasks.filter((task) => !task.completed).length}
-                    </div>
-                  ) : null}
-                </button>
-              ))}
+    <div className="min-h-screen bg-black text-white pb-24">
+      {/* Background Effects */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_50%)] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+      </div>
+
+      <div className="relative z-10">
+        {!loading ? (
+          <>
+            {/* Header */}
+            <div className="p-6 pt-8">
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-white to-gray-400">
+                Earn
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">
+                Complete tasks to earn QNTM
+              </p>
             </div>
-          </div>
-          {/* Tasks */}
-          {loading ? (
-            <div className="flex justify-center items-center">
-              <Loader />
-            </div>
-          ) : taskS.length > 0 ? (
-            taskS.map((task) => (
-              <div key={task.id}>
-                <div className="flex items-center px-4 py-2">
-                  {/*Left Section */}
-                  <div className="pr-4 pb-3">
-                    {/*Icon*/}
-                    <div>{task.platform}</div>
-                  </div>
-                  {/*Text*/}
-                  <div className="flex flex-1 items-center border-b-[1px] border-[#222622] justify-between pr-2 pb-3">
-                    <div>
-                      <div className="text-white font-normal text-sm">
-                        {task.description}
+
+            {/* Navigation Tabs */}
+            <div className="px-4 mb-6">
+              <Tabs
+                defaultValue={limitedTXT}
+                className="w-full"
+                onValueChange={setActiveTab}
+              >
+                <TabsList className="w-full bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] p-1 h-auto rounded-xl">
+                  {[limitedTXT, ingameTXT, ParnersTXT].map((tab) => (
+                    <TabsTrigger
+                      key={tab}
+                      value={tab}
+                      className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black text-gray-400 py-[0.31rem] rounded-lg transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {tab}
+                        {tab === limitedTXT &&
+                          limitedTasks.filter((task) => !task.completed).length >=
+                            1 && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
+                            >
+                              {limitedTasks.filter((task) => !task.completed)
+                                .length}
+                            </Badge>
+                          )}
+                        {tab === ingameTXT &&
+                          ingameTasks.filter((task) => !task.completed).length >=
+                            1 && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
+                            >
+                              {ingameTasks.filter((task) => !task.completed)
+                                .length}
+                            </Badge>
+                          )}
+                        {tab === ParnersTXT &&
+                          partnersTasks.filter((task) => !task.completed).length >=
+                            1 && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
+                            >
+                              {partnersTasks.filter((task) => !task.completed)
+                                .length}
+                            </Badge>
+                          )}
                       </div>
-                      <div className="text-gray-400 font-normal text-sm">
-                        +{task.quant} QNTM
-                      </div>
-                    </div>
-                    {/*Right Section */}
-                    <div>
-                      <button
-                        id={task.id}
-                        onClick={() => handleJoinTask(task)}
-                        disabled={
-                          (activeTaskId !== null && activeTaskId != task.id) ||
-                          task.completed
-                        }
-                        className={
-                          task.whichPlatform === "userMilestone"
-                            ? totalUsers && totalUsers >= 1000
-                              ? task.buttonText === "Claim"
-                                ? "bg-orange-500 text-white w-16 h-10 text-sm font-medium rounded-full"
-                                : task.buttonText === "Check"
-                                ? "bg-white font-medium text-black h-10 w-16 text-sm rounded-full"
-                                : task.buttonText === "Joined"
-                                ? "bg-black font-medium text-black w-16 h-10 text-sm flex items-center justify-center rounded-full"
-                                : "bg-white font-medium text-black h-10 w-16 text-sm rounded-full"
-                              : "bg-white text-black opacity-30 w-16 h-10 text-sm font-medium rounded-full"
-                            : task.buttonText === "Claim"
-                            ? "bg-orange-500 text-white w-16 h-10 text-sm font-medium rounded-full" /*Claim */
-                            : task.buttonText === "Joined"
-                            ? "bg-black font-medium text-black w-16 h-10 text-sm flex items-center justify-center rounded-full" /*Joined */
-                            : "bg-white font-medium text-black h-10 w-16 text-sm rounded-full" /*Join */
-                        }
-                      >
-                        {task.buttonText === "Joined" ? (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="1.5em"
-                            height="1.5em"
-                            viewBox="0 0 16 16"
-                          >
-                            <path
-                              fill="none"
-                              stroke="#fff"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.5"
-                              d="m2.75 8.75l3.5 3.5l7-7.5"
-                            />
-                          </svg>
-                        ) : (
-                          task.buttonText
-                        )}
-                      </button>
-                    </div>
-                  </div>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                <div className="mt-6">
+                  <TabsContent value={limitedTXT}>
+                    {renderTaskList(limitedTasks)}
+                  </TabsContent>
+                  <TabsContent value={ingameTXT}>
+                    {renderTaskList(ingameTasks)}
+                  </TabsContent>
+                  <TabsContent value={ParnersTXT}>
+                    {renderTaskList(partnersTasks)}
+                  </TabsContent>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="flex justify-center items-center">
-              No tasks available
+              </Tabs>
             </div>
-          )}
-        </>
-      ) : (
-        <Loader />
-      )}
+          </>
+        ) : (
+          <div className="flex justify-center items-center h-screen">
+            <Loader />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -92,24 +92,51 @@ const NavigationBar = () => {
   else if (pathname.includes("/ecosystem")) activeTab = "ecosystem";
 
   return (
-    <div className="fixed z-50 w-9/10 h-14 -translate-x-1/2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 bottom-6 left-1/2">
-      <nav className="grid h-full grid-cols-4">
-        {navTabs.map((tab) => (
-          <Link
-            key={tab.id}
-            id={tab.id}
-            href={tab.href}
-            onClick={e => pathname === tab.href && e.preventDefault()}
-            onContextMenu={e => e.preventDefault()}
-            onMouseDown={e => e.button === 1 && e.preventDefault()}
-            className={`flex items-center justify-center
-              ${activeTab === tab.id ? "text-white" : "text-neutral-500"}
-            `}
-          >
-            {tab.icon}
-          
-          </Link>
-        ))}
+    <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md h-[60px] bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]">
+      <nav className="grid h-full grid-cols-4 items-center">
+        {navTabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <Link
+              key={tab.id}
+              id={tab.id}
+              href={tab.href}
+              onClick={(e) => pathname === tab.href && e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+              className="group relative flex flex-col items-center justify-center gap-0.5 h-full w-full"
+            >
+              {/* Active Indicator Background */}
+              {isActive && (
+                <div className="absolute inset-0 bg-linear-to-b from-white/5 to-transparent rounded-xl mx-1 my-1" />
+              )}
+              
+              {/* Top Active Line */}
+              {isActive && (
+                 <div className="absolute top-0 w-6 h-0.5 bg-white rounded-b-full shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+              )}
+
+              <div
+                className={`transition-all duration-300 ${
+                  isActive
+                    ? "text-white scale-105 drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]"
+                    : "text-gray-500 group-hover:text-gray-300"
+                }`}
+              >
+                <div className="scale-90">
+                    {tab.icon}
+                </div>
+              </div>
+              <span
+                className={`text-[9px] font-semibold tracking-wide transition-colors duration-300 ${
+                  isActive ? "text-white" : "text-gray-500"
+                }`}
+              >
+                {tab.label}
+              </span>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

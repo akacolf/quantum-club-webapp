@@ -4,77 +4,86 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { DailyCheckInProps } from "@/lib/interfaces";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
-
-export default function DailyCheckIn({loadingButtonDay, daily, isClaimDay, loadingDay, ClaimDaily, lottieRef, TaskTimer}: DailyCheckInProps) {
-    return loadingButtonDay ? (
-        <Skeleton className="flex items-center rounded-xl w-9/10 mx-auto h-18 mt-6" />
-          ) : (
-            <div className="flex items-center justify-between bg-gradient-to-r from-slate-400 to-slate-700 rounded-xl w-9/10 mx-auto p-4 mt-6">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center">
-                  <Lottie
-                    lottieRef={lottieRef}
-                    animationData={fireAnimationData}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: "2.5em", height: "2.5em" }}
-                  />
-                </div>
-                <div>
-                  <div className="font-normal text-black text-sm">
-                    {daily} days check-in
-                  </div>
-                  <div className="font-normal text-black text-sm">
-                    Claimable in{" "}
-                    <div className="inline-block">
-                      <TaskTimer />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <Button
-                  id="dailyClaimButton"
-                  onClick={() => ClaimDaily()}
-                  disabled={isClaimDay}
-                  className={
-                    !isClaimDay
-                      ? " w-16 h-9 text-sm" //Claim
-                      : "w-16 h-9" // Claimed
-                  }
-                >
-                  {!loadingButtonDay ? (
-                    loadingDay ? (
-                      <ButtonLoader />
-                    ) : isClaimDay ? (
-                      <div className="flex items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="1.2em"
-                          height="1.2em"
-                          viewBox="0 0 24 24"
-                        >
-                          <g fill="currentColor">
-                            <path d="M10.243 16.314L6 12.07l1.414-1.414l2.829 2.828l5.656-5.657l1.415 1.415z" />
-                            <path
-                              fillRule="evenodd"
-                              d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12m11 9a9 9 0 1 1 0-18a9 9 0 0 1 0 18"
-                              clipRule="evenodd"
-                            />
-                          </g>
-                        </svg>
-                      </div>
-                    ) : (
-                      <div>Claim</div>
-                    )
-                  ) : (
-                    <div>
-                      <ButtonLoader />
-                    </div>
-                  )}
-                </Button>
-              </div>
+export default function DailyCheckIn({
+  loadingButtonDay,
+  daily,
+  isClaimDay,
+  loadingDay,
+  ClaimDaily,
+  lottieRef,
+  TaskTimer,
+}: DailyCheckInProps) {
+  return loadingButtonDay ? (
+    <Skeleton className="w-[90%] mx-auto h-16 sm:h-20 rounded-xl bg-[#1a1a1a] mt-6" />
+  ) : (
+    <Card className="w-[90%] mx-auto mt-6 relative overflow-hidden border-[#333] bg-[#111] shadow-lg">
+      {/* Background Glow Effect */}
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
+      
+      <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-2 relative z-10">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12">
+              <Lottie
+                lottieRef={lottieRef}
+                animationData={fireAnimationData}
+                loop={true}
+                autoplay={true}
+              />
             </div>
-    )
+          </div>
+          
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="text-sm sm:text-base font-bold text-white truncate">
+              {daily} Day Streak
+            </div>
+            <div className="text-[10px] sm:text-xs font-medium text-gray-400 flex flex-wrap items-center gap-1">
+              <span className="whitespace-nowrap">Next reward:</span>
+              <span className="text-orange-400 font-mono whitespace-nowrap">
+                <TaskTimer />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <Button
+          id="dailyClaimButton"
+          onClick={() => ClaimDaily()}
+          disabled={isClaimDay || loadingDay}
+          className={`
+            h-9 sm:h-10 px-3 sm:px-5 rounded-xl font-semibold transition-all duration-300 shrink-0 text-xs sm:text-sm
+            ${
+              isClaimDay
+                ? "bg-[#222] text-gray-500 border border-[#333] hover:bg-[#222] cursor-default"
+                : "bg-orange-500 hover:bg-orange-600 text-black shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:shadow-[0_0_20px_rgba(249,115,22,0.6)] border border-orange-400"
+            }
+          `}
+        >
+          {loadingDay ? (
+            <ButtonLoader />
+          ) : isClaimDay ? (
+            <div className="flex items-center gap-1.5">
+              <span>Done</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                className="text-green-500"
+              >
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                />
+              </svg>
+            </div>
+          ) : (
+            "Claim"
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }

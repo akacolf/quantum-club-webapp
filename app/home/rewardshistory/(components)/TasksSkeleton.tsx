@@ -1,19 +1,24 @@
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+
 export default function TasksSkeleton() {
     return (
-    <div className="space-y-6">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="skeleton w-10 h-10 rounded-full" />
-            <div>
-              <div className="skeleton h-4 w-32 mb-2 rounded-lg" />
-              <div className="skeleton h-3 w-20 rounded-lg" />
+    <div className="space-y-3 pr-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Card key={i} className="bg-[#111] border-[#333]">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Skeleton className="w-10 h-10 rounded-full bg-[#222]" />
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-32 bg-[#222] rounded-md" />
+                <Skeleton className="h-3 w-20 bg-[#222] rounded-md" />
+              </div>
             </div>
-          </div>
-          <div className="text-right">
-            <div className="skeleton h-4 w-16 rounded-lg" />
-          </div>
-        </div>
+            <div className="text-right">
+              <Skeleton className="h-7 w-20 bg-[#222] rounded-lg" />
+            </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
     )

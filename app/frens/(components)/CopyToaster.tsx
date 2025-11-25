@@ -4,43 +4,41 @@ import { ToastBar, Toaster } from "react-hot-toast";
 
 const CopyToaster = () => {
     return(
-        <Toaster toastOptions={{
-            duration: 3000,
-            success: {
-                iconTheme: {
-                    primary: 'white',
-                    secondary: 'black',
+        <Toaster 
+            position="top-center"
+            containerStyle={{
+                top: 80,
+            }}
+            toastOptions={{
+                duration: 3000,
+                className: '!bg-transparent !shadow-none !p-0 !max-w-none',
+                style: {
+                    background: 'transparent',
+                    boxShadow: 'none',
                 },
-            },
-            error: {
-                iconTheme: {
-                    primary: 'red',
-                    secondary: 'white',
-                },
-            },
-            className: 'mt-14 font-medium',
-            style: {
-                padding: '0px',
-                background: '#202021',
-                color: '#fff',
-            },
-          }} position="top-center">
+            }}
+        >
         {(t) => (
-        <ToastBar toast={t}>
-            {({ icon, message }) => (
-            <div className={`flex items-center p-2 rounded-lg ${
-                t.type === 'success' ? 'bg-[#202021] text-white' :
-                t.type === 'error' ? 'bg-[#202021] text-white' :
-                'bg-[#202021] text-white'
-            }`}>
-                {icon}
-                <span>{message}</span>
-            </div>
-            )}
-        </ToastBar>
+            <ToastBar toast={t} style={{ padding: 0, background: 'transparent', boxShadow: 'none' }}>
+                {({ icon, message }) => (
+                    <div 
+                        className={`${
+                            t.visible ? 'animate-in fade-in zoom-in-95 slide-in-from-top-2' : 'animate-out fade-out zoom-out-95 slide-out-to-top-2'
+                        } flex items-center gap-3 px-6 py-3 rounded-full bg-[#1a1a1a]/90 backdrop-blur-xl border border-[#333] shadow-2xl min-w-[200px] justify-center`}
+                    >
+                        {icon && (
+                            <div className="shrink-0">
+                                {icon}
+                            </div>
+                        )}
+                        <div className="text-sm font-medium text-white">
+                            {message}
+                        </div>
+                    </div>
+                )}
+            </ToastBar>
         )}
     </Toaster>
-        
     )
 }
 
