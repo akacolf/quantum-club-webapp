@@ -111,10 +111,11 @@ const HomeContent = () => {
       if (typeof window === "undefined") return;
   
       const mp = sessionStorage.getItem("maintenance");
-      if (mp === "true") {
+      // AÇILACAK UNUTMA
+      /*if (mp === "true") {
         router.replace("/maintenance");
         return;
-      }
+      }*/
     }, [router]);
 
   const lottieRef = useRef<LottieRefCurrentProps>(null);

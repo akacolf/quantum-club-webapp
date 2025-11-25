@@ -7,7 +7,7 @@ import { getMaintenance } from "@/lib/getMaintenance";
 import { getAuth, signInWithCustomToken, User } from "firebase/auth";
 
 export function useRegisterAndAuth() {
-
+  
   //encrypt data
   async function encryptData(telegramId: string): Promise<string> {
     const response = await fetch("/api/encryptID", {
@@ -125,7 +125,6 @@ export function useRegisterAndAuth() {
           encryptData(stringID),
         ]);
         sessionStorage.setItem("maintenance", maintenance);
-      
       if (process.env.NODE_ENV === "production" && maintenance) {
         router.push(`/maintenance`);
         return;
@@ -220,19 +219,12 @@ export function useRegisterAndAuth() {
                 
              
                 const referrerIDinDB = referredSnap.exists();
-                if (referrerIDinDB) {
-                  
-                
-
-                  if (!snapshotReference.exists()) {
+                if (snapshotReference.exists()) {
+                  if (!referrerIDinDB) {
                     await setDoc(userReference, {
                       telegramId: userId,
                     });
-                  }
-                  
-                 
-                  if (referredSnap.exists()) {
-                    const referredValueData = referredSnap.data();
+                    const referredValueData = snapshotReference.data();
                     const referredAmount = referredValueData?.QuantAmount;
                     let referredTenAmount = 0;
                     if (referredAmount) {
@@ -246,7 +238,7 @@ export function useRegisterAndAuth() {
                     await updateDoc(referredReference, {
                       QuantAmount: referredUpdatedAmount,
                     });
-                  }
+                }
                 }
               } catch (error) {
                 if (error instanceof Error) {
