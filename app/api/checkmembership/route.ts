@@ -10,7 +10,6 @@ export async function POST(req:NextRequest) {
       { status: 500 }
     );
   }
-
   const body = await req.json();
   const { tgIdNumerical, channelUsername } = body;
   if (!tgIdNumerical || !channelUsername) {
@@ -30,8 +29,9 @@ export async function POST(req:NextRequest) {
     const url = `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(
       formattedChatId
     )}&user_id=${tgIdNumerical}`;
-
+    console.log(url)
     const response = await fetch(url);
+    console.log(response)
     if (!response.ok) {
       const errorText = await response.text();
       return NextResponse.json(
@@ -39,6 +39,7 @@ export async function POST(req:NextRequest) {
         { status: 500 }
       );
     }
+
     const data = await response.json();
     if (data.ok) {
       const status = data.result.status;
@@ -50,6 +51,7 @@ export async function POST(req:NextRequest) {
         { status: 500 }
       );
     }
+
   } catch {
     return NextResponse.json(
       {

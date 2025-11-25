@@ -111,7 +111,6 @@ const HomeContent = () => {
       if (typeof window === "undefined") return;
   
       const mp = sessionStorage.getItem("maintenance");
-      
       if (mp === "true") {
         router.replace("/maintenance");
         return;

@@ -279,6 +279,14 @@ const EarnContent = () => {
                 : item
             )
           );
+           setTimeout(() => {
+            setTasks((items) =>
+              items.map((item) =>
+                item.id === task.id ? { ...item, buttonText: claimTEXT } : item
+              )
+            );
+            return;
+          }, 2000);
         }
         if (task.buttonText === claimTEXT) {
           setTasks((items) =>
