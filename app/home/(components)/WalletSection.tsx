@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, ChangeEvent } from "react";
 import toast from "react-hot-toast";
 import QRCode from "react-qr-code";
 import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft, RefreshCw, ChevronDown } from "lucide-react";
@@ -66,7 +66,7 @@ export default function WalletSection({
   
   // Send states
   const [sendRecipient, setSendRecipient] = useState("");
-  const [sendAmount, setSendAmount] = useState("");
+  const [sendAmount, setSendAmount] = useState("0");
   const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -719,7 +719,18 @@ export default function WalletSection({
       </div>
     );
   }
-
+  const sendAmountHandle = (e:ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value.replace(',', '.');
+      const re = /^\d*\.?\d*$/;
+      if(!isNaN(Number(inputValue))){
+      if(Number(inputValue)>=0)
+      {
+        if (inputValue === '' || re.test(inputValue)) {
+          setSendAmount(inputValue);
+        }
+    }
+    }
+  };
   // Main wallet view
   return (
     <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
@@ -1161,7 +1172,8 @@ export default function WalletSection({
                         <Input
                           type="number"
                           value={sendAmount}
-                          onChange={(e) => setSendAmount(e.target.value)}
+                          onChange={sendAmountHandle}
+                          min={0}
                           placeholder="0.00"
                           className="bg-[#1a1a1a] border-[#333] rounded-xl h-14 pl-4 pr-20 text-lg font-bold text-white placeholder:text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
                         />
