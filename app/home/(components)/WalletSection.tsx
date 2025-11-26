@@ -60,7 +60,7 @@ export default function WalletSection({
   const [isLoading, setIsLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState<"main" | "import" | "backup" | "receive" | "send">("main");
+  const [view, setView] = useState<"main" | "import" | "backup" | "receive" | "send"|"history">("main");
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string[]>([]);
   
@@ -84,7 +84,7 @@ export default function WalletSection({
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [tonPrice, setTonPrice] = useState(0);
-
+  const [historyTransfers,setHistoryTransfers] = useState([])
   // Fetch TON price
   const fetchTonPrice = useCallback(async () => {
     try {
@@ -168,6 +168,8 @@ export default function WalletSection({
       
       // Set total USD balance (TON + all Jettons)
       setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
+      const historyData = await getAccountHistory(address)
+      setHistoryTransfers(historyData)
     } catch (error) {
       console.error("Failed to fetch wallet assets:", error);
     } finally {
@@ -185,7 +187,31 @@ export default function WalletSection({
     }
     setIsChecking(false);
   }, []);
+const getAccountHistory = async (address:string) => {
+    try {
+        
+        const url = `https://tonapi.io/v2/accounts/${address}/events?limit=20`;
 
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Accept": "application/json",
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Hata: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        return data.events;
+
+    } catch (error) {
+        console.error("Geçmiş çekilemedi:", error);
+        return [];
+    }
+};
   // Fetch assets when wallet address is available
   useEffect(() => {
     if (walletAddress && hasWallet) {
@@ -953,7 +979,7 @@ export default function WalletSection({
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", onClick: openSendView },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>, label: "Receive", onClick: () => setView("receive") },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>, label: "Swap", onClick: () => {} },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>, label: "History", onClick: () => {} },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>, label: "History", onClick: () => setView("history") },
           ].map((action, i) => (
             <button key={i} onClick={action.onClick} className="flex flex-col items-center gap-2 group">
               <div className="w-12 h-12 bg-[#222] rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-[#333] group-hover:text-white transition-all">
@@ -1145,6 +1171,71 @@ export default function WalletSection({
                   <p className="text-xs text-yellow-500/90 leading-relaxed text-left">
                     Send only TON and TON-based tokens (Jettons) to this address. Sending other assets may result in permanent loss.
                   </p>
+                </div>
+
+                <Button
+                  onClick={copyAddress}
+                  className="w-full bg-white text-black hover:bg-gray-200 h-11 font-bold transition-all"
+                >
+                  {copied ? "Address Copied" : "Copy Address"}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
+{/* History */}
+      {view === "history" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="w-full max-w-md mt-12"
+          >
+            <Card className="bg-[#111] border-[#333] text-white shadow-2xl overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-[#222] bg-[#151515]">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setView("main")}
+                  className="text-gray-400 hover:text-white hover:bg-[#222]"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <CardTitle className="text-xl font-bold">Receive TON</CardTitle>
+                <div className="w-10" /> {/* Spacer for centering */}
+              </CardHeader>
+              
+              <CardContent className="flex flex-col items-center space-y-6 pt-8 pb-8">
+                <div className="p-4 bg-white rounded-2xl shadow-lg shadow-white/5">
+                  {historyTransfers && historyTransfers.length > 0 ?(
+                    historyTransfers.map((item)=>{
+                      const action = item.actions[0];
+                      if (action.type !== "TonTransfer") return null;
+                      const amount = action.TonTransfer.amount / 1000000000; 
+
+                    return (
+                        <li 
+                            key={item.event_id} 
+                            className="text-black overflow-auto"
+                        >
+                            <div className="font-bold">
+                                {action.type === "TonTransfer" ? "TON Transferi" : "Diğer İşlem"}
+                            </div>
+                            
+                            <div>Miktar: <strong>{amount} TON</strong></div>
+                            
+                            <div className="text-sm">
+                                Tarih: {new Date(item.timestamp * 1000).toLocaleString("tr-TR")}
+                            </div>
+                            
+                            <div className="text-sm">
+                                Kimden: {action.TonTransfer.sender.address}
+                            </div>
+                        </li>
+                    );
+                    })
+                  ):(<div>{JSON.stringify(historyTransfers)}</div>)}
                 </div>
 
                 <Button
