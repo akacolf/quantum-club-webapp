@@ -27,7 +27,7 @@ const SolveToEarnResults = () => {
 
   useEffect(() => {
     router.prefetch("/earn/solvetoearn");
-  })
+  }, [router])
 
   async function checkRemainingSolveToEarn() {
     setButtonClicked(true)

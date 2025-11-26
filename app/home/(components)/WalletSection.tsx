@@ -1,19 +1,32 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
-import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft } from "lucide-react";
+import QRCode from "react-qr-code";
+import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { mnemonicNew, mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
+import { fromNano } from "@ton/core";
 
 interface WalletSectionProps {
   mainQuantAmount: string;
+}
+
+interface JettonBalance {
+  symbol: string;
+  name: string;
+  balance: string;
+  decimals: number;
+  image?: string;
+  usdValue?: number;
+  priceUsd?: number;
 }
 
 export default function WalletSection({ 
@@ -24,10 +37,104 @@ export default function WalletSection({
   const [isLoading, setIsLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState<"main" | "import" | "backup">("main");
+  const [view, setView] = useState<"main" | "import" | "backup" | "receive">("main");
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string[]>([]);
   const [isRevealed, setIsRevealed] = useState(false);
+  
+  // Asset states
+  const [tonBalance, setTonBalance] = useState("0");
+  const [tonUsdValue, setTonUsdValue] = useState("0.00");
+  const [totalUsdBalance, setTotalUsdBalance] = useState("0.00");
+  const [jettons, setJettons] = useState<JettonBalance[]>([]);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [tonPrice, setTonPrice] = useState(0);
+
+  // Fetch TON price
+  const fetchTonPrice = useCallback(async () => {
+    try {
+      const response = await fetch("https://tonapi.io/v2/rates?tokens=ton&currencies=usd");
+      if (response.ok) {
+        const data = await response.json();
+        const price = data.rates?.TON?.prices?.USD || 0;
+        setTonPrice(price);
+        return price;
+      }
+    } catch (error) {
+      console.error("Failed to fetch TON price:", error);
+    }
+    return 0;
+  }, []);
+
+  // Fetch wallet assets (TON balance + Jettons)
+  const fetchWalletAssets = useCallback(async (address: string) => {
+    if (!address) return;
+    
+    setIsLoadingAssets(true);
+    try {
+      // Fetch TON price first
+      const price = await fetchTonPrice();
+      
+      // Fetch TON balance using TON API
+      let tonUsd = 0;
+      const balanceResponse = await fetch(`https://tonapi.io/v2/accounts/${address}`);
+      if (balanceResponse.ok) {
+        const balanceData = await balanceResponse.json();
+        const balanceInNano = balanceData.balance || "0";
+        const balanceInTon = fromNano(balanceInNano);
+        setTonBalance(parseFloat(balanceInTon).toFixed(4));
+        
+        // Calculate USD value
+        tonUsd = parseFloat(balanceInTon) * price;
+        setTonUsdValue(tonUsd.toFixed(2));
+      }
+
+      // Fetch Jettons (tokens) balance with USD prices
+      let jettonsUsdTotal = 0;
+      const jettonsResponse = await fetch(`https://tonapi.io/v2/accounts/${address}/jettons?currencies=usd`);
+      if (jettonsResponse.ok) {
+        const jettonsData = await jettonsResponse.json();
+        const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton: { 
+          balance: string;
+          price?: {
+            prices?: { USD?: number };
+          };
+          jetton: { 
+            symbol?: string; 
+            name?: string; 
+            decimals?: number; 
+            image?: string;
+          } 
+        }) => {
+          const decimals = jetton.jetton?.decimals || 9;
+          const rawBalance = parseFloat(jetton.balance || "0");
+          const actualBalance = rawBalance / Math.pow(10, decimals);
+          const priceUsd = jetton.price?.prices?.USD || 0;
+          const usdValue = actualBalance * priceUsd;
+          
+          jettonsUsdTotal += usdValue;
+          
+          return {
+            symbol: jetton.jetton?.symbol || "Unknown",
+            name: jetton.jetton?.name || "Unknown Token",
+            balance: jetton.balance || "0",
+            decimals: decimals,
+            image: jetton.jetton?.image,
+            usdValue: usdValue,
+            priceUsd: priceUsd,
+          };
+        });
+        setJettons(jettonBalances);
+      }
+      
+      // Set total USD balance (TON + all Jettons)
+      setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
+    } catch (error) {
+      console.error("Failed to fetch wallet assets:", error);
+    } finally {
+      setIsLoadingAssets(false);
+    }
+  }, [fetchTonPrice]);
 
   useEffect(() => {
     // Check if wallet exists in local storage
@@ -38,6 +145,13 @@ export default function WalletSection({
     }
     setIsChecking(false);
   }, []);
+
+  // Fetch assets when wallet address is available
+  useEffect(() => {
+    if (walletAddress && hasWallet) {
+      fetchWalletAssets(walletAddress);
+    }
+  }, [walletAddress, hasWallet, fetchWalletAssets]);
 
   const createWallet = async () => {
     setIsLoading(true);
@@ -363,6 +477,7 @@ export default function WalletSection({
     );
   }
 
+  // Main wallet view
   return (
     <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
       {/* Header Card */}
@@ -392,38 +507,57 @@ export default function WalletSection({
               )}
             </Button>
           </div>
-          <Button 
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              localStorage.removeItem("quantum_wallet_address");
-              setHasWallet(false);
-              setWalletAddress("");
-              setView("main");
-              setSeedPhrase(Array(24).fill(""));
-              setGeneratedMnemonic([]);
-            }}
-            className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost"
+              size="icon"
+              onClick={() => fetchWalletAssets(walletAddress)}
+              disabled={isLoadingAssets}
+              className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-400 rounded-full"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoadingAssets ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button 
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                localStorage.removeItem("quantum_wallet_address");
+                setHasWallet(false);
+                setWalletAddress("");
+                setView("main");
+                setSeedPhrase(Array(24).fill(""));
+                setGeneratedMnemonic([]);
+                setTonBalance("0");
+                setTonUsdValue("0.00");
+                setTotalUsdBalance("0.00");
+                setJettons([]);
+              }}
+              className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-1 relative z-10">
           <span className="text-gray-400 text-sm">Total Balance</span>
           <div className="flex items-baseline gap-1">
-            <h2 className="text-4xl font-bold text-white">$0.00</h2>
+            {isLoadingAssets ? (
+              <Skeleton className="h-10 w-32 bg-[#222]" />
+            ) : (
+              <h2 className="text-4xl font-bold text-white">${totalUsdBalance}</h2>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2 mt-6 relative z-10">
           {[
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send" },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>, label: "Receive" },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>, label: "Swap" },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>, label: "Scan" },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", onClick: () => {} },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>, label: "Receive", onClick: () => setView("receive") },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>, label: "Swap", onClick: () => {} },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>, label: "History", onClick: () => {} },
           ].map((action, i) => (
-            <button key={i} className="flex flex-col items-center gap-2 group">
+            <button key={i} onClick={action.onClick} className="flex flex-col items-center gap-2 group">
               <div className="w-12 h-12 bg-[#222] rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-[#333] group-hover:text-white transition-all">
                 {action.icon}
               </div>
@@ -447,47 +581,198 @@ export default function WalletSection({
 
       {/* Assets List */}
       <div className="w-full space-y-4">
-        <h3 className="text-lg font-bold text-white px-1">Assets</h3>
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-lg font-bold text-white">Assets</h3>
+        </div>
         <div className="space-y-3">
           {/* TON Asset */}
-          <div className="bg-[#111] border border-[#222] rounded-2xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="text-white">
-                  <path fill="currentColor" d="m20.661 7.22l-7.846 12.494a1.06 1.06 0 0 1-1.794-.006L3.328 7.214A2.2 2.2 0 0 1 3 6.05a2.29 2.29 0 0 1 2.324-2.255h13.362C19.963 3.794 21 4.8 21 6.044c0 .413-.116.82-.339 1.175M5.218 6.8l5.723 8.826V5.912H5.816c-.592 0-.857.392-.598.89m7.84 8.826L18.783 6.8c.265-.497-.006-.89-.599-.89H13.06z" />
-                </svg>
+          <Card className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="text-white">
+                    <path fill="currentColor" d="m20.661 7.22l-7.846 12.494a1.06 1.06 0 0 1-1.794-.006L3.328 7.214A2.2 2.2 0 0 1 3 6.05a2.29 2.29 0 0 1 2.324-2.255h13.362C19.963 3.794 21 4.8 21 6.044c0 .413-.116.82-.339 1.175M5.218 6.8l5.723 8.826V5.912H5.816c-.592 0-.857.392-.598.89m7.84 8.826L18.783 6.8c.265-.497-.006-.89-.599-.89H13.06z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-white">TON</h4>
+                  <p className="text-xs text-gray-500">Toncoin</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-white">TON</h4>
-                <p className="text-xs text-gray-500">Toncoin</p>
+              <div className="text-right">
+                {isLoadingAssets ? (
+                  <div className="space-y-1 flex flex-col items-end">
+                    <Skeleton className="h-5 w-24 bg-[#222]" />
+                    <Skeleton className="h-3 w-16 bg-[#222]" />
+                  </div>
+                ) : (
+                  <>
+                    <h4 className="font-bold text-white">{tonBalance}</h4>
+                    <p className="text-xs text-gray-500">${tonUsdValue}</p>
+                  </>
+                )}
               </div>
-            </div>
-            <div className="text-right">
-              <h4 className="font-bold text-white">0.00</h4>
-              <p className="text-xs text-gray-500">$0.00</p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* QNTM Asset */}
-          <div className="bg-[#111] border border-[#222] rounded-2xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32" className="text-white">
-                  <path fill="currentColor" d="M27.328 12.036c-2.912-1.239-6.823-2.041-11-2.26a32 32 0 0 0-1.932-.057c3.088-3.771 6.401-6.303 8.583-6.385q.644-.022 1.084.26c.943.615 1.203 2.36.724 4.787c-.052.333.161.661.479.724a.61.61 0 0 0 .724-.479c.599-3.041.156-5.131-1.255-6.052c-.505-.333-1.12-.491-1.803-.464c-2.729.104-6.583 3.068-10.12 7.631a35 35 0 0 0-4.307.38c-.86-3.865-.521-6.636.792-7.303c.181-.099.38-.145.609-.167c.932-.072 2.213.527 3.615 1.693c.26.213.645.187.859-.079a.606.606 0 0 0-.077-.859c-1.683-1.391-3.229-2.073-4.496-1.98a3 3 0 0 0-1.072.292c-1.589.812-2.224 3.104-1.828 6.453c.093.692.213 1.416.391 2.156c-4.376.875-7.161 2.631-7.281 4.833c-.084 1.563 1.151 3.047 3.572 4.297a.61.61 0 0 0 .824-.265a.607.607 0 0 0-.267-.824c-1.932-.995-2.973-2.115-2.911-3.14c.068-1.443 2.364-2.923 6.349-3.708a36 36 0 0 0 1.4 4.119c-1.359 2.516-2.344 4.996-2.848 7.199c-.751 3.287-.349 5.631 1.145 6.599c.479.312 1.036.469 1.661.469c1.245 0 2.755-.615 4.464-1.833a.611.611 0 1 0-.71-.995c-2.057 1.473-3.791 1.963-4.749 1.337c-1.011-.661-1.235-2.588-.609-5.301c.421-1.849 1.208-3.907 2.276-6.027q.4.875.839 1.751c1.901 3.729 4.229 6.968 6.547 9.131c1.849 1.719 3.568 2.615 4.979 2.615c.469 0 .907-.1 1.303-.297c1.525-.781 2.188-2.948 1.864-6.099c-.296-2.953-1.411-6.548-3.14-10.136a.614.614 0 0 0-.812-.287a.614.614 0 0 0-.292.819c3.583 7.468 3.839 13.583 1.828 14.609c-2.125 1.088-7.235-3.141-11.188-10.907a36 36 0 0 1-1.203-2.573c.453-.807.932-1.625 1.464-2.437a44 44 0 0 1 1.629-2.328h.527c.719 0 1.5.016 2.312.063c8.703.459 14.631 3.416 14.511 5.781c-.052 1.02-1.235 2.052-3.235 2.828a.612.612 0 0 0 .443 1.14c2.541-.984 3.937-2.339 4.016-3.905c.093-1.772-1.557-3.48-4.667-4.803v-.011zm-16.557.563a39 39 0 0 0-1.016 1.661a31 31 0 0 1-.963-2.953a33 33 0 0 1 3.077-.323a33 33 0 0 0-1.093 1.615v-.015zm5.234 1.568c-2.443 0-2.443 3.667 0 3.667c2.448 0 2.448-3.667 0-3.667" />
-                </svg>
+          <Card className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center border border-[#333]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32" className="text-white">
+                    <path fill="currentColor" d="M27.328 12.036c-2.912-1.239-6.823-2.041-11-2.26a32 32 0 0 0-1.932-.057c3.088-3.771 6.401-6.303 8.583-6.385q.644-.022 1.084.26c.943.615 1.203 2.36.724 4.787c-.052.333.161.661.479.724a.61.61 0 0 0 .724-.479c.599-3.041.156-5.131-1.255-6.052c-.505-.333-1.12-.491-1.803-.464c-2.729.104-6.583 3.068-10.12 7.631a35 35 0 0 0-4.307.38c-.86-3.865-.521-6.636.792-7.303c.181-.099.38-.145.609-.167c.932-.072 2.213.527 3.615 1.693c.26.213.645.187.859-.079a.606.606 0 0 0-.077-.859c-1.683-1.391-3.229-2.073-4.496-1.98a3 3 0 0 0-1.072.292c-1.589.812-2.224 3.104-1.828 6.453c.093.692.213 1.416.391 2.156c-4.376.875-7.161 2.631-7.281 4.833c-.084 1.563 1.151 3.047 3.572 4.297a.61.61 0 0 0 .824-.265a.607.607 0 0 0-.267-.824c-1.932-.995-2.973-2.115-2.911-3.14c.068-1.443 2.364-2.923 6.349-3.708a36 36 0 0 0 1.4 4.119c-1.359 2.516-2.344 4.996-2.848 7.199c-.751 3.287-.349 5.631 1.145 6.599c.479.312 1.036.469 1.661.469c1.245 0 2.755-.615 4.464-1.833a.611.611 0 1 0-.71-.995c-2.057 1.473-3.791 1.963-4.749 1.337c-1.011-.661-1.235-2.588-.609-5.301c.421-1.849 1.208-3.907 2.276-6.027q.4.875.839 1.751c1.901 3.729 4.229 6.968 6.547 9.131c1.849 1.719 3.568 2.615 4.979 2.615c.469 0 .907-.1 1.303-.297c1.525-.781 2.188-2.948 1.864-6.099c-.296-2.953-1.411-6.548-3.14-10.136a.614.614 0 0 0-.812-.287a.614.614 0 0 0-.292.819c3.583 7.468 3.839 13.583 1.828 14.609c-2.125 1.088-7.235-3.141-11.188-10.907a36 36 0 0 1-1.203-2.573c.453-.807.932-1.625 1.464-2.437a44 44 0 0 1 1.629-2.328h.527c.719 0 1.5.016 2.312.063c8.703.459 14.631 3.416 14.511 5.781c-.052 1.02-1.235 2.052-3.235 2.828a.612.612 0 0 0 .443 1.14c2.541-.984 3.937-2.339 4.016-3.905c.093-1.772-1.557-3.48-4.667-4.803v-.011zm-16.557.563a39 39 0 0 0-1.016 1.661a31 31 0 0 1-.963-2.953a33 33 0 0 1 3.077-.323a33 33 0 0 0-1.093 1.615v-.015zm5.234 1.568c-2.443 0-2.443 3.667 0 3.667c2.448 0 2.448-3.667 0-3.667" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-white">QNTM</h4>
+                  <p className="text-xs text-gray-500">Quantum Club</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-white">QNTM</h4>
-                <p className="text-xs text-gray-500">Quantum Club</p>
+              <div className="text-right">
+                <h4 className="font-bold text-white">{mainQuantAmount}</h4>
+                <p className="text-xs text-gray-500">~</p>
               </div>
-            </div>
-            <div className="text-right">
-              <h4 className="font-bold text-white">{mainQuantAmount}</h4>
-              <p className="text-xs text-gray-500">~</p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+
+          {/* Jettons (Other Tokens) - Loading Skeletons */}
+          {isLoadingAssets && jettons.length === 0 && (
+            <>
+              {[1, 2].map((i) => (
+                <Card key={i} className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-10 h-10 rounded-full bg-[#222]" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-14 bg-[#222]" />
+                        <Skeleton className="h-3 w-20 bg-[#222]" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 flex flex-col items-end">
+                      <Skeleton className="h-4 w-16 bg-[#222]" />
+                      <Skeleton className="h-3 w-10 bg-[#222]" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+          )}
+
+          {!isLoadingAssets && jettons.length === 0 && (
+            <Card className="bg-[#0d0d0d] border border-[#222] rounded-2xl shadow-none">
+              <CardContent className="p-5 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <rect width="18" height="18" x="3" y="4" rx="2" />
+                    <path d="M3 10h18" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">No jettons yet</p>
+                  <p className="text-xs text-gray-500">Incoming tokens will appear here automatically.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {jettons.map((jetton, index) => {
+            const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
+            const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
+            return (
+              <Card key={index} className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
+                      {jetton.image ? (
+                        <img src={jetton.image} alt={jetton.symbol} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                      <p className="text-xs text-gray-500 truncate max-w-[120px]">{jetton.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h4 className="font-bold text-white">{formattedBalance}</h4>
+                    <p className="text-xs text-gray-500">{usdDisplay}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
+
+      {/* Receive View (QR Code + Address) */}
+      {view === "receive" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="w-full max-w-md mt-12"
+          >
+            <Card className="bg-[#111] border-[#333] text-white shadow-2xl overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-[#222] bg-[#151515]">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setView("main")}
+                  className="text-gray-400 hover:text-white hover:bg-[#222]"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <CardTitle className="text-xl font-bold">Receive TON</CardTitle>
+                <div className="w-10" /> {/* Spacer for centering */}
+              </CardHeader>
+              
+              <CardContent className="flex flex-col items-center space-y-6 pt-8 pb-8">
+                <div className="p-4 bg-white rounded-2xl shadow-lg shadow-white/5">
+                  <QRCode 
+                    value={walletAddress} 
+                    size={200}
+                    level="H"
+                    className="w-full h-full"
+                  />
+                </div>
+
+                <div className="w-full space-y-2 text-center">
+                  <p className="text-sm text-gray-400">Your Wallet Address</p>
+                  <div 
+                    onClick={copyAddress}
+                    className="bg-[#1a1a1a] border border-[#333] rounded-xl p-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#222] transition-colors group"
+                  >
+                    <p className="text-xs text-gray-300 font-mono break-all text-left flex-1">
+                      {walletAddress}
+                    </p>
+                    <div className="text-gray-500 group-hover:text-white transition-colors">
+                      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
+                  <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-yellow-500/90 leading-relaxed text-left">
+                    Send only TON and TON-based tokens (Jettons) to this address. Sending other assets may result in permanent loss.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={copyAddress}
+                  className="w-full bg-white text-black hover:bg-gray-200 h-11 font-bold transition-all"
+                >
+                  {copied ? "Address Copied" : "Copy Address"}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
