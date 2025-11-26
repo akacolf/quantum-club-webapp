@@ -48,6 +48,7 @@ export default function WalletSection({
   const [totalUsdBalance, setTotalUsdBalance] = useState("0.00");
   const [jettons, setJettons] = useState<JettonBalance[]>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
   const [tonPrice, setTonPrice] = useState(0);
 
   // Fetch TON price
@@ -133,6 +134,7 @@ export default function WalletSection({
       console.error("Failed to fetch wallet assets:", error);
     } finally {
       setIsLoadingAssets(false);
+      setHasFetched(true);
     }
   }, [fetchTonPrice]);
 
@@ -637,7 +639,7 @@ export default function WalletSection({
           </Card>
 
           {/* Jettons (Other Tokens) - Loading Skeletons */}
-          {isLoadingAssets && jettons.length === 0 && (
+          {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
             <>
               {[1, 2].map((i) => (
                 <Card key={i} className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
@@ -659,23 +661,10 @@ export default function WalletSection({
             </>
           )}
 
-          {!isLoadingAssets && jettons.length === 0 && (
-            <Card className="bg-[#0d0d0d] border border-[#222] rounded-2xl shadow-none">
-              <CardContent className="p-5 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-gray-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 2v4" />
-                    <path d="M16 2v4" />
-                    <rect width="18" height="18" x="3" y="4" rx="2" />
-                    <path d="M3 10h18" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">No jettons yet</p>
-                  <p className="text-xs text-gray-500">Incoming tokens will appear here automatically.</p>
-                </div>
-              </CardContent>
-            </Card>
+          {!isLoadingAssets && hasFetched && jettons.length === 0 && (
+            <div className="py-4 text-center">
+              <p className="text-xs text-gray-500">Tokens will appear here automatically.</p>
+            </div>
           )}
 
           {jettons.map((jetton, index) => {
