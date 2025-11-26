@@ -21,6 +21,8 @@ import TabsSwitch from "./(components)/PlatformSwitch";
 import QntmBalance from "./(components)/QntmBalance";
 import DailyCheckIn from "./(components)/DailyCheck";
 import SolveToEarnCard from "./(components)/SolveToEarnCard";
+import WalletSection from "./(components)/WalletSection";
+import NavigationBar from "@/app/(navigation)/NavigationBar";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -223,23 +225,6 @@ const HomeContent = () => {
     updateWalletInDB,
     walletAddress,
   ]);
-
-  const handleWalletAction = async () => {
-    try {
-      if (!tonConnectUI) throw new Error("TON Connect is not ready yet");
-
-      // if it's connected, disconnect. If not, open the modal to connect.
-      if (tonConnectUI.connected) {
-        await tonConnectUI.disconnect();
-      } else {
-        await tonConnectUI.openModal();
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Wallet connection unsuccessful:", error?.message);
-      }
-    }
-  };
 
   {/*const formatAddress = (address: string) => {
     const tempAddress = toUserFriendlyAddress(address);
@@ -852,6 +837,7 @@ const HomeContent = () => {
       
       {activeTab === "platform" ? (
         <>
+          <NavigationBar />
           <QntmBalance
             MainQuantAmount={MainQuantAmount}
             rank={rank}
@@ -877,91 +863,9 @@ const HomeContent = () => {
           />
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-6 p-4">
-          {walletAddress ? (
-            <div className="w-full max-w-md space-y-4">
-              <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 flex flex-col items-center space-y-4">
-                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="2em"
-                    height="2em"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fill="#22c55e"
-                      d="M23 12c0 6.075-4.925 11-11 11S1 18.075 1 12S5.925 1 12 1s11 4.925 11 11M9.305 18.11l9.402-9.403l-1.414-1.414l-7.883 7.883l-2.476-3.01l-1.511 1.31l3.882 4.633z"
-                    />
-                  </svg>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-white">Wallet Connected</h3>
-                  <p className="text-gray-400 text-sm mt-1">
-                    {toUserFriendlyAddress(walletAddress).slice(0, 4)}...
-                    {toUserFriendlyAddress(walletAddress).slice(-4)}
-                  </p>
-                </div>
-                <button
-                  onClick={handleWalletAction}
-                  className="w-full bg-red-500/10 text-red-500 hover:bg-red-500/20 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="1.2em"
-                    height="1.2em"
-                    viewBox="0 0 1024 1024"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M832.6 191.4c-84.6-84.6-221.5-84.6-306 0l-96.9 96.9l51 51l96.9-96.9c53.8-53.8 144.6-59.5 204 0c59.5 59.5 53.8 150.2 0 204l-96.9 96.9l51.1 51.1l96.9-96.9c84.4-84.6 84.4-221.5-.1-306.1M446.5 781.6c-53.8 53.8-144.6 59.5-204 0c-59.5-59.5-53.8-150.2 0-204l96.9-96.9l-51.1-51.1l-96.9 96.9c-84.6 84.6-84.6 221.5 0 306s221.5 84.6 306 0l96.9-96.9l-51-51zM260.3 209.4a8.03 8.03 0 0 0-11.3 0L209.4 249a8.03 8.03 0 0 0 0 11.3l554.4 554.4c3.1 3.1 8.2 3.1 11.3 0l39.6-39.6c3.1-3.1 3.1-8.2 0-11.3z"
-                    />
-                  </svg>
-                  Disconnect Wallet
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="w-full max-w-md text-center space-y-6">
-              <div className="w-20 h-20 bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto border border-[#333]">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="2.5em"
-                  height="2.5em"
-                  viewBox="0 0 24 24"
-                  className="text-gray-400"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M21 18v1c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1h-9a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5s1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
-                  />
-                </svg>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">Connect Wallet</h3>
-                <p className="text-gray-400 text-sm">
-                  Connect your TON wallet to access exclusive features and manage your assets.
-                </p>
-              </div>
-              <button
-                onClick={handleWalletAction}
-                className="w-full bg-white text-black hover:bg-gray-200 py-3.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.2em"
-                  height="1.2em"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M21 18v1c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1h-9a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5s1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
-                  />
-                </svg>
-                Connect TON Wallet
-              </button>
-            </div>
-          )}
-        </div>
+        <WalletSection 
+          mainQuantAmount={MainQuantAmount}
+        />
       )}
     </div>
   );

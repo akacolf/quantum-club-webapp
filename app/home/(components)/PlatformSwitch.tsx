@@ -18,8 +18,7 @@ export default function TabsSwitch({ activeTab, onTabChange }: TabsSwitchProps) 
           </TabsTrigger>
           <TabsTrigger 
             value="wallet" 
-            disabled
-            className="rounded-lg px-8 data-[state=active]:bg-[#222] data-[state=active]:text-white text-gray-500 hover:text-gray-300 cursor-not-allowed opacity-50"
+            className="rounded-lg px-8 data-[state=active]:bg-[#222] data-[state=active]:text-white text-gray-500 hover:text-gray-300 cursor-pointer"
           >
             Wallet
           </TabsTrigger>
