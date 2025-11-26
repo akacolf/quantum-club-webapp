@@ -9,10 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@telegram-apps/analytics": "^1.4.3",
+    "@ton-api/client": "^0.4.0",
+    "@ton-api/ton-adapter": "^0.4.1",
     "@ton/core": "^0.62.0",
     "@ton/ton": "^15.2.1",
     "@tonconnect/sdk": "^3.1.0",

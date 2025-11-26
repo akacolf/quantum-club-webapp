@@ -4,16 +4,26 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import QRCode from "react-qr-code";
-import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
+import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft, RefreshCw, ChevronDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { mnemonicNew, mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
-import { WalletContractV5R1 } from "@ton/ton";
-import { fromNano } from "@ton/core";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { mnemonicNew, mnemonicToWalletKey, mnemonicValidate, mnemonicToPrivateKey } from "@ton/crypto";
+import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
+import { fromNano, toNano, Address, beginCell } from "@ton/core";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 
 interface WalletSectionProps {
   mainQuantAmount: string;
@@ -27,6 +37,19 @@ interface JettonBalance {
   image?: string;
   usdValue?: number;
   priceUsd?: number;
+  jettonAddress?: string;
+  walletAddress?: string;
+}
+
+interface SendableAsset {
+  type: "ton" | "jetton";
+  symbol: string;
+  name: string;
+  balance: string;
+  decimals: number;
+  image?: string;
+  jettonAddress?: string;
+  walletAddress?: string;
 }
 
 export default function WalletSection({ 
@@ -37,9 +60,18 @@ export default function WalletSection({
   const [isLoading, setIsLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState<"main" | "import" | "backup" | "receive">("main");
+  const [view, setView] = useState<"main" | "import" | "backup" | "receive" | "send">("main");
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string[]>([]);
+  
+  // Send states
+  const [sendRecipient, setSendRecipient] = useState("");
+  const [sendAmount, setSendAmount] = useState("");
+  const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sendMnemonic, setSendMnemonic] = useState<string[]>(Array(24).fill(""));
+  const [sendStep, setSendStep] = useState<"details" | "confirm" | "mnemonic">("details");
   const [isRevealed, setIsRevealed] = useState(false);
   
   // Asset states
@@ -97,10 +129,12 @@ export default function WalletSection({
         const jettonsData = await jettonsResponse.json();
         const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton: { 
           balance: string;
+          wallet_address?: { address?: string };
           price?: {
             prices?: { USD?: number };
           };
           jetton: { 
+            address?: string;
             symbol?: string; 
             name?: string; 
             decimals?: number; 
@@ -123,6 +157,8 @@ export default function WalletSection({
             image: jetton.jetton?.image,
             usdValue: usdValue,
             priceUsd: priceUsd,
+            jettonAddress: jetton.jetton?.address,
+            walletAddress: jetton.wallet_address?.address,
           };
         });
         setJettons(jettonBalances);
@@ -262,6 +298,210 @@ export default function WalletSection({
       setCopied(true);
       toast.success("Address copied!");
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Get list of sendable assets (TON + Jettons)
+  const getSendableAssets = useCallback((): SendableAsset[] => {
+    const assets: SendableAsset[] = [
+      {
+        type: "ton",
+        symbol: "TON",
+        name: "Toncoin",
+        balance: tonBalance,
+        decimals: 9,
+        image: "https://ton.org/download/ton_symbol.png",
+      },
+    ];
+    
+    jettons.forEach((jetton) => {
+      assets.push({
+        type: "jetton",
+        symbol: jetton.symbol,
+        name: jetton.name,
+        balance: (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4),
+        decimals: jetton.decimals,
+        image: jetton.image,
+        jettonAddress: jetton.jettonAddress,
+        walletAddress: jetton.walletAddress,
+      });
+    });
+    
+    return assets;
+  }, [tonBalance, jettons]);
+
+  // Open send view
+  const openSendView = () => {
+    const assets = getSendableAssets();
+    setSelectedAsset(assets[0]); // Default to TON
+    setSendRecipient("");
+    setSendAmount("");
+    setSendMnemonic(Array(24).fill(""));
+    setSendStep("details");
+    setView("send");
+  };
+
+  // Handle send mnemonic word change
+  const handleSendMnemonicChange = (index: number, value: string) => {
+    const newMnemonic = [...sendMnemonic];
+    newMnemonic[index] = value;
+    setSendMnemonic(newMnemonic);
+  };
+
+  // Validate send inputs
+  const validateSendInputs = (): boolean => {
+    if (!sendRecipient.trim()) {
+      toast.error("Please enter a recipient address");
+      return false;
+    }
+    
+    try {
+      Address.parse(sendRecipient.trim());
+    } catch {
+      toast.error("Invalid recipient address");
+      return false;
+    }
+    
+    if (!sendAmount || parseFloat(sendAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return false;
+    }
+    
+    if (!selectedAsset) {
+      toast.error("Please select an asset");
+      return false;
+    }
+    
+    const balance = parseFloat(selectedAsset.balance);
+    const amount = parseFloat(sendAmount);
+    
+    if (amount > balance) {
+      toast.error("Insufficient balance");
+      return false;
+    }
+    
+    // For TON, ensure user keeps some for gas
+    if (selectedAsset.type === "ton" && amount > balance - 0.01) {
+      toast.error("Keep at least 0.01 TON for transaction fees");
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Execute send transaction
+  const executeSend = async () => {
+    const cleanedMnemonic = sendMnemonic.map(word => word.trim().toLowerCase());
+    
+    if (cleanedMnemonic.some(word => !word)) {
+      toast.error("Please fill in all 24 words of your recovery phrase");
+      return;
+    }
+
+    setIsSending(true);
+    
+    try {
+      // Validate the mnemonic
+      const isValid = await mnemonicValidate(cleanedMnemonic);
+      if (!isValid) {
+        toast.error("Invalid recovery phrase");
+        setIsSending(false);
+        return;
+      }
+
+      // Initialize TonApi client
+      const ta = new TonApiClient({
+        baseUrl: "https://tonapi.io",
+      });
+
+      // Create adapter for contract interactions
+      const adapter = new ContractAdapter(ta);
+
+      // Get keypair from mnemonic
+      const keyPair = await mnemonicToPrivateKey(cleanedMnemonic);
+
+      // Create wallet contract
+      const wallet = WalletContractV5R1.create({
+        workchain: 0,
+        publicKey: keyPair.publicKey,
+      });
+
+      // Verify the wallet address matches
+      const derivedAddress = wallet.address.toString({ bounceable: false });
+      if (derivedAddress !== walletAddress) {
+        toast.error("Recovery phrase does not match this wallet");
+        setIsSending(false);
+        return;
+      }
+
+      const contract = adapter.open(wallet);
+      const seqno = await contract.getSeqno();
+      const recipient = Address.parse(sendRecipient.trim());
+
+      if (selectedAsset?.type === "ton") {
+        // Send TON
+        await contract.sendTransfer({
+          seqno,
+          secretKey: keyPair.secretKey,
+          sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+          messages: [
+            internal({
+              to: recipient,
+              value: toNano(sendAmount),
+              body: "",
+            }),
+          ],
+        });
+      } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
+        // Send Jetton
+        const jettonAmount = BigInt(Math.floor(parseFloat(sendAmount) * Math.pow(10, selectedAsset.decimals)));
+        const jettonWallet = Address.parse(selectedAsset.walletAddress);
+
+        const jettonTransferPayload = beginCell()
+          .storeUint(0xf8a7ea5, 32) // JETTON_TRANSFER_OP_CODE
+          .storeUint(0, 64) // Query ID
+          .storeCoins(jettonAmount) // Amount
+          .storeAddress(recipient) // Recipient
+          .storeAddress(wallet.address) // Response address
+          .storeBit(false) // No custom payload
+          .storeCoins(BigInt(1)) // Forward fee
+          .storeMaybeRef(undefined)
+          .endCell();
+
+        await contract.sendTransfer({
+          seqno,
+          secretKey: keyPair.secretKey,
+          sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+          messages: [
+            internal({
+              to: jettonWallet,
+              value: toNano("0.05"), // Gas fee for jetton transfer
+              body: jettonTransferPayload,
+            }),
+          ],
+        });
+      }
+
+      toast.success("Transaction sent successfully!");
+      
+      // Reset and go back
+      setSendMnemonic(Array(24).fill(""));
+      setSendRecipient("");
+      setSendAmount("");
+      setSelectedAsset(null);
+      setSendStep("details");
+      setView("main");
+      
+      // Refresh balances after a delay
+      setTimeout(() => {
+        fetchWalletAssets(walletAddress);
+      }, 3000);
+      
+    } catch (error) {
+      console.error("Send error:", error);
+      toast.error("Failed to send transaction. Please try again.");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -554,7 +794,7 @@ export default function WalletSection({
 
         <div className="grid grid-cols-4 gap-2 mt-6 relative z-10">
           {[
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", onClick: () => {} },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", onClick: openSendView },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>, label: "Receive", onClick: () => setView("receive") },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>, label: "Swap", onClick: () => {} },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>, label: "History", onClick: () => {} },
@@ -757,6 +997,316 @@ export default function WalletSection({
                 >
                   {copied ? "Address Copied" : "Copy Address"}
                 </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Send View Modal */}
+      {view === "send" && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="w-full max-w-md"
+          >
+            <Card className="bg-[#111] border-[#333] rounded-t-3xl rounded-b-none overflow-hidden max-h-[85vh] flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-[#222] bg-[#151515]">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => {
+                    if (sendStep === "mnemonic") {
+                      setSendStep("details");
+                    } else {
+                      setView("main");
+                      setSendRecipient("");
+                      setSendAmount("");
+                      setSelectedAsset(null);
+                      setSendMnemonic(Array(24).fill(""));
+                      setSendStep("details");
+                    }
+                  }}
+                  className="text-gray-400 hover:text-white hover:bg-[#222]"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <CardTitle className="text-xl font-bold">
+                  {sendStep === "mnemonic" ? "Confirm Transaction" : "Send"}
+                </CardTitle>
+                <div className="w-10" />
+              </CardHeader>
+              
+              <CardContent className="flex flex-col space-y-6 pt-6 pb-8 overflow-y-auto">
+                {sendStep === "details" && (
+                  <>
+                    {/* Asset Selector */}
+                    <div className="space-y-3">
+                      <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Asset</label>
+                      <div className="relative">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl h-14 px-4 text-white hover:bg-[#222] hover:border-[#444] transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 font-medium justify-between"
+                            >
+                              <div className="flex items-center gap-3">
+                                {selectedAsset?.image ? (
+                                  <img src={selectedAsset.image} alt={selectedAsset.symbol} className="w-8 h-8 rounded-full" />
+                                ) : (
+                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                                    {selectedAsset?.symbol?.slice(0, 2) || "TO"}
+                                  </div>
+                                )}
+                                <div className="flex flex-col items-start">
+                                  <span className="font-bold text-sm">{selectedAsset?.symbol || "TON"}</span>
+                                  <span className="text-xs text-gray-500 font-normal">
+                                    {selectedAsset?.balance || "0"} Available
+                                  </span>
+                                </div>
+                              </div>
+                              <ChevronDown className="w-4 h-4 text-gray-500" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-[320px] sm:w-[400px] bg-[#1a1a1a] border-[#333] text-white z-60">
+                            <DropdownMenuLabel className="text-gray-400 text-xs uppercase tracking-wider">Select Asset</DropdownMenuLabel>
+                            <DropdownMenuSeparator className="bg-[#333]" />
+                            {getSendableAssets().map((asset) => (
+                              <DropdownMenuItem
+                                key={asset.symbol}
+                                onSelect={() => setSelectedAsset(asset)}
+                                className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#222] focus:bg-[#222] focus:text-white"
+                              >
+                                {asset.image ? (
+                                  <img src={asset.image} alt={asset.symbol} className="w-8 h-8 rounded-full" />
+                                ) : (
+                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                                    {asset.symbol.slice(0, 2)}
+                                  </div>
+                                )}
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-sm">{asset.symbol}</span>
+                                  <span className="text-xs text-gray-500">{asset.balance} Available</span>
+                                </div>
+                                {selectedAsset?.symbol === asset.symbol && (
+                                  <Check className="w-4 h-4 ml-auto text-blue-500" />
+                                )}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+
+                    {/* Recipient Address */}
+                    <div className="space-y-3">
+                      <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Recipient Address</label>
+                      <div className="relative">
+                        <Input
+                          value={sendRecipient}
+                          onChange={(e) => setSendRecipient(e.target.value)}
+                          placeholder="Enter TON address"
+                          className="bg-[#1a1a1a] border-[#333] rounded-xl h-14 pl-4 pr-12 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all font-mono text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            try {
+                              const text = await navigator.clipboard.readText();
+                              setSendRecipient(text);
+                              toast.success("Pasted from clipboard");
+                            } catch {
+                              toast.error("Failed to read clipboard");
+                            }
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 text-gray-500 hover:text-white hover:bg-[#333] rounded-lg"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            Available: {selectedAsset?.balance || "0"} {selectedAsset?.symbol}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (selectedAsset) {
+                                if (selectedAsset.type === "ton") {
+                                  const maxAmount = Math.max(0, parseFloat(selectedAsset.balance) - 0.01);
+                                  setSendAmount(maxAmount.toFixed(4));
+                                } else {
+                                  setSendAmount(selectedAsset.balance);
+                                }
+                              }
+                            }}
+                            className="text-[10px] font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded transition-colors uppercase"
+                          >
+                            Max
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="relative group">
+                        <Input
+                          type="number"
+                          value={sendAmount}
+                          onChange={(e) => setSendAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="bg-[#1a1a1a] border-[#333] rounded-xl h-14 pl-4 pr-20 text-lg font-bold text-white placeholder:text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
+                          <span className="text-sm font-bold text-gray-400">
+                            {selectedAsset?.symbol || "TON"}
+                          </span>
+                          {sendAmount && parseFloat(sendAmount) > 0 && selectedAsset && (
+                            <span className="text-xs text-gray-600">
+                              ≈ ${selectedAsset.type === "ton" 
+                                ? (parseFloat(sendAmount) * tonPrice).toFixed(2)
+                                : (() => {
+                                    const jetton = jettons.find(j => j.symbol === selectedAsset.symbol);
+                                    return jetton?.priceUsd 
+                                      ? (parseFloat(sendAmount) * jetton.priceUsd).toFixed(2) 
+                                      : "0.00";
+                                  })()
+                              }
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Warning */}
+                    <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 flex items-start gap-3">
+                      <ShieldAlert className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-blue-400">Double Check Address</p>
+                        <p className="text-[11px] text-blue-400/70 leading-relaxed">
+                          Blockchain transactions are irreversible. Ensure the recipient address is correct and on the TON network.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Continue Button */}
+                    <Button
+                      onClick={() => {
+                        if (validateSendInputs()) {
+                          setSendStep("mnemonic");
+                        }
+                      }}
+                      disabled={!sendRecipient || !sendAmount || parseFloat(sendAmount) <= 0}
+                      className="w-full bg-white text-black hover:bg-gray-200 h-14 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/5 mt-4"
+                    >
+                      Continue
+                    </Button>
+                  </>
+                )}
+
+                {sendStep === "mnemonic" && (
+                  <>
+                    {/* Transaction Summary */}
+                    <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
+                        <span className="text-sm text-gray-400">Sending Asset</span>
+                        <div className="flex items-center gap-2">
+                          {selectedAsset?.image && (
+                            <img src={selectedAsset.image} alt="" className="w-5 h-5 rounded-full" />
+                          )}
+                          <span className="text-white font-bold">{selectedAsset?.symbol}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
+                        <span className="text-sm text-gray-400">Amount</span>
+                        <div className="text-right">
+                          <div className="text-white font-bold text-lg">{sendAmount} {selectedAsset?.symbol}</div>
+                          <div className="text-xs text-gray-500">
+                            ≈ ${selectedAsset?.type === "ton" 
+                                ? (parseFloat(sendAmount) * tonPrice).toFixed(2)
+                                : (() => {
+                                    const jetton = jettons.find(j => j.symbol === selectedAsset?.symbol);
+                                    return jetton?.priceUsd 
+                                      ? (parseFloat(sendAmount) * jetton.priceUsd).toFixed(2) 
+                                      : "0.00";
+                                  })()
+                              } USD
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-400">Recipient</span>
+                        <div className="flex items-center gap-2 bg-[#111] px-3 py-1.5 rounded-lg border border-[#2a2a2a]">
+                          <span className="text-white font-mono text-xs">{sendRecipient.slice(0, 6)}...{sendRecipient.slice(-6)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mnemonic Input */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Confirm with Recovery Phrase</label>
+                        <button
+                          onClick={() => setIsRevealed(!isRevealed)}
+                          className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          {isRevealed ? "Hide" : "Show"}
+                        </button>
+                      </div>
+                      
+                      <ScrollArea className="h-48 rounded-xl border border-[#333] bg-[#0a0a0a] p-1">
+                        <div className="grid grid-cols-2 gap-1 p-2">
+                          {sendMnemonic.map((word, index) => (
+                            <div key={index} className="relative flex items-center group">
+                              <span className="absolute left-2 text-[10px] text-gray-600 font-mono w-4 text-right select-none">{index + 1}.</span>
+                              <Input
+                                type={isRevealed ? "text" : "password"}
+                                value={word}
+                                onChange={(e) => handleSendMnemonicChange(index, e.target.value)}
+                                className="h-9 text-xs bg-[#151515] border-[#2a2a2a] rounded-lg pl-8 pr-2 focus:bg-[#1a1a1a] focus:border-blue-500/50 transition-all"
+                                placeholder={`Word ${index + 1}`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+
+                    {/* Warning */}
+                    <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 flex items-start gap-3">
+                      <ShieldAlert className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                      <p className="text-xs text-red-400/90 leading-relaxed text-left">
+                        Never share your recovery phrase. We ask for it here only to sign the transaction locally on your device.
+                      </p>
+                    </div>
+
+                    {/* Send Button */}
+                    <Button
+                      onClick={executeSend}
+                      disabled={isSending || sendMnemonic.some(word => !word.trim())}
+                      className="w-full bg-white text-black hover:bg-gray-200 h-14 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/5"
+                    >
+                      {isSending ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                          Sending Transaction...
+                        </div>
+                      ) : (
+                        "Confirm & Send"
+                      )}
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </motion.div>
