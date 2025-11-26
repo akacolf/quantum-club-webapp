@@ -38,6 +38,20 @@ declare global {
           onClick: (callback:()=>void) => void;
           offClick: (callback:()=>void) => () => void;
         };
+        BiometricManager: {
+          isInited: boolean;
+          isBiometricAvailable: boolean;
+          biometricType: string;
+          isAccessRequested: boolean;
+          isAccessGranted: boolean;
+          isBiometricTokenSaved: boolean;
+          deviceId: string;
+          init: (callback?: () => void) => void;
+          requestAccess: (params: { reason?: string }, callback?: (granted: boolean) => void) => void;
+          authenticate: (params: { reason?: string }, callback?: (success: boolean, token?: string) => void) => void;
+          updateBiometricToken: (token: string, callback?: (success: boolean) => void) => void;
+          openSettings: () => void;
+        };
         safeAreaInset: {
           top: number; 
           bottom: number;

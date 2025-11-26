@@ -210,8 +210,9 @@ export default function WalletSection({
       // Get the wallet address
       const address = wallet.address.toString({ bounceable: false });
       
-      // Store the address (NOT the mnemonic - user must back it up themselves)
+      // Store the address and mnemonic
       localStorage.setItem("quantum_wallet_address", address);
+      localStorage.setItem("quantum_wallet_mnemonic", mnemonic.join(" "));
       setWalletAddress(address);
       
       // Show backup screen
@@ -273,6 +274,7 @@ export default function WalletSection({
       const address = wallet.address.toString({ bounceable: false });
       
       localStorage.setItem("quantum_wallet_address", address);
+      localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));
       setWalletAddress(address);
       setHasWallet(true);
       setSeedPhrase(Array(24).fill(""));
@@ -380,23 +382,80 @@ export default function WalletSection({
       return false;
     }
     
-    // For TON, ensure user keeps some for gas
-    if (selectedAsset.type === "ton" && amount > balance - 0.01) {
-      toast.error("Keep at least 0.01 TON for transaction fees");
-      return false;
+    return true;
+  };
+
+  // Handle biometric confirmation
+  const handleConfirmTransaction = () => {
+    // Check if running in Telegram WebApp
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      // @ts-ignore
+      const biometricManager = tg.BiometricManager;
+
+      if (biometricManager) {
+        const authenticate = () => {
+          biometricManager.authenticate({
+              reason: "Confirm transaction"
+            }, 
+            (success: boolean) => {
+              if (success) {
+                executeSend();
+              } else {
+                toast.error("Biometric authentication failed");
+              }
+            }
+          );
+        };
+
+        const checkAndAuthenticate = () => {
+          if (biometricManager.isBiometricAvailable) {
+            if (!biometricManager.isAccessGranted) {
+              biometricManager.requestAccess({
+                  reason: "Authenticate to send transaction"
+                }, 
+                (granted: boolean) => {
+                  if (granted) {
+                    authenticate();
+                  } else {
+                    // If user denies access, fallback to normal send
+                    executeSend();
+                  }
+                }
+              );
+            } else {
+              authenticate();
+            }
+          } else {
+            executeSend();
+          }
+        };
+
+        if (!biometricManager.isInited) {
+          biometricManager.init(() => {
+            checkAndAuthenticate();
+          });
+        } else {
+          checkAndAuthenticate();
+        }
+        return;
+      }
     }
     
-    return true;
+    // Fallback for non-Telegram or no biometric manager
+    executeSend();
   };
 
   // Execute send transaction
   const executeSend = async () => {
-    const cleanedMnemonic = sendMnemonic.map(word => word.trim().toLowerCase());
+    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
     
-    if (cleanedMnemonic.some(word => !word)) {
-      toast.error("Please fill in all 24 words of your recovery phrase");
+    if (!storedMnemonic) {
+      toast.error("Wallet credentials not found. Please re-import your wallet.");
       return;
     }
+
+    const cleanedMnemonic = storedMnemonic.split(" ");
 
     setIsSending(true);
     
@@ -404,7 +463,7 @@ export default function WalletSection({
       // Validate the mnemonic
       const isValid = await mnemonicValidate(cleanedMnemonic);
       if (!isValid) {
-        toast.error("Invalid recovery phrase");
+        toast.error("Invalid stored credentials");
         setIsSending(false);
         return;
       }
@@ -796,7 +855,7 @@ export default function WalletSection({
         <div className="grid grid-cols-4 gap-2 mt-6 relative z-10">
           {[
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", onClick: openSendView },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>, label: "Receive", onClick: () => setView("receive") },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>, label: "Receive", onClick: () => setView("receive") },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>, label: "Swap", onClick: () => {} },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>, label: "History", onClick: () => {} },
           ].map((action, i) => (
@@ -1046,7 +1105,9 @@ export default function WalletSection({
                   <>
                     {/* Asset Selector */}
                     <div className="space-y-3">
-                      <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Asset</label>
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Asset</label>
+                      </div>
                       <div className="relative">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1104,30 +1165,16 @@ export default function WalletSection({
 
                     {/* Recipient Address */}
                     <div className="space-y-3">
-                      <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Recipient Address</label>
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Recipient Address</label>
+                      </div>
                       <div className="relative">
                         <Input
                           value={sendRecipient}
                           onChange={(e) => setSendRecipient(e.target.value)}
                           placeholder="Enter TON address"
-                          className="bg-[#1a1a1a] border-[#333] rounded-xl h-14 pl-4 pr-12 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all font-mono text-sm"
+                          className="bg-[#1a1a1a] border-[#333] rounded-xl h-14 pl-4 pr-4 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all font-mono text-sm"
                         />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={async () => {
-                            try {
-                              const text = await navigator.clipboard.readText();
-                              setSendRecipient(text);
-                              toast.success("Pasted from clipboard");
-                            } catch {
-                              toast.error("Failed to read clipboard");
-                            }
-                          }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 text-gray-500 hover:text-white hover:bg-[#333] rounded-lg"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        </Button>
                       </div>
                     </div>
 
@@ -1142,12 +1189,7 @@ export default function WalletSection({
                           <button
                             onClick={() => {
                               if (selectedAsset) {
-                                if (selectedAsset.type === "ton") {
-                                  const maxAmount = Math.max(0, parseFloat(selectedAsset.balance) - 0.01);
-                                  setSendAmount(maxAmount.toFixed(4));
-                                } else {
-                                  setSendAmount(selectedAsset.balance);
-                                }
+                                setSendAmount(selectedAsset.balance);
                               }
                             }}
                             className="text-[10px] font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded transition-colors uppercase"
@@ -1244,6 +1286,32 @@ export default function WalletSection({
                         </div>
                       </div>
 
+                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
+                        <span className="text-sm text-gray-400">Network Fee</span>
+                        <div className="text-right">
+                          <div className="text-white font-bold text-sm">
+                            ≈ {selectedAsset?.type === "ton" ? "0.01" : "0.05"} TON
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
+                        <span className="text-sm text-gray-400">Total</span>
+                        <div className="text-right">
+                          <div className="text-white font-bold text-lg">
+                            {selectedAsset?.type === "ton" 
+                              ? (parseFloat(sendAmount) + 0.01).toFixed(4)
+                              : sendAmount
+                            } {selectedAsset?.symbol}
+                          </div>
+                          {selectedAsset?.type === "jetton" && (
+                            <div className="text-xs text-gray-500">
+                              + 0.05 TON Fee
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-400">Recipient</span>
                         <div className="flex items-center gap-2 bg-[#111] px-3 py-1.5 rounded-lg border border-[#2a2a2a]">
@@ -1252,49 +1320,10 @@ export default function WalletSection({
                       </div>
                     </div>
 
-                    {/* Mnemonic Input */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Confirm with Recovery Phrase</label>
-                        <button
-                          onClick={() => setIsRevealed(!isRevealed)}
-                          className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                        >
-                          {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                          {isRevealed ? "Hide" : "Show"}
-                        </button>
-                      </div>
-                      
-                      <ScrollArea className="h-48 rounded-xl border border-[#333] bg-[#0a0a0a] p-1">
-                        <div className="grid grid-cols-2 gap-1 p-2">
-                          {sendMnemonic.map((word, index) => (
-                            <div key={index} className="relative flex items-center group">
-                              <span className="absolute left-2 text-[10px] text-gray-600 font-mono w-4 text-right select-none">{index + 1}.</span>
-                              <Input
-                                type={isRevealed ? "text" : "password"}
-                                value={word}
-                                onChange={(e) => handleSendMnemonicChange(index, e.target.value)}
-                                className="h-9 text-xs bg-[#151515] border-[#2a2a2a] rounded-lg pl-8 pr-2 focus:bg-[#1a1a1a] focus:border-blue-500/50 transition-all"
-                                placeholder={`Word ${index + 1}`}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </div>
-
-                    {/* Warning */}
-                    <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 flex items-start gap-3">
-                      <ShieldAlert className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                      <p className="text-xs text-red-400/90 leading-relaxed text-left">
-                        Never share your recovery phrase. We ask for it here only to sign the transaction locally on your device.
-                      </p>
-                    </div>
-
                     {/* Send Button */}
                     <Button
-                      onClick={executeSend}
-                      disabled={isSending || sendMnemonic.some(word => !word.trim())}
+                      onClick={handleConfirmTransaction}
+                      disabled={isSending || (selectedAsset?.type === "ton" && parseFloat(sendAmount) + 0.01 > parseFloat(selectedAsset.balance))}
                       className="w-full bg-white text-black hover:bg-gray-200 h-14 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/5"
                     >
                       {isSending ? (
@@ -1303,7 +1332,9 @@ export default function WalletSection({
                           Sending Transaction...
                         </div>
                       ) : (
-                        "Confirm & Send"
+                        (selectedAsset?.type === "ton" && parseFloat(sendAmount) + 0.01 > parseFloat(selectedAsset.balance)) 
+                          ? "Insufficient Balance for Gas" 
+                          : "Confirm & Send"
                       )}
                     </Button>
                   </>
