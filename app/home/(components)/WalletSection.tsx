@@ -449,6 +449,7 @@ export default function WalletSection({
               to: recipient,
               value: toNano(sendAmount),
               body: "",
+              bounce:false
             }),
           ],
         });
@@ -477,11 +478,11 @@ export default function WalletSection({
               to: jettonWallet,
               value: toNano("0.05"), // Gas fee for jetton transfer
               body: jettonTransferPayload,
+              bounce:false
             }),
           ],
         });
       }
-
       toast.success("Transaction sent successfully!");
       
       // Reset and go back
