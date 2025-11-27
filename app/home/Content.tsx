@@ -18,9 +18,9 @@ import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 import ClaimToaster from "./(components)/ClaimToaster";
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
-import QntmBalance from "./(components)/QntmBalance";
 import DailyCheckIn from "./(components)/DailyCheck";
-import SolveToEarnCard from "./(components)/SolveToEarnCard";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -39,7 +39,14 @@ const calculateRemainingTime = (timestamp: number) => {
   );
   return ` ${hours}h ${minutes}m`;
 };
-
+const QntmBalance = dynamic(() => import('./(components)/QntmBalance'), { 
+  ssr: false,
+  loading: () =><Skeleton/>
+});
+const SolveToEarnCard = dynamic(() => import('./(components)/SolveToEarnCard'), { 
+  ssr: false,
+  loading: () =><Skeleton/>
+});
 function getRankIcon(rank: string | null) {
   if (rank === "OG") {
     return (

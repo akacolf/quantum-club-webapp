@@ -115,7 +115,9 @@ export function useRegisterAndAuth() {
         }
 
         setRank(rank);
-
+        if(typeof window !=="undefined"){
+          localStorage.setItem("rank",rank)
+        }
         let newUser;
 
         const stringID = String(telegramId);
