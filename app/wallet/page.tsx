@@ -11,6 +11,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import Loader from "@/app/(components)/Loader";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
@@ -107,11 +108,7 @@ export default function WalletPage() {
   };
 
   if (isChecking) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
+    return <Loader />;
   }
 
   if (!hasWallet) {

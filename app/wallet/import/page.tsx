@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, ClipboardEvent } from "react";
+import { useState, ClipboardEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Check, Trash2, ShieldCheck } from "lucide-react";
+import { Check, Trash2, ShieldCheck, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
@@ -22,6 +22,19 @@ export default function ImportWalletPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
   const [activeWordIndex, setActiveWordIndex] = useState<number | null>(null);
+  const [isValidPhrase, setIsValidPhrase] = useState<boolean | null>(null);
+
+  // Validate the entire phrase when all 24 words are filled
+  useEffect(() => {
+    const cleanedPhrase = seedPhrase.map(word => word.trim().toLowerCase());
+    const allFilled = cleanedPhrase.every(word => word.length > 0);
+    
+    if (allFilled) {
+      mnemonicValidate(cleanedPhrase).then(setIsValidPhrase);
+    } else {
+      setIsValidPhrase(null);
+    }
+  }, [seedPhrase]);
 
   const handleWordChange = (index: number, value: string) => {
     const newPhrase = [...seedPhrase];
@@ -157,21 +170,37 @@ export default function ImportWalletPage() {
                       bg-[#0a0a0a] border-[#333] pl-8 pr-2 h-10 text-xs font-medium text-white 
                       transition-all duration-200
                       focus:border-blue-500/50 focus:bg-[#151515] focus:ring-1 focus:ring-blue-500/20
-                      ${word ? 'border-green-500/20 bg-green-500/5' : ''}
+                      ${word ? 'border-white/20' : ''}
                     `}
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
                   />
-                  {word && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <Check className="w-3 h-3 text-green-500/50" />
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
+
+            {/* Validation Status */}
+            {isValidPhrase !== null && (
+              <div className={`mt-4 p-3 rounded-xl flex items-center gap-2 ${
+                isValidPhrase 
+                  ? 'bg-green-500/10 border border-green-500/20' 
+                  : 'bg-red-500/10 border border-red-500/20'
+              }`}>
+                {isValidPhrase ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-500" />
+                    <span className="text-xs text-green-400">Valid recovery phrase</span>
+                  </>
+                ) : (
+                  <>
+                    <X className="w-4 h-4 text-red-500" />
+                    <span className="text-xs text-red-400">Invalid recovery phrase - please check your words</span>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="mt-8 space-y-4">
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex gap-3">
