@@ -1,18 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, ClipboardEvent } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
+import { Copy, Check, Eye, EyeOff, ShieldAlert, RefreshCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { mnemonicNew, mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
+import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
@@ -34,8 +33,7 @@ export default function WalletPage() {
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState<"main" | "import" | "backup">("main");
-  const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
+  const [view, setView] = useState<"main" | "backup">("main");
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string[]>([]);
   const [isRevealed, setIsRevealed] = useState(false);
 
@@ -96,86 +94,6 @@ export default function WalletPage() {
       toast.success("Recovery phrase copied! Store it safely.");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleImport = async () => {
-    setIsLoading(true);
-    
-    // Basic validation - check all fields are filled
-    const cleanedPhrase = seedPhrase.map(word => word.trim().toLowerCase());
-    if (cleanedPhrase.some(word => !word)) {
-      toast.error("Please fill in all 24 words");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Validate the mnemonic phrase
-      const isValid = await mnemonicValidate(cleanedPhrase);
-      if (!isValid) {
-        toast.error("Invalid recovery phrase.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Derive keypair from the imported mnemonic
-      const keyPair = await mnemonicToWalletKey(cleanedPhrase);
-      
-      // Create wallet contract (V5R1)
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
-      
-      // Get the wallet address
-      const address = wallet.address.toString({ bounceable: false });
-      
-      localStorage.setItem("quantum_wallet_address", address);
-      localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));
-      setContextWalletAddress(address);
-      setHasWallet(true);
-      setSeedPhrase(Array(24).fill(""));
-      setIsLoading(false);
-      toast.success("Wallet imported successfully!");
-      setView("main");
-    } catch (error) {
-      console.error("Import error:", error);
-      toast.error("Failed to import wallet. Please try again.");
-      setIsLoading(false);
-    }
-  };
-
-  const handleWordChange = (index: number, value: string) => {
-    const newPhrase = [...seedPhrase];
-    newPhrase[index] = value;
-    setSeedPhrase(newPhrase);
-  };
-
-  // Handle paste for seed phrase - allows pasting all 24 words at once
-  const handleSeedPhrasePaste = (e: ClipboardEvent<HTMLInputElement>, index: number) => {
-    const pastedText = e.clipboardData.getData("text");
-    
-    // Split by whitespace (spaces, newlines, tabs) and filter empty strings
-    const words = pastedText.trim().split(/\s+/).filter(word => word.length > 0);
-    
-    // If multiple words are pasted, distribute them across fields
-    if (words.length > 1) {
-      e.preventDefault();
-      
-      const newPhrase = [...seedPhrase];
-      words.forEach((word, i) => {
-        const targetIndex = index + i;
-        if (targetIndex < 24) {
-          newPhrase[targetIndex] = word.toLowerCase().trim();
-        }
-      });
-      setSeedPhrase(newPhrase);
-      
-      // Show success toast if all 24 words were pasted
-      if (words.length === 24 && index === 0) {
-        toast.success("Recovery phrase pasted successfully!");
-      }
     }
   };
 
@@ -279,74 +197,7 @@ export default function WalletPage() {
       );
     }
 
-    if (view === "import") {
-      return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/90 p-4 backdrop-blur-sm pt-8 sm:items-center sm:pt-0">
-          <motion.div 
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            className="w-full max-w-lg my-auto"
-          >
-            <Card className="bg-[#111] border-[#333] text-white shadow-2xl overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-[#222] bg-[#151515]">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => {
-                    setView("main");
-                    setSeedPhrase(Array(24).fill(""));
-                  }}
-                  className="text-gray-400 hover:text-white hover:bg-[#222]"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <CardTitle className="text-xl font-bold">Import Wallet</CardTitle>
-                <div className="w-10" /> {/* Spacer for centering */}
-              </CardHeader>
-              <CardContent className="space-y-4 pt-6">
-                <p className="text-xs text-center text-gray-400 mb-2">
-                  Paste all 24 words at once or enter them individually
-                </p>
-                <ScrollArea className="h-64 pr-4 -mr-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pl-1 py-1 pr-4">
-                    {seedPhrase.map((word, i) => (
-                      <div key={i} className="relative group">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 select-none pointer-events-none font-mono">
-                          {i + 1}.
-                        </span>
-                        <Input
-                          type="text"
-                          value={word}
-                          onChange={(e) => handleWordChange(i, e.target.value)}
-                          onPaste={(e) => handleSeedPhrasePaste(e, i)}
-                          className="bg-[#1a1a1a] border-[#333] pl-7 pr-2 text-white focus-visible:ring-blue-500/50 h-8 text-xs font-medium transition-all focus:bg-[#222]"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
 
-                <Button
-                  onClick={handleImport}
-                  disabled={isLoading}
-                  className="w-full bg-white text-black hover:bg-gray-200 py-3 h-10 rounded-xl font-bold transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 shadow-lg shadow-white/5 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-                >
-                  {isLoading ? (
-                    <ButtonLoader />
-                  ) : (
-                    "Import"
-                  )}
-                </Button>
-
-                <p className="text-[10px] text-center text-gray-500">
-                  Only TON wallets are supported.
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      );
-    }
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 w-full">
@@ -380,7 +231,7 @@ export default function WalletPage() {
             <Button
               onClick={createWallet}
               disabled={isLoading}
-              className="w-full bg-white text-black hover:bg-gray-200 py-3 h-auto rounded-xl font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-white/10 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-white/10 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <ButtonLoader />
@@ -392,14 +243,13 @@ export default function WalletPage() {
               )}
             </Button>
             
-            <Button
-              variant="outline"
-              onClick={() => setView("import")}
-              className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] py-3 h-auto rounded-xl font-medium transition-all border border-[#333] flex items-center justify-center gap-3"
+            <Link
+              href="/wallet/import"
+              className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] h-12 rounded-xl font-bold transition-all border border-[#333] flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/20"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
               Import Existing Wallet
-            </Button>
+            </Link>
           </div>
         </motion.div>
       </div>
@@ -455,7 +305,6 @@ export default function WalletPage() {
                 setHasWallet(false);
                 setContextWalletAddress("");
                 setView("main");
-                setSeedPhrase(Array(24).fill(""));
                 setGeneratedMnemonic([]);
               }}
               className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
