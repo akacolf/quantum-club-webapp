@@ -2,7 +2,7 @@
 
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Sun, Moon, Sunrise } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function PersonalizedGreeting() {
@@ -14,14 +14,14 @@ export default function PersonalizedGreeting() {
     setMounted(true);
   }, []);
 
-  const getTimeDetails = () => {
+  const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return { text: "Good morning", icon: Sunrise, color: "text-amber-300" };
-    if (hour >= 12 && hour < 17) return { text: "Good afternoon", icon: Sun, color: "text-orange-400" };
-    return { text: "Good evening", icon: Moon, color: "text-indigo-300" };
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 17) return "Good afternoon";
+    return "Good evening";
   };
 
-  const { text: greeting, icon: Icon, color: iconColor } = getTimeDetails();
+  const greeting = getGreeting();
   const displayName = username || "Quantum User";
 
   if (!mounted) return null; // Or a skeleton loader
