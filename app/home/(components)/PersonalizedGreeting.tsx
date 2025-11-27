@@ -60,7 +60,7 @@ export default function PersonalizedGreeting() {
                 <h1 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight whitespace-nowrap flex items-center gap-2.5">
                   <Sparkles className="w-5 h-5 animate-pulse text-cyan-400/80 shrink-0" />
                   <span className="text-gray-400 font-medium">{greeting},</span>
-                  <span className="bg-gradient-to-r from-cyan-200 via-blue-100 to-indigo-200 bg-clip-text text-transparent filter drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">
+                  <span className="bg-linear-to-r from-cyan-200 via-blue-100 to-indigo-200 bg-clip-text text-transparent filter drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">
                     {displayName}
                   </span>
                 </h1>
@@ -70,7 +70,7 @@ export default function PersonalizedGreeting() {
           </CardContent>
 
           {/* Bottom Progress Line (Decoration) */}
-          <div className="absolute bottom-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-50" />
+          <div className="absolute bottom-0 left-0 h-px w-full bg-linear-to-r from-transparent via-cyan-500/50 to-transparent opacity-50" />
         </Card>
       </div>
     </>
