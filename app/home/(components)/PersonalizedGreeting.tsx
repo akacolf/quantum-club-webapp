@@ -9,7 +9,6 @@ export default function PersonalizedGreeting() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    console.error(hour)
     if (hour>6&&hour <= 12) return "Good morning";
     if (hour >12 &&hour < 18) return "Good afternoon";
     return "Good evening";
