@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 import ClaimToaster from "./(components)/ClaimToaster";
+import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
 import QntmBalance from "./(components)/QntmBalance";
 import DailyCheckIn from "./(components)/DailyCheck";
 import SolveToEarnCard from "./(components)/SolveToEarnCard";
@@ -834,6 +835,8 @@ const HomeContent = () => {
   return (
     <div className="flex flex-col">
       <ClaimToaster />
+      
+      <PersonalizedGreeting />
       
       <QntmBalance
         MainQuantAmount={MainQuantAmount}
