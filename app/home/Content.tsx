@@ -17,12 +17,11 @@ import toast from "react-hot-toast";
 import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 import ClaimToaster from "./(components)/ClaimToaster";
-import TabsSwitch from "./(components)/PlatformSwitch";
 import QntmBalance from "./(components)/QntmBalance";
 import DailyCheckIn from "./(components)/DailyCheck";
 import SolveToEarnCard from "./(components)/SolveToEarnCard";
-import WalletSection from "./(components)/WalletSection";
 import NavigationBar from "@/app/(navigation)/NavigationBar";
+import TopNav from "@/app/(components)/TopNav";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -132,7 +131,6 @@ const HomeContent = () => {
     remainingSolveToEarn,
   } = useGameContext();
 
-  const [activeTab, setActiveTab] = useState("platform");
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
   const [tonConnectUI] = useTonConnectUI();
@@ -833,40 +831,32 @@ const HomeContent = () => {
   return (
     <div className="flex flex-col">
       <ClaimToaster />
-      <TabsSwitch activeTab={activeTab} onTabChange={setActiveTab} />
+      <TopNav />
       
-      {activeTab === "platform" ? (
-        <>
-          <NavigationBar />
-          <QntmBalance
-            MainQuantAmount={MainQuantAmount}
-            rank={rank}
-            getRankIcon={getRankIcon}
-          />
-          {/*daily check-in*/}
-          <DailyCheckIn
-            loadingButtonDay={loadingButtonDay}
-            daily={daily}
-            isClaimDay={isClaimDay}
-            loadingDay={loadingDay}
-            ClaimDaily={ClaimDaily}
-            lottieRef={lottieRef}
-            TaskTimer={TaskTimer}
-          />
+      <NavigationBar />
+      <QntmBalance
+        MainQuantAmount={MainQuantAmount}
+        rank={rank}
+        getRankIcon={getRankIcon}
+      />
+      {/*daily check-in*/}
+      <DailyCheckIn
+        loadingButtonDay={loadingButtonDay}
+        daily={daily}
+        isClaimDay={isClaimDay}
+        loadingDay={loadingDay}
+        ClaimDaily={ClaimDaily}
+        lottieRef={lottieRef}
+        TaskTimer={TaskTimer}
+      />
 
-          <HomeCarousel />
+      <HomeCarousel />
 
-          <SolveToEarnCard
-            remainingSolveToEarn={remainingSolveToEarn}
-            lottieRef={lottieRef}
-            goToSolveToEarn={goToSolveToEarn}
-          />
-        </>
-      ) : (
-        <WalletSection 
-          mainQuantAmount={MainQuantAmount}
-        />
-      )}
+      <SolveToEarnCard
+        remainingSolveToEarn={remainingSolveToEarn}
+        lottieRef={lottieRef}
+        goToSolveToEarn={goToSolveToEarn}
+      />
     </div>
   );
 };
