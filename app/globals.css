@@ -12,7 +12,7 @@ body {
 }
 
 .inner-content {
-  padding: var(--content-safe-area-top, 6vh) 0 var(--content-safe-area-bottom, 12vh) 0;
+  padding: var(--content-safe-area-top, 7vh) 0 var(--content-safe-area-bottom, 12vh) 0;
 }
 
 /* Theme variables: Vercel-like dark mode */

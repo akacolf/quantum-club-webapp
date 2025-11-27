@@ -1,209 +1,53 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useCallback, ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, ClipboardEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import toast from "react-hot-toast";
-import QRCode from "react-qr-code";
-import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft, RefreshCw, ChevronDown } from "lucide-react";
+import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { mnemonicNew, mnemonicToWalletKey, mnemonicValidate, mnemonicToPrivateKey } from "@ton/crypto";
-import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { fromNano, toNano, Address, beginCell } from "@ton/core";
-import { TonApiClient } from "@ton-api/client";
-import { ContractAdapter } from "@ton-api/ton-adapter";
+import { mnemonicNew, mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
+import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
-import TopNav from "@/app/(components)/TopNav";
-
-interface JettonBalance {
-  symbol: string;
-  name: string;
-  balance: string;
-  decimals: number;
-  image?: string;
-  usdValue?: number;
-  priceUsd?: number;
-  jettonAddress?: string;
-  walletAddress?: string;
-}
-
-interface SendableAsset {
-  type: "ton" | "jetton";
-  symbol: string;
-  name: string;
-  balance: string;
-  decimals: number;
-  image?: string;
-  jettonAddress?: string;
-  walletAddress?: string;
-}
+import { useWallet } from "./WalletContext";
 
 export default function WalletPage() {
   const { MainQuantAmount } = useGameContext();
-  const router = useRouter();
+  const { 
+    walletAddress, 
+    setWalletAddress: setContextWalletAddress,
+    tonBalance, 
+    tonUsdValue, 
+    totalUsdBalance, 
+    jettons, 
+    isLoadingAssets, 
+    hasFetched,
+    fetchWalletAssets 
+  } = useWallet();
   const [hasWallet, setHasWallet] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [walletAddress, setWalletAddress] = useState("");
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState<"main" | "import" | "backup" | "receive" | "send">("main");
+  const [view, setView] = useState<"main" | "import" | "backup">("main");
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string[]>([]);
-  
-  // Send states
-  const [sendRecipient, setSendRecipient] = useState("");
-  const [sendAmount, setSendAmount] = useState("0");
-  const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
-  const [showAssetPicker, setShowAssetPicker] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [sendMnemonic, setSendMnemonic] = useState<string[]>(Array(24).fill(""));
-  const [sendStep, setSendStep] = useState<"details" | "confirm" | "mnemonic">("details");
   const [isRevealed, setIsRevealed] = useState(false);
-  const [estimatedFee, setEstimatedFee] = useState<string>("0.01");
-  const [isEstimatingFee, setIsEstimatingFee] = useState(false);
-  
-  // Asset states
-  const [tonBalance, setTonBalance] = useState("0");
-  const [tonUsdValue, setTonUsdValue] = useState("0.00");
-  const [totalUsdBalance, setTotalUsdBalance] = useState("0.00");
-  const [jettons, setJettons] = useState<JettonBalance[]>([]);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
-  const [hasFetched, setHasFetched] = useState(false);
-  const [tonPrice, setTonPrice] = useState(0);
-
-  // Fetch TON price
-  const fetchTonPrice = useCallback(async () => {
-    try {
-      const response = await fetch("https://tonapi.io/v2/rates?tokens=ton&currencies=usd");
-      if (response.ok) {
-        const data = await response.json();
-        const price = data.rates?.TON?.prices?.USD || 0;
-        setTonPrice(price);
-        return price;
-      }
-    } catch (error) {
-      console.error("Failed to fetch TON price:", error);
-    }
-    return 0;
-  }, []);
-
-  // Format address helper
-  const formatAddress = (address: string) => {
-    if (!address) return "Unknown";
-    try {
-      const addr = Address.parse(address);
-      const friendly = addr.toString({ bounceable: false });
-      return `${friendly.slice(0, 4)}...${friendly.slice(-4)}`;
-    } catch {
-      return `${address.slice(0, 4)}...${address.slice(-4)}`;
-    }
-  };
-
-  // Fetch wallet assets (TON balance + Jettons)
-  const fetchWalletAssets = useCallback(async (address: string) => {
-    if (!address) return;
-    
-    setIsLoadingAssets(true);
-    try {
-      // Fetch TON price first
-      const price = await fetchTonPrice();
-      
-      // Fetch TON balance using TON API
-      let tonUsd = 0;
-      const balanceResponse = await fetch(`https://tonapi.io/v2/accounts/${address}`);
-      if (balanceResponse.ok) {
-        const balanceData = await balanceResponse.json();
-        const balanceInNano = balanceData.balance || "0";
-        const balanceInTon = fromNano(balanceInNano);
-        setTonBalance(parseFloat(balanceInTon).toFixed(4));
-        
-        // Calculate USD value
-        tonUsd = parseFloat(balanceInTon) * price;
-        setTonUsdValue(tonUsd.toFixed(2));
-      }
-
-      // Fetch Jettons (tokens) balance with USD prices
-      let jettonsUsdTotal = 0;
-      const jettonsResponse = await fetch(`https://tonapi.io/v2/accounts/${address}/jettons?currencies=usd`);
-      if (jettonsResponse.ok) {
-        const jettonsData = await jettonsResponse.json();
-        const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton: { 
-          balance: string;
-          wallet_address?: { address?: string };
-          price?: {
-            prices?: { USD?: number };
-          };
-          jetton: { 
-            address?: string;
-            symbol?: string; 
-            name?: string; 
-            decimals?: number; 
-            image?: string;
-          } 
-        }) => {
-          const decimals = jetton.jetton?.decimals || 9;
-          const rawBalance = parseFloat(jetton.balance || "0");
-          const actualBalance = rawBalance / Math.pow(10, decimals);
-          const priceUsd = jetton.price?.prices?.USD || 0;
-          const usdValue = actualBalance * priceUsd;
-          
-          jettonsUsdTotal += usdValue;
-          
-          return {
-            symbol: jetton.jetton?.symbol || "Unknown",
-            name: jetton.jetton?.name || "Unknown Token",
-            balance: jetton.balance || "0",
-            decimals: decimals,
-            image: jetton.jetton?.image,
-            usdValue: usdValue,
-            priceUsd: priceUsd,
-            jettonAddress: jetton.jetton?.address,
-            walletAddress: jetton.wallet_address?.address,
-          };
-        });
-        setJettons(jettonBalances);
-      }
-      
-      // Set total USD balance (TON + all Jettons)
-      setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
-    } catch (error) {
-      console.error("Failed to fetch wallet assets:", error);
-    } finally {
-      setIsLoadingAssets(false);
-      setHasFetched(true);
-    }
-  }, [fetchTonPrice]);
 
   useEffect(() => {
     // Check if wallet exists in local storage
     const storedWallet = localStorage.getItem("quantum_wallet_address");
     if (storedWallet) {
-      setWalletAddress(storedWallet);
+      setContextWalletAddress(storedWallet);
       setHasWallet(true);
     }
     setIsChecking(false);
-  }, []);
-
-  // Fetch assets when wallet address is available
-  useEffect(() => {
-    if (walletAddress && hasWallet) {
-      fetchWalletAssets(walletAddress);
-    }
-  }, [walletAddress, hasWallet, fetchWalletAssets]);
+  }, [setContextWalletAddress]);
 
   const createWallet = async () => {
     setIsLoading(true);
@@ -227,7 +71,7 @@ export default function WalletPage() {
       // Store the address and mnemonic
       localStorage.setItem("quantum_wallet_address", address);
       localStorage.setItem("quantum_wallet_mnemonic", mnemonic.join(" "));
-      setWalletAddress(address);
+      setContextWalletAddress(address);
       
       // Show backup screen
       setView("backup");
@@ -289,7 +133,7 @@ export default function WalletPage() {
       
       localStorage.setItem("quantum_wallet_address", address);
       localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));
-      setWalletAddress(address);
+      setContextWalletAddress(address);
       setHasWallet(true);
       setSeedPhrase(Array(24).fill(""));
       setIsLoading(false);
@@ -308,357 +152,39 @@ export default function WalletPage() {
     setSeedPhrase(newPhrase);
   };
 
+  // Handle paste for seed phrase - allows pasting all 24 words at once
+  const handleSeedPhrasePaste = (e: ClipboardEvent<HTMLInputElement>, index: number) => {
+    const pastedText = e.clipboardData.getData("text");
+    
+    // Split by whitespace (spaces, newlines, tabs) and filter empty strings
+    const words = pastedText.trim().split(/\s+/).filter(word => word.length > 0);
+    
+    // If multiple words are pasted, distribute them across fields
+    if (words.length > 1) {
+      e.preventDefault();
+      
+      const newPhrase = [...seedPhrase];
+      words.forEach((word, i) => {
+        const targetIndex = index + i;
+        if (targetIndex < 24) {
+          newPhrase[targetIndex] = word.toLowerCase().trim();
+        }
+      });
+      setSeedPhrase(newPhrase);
+      
+      // Show success toast if all 24 words were pasted
+      if (words.length === 24 && index === 0) {
+        toast.success("Recovery phrase pasted successfully!");
+      }
+    }
+  };
+
   const copyAddress = () => {
     if (walletAddress) {
       navigator.clipboard.writeText(walletAddress);
       setCopied(true);
       toast.success("Address copied!");
       setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  // Get list of sendable assets (TON + Jettons)
-  const getSendableAssets = useCallback((): SendableAsset[] => {
-    const assets: SendableAsset[] = [
-      {
-        type: "ton",
-        symbol: "TON",
-        name: "Toncoin",
-        balance: tonBalance,
-        decimals: 9,
-        image: "https://ton.org/download/ton_symbol.png",
-      },
-    ];
-    
-    jettons.forEach((jetton) => {
-      assets.push({
-        type: "jetton",
-        symbol: jetton.symbol,
-        name: jetton.name,
-        balance: (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4),
-        decimals: jetton.decimals,
-        image: jetton.image,
-        jettonAddress: jetton.jettonAddress,
-        walletAddress: jetton.walletAddress,
-      });
-    });
-    
-    return assets;
-  }, [tonBalance, jettons]);
-
-  // Open send view
-  const openSendView = () => {
-    const assets = getSendableAssets();
-    setSelectedAsset(assets[0]); // Default to TON
-    setSendRecipient("");
-    setSendAmount("");
-    setSendMnemonic(Array(24).fill(""));
-    setSendStep("details");
-    setView("send");
-  };
-
-  // Handle send mnemonic word change
-  const handleSendMnemonicChange = (index: number, value: string) => {
-    const newMnemonic = [...sendMnemonic];
-    newMnemonic[index] = value;
-    setSendMnemonic(newMnemonic);
-  };
-
-  // Estimate transaction fee
-  const estimateTransactionFee = async () => {
-    setIsEstimatingFee(true);
-    try {
-      const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
-      if (!storedMnemonic) {
-        setEstimatedFee(selectedAsset?.type === "ton" ? "0.01" : "0.05");
-        return;
-      }
-
-      const cleanedMnemonic = storedMnemonic.split(" ");
-      const keyPair = await mnemonicToPrivateKey(cleanedMnemonic);
-      
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
-
-      const ta = new TonApiClient({
-        baseUrl: "https://tonapi.io",
-      });
-      const adapter = new ContractAdapter(ta);
-      const contract = adapter.open(wallet);
-      const seqno = await contract.getSeqno();
-      const recipient = Address.parse(sendRecipient.trim());
-
-      let messageBody;
-      let toAddress;
-      let value;
-
-      if (selectedAsset?.type === "ton") {
-        toAddress = recipient;
-        value = toNano("0.01"); // Use minimal amount for estimation
-        messageBody = "";
-      } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
-        const jettonWallet = Address.parse(selectedAsset.walletAddress);
-        toAddress = jettonWallet;
-        value = toNano("0.05");
-        messageBody = beginCell()
-          .storeUint(0xf8a7ea5, 32)
-          .storeUint(0, 64)
-          .storeCoins(BigInt(1))
-          .storeAddress(recipient)
-          .storeAddress(wallet.address)
-          .storeBit(false)
-          .storeCoins(BigInt(1))
-          .storeMaybeRef(undefined)
-          .endCell();
-      }
-
-      // Emulate the transaction to get actual fee
-      const response = await fetch(`https://tonapi.io/v2/wallet/emulate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          boc: "", // We'll use a simpler estimation
-        }),
-      });
-
-      // Fallback to reasonable estimates based on transaction type
-      if (selectedAsset?.type === "ton") {
-        setEstimatedFee("0.005");
-      } else {
-        setEstimatedFee("0.03");
-      }
-    } catch (error) {
-      console.error("Fee estimation failed:", error);
-      // Use fallback estimates
-      setEstimatedFee(selectedAsset?.type === "ton" ? "0.005" : "0.03");
-    } finally {
-      setIsEstimatingFee(false);
-    }
-  };
-
-  // Validate send inputs
-  const validateSendInputs = (): boolean => {
-    if (!sendRecipient.trim()) {
-      toast.error("Please enter a recipient address");
-      return false;
-    }
-    
-    try {
-      Address.parse(sendRecipient.trim());
-    } catch {
-      toast.error("Invalid recipient address");
-      return false;
-    }
-    
-    if (!sendAmount || parseFloat(sendAmount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return false;
-    }
-    
-    if (!selectedAsset) {
-      toast.error("Please select an asset");
-      return false;
-    }
-    
-    const balance = parseFloat(selectedAsset.balance);
-    const amount = parseFloat(sendAmount);
-    
-    if (amount > balance) {
-      toast.error("Insufficient balance");
-      return false;
-    }
-
-    // For TON, ensure amount covers the fee
-    if (selectedAsset.type === "ton" && amount < 0.01) {
-      toast.error("Amount must be at least 0.01 TON to cover fees");
-      return false;
-    }
-    
-    return true;
-  };
-
-  // Handle biometric confirmation
-  const handleConfirmTransaction = () => {
-    // Check if running in Telegram WebApp
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      // @ts-ignore
-      const biometricManager = tg.BiometricManager;
-
-      if (biometricManager) {
-        const authenticate = () => {
-          biometricManager.authenticate({
-              reason: "Confirm transaction"
-            }, 
-            (success: boolean) => {
-              if (success) {
-                executeSend();
-              } else {
-                toast.error("Biometric authentication failed");
-              }
-            }
-          );
-        };
-
-        const checkAndAuthenticate = () => {
-          if (biometricManager.isBiometricAvailable) {
-            if (!biometricManager.isAccessGranted) {
-              biometricManager.requestAccess({
-                  reason: "Authenticate to send transaction"
-                }, 
-                (granted: boolean) => {
-                  if (granted) {
-                    authenticate();
-                  } else {
-                    // If user denies access, fallback to normal send
-                    executeSend();
-                  }
-                }
-              );
-            } else {
-              authenticate();
-            }
-          } else {
-            executeSend();
-          }
-        };
-
-        if (!biometricManager.isInited) {
-          biometricManager.init(() => {
-            checkAndAuthenticate();
-          });
-        } else {
-          checkAndAuthenticate();
-        }
-        return;
-      }
-    }
-    
-    // Fallback for non-Telegram or no biometric manager
-    executeSend();
-  };
-
-  // Execute send transaction
-  const executeSend = async () => {
-    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
-    
-    if (!storedMnemonic) {
-      toast.error("Wallet credentials not found. Please re-import your wallet.");
-      return;
-    }
-
-    const cleanedMnemonic = storedMnemonic.split(" ");
-
-    setIsSending(true);
-    
-    try {
-      // Validate the mnemonic
-      const isValid = await mnemonicValidate(cleanedMnemonic);
-      if (!isValid) {
-        toast.error("Invalid stored credentials");
-        setIsSending(false);
-        return;
-      }
-
-      // Initialize TonApi client
-      const ta = new TonApiClient({
-        baseUrl: "https://tonapi.io",
-      });
-
-      // Create adapter for contract interactions
-      const adapter = new ContractAdapter(ta);
-
-      // Get keypair from mnemonic
-      const keyPair = await mnemonicToPrivateKey(cleanedMnemonic);
-
-      // Create wallet contract
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
-
-      // Verify the wallet address matches
-      const derivedAddress = wallet.address.toString({ bounceable: false });
-      if (derivedAddress !== walletAddress) {
-        toast.error("Recovery phrase does not match this wallet");
-        setIsSending(false);
-        return;
-      }
-
-      const contract = adapter.open(wallet);
-      const seqno = await contract.getSeqno();
-      const recipient = Address.parse(sendRecipient.trim());
-
-      if (selectedAsset?.type === "ton") {
-        // Send TON
-        const actualSendAmount = Math.max(0, parseFloat(sendAmount) - parseFloat(estimatedFee));
-        await contract.sendTransfer({
-          seqno,
-          secretKey: keyPair.secretKey,
-          sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-          messages: [
-            internal({
-              to: recipient,
-              value: toNano(actualSendAmount.toFixed(4)),
-              body: "",
-              bounce:false
-            }),
-          ],
-        });
-      } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
-        // Send Jetton
-        const jettonAmount = BigInt(Math.floor(parseFloat(sendAmount) * Math.pow(10, selectedAsset.decimals)));
-        const jettonWallet = Address.parse(selectedAsset.walletAddress);
-
-        const jettonTransferPayload = beginCell()
-          .storeUint(0xf8a7ea5, 32) // JETTON_TRANSFER_OP_CODE
-          .storeUint(0, 64) // Query ID
-          .storeCoins(jettonAmount) // Amount
-          .storeAddress(recipient) // Recipient
-          .storeAddress(wallet.address) // Response address
-          .storeBit(false) // No custom payload
-          .storeCoins(BigInt(1)) // Forward fee
-          .storeMaybeRef(undefined)
-          .endCell();
-
-        await contract.sendTransfer({
-          seqno,
-          secretKey: keyPair.secretKey,
-          sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-          messages: [
-            internal({
-              to: jettonWallet,
-              value: toNano("0.05"), // Gas fee for jetton transfer
-              body: jettonTransferPayload,
-              bounce:false
-            }),
-          ],
-        });
-      }
-      toast.success("Transaction sent successfully!");
-      
-      // Reset and go back
-      setSendMnemonic(Array(24).fill(""));
-      setSendRecipient("");
-      setSendAmount("");
-      setSelectedAsset(null);
-      setSendStep("details");
-      setView("main");
-      
-      // Refresh balances after a delay
-      setTimeout(() => {
-        fetchWalletAssets(walletAddress);
-      }, 3000);
-      
-    } catch (error) {
-      console.error("Send error:", error);
-      toast.error("Failed to send transaction. Please try again.");
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -778,6 +304,9 @@ export default function WalletPage() {
                 <div className="w-10" /> {/* Spacer for centering */}
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
+                <p className="text-xs text-center text-gray-400 mb-2">
+                  Paste all 24 words at once or enter them individually
+                </p>
                 <ScrollArea className="h-64 pr-4 -mr-4">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pl-1 py-1 pr-4">
                     {seedPhrase.map((word, i) => (
@@ -789,6 +318,7 @@ export default function WalletPage() {
                           type="text"
                           value={word}
                           onChange={(e) => handleWordChange(i, e.target.value)}
+                          onPaste={(e) => handleSeedPhrasePaste(e, i)}
                           className="bg-[#1a1a1a] border-[#333] pl-7 pr-2 text-white focus-visible:ring-blue-500/50 h-8 text-xs font-medium transition-all focus:bg-[#222]"
                         />
                       </div>
@@ -820,7 +350,6 @@ export default function WalletPage() {
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 w-full">
-        <TopNav />
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -876,23 +405,10 @@ export default function WalletPage() {
       </div>
     );
   }
-  const sendAmountHandle = (e:ChangeEvent<HTMLInputElement>) => {
-      const inputValue = e.target.value.replace(',', '.');
-      const re = /^\d*\.?\d*$/;
-      if(!isNaN(Number(inputValue))){
-      if(Number(inputValue)>=0)
-      {
-        if (inputValue === '' || re.test(inputValue)) {
-          setSendAmount(inputValue);
-        }
-    }
-    }
-  };
 
   // Main wallet view
   return (
     <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
-      <TopNav />
       {/* Header Card */}
       <motion.div 
         initial={{ y: 20, opacity: 0 }}
@@ -924,7 +440,7 @@ export default function WalletPage() {
             <Button 
               variant="ghost"
               size="icon"
-              onClick={() => fetchWalletAssets(walletAddress)}
+              onClick={() => fetchWalletAssets()}
               disabled={isLoadingAssets}
               className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-400 rounded-full"
             >
@@ -935,15 +451,12 @@ export default function WalletPage() {
               size="icon"
               onClick={() => {
                 localStorage.removeItem("quantum_wallet_address");
+                localStorage.removeItem("quantum_wallet_mnemonic");
                 setHasWallet(false);
-                setWalletAddress("");
+                setContextWalletAddress("");
                 setView("main");
                 setSeedPhrase(Array(24).fill(""));
                 setGeneratedMnemonic([]);
-                setTonBalance("0");
-                setTonUsdValue("0.00");
-                setTotalUsdBalance("0.00");
-                setJettons([]);
               }}
               className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
             >
@@ -965,10 +478,10 @@ export default function WalletPage() {
 
         <div className="grid grid-cols-4 gap-2 mt-6 relative z-10">
           {[
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", onClick: openSendView },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>, label: "Receive", onClick: () => setView("receive") },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", href: "/wallet/send" },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>, label: "Receive", href: "/wallet/receive" },
             { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>, label: "Swap", onClick: () => {}, disabled: true },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>, label: "History", href: "/wallet/history" },
+            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: "History", href: "/wallet/history" },
           ].map((action, i) => {
             const ButtonContent = () => (
               <>
@@ -984,6 +497,7 @@ export default function WalletPage() {
                 <Link 
                   key={i} 
                   href={action.href}
+                  prefetch={true}
                   className="flex flex-col items-center gap-2 group"
                 >
                   <ButtonContent />
@@ -1112,7 +626,7 @@ export default function WalletPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
                       {jetton.image ? (
-                        <img src={jetton.image} alt={jetton.symbol} className="w-full h-full object-cover" />
+                        <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                       ) : (
                         <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
                       )}
@@ -1132,362 +646,6 @@ export default function WalletPage() {
           })}
         </div>
       </div>
-
-      {/* Receive View (QR Code + Address) */}
-      {view === "receive" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
-          <motion.div 
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            className="w-full max-w-md mt-12"
-          >
-            <Card className="bg-[#111] border-[#333] text-white shadow-2xl overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-[#222] bg-[#151515]">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setView("main")}
-                  className="text-gray-400 hover:text-white hover:bg-[#222]"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <CardTitle className="text-xl font-bold">Receive TON</CardTitle>
-                <div className="w-10" /> {/* Spacer for centering */}
-              </CardHeader>
-              
-              <CardContent className="flex flex-col items-center space-y-6 pt-8 pb-8">
-                <div className="p-4 bg-white rounded-2xl shadow-lg shadow-white/5">
-                  <QRCode 
-                    value={walletAddress} 
-                    size={200}
-                    level="H"
-                    className="w-full h-full"
-                  />
-                </div>
-
-                <div className="w-full space-y-2 text-center">
-                  <p className="text-sm text-gray-400">Your Wallet Address</p>
-                  <div 
-                    onClick={copyAddress}
-                    className="bg-[#1a1a1a] border border-[#333] rounded-xl p-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#222] transition-colors group"
-                  >
-                    <p className="text-xs text-gray-300 font-mono break-all text-left flex-1">
-                      {walletAddress}
-                    </p>
-                    <div className="text-gray-500 group-hover:text-white transition-colors">
-                      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-                  <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
-                  <p className="text-xs text-yellow-500/90 leading-relaxed text-left">
-                    Send only TON and TON-based tokens (Jettons) to this address. Sending other assets may result in permanent loss.
-                  </p>
-                </div>
-
-                <Button
-                  onClick={copyAddress}
-                  className="w-full bg-white text-black hover:bg-gray-200 h-11 font-bold transition-all"
-                >
-                  {copied ? "Address Copied" : "Copy Address"}
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      )}
-
-
-
-      {/* Send View Modal */}
-      {view === "send" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-md"
-          >
-            <Card className="bg-[#111] border-[#333] rounded-t-3xl rounded-b-none overflow-hidden max-h-[85vh] flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-[#222] bg-[#151515]">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => {
-                    if (sendStep === "mnemonic") {
-                      setSendStep("details");
-                    } else {
-                      setView("main");
-                      setSendRecipient("");
-                      setSendAmount("");
-                      setSelectedAsset(null);
-                      setSendMnemonic(Array(24).fill(""));
-                      setSendStep("details");
-                    }
-                  }}
-                  className="text-gray-400 hover:text-white hover:bg-[#222]"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <CardTitle className="text-xl font-bold">
-                  {sendStep === "mnemonic" ? "Confirm Transaction" : "Send"}
-                </CardTitle>
-                <div className="w-10" />
-              </CardHeader>
-              
-              <CardContent className="flex flex-col space-y-6 pt-6 pb-8 overflow-y-auto">
-                {sendStep === "details" && (
-                  <>
-                    {/* Asset Selector */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Asset</label>
-                      </div>
-                      <div className="relative">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl h-14 px-4 text-white hover:bg-[#222] hover:border-[#444] transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 font-medium justify-between"
-                            >
-                              <div className="flex items-center gap-3">
-                                {selectedAsset?.image ? (
-                                  <img src={selectedAsset.image} alt={selectedAsset.symbol} className="w-8 h-8 rounded-full" />
-                                ) : (
-                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                                    {selectedAsset?.symbol?.slice(0, 2) || "TO"}
-                                  </div>
-                                )}
-                                <div className="flex flex-col items-start">
-                                  <span className="font-bold text-sm">{selectedAsset?.symbol || "TON"}</span>
-                                  <span className="text-xs text-gray-500 font-normal">
-                                    {selectedAsset?.balance || "0"} Available
-                                  </span>
-                                </div>
-                              </div>
-                              <ChevronDown className="w-4 h-4 text-gray-500" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="w-[320px] sm:w-[400px] bg-[#1a1a1a] border-[#333] text-white z-60">
-                            <DropdownMenuLabel className="text-gray-400 text-xs uppercase tracking-wider">Select Asset</DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-[#333]" />
-                            {getSendableAssets().map((asset) => (
-                              <DropdownMenuItem
-                                key={asset.symbol}
-                                onSelect={() => setSelectedAsset(asset)}
-                                className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#222] focus:bg-[#222] focus:text-white"
-                              >
-                                {asset.image ? (
-                                  <img src={asset.image} alt={asset.symbol} className="w-8 h-8 rounded-full" />
-                                ) : (
-                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                                    {asset.symbol.slice(0, 2)}
-                                  </div>
-                                )}
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-sm">{asset.symbol}</span>
-                                  <span className="text-xs text-gray-500">{asset.balance} Available</span>
-                                </div>
-                                {selectedAsset?.symbol === asset.symbol && (
-                                  <Check className="w-4 h-4 ml-auto text-blue-500" />
-                                )}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-
-                    {/* Recipient Address */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Recipient Address</label>
-                      </div>
-                      <div className="relative">
-                        <Input
-                          value={sendRecipient}
-                          onChange={(e) => setSendRecipient(e.target.value)}
-                          placeholder="Enter TON address"
-                          className="bg-[#1a1a1a] border-[#333] rounded-xl h-14 pl-4 pr-4 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all font-mono text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Amount */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">
-                            Available: {selectedAsset?.balance || "0"} {selectedAsset?.symbol}
-                          </span>
-                          <button
-                            onClick={() => {
-                              if (selectedAsset) {
-                                setSendAmount(selectedAsset.balance);
-                              }
-                            }}
-                            className="text-[10px] font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded transition-colors uppercase"
-                          >
-                            Max
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="relative group">
-                        <Input
-                          type="number"
-                          value={sendAmount}
-                          onChange={sendAmountHandle}
-                          min={0}
-                          placeholder="0.00"
-                          className="bg-[#1a1a1a] border-[#333] rounded-xl h-14 pl-4 pr-20 text-lg font-bold text-white placeholder:text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
-                          <span className="text-sm font-bold text-gray-400">
-                            {selectedAsset?.symbol || "TON"}
-                          </span>
-                          {sendAmount && parseFloat(sendAmount) > 0 && selectedAsset && (
-                            <span className="text-xs text-gray-600">
-                              ≈ ${selectedAsset.type === "ton" 
-                                ? (parseFloat(sendAmount) * tonPrice).toFixed(2)
-                                : (() => {
-                                    const jetton = jettons.find(j => j.symbol === selectedAsset.symbol);
-                                    return jetton?.priceUsd 
-                                      ? (parseFloat(sendAmount) * jetton.priceUsd).toFixed(2) 
-                                      : "0.00";
-                                  })()
-                              }
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Warning */}
-                    <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 flex items-start gap-3">
-                      <ShieldAlert className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-blue-400">Double Check Address</p>
-                        <p className="text-[11px] text-blue-400/70 leading-relaxed">
-                          Blockchain transactions are irreversible. Ensure the recipient address is correct and on the TON network.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Continue Button */}
-                    <Button
-                      onClick={async () => {
-                        if (validateSendInputs()) {
-                          await estimateTransactionFee();
-                          setSendStep("mnemonic");
-                        }
-                      }}
-                      disabled={!sendRecipient || !sendAmount || parseFloat(sendAmount) <= 0}
-                      className="w-full bg-white text-black hover:bg-gray-200 h-14 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/5 mt-4"
-                    >
-                      Continue
-                    </Button>
-                  </>
-                )}
-
-                {sendStep === "mnemonic" && (
-                  <>
-                    {/* Transaction Summary */}
-                    <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-5 space-y-4">
-                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
-                        <span className="text-sm text-gray-400">Sending Asset</span>
-                        <div className="flex items-center gap-2">
-                          {selectedAsset?.image && (
-                            <img src={selectedAsset.image} alt="" className="w-5 h-5 rounded-full" />
-                          )}
-                          <span className="text-white font-bold">{selectedAsset?.symbol}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
-                        <span className="text-sm text-gray-400">Amount</span>
-                        <div className="text-right">
-                          <div className="text-white font-bold text-lg">
-                            {sendAmount} {selectedAsset?.symbol}
-                          </div>
-                          {selectedAsset?.type === "jetton" && (
-                            <div className="text-xs text-gray-500">
-                              + {estimatedFee} TON Fee
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
-                        <span className="text-sm text-gray-400">Network Fee</span>
-                        <div className="text-right">
-                          {isEstimatingFee ? (
-                            <div className="w-16 h-5 bg-[#2a2a2a] rounded animate-pulse" />
-                          ) : (
-                            <div className="text-white font-bold text-sm">
-                              ≈ {estimatedFee} TON
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pb-4 border-b border-[#2a2a2a]">
-                        <span className="text-sm text-gray-400">Total</span>
-                        <div className="text-right">
-                          <div className="text-white font-bold text-lg">
-                            {selectedAsset?.type === "ton" 
-                              ? Math.max(0, parseFloat(sendAmount) - parseFloat(estimatedFee)).toFixed(4)
-                              : sendAmount
-                            } {selectedAsset?.symbol}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            ≈ ${selectedAsset?.type === "ton" 
-                                ? (Math.max(0, parseFloat(sendAmount) - parseFloat(estimatedFee)) * tonPrice).toFixed(2)
-                                : (() => {
-                                    const jetton = jettons.find(j => j.symbol === selectedAsset?.symbol);
-                                    return jetton?.priceUsd 
-                                      ? (parseFloat(sendAmount) * jetton.priceUsd).toFixed(2) 
-                                      : "0.00";
-                                  })()
-                              } USD
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-400">Recipient</span>
-                        <div className="flex items-center gap-2 bg-[#111] px-3 py-1.5 rounded-lg border border-[#2a2a2a]">
-                          <span className="text-white font-mono text-xs">{sendRecipient.slice(0, 6)}...{sendRecipient.slice(-6)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Send Button */}
-                    <Button
-                      onClick={handleConfirmTransaction}
-                      disabled={isSending}
-                      className="w-full bg-white text-black hover:bg-gray-200 h-14 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/5"
-                    >
-                      {isSending ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                          Sending Transaction...
-                        </div>
-                      ) : (
-                        "Confirm & Send"
-                      )}
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }

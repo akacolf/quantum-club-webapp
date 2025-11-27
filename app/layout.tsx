@@ -6,6 +6,7 @@ import Script from "next/script";
 import { Onest } from "next/font/google";
 import ClientProviders from "./(providers)/ClientProviders";
 import type { Metadata } from "next";
+import GlobalNavigation from "./(navigation)/GlobalNavigation";
 
 
 const onest = Onest({
@@ -37,6 +38,7 @@ export default function RootLayout({
           <div className="main-content">
             <div className="inner-content">
               {children}
+              <GlobalNavigation />
               <Analytics />
               <SpeedInsights />
             </div>

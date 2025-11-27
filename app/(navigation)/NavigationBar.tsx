@@ -52,34 +52,30 @@ const FrensIcon = React.memo(() => (
 ));
 FrensIcon.displayName = "FrensIcon";
 
-const EcosystemIcon = React.memo(() => (
+const WalletIcon = React.memo(() => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="1.5em"
     height="1.5em"
-    viewBox="0 0 16 16"
+    viewBox="0 0 24 24"
   >
-    <path
-      fill="currentColor"
-      d="M11 8a2.64 2.64 0 0 0-.53-1.59l1.33-1.32a2.2 2.2 0 0 0 .82.17a1.94 1.94 0 0 0 2-1.88a2 2 0 0 0-4 0a1.76 1.76 0 0 0 .24.88L9.53 5.59A3.14 3.14 0 0 0 8 5.19a3 3 0 0 0-2.93 2.19h-.69A2 2 0 0 0 2.5 6.13A1.94 1.94 0 0 0 .5 8a1.94 1.94 0 0 0 2 1.88a2 2 0 0 0 1.88-1.25h.69A3 3 0 0 0 8 10.82A2.91 2.91 0 0 0 11 8m1.62-5.24a.69.69 0 0 1 .75.62a.76.76 0 0 1-1.5 0a.7.7 0 0 1 .75-.62M2.5 8.63A.7.7 0 0 1 1.75 8a.7.7 0 0 1 .75-.62a.7.7 0 0 1 .75.62a.7.7 0 0 1-.75.63m5.5.94A1.67 1.67 0 0 1 6.25 8A1.66 1.66 0 0 1 8 6.44A1.67 1.67 0 0 1 9.75 8A1.68 1.68 0 0 1 8 9.57"
-    />
-    <path
-      fill="currentColor"
-      d="M2.5 4.38a2 2 0 0 0 .82-.17L5.08 6A3.7 3.7 0 0 1 6 5.13L4.26 3.38a1.76 1.76 0 0 0 .24-.88a1.94 1.94 0 0 0-2-1.87a1.94 1.94 0 0 0-2 1.87a1.94 1.94 0 0 0 2 1.88m0-2.5a.7.7 0 0 1 .75.62a.7.7 0 0 1-.75.63a.7.7 0 0 1-.75-.63a.7.7 0 0 1 .75-.62m11 9.75a2 2 0 0 0-.82.17L10.92 10a3.7 3.7 0 0 1-.93.84l1.74 1.74a1.75 1.75 0 0 0-.23.88a2 2 0 0 0 4 0a1.94 1.94 0 0 0-2-1.83m0 2.5a.7.7 0 0 1-.75-.63a.76.76 0 0 1 1.5 0a.7.7 0 0 1-.75.63"
-    />
+    <g fill="currentColor" fillRule="evenodd" clipRule="evenodd">
+      <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
+      <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
+    </g>
   </svg>
 ));
-EcosystemIcon.displayName = "EcosystemIcon";
+WalletIcon.displayName = "WalletIcon";
 
 const navTabs = [
   { id: "home", href: "/home", label: "Home", icon: <HomeIcon /> },
   { id: "earn", href: "/earn", label: "Earn", icon: <EarnIcon /> },
   { id: "frens", href: "/frens", label: "Frens", icon: <FrensIcon /> },
   {
-    id: "ecosystem",
-    href: "/ecosystem",
-    label: "Ecosystem",
-    icon: <EcosystemIcon />,
+    id: "wallet",
+    href: "/wallet",
+    label: "Wallet",
+    icon: <WalletIcon />,
   },
 ];
 
@@ -89,7 +85,7 @@ const NavigationBar = () => {
   let activeTab = "home";
   if (pathname.includes("/earn")) activeTab = "earn";
   else if (pathname.includes("/frens")) activeTab = "frens";
-  else if (pathname.includes("/ecosystem")) activeTab = "ecosystem";
+  else if (pathname.includes("/wallet")) activeTab = "wallet";
 
   return (
     <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md h-[60px] bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]">

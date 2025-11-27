@@ -20,8 +20,6 @@ import ClaimToaster from "./(components)/ClaimToaster";
 import QntmBalance from "./(components)/QntmBalance";
 import DailyCheckIn from "./(components)/DailyCheck";
 import SolveToEarnCard from "./(components)/SolveToEarnCard";
-import NavigationBar from "@/app/(navigation)/NavigationBar";
-import TopNav from "@/app/(components)/TopNav";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -116,6 +114,11 @@ const HomeContent = () => {
         return;
       }
     }, [router]);
+
+  // Prefetch rewards history for faster navigation
+  useEffect(() => {
+    router.prefetch("/home/rewardshistory");
+  }, [router]);
 
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const {
@@ -831,9 +834,7 @@ const HomeContent = () => {
   return (
     <div className="flex flex-col">
       <ClaimToaster />
-      <TopNav />
       
-      <NavigationBar />
       <QntmBalance
         MainQuantAmount={MainQuantAmount}
         rank={rank}

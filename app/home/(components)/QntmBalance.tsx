@@ -70,6 +70,7 @@ export default function QntmBalance({
         <Link
           id="rewardsHistoryLink"
           href={"/home/rewardshistory"}
+          prefetch={true}
           className="group flex items-center gap-1 text-sm text-gray-500 hover:text-white transition-colors duration-200"
         >
           <span>Rewards history</span>

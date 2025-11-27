@@ -1,41 +1,91 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fromNano, Address } from "@ton/core";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useWallet } from "../WalletContext";
+
+interface HistoryEvent {
+  event_id: string;
+  timestamp: number;
+  in_progress?: boolean;
+  is_scam?: boolean;
+  actions?: Array<{
+    type: string;
+    TonTransfer?: {
+      amount?: string;
+      recipient?: { address?: string };
+      sender?: { address?: string };
+    };
+    JettonTransfer?: {
+      amount?: string;
+      recipient?: { address?: string };
+      sender?: { address?: string };
+      jetton?: { decimals?: number; symbol?: string };
+    };
+  }>;
+}
 
 export default function HistoryPage() {
   useTelegramBackButton("/wallet");
-  const [walletAddress, setWalletAddress] = useState("");
-  const [history, setHistory] = useState<any[]>([]);
+  const { walletAddress } = useWallet();
+  const [history, setHistory] = useState<HistoryEvent[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const storedWallet = localStorage.getItem("quantum_wallet_address");
-    if (storedWallet) {
-      setWalletAddress(storedWallet);
-      fetchHistory(storedWallet);
-    } else {
-        setIsLoadingHistory(false);
-    }
-  }, []);
-
-  const fetchHistory = async (address: string) => {
+  const fetchHistory = useCallback(async (address: string) => {
+    if (!address) return;
+    
     setIsLoadingHistory(true);
+    setError(null);
+    
     try {
-      const response = await fetch(`https://tonapi.io/v2/accounts/${address}/events?limit=20`);
-      if (response.ok) {
-        const data = await response.json();
-        setHistory(data.events || []);
+      // Use AbortController to handle timeouts
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      const response = await fetch(
+        `https://tonapi.io/v2/accounts/${encodeURIComponent(address)}/events?limit=50`,
+        {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
+      );
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
       }
-    } catch (error) {
-      console.error("Failed to fetch history:", error);
+      
+      const data = await response.json();
+      setHistory(data.events || []);
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          setError('Request timed out. Please try again.');
+        } else {
+          setError('Failed to load transaction history.');
+        }
+        console.error("Failed to fetch history:", err.message);
+      }
     } finally {
       setIsLoadingHistory(false);
     }
-  };
+  }, []);
+
+  // Fetch history when wallet address is available from context
+  useEffect(() => {
+    if (walletAddress) {
+      fetchHistory(walletAddress);
+    } else {
+      setIsLoadingHistory(false);
+    }
+  }, [walletAddress, fetchHistory]);
 
   const formatAddress = (address: string) => {
     if (!address) return "Unknown";
@@ -50,9 +100,21 @@ export default function HistoryPage() {
 
   return (
     <div className="flex flex-col w-full max-w-md mx-auto p-4 h-screen bg-black text-white">
-        <div className="flex items-center justify-center mb-6 relative">
+        <div className="flex items-center justify-center mb-6">
           <h2 className="text-xl font-bold text-white">History</h2>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+            {error}
+            <button
+              onClick={() => walletAddress && fetchHistory(walletAddress)}
+              className="ml-2 underline hover:no-underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         <ScrollArea className="flex-1 -mx-4 px-4">
           <div className="space-y-3 pb-20">
@@ -89,23 +151,58 @@ export default function HistoryPage() {
                 let symbol = "TON";
                 let isIncoming = false;
                 let address = "";
-                let status = event.status || "ok";
+                const status = event.in_progress ? "pending" : (event.is_scam ? "scam" : "ok");
+                
+                // Normalize wallet address for comparison
+                let normalizedWalletAddress = "";
+                try {
+                  normalizedWalletAddress = Address.parse(walletAddress).toRawString();
+                } catch {
+                  normalizedWalletAddress = walletAddress;
+                }
                 
                 if (action.type === "TonTransfer") {
                   const transfer = action.TonTransfer;
-                  isIncoming = transfer.recipient.address === walletAddress;
-                  amount = fromNano(transfer.amount);
-                  address = isIncoming ? transfer.sender.address : transfer.recipient.address;
-                  type = isIncoming ? "Received" : "Sent";
+                  if (transfer) {
+                    // Compare raw addresses for reliability
+                    let recipientRaw = "";
+                    try {
+                      recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
+                    } catch {
+                      recipientRaw = transfer.recipient?.address || "";
+                    }
+                    
+                    isIncoming = recipientRaw === normalizedWalletAddress;
+                    amount = fromNano(transfer.amount || "0");
+                    address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
+                    type = isIncoming ? "Received" : "Sent";
+                  }
                 } else if (action.type === "JettonTransfer") {
                   const transfer = action.JettonTransfer;
-                  isIncoming = transfer.recipient?.address === walletAddress;
-                  amount = transfer.amount ? (parseFloat(transfer.amount) / Math.pow(10, transfer.jetton.decimals)).toFixed(4) : "0";
-                  symbol = transfer.jetton.symbol;
-                  address = isIncoming ? transfer.sender?.address : transfer.recipient?.address;
-                  type = isIncoming ? "Received" : "Sent";
+                  if (transfer) {
+                    // Compare raw addresses for reliability
+                    let recipientRaw = "";
+                    try {
+                      recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
+                    } catch {
+                      recipientRaw = transfer.recipient?.address || "";
+                    }
+                    
+                    isIncoming = recipientRaw === normalizedWalletAddress;
+                    const decimals = transfer.jetton?.decimals || 9;
+                    amount = transfer.amount ? (parseFloat(transfer.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
+                    symbol = transfer.jetton?.symbol || "TOKEN";
+                    address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
+                    type = isIncoming ? "Received" : "Sent";
+                  }
                 } else if (action.type === "ContractDeploy") {
-                    type = "Deploy";
+                  type = "Deploy";
+                } else if (action.type === "NftItemTransfer") {
+                  type = "NFT Transfer";
+                } else if (action.type === "Subscribe") {
+                  type = "Subscription";
+                } else if (action.type === "UnSubscribe") {
+                  type = "Unsubscribe";
                 }
 
                 const date = new Date(event.timestamp * 1000);
@@ -138,10 +235,11 @@ export default function HistoryPage() {
                     </div>
                     <div className="text-right">
                       <h4 className={`font-bold text-base ${
-                        status === 'failed' ? 'text-gray-500 line-through' :
+                        status === 'scam' ? 'text-orange-500' :
+                        status === 'pending' ? 'text-yellow-500' :
                         isIncoming ? 'text-green-500' : 'text-white'
                       }`}>
-                        {isIncoming ? '+' : '-'}{amount} {symbol}
+                        {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${amount} ${symbol}` : ''}
                       </h4>
                       <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
                     </div>
