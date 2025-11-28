@@ -1,12 +1,81 @@
 "use client";
-
 import { useDeviceDetection } from "./deviceDetection";
-import { useRegisterAndAuth } from "./registerAndAuth";
+import { UseRegisterAndAuth } from "./registerAndAuth";
 import { useSafeArea } from "./safeArea";
 import Loader from "../(components)/Loader";
-
+import { useEffect } from "react";
+import { authenticateUser } from "@/lib/telegramAuth";
+import { encryptData, userAuth } from "@/app/actions/actions";
+import { useRouter } from "next/navigation";
+import { useGameContext } from "../(contexts)/MiningContext";
+import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
 export default function Login() {
-  useRegisterAndAuth();
+  const router = useRouter();
+  const {
+    setTelegramId,
+    SetMainQuantAmount,
+    setRank,
+    setDaily,
+    setUsername,
+    setWalletAddress,
+    setLastActiveTime,
+    setRemainingSolveToEarn,
+  } = useGameContext();
+  const { setUserRank } = useLeaderboardContext();
+  useEffect(()=>{
+    const getData = async()=>{
+      if(typeof window !=="undefined" && window.Telegram && window.Telegram.WebApp){
+        const WebApp = window?.Telegram?.WebApp;
+        if (!WebApp) return;
+        WebApp.ready();
+        const initDataUnsafe = WebApp.initDataUnsafe
+         const authenticated = await authenticateUser();
+        if (authenticated) {
+          const encrypedId = await encryptData(initDataUnsafe.user?.id.toString() || "");
+          if(!encrypedId) {
+            setTimeout(getData, 100);
+            return;
+          }
+          const cleanData = encrypedId.toString();
+        const telegramIdEncrypted = cleanData
+          .replace(/['"]+/g, "")
+          .replace(/[^a-zA-Z0-9]/g, "");
+        const userId = await userAuth(telegramIdEncrypted)
+        if(!userId) {
+            setTimeout(getData, 100);
+            return;
+          }
+        const data =  await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});
+         if(data.status ==="maintenance"){
+          router.replace('/maintenance');
+          return;
+         }
+         if(data.status ==="error"){
+          setTimeout(getData, 100);
+          return;
+         }
+         if(data.status ==="completed"){
+        setTelegramId(data.telegramId);
+        SetMainQuantAmount(data.MainQuantAmount);
+        setRank(data.rank);
+        setUserRank(data.userRank);
+        setDaily(data.daily);
+        setUsername(data.username);
+        setWalletAddress(data.walletAddress);
+        setLastActiveTime(data.lastActiveTime);
+        setRemainingSolveToEarn(data.remainingSolveToEarn);
+        router.replace('/home'); 
+        }
+        }
+      }else{
+        console.error("WebApp not ready, waiting...");
+        setTimeout(getData, 100);
+      }
+      
+
+    }
+    getData()
+  },[])
   useSafeArea();
   useDeviceDetection();
 

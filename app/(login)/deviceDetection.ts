@@ -1,10 +1,7 @@
 import { useEffect } from "react";
-import { useRegisterAndAuth } from "./registerAndAuth";
 import deviceTypeDetector from "@/utils/deviceDetection";
-import { authenticateUser } from "@/lib/telegramAuth";
 
 export function useDeviceDetection() {
-  const { registerAndAuth } = useRegisterAndAuth();
   useEffect(() => {
     const deviceDetect = async () => {
       try {
@@ -27,10 +24,6 @@ export function useDeviceDetection() {
         if (deviceType === "mobile") {
           WebApp.requestFullscreen();
         }
-        const authenticated = await authenticateUser();
-        if (authenticated) {
-          await registerAndAuth();
-        }
         WebApp.BackButton.hide(); //window?.Telegram?.WebApp.BackButton.hide();
       };
     } catch (error) {
@@ -38,5 +31,5 @@ export function useDeviceDetection() {
       }
     };
     deviceDetect();
-  }, [registerAndAuth]);
+  }, []);
 };

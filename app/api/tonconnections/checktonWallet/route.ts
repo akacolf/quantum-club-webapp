@@ -12,15 +12,15 @@ if (!admin.apps.length) {
 }
 export async function POST(req:NextRequest) {
     const body = await req.json()
-    const { userId } = body;
+    const { telegramIdEncrypted } = body;
     const session = req.cookies.get('session')?.value
     if(!session) {
         return NextResponse.json("Session invalid",{status:400})
     }
-    if(!userId) {
+    if(!telegramIdEncrypted) {
         return NextResponse.json("Data error",{status:400})
     }
-    const wallet = await admin.firestore().collection("userAddresses").doc(userId).get()
+    const wallet = await admin.firestore().collection("userAddresses").doc(telegramIdEncrypted).get()
     if(wallet.data() &&wallet.data()?.address !=="") {
         const walletAddressDB = wallet.data()?.address
         return NextResponse.json({haveWallet:true,address:walletAddressDB})

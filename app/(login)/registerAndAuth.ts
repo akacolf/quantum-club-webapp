@@ -1,99 +1,41 @@
+"use client"
 import { dbfs } from "@/app/(firebase)/firebaseConfig";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import { useRouter } from "next/navigation";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
-import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
+
 import { getMaintenance } from "@/lib/getMaintenance";
-import { getAuth, signInWithCustomToken, User } from "firebase/auth";
 
-export function useRegisterAndAuth() {
+  const userData = {
+    telegramId:"",
+    MainQuantAmount:"",
+    rank:"",
+    daily:0,
+    username:"",
+    walletAddress:"",
+    lastActiveTime:"",
+    remainingSolveToEarn:0,
+    userRank:0,
+    status:"",
+  }
   
-  //encrypt data
-  async function encryptData(telegramId: string): Promise<string> {
-    const response = await fetch("/api/encryptID", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ input: telegramId }),
-    });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-
-    const firstData = await response.json();
-    const encryptedData = JSON.stringify(firstData.encryptedBase64);
-    return encryptedData;
-  }
-
-  //user auth
-  async function userAuth(
-    telegramIdEncrypted: string
-  ): Promise<string | undefined> {
-    const uid = String(telegramIdEncrypted);
-    const responseAuth = await fetch("/api/auth/telegram", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ telegramId: uid }),
-    });
-
-    if (!responseAuth.ok) {
-      const errorData = await responseAuth.text();
-      throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
-    }
-
-    const { customToken } = await responseAuth.json();
-    if (!customToken) throw new Error("Invalid token");
-    const authTg = getAuth();
-    if (authTg.currentUser) {
-      return authTg.currentUser.uid;
-    }
+export async function UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe}: {telegramIdEncrypted:string,initDataUnsafe}) {
     try {
-      await signInWithCustomToken(authTg, customToken);
-      if (authTg.currentUser) {
-        const currentUser = authTg.currentUser as User;
-        return currentUser.uid;
+      if(!telegramIdEncrypted || !initDataUnsafe ){
+        userData.status = "error";
+        return userData;
       }
-    } catch (error) {
-      throw error;
-    }
-  }
-  //defining constants
-  const {
-    setTelegramId,
-    SetMainQuantAmount,
-    setRank,
-    setDaily,
-    setUsername,
-    setWalletAddress,
-    setLastActiveTime,
-    setRemainingSolveToEarn,
-  } = useGameContext();
-  const { setUserRank } = useLeaderboardContext();
-  //
-  const router = useRouter();
-  const registerAndAuth = async () => {
-    try {
-      if (typeof window !== "undefined" && !window.Telegram?.WebApp) {
-        return;
-      }
-      let WebApp;
-      if (typeof window !== "undefined") {
-        WebApp = window?.Telegram?.WebApp;
-      }
-      
-      
-      const user = WebApp?.initDataUnsafe.user;
+        userData.telegramId = telegramIdEncrypted;
+        localStorage.setItem("telegramId", telegramIdEncrypted);
+      const user = initDataUnsafe.user
       if (user) {
         const telegramId = user.id;
-
         const stID = String(telegramId);
         let username = user.username;
         if (username === undefined || username === null || username === "") {
           username = "Quantum User";
-          setUsername("Quantum User");
+          userData.username = "Quantum User";
         } else {
-          
-          setUsername(username);
+          userData.username = username;
         }
 
         //rank config
@@ -114,40 +56,26 @@ export function useRegisterAndAuth() {
           }
         }
 
-        setRank(rank);
-        if(typeof window !=="undefined"){
-          localStorage.setItem("rank",rank)
+        userData.rank = rank;
+         if(typeof window !=="undefined"){
+           localStorage.setItem("rank",rank)
         }
         let newUser;
 
-        const stringID = String(telegramId);
         //paralelling maintenance and rawData
-        const [maintenance, rawData] = await Promise.all([
+        const [maintenance] = await Promise.all([
           getMaintenance(),
-          encryptData(stringID),
         ]);
-        sessionStorage.setItem("maintenance", maintenance);
+       sessionStorage.setItem("maintenance", maintenance);
       if (process.env.NODE_ENV === "production" && maintenance) {
-        router.push(`/maintenance`);
-        return;
+        userData.status = "maintenance";
+        return userData;
       }
         
-        //update cleanData
-        const cleanData = rawData.toString();
-        const telegramIdEncrypted = cleanData
-          .replace(/['"]+/g, "")
-          .replace(/[^a-zA-Z0-9]/g, "");
-        setTelegramId(telegramIdEncrypted);
-        
-  
-        //firebase auth
-        const userId = await userAuth(telegramIdEncrypted);
-        if (!userId) return registerAndAuth();
         //does the user exist?
-        const userReference = doc(dbfs, "user", userId);
+        const userReference = doc(dbfs, "user", telegramIdEncrypted);
         
-        const valueData = doc(dbfs, "user", userId, "miningData", "values");
-       
+        const valueData = doc(dbfs, "user", telegramIdEncrypted, "miningData", "values");
         const [userDataSnapshot, valueDataSnapshot] = await Promise.all([
           getDoc(userReference),
           getDoc(valueData),
@@ -158,7 +86,7 @@ export function useRegisterAndAuth() {
           newUser = false;
         }
         if (newUser) {
-          const referrerID = WebApp?.initDataUnsafe.start_param;
+          const referrerID = initDataUnsafe.start_param;
           let isBotBoolean = false;
           let isPremiumBoolean = false;
           if (user.is_bot) {
@@ -177,7 +105,7 @@ export function useRegisterAndAuth() {
             },
             { merge: true }
           );
-          const valueData = doc(dbfs, "user", userId, "miningData", "values");
+          const valueData = doc(dbfs, "user", telegramIdEncrypted, "miningData", "values");
           const quantValue =
             Math.sqrt((0.01 * Math.log(telegramId)) / telegramId) *
             Math.pow(10, 8);
@@ -194,16 +122,16 @@ export function useRegisterAndAuth() {
             },
             { merge: true }
           );
-          sessionStorage.setItem("firstQuant", formattedQuant);
-          localStorage.setItem("QAmount", String(quantValue));
+           sessionStorage.setItem("firstQuant", formattedQuant);
+           localStorage.setItem("QAmount", String(quantValue));
           if (referrerID) {
-            if (referrerID != userId) {
+            if (referrerID != telegramIdEncrypted) {
                 const userReference = doc(
                     dbfs,
                     "user",
                     referrerID,
                     "referrals",
-                    userId
+                    telegramIdEncrypted
                   );
                   const referredReference = doc(
                     dbfs,
@@ -224,7 +152,7 @@ export function useRegisterAndAuth() {
                 if (snapshotReference.exists()) {
                   if (!referrerIDinDB) {
                     await setDoc(userReference, {
-                      telegramId: userId,
+                      telegramId: telegramIdEncrypted,
                     });
                     const referredValueData = snapshotReference.data();
                     const referredAmount = referredValueData?.QuantAmount;
@@ -252,7 +180,7 @@ export function useRegisterAndAuth() {
             }
           }
           
-          const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
+          const dailyRef = doc(dbfs, "user", telegramIdEncrypted, "miningData", "checkTime");
 
           await setDoc(
             dailyRef,
@@ -261,16 +189,15 @@ export function useRegisterAndAuth() {
             },
             { merge: true }
           );
-          setTelegramId(userId);
-          setRank(rank);
-          setDaily(1);
-          SetMainQuantAmount(formattedQuant);
-          setUsername(username);
-          router.push("/home");
-          return;
+        
+          userData.rank = rank;
+          userData.daily = 1;
+          userData.MainQuantAmount=formattedQuant;
+          userData.username = username;
+          userData.status = "completed";
+          return userData;
         } else {
-         
-          const userRef = doc(dbfs, "user", userId);
+          const userRef = doc(dbfs, "user", telegramIdEncrypted);
           const userSnapshot = await getDoc(userRef);
           if (userSnapshot.exists()) {
             const dataUsername = userSnapshot.data().username;
@@ -281,24 +208,19 @@ export function useRegisterAndAuth() {
             }
           }
          
-          const userRankRef = doc(dbfs, "userRanks", userId);
-            const dailyRef = doc(dbfs, "user", userId, "miningData", "checkTime");
+          const userRankRef = doc(dbfs, "userRanks", telegramIdEncrypted);
+            const dailyRef = doc(dbfs, "user", telegramIdEncrypted, "miningData", "checkTime");
 
             //paralleling rank, daily, and wallet
-            const [rankSnapshot, snapshotDaily, walletResponse] = await Promise.all([
+            const [rankSnapshot, snapshotDaily] = await Promise.all([
               getDoc(userRankRef),
               getDoc(dailyRef),
-              fetch("/api/tonconnections/checktonWallet", {
-            method: "POST",
-            headers: { "Content-Type" : "application/json" },
-            body: JSON.stringify({ userId }),
-          }),
           ]);
           if (valueDataSnapshot.exists()) {
             const data = valueDataSnapshot.data();
             const Amount = Number(data.QuantAmount);
             const remainingSolveToEarn = data.remainingSolveToEarn;
-            setRemainingSolveToEarn(remainingSolveToEarn);
+            userData.remainingSolveToEarn = remainingSolveToEarn;
             const firstQuant = Number(data.firstQuant);
             const formattedAmount = Amount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
@@ -308,22 +230,22 @@ export function useRegisterAndAuth() {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
             });
-            SetMainQuantAmount(formattedAmount);
+            userData.MainQuantAmount = formattedAmount;
             sessionStorage.setItem("firstQuant", formattedfirstQuant);
-            localStorage.setItem("QAmount", formattedAmount);
+           localStorage.setItem("QAmount", formattedAmount);
             
           
             
             
             if (rankSnapshot.exists()) {
               const userRank = rankSnapshot.data().rank;
-              setUserRank(userRank);
+              userData.userRank =userRank;
             } else {
               const response = await fetch("/api/checkUserRank", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  telegramId: userId,
+                  telegramId: telegramIdEncrypted,
                   userName: username,
                   QuantAmount: Amount,
                 }),
@@ -333,7 +255,7 @@ export function useRegisterAndAuth() {
               }
               const data = await response.json();
               sessionStorage.setItem("userLeaderRank", data.rank);
-              setUserRank(data.rank);
+              userData.userRank = data.rank;
             }
           }
          
@@ -368,12 +290,12 @@ export function useRegisterAndAuth() {
                   if (typeof window !== "undefined") {
                     localStorage.setItem("daily", "1");
                   }
-                  setDaily(1);
+                  userData.daily = 1;
                 } else {
                   if (typeof window !== "undefined") {
                     localStorage.setItem("daily", daily);
                   }
-                  setDaily(daily);
+                  userData.daily = daily
                 }
               }
             } else {
@@ -384,7 +306,7 @@ export function useRegisterAndAuth() {
                 },
                 { merge: true }
               );
-              setDaily(1);
+              userData.daily = 1;
               if (typeof window !== "undefined") {
                 localStorage.setItem("daily", "1");
               }
@@ -393,19 +315,23 @@ export function useRegisterAndAuth() {
             await setDoc(dailyRef, {
               daily: 1,
             });
-            setDaily(1);
+            userData.daily = 1;
             if (typeof window !== "undefined") {
               localStorage.setItem("daily", "1");
             }
           }
           //CHECK WALLET
           const lastActiveTime = Date.now();
-          if (typeof window !== "undefined") {
-            localStorage.setItem("lastactivetime", `${lastActiveTime}`);
-          }
-          setLastActiveTime(`${lastActiveTime}`);
-          const checkWallet = walletResponse;
-          const responseCheckWallet = await checkWallet.json();
+           if (typeof window !== "undefined") {
+             localStorage.setItem("lastactivetime", `${lastActiveTime}`);
+           }
+          userData.lastActiveTime =`${lastActiveTime}`;
+          const walletResponse =await fetch("/api/tonconnections/checktonWallet", {
+            method: "POST",
+            headers: { "Content-Type" : "application/json" },
+            body: JSON.stringify({ telegramIdEncrypted }),
+          })
+          const responseCheckWallet = await walletResponse.json();
           const haveWallet = responseCheckWallet.haveWallet;
           const walletAddressRes = responseCheckWallet.address;
           if (haveWallet) {
@@ -413,7 +339,7 @@ export function useRegisterAndAuth() {
               if (typeof window !== "undefined") {
                 localStorage.setItem("walletAddress", walletAddressRes);
               }
-              setWalletAddress(walletAddressRes);
+              userData.walletAddress = walletAddressRes;
             } catch (error) {
               if (error instanceof Error) {
                 console.error(error.message);
@@ -422,19 +348,19 @@ export function useRegisterAndAuth() {
               }
             }
           } else {
-            if (typeof window !== "undefined") {
-              localStorage.setItem("walletAddress", "");
-            }
-            setWalletAddress(null);
+             if (typeof window !== "undefined") {
+               localStorage.setItem("walletAddress", "");
+           }
+            userData.walletAddress = "";
           };
-          
-          router.push("/home");
+          userData.status = "completed";
         }
       }
     } catch (error) {
       console.error(error);
+      userData.status = "error";
+      return userData;
     }
-  };
-
-  return { registerAndAuth };
+  
+  return userData;
 };
