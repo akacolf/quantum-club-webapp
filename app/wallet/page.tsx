@@ -41,6 +41,8 @@ export default function WalletPage() {
   useEffect(() => {
     // Check if wallet exists in local storage
     const storedWallet = localStorage.getItem("quantum_wallet_address");
+    
+    // Only set hasWallet to true if it actually exists in storage
     if (storedWallet) {
       setContextWalletAddress(storedWallet);
       setHasWallet(true);
@@ -67,10 +69,11 @@ export default function WalletPage() {
       // Get the wallet address
       const address = wallet.address.toString({ bounceable: false });
       
-      // Store the address and mnemonic
-      localStorage.setItem("quantum_wallet_address", address);
-      localStorage.setItem("quantum_wallet_mnemonic", mnemonic.join(" "));
+      // Update the context so the address is available in memory
       setContextWalletAddress(address);
+      
+      // IMPORTANT: Do NOT save to localStorage here. 
+      // If we save here, a re-render might trigger useEffect and skip the backup screen.
       
       // Show backup screen
       setView("backup");
@@ -83,10 +86,18 @@ export default function WalletPage() {
   };
 
   const confirmBackup = () => {
-    setHasWallet(true);
-    setView("main");
-    setGeneratedMnemonic([]);
-    toast.success("Wallet created successfully!");
+    // Save to local storage ONLY after user confirms they have saved the phrase
+    if (walletAddress && generatedMnemonic.length > 0) {
+      localStorage.setItem("quantum_wallet_address", walletAddress);
+      localStorage.setItem("quantum_wallet_mnemonic", generatedMnemonic.join(" "));
+      
+      setHasWallet(true);
+      setView("main");
+      setGeneratedMnemonic([]);
+      toast.success("Wallet created successfully!");
+    } else {
+      toast.error("Error confirming wallet. Please try again.");
+    }
   };
 
   const copyMnemonic = () => {
@@ -193,8 +204,6 @@ export default function WalletPage() {
         </div>
       );
     }
-
-
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 w-full">
