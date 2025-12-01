@@ -16,6 +16,7 @@ import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
+import { analyticsEvents } from "@/lib/telegramAnalytics";
 
 export default function WalletPage() {
   const { MainQuantAmount } = useGameContext();
@@ -90,6 +91,9 @@ export default function WalletPage() {
     if (walletAddress && generatedMnemonic.length > 0) {
       localStorage.setItem("quantum_wallet_address", walletAddress);
       localStorage.setItem("quantum_wallet_mnemonic", generatedMnemonic.join(" "));
+      
+      // Track wallet creation event
+      analyticsEvents.walletCreated(walletAddress);
       
       setHasWallet(true);
       setView("main");

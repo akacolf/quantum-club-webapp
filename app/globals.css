@@ -15,7 +15,7 @@ body {
   padding: var(--content-safe-area-top, 7vh) 0 var(--content-safe-area-bottom, 12vh) 0;
 }
 
-/* Theme variables: Vercel-like dark mode */
+/* Theme variables: Dark mode (default) */
 :root {
   --radius: 0.625rem;
   --background: #000; /* pure black */
@@ -26,16 +26,16 @@ body {
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;
-  --secondary: #000;
+  --secondary: #1a1a1a;
   --secondary-foreground: #fff;
-  --muted: #000;
-  --muted-foreground: #fff;
-  --accent: #000;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
   --accent-foreground: #fff;
   --destructive: #ff5555;
-  --border: #000;
-  --input: #000;
-  --ring: #000;
+  --border: #333;
+  --input: #1a1a1a;
+  --ring: #fff;
   --chart-1: #fff;
   --chart-2: #fff;
   --chart-3: #fff;
@@ -51,26 +51,61 @@ body {
   --sidebar-ring: #000;
 }
 
+/* Light mode */
+.light {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #f5f5f5;
+  --accent-foreground: #0a0a0a;
+  --destructive: #ef4444;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #0a0a0a;
+  --chart-1: #0a0a0a;
+  --chart-2: #0a0a0a;
+  --chart-3: #0a0a0a;
+  --chart-4: #0a0a0a;
+  --chart-5: #0a0a0a;
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #0a0a0a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e5e5e5;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #0a0a0a;
+}
+
 .dark {
   /* enforce pure black/white */
   --background: #000;
   --foreground: #fff;
-  --card: #000;
+  --card: #101011;
   --card-foreground: #fff;
   --popover: #000;
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;
-  --secondary: #000;
+  --secondary: #1a1a1a;
   --secondary-foreground: #fff;
-  --muted: #000;
-  --muted-foreground: #fff;
-  --accent: #000;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
   --accent-foreground: #fff;
   --destructive: #ff5555;
-  --border: #000;
-  --input: #000;
-  --ring: #000;
+  --border: #333;
+  --input: #1a1a1a;
+  --ring: #fff;
   --chart-1: #fff;
   --chart-2: #fff;
   --chart-3: #fff;
@@ -129,8 +164,9 @@ body {
     @apply border-border outline-ring/50;
   }
   html, body {
-    background-color: #000;
-    color: #fff;
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   body {
     @apply bg-background text-foreground;

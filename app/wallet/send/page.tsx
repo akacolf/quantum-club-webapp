@@ -20,12 +20,14 @@ import {
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
+import { analyticsEvents } from "@/lib/telegramAnalytics";
 
 interface SendableAsset {
   type: "ton" | "jetton";
@@ -43,8 +45,12 @@ export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
   
+  // Biometric authentication hook
+  const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
+  
   // Use shared wallet context
   const { 
+    walletAddress,
     tonBalance, 
     tonPrice, 
     jettons, 
@@ -165,10 +171,31 @@ export default function SendPage() {
     }
   };
 
+  // Handle confirm button - requires biometric/PIN authentication
+  const handleConfirmSend = async () => {
+    // Track that transaction was sent for signature
+    analyticsEvents.transactionSentForSignature(
+      walletAddress || "",
+      [{ address: recipient, amount: amount }]
+    );
+
+    // Request biometric/PIN authentication
+    const authenticated = await requestAuth();
+    
+    if (authenticated) {
+      // User authenticated successfully, execute the transaction
+      await executeSend();
+    } else {
+      // User cancelled authentication
+      toast.error("Authentication required to send transaction");
+    }
+  };
+
   const executeSend = async () => {
     const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
     if (!storedMnemonic) {
       toast.error("Wallet credentials not found");
+      analyticsEvents.transactionSigningFailed("Wallet credentials not found");
       return;
     }
 
@@ -235,6 +262,12 @@ export default function SendPage() {
         });
       }
 
+      // Track successful transaction
+      analyticsEvents.transactionSigned(
+        walletAddress || "",
+        [{ address: recipient, amount: amount }]
+      );
+
       setStep("success");
       toast.success("Transaction sent!");
       
@@ -245,6 +278,12 @@ export default function SendPage() {
 
     } catch (error) {
       console.error("Send failed:", error);
+      
+      // Track failed transaction
+      analyticsEvents.transactionSigningFailed(
+        error instanceof Error ? error.message : "Transaction failed"
+      );
+      
       toast.error("Transaction failed");
       setStep("confirm");
     } finally {
@@ -452,7 +491,7 @@ export default function SendPage() {
                   Back
                 </Button>
                 <Button
-                  onClick={executeSend}
+                  onClick={handleConfirmSend}
                   disabled={isSending}
                   className="h-14 bg-white text-black hover:bg-gray-200 rounded-xl font-bold"
                 >
@@ -518,6 +557,15 @@ export default function SendPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Biometric/PIN Authentication Modal */}
+      <BiometricAuth
+        isOpen={isAuthOpen}
+        onSuccess={handleAuthSuccess}
+        onCancel={handleAuthCancel}
+        title="Confirm Transaction"
+        description={`Authenticate to send ${amount} ${selectedAsset?.symbol || ''} to ${recipient ? recipient.slice(0, 8) + '...' : 'recipient'}`}
+      />
     </div>
   );
 }

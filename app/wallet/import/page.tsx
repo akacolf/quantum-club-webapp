@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useWallet } from "../WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { analyticsEvents } from "@/lib/telegramAnalytics";
 
 export default function ImportWalletPage() {
   useTelegramBackButton("/wallet");
@@ -98,6 +99,9 @@ export default function ImportWalletPage() {
       localStorage.setItem("quantum_wallet_address", address);
       localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));
       setWalletAddress(address);
+      
+      // Track wallet import event
+      analyticsEvents.walletImported(address);
       
       toast.success("Wallet imported successfully!");
       router.push("/wallet");
