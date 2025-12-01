@@ -287,11 +287,13 @@ const HomeCarousel = () => {
 
       <div className="flex justify-center gap-1.5">
         {Array.from({ length: count }).map((_, index) => (
-          <div
+          <button
             key={index}
-            className={`h-1.5 rounded-full transition-all duration-300 overflow-hidden relative ${
-              index === current ? "w-8 bg-[#333]" : "w-1.5 bg-[#333]"
+            onClick={() => api?.scrollTo(index)}
+            className={`h-1.5 rounded-full transition-all duration-300 overflow-hidden relative cursor-pointer ${
+              index === current ? "w-8 bg-[#333]" : "w-1.5 bg-[#333] hover:bg-[#444]"
             }`}
+            aria-label={`Go to slide ${index + 1}`}
           >
             {index === current && (
               <div 
@@ -301,7 +303,7 @@ const HomeCarousel = () => {
                 }} 
               />
             )}
-          </div>
+          </button>
         ))}
       </div>
     </div>

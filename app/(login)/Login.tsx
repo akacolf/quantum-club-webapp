@@ -68,7 +68,7 @@ export default function Login() {
         }
         }
       }else{
-        console.error("WebApp not ready, waiting...");
+        // WebApp not ready yet, silently retry
         setTimeout(getData, 100);
       }
       

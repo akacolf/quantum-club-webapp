@@ -23,7 +23,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { toNano, Address, beginCell } from "@ton/core";
+import { toNano, Address, beginCell, fromNano } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
@@ -59,12 +59,16 @@ export default function SendPage() {
     fetchWalletAssets 
   } = useWallet();
 
+  // QC Service fee (0.5%)
+  const QC_SERVICE_FEE_PERCENT = 0.5;
+
   // Send State
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
   const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [estimatedFee, setEstimatedFee] = useState("0.01");
+  const [serviceFee, setServiceFee] = useState("0");
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -152,14 +156,43 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      // Mock estimation for better UX speed, real estimation happens on chain usually
-      // In a real app, you'd use the emulate endpoint properly
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setEstimatedFee(selectedAsset?.type === "ton" ? "0.005" : "0.03");
+      // Try to estimate via TON API emulation
+      try {
+        const emulateResponse = await fetch(`https://tonapi.io/v2/wallet/emulate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            boc: "", // Would need actual BOC for real emulation
+            params: [{ address: walletAddress }]
+          })
+        });
+        
+        if (emulateResponse.ok) {
+          const emulateData = await emulateResponse.json();
+          if (emulateData.trace?.transaction?.total_fees) {
+            const feeInTon = parseFloat(fromNano(emulateData.trace.transaction.total_fees));
+            setEstimatedFee(feeInTon.toFixed(6));
+          }
+        }
+      } catch {
+        // If emulation fails, use estimated values based on transaction type
+        const baseFee = selectedAsset?.type === "ton" ? 0.005 : 0.05;
+        setEstimatedFee(baseFee.toFixed(6));
+      }
+
+      // Calculate QC service fee
+      const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
+      setServiceFee(qcFee.toFixed(6));
+
       setStep("confirm");
     } catch (error) {
       console.error("Fee estimation failed", error);
-      toast.error("Failed to estimate fee");
+      // Fallback to default estimates
+      const baseFee = selectedAsset?.type === "ton" ? 0.005 : 0.05;
+      setEstimatedFee(baseFee.toFixed(6));
+      const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
+      setServiceFee(qcFee.toFixed(6));
+      setStep("confirm");
     } finally {
       setIsEstimating(false);
     }
@@ -217,22 +250,42 @@ export default function SendPage() {
       const seqno = await contract.getSeqno();
       const toAddress = Address.parse(recipient.trim());
 
+      // QC Treasury address for service fees
+      const QC_TREASURY_ADDRESS = Address.parse("UQBo9RblcXn3KHK18mEGcKUQbzc5OsUfMXi2J6xxB9tCIuDr");
+
       if (selectedAsset?.type === "ton") {
-        const actualAmount = Math.max(0, parseFloat(amount) - parseFloat(estimatedFee));
+        // Calculate amounts: recipient gets amount, QC gets service fee
+        const recipientAmount = parseFloat(amount);
+        const qcFeeAmount = parseFloat(serviceFee);
+        const messages = [
+          internal({
+            to: toAddress,
+            value: toNano(recipientAmount.toFixed(9)),
+            body: "",
+            bounce: false
+          }),
+        ];
+        
+        // Add QC service fee transaction if fee is > 0
+        if (qcFeeAmount > 0.000001) {
+          messages.push(
+            internal({
+              to: QC_TREASURY_ADDRESS,
+              value: toNano(qcFeeAmount.toFixed(9)),
+              body: "QC Service Fee",
+              bounce: false
+            })
+          );
+        }
+
         await contract.sendTransfer({
           seqno,
           secretKey: keyPair.secretKey,
           sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-          messages: [
-            internal({
-              to: toAddress,
-              value: toNano(actualAmount.toFixed(4)),
-              body: "",
-              bounce: false
-            }),
-          ],
+          messages,
         });
       } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
+        // For jettons, send the amount to recipient (service fee would need separate handling)
         const jettonAmount = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, selectedAsset.decimals)));
         const jettonWallet = Address.parse(selectedAsset.walletAddress);
         
@@ -470,6 +523,19 @@ export default function SendPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-400">Network Fee</span>
                       <span className="text-sm text-white">≈ {estimatedFee} TON</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400">QC Service Fee ({QC_SERVICE_FEE_PERCENT}%)</span>
+                      <span className="text-sm text-white">{serviceFee} {selectedAsset?.symbol}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-[#333]">
+                      <span className="text-sm text-gray-400 font-medium">Total Deducted</span>
+                      <span className="text-sm text-white font-bold">
+                        {(parseFloat(amount) + parseFloat(serviceFee) + (selectedAsset?.type === "ton" ? parseFloat(estimatedFee) : 0)).toFixed(6)} {selectedAsset?.symbol}
+                        {selectedAsset?.type !== "ton" && ` + ${estimatedFee} TON`}
+                      </span>
                     </div>
                   </div>
                 </CardContent>

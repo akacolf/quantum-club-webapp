@@ -18,7 +18,8 @@ import { getMaintenance } from "@/lib/getMaintenance";
   }
   
 
-export async function UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe}: {telegramIdEncrypted:string,initDataUnsafe}) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe}: {telegramIdEncrypted:string,initDataUnsafe: any}) {
     try {
       if(!telegramIdEncrypted || !initDataUnsafe ){
         userData.status = "error";

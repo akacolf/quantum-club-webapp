@@ -35,12 +35,14 @@ export default function RootLayout({
       <body className={`${onest.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
         <ClientProviders>
-          <div className="main-content">
-            <div className="inner-content">
-              {children}
-              <GlobalNavigation />
-              <Analytics />
-              <SpeedInsights />
+          <div className="flex justify-center min-h-screen bg-neutral-100 dark:bg-neutral-900">
+            <div className="main-content w-full max-w-md bg-background min-h-screen shadow-2xl relative">
+              <div className="inner-content">
+                {children}
+                <GlobalNavigation />
+                <Analytics />
+                <SpeedInsights />
+              </div>
             </div>
           </div>
         </ClientProviders>

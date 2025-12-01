@@ -1,27 +1,15 @@
-import telegramAnalytics from "@telegram-apps/analytics";
-
 const SDK_AUTH_TOKEN = "eyJhcHBfbmFtZSI6InF1YW50dW1fY2x1YiIsImFwcF91cmwiOiJodHRwczovL3QubWUvUXVhbnR1bUNsdWJCb3QiLCJhcHBfZG9tYWluIjoiaHR0cHM6Ly93d3cucXVhbnR1bWNsdWIuc3BhY2UvIn0=!wCjJY3ya2Il4HWQI21u7rOBSQpz/oFIrPNqdY986AS0=";
 const APP_NAME = "quantum_club";
 
 let isInitialized = false;
 
 /**
- * Initialize Telegram Analytics SDK
- * Must be called before the app renders to capture all events
+ * Initialize Telegram Analytics (no-op, using direct API calls)
+ * The SDK has issues with undefined WebView, so we use direct API calls
  */
 export function initTelegramAnalytics(): void {
   if (isInitialized) return;
-  
-  try {
-    telegramAnalytics.init({
-      token: SDK_AUTH_TOKEN,
-      appName: APP_NAME,
-    });
-    isInitialized = true;
-    console.log("[TelegramAnalytics] SDK initialized successfully");
-  } catch (error) {
-    console.error("[TelegramAnalytics] Failed to initialize SDK:", error);
-  }
+  isInitialized = true;
 }
 
 /**
@@ -210,5 +198,6 @@ export const analyticsEvents = {
     }),
 };
 
-// Default export for backward compatibility
-export default { initTelegramAnalytics, sendAnalyticsEvent, analyticsEvents };
+// Named exports for tree-shaking
+const telegramAnalyticsExports = { initTelegramAnalytics, sendAnalyticsEvent, analyticsEvents };
+export default telegramAnalyticsExports;
