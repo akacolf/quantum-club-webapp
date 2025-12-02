@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
+import { createCipheriv } from 'node:crypto';
+import { decrypt } from '@/utils/session';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -13,20 +15,50 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Server-side encryption function to get the encrypted telegram ID
+function encryptTelegramId(telegramId: string): string {
+  const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64');
+  const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
+  const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
+  
+  let encrypted = cipher.update(telegramId, 'utf8', 'base64');
+  encrypted += cipher.final('base64');
+  
+  return encrypted.replace(/['"]+/g, "").replace(/[^a-zA-Z0-9]/g, "");
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = request.cookies.get('session')?.value;
-    if (!session) {
+    // Validate session and extract the authenticated user's telegram ID
+    const sessionCookie = request.cookies.get('session')?.value;
+    if (!sessionCookie) {
       return NextResponse.json({ error: 'Session invalid' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { senderTelegramId, recipientQcId, amount } = body;
+    // Decrypt the session to get the authenticated user's telegram ID
+    let sessionData;
+    try {
+      sessionData = await decrypt(sessionCookie);
+    } catch {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
 
-    // Validate input
-    if (!senderTelegramId || !recipientQcId || !amount) {
+    // Get the raw telegram ID from the session (this is the source of truth)
+    const rawTelegramId = sessionData.user.telegramId;
+    if (!rawTelegramId) {
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
+    }
+
+    // Encrypt the telegram ID server-side to get the sender's QC ID
+    const senderQcId = encryptTelegramId(String(rawTelegramId));
+
+    const body = await request.json();
+    const { recipientQcId, amount } = body;
+
+    // Validate input - senderTelegramId is no longer accepted from client
+    if (!recipientQcId || !amount) {
       return NextResponse.json(
-        { error: 'senderTelegramId, recipientQcId, and amount are required' },
+        { error: 'recipientQcId and amount are required' },
         { status: 400 }
       );
     }
@@ -40,15 +72,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Prevent self-transfer
-    if (senderTelegramId === recipientQcId) {
+    if (senderQcId === recipientQcId) {
       return NextResponse.json(
         { error: 'Cannot transfer to yourself' },
         { status: 400 }
       );
     }
 
-    // Get sender's balance
-    const senderMiningRef = db.doc(`user/${senderTelegramId}/miningData/values`);
+    // Get sender's balance using the server-derived QC ID
+    const senderMiningRef = db.doc(`user/${senderQcId}/miningData/values`);
     const senderSnapshot = await senderMiningRef.get();
 
     if (!senderSnapshot.exists) {
@@ -96,7 +128,7 @@ export async function POST(request: NextRequest) {
 
       // Create transfer history for sender
       const senderHistoryRef = db.doc(
-        `user/${senderTelegramId}/transferHistory/${Date.now()}`
+        `user/${senderQcId}/transferHistory/${Date.now()}`
       );
       transaction.set(senderHistoryRef, {
         type: 'sent',
@@ -113,7 +145,7 @@ export async function POST(request: NextRequest) {
       transaction.set(recipientHistoryRef, {
         type: 'received',
         amount: transferAmount,
-        from: senderTelegramId,
+        from: senderQcId,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         date: new Date().toISOString(),
       });

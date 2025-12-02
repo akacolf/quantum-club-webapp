@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useState, useContext, ReactNode } from "react";
+import React, { createContext, useState, useContext, ReactNode, useMemo } from "react";
 
 interface GameContextType {
   username: string | null;
@@ -106,35 +106,39 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return null;
   });
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    username,
+    setUsername,
+    telegramId,
+    setTelegramId,
+    miningActive,
+    setMiningActive,
+    lastActiveTime,
+    setLastActiveTime,
+    miningTimestamp,
+    setMiningTimestamp,
+    MainQuantAmount,
+    SetMainQuantAmount,
+    jointext,
+    setJoinButtonText,
+    rank,
+    setRank,
+    telegramIdNM,
+    setTelegramIdNm,
+    daily,
+    setDaily,
+    remainingSolveToEarn,
+    setRemainingSolveToEarn,
+    walletAddress,
+    setWalletAddress,
+  }), [
+    username, telegramId, miningActive, lastActiveTime, miningTimestamp,
+    MainQuantAmount, jointext, rank, telegramIdNM, daily, remainingSolveToEarn, walletAddress
+  ]);
+
   return (
-    <GameContext.Provider
-      value={{
-        username,
-        setUsername,
-        telegramId,
-        setTelegramId,
-        miningActive,
-        setMiningActive,
-        lastActiveTime,
-        setLastActiveTime,
-        miningTimestamp,
-        setMiningTimestamp,
-        MainQuantAmount,
-        SetMainQuantAmount,
-        jointext,
-        setJoinButtonText,
-        rank,
-        setRank,
-        telegramIdNM,
-        setTelegramIdNm,
-        daily,
-        setDaily,
-        remainingSolveToEarn,
-        setRemainingSolveToEarn,
-        walletAddress,
-        setWalletAddress,
-      }}
-    >
+    <GameContext.Provider value={contextValue}>
       {children}
     </GameContext.Provider>
   );
