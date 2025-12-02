@@ -23,7 +23,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { toNano, Address, beginCell, fromNano } from "@ton/core";
+import { toNano, Address, beginCell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
@@ -156,29 +156,70 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      // Try to estimate via TON API emulation
+      // Fetch current gas prices from the network for accurate estimation
+      // TON fee formula: total_fee = storage_fee + gas_fees + forward_fees
+      // Gas prices are in nanoTON per gas unit
+      
+      // For a typical simple TON transfer:
+      // - Compute gas: ~3000-5000 gas units
+      // - Forward fee: ~0.001-0.002 TON (internal message)
+      // - Storage fee: negligible for simple transfers
+      
+      // For Jetton transfers:
+      // - Compute gas: ~15000-25000 gas units (multiple contracts involved)
+      // - Forward fees: ~0.03-0.05 TON (multiple internal messages)
+      
+      let networkFee: number;
+      
       try {
-        const emulateResponse = await fetch(`https://tonapi.io/v2/wallet/emulate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            boc: "", // Would need actual BOC for real emulation
-            params: [{ address: walletAddress }]
-          })
-        });
-        
-        if (emulateResponse.ok) {
-          const emulateData = await emulateResponse.json();
-          if (emulateData.trace?.transaction?.total_fees) {
-            const feeInTon = parseFloat(fromNano(emulateData.trace.transaction.total_fees));
-            setEstimatedFee(feeInTon.toFixed(6));
+        // Try to get real-time gas prices from TON API
+        const configResponse = await fetch(`https://tonapi.io/v2/blockchain/config`);
+        if (configResponse.ok) {
+          const configData = await configResponse.json();
+          
+          // Gas prices are in param 20 (workchain gas prices)
+          // Format: gas_price is in nanoTON per 65536 gas units
+          const gasPrice = configData?.["20"]?.gas_price || 65536000; // Default: 65536000 nanoTON/65536 gas = 1000 nanoTON/gas
+          const flatGasPrice = configData?.["20"]?.flat_gas_price || 10000000; // 0.01 TON flat
+          
+          // Calculate gas cost based on transaction type
+          if (selectedAsset?.type === "ton") {
+            // Simple TON transfer: ~3500 gas + flat fee + forward fee
+            const computeGas = 3500;
+            const computeFee = (computeGas * gasPrice) / 65536; // nanoTON
+            const forwardFee = 1000000; // ~0.001 TON for simple message
+            const totalFeeNano = flatGasPrice + computeFee + forwardFee;
+            networkFee = totalFeeNano / 1e9; // Convert to TON
+            
+            // Add extra for potential fees with multiple messages (QC service fee)
+            networkFee = networkFee * 2.5; // 2 messages + safety margin
+          } else {
+            // Jetton transfer: ~20000 gas + multiple forwards
+            const computeGas = 20000;
+            const computeFee = (computeGas * gasPrice) / 65536; // nanoTON
+            const forwardFees = 30000000; // ~0.03 TON for jetton transfer messages
+            const totalFeeNano = flatGasPrice + computeFee + forwardFees;
+            networkFee = totalFeeNano / 1e9; // Convert to TON
+            
+            // Add safety margin for jetton transfers
+            networkFee = networkFee * 1.5;
           }
+        } else {
+          throw new Error("Failed to fetch gas prices");
         }
       } catch {
-        // If emulation fails, use estimated values based on transaction type
-        const baseFee = selectedAsset?.type === "ton" ? 0.005 : 0.05;
-        setEstimatedFee(baseFee.toFixed(6));
+        // Fallback to conservative estimates if API fails
+        // Based on typical observed fees on TON mainnet
+        networkFee = selectedAsset?.type === "ton" 
+          ? 0.007 // Simple TON transfer ~0.005-0.008 TON
+          : 0.06; // Jetton transfer ~0.04-0.07 TON
       }
+      
+      // Ensure minimum fee to cover edge cases
+      const minFee = selectedAsset?.type === "ton" ? 0.003 : 0.03;
+      networkFee = Math.max(networkFee, minFee);
+      
+      setEstimatedFee(networkFee.toFixed(6));
 
       // Calculate QC service fee
       const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
@@ -188,7 +229,7 @@ export default function SendPage() {
     } catch (error) {
       console.error("Fee estimation failed", error);
       // Fallback to default estimates
-      const baseFee = selectedAsset?.type === "ton" ? 0.005 : 0.05;
+      const baseFee = selectedAsset?.type === "ton" ? 0.007 : 0.06;
       setEstimatedFee(baseFee.toFixed(6));
       const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
       setServiceFee(qcFee.toFixed(6));
@@ -251,7 +292,7 @@ export default function SendPage() {
       const toAddress = Address.parse(recipient.trim());
 
       // QC Treasury address for service fees
-      const QC_TREASURY_ADDRESS = Address.parse("UQBo9RblcXn3KHK18mEGcKUQbzc5OsUfMXi2J6xxB9tCIuDr");
+      const QC_TREASURY_ADDRESS = Address.parse("UQDYjZx4ieDtPMMmCjUBzhBNkaxLpr4p58XyfBIGKkYtW_LB");
 
       if (selectedAsset?.type === "ton") {
         // Calculate amounts: recipient gets amount, QC gets service fee
