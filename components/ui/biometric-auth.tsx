@@ -68,10 +68,13 @@ export function BiometricAuth({
     const pinRef = doc(dbfs,"wallet",telegramId);
     const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
     if (!storedHash) {
-      const getPin = (await getDoc(pinRef)).data()?.pinHash;
-      if (getPin) {
-        localStorage.setItem("quantum_wallet_pin_hash", hashPin(pin));
+      const getPin = await getDoc(pinRef);
+      const pinData = getPin.data()?.pinHash;
+      if (pinData) {
+        localStorage.setItem("quantum_wallet_pin_hash", pinData);
         return getPin;
+      }else{
+        return null;
       }
     }else{
       return storedHash;
@@ -79,7 +82,8 @@ export function BiometricAuth({
   }, [telegramId, hashPin, pin]);
   // Check available authentication methods on mount
   useEffect(() => {
-    if (isOpen) {
+    const checkAuthMethods = async () => {
+      if (isOpen) {
       // Check for biometric availability
       isPlatformAuthenticatorAvailable().then(setHasBiometric);
       
@@ -87,12 +91,14 @@ export function BiometricAuth({
       if(!telegramId){
         return;
       }
-      const dataPin = getPin();
+      const dataPin = await getPin();
       setHasStoredPin(!!dataPin);
       setAuthMethod("selecting");
       setPin("");
       setPinError("");
   }
+    };
+      checkAuthMethods();
   }, [isOpen]);
   
  
