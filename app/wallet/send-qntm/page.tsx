@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -27,11 +27,14 @@ export default function SendQNTMPage() {
   const [amount, setAmount] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
+  const [qcIdCopied, setQcIdCopied] = useState(false);
 
-  // Parse balance (remove commas)
-  const currentBalance = parseFloat(MainQuantAmount.replace(/,/g, '')) || 0;
+  // Parse balance (remove commas) - memoized
+  const currentBalance = useMemo(() => 
+    parseFloat(MainQuantAmount.replace(/,/g, '')) || 0
+  , [MainQuantAmount]);
 
-  const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleAmountChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(',', '.');
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setAmount(value);
@@ -39,14 +42,14 @@ export default function SendQNTMPage() {
       const numValue = parseFloat(value) || 0;
       setInsufficientFunds(numValue > currentBalance);
     }
-  };
+  }, [currentBalance]);
 
-  const handleMaxAmount = () => {
+  const handleMaxAmount = useCallback(() => {
     setAmount(currentBalance.toString());
     setInsufficientFunds(false);
-  };
+  }, [currentBalance]);
 
-  const validateInput = () => {
+  const validateInput = useCallback(() => {
     if (!recipientQcId.trim()) {
       toast.error("Please enter recipient's QC ID");
       return false;
@@ -65,26 +68,15 @@ export default function SendQNTMPage() {
       return false;
     }
     return true;
-  };
+  }, [recipientQcId, telegramId, amount, currentBalance]);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     if (validateInput()) {
       setStep("confirm");
     }
-  };
+  }, [validateInput]);
 
-  const handleConfirmTransfer = async () => {
-    // Request biometric/PIN authentication
-    const authenticated = await requestAuth();
-    
-    if (authenticated) {
-      await executeTransfer();
-    } else {
-      toast.error("Authentication required to transfer QNTM");
-    }
-  };
-
-  const executeTransfer = async () => {
+  const executeTransfer = useCallback(async () => {
     setIsTransferring(true);
     setStep("processing");
 
@@ -93,7 +85,6 @@ export default function SendQNTMPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          senderTelegramId: telegramId,
           recipientQcId: recipientQcId.trim(),
           amount: parseFloat(amount),
         }),
@@ -123,7 +114,26 @@ export default function SendQNTMPage() {
     } finally {
       setIsTransferring(false);
     }
-  };
+  }, [recipientQcId, amount, SetMainQuantAmount]);
+
+  const handleConfirmTransfer = useCallback(async () => {
+    // Request biometric/PIN authentication
+    const authenticated = await requestAuth();
+    
+    if (authenticated) {
+      await executeTransfer();
+    } else {
+      toast.error("Authentication required to transfer QNTM");
+    }
+  }, [requestAuth, executeTransfer]);
+
+  const handleCopyQcId = useCallback(() => {
+    if (telegramId) {
+      navigator.clipboard.writeText(telegramId);
+      setQcIdCopied(true);
+      setTimeout(() => setQcIdCopied(false), 2000);
+    }
+  }, [telegramId]);
 
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6">
@@ -182,16 +192,13 @@ export default function SendQNTMPage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-gray-400">Your QC ID (share to receive QNTM)</span>
                   <button
-                    onClick={() => {
-                      if (telegramId) {
-                        navigator.clipboard.writeText(telegramId);
-                        toast.success("Copy successful");
-                      }
-                    }}
-                    className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                    onClick={handleCopyQcId}
+                    className={`flex items-center gap-1 text-xs transition-colors ${
+                      qcIdCopied ? 'text-green-400' : 'text-orange-400 hover:text-orange-300'
+                    }`}
                   >
-                    <Copy className="w-3 h-3" />
-                    Copy
+                    {qcIdCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {qcIdCopied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
                 <p className="text-sm text-white font-mono break-all select-all">{telegramId || "Loading..."}</p>
