@@ -4,7 +4,7 @@ import { useState, ChangeEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Check, User, Info, ArrowRight } from "lucide-react";
+import { Check, User, Info, ArrowRight, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -174,7 +174,27 @@ export default function SendQNTMPage() {
                   />
                   <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 </div>
-                <p className="text-xs text-gray-500 ml-1">Ask the recipient for their QC ID from their profile</p>
+                <p className="text-xs text-gray-500 ml-1">Ask the recipient to share their QC ID from the Frens section</p>
+              </div>
+
+              {/* Your QC ID - for sharing */}
+              <div className="bg-[#111] rounded-xl p-4 border border-[#222]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-400">Your QC ID (share to receive QNTM)</span>
+                  <button
+                    onClick={() => {
+                      if (telegramId) {
+                        navigator.clipboard.writeText(telegramId);
+                        toast.success("QC ID copied!");
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
+                </div>
+                <p className="text-sm text-white font-mono break-all select-all">{telegramId || "Loading..."}</p>
               </div>
 
               {/* Amount */}

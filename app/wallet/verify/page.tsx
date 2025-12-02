@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 
@@ -82,65 +81,65 @@ export default function VerifyPhrasePage() {
     <div className="min-h-screen bg-black text-white p-4 pt-6">
       <div className="max-w-lg mx-auto">
         <motion.div 
-          initial={{ scale: 0.95, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
         >
-          <Card className="bg-[#111] border-[#333] text-white shadow-2xl overflow-hidden">
-            <CardHeader className="pb-4 text-center border-b border-[#222] bg-[#151515]">
-              <div className="mx-auto w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mb-3 ring-1 ring-green-500/20">
-                <Check className="w-6 h-6 text-green-400" />
-              </div>
-              <CardTitle className="text-xl font-bold">Verify Your Phrase</CardTitle>
-              <CardDescription className="text-gray-400 max-w-xs mx-auto mt-2 text-sm">
-                Enter the correct words from your recovery phrase to verify you saved it.
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-6 pt-6">
-              <div className="space-y-4">
-                {verificationWords.map((item, i) => (
-                  <div key={item.index} className="space-y-2">
-                    <label className="text-sm text-gray-400">
-                      Word #{item.index + 1}
-                    </label>
-                    <input
-                      type="text"
-                      value={userInputs[i]}
-                      onChange={(e) => {
-                        const newInputs = [...userInputs];
-                        newInputs[i] = e.target.value;
-                        setUserInputs(newInputs);
-                      }}
-                      placeholder={`Enter word #${item.index + 1}`}
-                      className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-mono"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                    />
-                  </div>
-                ))}
-              </div>
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <div className="mx-auto w-14 h-14 bg-green-500/10 rounded-full flex items-center justify-center ring-1 ring-green-500/20">
+              <Check className="w-7 h-7 text-green-400" />
+            </div>
+            <h1 className="text-2xl font-bold">Verify Your Phrase</h1>
+            <p className="text-gray-400 text-sm max-w-xs mx-auto">
+              Enter the correct words from your recovery phrase to verify you saved it.
+            </p>
+          </div>
 
-              <div className="flex flex-col gap-3 pb-20">
-                <Button
-                  onClick={handleGoBack}
-                  variant="outline"
-                  className="w-full bg-[#1a1a1a] border-[#333] text-gray-300 hover:text-white hover:bg-[#222] h-11 transition-colors"
-                >
-                  Go Back
-                </Button>
-
-                <Button
-                  onClick={verifyAndSaveWallet}
-                  disabled={userInputs.some(input => !input.trim())}
-                  className="w-full bg-white text-black hover:bg-gray-200 h-11 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Verify & Create Wallet
-                </Button>
+          {/* Verification Inputs */}
+          <div className="space-y-4">
+            {verificationWords.map((item, i) => (
+              <div key={item.index} className="space-y-2">
+                <label className="text-sm text-gray-400 ml-1">
+                  Word #{item.index + 1}
+                </label>
+                <input
+                  type="text"
+                  value={userInputs[i]}
+                  onChange={(e) => {
+                    const newInputs = [...userInputs];
+                    newInputs[i] = e.target.value;
+                    setUserInputs(newInputs);
+                  }}
+                  placeholder={`Enter word #${item.index + 1}`}
+                  className="w-full bg-[#0a0a0a] border border-[#222] rounded-xl px-4 py-3.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-mono transition-colors"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-3 pb-24">
+            <Button
+              onClick={handleGoBack}
+              variant="outline"
+              className="w-full bg-[#111] border-[#222] text-gray-300 hover:text-white hover:bg-[#1a1a1a] h-12 transition-colors"
+            >
+              Go Back
+            </Button>
+
+            <Button
+              onClick={verifyAndSaveWallet}
+              disabled={userInputs.some(input => !input.trim())}
+              className="w-full bg-white text-black hover:bg-gray-200 h-12 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Verify & Create Wallet
+            </Button>
+          </div>
         </motion.div>
       </div>
     </div>
