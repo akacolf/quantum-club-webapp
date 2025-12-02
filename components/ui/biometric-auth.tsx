@@ -50,24 +50,7 @@ export function BiometricAuth({
   const [hasBiometric, setHasBiometric] = useState(false);
   const [hasStoredPin, setHasStoredPin] = useState(false);
   const {telegramId} = useGameContext();
-  // Check available authentication methods on mount
-  useEffect(() => {
-    if (isOpen) {
-      // Check for biometric availability
-      isPlatformAuthenticatorAvailable().then(setHasBiometric);
-      
-      // Check if PIN is set up
-      const storedPinHash = localStorage.getItem("quantum_wallet_pin_hash");
-      setHasStoredPin(!!storedPinHash);
-      
-      // Reset state
-      setAuthMethod("selecting");
-      setPin("");
-      setPinError("");
-    }
-  }, [isOpen]);
-
-  // Simple hash function for PIN (in production, use a proper crypto library)
+   // Simple hash function for PIN (in production, use a proper crypto library)
   const hashPin = useCallback((pinValue: string): string => {
     let hash = 0;
     for (let i = 0; i < pinValue.length; i++) {
@@ -78,6 +61,42 @@ export function BiometricAuth({
     return hash.toString(36);
   }, []);
 
+  const getPin = useCallback(async() => {
+    if (!telegramId) {
+      return null;
+    }
+    const pinRef = doc(dbfs,"wallet",telegramId);
+    const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
+    if (!storedHash) {
+      const getPin = (await getDoc(pinRef)).data()?.pinHash;
+      if (getPin) {
+        localStorage.setItem("quantum_wallet_pin_hash", hashPin(pin));
+        return getPin;
+      }
+    }else{
+      return storedHash;
+    }
+  }, [telegramId, hashPin, pin]);
+  // Check available authentication methods on mount
+  useEffect(() => {
+    if (isOpen) {
+      // Check for biometric availability
+      isPlatformAuthenticatorAvailable().then(setHasBiometric);
+      
+      // Check if PIN is set up
+      if(!telegramId){
+        return;
+      }
+      const dataPin = getPin();
+      console.error(JSON.stringify(dataPin))
+      setHasStoredPin(!!dataPin);
+      setAuthMethod("selecting");
+      setPin("");
+      setPinError("");
+  }
+  }, [isOpen]);
+  
+ 
   // Verify PIN
   const verifyPin = useCallback(async() => {
     if (pin.length < 4) {
@@ -89,7 +108,8 @@ export function BiometricAuth({
     }
     const pinRef = doc(dbfs,"wallet",telegramId);
     const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
-    console.error(storedHash)
+    console.error("storedHash",storedHash);
+    console.error("hashPin(pin)",hashPin(pin));
     if (!storedHash) {
       const getPin = (await getDoc(pinRef)).data()?.pinHash;
       if (getPin) {
