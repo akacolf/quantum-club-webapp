@@ -71,6 +71,7 @@ export default function SendPage() {
   const [serviceFee, setServiceFee] = useState("0");
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [insufficientFunds, setInsufficientFunds] = useState(false);
 
   // Redirect if no wallet
   useEffect(() => {
@@ -122,12 +123,18 @@ export default function SendPage() {
     const value = e.target.value.replace(',', '.');
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setAmount(value);
+      // Check if exceeds balance
+      if (selectedAsset) {
+        const numValue = parseFloat(value) || 0;
+        setInsufficientFunds(numValue > parseFloat(selectedAsset.balance));
+      }
     }
   };
 
   const handleMaxAmount = () => {
     if (selectedAsset) {
       setAmount(selectedAsset.balance);
+      setInsufficientFunds(false);
     }
   };
 
@@ -148,6 +155,7 @@ export default function SendPage() {
     }
     if (selectedAsset && parseFloat(amount) > parseFloat(selectedAsset.balance)) {
       toast.error("Insufficient balance");
+      setInsufficientFunds(true);
       return false;
     }
     return true;
@@ -501,7 +509,9 @@ export default function SendPage() {
                     value={amount}
                     onChange={handleAmountChange}
                     placeholder="0.00"
-                    className="bg-[#111] border-[#222] h-14 pl-4 pr-20 text-2xl font-bold text-white placeholder:text-gray-700 rounded-xl focus:border-blue-500/50 transition-all"
+                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-20 text-2xl font-bold text-white placeholder:text-gray-700 rounded-xl transition-all ${
+                      insufficientFunds ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500/50'
+                    }`}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-right">
                     <div className="text-sm font-bold text-white">{selectedAsset?.symbol}</div>
@@ -512,11 +522,17 @@ export default function SendPage() {
                     )}
                   </div>
                 </div>
+                {insufficientFunds && (
+                  <p className="text-xs text-red-500 ml-1 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    Insufficient funds. You have {selectedAsset?.balance} {selectedAsset?.symbol} available.
+                  </p>
+                )}
               </div>
 
               <Button
                 onClick={handleContinue}
-                disabled={!recipient || !amount || parseFloat(amount) <= 0 || isEstimating}
+                disabled={!recipient || !amount || parseFloat(amount) <= 0 || isEstimating || insufficientFunds}
                 className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-xl font-bold text-lg mt-8"
               >
                 {isEstimating ? (
