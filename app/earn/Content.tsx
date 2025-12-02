@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/client";
 import {
   updateDoc,
   doc,

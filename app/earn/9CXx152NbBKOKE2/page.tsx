@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameContext } from '@/app/(contexts)/MiningContext';
-import { dbfs } from '@/app/(firebase)/firebaseConfig';
+import { dbfs } from '@/app/(firebase)/client';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useTelegramBackButton } from '@/app/(hooks)/useBackButton';

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/client";
 import { useTelegramBackButton } from "../(hooks)/useBackButton";
 import LeaderboardHeader from "./(components)/Header";
 import LeaderboardStats from "./(components)/Stats";

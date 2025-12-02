@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/client";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 import CopyToaster from "./(components)/CopyToaster";
 import { useRouter } from "next/navigation";

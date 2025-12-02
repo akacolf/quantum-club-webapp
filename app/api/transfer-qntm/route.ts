@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!senderTelegramId || !recipientQcId || !amount) {
       return NextResponse.json(
-        { error: 'senderTelegramId, recipientQcId, and amount are required' },
+        { error: 'Invalid ID or amount' },
         { status: 400 }
       );
     }

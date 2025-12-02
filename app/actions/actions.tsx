@@ -1,5 +1,5 @@
 import { signInWithCustomToken, User } from "firebase/auth";
-import { auth } from "../(firebase)/firebaseConfig";
+import { auth } from "../(firebase)/client";
 
  export async function encryptData(telegramId: string): Promise<string> {
     const response = await fetch("/api/encryptID", {

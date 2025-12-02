@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/client";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
 import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";

@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from "react";
-import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/client";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { TaskHistory } from "@/lib/interfaces";
 import { getDocs, collection } from "firebase/firestore";

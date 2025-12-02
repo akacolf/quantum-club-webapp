@@ -1,6 +1,6 @@
 "use client";
 
-import { dbfs } from "@/app/(firebase)/firebaseConfig";
+import { dbfs } from "@/app/(firebase)/client";
 import {
   doc,
   getDoc,
