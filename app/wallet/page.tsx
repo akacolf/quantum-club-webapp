@@ -16,6 +16,7 @@ import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
+import { DeletePin } from "@/components/ui/biometric-auth";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -31,6 +32,8 @@ export default function WalletPage() {
     hasFetched,
     fetchWalletAssets 
   } = useWallet();
+  const { telegramId } = useGameContext();
+
   const [hasWallet, setHasWallet] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +91,13 @@ export default function WalletPage() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
+  const walletExit = () => { 
+    localStorage.removeItem("quantum_wallet_address");
+    localStorage.removeItem("quantum_wallet_mnemonic");
+    setHasWallet(false);
+    setContextWalletAddress("");
+    DeletePin(telegramId||"");
+  }
   if (isChecking) {
     return <Loader />;
   }
@@ -194,12 +203,7 @@ export default function WalletPage() {
             <Button 
               variant="ghost"
               size="icon"
-              onClick={() => {
-                localStorage.removeItem("quantum_wallet_address");
-                localStorage.removeItem("quantum_wallet_mnemonic");
-                setHasWallet(false);
-                setContextWalletAddress("");
-              }}
+              onClick={() => walletExit()}
               className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>

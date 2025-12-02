@@ -49,3 +49,4 @@ import { auth } from "../(firebase)/client";
       throw error;
     }
   }
+  
