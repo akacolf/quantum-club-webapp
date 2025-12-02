@@ -185,7 +185,7 @@ export default function SendQNTMPage() {
                     onClick={() => {
                       if (telegramId) {
                         navigator.clipboard.writeText(telegramId);
-                        toast.success("QC ID copied!");
+                        toast.success("Copy successful");
                       }
                     }}
                     className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors"

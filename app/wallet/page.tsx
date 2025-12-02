@@ -118,7 +118,7 @@ export default function WalletPage() {
           <div className="space-y-3">
             <h3 className="text-2xl font-bold text-white">QC Wallet</h3>
             <p className="text-gray-400 text-sm max-w-[280px] mx-auto leading-relaxed">
-              The official TON wallet of Quantum Club. Secure, fast, and built for the future.
+              The official wallet of Quantum Club. Secure, fast, and built for the future.
             </p>
           </div>
           

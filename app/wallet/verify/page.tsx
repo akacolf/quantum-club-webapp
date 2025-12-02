@@ -123,7 +123,7 @@ export default function VerifyPhrasePage() {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col gap-3 pb-24">
+          <div className="flex flex-col gap-3">
             <Button
               onClick={handleGoBack}
               variant="outline"
