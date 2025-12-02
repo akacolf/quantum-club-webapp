@@ -88,7 +88,6 @@ export function BiometricAuth({
         return;
       }
       const dataPin = getPin();
-      console.error(JSON.stringify(dataPin))
       setHasStoredPin(!!dataPin);
       setAuthMethod("selecting");
       setPin("");
@@ -108,8 +107,6 @@ export function BiometricAuth({
     }
     const pinRef = doc(dbfs,"wallet",telegramId);
     const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
-    console.error("storedHash",storedHash);
-    console.error("hashPin(pin)",hashPin(pin));
     if (!storedHash) {
       const getPin = (await getDoc(pinRef)).data()?.pinHash;
       if (getPin) {
