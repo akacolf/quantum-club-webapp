@@ -72,6 +72,7 @@ export default function SendPage() {
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
+  const [needMinimum, setNeedMinimum] = useState(false);
 
   // Redirect if no wallet
   useEffect(() => {
@@ -126,6 +127,11 @@ export default function SendPage() {
       // Check if exceeds balance
       if (selectedAsset) {
         const numValue = parseFloat(value) || 0;
+        if(numValue < 0.005) {
+          setNeedMinimum(true);
+        }else{
+          setNeedMinimum(false);
+        }
         setInsufficientFunds(numValue > parseFloat(selectedAsset.balance));
       }
     }
@@ -158,6 +164,11 @@ export default function SendPage() {
     if (selectedAsset && parseFloat(amount) > parseFloat(selectedAsset.balance)) {
       toast.error("Insufficient balance");
       setInsufficientFunds(true);
+      return false;
+    }
+    if (parseFloat(amount) < 0.005) {
+      toast.error("You need 0.005 or more to cover network and service fees");
+      setNeedMinimum(true);
       return false;
     }
     return true;
@@ -529,12 +540,17 @@ export default function SendPage() {
                     )}
                   </div>
                 </div>
-                {insufficientFunds && (
+                {insufficientFunds ? (
                   <p className="text-xs text-red-500 ml-1 flex items-center gap-1">
                     <Info className="w-3 h-3" />
                     Insufficient funds. You have {selectedAsset?.balance} {selectedAsset?.symbol} available.
                   </p>
-                )}
+                ): needMinimum ? (
+                  <p className="text-xs text-yellow-400 ml-1 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    You need to send at least 0.005 {selectedAsset?.symbol} to cover network and service fees.
+                  </p>
+                ) : null}
               </div>
 
               <Button
