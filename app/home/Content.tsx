@@ -900,7 +900,7 @@ const HomeContent = () => {
         }
       }
       
-      toast.success("Refreshed!", { duration: 1500 });
+      // No toast on success - visual animation is enough
     } catch (error) {
       console.error("Refresh error:", error);
       toast.error("Failed to refresh");

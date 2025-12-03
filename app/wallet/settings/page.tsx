@@ -6,37 +6,29 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { 
   Settings, 
-  Key, 
   HelpCircle, 
   ChevronRight, 
   Trash2,
   AlertTriangle,
-  Lock,
   FileText,
+  Shield,
   ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Accordion, 
+  AccordionContent, 
+  AccordionItem, 
+  AccordionTrigger 
+} from "@/components/ui/accordion";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 export default function WalletSettingsPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-  const { telegramId } = useGameContext();
   
-  const [showResetPinConfirm, setShowResetPinConfirm] = useState(false);
   const [showDeleteWalletConfirm, setShowDeleteWalletConfirm] = useState(false);
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
-
-  const handleResetPin = useCallback(() => {
-    if (telegramId) {
-      localStorage.removeItem("quantum_wallet_pin_hash");
-      localStorage.removeItem("quantum_wallet_credential_id");
-      toast.success("PIN reset. You'll set a new PIN on next transaction.");
-      setShowResetPinConfirm(false);
-    }
-  }, [telegramId]);
 
   const handleDeleteWallet = useCallback(() => {
     localStorage.removeItem("quantum_wallet_address");
@@ -53,6 +45,10 @@ export default function WalletSettingsPage() {
       answer: "A recovery phrase (also called seed phrase) is a 24-word sequence that can be used to restore your wallet on any device. It's the only way to recover your wallet if you lose access, so store it securely offline."
     },
     {
+      question: "How do I reset my PIN?",
+      answer: "To reset your PIN, go to Wallet Settings > Remove Wallet. Then re-import your wallet using your 24-word recovery phrase. During the import process, you'll be prompted to set up a new PIN. Make sure you have your recovery phrase backed up before removing your wallet."
+    },
+    {
       question: "What is QNTM?",
       answer: "QNTM is the native points/token of Quantum Club. You can earn QNTM through mining, referrals, and completing tasks. QNTM can be transferred to other Quantum Club users instantly and for free."
     },
@@ -66,7 +62,7 @@ export default function WalletSettingsPage() {
     },
     {
       question: "How do I backup my wallet?",
-      answer: "Go to your wallet page and tap 'Backup Wallet' to view your 24-word recovery phrase. Write it down on paper and store it in a safe place. Never share it with anyone or store it digitally."
+      answer: "Go to Wallet Settings > Backup Recovery Phrase to view your 24-word seed phrase. Write it down on paper and store it in a safe place. Never share it with anyone or store it digitally."
     },
     {
       question: "Is my wallet secure?",
@@ -116,20 +112,45 @@ export default function WalletSettingsPage() {
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
                 </button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Legal Section */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider ml-1">Legal</h2>
+            
+            <Card className="bg-[#111] border-[#222] overflow-hidden">
+              <CardContent className="p-0">
+                <button
+                  onClick={() => router.push("/wallet/settings/terms")}
+                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-white">Terms of Service</p>
+                      <p className="text-xs text-gray-500">Read our terms and conditions</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                </button>
                 
                 <div className="border-t border-[#222]" />
                 
                 <button
-                  onClick={() => setShowResetPinConfirm(true)}
+                  onClick={() => router.push("/wallet/settings/privacy")}
                   className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">
-                      <Key className="w-5 h-5 text-orange-400" />
+                    <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-purple-400" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-white">Reset PIN / Biometrics</p>
-                      <p className="text-xs text-gray-500">Set up new authentication</p>
+                      <p className="font-medium text-white">Privacy Policy</p>
+                      <p className="text-xs text-gray-500">How we handle your data</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -170,35 +191,22 @@ export default function WalletSettingsPage() {
               Frequently Asked Questions
             </h2>
             
-            <div className="space-y-2">
+            <Accordion type="single" collapsible className="space-y-2">
               {faqItems.map((item, index) => (
-                <Card 
-                  key={index}
-                  className="bg-[#111] border-[#222] overflow-hidden cursor-pointer"
-                  onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+                <AccordionItem 
+                  key={index} 
+                  value={`item-${index}`}
+                  className="bg-[#111] border border-[#222] rounded-xl overflow-hidden px-4"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium text-white text-sm">{item.question}</p>
-                      <ChevronRight 
-                        className={`w-5 h-5 text-gray-500 shrink-0 transition-transform ${
-                          expandedFaq === index ? 'rotate-90' : ''
-                        }`}
-                      />
-                    </div>
-                    {expandedFaq === index && (
-                      <motion.p 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="text-xs text-gray-400 mt-3 leading-relaxed"
-                      >
-                        {item.answer}
-                      </motion.p>
-                    )}
-                  </CardContent>
-                </Card>
+                  <AccordionTrigger className="text-sm font-medium text-white hover:no-underline py-4">
+                    {item.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-xs text-gray-400 leading-relaxed pb-4">
+                    {item.answer}
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           </div>
 
           {/* Links */}
@@ -214,49 +222,6 @@ export default function WalletSettingsPage() {
             </a>
           </div>
         </motion.div>
-
-        {/* Reset PIN Confirmation Modal */}
-        {showResetPinConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowResetPinConfirm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#111] border border-[#333] rounded-2xl p-6 max-w-sm w-full space-y-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
-                  <Lock className="w-6 h-6 text-orange-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white">Reset PIN?</h3>
-                  <p className="text-xs text-gray-400">You&apos;ll set a new PIN on next transaction</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowResetPinConfirm(false)}
-                  className="bg-[#1a1a1a] border-[#333] text-white hover:opacity-80"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleResetPin}
-                  className="bg-orange-500 text-white hover:opacity-90"
-                >
-                  Reset
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
 
         {/* Delete Wallet Confirmation Modal */}
         {showDeleteWalletConfirm && (

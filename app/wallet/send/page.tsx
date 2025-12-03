@@ -134,10 +134,19 @@ export default function SendPage() {
   const handleMaxAmount = () => {
     if (selectedAsset) {
       if (selectedAsset.type === "ton") {
-        // For TON, reserve some for gas fees (~0.01 TON for safety)
-        const reserveForFees = 0.01;
+        // For TON, reserve for gas fees + QC service fee
+        // Network fee estimate: ~0.007 TON for simple transfer
+        // We need to account for service fee (0.5% of amount sent)
+        const networkFeeEstimate = 0.01; // Conservative estimate
         const balance = parseFloat(selectedAsset.balance);
-        const maxSendable = Math.max(0, balance - reserveForFees);
+        
+        // Calculate: balance = amount + networkFee + serviceFee
+        // serviceFee = amount * 0.005
+        // balance = amount + networkFee + (amount * 0.005)
+        // balance = amount * 1.005 + networkFee
+        // amount = (balance - networkFee) / 1.005
+        const maxAmount = (balance - networkFeeEstimate) / (1 + QC_SERVICE_FEE_PERCENT / 100);
+        const maxSendable = Math.max(0, maxAmount);
         
         if (maxSendable <= 0) {
           toast.error("Insufficient funds to cover network fees");
@@ -145,10 +154,11 @@ export default function SendPage() {
           return;
         }
         
-        setAmount(maxSendable.toFixed(4));
+        // Round down to 4 decimal places
+        setAmount(Math.floor(maxSendable * 10000) / 10000 + "");
         setInsufficientFunds(false);
       } else {
-        // For jettons, user needs TON to pay for fees
+        // For jettons, show max jetton amount (user needs TON for fees separately)
         const tonBalanceNum = parseFloat(tonBalance);
         const minTonForFees = 0.06; // Jetton transfers need more gas
         
@@ -158,7 +168,12 @@ export default function SendPage() {
           return;
         }
         
-        setAmount(selectedAsset.balance);
+        // For jettons, max is the full balance (fees are paid in TON)
+        // But we also take 0.5% service fee in the jetton
+        const balance = parseFloat(selectedAsset.balance);
+        const maxAmount = balance / (1 + QC_SERVICE_FEE_PERCENT / 100);
+        
+        setAmount(Math.floor(maxAmount * 10000) / 10000 + "");
         setInsufficientFunds(false);
       }
     }
@@ -584,7 +599,7 @@ export default function SendPage() {
               <Card className="bg-[#111] border-[#222] overflow-hidden">
                 <CardContent className="p-6 space-y-6">
                   <div className="text-center space-y-1">
-                    <div className="text-sm text-gray-400">You are sending</div>
+                    <div className="text-sm text-gray-400">Sending</div>
                     <div className="text-3xl font-bold text-white">
                       {amount} <span className="text-blue-400">{selectedAsset?.symbol}</span>
                     </div>
@@ -614,10 +629,19 @@ export default function SendPage() {
                     </div>
 
                     <div className="flex justify-between items-center pt-2 border-t border-[#333]">
-                      <span className="text-sm text-gray-400 font-medium">Total Deducted</span>
+                      <span className="text-sm text-green-400 font-medium">Recipient receives</span>
+                      <span className="text-sm text-green-400 font-bold">
+                        {amount} {selectedAsset?.symbol}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400 font-medium">You pay</span>
                       <span className="text-sm text-white font-bold">
-                        {(parseFloat(amount) + parseFloat(serviceFee) + (selectedAsset?.type === "ton" ? parseFloat(estimatedFee) : 0)).toFixed(6)} {selectedAsset?.symbol}
-                        {selectedAsset?.type !== "ton" && ` + ${estimatedFee} TON`}
+                        {selectedAsset?.type === "ton" 
+                          ? `${(parseFloat(amount) + parseFloat(serviceFee) + parseFloat(estimatedFee)).toFixed(6)} TON`
+                          : `${(parseFloat(amount) + parseFloat(serviceFee)).toFixed(6)} ${selectedAsset?.symbol} + ${estimatedFee} TON`
+                        }
                       </span>
                     </div>
                   </div>
