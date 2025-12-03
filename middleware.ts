@@ -50,23 +50,23 @@ function isFromSanctionedLocation(request: NextRequest): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-  // Check for sanctioned countries on wallet routes
-  const isWalletRoute = request.nextUrl.pathname.startsWith("/wallet");
+  // Allow unsupported region page to be accessed without restrictions
+  if (request.nextUrl.pathname === "/unsupported-region") {
+    return NextResponse.next();
+  }
+
+  // Check for sanctioned countries on wallet routes and protected routes
+  const isProtectedRoute = request.nextUrl.pathname.startsWith("/wallet") ||
+                           request.nextUrl.pathname.startsWith("/home") ||
+                           request.nextUrl.pathname.startsWith("/frens") ||
+                           request.nextUrl.pathname.startsWith("/earn") ||
+                           request.nextUrl.pathname.startsWith("/story") ||
+                           request.nextUrl.pathname.startsWith("/leaderboard") ||
+                           request.nextUrl.pathname.startsWith("/ecosystem");
   
-  if (isWalletRoute && isFromSanctionedLocation(request)) {
-    // Return a blocked response for sanctioned regions
-    return new NextResponse(
-      JSON.stringify({
-        error: "Service not available",
-        message: "This service is not available in your region due to regulatory restrictions."
-      }),
-      {
-        status: 451, // Unavailable For Legal Reasons
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+  if (isProtectedRoute && isFromSanctionedLocation(request)) {
+    // Redirect to the unsupported region page
+    return NextResponse.redirect(new URL("/unsupported-region", request.url));
   }
 
   const session = await getSession();
@@ -87,5 +87,6 @@ export const config = {
     "/leaderboard/:path*",
     "/ecosystem/:path*",
     "/wallet/:path*",
+    "/unsupported-region",
   ],
 };

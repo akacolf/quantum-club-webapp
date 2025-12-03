@@ -133,49 +133,10 @@ export default function SendPage() {
 
   const handleMaxAmount = () => {
     if (selectedAsset) {
-      if (selectedAsset.type === "ton") {
-        // For TON, reserve for gas fees + QC service fee
-        // Network fee estimate: ~0.007 TON for simple transfer
-        // We need to account for service fee (0.5% of amount sent)
-        const networkFeeEstimate = 0.01; // Conservative estimate
-        const balance = parseFloat(selectedAsset.balance);
-        
-        // Calculate: balance = amount + networkFee + serviceFee
-        // serviceFee = amount * 0.005
-        // balance = amount + networkFee + (amount * 0.005)
-        // balance = amount * 1.005 + networkFee
-        // amount = (balance - networkFee) / 1.005
-        const maxAmount = (balance - networkFeeEstimate) / (1 + QC_SERVICE_FEE_PERCENT / 100);
-        const maxSendable = Math.max(0, maxAmount);
-        
-        if (maxSendable <= 0) {
-          toast.error("Insufficient funds to cover network fees");
-          setInsufficientFunds(true);
-          return;
-        }
-        
-        // Round down to 4 decimal places
-        setAmount(Math.floor(maxSendable * 10000) / 10000 + "");
-        setInsufficientFunds(false);
-      } else {
-        // For jettons, show max jetton amount (user needs TON for fees separately)
-        const tonBalanceNum = parseFloat(tonBalance);
-        const minTonForFees = 0.06; // Jetton transfers need more gas
-        
-        if (tonBalanceNum < minTonForFees) {
-          toast.error(`Insufficient TON for fees. You need at least ${minTonForFees} TON`);
-          setInsufficientFunds(true);
-          return;
-        }
-        
-        // For jettons, max is the full balance (fees are paid in TON)
-        // But we also take 0.5% service fee in the jetton
-        const balance = parseFloat(selectedAsset.balance);
-        const maxAmount = balance / (1 + QC_SERVICE_FEE_PERCENT / 100);
-        
-        setAmount(Math.floor(maxAmount * 10000) / 10000 + "");
-        setInsufficientFunds(false);
-      }
+      // Simply set the full balance as the amount
+      // Fees will be shown and deducted on the confirmation screen
+      setAmount(selectedAsset.balance);
+      setInsufficientFunds(false);
     }
   };
 
@@ -220,53 +181,17 @@ export default function SendPage() {
       
       let networkFee: number;
       
-      try {
-        // Try to get real-time gas prices from TON API
-        const configResponse = await fetch(`https://tonapi.io/v2/blockchain/config`);
-        if (configResponse.ok) {
-          const configData = await configResponse.json();
-          
-          // Gas prices are in param 20 (workchain gas prices)
-          // Format: gas_price is in nanoTON per 65536 gas units
-          const gasPrice = configData?.["20"]?.gas_price || 65536000; // Default: 65536000 nanoTON/65536 gas = 1000 nanoTON/gas
-          const flatGasPrice = configData?.["20"]?.flat_gas_price || 10000000; // 0.01 TON flat
-          
-          // Calculate gas cost based on transaction type
-          if (selectedAsset?.type === "ton") {
-            // Simple TON transfer: ~3500 gas + flat fee + forward fee
-            const computeGas = 3500;
-            const computeFee = (computeGas * gasPrice) / 65536; // nanoTON
-            const forwardFee = 1000000; // ~0.001 TON for simple message
-            const totalFeeNano = flatGasPrice + computeFee + forwardFee;
-            networkFee = totalFeeNano / 1e9; // Convert to TON
-            
-            // Add small margin for 2 messages (recipient + QC service fee)
-            networkFee = networkFee * 1.2;
-          } else {
-            // Jetton transfer: ~20000 gas + multiple forwards
-            const computeGas = 20000;
-            const computeFee = (computeGas * gasPrice) / 65536; // nanoTON
-            const forwardFees = 30000000; // ~0.03 TON for jetton transfer messages
-            const totalFeeNano = flatGasPrice + computeFee + forwardFees;
-            networkFee = totalFeeNano / 1e9; // Convert to TON
-            
-            // Small safety margin for jetton transfers
-            networkFee = networkFee * 1.1;
-          }
-        } else {
-          throw new Error("Failed to fetch gas prices");
-        }
-      } catch {
-        // Fallback to conservative estimates if API fails
-        // Based on typical observed fees on TON mainnet
-        networkFee = selectedAsset?.type === "ton" 
-          ? 0.007 // Simple TON transfer ~0.005-0.008 TON
-          : 0.06; // Jetton transfer ~0.04-0.07 TON
+      // Simple, straightforward network fee estimation
+      // Based on typical observed fees on TON mainnet:
+      // - Simple TON transfers: 0.003-0.007 TON
+      // - Jetton transfers: 0.04-0.07 TON
+      if (selectedAsset?.type === "ton") {
+        // Use average fee for TON transfers
+        networkFee = 0.005;
+      } else {
+        // Use average fee for Jetton transfers  
+        networkFee = 0.05;
       }
-      
-      // Ensure minimum fee to cover edge cases
-      const minFee = selectedAsset?.type === "ton" ? 0.003 : 0.03;
-      networkFee = Math.max(networkFee, minFee);
       
       setEstimatedFee(networkFee.toFixed(6));
 
@@ -344,9 +269,23 @@ export default function SendPage() {
       const QC_TREASURY_ADDRESS = Address.parse("UQCqX396Kv4xyiLF1g6I5hKWEh4VdXP_mtVT3M0WDvNhbfcC");
 
       if (selectedAsset?.type === "ton") {
-        // Calculate amounts: recipient gets amount, QC gets service fee
-        const recipientAmount = parseFloat(amount);
+        // Calculate amounts:
+        // User sends: amount (total from balance)
+        // Service fee: goes to QC treasury
+        // Network fee: deducted by network automatically
+        // Recipient gets: amount - serviceFee - networkFee
+        const totalAmount = parseFloat(amount);
         const qcFeeAmount = parseFloat(serviceFee);
+        const networkFeeAmount = parseFloat(estimatedFee);
+        const recipientAmount = totalAmount - qcFeeAmount - networkFeeAmount;
+        
+        if (recipientAmount <= 0) {
+          toast.error("Amount too small to cover fees");
+          setStep("input");
+          setIsSending(false);
+          return;
+        }
+        
         const messages = [
           internal({
             to: toAddress,
@@ -375,8 +314,19 @@ export default function SendPage() {
           messages,
         });
       } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
-        // For jettons, send the amount to recipient (service fee would need separate handling)
-        const jettonAmount = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, selectedAsset.decimals)));
+        // For jettons: recipient receives amount - serviceFee (network fee is in TON)
+        const totalAmount = parseFloat(amount);
+        const qcFeeAmount = parseFloat(serviceFee);
+        const recipientAmount = totalAmount - qcFeeAmount;
+        
+        if (recipientAmount <= 0) {
+          toast.error("Amount too small to cover fees");
+          setStep("input");
+          setIsSending(false);
+          return;
+        }
+        
+        const jettonAmount = BigInt(Math.floor(recipientAmount * Math.pow(10, selectedAsset.decimals)));
         const jettonWallet = Address.parse(selectedAsset.walletAddress);
         
         const body = beginCell()
@@ -629,18 +579,21 @@ export default function SendPage() {
                     </div>
 
                     <div className="flex justify-between items-center pt-2 border-t border-[#333]">
-                      <span className="text-sm text-green-400 font-medium">Recipient receives</span>
-                      <span className="text-sm text-green-400 font-bold">
-                        {amount} {selectedAsset?.symbol}
+                      <span className="text-sm text-gray-400 font-medium">Total Fees</span>
+                      <span className="text-sm text-orange-400 font-bold">
+                        {selectedAsset?.type === "ton" 
+                          ? `${(parseFloat(serviceFee) + parseFloat(estimatedFee)).toFixed(6)} TON`
+                          : `${parseFloat(serviceFee).toFixed(6)} ${selectedAsset?.symbol} + ${estimatedFee} TON`
+                        }
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400 font-medium">You pay</span>
-                      <span className="text-sm text-white font-bold">
-                        {selectedAsset?.type === "ton" 
-                          ? `${(parseFloat(amount) + parseFloat(serviceFee) + parseFloat(estimatedFee)).toFixed(6)} TON`
-                          : `${(parseFloat(amount) + parseFloat(serviceFee)).toFixed(6)} ${selectedAsset?.symbol} + ${estimatedFee} TON`
+                      <span className="text-sm text-green-400 font-medium">Recipient receives</span>
+                      <span className="text-sm text-green-400 font-bold">
+                        {selectedAsset?.type === "ton"
+                          ? `${(parseFloat(amount) - parseFloat(serviceFee) - parseFloat(estimatedFee)).toFixed(6)} TON`
+                          : `${(parseFloat(amount) - parseFloat(serviceFee)).toFixed(6)} ${selectedAsset?.symbol}`
                         }
                       </span>
                     </div>
