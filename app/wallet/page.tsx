@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Settings } from "lucide-react";
+import { Settings, RefreshCw } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +17,6 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
-import PullToRefresh from "@/app/home/(components)/PullToRefresh";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -39,6 +38,7 @@ export default function WalletPage() {
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     // Check if wallet exists in local storage
@@ -126,7 +126,10 @@ export default function WalletPage() {
             </svg>
           </div>
           <div className="space-y-3">
-            <h3 className="text-2xl font-bold text-white">QC Wallet</h3>
+            <div className="flex items-center justify-center gap-2">
+              <h3 className="text-2xl font-bold text-white">QC Wallet</h3>
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">Beta</span>
+            </div>
             <p className="text-gray-400 text-sm max-w-[280px] mx-auto leading-relaxed">
               The official wallet of Quantum Club. Secure, fast, and built for the future.
             </p>
@@ -163,11 +166,16 @@ export default function WalletPage() {
 
   // Main wallet view
   const handleRefresh = async () => {
-    await fetchWalletAssets();
+    setIsRefreshing(true);
+    try {
+      await fetchWalletAssets();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
+    <div className="min-h-screen">
       <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
       {/* Header Card */}
       <motion.div 
@@ -197,9 +205,17 @@ export default function WalletPage() {
               )}
             </Button>
             </div>
-            <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">Beta</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 rounded-full disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
             <Button 
               variant="ghost"
               size="icon"
@@ -419,6 +435,6 @@ export default function WalletPage() {
         </div>
       </div>
     </div>
-    </PullToRefresh>
+    </div>
   );
 }

@@ -127,7 +127,7 @@ export default function SendPage() {
       // Check if exceeds balance
       if (selectedAsset) {
         const numValue = parseFloat(value) || 0;
-        if(numValue < 0.005) {
+        if(numValue < 0.01) {
           setNeedMinimum(true);
         }else{
           setNeedMinimum(false);
@@ -166,8 +166,8 @@ export default function SendPage() {
       setInsufficientFunds(true);
       return false;
     }
-    if (parseFloat(amount) < 0.005) {
-      toast.error("You need 0.005 or more to cover network and service fees");
+    if (parseFloat(amount) < 0.01) {
+      toast.error("Minimum send amount is 0.01 TON");
       setNeedMinimum(true);
       return false;
     }
@@ -191,6 +191,8 @@ export default function SendPage() {
       });
 
       const ta = new TonApiClient({ baseUrl: "https://tonapi.io" });
+      const adapter = new ContractAdapter(ta);
+      const contract = adapter.open(wallet);
       const toAddress = Address.parse(recipient.trim());
       const QC_TREASURY_ADDRESS = Address.parse("UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U");
       
@@ -201,89 +203,155 @@ export default function SendPage() {
       let networkFee: number;
 
       if (selectedAsset?.type === "ton") {
-        // Estimate fee using TON API emulation
         const totalAmount = parseFloat(amount);
-        const recipientAmount = totalAmount - qcFeeAmount - 0.01; // Reserve for fees
+        // Reserve 0.02 TON for fees initially (will be refined)
+        const estimatedReserve = 0.02;
+        const recipientAmount = totalAmount - qcFeeAmount - estimatedReserve;
         
         if (recipientAmount <= 0) {
           throw new Error("Amount too small");
         }
 
-        // Build messages for estimation
+        // Build actual messages for emulation
         const messages = [
-          {
-            address: toAddress.toString(),
-            amount: String(Math.floor(recipientAmount * 1e9)),
-            payload: ""
-          }
+          internal({
+            to: toAddress,
+            value: toNano(recipientAmount.toFixed(9)),
+            body: "",
+            bounce: false
+          }),
         ];
         
         if (qcFeeAmount > 0.000001) {
-          messages.push({
-            address: QC_TREASURY_ADDRESS.toString(),
-            amount: String(Math.floor(qcFeeAmount * 1e9)),
-            payload: "QC Service Fee"
-          });
+          messages.push(
+            internal({
+              to: QC_TREASURY_ADDRESS,
+              value: toNano(qcFeeAmount.toFixed(9)),
+              body: "QC Service Fee",
+              bounce: false
+            })
+          );
         }
 
-        // Use emulation API to get accurate fee estimate
+        // Get current seqno for accurate estimation
+        let seqno = 0;
+        try {
+          seqno = await contract.getSeqno();
+        } catch {
+          // New wallet, seqno is 0
+        }
+
+        // Create the actual transfer for emulation
+        const transfer = wallet.createTransfer({
+          seqno,
+          secretKey: keyPair.secretKey,
+          sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+          messages,
+        });
+
+        // Build external message for emulation
+        const externalMessage = beginCell()
+          .storeWritable((builder) => {
+            builder.storeUint(0b10, 2); // ext_in_msg_info
+            builder.storeUint(0, 2); // src -> addr_none
+            builder.storeAddress(wallet.address); // dest
+            builder.storeCoins(0); // import_fee
+          })
+          .storeBuilder(
+            beginCell()
+              .storeBit(false) // no state init
+              .storeBit(true) // body is a reference
+              .storeRef(transfer)
+          )
+          .endCell();
+
+        // Use TON API emulation to get accurate fee
         try {
           const emulateResponse = await fetch(
-            `https://tonapi.io/v2/wallet/emulate`,
+            `https://tonapi.io/v2/emulation/emulateMessageToTrace`,
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                boc: "", // Empty for estimation
-                params: [
-                  wallet.address.toString(),
-                  {
-                    messages: messages.map(m => ({
-                      address: m.address,
-                      amount: m.amount,
-                      payload: m.payload || ""
-                    }))
-                  }
-                ]
+                boc: externalMessage.toBoc().toString("base64"),
+                ignore_signature_check: true
               })
             }
           );
 
           if (emulateResponse.ok) {
             const emulateData = await emulateResponse.json();
-            // Extract fee from emulation result
-            const totalFee = emulateData.event?.extra || 0;
-            networkFee = Math.abs(totalFee) / 1e9;
-            // Add buffer for safety (10%)
-            networkFee = networkFee * 1.1;
+            // Extract total fee from the trace
+            // The "extra" field in transaction contains the fee info
+            const transactions = emulateData.transactions || [];
+            let totalFees = 0;
+            
+            for (const tx of transactions) {
+              // Each transaction has compute_phase and action_phase fees
+              const computeFee = tx.compute_phase?.gas_fees || 0;
+              const storageFee = tx.storage_phase?.storage_fees_collected || 0;
+              const actionFee = tx.action_phase?.total_action_fees || 0;
+              totalFees += computeFee + storageFee + actionFee;
+            }
+            
+            // Convert from nanoTON to TON
+            networkFee = totalFees / 1e9;
+            
+            // If emulation returned 0 or very small, use calculated fallback
+            if (networkFee < 0.001) {
+              // Calculate based on message count
+              // Base compute: ~5000 gas = ~0.002 TON
+              // Forward fee per message: ~0.001 TON
+              // Action fee: ~0.0005 TON per message
+              const messageCount = messages.length;
+              networkFee = 0.002 + (messageCount * 0.0015);
+            }
+            
+            // Add 15% buffer for network fluctuations
+            networkFee = networkFee * 1.15;
           } else {
             throw new Error("Emulation failed");
           }
-        } catch {
-          // Fallback: Calculate based on message count and complexity
-          // Base fee + per-message fee + complexity factor
-          const baseComputeFee = 0.002; // Base compute
-          const perMessageFee = 0.001; // Per outgoing message
+        } catch (emulationError) {
+          console.warn("Emulation failed, using calculated fee:", emulationError);
+          // Fallback: Calculate based on TON fee formula
+          // transaction_fee = storage_fees + compute_fees + action_fees + fwd_fees
+          //
+          // For a simple transfer:
+          // - Compute: ~5000 gas × 0.0000004 TON/gas = ~0.002 TON
+          // - Forward: lump_price (0.0004) + message fees (~0.0001) = ~0.0005 TON per message
+          // - Action: ~1/3 of forward fee = ~0.00017 TON per message
+          //
+          // For 2 messages (recipient + treasury):
+          // Total: 0.002 + (2 × 0.0005) + (2 × 0.00017) ≈ 0.0033 TON
           const messageCount = messages.length;
-          networkFee = baseComputeFee + (perMessageFee * messageCount);
+          const computeFee = 0.002;
+          const forwardFeePerMessage = 0.0006;
+          const actionFeePerMessage = 0.0002;
+          networkFee = computeFee + (messageCount * (forwardFeePerMessage + actionFeePerMessage));
+          // Add 20% buffer for safety
+          networkFee = networkFee * 1.2;
         }
         
-        // Ensure minimum fee
+        // Ensure minimum fee of 0.003 TON
         networkFee = Math.max(networkFee, 0.003);
-        // Cap maximum to prevent overcharging
-        networkFee = Math.min(networkFee, 0.02);
+        // Cap at reasonable maximum
+        networkFee = Math.min(networkFee, 0.025);
         
       } else {
         // Jetton transfer - more complex, higher fees
-        // Base: 0.05 TON for jetton operations
-        // This covers: wallet -> jetton wallet -> recipient jetton wallet + notifications
+        // Jetton transfers involve multiple contract calls:
+        // 1. User wallet -> Jetton wallet (compute + forward)
+        // 2. Jetton wallet -> Recipient jetton wallet (internal transfer)
+        // 3. Notification to recipient
+        // Total: typically 0.04-0.06 TON
         networkFee = 0.05;
         
-        // Add extra for complex jetton contracts
+        // Add extra for complex jetton contracts or unusual decimals
         if (selectedAsset?.decimals && selectedAsset.decimals < 6) {
-          networkFee += 0.01; // Extra for unusual decimal tokens
+          networkFee += 0.01;
         }
       }
       
@@ -292,7 +360,7 @@ export default function SendPage() {
     } catch (error) {
       console.error("Fee estimation failed", error);
       // Fallback to safe default estimates
-      const baseFee = selectedAsset?.type === "ton" ? 0.005 : 0.06;
+      const baseFee = selectedAsset?.type === "ton" ? 0.008 : 0.06;
       setEstimatedFee(baseFee.toFixed(6));
       const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
       setServiceFee(qcFee.toFixed(6));
@@ -610,7 +678,7 @@ export default function SendPage() {
                 ): needMinimum ? (
                   <p className="text-xs text-yellow-400 ml-1 flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                    Minimum 0.005 {selectedAsset?.symbol} required to cover network and service fees.
+                    Min 0.01 {selectedAsset?.symbol}
                   </p>
                 ) : null}
               </div>
