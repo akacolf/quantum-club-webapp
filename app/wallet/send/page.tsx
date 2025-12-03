@@ -166,30 +166,46 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      // Fetch current gas prices from the network for accurate estimation
-      // TON fee formula: total_fee = storage_fee + gas_fees + forward_fees
-      // Gas prices are in nanoTON per gas unit
-      
-      // For a typical simple TON transfer:
-      // - Compute gas: ~3000-5000 gas units
-      // - Forward fee: ~0.001-0.002 TON (internal message)
-      // - Storage fee: negligible for simple transfers
-      
-      // For Jetton transfers:
-      // - Compute gas: ~15000-25000 gas units (multiple contracts involved)
-      // - Forward fees: ~0.03-0.05 TON (multiple internal messages)
+      // TON Transaction Fee Components (from blockchain config):
+      // transaction_fee = storage_fees + in_fwd_fees + computation_fees + action_fees + out_fwd_fees
+      //
+      // Config Parameter #21 (Basechain Gas Prices):
+      // - gas_price: 26214400 nanoTON per 65536 gas = 0.0000004 TON per gas unit
+      // - flat_gas_limit: 100 gas
+      // - flat_gas_price: 40000 nanoTON (0.00004 TON)
+      //
+      // Config Parameter #25 (Message Prices):
+      // - lump_price: 400000 nanoTON (0.0004 TON) - base price per message
+      // - bit_price: 26214400 per 65536 bits
+      // - cell_price: 2621440000 per 65536 cells
+      // - first_frac: 21845 (action fee = ~1/3 of forward fee)
       
       let networkFee: number;
       
-      // Simple, straightforward network fee estimation
-      // Based on typical observed fees on TON mainnet:
-      // - Simple TON transfers: 0.003-0.007 TON
-      // - Jetton transfers: 0.04-0.07 TON
       if (selectedAsset?.type === "ton") {
-        // Use average fee for TON transfers
-        networkFee = 0.005;
+        // Simple TON transfer fee breakdown:
+        // 1. Storage fee: negligible (wallet contract already exists)
+        // 2. Compute fee: ~3000-5000 gas
+        //    - flat_gas_price = 0.00004 TON (for first 100 gas)
+        //    - remaining ~4900 gas × 0.0000004 = ~0.00196 TON
+        //    - Total compute: ~0.002 TON
+        // 3. Forward fee: lump_price + message size fee
+        //    - lump_price = 0.0004 TON
+        //    - Simple message (~256 bits, 1 cell) = ~0.0001 TON
+        //    - Total forward: ~0.0005 TON
+        // 4. Action fee: ~1/3 of forward fee = ~0.00017 TON
+        //
+        // Total: ~0.0027-0.004 TON for simple transfers
+        // We use 0.003 TON as the typical fee
+        networkFee = 0.003;
       } else {
-        // Use average fee for Jetton transfers  
+        // Jetton transfer fee breakdown (multiple contracts involved):
+        // 1. User wallet -> Jetton wallet: ~0.01 TON
+        // 2. Jetton wallet -> Recipient jetton wallet: ~0.02 TON  
+        // 3. Notification messages: ~0.01 TON
+        // Plus higher compute fees (~20000-30000 gas)
+        //
+        // Total: ~0.04-0.06 TON for jetton transfers
         networkFee = 0.05;
       }
       
@@ -266,7 +282,7 @@ export default function SendPage() {
       const toAddress = Address.parse(recipient.trim());
 
       // QC Treasury address for service fees (quantumclub.ton)
-      const QC_TREASURY_ADDRESS = Address.parse("UQCqX396Kv4xyiLF1g6I5hKWEh4VdXP_mtVT3M0WDvNhbfcC");
+      const QC_TREASURY_ADDRESS = Address.parse("UQDYjZx4ieDtPMMmCjUBzhBNkaxLpr4p58XyfBIGKkYtW_LB");
 
       if (selectedAsset?.type === "ton") {
         // Calculate amounts:

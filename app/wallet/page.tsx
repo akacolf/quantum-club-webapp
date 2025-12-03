@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { RefreshCw, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
+import PullToRefresh from "@/app/home/(components)/PullToRefresh";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -161,8 +162,13 @@ export default function WalletPage() {
   }
 
   // Main wallet view
+  const handleRefresh = async () => {
+    await fetchWalletAssets();
+  };
+
   return (
-    <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
+      <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
       {/* Header Card */}
       <motion.div 
         initial={{ y: 20, opacity: 0 }}
@@ -198,15 +204,6 @@ export default function WalletPage() {
               className="bg-[#222] text-gray-400 hover:bg-[#333] hover:text-white rounded-full"
             >
               <Settings className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="ghost"
-              size="icon"
-              onClick={() => fetchWalletAssets()}
-              disabled={isLoadingAssets}
-              className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-400 rounded-full"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoadingAssets ? 'animate-spin' : ''}`} />
             </Button>
             <Button 
               variant="ghost"
@@ -419,5 +416,6 @@ export default function WalletPage() {
         </div>
       </div>
     </div>
+    </PullToRefresh>
   );
 }

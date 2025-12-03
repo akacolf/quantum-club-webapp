@@ -120,22 +120,7 @@ const StoryContent = () => {
 
   return (
     <div className="fixed inset-0 bg-black text-white z-50 flex flex-col">
-      {/* Progress Bars */}
-      <div className="absolute top-20 left-0 right-0 z-20 flex gap-2 px-4">
-        {stories.map((story, index) => (
-          <div key={story.id} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-white transition-all duration-100 ease-linear"
-              style={{ 
-                width: index < currentStory ? '100%' : 
-                       index === currentStory ? `${progress}%` : '0%' 
-              }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Tap Zones */}
+      {/* Tap Zones - full screen */}
       <div className="absolute inset-0 z-10 flex">
         <div 
           className="w-1/3 h-full" 
@@ -165,37 +150,77 @@ const StoryContent = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-linear-to-b ${current.gradient}`}
+          className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b ${current.gradient}`}
         >
-            {/* Background Effects */}
-            <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 ${current.accent} rounded-full blur-[100px] opacity-20`} />
+          {/* Background Effects */}
+          <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 ${current.accent} rounded-full blur-[100px] opacity-20`} />
 
-            <div className="relative z-0 flex flex-col items-center space-y-8 p-8 text-center">
-                <div className={`w-32 h-32 flex items-center justify-center rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl`}>
-                    <Lottie 
-                        animationData={current.lottie} 
-                        loop={true} 
-                        autoplay={true}
-                        className="w-24 h-24"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <div className="flex items-center justify-center gap-2 text-gray-400 uppercase tracking-widest text-xs font-medium">
-                        {current.icon}
-                        {current.title}
-                    </div>
-                    <h1 className="text-5xl font-bold text-white tracking-tight">
-                        {current.value}
-                    </h1>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
-                        <TelegramSVG className="w-3 h-3" />
-                        {current.sub}
-                    </div>
-                </div>
+          {/* Inner content */}
+          <div className="relative z-0 flex flex-col items-center space-y-8 p-8 text-center">
+            <div className="w-32 h-32 flex items-center justify-center rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+              <Lottie 
+                animationData={current.lottie} 
+                loop={true} 
+                autoplay={true}
+                className="w-24 h-24"
+              />
             </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 text-gray-400 uppercase tracking-widest text-xs font-medium">
+                {current.icon}
+                {current.title}
+              </div>
+              <h1 className="text-5xl font-bold text-white tracking-tight">
+                {current.value}
+              </h1>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
+                <TelegramSVG className="w-3 h-3" />
+                {current.sub}
+              </div>
+            </div>
+          </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Progress Indicator - Circular dots at bottom */}
+      <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center items-center gap-3 safe-area-bottom">
+        {stories.map((story, index) => (
+          <div 
+            key={story.id} 
+            className="relative"
+          >
+            {/* Background circle */}
+            <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              index <= currentStory ? 'bg-white/30' : 'bg-white/10'
+            }`} />
+            
+            {/* Animated fill for current story */}
+            {index === currentStory && (
+              <svg 
+                className="absolute inset-0 w-3 h-3 -rotate-90"
+                viewBox="0 0 12 12"
+              >
+                <circle
+                  cx="6"
+                  cy="6"
+                  r="5"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeDasharray={`${(progress / 100) * 31.4} 31.4`}
+                  className="transition-all duration-100 ease-linear"
+                />
+              </svg>
+            )}
+            
+            {/* Completed indicator */}
+            {index < currentStory && (
+              <div className="absolute inset-0 w-3 h-3 rounded-full bg-white" />
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
