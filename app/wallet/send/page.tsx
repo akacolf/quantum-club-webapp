@@ -293,7 +293,7 @@ export default function SendPage() {
       const toAddress = Address.parse(recipient.trim());
 
       // QC Treasury address for service fees (quantumclub.ton)
-      const QC_TREASURY_ADDRESS = Address.parse("UQDYjZx4ieDtPMMmCjUBzhBNkaxLpr4p58XyfBIGKkYtW_LB");
+      const QC_TREASURY_ADDRESS = Address.parse("UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U");
 
       if (selectedAsset?.type === "ton") {
         // Calculate amounts:
@@ -400,12 +400,12 @@ export default function SendPage() {
       console.error("Send failed:", error);
       
       // Track failed transaction
-      analyticsEvents.transactionSigningFailed(
-        error instanceof Error ? error.message : "Transaction failed"
-      );
+      const errorMessage = error instanceof Error ? error.message : "Transaction failed";
+      analyticsEvents.transactionSigningFailed(errorMessage);
       
-      toast.error("Transaction failed");
-      setStep("confirm");
+      // Show detailed error to user
+      toast.error(`Transaction failed: ${errorMessage}`);
+      setStep("input");
     } finally {
       setIsSending(false);
     }
@@ -547,8 +547,8 @@ export default function SendPage() {
                   </p>
                 ): needMinimum ? (
                   <p className="text-xs text-yellow-400 ml-1 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    You need to send at least 0.005 {selectedAsset?.symbol} to cover network and service fees.
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    Minimum 0.005 {selectedAsset?.symbol} required to cover network and service fees.
                   </p>
                 ) : null}
               </div>
