@@ -177,60 +177,122 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      // TON Transaction Fee Components (from blockchain config):
-      // transaction_fee = storage_fees + in_fwd_fees + computation_fees + action_fees + out_fwd_fees
-      //
-      // Config Parameter #21 (Basechain Gas Prices):
-      // - gas_price: 26214400 nanoTON per 65536 gas = 0.0000004 TON per gas unit
-      // - flat_gas_limit: 100 gas
-      // - flat_gas_price: 40000 nanoTON (0.00004 TON)
-      //
-      // Config Parameter #25 (Message Prices):
-      // - lump_price: 400000 nanoTON (0.0004 TON) - base price per message
-      // - bit_price: 26214400 per 65536 bits
-      // - cell_price: 2621440000 per 65536 cells
-      // - first_frac: 21845 (action fee = ~1/3 of forward fee)
+      const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+      if (!storedMnemonic) {
+        throw new Error("Wallet not found");
+      }
+
+      const mnemonic = storedMnemonic.split(" ");
+      const keyPair = await mnemonicToPrivateKey(mnemonic);
       
+      const wallet = WalletContractV5R1.create({
+        workchain: 0,
+        publicKey: keyPair.publicKey,
+      });
+
+      const ta = new TonApiClient({ baseUrl: "https://tonapi.io" });
+      const toAddress = Address.parse(recipient.trim());
+      const QC_TREASURY_ADDRESS = Address.parse("UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U");
+      
+      // Calculate QC service fee first
+      const qcFeeAmount = parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100;
+      setServiceFee(qcFeeAmount.toFixed(6));
+
       let networkFee: number;
-      
+
       if (selectedAsset?.type === "ton") {
-        // Simple TON transfer fee breakdown:
-        // 1. Storage fee: negligible (wallet contract already exists)
-        // 2. Compute fee: ~3000-5000 gas
-        //    - flat_gas_price = 0.00004 TON (for first 100 gas)
-        //    - remaining ~4900 gas × 0.0000004 = ~0.00196 TON
-        //    - Total compute: ~0.002 TON
-        // 3. Forward fee: lump_price + message size fee
-        //    - lump_price = 0.0004 TON
-        //    - Simple message (~256 bits, 1 cell) = ~0.0001 TON
-        //    - Total forward: ~0.0005 TON
-        // 4. Action fee: ~1/3 of forward fee = ~0.00017 TON
-        //
-        // Total: ~0.0027-0.004 TON for simple transfers
-        // We use 0.003 TON as the typical fee
-        networkFee = 0.003;
+        // Estimate fee using TON API emulation
+        const totalAmount = parseFloat(amount);
+        const recipientAmount = totalAmount - qcFeeAmount - 0.01; // Reserve for fees
+        
+        if (recipientAmount <= 0) {
+          throw new Error("Amount too small");
+        }
+
+        // Build messages for estimation
+        const messages = [
+          {
+            address: toAddress.toString(),
+            amount: String(Math.floor(recipientAmount * 1e9)),
+            payload: ""
+          }
+        ];
+        
+        if (qcFeeAmount > 0.000001) {
+          messages.push({
+            address: QC_TREASURY_ADDRESS.toString(),
+            amount: String(Math.floor(qcFeeAmount * 1e9)),
+            payload: "QC Service Fee"
+          });
+        }
+
+        // Use emulation API to get accurate fee estimate
+        try {
+          const emulateResponse = await fetch(
+            `https://tonapi.io/v2/wallet/emulate`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                boc: "", // Empty for estimation
+                params: [
+                  wallet.address.toString(),
+                  {
+                    messages: messages.map(m => ({
+                      address: m.address,
+                      amount: m.amount,
+                      payload: m.payload || ""
+                    }))
+                  }
+                ]
+              })
+            }
+          );
+
+          if (emulateResponse.ok) {
+            const emulateData = await emulateResponse.json();
+            // Extract fee from emulation result
+            const totalFee = emulateData.event?.extra || 0;
+            networkFee = Math.abs(totalFee) / 1e9;
+            // Add buffer for safety (10%)
+            networkFee = networkFee * 1.1;
+          } else {
+            throw new Error("Emulation failed");
+          }
+        } catch {
+          // Fallback: Calculate based on message count and complexity
+          // Base fee + per-message fee + complexity factor
+          const baseComputeFee = 0.002; // Base compute
+          const perMessageFee = 0.001; // Per outgoing message
+          const messageCount = messages.length;
+          networkFee = baseComputeFee + (perMessageFee * messageCount);
+        }
+        
+        // Ensure minimum fee
+        networkFee = Math.max(networkFee, 0.003);
+        // Cap maximum to prevent overcharging
+        networkFee = Math.min(networkFee, 0.02);
+        
       } else {
-        // Jetton transfer fee breakdown (multiple contracts involved):
-        // 1. User wallet -> Jetton wallet: ~0.01 TON
-        // 2. Jetton wallet -> Recipient jetton wallet: ~0.02 TON  
-        // 3. Notification messages: ~0.01 TON
-        // Plus higher compute fees (~20000-30000 gas)
-        //
-        // Total: ~0.04-0.06 TON for jetton transfers
+        // Jetton transfer - more complex, higher fees
+        // Base: 0.05 TON for jetton operations
+        // This covers: wallet -> jetton wallet -> recipient jetton wallet + notifications
         networkFee = 0.05;
+        
+        // Add extra for complex jetton contracts
+        if (selectedAsset?.decimals && selectedAsset.decimals < 6) {
+          networkFee += 0.01; // Extra for unusual decimal tokens
+        }
       }
       
       setEstimatedFee(networkFee.toFixed(6));
-
-      // Calculate QC service fee
-      const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
-      setServiceFee(qcFee.toFixed(6));
-
       setStep("confirm");
     } catch (error) {
       console.error("Fee estimation failed", error);
-      // Fallback to default estimates
-      const baseFee = selectedAsset?.type === "ton" ? 0.007 : 0.06;
+      // Fallback to safe default estimates
+      const baseFee = selectedAsset?.type === "ton" ? 0.005 : 0.06;
       setEstimatedFee(baseFee.toFixed(6));
       const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
       setServiceFee(qcFee.toFixed(6));

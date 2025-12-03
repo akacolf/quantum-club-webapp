@@ -320,7 +320,7 @@ export default function HistoryPage() {
                             status === 'pending' ? 'text-yellow-500' :
                             isIncoming ? 'text-green-500' : 'text-white'
                           }`}>
-                            {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${amount} ${symbol}` : ''}
+                            {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
                           </h4>
                           <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
                         </div>

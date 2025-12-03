@@ -178,11 +178,12 @@ export default function WalletPage() {
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
         
         <div className="flex items-center justify-between mb-6 relative z-10">
-          <div className="flex items-center gap-2 bg-black/40 rounded-full px-3 py-1.5 border border-white/5">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-medium text-gray-300">
-              {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-black/40 rounded-full px-3 py-1.5 border border-white/5">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs font-medium text-gray-300">
+                {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+              </span>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -195,6 +196,8 @@ export default function WalletPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               )}
             </Button>
+            </div>
+            <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">Beta</span>
           </div>
           <div className="flex items-center gap-2">
             <Button 
