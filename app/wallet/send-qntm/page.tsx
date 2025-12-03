@@ -311,14 +311,14 @@ export default function SendQNTMPage() {
                 <Button
                   variant="outline"
                   onClick={() => setStep("input")}
-                  className="h-14 bg-[#111] border-[#333] text-white hover:bg-[#1a1a1a] rounded-xl font-bold"
+                  className="h-14 bg-[#111] border-[#333] text-white hover:opacity-80 active:opacity-70 rounded-xl font-bold transition-opacity"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleConfirmTransfer}
                   disabled={isTransferring}
-                  className="h-14 bg-gradient-to-r from-orange-500 to-yellow-500 text-black hover:from-orange-600 hover:to-yellow-600 rounded-xl font-bold"
+                  className="h-14 bg-gradient-to-r from-orange-500 to-yellow-500 text-black hover:opacity-90 active:opacity-80 rounded-xl font-bold transition-opacity"
                 >
                   {isTransferring ? (
                     <div className="flex items-center gap-2">

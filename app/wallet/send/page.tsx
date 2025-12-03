@@ -133,8 +133,34 @@ export default function SendPage() {
 
   const handleMaxAmount = () => {
     if (selectedAsset) {
-      setAmount(selectedAsset.balance);
-      setInsufficientFunds(false);
+      if (selectedAsset.type === "ton") {
+        // For TON, reserve some for gas fees (~0.01 TON for safety)
+        const reserveForFees = 0.01;
+        const balance = parseFloat(selectedAsset.balance);
+        const maxSendable = Math.max(0, balance - reserveForFees);
+        
+        if (maxSendable <= 0) {
+          toast.error("Insufficient funds to cover network fees");
+          setInsufficientFunds(true);
+          return;
+        }
+        
+        setAmount(maxSendable.toFixed(4));
+        setInsufficientFunds(false);
+      } else {
+        // For jettons, user needs TON to pay for fees
+        const tonBalanceNum = parseFloat(tonBalance);
+        const minTonForFees = 0.06; // Jetton transfers need more gas
+        
+        if (tonBalanceNum < minTonForFees) {
+          toast.error(`Insufficient TON for fees. You need at least ${minTonForFees} TON`);
+          setInsufficientFunds(true);
+          return;
+        }
+        
+        setAmount(selectedAsset.balance);
+        setInsufficientFunds(false);
+      }
     }
   };
 
@@ -199,8 +225,8 @@ export default function SendPage() {
             const totalFeeNano = flatGasPrice + computeFee + forwardFee;
             networkFee = totalFeeNano / 1e9; // Convert to TON
             
-            // Add extra for potential fees with multiple messages (QC service fee)
-            networkFee = networkFee * 2.5; // 2 messages + safety margin
+            // Add small margin for 2 messages (recipient + QC service fee)
+            networkFee = networkFee * 1.2;
           } else {
             // Jetton transfer: ~20000 gas + multiple forwards
             const computeGas = 20000;
@@ -209,8 +235,8 @@ export default function SendPage() {
             const totalFeeNano = flatGasPrice + computeFee + forwardFees;
             networkFee = totalFeeNano / 1e9; // Convert to TON
             
-            // Add safety margin for jetton transfers
-            networkFee = networkFee * 1.5;
+            // Small safety margin for jetton transfers
+            networkFee = networkFee * 1.1;
           }
         } else {
           throw new Error("Failed to fetch gas prices");
@@ -299,8 +325,8 @@ export default function SendPage() {
       const seqno = await contract.getSeqno();
       const toAddress = Address.parse(recipient.trim());
 
-      // QC Treasury address for service fees
-      const QC_TREASURY_ADDRESS = Address.parse("UQDYjZx4ieDtPMMmCjUBzhBNkaxLpr4p58XyfBIGKkYtW_LB");
+      // QC Treasury address for service fees (quantumclub.ton)
+      const QC_TREASURY_ADDRESS = Address.parse("UQCqX396Kv4xyiLF1g6I5hKWEh4VdXP_mtVT3M0WDvNhbfcC");
 
       if (selectedAsset?.type === "ton") {
         // Calculate amounts: recipient gets amount, QC gets service fee

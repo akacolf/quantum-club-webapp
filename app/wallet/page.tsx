@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Settings } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -191,6 +191,14 @@ export default function WalletPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push("/wallet/settings")}
+              className="bg-[#222] text-gray-400 hover:bg-[#333] hover:text-white rounded-full"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
             <Button 
               variant="ghost"
               size="icon"
