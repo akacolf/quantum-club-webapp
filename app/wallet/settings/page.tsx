@@ -102,7 +102,7 @@ export default function WalletSettingsPage() {
             <Card className="bg-[#111] border-[#222] overflow-hidden">
               <CardContent className="p-0">
                 <button
-                  onClick={() => router.push("/wallet/backup")}
+                  onClick={() => router.push("/wallet/settings/recovery-phrase")}
                   className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -202,24 +202,15 @@ export default function WalletSettingsPage() {
           </div>
 
           {/* Links */}
-          <div className="flex justify-center gap-4 pt-4">
+          <div className="flex justify-center pt-4">
             <a 
-              href="https://t.me/QuantumClubAnn" 
+              href="https://t.me/quantumclubinc" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
-              Announcements
-            </a>
-            <a 
-              href="https://t.me/QuantumClubChat" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Community
+              Announcements and community
             </a>
           </div>
         </motion.div>

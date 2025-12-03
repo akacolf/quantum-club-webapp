@@ -19,6 +19,7 @@ import { LottieRefCurrentProps } from "lottie-react";
 import ClaimToaster from "./(components)/ClaimToaster";
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
 import DailyCheckIn from "./(components)/DailyCheck";
+import PullToRefresh from "./(components)/PullToRefresh";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -839,8 +840,75 @@ const HomeContent = () => {
 
     return <div>{remainingTime}</div>;
   };
+
+  // Refresh function for pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    try {
+      // Refresh QNTM balance
+      if (telegramId) {
+        const valueRef = doc(dbfs, "user", telegramId, "miningData", "values");
+        const snapshotValue = await getDoc(valueRef);
+        if (snapshotValue.exists()) {
+          const quant = snapshotValue.data().QuantAmount;
+          const formattedAmount = quant.toLocaleString("en-US", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          });
+          SetMainQuantAmount(formattedAmount);
+          localStorage.setItem("QAmount", formattedAmount);
+          
+          // Also refresh solve to earn
+          const remainingSTE = snapshotValue.data().remainingSolveToEarn;
+          if (remainingSTE != null) {
+            setRemainingSolveToEarn(remainingSTE);
+            sessionStorage.setItem("remainingSolveToEarn", `${remainingSTE}`);
+          }
+        }
+        
+        // Refresh daily check-in status
+        const checkTimeRef = doc(dbfs, "user", telegramId, "miningData", "checkTime");
+        const snapshot = await getDoc(checkTimeRef);
+        if (snapshot.exists()) {
+          const checktime = snapshot.data().checktime;
+          const dailyDay = snapshot.data().daily;
+          if (checktime) {
+            const formattedDate = new Intl.DateTimeFormat("en-US", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              timeZone: "UTC",
+            }).format(new Date());
+            const [month, day, year] = formattedDate.split("/");
+            const formattedDateISO = `${year}-${month}-${day}`;
+            const diffInMs = Math.abs(
+              new Date(formattedDateISO).getTime() -
+                new Date(checktime).getTime()
+            );
+            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+            if (diffInDays >= 1 && diffInDays < 2) {
+              setIsclaimDay(false);
+            } else if (diffInDays >= 2) {
+              setDaily(1);
+              setIsclaimDay(false);
+            } else {
+              setIsclaimDay(true);
+            }
+            if (dailyDay) {
+              setDaily(dailyDay);
+            }
+          }
+        }
+      }
+      
+      toast.success("Refreshed!", { duration: 1500 });
+    } catch (error) {
+      console.error("Refresh error:", error);
+      toast.error("Failed to refresh");
+    }
+  }, [telegramId, SetMainQuantAmount, setRemainingSolveToEarn, setDaily]);
+
   return (
-    <div className="flex flex-col">
+    <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen">
       <ClaimToaster />
       
       <PersonalizedGreeting />
@@ -868,7 +936,7 @@ const HomeContent = () => {
         lottieRef={lottieRef}
         goToSolveToEarn={goToSolveToEarn}
       />
-    </div>
+    </PullToRefresh>
   );
 };
 export default HomeContent;

@@ -28,6 +28,8 @@ export default function SendQNTMPage() {
   const [isTransferring, setIsTransferring] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
   const [qcIdCopied, setQcIdCopied] = useState(false);
+  const [isVerifyingQcId, setIsVerifyingQcId] = useState(false);
+  const [qcIdError, setQcIdError] = useState<string | null>(null);
 
   // Parse balance (remove commas) - memoized
   const currentBalance = useMemo(() => 
@@ -70,11 +72,45 @@ export default function SendQNTMPage() {
     return true;
   }, [recipientQcId, telegramId, amount, currentBalance]);
 
-  const handleContinue = useCallback(() => {
-    if (validateInput()) {
-      setStep("confirm");
+  const verifyQcIdExists = useCallback(async (): Promise<boolean> => {
+    try {
+      setIsVerifyingQcId(true);
+      setQcIdError(null);
+      
+      const response = await fetch("/api/verify-qc-id", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qcId: recipientQcId.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (!data.exists) {
+        setQcIdError("This QC ID doesn't exist. Please check and try again.");
+        toast.error("Recipient QC ID not found");
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error verifying QC ID:", error);
+      setQcIdError("Failed to verify QC ID. Please try again.");
+      toast.error("Failed to verify QC ID");
+      return false;
+    } finally {
+      setIsVerifyingQcId(false);
     }
-  }, [validateInput]);
+  }, [recipientQcId]);
+
+  const handleContinue = useCallback(async () => {
+    if (validateInput()) {
+      // Verify QC ID exists before proceeding
+      const exists = await verifyQcIdExists();
+      if (exists) {
+        setStep("confirm");
+      }
+    }
+  }, [validateInput, verifyQcIdExists]);
 
   const executeTransfer = useCallback(async () => {
     setIsTransferring(true);
@@ -178,13 +214,25 @@ export default function SendQNTMPage() {
                 <div className="relative">
                   <Input
                     value={recipientQcId}
-                    onChange={(e) => setRecipientQcId(e.target.value)}
+                    onChange={(e) => {
+                      setRecipientQcId(e.target.value);
+                      setQcIdError(null); // Clear error when user types
+                    }}
                     placeholder="Enter recipient's Quantum Club ID"
-                    className="bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl focus:border-orange-500/50 transition-all"
+                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl transition-all ${
+                      qcIdError ? 'border-red-500 focus:border-red-500' : 'focus:border-orange-500/50'
+                    }`}
                   />
                   <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 </div>
-                <p className="text-xs text-gray-500 ml-1">Ask the recipient to share their QC ID from the Frens section</p>
+                {qcIdError ? (
+                  <p className="text-xs text-red-500 ml-1 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    {qcIdError}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 ml-1">Ask the recipient to share their QC ID from the Frens section</p>
+                )}
               </div>
 
               {/* Your QC ID - for sharing */}
@@ -243,10 +291,17 @@ export default function SendQNTMPage() {
 
               <Button
                 onClick={handleContinue}
-                disabled={!recipientQcId || !amount || parseFloat(amount) <= 0 || insufficientFunds}
+                disabled={!recipientQcId || !amount || parseFloat(amount) <= 0 || insufficientFunds || isVerifyingQcId}
                 className="w-full h-14 bg-gradient-to-r from-orange-500 to-yellow-500 text-black hover:from-orange-600 hover:to-yellow-600 rounded-xl font-bold text-lg mt-8 disabled:opacity-50"
               >
-                Continue
+                {isVerifyingQcId ? (
+                  <>
+                    <ButtonLoader />
+                    Verifying...
+                  </>
+                ) : (
+                  "Continue"
+                )}
               </Button>
             </motion.div>
           )}
