@@ -68,7 +68,7 @@ export default function TermsOfServicePage() {
               <section>
                 <h2 className="text-lg font-semibold text-white mb-2">5. Fees</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  A 0.5% service fee is charged on TON and Jetton transactions to support platform development. Network fees (gas fees) are determined by the TON blockchain and are not controlled by Quantum Club. QNTM transfers between users are free.
+                  Quantum Club wallet transactions are free of service fees. You only pay standard TON network fees (gas fees) which are determined by the blockchain and are not controlled by Quantum Club. QNTM transfers between users are also free.
                 </p>
               </section>
 

@@ -27,16 +27,9 @@ import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
-import { useWallet } from "../WalletContext";
+import { useWallet, IS_TESTNET } from "../WalletContext";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { resolveTonAddress } from "@/lib/tonAddressResolver";
-import { 
-  calculateServiceFee,
-  getFeeRouterAddress,
-  isFeeRouterDeployed,
-  QC_SERVICE_FEE_PERCENT
-} from "@/lib/treasuryConfig";
-import { buildRouteMessageBody } from "@/lib/feeRouter";
 
 interface SendableAsset {
   type: "ton" | "jetton";
@@ -66,8 +59,7 @@ export default function SendPage() {
     fetchWalletAssets 
   } = useWallet();
 
-  const USE_TESTNET = true;
-  const TON_API_BASE_URL = USE_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
+  const TON_API_BASE_URL = IS_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
   const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
@@ -78,8 +70,7 @@ export default function SendPage() {
   const [isDomainAddress, setIsDomainAddress] = useState(false);
   const [comment, setComment] = useState("");
   const [amount, setAmount] = useState("");
-  const [estimatedFee, setEstimatedFee] = useState("0.01");
-  const [serviceFee, setServiceFee] = useState("0");
+  const [estimatedFee, setEstimatedFee] = useState("0.005");
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
@@ -294,35 +285,30 @@ export default function SendPage() {
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
       const toAddress = Address.parse(resolvedAddress);
-      
-      // Calculate QC service fee (0.5% deducted by Fee Router)
-      const qcFeeAmount = calculateServiceFee(parseFloat(amount));
-      setServiceFee(qcFeeAmount.toFixed(6));
 
       let networkFee: number;
 
       if (selectedAsset?.type === "ton") {
-        // Fee Router: Single message to router contract
-        // Router handles: deduct 0.5% fee, forward remainder to recipient
+        // Direct P2P transfer
         const hasComment = comment.trim().length > 0;
         
-        // Network fee for sending to router
+        // Calculate network fee for single message
         networkFee = calculateNetworkFee(1, hasComment);
-        networkFee = Math.max(networkFee, 0.00338);
+        networkFee = Math.max(networkFee, 0.003);
         
-        // Router reserves gas for forwarding
-        const routerGas = 0.01;
-        networkFee += routerGas;
-        
-        // Build message for Fee Router
-        const feeRouterAddress = Address.parse(getFeeRouterAddress(USE_TESTNET));
-        const routeBody = buildRouteMessageBody(toAddress, comment.trim() || undefined);
+        // Build comment body if provided
+        const messageBody = hasComment
+          ? beginCell()
+              .storeUint(0, 32)
+              .storeStringTail(comment.trim())
+              .endCell()
+          : undefined;
         
         const messages = [
           internal({
-            to: feeRouterAddress,
+            to: toAddress,
             value: toNano(amount),
-            body: routeBody,
+            body: messageBody,
             bounce: false
           }),
         ];
@@ -387,7 +373,7 @@ export default function SendPage() {
             
             networkFee = totalFees / 1e9;
             if (networkFee < 0.001) {
-              networkFee = 0.005; // Single message base fee
+              networkFee = 0.005;
             }
             networkFee = networkFee * 1.15; // 15% buffer
           } else {
@@ -395,14 +381,11 @@ export default function SendPage() {
           }
         } catch {
           // Fallback to calculated fee
-          networkFee = calculateNetworkFee(1, hasComment) + routerGas;
+          networkFee = calculateNetworkFee(1, hasComment);
         }
         
-        networkFee = Math.max(networkFee, 0.00338);
-        networkFee = Math.min(networkFee, 0.025);
-        
-        // Add router gas reserve
-        networkFee += routerGas;
+        networkFee = Math.max(networkFee, 0.003);
+        networkFee = Math.min(networkFee, 0.02);
         
       } else {
         // Jetton transfer - more complex, higher fees
@@ -418,13 +401,11 @@ export default function SendPage() {
     } catch (error) {
       console.error("Fee estimation failed", error);
       // Fallback to safe default estimates
-      const qcFee = calculateServiceFee(parseFloat(amount));
       const hasComment = comment.trim().length > 0;
       const baseFee = selectedAsset?.type === "ton" 
-        ? calculateNetworkFee(1, hasComment) + 0.01 // +0.01 for router gas
+        ? calculateNetworkFee(1, hasComment)
         : 0.06;
-      setEstimatedFee(Math.max(baseFee, 0.00338).toFixed(6));
-      setServiceFee(qcFee.toFixed(6));
+      setEstimatedFee(Math.max(baseFee, 0.003).toFixed(6));
       setStep("confirm");
     } finally {
       setIsEstimating(false);
@@ -475,25 +456,29 @@ export default function SendPage() {
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
-      const seqno = await contract.getSeqno();
+      
+      // Get seqno - returns 0 for undeployed wallet (triggers lazy deploy on first send)
+      let seqno = 0;
+      try {
+        seqno = await contract.getSeqno();
+      } catch {
+        // Wallet not deployed yet - seqno 0 will trigger deployment with StateInit
+        seqno = 0;
+      }
+      
       const toAddress = Address.parse(resolvedAddress);
 
       if (selectedAsset?.type === "ton") {
-        const totalAmount = parseFloat(amount);
+        // Direct P2P transfer - no service fee
+        const sendAmount = parseFloat(amount);
         
-        // Check if Fee Router is deployed
-        if (!isFeeRouterDeployed(USE_TESTNET)) {
-          toast.error("Fee Router contract not deployed. Contact support.");
-          setStep("input");
-          setIsSending(false);
-          return;
-        }
-        
-        // Use Fee Router Smart Contract for secure fee collection
-        const feeRouterAddress = Address.parse(getFeeRouterAddress(USE_TESTNET));
-        
-        // Send full amount to router - it handles fee deduction and forwarding
-        const routeBody = buildRouteMessageBody(toAddress, comment.trim() || undefined);
+        // Build comment body if provided
+        const messageBody = comment.trim()
+          ? beginCell()
+              .storeUint(0, 32)
+              .storeStringTail(comment.trim())
+              .endCell()
+          : undefined;
         
         await contract.sendTransfer({
           seqno,
@@ -501,27 +486,18 @@ export default function SendPage() {
           sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
           messages: [
             internal({
-              to: feeRouterAddress,
-              value: toNano(totalAmount.toFixed(9)),
-              body: routeBody,
+              to: toAddress,
+              value: toNano(sendAmount.toFixed(9)),
+              body: messageBody,
               bounce: false
             }),
           ],
         });
       } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
-        // For jettons: send directly (no fee router support yet)
-        const totalAmount = parseFloat(amount);
-        const qcFeeAmount = parseFloat(serviceFee);
-        const recipientAmount = totalAmount - qcFeeAmount;
+        // Jetton transfer - direct P2P
+        const sendAmount = parseFloat(amount);
         
-        if (recipientAmount <= 0) {
-          toast.error("Amount too small to cover fees");
-          setStep("input");
-          setIsSending(false);
-          return;
-        }
-        
-        const jettonAmount = BigInt(Math.floor(recipientAmount * Math.pow(10, selectedAsset.decimals)));
+        const jettonAmount = BigInt(Math.floor(sendAmount * Math.pow(10, selectedAsset.decimals)));
         const jettonWallet = Address.parse(selectedAsset.walletAddress);
         
         const body = beginCell()
@@ -785,7 +761,7 @@ export default function SendPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              {USE_TESTNET && (
+              {IS_TESTNET && (
                 <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-3 flex items-center gap-2">
                   <Info className="w-4 h-4 text-yellow-500 shrink-0" />
                   <span className="text-xs text-yellow-400 font-medium">Testnet Mode - For testing only</span>
@@ -840,28 +816,10 @@ export default function SendPage() {
                       <span className="text-sm text-white">≈ {estimatedFee} TON</span>
                     </div>
                     
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">QC Service Fee ({QC_SERVICE_FEE_PERCENT}%)</span>
-                      <span className="text-sm text-white">{serviceFee} {selectedAsset?.symbol}</span>
-                    </div>
-
                     <div className="flex justify-between items-center pt-2 border-t border-[#333]">
-                      <span className="text-sm text-gray-400 font-medium">Total Fees</span>
-                      <span className="text-sm text-orange-400 font-bold">
-                        {selectedAsset?.type === "ton" 
-                          ? `${(parseFloat(serviceFee) + parseFloat(estimatedFee)).toFixed(6)} TON`
-                          : `${parseFloat(serviceFee).toFixed(6)} ${selectedAsset?.symbol} + ${estimatedFee} TON`
-                        }
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
                       <span className="text-sm text-green-400 font-medium">Recipient receives</span>
                       <span className="text-sm text-green-400 font-bold">
-                        {selectedAsset?.type === "ton"
-                          ? `${(parseFloat(amount) - parseFloat(serviceFee) - parseFloat(estimatedFee)).toFixed(6)} TON`
-                          : `${(parseFloat(amount) - parseFloat(serviceFee)).toFixed(6)} ${selectedAsset?.symbol}`
-                        }
+                        {amount} {selectedAsset?.symbol}
                       </span>
                     </div>
                   </div>

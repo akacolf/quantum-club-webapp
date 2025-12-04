@@ -6,10 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "contract:compile": "npx ts-node scripts/compile-contract.ts",
-    "contract:deploy:testnet": "npx ts-node scripts/deploy-contract.ts testnet",
-    "contract:deploy:mainnet": "npx ts-node scripts/deploy-contract.ts mainnet"
+    "lint": "next lint"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

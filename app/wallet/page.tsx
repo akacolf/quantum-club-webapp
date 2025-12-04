@@ -79,7 +79,7 @@ export default function WalletPage() {
         workchain: 0,
         publicKey: keyPair.publicKey,
       });
-      const address = wallet.address.toString({ bounceable: false });
+      const address = wallet.address.toString({ bounceable: false, testOnly: isTestnet });
       sessionStorage.setItem("pending_wallet_mnemonic", mnemonic.join(" "));
       sessionStorage.setItem("pending_wallet_address", address);
       router.push("/wallet/backup");

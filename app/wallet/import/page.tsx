@@ -11,7 +11,7 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
-import { useWallet } from "../WalletContext";
+import { useWallet, IS_TESTNET } from "../WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 
@@ -93,7 +93,7 @@ export default function ImportWalletPage() {
         publicKey: keyPair.publicKey,
       });
       
-      const address = wallet.address.toString({ bounceable: false });
+      const address = wallet.address.toString({ bounceable: false, testOnly: IS_TESTNET });
       
       localStorage.setItem("quantum_wallet_address", address);
       localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));

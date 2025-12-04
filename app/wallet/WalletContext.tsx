@@ -3,7 +3,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { fromNano } from "@ton/core";
 
-const IS_TESTNET = true;
+// Testnet mode - affects API endpoints and address format
+// Testnet addresses: 0Q... (non-bounceable) or kQ... (bounceable)
+// Mainnet addresses: UQ... (non-bounceable) or EQ... (bounceable)
+export const IS_TESTNET = false;
 
 interface JettonBalance {
   symbol: string;
