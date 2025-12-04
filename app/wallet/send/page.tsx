@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,6 +75,14 @@ export default function SendPage() {
   const [isSending, setIsSending] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
   const [needMinimum, setNeedMinimum] = useState(false);
+  const [isFirstTransaction, setIsFirstTransaction] = useState(false);
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  
+  // Deployment fee for first transaction (wallet contract deployment)
+  const DEPLOYMENT_FEE = 0.005;
+  
+  // Explorer URL based on network
+  const EXPLORER_BASE_URL = IS_TESTNET ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
   // Resolve .ton domain addresses
   useEffect(() => {
@@ -331,11 +339,17 @@ export default function SendPage() {
 
         // Try to get more accurate fee from emulation
         let seqno = 0;
+        let isNewWallet = false;
         try {
           seqno = await contract.getSeqno();
         } catch {
-          // New wallet, seqno is 0
+          // New wallet, seqno is 0 - will need deployment
+          seqno = 0;
+          isNewWallet = true;
         }
+        
+        // Track if this is first transaction for UI display
+        setIsFirstTransaction(isNewWallet);
 
         // Create transfer for emulation
         const transfer = wallet.createTransfer({
@@ -402,6 +416,11 @@ export default function SendPage() {
         
         networkFee = Math.max(networkFee, 0.003);
         networkFee = Math.min(networkFee, 0.02);
+        
+        // Add deployment fee for first transaction
+        if (isNewWallet) {
+          networkFee += DEPLOYMENT_FEE;
+        }
         
       } else {
         // Jetton transfer - more complex, higher fees
@@ -550,6 +569,9 @@ export default function SendPage() {
         [{ address: recipient, amount: amount }]
       );
 
+      // Store wallet address for explorer link (transaction will appear in account history)
+      setLastTxHash(walletAddress || "");
+      
       setStep("success");
       toast.success("Transaction sent!");
       
@@ -830,9 +852,22 @@ export default function SendPage() {
                     )}
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Network Fee</span>
+                      <span className="text-sm text-gray-400">
+                        Network Fee
+                        {isFirstTransaction && (
+                          <span className="text-xs text-yellow-500 ml-1">(incl. wallet activation)</span>
+                        )}
+                      </span>
                       <span className="text-sm text-white">≈ {estimatedFee} TON</span>
                     </div>
+                    
+                    {isFirstTransaction && (
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2 -mx-1">
+                        <p className="text-xs text-yellow-500/90 text-center">
+                          First transaction includes one-time wallet activation fee
+                        </p>
+                      </div>
+                    )}
                     
                     <div className="flex justify-between items-center pt-2 border-t border-[#333]">
                       <span className="text-sm text-green-400 font-medium">Recipient receives</span>
@@ -917,7 +952,17 @@ export default function SendPage() {
                 </p>
               </div>
               
-              <div className="w-full pt-8">
+              <div className="w-full space-y-3 pt-8">
+                {lastTxHash && (
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(`${EXPLORER_BASE_URL}/${lastTxHash}`, "_blank")}
+                    className="w-full h-12 bg-[#111] border-[#333] text-white hover:bg-[#1a1a1a] rounded-xl font-medium flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View in Explorer
+                  </Button>
+                )}
                 <Button
                   onClick={() => router.push("/wallet")}
                   className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-xl font-bold"

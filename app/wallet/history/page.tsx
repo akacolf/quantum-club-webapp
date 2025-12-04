@@ -5,10 +5,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, Clock, Layers } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Clock, Layers, ExternalLink } from "lucide-react";
 import { fromNano, Address } from "@ton/core";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useWallet } from "../WalletContext";
+import { useWallet, IS_TESTNET } from "../WalletContext";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
@@ -54,6 +54,9 @@ export default function HistoryPage() {
   const [isLoadingQntm, setIsLoadingQntm] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("blockchain");
+  
+  // Explorer URL based on network
+  const EXPLORER_BASE_URL = IS_TESTNET ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
   // Fetch QNTM transfer history from Firebase
   const fetchQntmHistory = useCallback(async () => {
@@ -295,7 +298,11 @@ export default function HistoryPage() {
                     const formattedTime = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
                     
                     return (
-                      <Card key={event.event_id} className="bg-[#111] border-[#222] shadow-none hover:border-[#333] transition-all active:scale-[0.99]">
+                      <Card 
+                        key={event.event_id} 
+                        className="bg-[#111] border-[#222] shadow-none hover:border-[#333] transition-all active:scale-[0.99] cursor-pointer"
+                        onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${event.event_id}`, "_blank")}
+                      >
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${
@@ -319,15 +326,18 @@ export default function HistoryPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <h4 className={`font-bold text-base ${
-                              status === 'scam' ? 'text-orange-500' :
-                              status === 'pending' ? 'text-yellow-500' :
-                              isIncoming ? 'text-green-500' : 'text-white'
-                            }`}>
-                              {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <h4 className={`font-bold text-base ${
+                                status === 'scam' ? 'text-orange-500' :
+                                status === 'pending' ? 'text-yellow-500' :
+                                isIncoming ? 'text-green-500' : 'text-white'
+                              }`}>
+                                {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
+                              </h4>
+                              <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-gray-600" />
                           </div>
                         </CardContent>
                       </Card>
