@@ -22,7 +22,6 @@ export async function POST(request:NextRequest) {
 
         return NextResponse.json({message:'Authentication succesful'})
     } else{
-        console.log(validationResult.message)
         return NextResponse.json({message:validationResult.message,user:validationResult.user},{status:401})
     }
 }

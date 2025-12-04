@@ -22,7 +22,6 @@ export async function POST(req:NextRequest) {
     walletAddress,
     address
     } = body
-      console.log(userId);
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 400 });
     }  
@@ -33,16 +32,14 @@ export async function POST(req:NextRequest) {
       walletAddress: walletAddress,
     })
   }else{
-    console.log("Created new wallet")
     walletData.set({
       address: address,
       walletAddress: walletAddress,
     })
   }
-      console.log("Wallet setted in firestore");
       return NextResponse.json(walletAddress,{status:200})
   } catch (error) {
-    console.error('Cron job hatası:', error);
+    console.error('Wallet connection error:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }

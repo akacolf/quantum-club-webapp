@@ -34,7 +34,6 @@ export async function POST(request:NextRequest) {
     const telegramIdEncrypted = encrypted
                 .replace(/['"]+/g, "")
                 .replace(/[^a-zA-Z0-9]/g, "");
-    console.log(telegramIdEncrypted);
     return NextResponse.json(
       {encryptedBase64:telegramIdEncrypted },
       { status: 200 }

@@ -434,10 +434,8 @@ export function DeletePin(telegramId:string) {
         await updateDoc(pinRef, { 
             pinHash: ""
         });
-        console.log("Pin başarıyla silindi.");
         return;
-      } catch (error) {
-        console.error("Pin silinirken hata oluştu:", error);
+      } catch {
         return;
       }
     };

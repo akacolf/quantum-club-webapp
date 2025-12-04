@@ -19,7 +19,6 @@ export async function POST() {
       return;
     }
     const userId = doc.ref.path.split('/')[1];
-    console.log(userId)
     const userRef = admin.firestore().collection("user").doc("qYsmB7MknlLJQ").collection("referrals").doc(userId)
     await userRef.set({
       telegramId: userId
