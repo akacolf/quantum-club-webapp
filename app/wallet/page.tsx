@@ -348,7 +348,7 @@ export default function WalletPage() {
                 </div>
               </div>
               <div className="text-right">
-                <h4 className="font-bold text-orange-400 text-xl">{MainQuantAmount}</h4>
+                <h4 className="font-bold text-orange-400 text-xl">{hideBalance ? "••••••" : MainQuantAmount}</h4>
                 <p className="text-xs text-gray-500">QC Points</p>
               </div>
             </div>

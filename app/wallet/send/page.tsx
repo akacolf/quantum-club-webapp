@@ -185,6 +185,7 @@ export default function SendPage() {
 
   const handleMaxAmount = () => {
     if (selectedAsset) {
+      // Set amount to full balance - fee will be deducted before sending
       setAmount(selectedAsset.balance);
       setInsufficientFunds(false);
     }
@@ -210,11 +211,26 @@ export default function SendPage() {
       toast.error("Please enter a valid amount");
       return false;
     }
+    
+    // Check that amount doesn't exceed balance
     if (selectedAsset && parseFloat(amount) > parseFloat(selectedAsset.balance)) {
       toast.error("Insufficient balance");
       setInsufficientFunds(true);
       return false;
     }
+    
+    // For TON, check minimum after fee deduction
+    if (selectedAsset?.type === "ton") {
+      const sendAmount = parseFloat(amount);
+      const estimatedFeeAmount = 0.01; // Conservative estimate for fees
+      const recipientWouldReceive = sendAmount - estimatedFeeAmount;
+      
+      if (recipientWouldReceive < 0.001) {
+        toast.error("Amount too small - recipient would receive less than 0.001 TON after fees");
+        return false;
+      }
+    }
+    
     if (parseFloat(amount) < 0.01) {
       toast.error("Minimum send amount is 0.01 TON");
       setNeedMinimum(true);
@@ -469,8 +485,10 @@ export default function SendPage() {
       const toAddress = Address.parse(resolvedAddress);
 
       if (selectedAsset?.type === "ton") {
-        // Direct P2P transfer - no service fee
-        const sendAmount = parseFloat(amount);
+        // Calculate the actual amount recipient will receive (amount minus fees)
+        const inputAmount = parseFloat(amount);
+        const fee = parseFloat(estimatedFee);
+        const recipientAmount = Math.max(0, inputAmount - fee);
         
         // Build comment body if provided
         const messageBody = comment.trim()
@@ -487,7 +505,7 @@ export default function SendPage() {
           messages: [
             internal({
               to: toAddress,
-              value: toNano(sendAmount.toFixed(9)),
+              value: toNano(recipientAmount.toFixed(9)),
               body: messageBody,
               bounce: false
             }),
@@ -819,7 +837,10 @@ export default function SendPage() {
                     <div className="flex justify-between items-center pt-2 border-t border-[#333]">
                       <span className="text-sm text-green-400 font-medium">Recipient receives</span>
                       <span className="text-sm text-green-400 font-bold">
-                        {amount} {selectedAsset?.symbol}
+                        {selectedAsset?.type === "ton" 
+                          ? `${Math.max(0, parseFloat(amount) - parseFloat(estimatedFee)).toFixed(6)} TON`
+                          : `${amount} ${selectedAsset?.symbol}`
+                        }
                       </span>
                     </div>
                   </div>
