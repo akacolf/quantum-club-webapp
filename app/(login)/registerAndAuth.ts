@@ -141,6 +141,14 @@ export async function UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe}: {
                     "miningData",
                     "values"
                   );
+                  // Store who referred the new user
+                  const newUserReferralInfo = doc(
+                    dbfs,
+                    "user",
+                    telegramIdEncrypted,
+                    "miningData",
+                    "referralInfo"
+                  );
 
                   const [referredSnap, snapshotReference] = await Promise.all([
                     getDoc(userReference),
@@ -152,6 +160,12 @@ export async function UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe}: {
                 const referrerIDinDB = referredSnap.exists();
                 if (snapshotReference.exists()) {
                   if (!referrerIDinDB) {
+                    // Store referral info on new user (who referred them)
+                    await setDoc(newUserReferralInfo, {
+                      referredBy: referrerID,
+                      referredAt: new Date().toISOString(),
+                    });
+                    
                     await setDoc(userReference, {
                       telegramId: telegramIdEncrypted,
                     });
@@ -169,6 +183,61 @@ export async function UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe}: {
                     await updateDoc(referredReference, {
                       QuantAmount: referredUpdatedAmount,
                     });
+                    
+                    // 2% reward for referrer's referrer (second-tier referral)
+                    try {
+                      const referrerReferralInfo = doc(
+                        dbfs,
+                        "user",
+                        referrerID,
+                        "miningData",
+                        "referralInfo"
+                      );
+                      const referrerInfoSnap = await getDoc(referrerReferralInfo);
+                      
+                      if (referrerInfoSnap.exists()) {
+                        const grandReferrerID = referrerInfoSnap.data()?.referredBy;
+                        
+                        if (grandReferrerID && grandReferrerID !== telegramIdEncrypted && grandReferrerID !== referrerID) {
+                          const grandReferrerValues = doc(
+                            dbfs,
+                            "user",
+                            grandReferrerID,
+                            "miningData",
+                            "values"
+                          );
+                          const grandReferrerSnap = await getDoc(grandReferrerValues);
+                          
+                          if (grandReferrerSnap.exists()) {
+                            const grandReferrerAmount = grandReferrerSnap.data()?.QuantAmount || 0;
+                            // 2% reward for second-tier referral
+                            const secondTierReward = ((Number(quantValue) + 122) * 2) / 100;
+                            const updatedGrandReferrerAmount = Number(grandReferrerAmount) + Number(secondTierReward);
+                            
+                            await updateDoc(grandReferrerValues, {
+                              QuantAmount: updatedGrandReferrerAmount,
+                            });
+                            
+                            // Track second-tier referral
+                            const grandReferrerSecondTierRef = doc(
+                              dbfs,
+                              "user",
+                              grandReferrerID,
+                              "secondTierReferrals",
+                              telegramIdEncrypted
+                            );
+                            await setDoc(grandReferrerSecondTierRef, {
+                              telegramId: telegramIdEncrypted,
+                              referredBy: referrerID,
+                              reward: secondTierReward,
+                              createdAt: new Date().toISOString(),
+                            });
+                          }
+                        }
+                      }
+                    } catch (secondTierError) {
+                      console.error("Second-tier referral error:", secondTierError);
+                    }
                 }
                 }
               } catch (error) {

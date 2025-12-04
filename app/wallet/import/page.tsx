@@ -18,7 +18,7 @@ import { analyticsEvents } from "@/lib/telegramAnalytics";
 export default function ImportWalletPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-  const { setWalletAddress } = useWallet();
+  const { setWalletAddress, addWallet, switchWallet, storedWallets } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
   const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
   const [activeWordIndex, setActiveWordIndex] = useState<number | null>(null);
@@ -98,6 +98,11 @@ export default function ImportWalletPage() {
       localStorage.setItem("quantum_wallet_address", address);
       localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));
       setWalletAddress(address);
+      
+      // Add to multi-wallet storage
+      const walletName = `Wallet ${storedWallets.length + 1}`;
+      addWallet(address, walletName);
+      switchWallet(address);
       
       // Track wallet import event
       analyticsEvents.walletImported(address);

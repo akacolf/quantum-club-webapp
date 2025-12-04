@@ -1,0 +1,125 @@
+import { Address } from "@ton/core";
+
+export interface ResolvedAddress {
+  address: string;
+  isValid: boolean;
+  isDomain: boolean;
+  originalInput: string;
+  error?: string;
+}
+
+export async function resolveTonAddress(input: string): Promise<ResolvedAddress> {
+  const trimmedInput = input.trim();
+  
+  if (!trimmedInput) {
+    return {
+      address: "",
+      isValid: false,
+      isDomain: false,
+      originalInput: input,
+      error: "Address is required"
+    };
+  }
+
+  // Check if it's a .ton domain
+  if (trimmedInput.toLowerCase().endsWith(".ton")) {
+    try {
+      // Use TON DNS to resolve the domain
+      const domain = trimmedInput.toLowerCase();
+      
+      // Call TON API to resolve DNS
+      const response = await fetch(
+        `https://tonapi.io/v2/dns/${encodeURIComponent(domain)}/resolve`
+      );
+      
+      if (!response.ok) {
+        return {
+          address: "",
+          isValid: false,
+          isDomain: true,
+          originalInput: input,
+          error: "Domain not found or not registered"
+        };
+      }
+      
+      const data = await response.json();
+      
+      // The wallet address is in the result
+      const walletAddress = data.wallet?.address;
+      
+      if (!walletAddress) {
+        return {
+          address: "",
+          isValid: false,
+          isDomain: true,
+          originalInput: input,
+          error: "No wallet associated with this domain"
+        };
+      }
+      
+      // Validate and format the resolved address
+      try {
+        const parsed = Address.parse(walletAddress);
+        return {
+          address: parsed.toString({ bounceable: false }),
+          isValid: true,
+          isDomain: true,
+          originalInput: input
+        };
+      } catch {
+        return {
+          address: "",
+          isValid: false,
+          isDomain: true,
+          originalInput: input,
+          error: "Invalid address format from domain"
+        };
+      }
+    } catch (error) {
+      return {
+        address: "",
+        isValid: false,
+        isDomain: true,
+        originalInput: input,
+        error: error instanceof Error ? error.message : "Failed to resolve domain"
+      };
+    }
+  }
+
+  // It's a regular address, validate it
+  try {
+    const parsed = Address.parse(trimmedInput);
+    return {
+      address: parsed.toString({ bounceable: false }),
+      isValid: true,
+      isDomain: false,
+      originalInput: input
+    };
+  } catch {
+    return {
+      address: "",
+      isValid: false,
+      isDomain: false,
+      originalInput: input,
+      error: "Invalid TON address format"
+    };
+  }
+}
+
+export function isValidTonAddressOrDomain(input: string): boolean {
+  const trimmed = input.trim();
+  
+  // Check if it's a .ton domain format
+  if (trimmed.toLowerCase().endsWith(".ton")) {
+    // Basic domain validation: at least one character before .ton
+    return trimmed.length > 4 && /^[a-zA-Z0-9-]+\.ton$/i.test(trimmed);
+  }
+  
+  // Try to parse as address
+  try {
+    Address.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}

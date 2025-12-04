@@ -6,11 +6,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Settings, RefreshCw } from "lucide-react";
+import { Settings, RefreshCw, FlaskConical } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import Loader from "@/app/(components)/Loader";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
@@ -27,10 +28,15 @@ export default function WalletPage() {
     tonBalance, 
     tonUsdValue, 
     totalUsdBalance, 
-    jettons, 
+    jettons,
+    hiddenAssets,
     isLoadingAssets, 
     hasFetched,
-    fetchWalletAssets 
+    hideBalance,
+    isTestnet,
+    fetchWalletAssets,
+    toggleHideAsset,
+    toggleHideBalance
   } = useWallet();
   const { telegramId } = useGameContext();
 
@@ -41,10 +47,8 @@ export default function WalletPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    // Check if wallet exists in local storage
     const storedWallet = localStorage.getItem("quantum_wallet_address");
     
-    // Only set hasWallet to true if it actually exists in storage
     if (storedWallet) {
       setContextWalletAddress(storedWallet);
       setHasWallet(true);
@@ -236,12 +240,32 @@ export default function WalletPage() {
         </div>
 
         <div className="space-y-1 relative z-10">
-          <span className="text-gray-400 text-sm">Total Balance</span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm">Total Balance</span>
+            {isTestnet && (
+              <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/20 text-xs py-0 px-1.5">
+                <FlaskConical className="w-3 h-3 mr-1" />
+                TESTNET
+              </Badge>
+            )}
+            <button 
+              onClick={toggleHideBalance}
+              className="text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              {hideBalance ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              )}
+            </button>
+          </div>
           <div className="flex items-baseline gap-1">
             {isLoadingAssets ? (
               <Skeleton className="h-10 w-32 bg-[#222]" />
             ) : (
-              <h2 className="text-4xl font-bold text-white">${totalUsdBalance}</h2>
+              <h2 className="text-4xl font-bold text-white">
+                {hideBalance ? "••••••" : `$${totalUsdBalance}`}
+              </h2>
             )}
           </div>
         </div>
@@ -265,7 +289,7 @@ export default function WalletPage() {
             if (action.href) {
               return (
                 <Link 
-                  key={i} 
+                  key={i}
                   href={action.href}
                   prefetch={true}
                   className="flex flex-col items-center gap-2 group"
@@ -367,15 +391,14 @@ export default function WalletPage() {
                   </div>
                 ) : (
                   <>
-                    <h4 className="font-bold text-white">{tonBalance}</h4>
-                    <p className="text-xs text-gray-500">${tonUsdValue}</p>
+                    <h4 className="font-bold text-white">{hideBalance ? "••••" : tonBalance}</h4>
+                    <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${tonUsdValue}`}</p>
                   </>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Jettons (Other Tokens) - Loading Skeletons */}
           {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
             <>
               {[1, 2].map((i) => (
@@ -405,11 +428,13 @@ export default function WalletPage() {
             </div>
           )}
 
-          {jettons.map((jetton, index) => {
+          {jettons
+            .filter(jetton => !hiddenAssets.includes(jetton.symbol))
+            .map((jetton, index) => {
             const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
             const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
             return (
-              <Card key={index} className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
+              <Card key={index} className="bg-[#111] border border-[#222] rounded-2xl shadow-none group">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
@@ -424,14 +449,34 @@ export default function WalletPage() {
                       <p className="text-xs text-gray-500 truncate max-w-[120px]">{jetton.name}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <h4 className="font-bold text-white">{formattedBalance}</h4>
-                    <p className="text-xs text-gray-500">{usdDisplay}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <h4 className="font-bold text-white">{hideBalance ? "••••" : formattedBalance}</h4>
+                      <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleHideAsset(jetton.symbol)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-400 p-1"
+                      title="Hide asset"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </button>
                   </div>
                 </CardContent>
               </Card>
             );
           })}
+          
+          {hiddenAssets.length > 0 && (
+            <button
+              onClick={() => {
+                hiddenAssets.forEach(symbol => toggleHideAsset(symbol));
+              }}
+              className="w-full text-center text-xs text-gray-500 hover:text-gray-300 py-2 transition-colors"
+            >
+              Show {hiddenAssets.length} hidden asset{hiddenAssets.length > 1 ? 's' : ''}
+            </button>
+          )}
         </div>
       </div>
     </div>

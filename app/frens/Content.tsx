@@ -15,7 +15,7 @@ import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, User, Trophy, UserPlus } from "lucide-react";
+import { Users, User, Trophy, UserPlus, Users2 } from "lucide-react";
 
 const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
@@ -30,6 +30,7 @@ const FrensContent = () => {
   const [loading, setLoading] = useState(true);
   const [totalReferralSize, setTotalReferralSize] = useState(0)
   const [viewButton, setViewButton] = useState<string | React.ReactNode>("View more")
+  const [secondTierCount, setSecondTierCount] = useState(0);
 
   useEffect(() => {
     router.prefetch("/frens/referrals");
@@ -37,6 +38,11 @@ const FrensContent = () => {
       const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
       const snapshot = await getCountFromServer(referralsRef);
       setReferralNum(snapshot.data().count);
+      
+      // Get second-tier referrals count
+      const secondTierRef = collection(dbfs, `user/${telegramId}/secondTierReferrals`);
+      const secondTierSnapshot = await getCountFromServer(secondTierRef);
+      setSecondTierCount(secondTierSnapshot.data().count);
     };
     getReferralsNum();
     const fetchReferralsData = async () => {
@@ -198,29 +204,53 @@ const FrensContent = () => {
             {/* Stats Card */}
             <Card className="bg-[#1a1a1a]/80 border-[#333] backdrop-blur-xl text-white overflow-hidden relative">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
-              <CardContent className="p-6 flex items-center justify-between relative z-10">
-                <div className="space-y-2">
-                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/20">
-                    EARN 10%
-                  </Badge>
-                  <div className="text-sm text-gray-400 font-medium">FROM YOUR INVITES</div>
-                </div>
-                <div className="flex flex-col items-end">
-                  <div className="flex items-center gap-2">
-                    <div className="w-12 h-12">
-                      <Lottie
-                        lottieRef={lottieRef}
-                        animationData={handshakeAnimationData}
-                        loop={1}
-                        autoplay={true}
-                      />
+              <CardContent className="p-6 space-y-4 relative z-10">
+                {/* First-tier referrals */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/20">
+                      EARN 10%
+                    </Badge>
+                    <div className="text-sm text-gray-400 font-medium">FROM YOUR INVITES</div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2">
+                      <div className="w-12 h-12">
+                        <Lottie
+                          lottieRef={lottieRef}
+                          animationData={handshakeAnimationData}
+                          loop={1}
+                          autoplay={true}
+                        />
+                      </div>
+                      <div className="text-4xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                        {referralsNum}
+                      </div>
                     </div>
-                    <div className="text-4xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                      {referralsNum}
+                    <div className="text-xs text-gray-500 font-medium mt-1">INVITED FRENS</div>
+                  </div>
+                </div>
+                
+                {/* Second-tier referrals */}
+                {secondTierCount > 0 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-[#333]">
+                    <div className="space-y-2">
+                      <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border-purple-500/20">
+                        EARN 2%
+                      </Badge>
+                      <div className="text-sm text-gray-400 font-medium">FROM THEIR INVITES</div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <div className="flex items-center gap-2">
+                        <Users2 className="w-8 h-8 text-purple-400" />
+                        <div className="text-3xl font-bold bg-linear-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+                          {secondTierCount}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 font-medium mt-1">2ND TIER FRENS</div>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500 font-medium mt-1">INVITED FRENS</div>
-                </div>
+                )}
               </CardContent>
             </Card>
 

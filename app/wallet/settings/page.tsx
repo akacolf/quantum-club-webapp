@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   FileText,
   Shield,
-  ExternalLink
+  ExternalLink,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,6 +109,24 @@ export default function WalletSettingsPage() {
                     <div className="text-left">
                       <p className="font-medium text-white">Backup Recovery Phrase</p>
                       <p className="text-xs text-gray-500">View your 24-word seed phrase</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                </button>
+                
+                <div className="border-t border-[#222]" />
+                
+                <button
+                  onClick={() => router.push("/wallet/settings/wallets")}
+                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
+                      <Wallet className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-white">Manage Wallets</p>
+                      <p className="text-xs text-gray-500">Add, switch, or remove wallets</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />

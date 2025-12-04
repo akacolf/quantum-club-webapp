@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Check, ChevronDown, Wallet, Info } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,11 +24,20 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { toNano, Address, beginCell } from "@ton/core";
+import { toNano, Address, beginCell, Cell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
+import { resolveTonAddress } from "@/lib/tonAddressResolver";
+import { 
+  QC_TREASURY_ADDRESS_PARSED, 
+  QC_SERVICE_FEE_PERCENT, 
+  SERVICE_FEE_COMMENT,
+  calculateServiceFee,
+  shouldApplyServiceFee,
+  calculateRecipientAmount
+} from "@/lib/treasuryConfig";
 
 interface SendableAsset {
   type: "ton" | "jetton";
@@ -59,13 +69,19 @@ export default function SendPage() {
     fetchWalletAssets 
   } = useWallet();
 
-  // QC Service fee (0.5%)
-  const QC_SERVICE_FEE_PERCENT = 0.5;
+  // Testnet mode for testing (switch to mainnet for production)
+  const USE_TESTNET = true;
+  const TON_API_BASE_URL = USE_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
   // Send State
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
   const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
   const [recipient, setRecipient] = useState("");
+  const [resolvedAddress, setResolvedAddress] = useState("");
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+  const [addressError, setAddressError] = useState("");
+  const [isDomainAddress, setIsDomainAddress] = useState(false);
+  const [comment, setComment] = useState("");
   const [amount, setAmount] = useState("");
   const [estimatedFee, setEstimatedFee] = useState("0.01");
   const [serviceFee, setServiceFee] = useState("0");
@@ -73,6 +89,50 @@ export default function SendPage() {
   const [isSending, setIsSending] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
   const [needMinimum, setNeedMinimum] = useState(false);
+
+  // Resolve .ton domain addresses
+  useEffect(() => {
+    const resolveAddress = async () => {
+      if (!recipient.trim()) {
+        setResolvedAddress("");
+        setAddressError("");
+        setIsDomainAddress(false);
+        return;
+      }
+
+      // Check if it's a .ton domain
+      if (recipient.trim().toLowerCase().endsWith(".ton")) {
+        setIsDomainAddress(true);
+        setIsResolvingAddress(true);
+        setAddressError("");
+        
+        const result = await resolveTonAddress(recipient);
+        
+        if (result.isValid) {
+          setResolvedAddress(result.address);
+          setAddressError("");
+        } else {
+          setResolvedAddress("");
+          setAddressError(result.error || "Invalid domain");
+        }
+        setIsResolvingAddress(false);
+      } else {
+        setIsDomainAddress(false);
+        // Regular address validation
+        const result = await resolveTonAddress(recipient);
+        if (result.isValid) {
+          setResolvedAddress(result.address);
+          setAddressError("");
+        } else if (recipient.trim().length > 0) {
+          setResolvedAddress("");
+          setAddressError(result.error || "Invalid address");
+        }
+      }
+    };
+
+    const debounceTimer = setTimeout(resolveAddress, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [recipient]);
 
   // Redirect if no wallet
   useEffect(() => {
@@ -139,8 +199,6 @@ export default function SendPage() {
 
   const handleMaxAmount = () => {
     if (selectedAsset) {
-      // Simply set the full balance as the amount
-      // Fees will be shown and deducted on the confirmation screen
       setAmount(selectedAsset.balance);
       setInsufficientFunds(false);
     }
@@ -148,15 +206,20 @@ export default function SendPage() {
 
   const validateInput = () => {
     if (!recipient) {
-      toast.error("Please enter a recipient address");
+      toast.error("Please enter a recipient address or .ton domain");
       return false;
     }
-    try {
-      Address.parse(recipient);
-    } catch {
-      toast.error("Invalid recipient address");
+    
+    if (isResolvingAddress) {
+      toast.error("Please wait for address resolution");
       return false;
     }
+    
+    if (!resolvedAddress) {
+      toast.error(addressError || "Invalid recipient address");
+      return false;
+    }
+    
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return false;
@@ -172,6 +235,59 @@ export default function SendPage() {
       return false;
     }
     return true;
+  };
+
+  // Build comment cell for transaction body
+  const buildCommentBody = (text: string): Cell | string => {
+    if (!text || text.trim() === "") {
+      return "";
+    }
+    return beginCell()
+      .storeUint(0, 32)
+      .storeStringTail(text.trim())
+      .endCell();
+  };
+
+  // Calculate accurate network fee based on TON fee formulas
+  const calculateNetworkFee = (messageCount: number, hasComment: boolean): number => {
+    // Based on TON fee documentation:
+    // transaction_fee = storage_fees + in_fwd_fees + computation_fees + action_fees + out_fwd_fees
+    
+    // Constants from TON config (basechain)
+    const GAS_PRICE = 0.0000004; // TON per gas unit
+    const LUMP_PRICE = 0.0004; // Base forward fee
+    const BIT_PRICE = 0.000001; // Per bit forward fee
+    const CELL_PRICE = 0.0004; // Per cell forward fee
+    
+    // Estimated gas usage for wallet v5r1 transfer
+    const BASE_GAS = 5000; // Base compute gas
+    const GAS_PER_MESSAGE = 3000; // Additional gas per outgoing message
+    
+    // Calculate compute fee
+    const totalGas = BASE_GAS + (messageCount * GAS_PER_MESSAGE);
+    const computeFee = totalGas * GAS_PRICE;
+    
+    // Calculate forward fees (for each outgoing message)
+    // Simple TON transfer message: ~128 bits header + body
+    const baseBits = 128;
+    const commentBits = hasComment ? 256 : 0; // Approximate comment size
+    const bitsPerMessage = baseBits + commentBits;
+    const cellsPerMessage = hasComment ? 2 : 1;
+    
+    let totalForwardFee = 0;
+    for (let i = 0; i < messageCount; i++) {
+      const msgFwdFee = LUMP_PRICE + (BIT_PRICE * bitsPerMessage) + (CELL_PRICE * cellsPerMessage);
+      const actionFee = msgFwdFee / 3; // Action fee is ~1/3 of forward fee
+      totalForwardFee += msgFwdFee + actionFee;
+    }
+    
+    // Storage fee is negligible for simple transfers
+    const storageFee = 0.0001;
+    
+    // Total fee with 10% buffer for network fluctuations
+    const totalFee = (computeFee + totalForwardFee + storageFee) * 1.1;
+    
+    return totalFee;
   };
 
   const estimateFee = async () => {
@@ -190,50 +306,61 @@ export default function SendPage() {
         publicKey: keyPair.publicKey,
       });
 
-      const ta = new TonApiClient({ baseUrl: "https://tonapi.io" });
+      const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
-      const toAddress = Address.parse(recipient.trim());
-      const QC_TREASURY_ADDRESS = Address.parse("UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U");
+      const toAddress = Address.parse(resolvedAddress);
       
-      // Calculate QC service fee first
-      const qcFeeAmount = parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100;
+      // Calculate QC service fee using centralized config
+      const qcFeeAmount = calculateServiceFee(parseFloat(amount));
       setServiceFee(qcFeeAmount.toFixed(6));
 
       let networkFee: number;
 
       if (selectedAsset?.type === "ton") {
         const totalAmount = parseFloat(amount);
-        // Reserve 0.02 TON for fees initially (will be refined)
-        const estimatedReserve = 0.02;
-        const recipientAmount = totalAmount - qcFeeAmount - estimatedReserve;
+        
+        // Calculate fee based on message count and comment
+        const messageCount = shouldApplyServiceFee(qcFeeAmount) ? 2 : 1;
+        const hasComment = comment.trim().length > 0;
+        
+        // Use our formula-based calculation
+        networkFee = calculateNetworkFee(messageCount, hasComment);
+        
+        // Ensure minimum fee matches Tonkeeper behavior (~0.00338 TON for simple transfers)
+        networkFee = Math.max(networkFee, 0.00338);
+        
+        const recipientAmount = calculateRecipientAmount(totalAmount, qcFeeAmount, networkFee);
         
         if (recipientAmount <= 0) {
-          throw new Error("Amount too small");
+          throw new Error("Amount too small to cover fees");
         }
+
+        // Build message body with optional comment
+        const messageBody = buildCommentBody(comment);
 
         // Build actual messages for emulation
         const messages = [
           internal({
             to: toAddress,
             value: toNano(recipientAmount.toFixed(9)),
-            body: "",
+            body: messageBody,
             bounce: false
           }),
         ];
         
-        if (qcFeeAmount > 0.000001) {
+        if (shouldApplyServiceFee(qcFeeAmount)) {
           messages.push(
             internal({
-              to: QC_TREASURY_ADDRESS,
+              to: QC_TREASURY_ADDRESS_PARSED,
               value: toNano(qcFeeAmount.toFixed(9)),
-              body: "QC Service Fee",
+              body: SERVICE_FEE_COMMENT,
               bounce: false
             })
           );
         }
 
-        // Get current seqno for accurate estimation
+        // Try to get more accurate fee from emulation
         let seqno = 0;
         try {
           seqno = await contract.getSeqno();
@@ -324,32 +451,19 @@ export default function SendPage() {
           // - Forward: lump_price (0.0004) + message fees (~0.0001) = ~0.0005 TON per message
           // - Action: ~1/3 of forward fee = ~0.00017 TON per message
           //
-          // For 2 messages (recipient + treasury):
-          // Total: 0.002 + (2 × 0.0005) + (2 × 0.00017) ≈ 0.0033 TON
-          const messageCount = messages.length;
-          const computeFee = 0.002;
-          const forwardFeePerMessage = 0.0006;
-          const actionFeePerMessage = 0.0002;
-          networkFee = computeFee + (messageCount * (forwardFeePerMessage + actionFeePerMessage));
-          // Add 20% buffer for safety
-          networkFee = networkFee * 1.2;
+          // Use our calculated fee as fallback
+          networkFee = calculateNetworkFee(messages.length, comment.trim().length > 0);
         }
         
-        // Ensure minimum fee of 0.003 TON
-        networkFee = Math.max(networkFee, 0.003);
+        // Ensure minimum fee matches Tonkeeper (~0.00338 TON)
+        networkFee = Math.max(networkFee, 0.00338);
         // Cap at reasonable maximum
         networkFee = Math.min(networkFee, 0.025);
         
       } else {
         // Jetton transfer - more complex, higher fees
-        // Jetton transfers involve multiple contract calls:
-        // 1. User wallet -> Jetton wallet (compute + forward)
-        // 2. Jetton wallet -> Recipient jetton wallet (internal transfer)
-        // 3. Notification to recipient
-        // Total: typically 0.04-0.06 TON
         networkFee = 0.05;
         
-        // Add extra for complex jetton contracts or unusual decimals
         if (selectedAsset?.decimals && selectedAsset.decimals < 6) {
           networkFee += 0.01;
         }
@@ -359,10 +473,14 @@ export default function SendPage() {
       setStep("confirm");
     } catch (error) {
       console.error("Fee estimation failed", error);
-      // Fallback to safe default estimates
-      const baseFee = selectedAsset?.type === "ton" ? 0.008 : 0.06;
-      setEstimatedFee(baseFee.toFixed(6));
-      const qcFee = (parseFloat(amount) * QC_SERVICE_FEE_PERCENT / 100);
+      // Fallback to safe default estimates matching Tonkeeper
+      const qcFee = calculateServiceFee(parseFloat(amount));
+      const messageCount = shouldApplyServiceFee(qcFee) ? 2 : 1;
+      const hasComment = comment.trim().length > 0;
+      const baseFee = selectedAsset?.type === "ton" 
+        ? calculateNetworkFee(messageCount, hasComment)
+        : 0.06;
+      setEstimatedFee(Math.max(baseFee, 0.00338).toFixed(6));
       setServiceFee(qcFee.toFixed(6));
       setStep("confirm");
     } finally {
@@ -376,22 +494,17 @@ export default function SendPage() {
     }
   };
 
-  // Handle confirm button - requires biometric/PIN authentication
   const handleConfirmSend = async () => {
-    // Track that transaction was sent for signature
     analyticsEvents.transactionSentForSignature(
       walletAddress || "",
-      [{ address: recipient, amount: amount }]
+      [{ address: resolvedAddress, amount: amount }]
     );
 
-    // Request biometric/PIN authentication
     const authenticated = await requestAuth();
     
     if (authenticated) {
-      // User authenticated successfully, execute the transaction
       await executeSend();
     } else {
-      // User cancelled authentication
       toast.error("Authentication required to send transaction");
     }
   };
@@ -416,25 +529,17 @@ export default function SendPage() {
         publicKey: keyPair.publicKey,
       });
 
-      const ta = new TonApiClient({ baseUrl: "https://tonapi.io" });
+      const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
       const seqno = await contract.getSeqno();
-      const toAddress = Address.parse(recipient.trim());
-
-      // QC Treasury address for service fees (quantumclub.ton)
-      const QC_TREASURY_ADDRESS = Address.parse("UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U");
+      const toAddress = Address.parse(resolvedAddress);
 
       if (selectedAsset?.type === "ton") {
-        // Calculate amounts:
-        // User sends: amount (total from balance)
-        // Service fee: goes to QC treasury
-        // Network fee: deducted by network automatically
-        // Recipient gets: amount - serviceFee - networkFee
         const totalAmount = parseFloat(amount);
         const qcFeeAmount = parseFloat(serviceFee);
         const networkFeeAmount = parseFloat(estimatedFee);
-        const recipientAmount = totalAmount - qcFeeAmount - networkFeeAmount;
+        const recipientAmount = calculateRecipientAmount(totalAmount, qcFeeAmount, networkFeeAmount);
         
         if (recipientAmount <= 0) {
           toast.error("Amount too small to cover fees");
@@ -442,23 +547,26 @@ export default function SendPage() {
           setIsSending(false);
           return;
         }
+
+        // Build message body with optional comment
+        const messageBody = buildCommentBody(comment);
         
         const messages = [
           internal({
             to: toAddress,
             value: toNano(recipientAmount.toFixed(9)),
-            body: "",
+            body: messageBody,
             bounce: false
           }),
         ];
         
-        // Add QC service fee transaction if fee is > 0
-        if (qcFeeAmount > 0.000001) {
+        // Add QC service fee transaction to treasury if fee applies
+        if (shouldApplyServiceFee(qcFeeAmount)) {
           messages.push(
             internal({
-              to: QC_TREASURY_ADDRESS,
+              to: QC_TREASURY_ADDRESS_PARSED,
               value: toNano(qcFeeAmount.toFixed(9)),
-              body: "QC Service Fee",
+              body: SERVICE_FEE_COMMENT,
               bounce: false
             })
           );
@@ -622,16 +730,55 @@ export default function SendPage() {
 
               {/* Recipient */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400 ml-1">Recipient Address</label>
+                <label className="text-sm text-gray-400 ml-1">Recipient Address or .ton Domain</label>
                 <div className="relative">
                   <Input
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
-                    placeholder="Enter TON address"
-                    className="bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500/50 transition-all font-mono text-sm"
+                    placeholder="Enter TON address or name.ton"
+                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl transition-all font-mono text-sm ${
+                      addressError ? 'border-red-500 focus:border-red-500' : 
+                      resolvedAddress ? 'border-green-500/50 focus:border-green-500' : 'focus:border-blue-500/50'
+                    }`}
                   />
-                  <Wallet className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {isResolvingAddress ? (
+                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                    ) : resolvedAddress ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Wallet className="w-4 h-4 text-gray-500" />
+                    )}
+                  </div>
                 </div>
+                {isDomainAddress && resolvedAddress && (
+                  <p className="text-xs text-green-400 ml-1 flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Resolved to: {resolvedAddress.slice(0, 8)}...{resolvedAddress.slice(-6)}
+                  </p>
+                )}
+                {addressError && (
+                  <p className="text-xs text-red-500 ml-1 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    {addressError}
+                  </p>
+                )}
+              </div>
+
+              {/* Comment (Optional) */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400 ml-1 flex items-center gap-2">
+                  <MessageSquare className="w-3 h-3" />
+                  Comment (Optional)
+                </label>
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add a message to your transaction..."
+                  className="bg-[#111] border-[#222] text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500/50 transition-all resize-none h-20"
+                  maxLength={120}
+                />
+                <p className="text-xs text-gray-500 text-right">{comment.length}/120</p>
               </div>
 
               {/* Amount */}
@@ -685,7 +832,7 @@ export default function SendPage() {
 
               <Button
                 onClick={handleContinue}
-                disabled={!recipient || !amount || parseFloat(amount) <= 0 || isEstimating || insufficientFunds}
+                disabled={!recipient || !resolvedAddress || !amount || parseFloat(amount) <= 0 || isEstimating || insufficientFunds || isResolvingAddress}
                 className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-xl font-bold text-lg mt-8"
               >
                 {isEstimating ? (
@@ -708,6 +855,13 @@ export default function SendPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
+              {USE_TESTNET && (
+                <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-3 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-yellow-500 shrink-0" />
+                  <span className="text-xs text-yellow-400 font-medium">Testnet Mode - For testing only</span>
+                </div>
+              )}
+              
               <Card className="bg-[#111] border-[#222] overflow-hidden">
                 <CardContent className="p-6 space-y-6">
                   <div className="text-center space-y-1">
@@ -726,9 +880,30 @@ export default function SendPage() {
                     <div className="flex justify-between items-start">
                       <span className="text-sm text-gray-400">To</span>
                       <div className="text-right flex-1 pl-8">
-                        <div className="text-sm font-mono text-white break-all">{recipient}</div>
+                        {isDomainAddress ? (
+                          <div>
+                            <div className="text-sm font-medium text-blue-400">{recipient}</div>
+                            <div className="text-xs font-mono text-gray-500 break-all mt-1">
+                              {resolvedAddress.slice(0, 12)}...{resolvedAddress.slice(-8)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-mono text-white break-all">{resolvedAddress}</div>
+                        )}
                       </div>
                     </div>
+
+                    {comment.trim() && (
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm text-gray-400 flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" />
+                          Comment
+                        </span>
+                        <div className="text-right flex-1 pl-8">
+                          <div className="text-sm text-gray-300 italic">&ldquo;{comment.trim()}&rdquo;</div>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-400">Network Fee</span>

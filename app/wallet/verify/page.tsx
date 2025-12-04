@@ -8,10 +8,12 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
+import { useWallet } from "../WalletContext";
 
 export default function VerifyPhrasePage() {
   useTelegramBackButton("/wallet/backup");
   const router = useRouter();
+  const { addWallet, switchWallet, storedWallets } = useWallet();
   const [mnemonic, setMnemonic] = useState<string[]>([]);
   const [walletAddress, setWalletAddress] = useState("");
   const [verificationWords, setVerificationWords] = useState<{index: number, word: string}[]>([]);
@@ -52,6 +54,11 @@ export default function VerifyPhrasePage() {
     if (walletAddress && mnemonic.length > 0) {
       localStorage.setItem("quantum_wallet_address", walletAddress);
       localStorage.setItem("quantum_wallet_mnemonic", mnemonic.join(" "));
+      
+      // Add to multi-wallet storage
+      const walletName = `Wallet ${storedWallets.length + 1}`;
+      addWallet(walletAddress, walletName);
+      switchWallet(walletAddress);
       
       // Clean up session storage
       sessionStorage.removeItem("pending_wallet_mnemonic");

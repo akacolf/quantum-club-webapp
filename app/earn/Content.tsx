@@ -1220,6 +1220,67 @@ const EarnContent = () => {
           }
         }
       }
+      if (task.whichPlatform === "quantumReplay2025") {
+        if (task.buttonText === "View") {
+          setTasks((items) =>
+            items.map((item) =>
+              item.id === task.id
+                ? { ...item, buttonText: <ButtonLoader /> }
+                : item
+            )
+          );
+          // Navigate to the replay page
+          router.push("/quantum-replay-2025");
+          
+          if (!taskSnapshot.exists()) {
+            const date = new Date(Date.now());
+            const formattedDate = `${date
+              .getDate()
+              .toString()
+              .padStart(2, "0")}/${(date.getMonth() + 1)
+              .toString()
+              .padStart(2, "0")}/${date.getFullYear()}`;
+            await setDoc(taskRef, {
+              quant: task.quant,
+              completed: true,
+              Date: formattedDate,
+              platform: task.whichPlatform,
+            });
+            const miningSnapshot = await getDoc(miningData);
+            const currentQuantAmount = miningSnapshot.exists()
+              ? miningSnapshot.data().QuantAmount
+              : 0;
+            const quantRef = doc(dbfs, `tasks/${task.id}`);
+            const quantSnapshot = await getDoc(quantRef);
+            const quantVal = quantSnapshot.data()?.quantReward || 1000;
+            const updatedQuantAmount =
+              Number(currentQuantAmount) + Number(quantVal);
+            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            });
+            if (typeof window !== "undefined") {
+              localStorage.setItem("QAmount", formattedAmount);
+            }
+            SetMainQuantAmount(formattedAmount);
+            setTasks((items) =>
+              items.map((item) =>
+                item.id === task.id ? { ...item, buttonText: "Claimed" } : item
+              )
+            );
+            const taskElement = document.getElementById(task.id);
+            if (taskElement) {
+              (taskElement as HTMLButtonElement).disabled = true;
+            }
+            setCompletedTasks(completedTasks + 1);
+            task.completed = true;
+            setActiveTaskId(null);
+          } else {
+            console.error("This task has already been completed.");
+          }
+        }
+      }
     } catch (error) {
       if (error instanceof Error) {
         console.error("The task could not be completed:", error);
