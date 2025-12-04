@@ -3,8 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { fromNano } from "@ton/core";
 
-// Testnet toggle - set to true for testing
-const IS_TESTNET = process.env.NEXT_PUBLIC_TON_TESTNET === "true";
+const IS_TESTNET = true;
 
 interface JettonBalance {
   symbol: string;

@@ -1,0 +1,189 @@
+;; Quantum Club Fee Router Smart Contract
+;; 
+;; This contract routes TON transfers while collecting a service fee.
+;; Instead of the wallet sending 2 separate messages (which appears suspicious),
+;; the wallet sends 1 message to this contract with routing instructions.
+;;
+;; Message format:
+;; - 32 bits: op code (0x526f7574 = "Rout" for route operation)
+;; - 256 bits: recipient address (MsgAddressInt)
+;; - remaining: optional comment/payload
+;;
+;; The contract:
+;; 1. Receives the full amount
+;; 2. Deducts 0.5% service fee (configurable)
+;; 3. Sends the remainder to the specified recipient
+;; 4. Fee stays in the contract and can be withdrawn by owner
+
+;; Storage layout:
+;; - owner_address: MsgAddressInt (256 bits)
+;; - fee_percent: uint16 (in basis points, 50 = 0.5%)
+;; - total_fees_collected: uint128
+
+const int op::route = 0x526f7574;          ;; "Rout"
+const int op::withdraw_fees = 0x57647261;  ;; "Wdra"
+const int op::update_fee = 0x55706466;     ;; "Updf"
+const int op::update_owner = 0x55706f77;   ;; "Upow"
+
+const int error::unauthorized = 100;
+const int error::insufficient_funds = 101;
+const int error::invalid_address = 102;
+
+;; Minimum amount to forward (in nanoTON) - prevents dust attacks
+const int min_forward_amount = 10000000; ;; 0.01 TON
+
+;; Helper function to compare two addresses
+int equal_slices(slice a, slice b) asm "SDEQ";
+
+() save_data(slice owner, int fee_bps, int total_fees) impure inline {
+    set_data(begin_cell()
+        .store_slice(owner)
+        .store_uint(fee_bps, 16)
+        .store_uint(total_fees, 128)
+        .end_cell());
+}
+
+(slice, int, int) load_data() inline {
+    slice ds = get_data().begin_parse();
+    return (
+        ds~load_msg_addr(),      ;; owner
+        ds~load_uint(16),        ;; fee_bps (basis points)
+        ds~load_uint(128)        ;; total_fees_collected
+    );
+}
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) {
+        ;; Simple TON transfer without routing - just accept and add to fees
+        return ();
+    }
+
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+    
+    if (flags & 1) {
+        ;; Bounced message - ignore
+        return ();
+    }
+    
+    slice sender = cs~load_msg_addr();
+    
+    int op = in_msg_body~load_uint(32);
+    
+    if (op == op::route) {
+        ;; Route operation: forward TON to recipient minus fee
+        slice recipient = in_msg_body~load_msg_addr();
+        
+        ;; Load contract data
+        (slice owner, int fee_bps, int total_fees) = load_data();
+        
+        ;; Calculate amounts
+        ;; fee_bps is in basis points (50 = 0.5%)
+        int fee_amount = muldiv(msg_value, fee_bps, 10000);
+        int forward_amount = msg_value - fee_amount;
+        
+        ;; Subtract gas costs from forward amount (approximately 0.01 TON)
+        int gas_cost = 10000000; ;; 0.01 TON
+        forward_amount = forward_amount - gas_cost;
+        
+        ;; Ensure minimum forward amount
+        throw_unless(error::insufficient_funds, forward_amount >= min_forward_amount);
+        
+        ;; Update total fees collected
+        total_fees = total_fees + fee_amount;
+        save_data(owner, fee_bps, total_fees);
+        
+        ;; Build forward message
+        cell msg_body = in_msg_body.slice_empty?() 
+            ? begin_cell().end_cell()
+            : begin_cell().store_slice(in_msg_body).end_cell();
+        
+        cell msg = begin_cell()
+            .store_uint(0x10, 6)            ;; nobounce
+            .store_slice(recipient)
+            .store_coins(forward_amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_ref(msg_body)
+            .end_cell();
+        
+        send_raw_message(msg, 1); ;; pay fees separately
+        return ();
+    }
+    
+    if (op == op::withdraw_fees) {
+        ;; Owner withdraws collected fees
+        (slice owner, int fee_bps, int total_fees) = load_data();
+        
+        ;; Only owner can withdraw
+        throw_unless(error::unauthorized, equal_slices(sender, owner));
+        
+        ;; Calculate withdrawable amount (keep some for gas)
+        int min_balance = 50000000; ;; Keep 0.05 TON for gas
+        int withdrawable = my_balance - min_balance;
+        
+        throw_unless(error::insufficient_funds, withdrawable > 0);
+        
+        ;; Reset collected fees counter
+        save_data(owner, fee_bps, 0);
+        
+        ;; Send to owner
+        cell msg = begin_cell()
+            .store_uint(0x10, 6)
+            .store_slice(owner)
+            .store_coins(withdrawable)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .end_cell();
+        
+        send_raw_message(msg, 1);
+        return ();
+    }
+    
+    if (op == op::update_fee) {
+        ;; Owner updates fee percentage
+        (slice owner, int fee_bps, int total_fees) = load_data();
+        throw_unless(error::unauthorized, equal_slices(sender, owner));
+        
+        int new_fee_bps = in_msg_body~load_uint(16);
+        ;; Max fee is 5% (500 basis points)
+        throw_if(error::invalid_address, new_fee_bps > 500);
+        
+        save_data(owner, new_fee_bps, total_fees);
+        return ();
+    }
+    
+    if (op == op::update_owner) {
+        ;; Owner transfers ownership
+        (slice owner, int fee_bps, int total_fees) = load_data();
+        throw_unless(error::unauthorized, equal_slices(sender, owner));
+        
+        slice new_owner = in_msg_body~load_msg_addr();
+        save_data(new_owner, fee_bps, total_fees);
+        return ();
+    }
+    
+    ;; Unknown operation - just accept the TON
+    return ();
+}
+
+;; Getters
+
+int get_fee_bps() method_id {
+    (_, int fee_bps, _) = load_data();
+    return fee_bps;
+}
+
+int get_total_fees_collected() method_id {
+    (_, _, int total_fees) = load_data();
+    return total_fees;
+}
+
+slice get_owner() method_id {
+    (slice owner, _, _) = load_data();
+    return owner;
+}
+
+;; Calculate fee for a given amount (in nanoTON)
+int calculate_fee(int amount) method_id {
+    (_, int fee_bps, _) = load_data();
+    return muldiv(amount, fee_bps, 10000);
+}

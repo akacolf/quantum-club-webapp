@@ -24,20 +24,19 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { toNano, Address, beginCell, Cell } from "@ton/core";
+import { toNano, Address, beginCell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { resolveTonAddress } from "@/lib/tonAddressResolver";
 import { 
-  QC_TREASURY_ADDRESS_PARSED, 
-  QC_SERVICE_FEE_PERCENT, 
-  SERVICE_FEE_COMMENT,
   calculateServiceFee,
-  shouldApplyServiceFee,
-  calculateRecipientAmount
+  getFeeRouterAddress,
+  isFeeRouterDeployed,
+  QC_SERVICE_FEE_PERCENT
 } from "@/lib/treasuryConfig";
+import { buildRouteMessageBody } from "@/lib/feeRouter";
 
 interface SendableAsset {
   type: "ton" | "jetton";
@@ -67,7 +66,7 @@ export default function SendPage() {
     fetchWalletAssets 
   } = useWallet();
 
-  const USE_TESTNET = false;
+  const USE_TESTNET = true;
   const TON_API_BASE_URL = USE_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
@@ -233,17 +232,6 @@ export default function SendPage() {
     return true;
   };
 
-  // Build comment cell for transaction body
-  const buildCommentBody = (text: string): Cell | string => {
-    if (!text || text.trim() === "") {
-      return "";
-    }
-    return beginCell()
-      .storeUint(0, 32)
-      .storeStringTail(text.trim())
-      .endCell();
-  };
-
   // Calculate accurate network fee based on TON fee formulas
   const calculateNetworkFee = (messageCount: number, hasComment: boolean): number => {
     // Based on TON fee documentation:
@@ -307,54 +295,37 @@ export default function SendPage() {
       const contract = adapter.open(wallet);
       const toAddress = Address.parse(resolvedAddress);
       
-      // Calculate QC service fee using centralized config
+      // Calculate QC service fee (0.5% deducted by Fee Router)
       const qcFeeAmount = calculateServiceFee(parseFloat(amount));
       setServiceFee(qcFeeAmount.toFixed(6));
 
       let networkFee: number;
 
       if (selectedAsset?.type === "ton") {
-        const totalAmount = parseFloat(amount);
-        
-        // Calculate fee based on message count and comment
-        const messageCount = shouldApplyServiceFee(qcFeeAmount) ? 2 : 1;
+        // Fee Router: Single message to router contract
+        // Router handles: deduct 0.5% fee, forward remainder to recipient
         const hasComment = comment.trim().length > 0;
         
-        // Use our formula-based calculation
-        networkFee = calculateNetworkFee(messageCount, hasComment);
-        
-        // Ensure minimum fee matches Tonkeeper behavior (~0.00338 TON for simple transfers)
+        // Network fee for sending to router
+        networkFee = calculateNetworkFee(1, hasComment);
         networkFee = Math.max(networkFee, 0.00338);
         
-        const recipientAmount = calculateRecipientAmount(totalAmount, qcFeeAmount, networkFee);
+        // Router reserves gas for forwarding
+        const routerGas = 0.01;
+        networkFee += routerGas;
         
-        if (recipientAmount <= 0) {
-          throw new Error("Amount too small to cover fees");
-        }
-
-        // Build message body with optional comment
-        const messageBody = buildCommentBody(comment);
-
-        // Build actual messages for emulation
+        // Build message for Fee Router
+        const feeRouterAddress = Address.parse(getFeeRouterAddress(USE_TESTNET));
+        const routeBody = buildRouteMessageBody(toAddress, comment.trim() || undefined);
+        
         const messages = [
           internal({
-            to: toAddress,
-            value: toNano(recipientAmount.toFixed(9)),
-            body: messageBody,
+            to: feeRouterAddress,
+            value: toNano(amount),
+            body: routeBody,
             bounce: false
           }),
         ];
-        
-        if (shouldApplyServiceFee(qcFeeAmount)) {
-          messages.push(
-            internal({
-              to: QC_TREASURY_ADDRESS_PARSED,
-              value: toNano(qcFeeAmount.toFixed(9)),
-              body: SERVICE_FEE_COMMENT,
-              bounce: false
-            })
-          );
-        }
 
         // Try to get more accurate fee from emulation
         let seqno = 0;
@@ -364,7 +335,7 @@ export default function SendPage() {
           // New wallet, seqno is 0
         }
 
-        // Create the actual transfer for emulation
+        // Create transfer for emulation
         const transfer = wallet.createTransfer({
           seqno,
           secretKey: keyPair.secretKey,
@@ -375,28 +346,26 @@ export default function SendPage() {
         // Build external message for emulation
         const externalMessage = beginCell()
           .storeWritable((builder) => {
-            builder.storeUint(0b10, 2); // ext_in_msg_info
-            builder.storeUint(0, 2); // src -> addr_none
-            builder.storeAddress(wallet.address); // dest
-            builder.storeCoins(0); // import_fee
+            builder.storeUint(0b10, 2);
+            builder.storeUint(0, 2);
+            builder.storeAddress(wallet.address);
+            builder.storeCoins(0);
           })
           .storeBuilder(
             beginCell()
-              .storeBit(false) // no state init
-              .storeBit(true) // body is a reference
+              .storeBit(false)
+              .storeBit(true)
               .storeRef(transfer)
           )
           .endCell();
 
-        // Use TON API emulation to get accurate fee
+        // Use TON API emulation for accurate fee
         try {
           const emulateResponse = await fetch(
-            `https://tonapi.io/v2/emulation/emulateMessageToTrace`,
+            `${TON_API_BASE_URL}/v2/emulation/emulateMessageToTrace`,
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 boc: externalMessage.toBoc().toString("base64"),
                 ignore_signature_check: true
@@ -406,55 +375,34 @@ export default function SendPage() {
 
           if (emulateResponse.ok) {
             const emulateData = await emulateResponse.json();
-            // Extract total fee from the trace
-            // The "extra" field in transaction contains the fee info
             const transactions = emulateData.transactions || [];
             let totalFees = 0;
             
             for (const tx of transactions) {
-              // Each transaction has compute_phase and action_phase fees
               const computeFee = tx.compute_phase?.gas_fees || 0;
               const storageFee = tx.storage_phase?.storage_fees_collected || 0;
               const actionFee = tx.action_phase?.total_action_fees || 0;
               totalFees += computeFee + storageFee + actionFee;
             }
             
-            // Convert from nanoTON to TON
             networkFee = totalFees / 1e9;
-            
-            // If emulation returned 0 or very small, use calculated fallback
             if (networkFee < 0.001) {
-              // Calculate based on message count
-              // Base compute: ~5000 gas = ~0.002 TON
-              // Forward fee per message: ~0.001 TON
-              // Action fee: ~0.0005 TON per message
-              const messageCount = messages.length;
-              networkFee = 0.002 + (messageCount * 0.0015);
+              networkFee = 0.005; // Single message base fee
             }
-            
-            // Add 15% buffer for network fluctuations
-            networkFee = networkFee * 1.15;
+            networkFee = networkFee * 1.15; // 15% buffer
           } else {
             throw new Error("Emulation failed");
           }
-        } catch (emulationError) {
-          console.warn("Emulation failed, using calculated fee:", emulationError);
-          // Fallback: Calculate based on TON fee formula
-          // transaction_fee = storage_fees + compute_fees + action_fees + fwd_fees
-          //
-          // For a simple transfer:
-          // - Compute: ~5000 gas × 0.0000004 TON/gas = ~0.002 TON
-          // - Forward: lump_price (0.0004) + message fees (~0.0001) = ~0.0005 TON per message
-          // - Action: ~1/3 of forward fee = ~0.00017 TON per message
-          //
-          // Use our calculated fee as fallback
-          networkFee = calculateNetworkFee(messages.length, comment.trim().length > 0);
+        } catch {
+          // Fallback to calculated fee
+          networkFee = calculateNetworkFee(1, hasComment) + routerGas;
         }
         
-        // Ensure minimum fee matches Tonkeeper (~0.00338 TON)
         networkFee = Math.max(networkFee, 0.00338);
-        // Cap at reasonable maximum
         networkFee = Math.min(networkFee, 0.025);
+        
+        // Add router gas reserve
+        networkFee += routerGas;
         
       } else {
         // Jetton transfer - more complex, higher fees
@@ -469,12 +417,11 @@ export default function SendPage() {
       setStep("confirm");
     } catch (error) {
       console.error("Fee estimation failed", error);
-      // Fallback to safe default estimates matching Tonkeeper
+      // Fallback to safe default estimates
       const qcFee = calculateServiceFee(parseFloat(amount));
-      const messageCount = shouldApplyServiceFee(qcFee) ? 2 : 1;
       const hasComment = comment.trim().length > 0;
       const baseFee = selectedAsset?.type === "ton" 
-        ? calculateNetworkFee(messageCount, hasComment)
+        ? calculateNetworkFee(1, hasComment) + 0.01 // +0.01 for router gas
         : 0.06;
       setEstimatedFee(Math.max(baseFee, 0.00338).toFixed(6));
       setServiceFee(qcFee.toFixed(6));
@@ -533,49 +480,36 @@ export default function SendPage() {
 
       if (selectedAsset?.type === "ton") {
         const totalAmount = parseFloat(amount);
-        const qcFeeAmount = parseFloat(serviceFee);
-        const networkFeeAmount = parseFloat(estimatedFee);
-        const recipientAmount = calculateRecipientAmount(totalAmount, qcFeeAmount, networkFeeAmount);
         
-        if (recipientAmount <= 0) {
-          toast.error("Amount too small to cover fees");
+        // Check if Fee Router is deployed
+        if (!isFeeRouterDeployed(USE_TESTNET)) {
+          toast.error("Fee Router contract not deployed. Contact support.");
           setStep("input");
           setIsSending(false);
           return;
         }
-
-        // Build message body with optional comment
-        const messageBody = buildCommentBody(comment);
         
-        const messages = [
-          internal({
-            to: toAddress,
-            value: toNano(recipientAmount.toFixed(9)),
-            body: messageBody,
-            bounce: false
-          }),
-        ];
+        // Use Fee Router Smart Contract for secure fee collection
+        const feeRouterAddress = Address.parse(getFeeRouterAddress(USE_TESTNET));
         
-        // Add QC service fee transaction to treasury if fee applies
-        if (shouldApplyServiceFee(qcFeeAmount)) {
-          messages.push(
-            internal({
-              to: QC_TREASURY_ADDRESS_PARSED,
-              value: toNano(qcFeeAmount.toFixed(9)),
-              body: SERVICE_FEE_COMMENT,
-              bounce: false
-            })
-          );
-        }
-
+        // Send full amount to router - it handles fee deduction and forwarding
+        const routeBody = buildRouteMessageBody(toAddress, comment.trim() || undefined);
+        
         await contract.sendTransfer({
           seqno,
           secretKey: keyPair.secretKey,
           sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-          messages,
+          messages: [
+            internal({
+              to: feeRouterAddress,
+              value: toNano(totalAmount.toFixed(9)),
+              body: routeBody,
+              bounce: false
+            }),
+          ],
         });
       } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
-        // For jettons: recipient receives amount - serviceFee (network fee is in TON)
+        // For jettons: send directly (no fee router support yet)
         const totalAmount = parseFloat(amount);
         const qcFeeAmount = parseFloat(serviceFee);
         const recipientAmount = totalAmount - qcFeeAmount;
