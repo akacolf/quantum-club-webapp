@@ -6,7 +6,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Settings, RefreshCw, FlaskConical } from "lucide-react";
+import { 
+  Settings, 
+  RefreshCw, 
+  FlaskConical, 
+  Copy, 
+  Check, 
+  LogOut, 
+  Eye, 
+  EyeOff, 
+  Send, 
+  ArrowDownLeft, 
+  ArrowLeftRight, 
+  History,
+  Plus,
+  Download,
+  ShieldAlert
+} from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,13 +45,11 @@ export default function WalletPage() {
     tonUsdValue, 
     totalUsdBalance, 
     jettons,
-    hiddenAssets,
     isLoadingAssets, 
     hasFetched,
     hideBalance,
     isTestnet,
     fetchWalletAssets,
-    toggleHideAsset,
     toggleHideBalance
   } = useWallet();
   const { telegramId } = useGameContext();
@@ -59,26 +73,15 @@ export default function WalletPage() {
   const createWallet = async () => {
     setIsLoading(true);
     try {
-      // Generate a new 24-word mnemonic
       const mnemonic = await mnemonicNew(24);
-      
-      // Derive keypair from mnemonic
       const keyPair = await mnemonicToWalletKey(mnemonic);
-      
-      // Create wallet contract (V5R1 is the latest version)
       const wallet = WalletContractV5R1.create({
         workchain: 0,
         publicKey: keyPair.publicKey,
       });
-      
-      // Get the wallet address
       const address = wallet.address.toString({ bounceable: false });
-      
-      // Store in session storage for the backup/verify pages
       sessionStorage.setItem("pending_wallet_mnemonic", mnemonic.join(" "));
       sessionStorage.setItem("pending_wallet_address", address);
-      
-      // Navigate to backup page
       router.push("/wallet/backup");
     } catch (error) {
       console.error("Wallet creation error:", error);
@@ -113,54 +116,57 @@ export default function WalletPage() {
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="w-full max-w-md text-center space-y-6"
+          className="w-full max-w-md text-center space-y-8"
         >
-          <div className="w-24 h-24 bg-linear-to-br from-blue-500/20 to-purple-500/20 rounded-3xl flex items-center justify-center mx-auto border border-white/10 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="3.5em"
-              height="3.5em"
-              viewBox="0 0 24 24"
-              className="text-blue-400"
-            >
-              <g fill="currentColor" fillRule="evenodd" clipRule="evenodd">
-                <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
-                <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
-              </g>
-            </svg>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              <h3 className="text-2xl font-bold text-white">QC Wallet</h3>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">Beta</span>
-            </div>
-            <p className="text-gray-400 text-sm max-w-[280px] mx-auto leading-relaxed">
-              The official wallet of Quantum Club. Secure, fast, and built for the future.
-            </p>
-          </div>
+          <Card className="border-0 bg-transparent shadow-none">
+            <CardContent className="pt-10 pb-8 px-6 flex flex-col items-center gap-6">
+              <div className="w-24 h-24 bg-[#222] rounded-3xl flex items-center justify-center border border-[#333]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" className="text-gray-400">
+                  <g fill="currentColor" fillRule="evenodd" clipRule="evenodd">
+                    <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
+                    <path d="M20.918 17a.22.22 0 0 1 .221.278c-.2.712-.519 1.32-1.03 1.83c-.749.75-1.698 1.081-2.87 1.239c-1.14.153-2.595.153-4.433.153h-2.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87C2 15.099 2 13.644 2 11.806v-.112C2 9.856 2 8.4 2.153 7.26c.158-1.172.49-2.121 1.238-2.87c.749-.748 1.698-1.08 2.87-1.238C7.401 3 8.856 3 10.694 3h2.112c1.838 0 3.294 0 4.433.153c1.172.158 2.121.49 2.87 1.238c.511.512.83 1.119 1.03 1.831a.22.22 0 0 1-.221.278h-2.524c-2.837 0-5.337 2.24-5.337 5.25s2.5 5.25 5.337 5.25zM5.75 7a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5z" />
+                  </g>
+                </svg>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2">
+                  <h3 className="text-2xl font-bold text-white">QC Wallet</h3>
+                  <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30">
+                    BETA
+                  </Badge>
+                </div>
+                <p className="text-gray-400 text-sm max-w-[280px] mx-auto leading-relaxed">
+                  The official wallet of Quantum Club. Secure, fast, and built for the future.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
           
           <div className="space-y-3 w-full">
             <Button
               onClick={createWallet}
               disabled={isLoading}
-              className="w-full bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-white/10 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-semibold text-base shadow-lg shadow-white/5"
             >
               {isLoading ? (
                 <ButtonLoader />
               ) : (
                 <>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  <Plus className="w-4 h-4 mr-2" />
                   Create New Wallet
                 </>
               )}
             </Button>
             
-            <Link
-              href="/wallet/import"
-              className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] h-12 rounded-xl font-bold transition-all border border-[#333] flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/20"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-              Import Existing Wallet
+            <Link href="/wallet/import" className="block w-full">
+              <Button
+                variant="outline"
+                className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] border-[#333] h-12 rounded-xl font-semibold text-base"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Import Existing Wallet
+              </Button>
             </Link>
           </div>
         </motion.div>
@@ -168,7 +174,6 @@ export default function WalletPage() {
     );
   }
 
-  // Main wallet view
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -181,144 +186,154 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen">
       <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
-      {/* Header Card */}
       <motion.div 
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="w-full bg-linear-to-br from-[#1a1a1a] to-[#111] border border-[#333] rounded-3xl p-6 relative overflow-hidden"
+        className="w-full"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
-        
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-black/40 rounded-full px-3 py-1.5 border border-white/5">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-xs font-medium text-gray-300">
-                {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
-              </span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={copyAddress} 
-              className="ml-1 h-auto w-auto p-0 text-gray-500 hover:text-white hover:bg-transparent"
-            >
-              {copied ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              )}
-            </Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 rounded-full disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button 
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push("/wallet/settings")}
-              className="bg-[#222] text-gray-400 hover:bg-[#333] hover:text-white rounded-full"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="ghost"
-              size="icon"
-              onClick={() => walletExit()}
-              className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-1 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">Total Balance</span>
-            {isTestnet && (
-              <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/20 text-xs py-0 px-1.5">
-                <FlaskConical className="w-3 h-3 mr-1" />
-                TESTNET
-              </Badge>
-            )}
-            <button 
-              onClick={toggleHideBalance}
-              className="text-gray-500 hover:text-gray-300 transition-colors"
-            >
-              {hideBalance ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              )}
-            </button>
-          </div>
-          <div className="flex items-baseline gap-1">
-            {isLoadingAssets ? (
-              <Skeleton className="h-10 w-32 bg-[#222]" />
-            ) : (
-              <h2 className="text-4xl font-bold text-white">
-                {hideBalance ? "••••••" : `$${totalUsdBalance}`}
-              </h2>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2 mt-6 relative z-10">
-          {[
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>, label: "Send", href: "/wallet/send" },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>, label: "Receive", href: "/wallet/receive" },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>, label: "Swap", onClick: () => {}, disabled: true },
-            { icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: "History", href: "/wallet/history" },
-          ].map((action, i) => {
-            const ButtonContent = () => (
-              <>
-                <div className={`w-12 h-12 bg-[#222] rounded-2xl flex items-center justify-center text-gray-400 ${!action.disabled && 'group-hover:bg-[#333] group-hover:text-white'} transition-all`}>
-                  {action.icon}
+        <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#111] border-[#333] rounded-3xl relative overflow-hidden shadow-xl">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
+          
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-black/40 rounded-full px-3 py-1.5 border border-white/5">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs font-medium text-gray-300">
+                    {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={copyAddress} 
+                    className="ml-1 h-5 w-5 p-0 text-gray-500 hover:text-white hover:bg-transparent"
+                  >
+                    {copied ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </Button>
                 </div>
-                <span className={`text-xs text-gray-500 ${!action.disabled && 'group-hover:text-gray-300'}`}>{action.label}</span>
-              </>
-            );
-
-            if (action.href) {
-              return (
-                <Link 
-                  key={i}
-                  href={action.href}
-                  prefetch={true}
-                  className="flex flex-col items-center gap-2 group"
+              </div>
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-8 w-8 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 rounded-full disabled:opacity-50"
                 >
-                  <ButtonContent />
-                </Link>
-              );
-            }
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push("/wallet/settings")}
+                  className="h-8 w-8 bg-[#222] text-gray-400 hover:bg-[#333] hover:text-white rounded-full"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => walletExit()}
+                  className="h-8 w-8 bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
 
-            return (
-              <button 
-                key={i} 
-                onClick={action.onClick} 
-                disabled={action.disabled}
-                className={`flex flex-col items-center gap-2 group ${action.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-              >
-                <ButtonContent />
-              </button>
-            );
-          })}
-        </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 text-sm">Total Balance</span>
+                {isTestnet && (
+                  <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/20 text-[10px] py-0 px-1.5 h-5">
+                    <FlaskConical className="w-3 h-3 mr-1" />
+                    TESTNET
+                  </Badge>
+                )}
+                <button 
+                  onClick={toggleHideBalance}
+                  className="text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  {hideBalance ? (
+                    <EyeOff className="w-3.5 h-3.5" />
+                  ) : (
+                    <Eye className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+              <div className="flex items-baseline gap-1">
+                {isLoadingAssets ? (
+                  <Skeleton className="h-10 w-32 bg-[#222]" />
+                ) : (
+                  <h2 className="text-4xl font-bold text-white tracking-tight">
+                    {hideBalance ? "••••••" : `$${totalUsdBalance}`}
+                  </h2>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3 mt-8">
+              {[
+                { icon: <Send className="w-5 h-5" />, label: "Send", href: "/wallet/send" },
+                { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", href: "/wallet/receive" },
+                { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", onClick: () => {}, disabled: true },
+                { icon: <History className="w-5 h-5" />, label: "History", href: "/wallet/history" },
+              ].map((action, i) => {
+                const ButtonContent = () => (
+                  <>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                      action.disabled 
+                        ? 'bg-[#222] text-gray-600' 
+                        : 'bg-[#222] text-gray-400 group-hover:bg-[#333] group-hover:text-white group-hover:scale-105 shadow-lg shadow-black/20'
+                    }`}>
+                      {action.icon}
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${
+                      action.disabled ? 'text-gray-600' : 'text-gray-500 group-hover:text-gray-300'
+                    }`}>
+                      {action.label}
+                    </span>
+                  </>
+                );
+
+                if (action.href) {
+                  return (
+                    <Link 
+                      key={i}
+                      href={action.href}
+                      prefetch={true}
+                      className="flex flex-col items-center gap-2 group"
+                    >
+                      <ButtonContent />
+                    </Link>
+                  );
+                }
+
+                return (
+                  <button 
+                    key={i} 
+                    onClick={action.onClick} 
+                    disabled={action.disabled}
+                    className={`flex flex-col items-center gap-2 group ${action.disabled ? 'cursor-not-allowed' : ''}`}
+                  >
+                    <ButtonContent />
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
 
-      {/* QNTM Section */}
       <div className="w-full space-y-3">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-lg font-bold text-white">QNTM Balance</h3>
         </div>
-        <Card className="bg-gradient-to-br from-orange-500/10 to-yellow-500/5 border border-orange-500/20 rounded-2xl shadow-none">
+        <Card className="bg-gradient-to-br from-orange-500/10 to-yellow-500/5 border-orange-500/20 rounded-2xl shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -337,43 +352,34 @@ export default function WalletPage() {
                 <p className="text-xs text-gray-500">QC Points</p>
               </div>
             </div>
-            <Link
-              href="/wallet/send-qntm"
-              className="flex items-center justify-center gap-2 w-full h-10 bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold rounded-xl text-sm transition-opacity hover:opacity-90 active:opacity-80"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="19" x2="12" y2="5"></line>
-                <polyline points="5 12 12 5 19 12"></polyline>
-              </svg>
-              Send QNTM
+            <Link href="/wallet/send-qntm" className="block w-full">
+              <Button 
+                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold hover:opacity-90 transition-opacity"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Send QNTM
+              </Button>
             </Link>
           </CardContent>
         </Card>
       </div>
 
-      {/* TON Network Warning */}
       <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 mt-0.5 shrink-0">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
+        <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
         <p className="text-xs text-yellow-500/90 leading-relaxed">
           This wallet only supports TON assets. Sending other tokens may result in permanent loss.
         </p>
       </div>
 
-      {/* Assets List */}
       <div className="w-full space-y-4 pb-24">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-lg font-bold text-white">Assets</h3>
         </div>
         <div className="space-y-3">
-          {/* TON Asset */}
-          <Card className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
+          <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors">
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/20">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="text-white">
                     <path fill="currentColor" d="m20.661 7.22l-7.846 12.494a1.06 1.06 0 0 1-1.794-.006L3.328 7.214A2.2 2.2 0 0 1 3 6.05a2.29 2.29 0 0 1 2.324-2.255h13.362C19.963 3.794 21 4.8 21 6.044c0 .413-.116.82-.339 1.175M5.218 6.8l5.723 8.826V5.912H5.816c-.592 0-.857.392-.598.89m7.84 8.826L18.783 6.8c.265-.497-.006-.89-.599-.89H13.06z" />
                   </svg>
@@ -402,7 +408,7 @@ export default function WalletPage() {
           {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
             <>
               {[1, 2].map((i) => (
-                <Card key={i} className="bg-[#111] border border-[#222] rounded-2xl shadow-none">
+                <Card key={i} className="bg-[#111] border-[#222] rounded-2xl shadow-none">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Skeleton className="w-10 h-10 rounded-full bg-[#222]" />
@@ -423,18 +429,16 @@ export default function WalletPage() {
           )}
 
           {!isLoadingAssets && hasFetched && jettons.length === 0 && (
-            <div className="py-4 text-center">
-              <p className="text-xs text-gray-500">Tokens will appear here automatically.</p>
+            <div className="py-8 text-center bg-[#111] rounded-2xl border border-[#222] border-dashed">
+              <p className="text-sm text-gray-500">Tokens will appear here automatically.</p>
             </div>
           )}
 
-          {jettons
-            .filter(jetton => !hiddenAssets.includes(jetton.symbol))
-            .map((jetton, index) => {
+          {jettons.map((jetton, index) => {
             const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
             const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
             return (
-              <Card key={index} className="bg-[#111] border border-[#222] rounded-2xl shadow-none group">
+              <Card key={index} className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
@@ -450,33 +454,15 @@ export default function WalletPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-right">
+                    <div className="text-right min-w-[80px]">
                       <h4 className="font-bold text-white">{hideBalance ? "••••" : formattedBalance}</h4>
                       <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
                     </div>
-                    <button
-                      onClick={() => toggleHideAsset(jetton.symbol)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-400 p-1"
-                      title="Hide asset"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                    </button>
                   </div>
                 </CardContent>
               </Card>
             );
           })}
-          
-          {hiddenAssets.length > 0 && (
-            <button
-              onClick={() => {
-                hiddenAssets.forEach(symbol => toggleHideAsset(symbol));
-              }}
-              className="w-full text-center text-xs text-gray-500 hover:text-gray-300 py-2 transition-colors"
-            >
-              Show {hiddenAssets.length} hidden asset{hiddenAssets.length > 1 ? 's' : ''}
-            </button>
-          )}
         </div>
       </div>
     </div>

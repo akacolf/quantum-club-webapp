@@ -88,10 +88,8 @@ const NavigationBar = () => {
   else if (pathname.includes("/wallet")) activeTab = "wallet";
 
   return (
-    <div className="fixed z-50 bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] h-[70px] bg-white/10 dark:bg-black/30 backdrop-blur-2xl rounded-full border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] overflow-hidden">
+    <div className="fixed z-50 bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] h-[70px] bg-black/80 backdrop-blur-xl rounded-full border border-white/10 overflow-hidden">
       <nav className="grid h-full grid-cols-4 items-center relative">
-        {/* Liquid Background Effect */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
         
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -105,20 +103,10 @@ const NavigationBar = () => {
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
             >
-              {/* Active Indicator Background - Liquid Blob */}
-              {isActive && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-primary/20 rounded-full blur-md" />
-              )}
-              
-              {/* Top Active Line - Removed for Liquid Look, replaced with bottom glow or similar */}
-              {isActive && (
-                 <div className="absolute bottom-2 w-1 h-1 bg-primary rounded-full shadow-[0_0_10px_2px_rgba(var(--primary),0.5)]" />
-              )}
-
               <div
                 className={`transition-all duration-300 ${
                   isActive
-                    ? "text-primary scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
+                    ? "text-primary scale-110"
                     : "text-muted-foreground group-hover:text-foreground"
                 }`}
               >

@@ -3,21 +3,6 @@ import { EarnTask } from "@/lib/interfaces";
 const tasks: EarnTask[] = [
   //Limited
   {
-    id: "quantumReplay2025Task",
-    description: "Discover Your 2025 Replay",
-    platform: <svg xmlns="http://www.w3.org/2000/svg" width="2.5em" height="2.5em" viewBox="0 0 24 24">
-      <path fill="#fff" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z" />
-    </svg>,
-    url: "",
-    buttontitle: "View",
-    category: "Limited",
-    whichPlatform: "quantumReplay2025",
-    completed: false,
-    buttonText: undefined,
-    quant: 0,
-    timestamp: 0
-  },
-  {
     id: "UGhWGdH0R9PADRNQdw2XkLsJw",
     description: "crypticbut",
     platform: <svg xmlns="http://www.w3.org/2000/svg" width="2.5em" height="2.5em" viewBox="0 0 24 24">

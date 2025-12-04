@@ -39,7 +39,6 @@ const FrensContent = () => {
       const snapshot = await getCountFromServer(referralsRef);
       setReferralNum(snapshot.data().count);
       
-      // Get second-tier referrals count
       const secondTierRef = collection(dbfs, `user/${telegramId}/secondTierReferrals`);
       const secondTierSnapshot = await getCountFromServer(secondTierRef);
       setSecondTierCount(secondTierSnapshot.data().count);
@@ -201,11 +200,9 @@ const FrensContent = () => {
               <h1 className="text-3xl font-bold text-white">Frens</h1>
             </div>
 
-            {/* Stats Card */}
             <Card className="bg-[#1a1a1a]/80 border-[#333] backdrop-blur-xl text-white overflow-hidden relative">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
               <CardContent className="p-6 space-y-4 relative z-10">
-                {/* First-tier referrals */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
                     <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/20">
@@ -231,33 +228,35 @@ const FrensContent = () => {
                   </div>
                 </div>
                 
-                {/* Second-tier referrals */}
-                {secondTierCount > 0 && (
-                  <div className="flex items-center justify-between pt-4 border-t border-[#333]">
+                <div className="pt-4 border-t border-[#333]">
+                  <div className="flex items-center justify-between">
                     <div className="space-y-2">
                       <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border-purple-500/20">
                         EARN 2%
                       </Badge>
                       <div className="text-sm text-gray-400 font-medium">FROM THEIR INVITES</div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <div className="flex items-center gap-2">
-                        <Users2 className="w-8 h-8 text-purple-400" />
-                        <div className="text-3xl font-bold bg-linear-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
-                          {secondTierCount}
+                    {secondTierCount > 0 && (
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-2">
+                          <Users2 className="w-8 h-8 text-purple-400" />
+                          <div className="text-3xl font-bold bg-linear-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+                            {secondTierCount}
+                          </div>
                         </div>
+                        <div className="text-xs text-gray-500 font-medium mt-1">2ND TIER FRENS</div>
                       </div>
-                      <div className="text-xs text-gray-500 font-medium mt-1">2ND TIER FRENS</div>
-                    </div>
+                    )}
                   </div>
-                )}
+                  <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                    When your invited friends invite others, you earn 2% of their earnings too!
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Invite Button */}
             <InvitePopup />
 
-            {/* Referrals List */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-blue-400 font-semibold">
                 <Users className="w-5 h-5" />

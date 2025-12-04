@@ -103,7 +103,7 @@ const StoryContent = () => {
         if (prev >= 100) {
           return 100;
         }
-        return prev + 1; // 5 seconds approx (100 * 50ms = 5000ms)
+        return prev + 1;
       });
     }, 50);
 
@@ -120,7 +120,6 @@ const StoryContent = () => {
 
   return (
     <div className="fixed inset-0 bg-black text-white z-50 flex flex-col">
-      {/* Tap Zones - full screen */}
       <div className="absolute inset-0 z-10 flex">
         <div 
           className="w-1/3 h-full" 
@@ -142,7 +141,6 @@ const StoryContent = () => {
         />
       </div>
 
-      {/* Content */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStory}
@@ -152,10 +150,8 @@ const StoryContent = () => {
           transition={{ duration: 0.3 }}
           className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b ${current.gradient}`}
         >
-          {/* Background Effects */}
           <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 ${current.accent} rounded-full blur-[100px] opacity-20`} />
 
-          {/* Inner content */}
           <div className="relative z-0 flex flex-col items-center space-y-8 p-8 text-center">
             <div className="w-32 h-32 flex items-center justify-center rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
               <Lottie 
@@ -183,19 +179,16 @@ const StoryContent = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* Progress Indicator - Circular dots at bottom */}
       <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center items-center gap-3 safe-area-bottom">
         {stories.map((story, index) => (
           <div 
             key={story.id} 
             className="relative"
           >
-            {/* Background circle */}
             <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
               index <= currentStory ? 'bg-white/30' : 'bg-white/10'
             }`} />
             
-            {/* Animated fill for current story */}
             {index === currentStory && (
               <svg 
                 className="absolute inset-0 w-3 h-3 -rotate-90"
@@ -214,7 +207,6 @@ const StoryContent = () => {
               </svg>
             )}
             
-            {/* Completed indicator */}
             {index < currentStory && (
               <div className="absolute inset-0 w-3 h-3 rounded-full bg-white" />
             )}

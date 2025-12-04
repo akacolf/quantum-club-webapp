@@ -70,11 +70,11 @@ export default function ReceivePage() {
             <div className="w-full space-y-3">
               <div className="flex items-center justify-between text-sm text-gray-400 px-1">
                 <span>Your Address</span>
-                <span className="text-xs bg-[#222] px-2 py-0.5 rounded text-blue-400">TON</span>
+                <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20">TON</span>
               </div>
-              <button 
+              <div 
                 onClick={copyAddress}
-                className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl p-4 flex items-center justify-between gap-3 hover:bg-[#222] hover:border-[#444] transition-all group text-left"
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl p-4 flex items-center justify-between gap-3 hover:bg-[#222] hover:border-[#444] transition-all group cursor-pointer"
               >
                 <p className="text-sm text-gray-300 font-mono break-all leading-relaxed">
                   {walletAddress}
@@ -82,7 +82,7 @@ export default function ReceivePage() {
                 <div className="shrink-0 text-gray-500 group-hover:text-white transition-colors pl-2">
                   {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
                 </div>
-              </button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -90,7 +90,7 @@ export default function ReceivePage() {
         <div className="grid grid-cols-2 gap-3">
           <Button
             onClick={copyAddress}
-            className="bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold transition-all"
+            className="bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold transition-all shadow-lg shadow-white/5"
           >
             {copied ? (
               <>
@@ -105,7 +105,7 @@ export default function ReceivePage() {
           <Button
             onClick={handleShare}
             variant="outline"
-            className="bg-[#1a1a1a] border-[#333] text-white hover:bg-[#222] h-12 rounded-xl font-bold transition-all"
+            className="bg-[#1a1a1a] border-[#333] text-white hover:bg-[#222] hover:text-white h-12 rounded-xl font-bold transition-all"
           >
             <Share2 className="w-4 h-4 mr-2" /> Share
           </Button>

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowUpRight, ArrowDownLeft, Clock, Layers } from "lucide-react";
 import { fromNano, Address } from "@ton/core";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -203,24 +205,26 @@ export default function HistoryPage() {
               <div className="space-y-3 pb-20">
                 {isLoadingHistory ? (
                   [1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-[#111] border border-[#222]">
-                      <div className="flex items-center gap-4">
-                        <Skeleton className="w-12 h-12 rounded-full bg-[#222]" />
-                        <div className="space-y-2">
-                          <Skeleton className="w-24 h-4 bg-[#222]" />
-                          <Skeleton className="w-16 h-3 bg-[#222]" />
+                    <Card key={i} className="bg-[#111] border-[#222] shadow-none">
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <Skeleton className="w-12 h-12 rounded-full bg-[#222]" />
+                          <div className="space-y-2">
+                            <Skeleton className="w-24 h-4 bg-[#222]" />
+                            <Skeleton className="w-16 h-3 bg-[#222]" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end space-y-2">
-                        <Skeleton className="w-20 h-5 bg-[#222]" />
-                        <Skeleton className="w-12 h-3 bg-[#222]" />
-                      </div>
-                    </div>
+                        <div className="flex flex-col items-end space-y-2">
+                          <Skeleton className="w-20 h-5 bg-[#222]" />
+                          <Skeleton className="w-12 h-3 bg-[#222]" />
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))
                 ) : history.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-500 space-y-4">
                     <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center border border-[#222]">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                      <Clock className="w-8 h-8 text-gray-600" />
                     </div>
                     <p>No blockchain transactions yet</p>
                   </div>
@@ -291,40 +295,42 @@ export default function HistoryPage() {
                     const formattedTime = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
                     
                     return (
-                      <div key={event.event_id} className="group flex items-center justify-between p-4 rounded-2xl bg-[#111] border border-[#222] hover:border-[#333] transition-all active:scale-[0.99]">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${
-                            type === 'Deploy' ? 'bg-blue-500/10 text-blue-500' :
-                            isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                          }`}>
-                            {type === 'Deploy' ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            ) : isIncoming ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-white text-base">{type}</h4>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span className="font-mono bg-[#1a1a1a] px-1.5 py-0.5 rounded text-gray-400">
-                                {formatAddress(address)}
-                              </span>
+                      <Card key={event.event_id} className="bg-[#111] border-[#222] shadow-none hover:border-[#333] transition-all active:scale-[0.99]">
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${
+                              type === 'Deploy' ? 'bg-blue-500/10 text-blue-500' :
+                              isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                            }`}>
+                              {type === 'Deploy' ? (
+                                <Layers className="w-5 h-5" />
+                              ) : isIncoming ? (
+                                <ArrowDownLeft className="w-5 h-5" />
+                              ) : (
+                                <ArrowUpRight className="w-5 h-5" />
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-white text-base">{type}</h4>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span className="font-mono bg-[#1a1a1a] px-1.5 py-0.5 rounded text-gray-400">
+                                  {formatAddress(address)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <h4 className={`font-bold text-base ${
-                            status === 'scam' ? 'text-orange-500' :
-                            status === 'pending' ? 'text-yellow-500' :
-                            isIncoming ? 'text-green-500' : 'text-white'
-                          }`}>
-                            {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
-                          </h4>
-                          <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
-                        </div>
-                      </div>
+                          <div className="text-right">
+                            <h4 className={`font-bold text-base ${
+                              status === 'scam' ? 'text-orange-500' :
+                              status === 'pending' ? 'text-yellow-500' :
+                              isIncoming ? 'text-green-500' : 'text-white'
+                            }`}>
+                              {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
                     );
                   })
                 )}
@@ -338,24 +344,26 @@ export default function HistoryPage() {
               <div className="space-y-3 pb-20">
                 {isLoadingQntm ? (
                   [1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-[#111] border border-[#222]">
-                      <div className="flex items-center gap-4">
-                        <Skeleton className="w-12 h-12 rounded-full bg-[#222]" />
-                        <div className="space-y-2">
-                          <Skeleton className="w-24 h-4 bg-[#222]" />
-                          <Skeleton className="w-16 h-3 bg-[#222]" />
+                    <Card key={i} className="bg-[#111] border-[#222] shadow-none">
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <Skeleton className="w-12 h-12 rounded-full bg-[#222]" />
+                          <div className="space-y-2">
+                            <Skeleton className="w-24 h-4 bg-[#222]" />
+                            <Skeleton className="w-16 h-3 bg-[#222]" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end space-y-2">
-                        <Skeleton className="w-20 h-5 bg-[#222]" />
-                        <Skeleton className="w-12 h-3 bg-[#222]" />
-                      </div>
-                    </div>
+                        <div className="flex flex-col items-end space-y-2">
+                          <Skeleton className="w-20 h-5 bg-[#222]" />
+                          <Skeleton className="w-12 h-3 bg-[#222]" />
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))
                 ) : qntmHistory.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-500 space-y-4">
                     <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center border border-[#222]">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                      <Clock className="w-8 h-8 text-gray-600" />
                     </div>
                     <p>No QNTM transfers yet</p>
                     <p className="text-xs text-gray-600 text-center px-6">
@@ -378,39 +386,41 @@ export default function HistoryPage() {
                     }
                     
                     return (
-                      <div key={transfer.id} className="group flex items-center justify-between p-4 rounded-2xl bg-[#111] border border-[#222] hover:border-orange-500/30 transition-all active:scale-[0.99]">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${
-                            isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'
-                          }`}>
-                            {isIncoming ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-white text-base">
-                              {isIncoming ? 'Received' : 'Sent'}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span className="font-mono bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400">
-                                {formatQcId(counterparty || "")}
-                              </span>
+                      <Card key={transfer.id} className="bg-[#111] border-[#222] shadow-none hover:border-orange-500/30 transition-all active:scale-[0.99]">
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${
+                              isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'
+                            }`}>
+                              {isIncoming ? (
+                                <ArrowDownLeft className="w-5 h-5" />
+                              ) : (
+                                <ArrowUpRight className="w-5 h-5" />
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-white text-base">
+                                {isIncoming ? 'Received' : 'Sent'}
+                              </h4>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span className="font-mono bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400">
+                                  {formatQcId(counterparty || "")}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <h4 className={`font-bold text-base ${
-                            isIncoming ? 'text-green-500' : 'text-orange-400'
-                          }`}>
-                            {isIncoming ? '+' : '-'}{transfer.amount.toLocaleString()} QNTM
-                          </h4>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
-                          </p>
-                        </div>
-                      </div>
+                          <div className="text-right">
+                            <h4 className={`font-bold text-base ${
+                              isIncoming ? 'text-green-500' : 'text-white'
+                            }`}>
+                              {isIncoming ? '+' : '-'}{transfer.amount.toLocaleString()} QNTM
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
                     );
                   })
                 )}

@@ -17,12 +17,10 @@ export default function BackupPhrasePage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // Get the pending wallet data from session storage
     const pendingMnemonic = sessionStorage.getItem("pending_wallet_mnemonic");
     const pendingAddress = sessionStorage.getItem("pending_wallet_address");
     
     if (!pendingMnemonic || !pendingAddress) {
-      // No pending wallet, redirect back
       router.push("/wallet");
       return;
     }
@@ -40,7 +38,6 @@ export default function BackupPhrasePage() {
   };
 
   const handleContinue = () => {
-    // Generate 3 random word indices for verification and store them
     const indices: number[] = [];
     while (indices.length < 3) {
       const randomIndex = Math.floor(Math.random() * 24);
@@ -49,10 +46,7 @@ export default function BackupPhrasePage() {
       }
     }
     indices.sort((a, b) => a - b);
-    
-    // Store verification indices
     sessionStorage.setItem("verification_indices", JSON.stringify(indices));
-    
     router.push("/wallet/verify");
   };
 
@@ -68,7 +62,6 @@ export default function BackupPhrasePage() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          {/* Header */}
           <div className="text-center space-y-3">
             <div className="mx-auto w-14 h-14 bg-blue-500/10 rounded-full flex items-center justify-center ring-1 ring-blue-500/20">
               <ShieldAlert className="w-7 h-7 text-blue-400" />
@@ -79,7 +72,6 @@ export default function BackupPhrasePage() {
             </p>
           </div>
 
-          {/* Mnemonic Grid */}
           <div className="relative">
             <ScrollArea className="h-64 rounded-xl border border-[#222] bg-[#0a0a0a]">
               <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
@@ -117,7 +109,6 @@ export default function BackupPhrasePage() {
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col gap-3">
             <Button
               onClick={copyMnemonic}

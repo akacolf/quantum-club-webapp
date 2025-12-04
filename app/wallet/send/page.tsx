@@ -55,10 +55,8 @@ export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
   
-  // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
   
-  // Use shared wallet context
   const { 
     walletAddress,
     tonBalance, 
@@ -69,11 +67,9 @@ export default function SendPage() {
     fetchWalletAssets 
   } = useWallet();
 
-  // Testnet mode for testing (switch to mainnet for production)
-  const USE_TESTNET = true;
+  const USE_TESTNET = false;
   const TON_API_BASE_URL = USE_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
-  // Send State
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
   const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
   const [recipient, setRecipient] = useState("");
