@@ -278,7 +278,7 @@ export default function WalletPage() {
 
             <div className="grid grid-cols-4 gap-3 mt-8">
               {[
-                { icon: <Send className="w-5 h-5" />, label: "Send", href: "/wallet/send" },
+                { icon: <Send className="w-5 h-5" />, label: "Send", onClick: () => {}, disabled: true },
                 { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", href: "/wallet/receive" },
                 { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", onClick: () => {}, disabled: true },
                 { icon: <History className="w-5 h-5" />, label: "History", href: "/wallet/history" },
@@ -352,14 +352,16 @@ export default function WalletPage() {
                 <p className="text-xs text-gray-500">QC Points</p>
               </div>
             </div>
-            <Link href="/wallet/send-qntm" className="block w-full">
-              <Button 
-                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold hover:opacity-90 transition-opacity"
+            <Button 
+                className="w-full bg-gradient-to-r from-gray-600 to-gray-500 text-gray-300 font-bold cursor-not-allowed opacity-60"
+                disabled
               >
                 <Send className="w-4 h-4 mr-2" />
                 Send QNTM
+                <Badge variant="secondary" className="ml-2 bg-white/20 text-white text-[10px] py-0 px-1.5">
+                  Soon
+                </Badge>
               </Button>
-            </Link>
           </CardContent>
         </Card>
       </div>

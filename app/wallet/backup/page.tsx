@@ -28,6 +28,21 @@ export default function BackupPhrasePage() {
     setMnemonic(pendingMnemonic.split(" "));
   }, [router]);
 
+  // Enable closing confirmation while viewing seed phrase
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+      window.Telegram.WebApp.enableClosingConfirmation();
+      
+      return () => {
+        window.Telegram?.WebApp?.disableClosingConfirmation();
+      };
+    }
+  }, []);
+
+  const handleReveal = () => {
+    setIsRevealed(true);
+  };
+
   const copyMnemonic = () => {
     if (mnemonic.length > 0) {
       navigator.clipboard.writeText(mnemonic.join(" "));
@@ -72,6 +87,8 @@ export default function BackupPhrasePage() {
             </p>
           </div>
 
+          
+
           <div className="relative">
             <ScrollArea className="h-64 rounded-xl border border-[#222] bg-[#0a0a0a]">
               <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
@@ -87,7 +104,7 @@ export default function BackupPhrasePage() {
             {!isRevealed && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
                 <Button 
-                  onClick={() => setIsRevealed(true)}
+                  onClick={handleReveal}
                   variant="secondary"
                   className="bg-[#222] border border-[#333] text-white hover:bg-[#333] shadow-xl"
                 >

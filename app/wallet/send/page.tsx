@@ -337,15 +337,21 @@ export default function SendPage() {
           }),
         ];
 
-        // Try to get more accurate fee from emulation
+        // Check if wallet is deployed by getting account state
         let seqno = 0;
         let isNewWallet = false;
+        
         try {
-          seqno = await contract.getSeqno();
+          const state = await ta.accounts.getAccount(wallet.address);
+          isNewWallet = state.status !== 'active';
+          
+          if (!isNewWallet) {
+            seqno = await contract.getSeqno();
+          }
         } catch {
-          // New wallet, seqno is 0 - will need deployment
-          seqno = 0;
+          // If we can't get state, assume wallet is not deployed
           isNewWallet = true;
+          seqno = 0;
         }
         
         // Track if this is first transaction for UI display
@@ -492,12 +498,21 @@ export default function SendPage() {
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
       
-      // Get seqno - returns 0 for undeployed wallet (triggers lazy deploy on first send)
+      // Check if wallet is deployed by getting its state
       let seqno = 0;
+      let isWalletDeployed = false;
+      
       try {
-        seqno = await contract.getSeqno();
+        // Try to get the contract state to check if it's active
+        const state = await ta.accounts.getAccount(wallet.address);
+        isWalletDeployed = state.status === 'active';
+        
+        if (isWalletDeployed) {
+          seqno = await contract.getSeqno();
+        }
       } catch {
-        // Wallet not deployed yet - seqno 0 will trigger deployment with StateInit
+        // If we can't get state or seqno, assume wallet is not deployed
+        isWalletDeployed = false;
         seqno = 0;
       }
       
@@ -517,21 +532,74 @@ export default function SendPage() {
               .endCell()
           : undefined;
         
-        await contract.sendTransfer({
-          seqno,
-          secretKey: keyPair.secretKey,
-          sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-          messages: [
-            internal({
-              to: toAddress,
-              value: toNano(recipientAmount.toFixed(9)),
-              body: messageBody,
-              bounce: false
-            }),
-          ],
-        });
+        // For first transaction with undeployed wallet, we need to manually send with StateInit
+        if (!isWalletDeployed && seqno === 0) {
+          // Create the transfer message
+          const transfer = wallet.createTransfer({
+            seqno: 0,
+            secretKey: keyPair.secretKey,
+            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+            messages: [
+              internal({
+                to: toAddress,
+                value: toNano(recipientAmount.toFixed(9)),
+                body: messageBody,
+                bounce: false
+              }),
+            ],
+          });
+          
+          // Build external message with StateInit for wallet deployment
+          const externalMessage = beginCell()
+            .storeWritable((builder) => {
+              builder.storeUint(0b10, 2); // ext_in_msg_info$10
+              builder.storeUint(0, 2); // src: addr_none$00
+              builder.storeAddress(wallet.address); // dest
+              builder.storeCoins(0); // import_fee
+            })
+            .storeBit(true) // state_init present
+            .storeBit(true) // state_init in ref
+            .storeRef(
+              beginCell()
+                .storeUint(0, 2) // split_depth = 0, special = 0
+                .storeMaybeRef(wallet.init.code) // code
+                .storeMaybeRef(wallet.init.data) // data
+                .storeUint(0, 1) // library = 0
+                .endCell()
+            )
+            .storeBit(true) // body in ref
+            .storeRef(transfer)
+            .endCell();
+          
+          // Send the external message via TonAPI
+          const boc = externalMessage.toBoc().toString('base64');
+          await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ boc })
+          });
+        } else {
+          // Normal transfer for deployed wallet
+          await contract.sendTransfer({
+            seqno,
+            secretKey: keyPair.secretKey,
+            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+            messages: [
+              internal({
+                to: toAddress,
+                value: toNano(recipientAmount.toFixed(9)),
+                body: messageBody,
+                bounce: false
+              }),
+            ],
+          });
+        }
       } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
-        // Jetton transfer - direct P2P
+        // Jetton transfer - requires deployed wallet
+        if (!isWalletDeployed) {
+          throw new Error("Your wallet needs to have some TON first. Send TON to your wallet address to activate it, then try again.");
+        }
+        
         const sendAmount = parseFloat(amount);
         
         const jettonAmount = BigInt(Math.floor(sendAmount * Math.pow(10, selectedAsset.decimals)));
