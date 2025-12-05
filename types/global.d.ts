@@ -23,6 +23,7 @@ declare global {
           start_param?: string;
         };
         ready: () => void;
+        expand: () => void;
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
         requestFullscreen: () => void;
