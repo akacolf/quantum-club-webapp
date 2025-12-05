@@ -13,7 +13,10 @@ body {
 }
 
 .inner-content {
-  padding: var(--content-safe-area-top, 7vh) 0 var(--content-safe-area-bottom, 12vh) 0;
+  /* Use content safe area for Telegram mini app header buttons (close, minimize, options) */
+  /* Fallback to 56px which is standard Telegram header height + some padding */
+  padding-top: max(var(--content-safe-area-top, 56px), 56px);
+  padding-bottom: var(--content-safe-area-bottom, 12vh);
   background-color: var(--background);
 }
 
