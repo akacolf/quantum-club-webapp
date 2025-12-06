@@ -30,7 +30,12 @@ export async function POST(request: NextRequest) {
     const userSnapshot = await userRef.get();
 
     if (userSnapshot.exists) {
-      return NextResponse.json({ exists: true });
+      // Also fetch the user's profile to get their username
+      const profileRef = db.doc(`user/${qcId.trim()}`);
+      const profileSnapshot = await profileRef.get();
+      const username = profileSnapshot.exists ? profileSnapshot.data()?.username || 'Quantum User' : 'Quantum User';
+
+      return NextResponse.json({ exists: true, username });
     } else {
       return NextResponse.json({ exists: false });
     }

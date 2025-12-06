@@ -16,8 +16,8 @@ import { useGameContext } from "@/app/(contexts)/MiningContext";
 export default function SendQNTMPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-  const { telegramId, MainQuantAmount, SetMainQuantAmount } = useGameContext();
-  
+  const { telegramId, username, MainQuantAmount, SetMainQuantAmount } = useGameContext();
+
   // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
@@ -30,14 +30,16 @@ export default function SendQNTMPage() {
   const [qcIdCopied, setQcIdCopied] = useState(false);
   const [isVerifyingQcId, setIsVerifyingQcId] = useState(false);
   const [qcIdError, setQcIdError] = useState<string | null>(null);
+  const [recipientUsername, setRecipientUsername] = useState<string>("");
 
   // Parse balance (remove commas) - memoized
-  const currentBalance = useMemo(() => 
+  const currentBalance = useMemo(() =>
     parseFloat(MainQuantAmount.replace(/,/g, '')) || 0
-  , [MainQuantAmount]);
+    , [MainQuantAmount]);
 
   const handleAmountChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(',', '.');
+    // Remove commas and minus signs, convert comma decimal separator to dot
+    const value = e.target.value.replace(',', '.').replace(/-/g, '');
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setAmount(value);
       // Check if exceeds balance
@@ -76,21 +78,23 @@ export default function SendQNTMPage() {
     try {
       setIsVerifyingQcId(true);
       setQcIdError(null);
-      
+
       const response = await fetch("/api/verify-qc-id", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qcId: recipientQcId.trim() }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!data.exists) {
         setQcIdError("This QC ID doesn't exist. Please check and try again.");
         toast.error("Recipient QC ID not found");
         return false;
       }
-      
+
+      // Store the recipient's username
+      setRecipientUsername(data.username || "Quantum User");
       return true;
     } catch (error) {
       console.error("Error verifying QC ID:", error);
@@ -155,7 +159,7 @@ export default function SendQNTMPage() {
   const handleConfirmTransfer = useCallback(async () => {
     // Request biometric/PIN authentication
     const authenticated = await requestAuth();
-    
+
     if (authenticated) {
       await executeTransfer();
     } else {
@@ -219,9 +223,8 @@ export default function SendQNTMPage() {
                       setQcIdError(null); // Clear error when user types
                     }}
                     placeholder="Enter recipient's Quantum Club ID"
-                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl transition-all ${
-                      qcIdError ? 'border-red-500 focus:border-red-500' : 'focus:border-orange-500/50'
-                    }`}
+                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl transition-all ${qcIdError ? 'border-red-500 focus:border-red-500' : 'focus:border-orange-500/50'
+                      }`}
                   />
                   <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 </div>
@@ -241,9 +244,8 @@ export default function SendQNTMPage() {
                   <span className="text-xs text-gray-400">Your QC ID (share to receive QNTM)</span>
                   <button
                     onClick={handleCopyQcId}
-                    className={`flex items-center gap-1 text-xs transition-colors ${
-                      qcIdCopied ? 'text-green-400' : 'text-orange-400 hover:text-orange-300'
-                    }`}
+                    className={`flex items-center gap-1 text-xs transition-colors ${qcIdCopied ? 'text-green-400' : 'text-orange-400 hover:text-orange-300'
+                      }`}
                   >
                     {qcIdCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                     {qcIdCopied ? 'Copied!' : 'Copy'}
@@ -258,7 +260,7 @@ export default function SendQNTMPage() {
                   <label className="text-sm text-gray-400">Amount</label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">{MainQuantAmount} QNTM</span>
-                    <button 
+                    <button
                       onClick={handleMaxAmount}
                       className="text-xs font-bold text-orange-400 hover:text-orange-300 transition-colors uppercase"
                     >
@@ -273,9 +275,8 @@ export default function SendQNTMPage() {
                     value={amount}
                     onChange={handleAmountChange}
                     placeholder="0"
-                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-20 text-2xl font-bold text-white placeholder:text-gray-700 rounded-xl transition-all ${
-                      insufficientFunds ? 'border-red-500 focus:border-red-500' : 'focus:border-orange-500/50'
-                    }`}
+                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-20 text-2xl font-bold text-white placeholder:text-gray-700 rounded-xl transition-all ${insufficientFunds ? 'border-red-500 focus:border-red-500' : 'focus:border-orange-500/50'
+                      }`}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">
                     <div className="text-sm font-bold text-orange-400">QNTM</div>
@@ -292,7 +293,7 @@ export default function SendQNTMPage() {
               <Button
                 onClick={handleContinue}
                 disabled={!recipientQcId || !amount || parseFloat(amount) <= 0 || insufficientFunds || isVerifyingQcId}
-                className="w-full h-14 bg-gradient-to-r from-orange-500 to-yellow-500 text-black hover:from-orange-600 hover:to-yellow-600 rounded-xl font-bold text-lg mt-8 disabled:opacity-50"
+                className="w-full h-14 bg-gradient-to-r from-orange-500 to-yellow-500 text-black rounded-xl font-bold text-lg mt-8 disabled:opacity-50 border-0 shadow-none outline-none ring-0 hover:shadow-none hover:outline-none hover:ring-0 focus:shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 transform-none hover:transform-none transition-opacity duration-200 hover:opacity-80"
               >
                 {isVerifyingQcId ? (
                   <>
@@ -328,14 +329,14 @@ export default function SendQNTMPage() {
                       <div className="w-12 h-12 bg-[#222] rounded-full flex items-center justify-center mx-auto mb-2">
                         <User className="w-6 h-6 text-gray-400" />
                       </div>
-                      <span className="text-xs text-gray-500">You</span>
+                      <span className="text-xs text-gray-500 truncate max-w-[80px]">{username || "You"}</span>
                     </div>
                     <ArrowRight className="w-6 h-6 text-orange-400" />
                     <div className="text-center">
                       <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                         <User className="w-6 h-6 text-orange-400" />
                       </div>
-                      <span className="text-xs text-gray-500">Recipient</span>
+                      <span className="text-xs text-gray-500 truncate max-w-[80px]">{recipientUsername || "Recipient"}</span>
                     </div>
                   </div>
 
@@ -346,7 +347,7 @@ export default function SendQNTMPage() {
                         <div className="text-sm font-mono text-white break-all">{recipientQcId}</div>
                       </div>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-400">Network Fee</span>
                       <span className="text-sm text-green-400">Free</span>
@@ -366,14 +367,14 @@ export default function SendQNTMPage() {
                 <Button
                   variant="outline"
                   onClick={() => setStep("input")}
-                  className="h-14 bg-[#111] border-[#333] text-white hover:opacity-80 active:opacity-70 rounded-xl font-bold transition-opacity"
+                  className="h-14 bg-[#111] border-[#333] text-white rounded-xl font-bold shadow-none outline-none ring-0 hover:shadow-none hover:outline-none hover:ring-0 focus:shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 transform-none hover:transform-none hover:bg-[#1a1a1a] transition-colors duration-200"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleConfirmTransfer}
                   disabled={isTransferring}
-                  className="h-14 bg-gradient-to-r from-orange-500 to-yellow-500 text-black hover:opacity-90 active:opacity-80 rounded-xl font-bold transition-opacity"
+                  className="h-14 bg-gradient-to-r from-orange-500 to-yellow-500 text-black rounded-xl font-bold border-0 shadow-none outline-none ring-0 hover:shadow-none hover:outline-none hover:ring-0 focus:shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 transform-none hover:transform-none transition-opacity duration-200 hover:opacity-80"
                 >
                   {isTransferring ? (
                     <div className="flex items-center gap-2">
