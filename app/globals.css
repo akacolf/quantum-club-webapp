@@ -3,8 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Prevent pinch zoom and double-tap zoom */
+html {
+  touch-action: manipulation;
+}
+
 body {
   font-family: var(--font-onest);
+  touch-action: pan-x pan-y;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .main-content {

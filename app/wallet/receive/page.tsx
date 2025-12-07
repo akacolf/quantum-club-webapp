@@ -27,7 +27,7 @@ export default function ReceivePage() {
 
   const handleShare = () => {
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(walletAddress)}&text=${encodeURIComponent("My Quantum Club Wallet Address")}`;
-    
+
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       window.Telegram.WebApp.openTelegramLink(shareUrl);
     } else {
@@ -41,7 +41,7 @@ export default function ReceivePage() {
 
   return (
     <div className="min-h-screen bg-black text-white p-4 flex flex-col items-center pt-8">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md space-y-6"
@@ -49,7 +49,7 @@ export default function ReceivePage() {
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">Receive Assets</h1>
           <p className="text-gray-400 text-sm">
-            Scan QR code or copy address to receive tokens
+            Scan QR code or copy address to receive tokens and NFTs
           </p>
         </div>
 
@@ -58,8 +58,8 @@ export default function ReceivePage() {
             <div className="relative group">
               <div className="absolute -inset-4 bg-linear-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
               <div className="relative bg-white p-4 rounded-2xl shadow-xl">
-                <QRCode 
-                  value={walletAddress} 
+                <QRCode
+                  value={walletAddress}
                   size={200}
                   level="H"
                   className="w-full h-full"
@@ -72,7 +72,7 @@ export default function ReceivePage() {
                 <span>Your Address</span>
                 <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20">TON</span>
               </div>
-              <div 
+              <div
                 onClick={copyAddress}
                 className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl p-4 flex items-center justify-between gap-3 hover:bg-[#222] hover:border-[#444] transition-all group cursor-pointer"
               >
@@ -116,7 +116,7 @@ export default function ReceivePage() {
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-yellow-500">Network Warning</h4>
             <p className="text-xs text-yellow-500/80 leading-relaxed">
-              Send only TON and TON-based tokens to this address. Sending other assets may result in permanent loss.
+              Send only TON, TON-based tokens, and NFTs to this address. Sending other assets may result in permanent loss.
             </p>
           </div>
         </div>

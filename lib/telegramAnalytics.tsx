@@ -1,5 +1,5 @@
-const SDK_AUTH_TOKEN = "eyJhcHBfbmFtZSI6InF1YW50dW1fY2x1YiIsImFwcF91cmwiOiJodHRwczovL3QubWUvUXVhbnR1bUNsdWJCb3QiLCJhcHBfZG9tYWluIjoiaHR0cHM6Ly93d3cucXVhbnR1bWNsdWIuc3BhY2UvIn0=!wCjJY3ya2Il4HWQI21u7rOBSQpz/oFIrPNqdY986AS0=";
-const APP_NAME = "quantum_club";
+const SDK_AUTH_TOKEN = "eyJhcHBfbmFtZSI6InFudG1fY2x1YiIsImFwcF91cmwiOiJodHRwczovL3QubWUvUXVhbnR1bUNsdWJCb3QiLCJhcHBfZG9tYWluIjoiaHR0cHM6Ly9xdWFudHVtY2x1Yi5zcGFjZS8ifQ==!WjIA5nO87o5qYCowGzsEH+ip9PqI9jDgAiwWgAmsFLQ=";
+const APP_NAME = "qntm_club";
 
 let isInitialized = false;
 
@@ -28,7 +28,7 @@ let sessionId: string | null = null;
 
 function getSessionId(): string {
   if (!sessionId) {
-    sessionId = typeof window !== "undefined" 
+    sessionId = typeof window !== "undefined"
       ? sessionStorage.getItem("tga_session_id") || generateUUID()
       : generateUUID();
     if (typeof window !== "undefined") {
@@ -43,10 +43,10 @@ function getSessionId(): string {
  */
 function getTelegramUser(): { userId: number; isPremium: boolean; platform: string; locale: string } | null {
   if (typeof window === "undefined") return null;
-  
+
   const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number; is_premium?: boolean; language_code?: string } }; platform?: string } } }).Telegram?.WebApp;
   if (!tg?.initDataUnsafe?.user) return null;
-  
+
   return {
     userId: tg.initDataUnsafe.user.id || 0,
     isPremium: tg.initDataUnsafe.user.is_premium || false,
@@ -143,56 +143,56 @@ export async function sendAnalyticsEvent(
 // Pre-defined event helpers
 export const analyticsEvents = {
   appInit: () => sendAnalyticsEvent("app-init"),
-  
+
   connectionStarted: () => sendAnalyticsEvent("connection-started"),
-  
-  connectionCompleted: (walletAddress: string, walletType?: string) => 
-    sendAnalyticsEvent("connection-completed", { 
-      isSuccess: true, 
-      walletAddress, 
-      walletType 
+
+  connectionCompleted: (walletAddress: string, walletType?: string) =>
+    sendAnalyticsEvent("connection-completed", {
+      isSuccess: true,
+      walletAddress,
+      walletType
     }),
-  
-  connectionError: (errorMessage: string, errorCode?: number) => 
-    sendAnalyticsEvent("connection-error", { 
-      isSuccess: false, 
-      errorMessage, 
-      errorCode 
+
+  connectionError: (errorMessage: string, errorCode?: number) =>
+    sendAnalyticsEvent("connection-error", {
+      isSuccess: false,
+      errorMessage,
+      errorCode
     }),
-  
+
   disconnection: () => sendAnalyticsEvent("disconnection"),
-  
-  transactionSentForSignature: (from: string, messages: { address: string; amount: string }[]) => 
-    sendAnalyticsEvent("transaction-sent-for-signature", { 
-      from, 
-      messages 
+
+  transactionSentForSignature: (from: string, messages: { address: string; amount: string }[]) =>
+    sendAnalyticsEvent("transaction-sent-for-signature", {
+      from,
+      messages
     }),
-  
-  transactionSigned: (from: string, messages: { address: string; amount: string }[]) => 
-    sendAnalyticsEvent("transaction-signed", { 
-      isSuccess: true, 
-      from, 
-      messages 
+
+  transactionSigned: (from: string, messages: { address: string; amount: string }[]) =>
+    sendAnalyticsEvent("transaction-signed", {
+      isSuccess: true,
+      from,
+      messages
     }),
-  
-  transactionSigningFailed: (errorMessage: string, errorCode?: number) => 
-    sendAnalyticsEvent("transaction-signing-failed", { 
-      isSuccess: false, 
-      errorMessage, 
-      errorCode 
+
+  transactionSigningFailed: (errorMessage: string, errorCode?: number) =>
+    sendAnalyticsEvent("transaction-signing-failed", {
+      isSuccess: false,
+      errorMessage,
+      errorCode
     }),
-  
+
   // Custom events
-  walletCreated: (walletAddress: string) => 
-    sendAnalyticsEvent("wallet-created", { 
-      isSuccess: true, 
+  walletCreated: (walletAddress: string) =>
+    sendAnalyticsEvent("wallet-created", {
+      isSuccess: true,
       walletAddress,
       customData: { source: "quantum_wallet" }
     }),
-  
-  walletImported: (walletAddress: string) => 
-    sendAnalyticsEvent("wallet-imported", { 
-      isSuccess: true, 
+
+  walletImported: (walletAddress: string) =>
+    sendAnalyticsEvent("wallet-imported", {
+      isSuccess: true,
       walletAddress,
       customData: { source: "quantum_wallet" }
     }),

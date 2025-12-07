@@ -21,13 +21,15 @@ import {
   History,
   Plus,
   Download,
-  ShieldAlert
+  ShieldAlert,
+  Image as ImageIcon
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Loader from "@/app/(components)/Loader";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
@@ -45,11 +47,14 @@ export default function WalletPage() {
     tonUsdValue,
     totalUsdBalance,
     jettons,
+    nfts,
     isLoadingAssets,
+    isLoadingNfts,
     hasFetched,
     hideBalance,
     isTestnet,
     fetchWalletAssets,
+    fetchNfts,
     toggleHideBalance
   } = useWallet();
   const { telegramId } = useGameContext();
@@ -69,6 +74,13 @@ export default function WalletPage() {
     }
     setIsChecking(false);
   }, [setContextWalletAddress]);
+
+  // Fetch NFTs when wallet is loaded
+  useEffect(() => {
+    if (hasWallet && walletAddress) {
+      fetchNfts();
+    }
+  }, [hasWallet, walletAddress, fetchNfts]);
 
   const createWallet = async () => {
     setIsLoading(true);
@@ -369,11 +381,28 @@ export default function WalletPage() {
           </p>
         </div>
 
-        <div className="w-full space-y-4 pb-24">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-bold text-white">Assets</h3>
-          </div>
-          <div className="space-y-3">
+        <Tabs defaultValue="assets" className="w-full pb-24">
+          <TabsList className="w-full h-12 p-1 bg-[#111] border border-[#222] rounded-xl">
+            <TabsTrigger
+              value="assets"
+              className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-gray-400"
+            >
+              Assets
+            </TabsTrigger>
+            <TabsTrigger
+              value="nfts"
+              className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-gray-400 gap-2 group"
+            >
+              NFTs
+              {nfts.length > 0 && (
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/10 text-gray-400 group-data-[state=active]:bg-black group-data-[state=active]:text-white transition-colors">
+                  {nfts.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="assets" className="mt-4 space-y-3">
             <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -413,7 +442,6 @@ export default function WalletPage() {
                         <div className="space-y-1.5">
                           <Skeleton className="h-4 w-14 bg-[#222]" />
                           <Skeleton className="h-3 w-20 bg-[#222]" />
-
                         </div>
                       </div>
                       <div className="space-y-1.5 flex flex-col items-end">
@@ -461,8 +489,64 @@ export default function WalletPage() {
                 </Card>
               );
             })}
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="nfts" className="mt-4">
+            {isLoadingNfts && nfts.length === 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <Card key={i} className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden">
+                    <Skeleton className="w-full aspect-square bg-[#222]" />
+                    <CardContent className="p-3 space-y-1.5">
+                      <Skeleton className="h-4 w-20 bg-[#222]" />
+                      <Skeleton className="h-3 w-24 bg-[#222]" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {!isLoadingNfts && nfts.length === 0 && (
+              <div className="py-8 text-center bg-[#111] rounded-2xl border border-[#222] border-dashed">
+                <ImageIcon className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No NFTs found</p>
+                <p className="text-xs text-gray-600 mt-1">Your collectibles will appear here</p>
+              </div>
+            )}
+
+            {nfts.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {nfts.map((nft, index) => (
+                  <Link key={index} href={`/wallet/nft/${encodeURIComponent(nft.address)}`}>
+                    <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
+                      <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden">
+                        {nft.image ? (
+                          <Image
+                            src={nft.image}
+                            alt={nft.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="w-8 h-8 text-gray-600" />
+                          </div>
+                        )}
+                      </div>
+                      <CardContent className="p-3">
+                        <h4 className="font-bold text-white text-sm truncate">{nft.name}</h4>
+                        {nft.collectionName && (
+                          <p className="text-xs text-gray-500 truncate">{nft.collectionName}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

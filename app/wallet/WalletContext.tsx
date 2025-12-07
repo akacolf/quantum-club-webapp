@@ -21,6 +21,15 @@ interface JettonBalance {
   isHidden?: boolean;
 }
 
+interface NftItem {
+  address: string;
+  name: string;
+  description?: string;
+  image?: string;
+  collectionName?: string;
+  collectionAddress?: string;
+}
+
 export interface StoredWallet {
   address: string;
   name: string;
@@ -35,14 +44,17 @@ interface WalletContextType {
   tonUsdValue: string;
   totalUsdBalance: string;
   jettons: JettonBalance[];
+  nfts: NftItem[];
   hiddenAssets: string[];
   isLoadingAssets: boolean;
+  isLoadingNfts: boolean;
   hasFetched: boolean;
   hideBalance: boolean;
   isTestnet: boolean;
   storedWallets: StoredWallet[];
   activeWalletIndex: number;
   fetchWalletAssets: () => Promise<void>;
+  fetchNfts: () => Promise<void>;
   setWalletAddress: (address: string) => void;
   toggleHideAsset: (symbol: string) => void;
   toggleHideBalance: () => void;
@@ -64,9 +76,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [tonUsdValue, setTonUsdValue] = useState("0.00");
   const [totalUsdBalance, setTotalUsdBalance] = useState("0.00");
   const [jettons, setJettons] = useState<JettonBalance[]>([]);
+  const [nfts, setNfts] = useState<NftItem[]>([]);
+  const [isLoadingNfts, setIsLoadingNfts] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
-  
+
   // Multi-wallet support
   const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
     if (typeof window !== "undefined") {
@@ -75,7 +89,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return [];
   });
-  
+
   const [activeWalletIndex, setActiveWalletIndex] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("quantum_active_wallet_index");
@@ -83,7 +97,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return 0;
   });
-  
+
   const [hiddenAssets, setHiddenAssets] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("quantum_hidden_assets");
@@ -91,7 +105,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return [];
   });
-  
+
   const [hideBalance, setHideBalance] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("quantum_hide_balance") === "true";
@@ -152,7 +166,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const renameWallet = useCallback((address: string, newName: string) => {
     setStoredWallets(prev => {
-      const updated = prev.map(w => 
+      const updated = prev.map(w =>
         w.address === address ? { ...w, name: newName } : w
       );
       localStorage.setItem("quantum_wallets", JSON.stringify(updated));
@@ -184,7 +198,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setTonPrice(5.0); // Mock price for testnet
       return 5.0;
     }
-    
+
     try {
       const response = await fetch(`${getApiBaseUrl()}/v2/rates?tokens=ton&currencies=usd`);
       if (response.ok) {
@@ -202,13 +216,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Fetch wallet assets (TON balance + Jettons)
   const fetchWalletAssets = useCallback(async () => {
     if (!walletAddress) return;
-    
+
     setIsLoadingAssets(true);
     try {
       // Fetch TON price first
       const price = await fetchTonPrice();
       const apiBase = getApiBaseUrl();
-      
+
       // Fetch TON balance using TON API
       let tonUsd = 0;
       const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
@@ -217,7 +231,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const balanceInNano = balanceData.balance || "0";
         const balanceInTon = fromNano(balanceInNano);
         setTonBalance(parseFloat(balanceInTon).toFixed(4));
-        
+
         // Calculate USD value
         tonUsd = parseFloat(balanceInTon) * price;
         setTonUsdValue(tonUsd.toFixed(2));
@@ -228,28 +242,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const jettonsResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}/jettons?currencies=usd`);
       if (jettonsResponse.ok) {
         const jettonsData = await jettonsResponse.json();
-        const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton: { 
+        const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton: {
           balance: string;
           wallet_address?: { address?: string };
           price?: {
             prices?: { USD?: number };
           };
-          jetton: { 
+          jetton: {
             address?: string;
-            symbol?: string; 
-            name?: string; 
-            decimals?: number; 
+            symbol?: string;
+            name?: string;
+            decimals?: number;
             image?: string;
-          } 
+          }
         }) => {
           const decimals = jetton.jetton?.decimals || 9;
           const rawBalance = parseFloat(jetton.balance || "0");
           const actualBalance = rawBalance / Math.pow(10, decimals);
           const priceUsd = jetton.price?.prices?.USD || 0;
           const usdValue = actualBalance * priceUsd;
-          
+
           jettonsUsdTotal += usdValue;
-          
+
           return {
             symbol: jetton.jetton?.symbol || "Unknown",
             name: jetton.jetton?.name || "Unknown Token",
@@ -264,7 +278,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         });
         setJettons(jettonBalances);
       }
-      
+
       // Set total USD balance (TON + all Jettons)
       setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
     } catch (error) {
@@ -274,6 +288,53 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setHasFetched(true);
     }
   }, [walletAddress, fetchTonPrice]);
+
+  // Fetch NFTs from TonAPI
+  const fetchNfts = useCallback(async () => {
+    if (!walletAddress) return;
+
+    setIsLoadingNfts(true);
+    try {
+      const apiBase = getApiBaseUrl();
+      const response = await fetch(`${apiBase}/v2/accounts/${walletAddress}/nfts?limit=100`);
+
+      if (response.ok) {
+        const data = await response.json();
+        const nftItems: NftItem[] = (data.nft_items || []).map((nft: {
+          address: string;
+          metadata?: {
+            name?: string;
+            description?: string;
+            image?: string;
+          };
+          collection?: {
+            address?: string;
+            name?: string;
+          };
+          previews?: Array<{ resolution: string; url: string }>;
+        }) => {
+          // Get the best preview image (prefer 500x500)
+          const preview = nft.previews?.find(p => p.resolution === '500x500')
+            || nft.previews?.find(p => p.resolution === '100x100')
+            || nft.previews?.[0];
+
+          return {
+            address: nft.address,
+            name: nft.metadata?.name || 'Unnamed NFT',
+            description: nft.metadata?.description,
+            image: preview?.url || nft.metadata?.image,
+            collectionName: nft.collection?.name,
+            collectionAddress: nft.collection?.address,
+          };
+        });
+        setNfts(nftItems);
+      }
+    } catch (error) {
+      console.error("Failed to fetch NFTs:", error);
+    } finally {
+      setIsLoadingNfts(false);
+    }
+  }, [walletAddress]);
 
   // Handle wallet address changes - reset state and refetch
   const handleSetWalletAddress = useCallback((address: string) => {
@@ -312,14 +373,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       tonUsdValue,
       totalUsdBalance,
       jettons,
+      nfts,
       hiddenAssets,
       isLoadingAssets,
+      isLoadingNfts,
       hasFetched,
       hideBalance,
       isTestnet: IS_TESTNET,
       storedWallets,
       activeWalletIndex,
       fetchWalletAssets,
+      fetchNfts,
       setWalletAddress: handleSetWalletAddress,
       toggleHideAsset,
       toggleHideBalance,
