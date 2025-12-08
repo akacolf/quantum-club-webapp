@@ -54,8 +54,10 @@ interface WalletContextType {
   isTestnet: boolean;
   storedWallets: StoredWallet[];
   activeWalletIndex: number;
+  walletStatus:string
   fetchWalletAssets: () => Promise<void>;
   fetchNfts: () => Promise<void>;
+  setWalletStatus: (walletstatus:string)=>void;
   setWalletAddress: (address: string) => void;
   toggleHideAsset: (symbol: string) => void;
   toggleHideBalance: () => void;
@@ -81,8 +83,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingNfts, setIsLoadingNfts] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  const [walletStatus, setWalletStatus] = useState("nonexist");
 
-  // Multi-wallet support
+    // Multi-wallet support
   const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("quantum_wallets");
@@ -232,7 +235,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const balanceInNano = balanceData.balance || "0";
         const balanceInTon = fromNano(balanceInNano);
         setTonBalance(parseFloat(balanceInTon).toFixed(4));
-
+        console.error(balanceData.status)
+        setWalletStatus(balanceData.status)
         // Calculate USD value
         tonUsd = parseFloat(balanceInTon) * price;
         setTonUsdValue(tonUsd.toFixed(2));
@@ -383,6 +387,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isTestnet: IS_TESTNET,
       storedWallets,
       activeWalletIndex,
+      walletStatus,
+      setWalletStatus,
       fetchWalletAssets,
       fetchNfts,
       setWalletAddress: handleSetWalletAddress,

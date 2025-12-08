@@ -42,31 +42,6 @@ interface SendableAsset {
   walletAddress?: string;
   priceUsd?: number;
 }
-interface HistoryEvent {
-  event_id: string;
-  timestamp: number;
-  in_progress?: boolean;
-  is_scam?: boolean;
-  actions?: Array<{
-    type: string;
-    TonTransfer?: {
-      amount?: string;
-      recipient?: { address?: string };
-      sender?: { address?: string };
-    };
-    JettonTransfer?: {
-      amount?: string;
-      recipient?: { address?: string };
-      sender?: { address?: string };
-      jetton?: { decimals?: number; symbol?: string };
-    };
-    NftItemTransfer?: {
-      recipient?: { address?: string };
-      sender?: { address?: string };
-      nft?: string;
-    };
-  }>;
-}
 export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
@@ -80,7 +55,8 @@ export default function SendPage() {
     jettons, 
     isLoadingAssets: isContextLoading,
     hasFetched,
-    fetchWalletAssets 
+    walletStatus,
+    fetchWalletAssets
   } = useWallet();
 
   const TON_API_BASE_URL = IS_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
@@ -101,52 +77,15 @@ export default function SendPage() {
   const [needMinimum, setNeedMinimum] = useState(false);
   const [isFirstTransaction, setIsFirstTransaction] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
-  const [history, setHistory] = useState<HistoryEvent[]>([]);
   // Deployment fee for first transaction (wallet contract deployment)
   const DEPLOYMENT_FEE = 0.005;
 
   // Explorer URL based on network
   const EXPLORER_BASE_URL = IS_TESTNET ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
-  const fetchHistory = async (address: string) => {
-      if (!address) return;
-      if(history.length > 0) return;
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-  
-        const response = await fetch(
-          `https://tonapi.io/v2/accounts/${encodeURIComponent(address)}/events?limit=50`,
-          {
-            signal: controller.signal,
-            headers: {
-              'Accept': 'application/json',
-            },
-          }
-        );
-  
-        clearTimeout(timeoutId);
-  
-        if (!response.ok) {
-          throw new Error(`HTTP error: ${response.status}`);
-        }
-  
-        const data = await response.json();
-        setHistory(data.events || [])
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.name === 'AbortError') {
-              return;
-          } else {
-           return;
-          }
-        }
-      }
-    };
+ 
   // Resolve .ton domain addresses
   useEffect(() => {
     const resolveAddress = async () => {
-      await fetchHistory(walletAddress)
       if (!recipient.trim()) {
         setResolvedAddress("");
         setAddressError("");
@@ -241,7 +180,7 @@ export default function SendPage() {
       // Check if exceeds balance
       if (selectedAsset) {
         const numValue = parseFloat(value) || 0;
-        if(numValue < (history.length > 0 ? 0.01 : 0.052)) {
+        if(numValue < (walletStatus ==="active" ? 0.01 : 0.05)) {
           setNeedMinimum(true);
         }else{
           setNeedMinimum(false);
@@ -290,7 +229,7 @@ export default function SendPage() {
     // For TON, check minimum after fee deduction
     if (selectedAsset?.type === "ton") {
       const sendAmount = parseFloat(amount);
-      const estimatedFeeAmount = history.length > 0 ? 0.01 : 0.05; // Conservative estimate for fees
+      const estimatedFeeAmount = 0.01
       const recipientWouldReceive = sendAmount - estimatedFeeAmount;
       
       if (recipientWouldReceive < 0.001) {
@@ -299,8 +238,8 @@ export default function SendPage() {
       }
     }
     
-    if (parseFloat(amount) < (history.length > 0 ? 0.01 : 0.05)) {
-      toast.error(`Minimum send amount is ${history.length > 0 ? "0.01" : "0.05"} TON`);
+    if (parseFloat(amount) < (walletStatus ==="active" ? 0.01 : 0.05)) {
+      toast.error(`Minimum send amount is ${(walletStatus ==="active" ? "0.01" :"0.05")} TON`);
       setNeedMinimum(true);
       return false;
     }
@@ -899,7 +838,7 @@ export default function SendPage() {
                 ): needMinimum ? (
                   <p className="text-xs text-yellow-400 ml-1 flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                    Min {history.length > 0 ? "0.01" : "0.052"} {selectedAsset?.symbol}
+                    Min {walletStatus==="active" ? "0.01":"0.05"} {selectedAsset?.symbol}
                   </p>
                 ) : null}
               </div>
