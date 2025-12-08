@@ -1,7 +1,6 @@
 "use client";
 
 import { WalletProvider } from "./WalletContext";
-import { Toaster } from "@/components/ui/sonner";
 
 export default function WalletLayout({
   children,
@@ -10,7 +9,6 @@ export default function WalletLayout({
 }) {
   return (
     <WalletProvider>
-      <Toaster />
       {children}
     </WalletProvider>
   );

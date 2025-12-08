@@ -1,12 +1,11 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import hotToast from "react-hot-toast";
-import { toast as sonnerToast } from "sonner";
 import {
   Settings,
   RefreshCw,
@@ -91,8 +90,6 @@ export default function WalletPage() {
     fetchWalletAssets,
     fetchNfts,
     toggleHideBalance,
-    pendingTransactions,
-    fetchPendingTransactions,
     tonPrice
   } = useWallet();
   const { telegramId } = useGameContext();
@@ -102,7 +99,6 @@ export default function WalletPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const toastIdRef = useRef<string | number | null>(null);
 
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
@@ -223,40 +219,6 @@ export default function WalletPage() {
       fetchNfts();
     }
   }, [hasWallet, walletAddress, fetchNfts]);
-
-  // Show toast for outgoing pending transactions
-  useEffect(() => {
-    if (pendingTransactions.length > 0) {
-      const tx = pendingTransactions[0];
-      const message = tx.amount
-        ? `${tx.type}: ${tx.amount} ${tx.symbol}`
-        : tx.type;
-
-      // Only show toast if we don't already have one
-      if (!toastIdRef.current) {
-        const id = sonnerToast.loading(message, {
-          description: "Transaction is being processed...",
-        });
-        toastIdRef.current = id;
-      }
-
-      // Set up polling for faster updates
-      const pollInterval = setInterval(() => {
-        fetchPendingTransactions();
-      }, 3000);
-
-      return () => {
-        clearInterval(pollInterval);
-      };
-    } else if (toastIdRef.current) {
-      // Transaction completed
-      sonnerToast.success("Transaction completed!", {
-        id: toastIdRef.current,
-        description: "Your transaction has been confirmed.",
-      });
-      toastIdRef.current = null;
-    }
-  }, [pendingTransactions, fetchPendingTransactions]);
 
   const createWallet = async () => {
     setIsLoading(true);
