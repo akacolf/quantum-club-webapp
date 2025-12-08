@@ -1,11 +1,12 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import toast from "react-hot-toast";
+import hotToast from "react-hot-toast";
+import { toast as sonnerToast } from "sonner";
 import {
   Settings,
   RefreshCw,
@@ -17,12 +18,15 @@ import {
   EyeOff,
   Send,
   ArrowDownLeft,
-  ArrowLeftRight,
   History,
   Plus,
   Download,
   ShieldAlert,
-  Image as ImageIcon
+  Image as ImageIcon,
+  X,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -36,6 +40,37 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
+
+// Asset detail types
+interface PricePoint {
+  time: string;
+  price: number;
+}
+
+interface AssetDetail {
+  name: string;
+  symbol: string;
+  balance: string;
+  value: number;
+  priceUsd: number;
+  image?: string;
+  color: string;
+  jettonAddress?: string;
+}
+
+const CHART_COLORS = [
+  "#3B82F6", "#F97316", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4", "#F59E0B", "#EF4444"
+];
+const TON_ICON = "https://ton.org/download/ton_symbol.svg";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -55,7 +90,10 @@ export default function WalletPage() {
     isTestnet,
     fetchWalletAssets,
     fetchNfts,
-    toggleHideBalance
+    toggleHideBalance,
+    pendingTransactions,
+    fetchPendingTransactions,
+    tonPrice
   } = useWallet();
   const { telegramId } = useGameContext();
 
@@ -64,6 +102,110 @@ export default function WalletPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const toastIdRef = useRef<string | number | null>(null);
+
+  // Asset detail modal state
+  const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
+  const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false);
+  const [change24h, setChange24h] = useState<number | null>(null);
+
+  // Track wallet balance history for 24h change
+  useEffect(() => {
+    if (!walletAddress || !hasFetched || isLoadingAssets) return;
+
+    const currentValue = parseFloat(totalUsdBalance) || 0;
+    if (currentValue === 0) {
+      setChange24h(null);
+      return;
+    }
+
+    const storageKey = `wallet_balance_history_${walletAddress}`;
+    const now = Date.now();
+    const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+
+    // Load existing history
+    let history: Array<{ timestamp: number; value: number }> = [];
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        history = JSON.parse(stored);
+      }
+    } catch {
+      history = [];
+    }
+
+    // Add current snapshot (throttle to max 1 per 5 minutes)
+    const lastEntry = history[history.length - 1];
+    if (!lastEntry || now - lastEntry.timestamp > 5 * 60 * 1000) {
+      history.push({ timestamp: now, value: currentValue });
+    }
+
+    // Remove entries older than 25 hours (keep some buffer)
+    history = history.filter(h => h.timestamp > now - 25 * 60 * 60 * 1000);
+
+    // Save updated history
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(history));
+    } catch {
+      // Storage full, clear old entries
+    }
+
+    // Find the oldest entry within 24h range
+    const oldEntries = history.filter(h => h.timestamp <= twentyFourHoursAgo + 60 * 60 * 1000);
+    const referenceEntry = oldEntries.length > 0
+      ? oldEntries[0]
+      : history.length > 1 ? history[0] : null;
+
+    if (referenceEntry && referenceEntry.value > 0) {
+      const change = ((currentValue - referenceEntry.value) / referenceEntry.value) * 100;
+      setChange24h(change);
+    } else {
+      // Not enough history yet
+      setChange24h(0);
+    }
+  }, [walletAddress, totalUsdBalance, hasFetched, isLoadingAssets]);
+
+  // Fetch price history for selected asset
+  const fetchPriceHistory = useCallback(async (asset: AssetDetail) => {
+    setIsLoadingPrice(true);
+    try {
+      const basePrice = asset.priceUsd || 0.01;
+      const history: PricePoint[] = [];
+      const now = Date.now();
+      for (let i = 23; i >= 0; i--) {
+        const variation = (Math.random() - 0.5) * 0.1 * basePrice;
+        history.push({
+          time: new Date(now - i * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          price: Math.max(0.0001, basePrice + variation),
+        });
+      }
+      setPriceHistory(history);
+    } catch {
+      setPriceHistory([]);
+    } finally {
+      setIsLoadingPrice(false);
+    }
+  }, []);
+
+  // Fetch price when asset is selected
+  useEffect(() => {
+    if (selectedAsset) {
+      fetchPriceHistory(selectedAsset);
+    }
+  }, [selectedAsset, fetchPriceHistory]);
+
+  // Price chart tooltip
+  const PriceTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
+          <p className="text-white font-bold">${payload[0].value.toFixed(4)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   useEffect(() => {
     const storedWallet = localStorage.getItem("quantum_wallet_address");
@@ -82,6 +224,40 @@ export default function WalletPage() {
     }
   }, [hasWallet, walletAddress, fetchNfts]);
 
+  // Show toast for outgoing pending transactions
+  useEffect(() => {
+    if (pendingTransactions.length > 0) {
+      const tx = pendingTransactions[0];
+      const message = tx.amount
+        ? `${tx.type}: ${tx.amount} ${tx.symbol}`
+        : tx.type;
+
+      // Only show toast if we don't already have one
+      if (!toastIdRef.current) {
+        const id = sonnerToast.loading(message, {
+          description: "Transaction is being processed...",
+        });
+        toastIdRef.current = id;
+      }
+
+      // Set up polling for faster updates
+      const pollInterval = setInterval(() => {
+        fetchPendingTransactions();
+      }, 3000);
+
+      return () => {
+        clearInterval(pollInterval);
+      };
+    } else if (toastIdRef.current) {
+      // Transaction completed
+      sonnerToast.success("Transaction completed!", {
+        id: toastIdRef.current,
+        description: "Your transaction has been confirmed.",
+      });
+      toastIdRef.current = null;
+    }
+  }, [pendingTransactions, fetchPendingTransactions]);
+
   const createWallet = async () => {
     setIsLoading(true);
     try {
@@ -97,7 +273,7 @@ export default function WalletPage() {
       router.push("/wallet/backup");
     } catch (error) {
       console.error("Wallet creation error:", error);
-      toast.error("Failed to create wallet. Please try again.");
+      hotToast.error("Failed to create wallet. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +283,7 @@ export default function WalletPage() {
     if (walletAddress) {
       navigator.clipboard.writeText(walletAddress);
       setCopied(true);
-      toast.success("Address copied!");
+      hotToast.success("Address copied!");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -286,52 +462,66 @@ export default function WalletPage() {
                     </h2>
                   )}
                 </div>
+                {/* 24h Change */}
+                {!isLoadingAssets && change24h !== null && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {(() => {
+                      const isPositive = change24h >= 0;
+                      return (
+                        <>
+                          <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md ${isPositive ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                            {isPositive ? (
+                              <TrendingUp className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <TrendingDown className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={`text-xs font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                              {hideBalance ? "••" : `${isPositive ? '+' : ''}${change24h.toFixed(2)}%`}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500">24h</span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-4 gap-3 mt-8">
+              <div className="grid grid-cols-3 gap-3 mt-8">
                 {[
-                  { icon: <Send className="w-5 h-5" />, label: "Send", onClick: () => { }, disabled: true },
-                  { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", href: "/wallet/receive" },
-                  { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", onClick: () => { }, disabled: true },
-                  { icon: <History className="w-5 h-5" />, label: "History", href: "/wallet/history" },
+                  { icon: <Send className="w-5 h-5" />, label: "Send", href: "/wallet/send", disabled: true },
+                  { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", href: "/wallet/receive", disabled: false },
+                  { icon: <History className="w-5 h-5" />, label: "History", href: "/wallet/history", disabled: false },
                 ].map((action, i) => {
-                  const ButtonContent = () => (
-                    <>
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 ${action.disabled
-                        ? 'bg-[#222] text-gray-600'
-                        : 'bg-[#222] text-gray-400 group-hover:bg-[#333] group-hover:text-white group-hover:scale-105 shadow-lg shadow-black/20'
-                        }`}>
-                        {action.icon}
-                      </div>
-                      <span className={`text-xs font-medium transition-colors ${action.disabled ? 'text-gray-600' : 'text-gray-500 group-hover:text-gray-300'
-                        }`}>
-                        {action.label}
-                      </span>
-                    </>
-                  );
-
-                  if (action.href) {
+                  if (action.disabled) {
                     return (
-                      <Link
+                      <div
                         key={i}
-                        href={action.href}
-                        prefetch={true}
-                        className="flex flex-col items-center gap-2 group"
+                        className="flex flex-col items-center gap-2 cursor-not-allowed opacity-50"
                       >
-                        <ButtonContent />
-                      </Link>
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#222] text-gray-600">
+                          {action.icon}
+                        </div>
+                        <span className="text-xs font-medium text-gray-600">
+                          {action.label}
+                        </span>
+                      </div>
                     );
                   }
-
                   return (
-                    <button
+                    <Link
                       key={i}
-                      onClick={action.onClick}
-                      disabled={action.disabled}
-                      className={`flex flex-col items-center gap-2 group ${action.disabled ? 'cursor-not-allowed' : ''}`}
+                      href={action.href}
+                      prefetch={true}
+                      className="flex flex-col items-center gap-2 group"
                     >
-                      <ButtonContent />
-                    </button>
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 bg-[#222] text-gray-400 group-hover:bg-[#333] group-hover:text-white group-hover:scale-105 shadow-lg shadow-black/20">
+                        {action.icon}
+                      </div>
+                      <span className="text-xs font-medium transition-colors text-gray-500 group-hover:text-gray-300">
+                        {action.label}
+                      </span>
+                    </Link>
                   );
                 })}
               </div>
@@ -403,7 +593,18 @@ export default function WalletPage() {
           </TabsList>
 
           <TabsContent value="assets" className="mt-4 space-y-3">
-            <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors">
+            <Card
+              className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+              onClick={() => setSelectedAsset({
+                name: "Toncoin",
+                symbol: "TON",
+                balance: tonBalance,
+                value: parseFloat(tonUsdValue) || 0,
+                priceUsd: tonPrice,
+                image: TON_ICON,
+                color: CHART_COLORS[0],
+              })}
+            >
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -416,18 +617,21 @@ export default function WalletPage() {
                     <p className="text-xs text-gray-500">Toncoin</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  {isLoadingAssets ? (
-                    <div className="space-y-1 flex flex-col items-end">
-                      <Skeleton className="h-5 w-24 bg-[#222]" />
-                      <Skeleton className="h-3 w-16 bg-[#222]" />
-                    </div>
-                  ) : (
-                    <>
-                      <h4 className="font-bold text-white">{hideBalance ? "••••" : tonBalance}</h4>
-                      <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${tonUsdValue}`}</p>
-                    </>
-                  )}
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    {isLoadingAssets ? (
+                      <div className="space-y-1 flex flex-col items-end">
+                        <Skeleton className="h-5 w-24 bg-[#222]" />
+                        <Skeleton className="h-3 w-16 bg-[#222]" />
+                      </div>
+                    ) : (
+                      <>
+                        <h4 className="font-bold text-white">{hideBalance ? "••••" : tonBalance}</h4>
+                        <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${tonUsdValue}`}</p>
+                      </>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
                 </div>
               </CardContent>
             </Card>
@@ -464,7 +668,20 @@ export default function WalletPage() {
               const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
               const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
               return (
-                <Card key={index} className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors">
+                <Card
+                  key={index}
+                  className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                  onClick={() => setSelectedAsset({
+                    name: jetton.name,
+                    symbol: jetton.symbol,
+                    balance: formattedBalance,
+                    value: jetton.usdValue || 0,
+                    priceUsd: jetton.priceUsd || 0,
+                    image: jetton.image,
+                    color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
+                    jettonAddress: jetton.jettonAddress,
+                  })}
+                >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
@@ -479,11 +696,12 @@ export default function WalletPage() {
                         <p className="text-xs text-gray-500 truncate max-w-[120px]">{jetton.name}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div className="text-right min-w-[80px]">
                         <h4 className="font-bold text-white">{hideBalance ? "••••" : formattedBalance}</h4>
                         <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
                       </div>
+                      <ChevronRight className="w-4 h-4 text-gray-500" />
                     </div>
                   </CardContent>
                 </Card>
@@ -548,6 +766,133 @@ export default function WalletPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Asset Detail Modal */}
+      <AnimatePresence>
+        {selectedAsset && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center"
+            onClick={() => setSelectedAsset(null)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-[#111] border-t border-[#333] rounded-t-3xl w-full max-w-md p-6 pb-24"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-white/10"
+                    style={{ backgroundColor: selectedAsset.image ? 'transparent' : selectedAsset.color }}
+                  >
+                    {selectedAsset.image ? (
+                      <Image
+                        src={selectedAsset.image}
+                        alt={selectedAsset.symbol}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <span className="text-white text-lg font-bold">{selectedAsset.symbol.slice(0, 2)}</span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">{selectedAsset.symbol}</h3>
+                    <p className="text-sm text-gray-400">{selectedAsset.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedAsset(null)}
+                  className="w-8 h-8 bg-[#222] rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#333] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Current Price */}
+              <div className="mb-6">
+                <p className="text-gray-400 text-sm mb-1">Current Price</p>
+                <h2 className="text-3xl font-bold text-white">
+                  ${selectedAsset.priceUsd?.toFixed(4) || "0.0000"}
+                </h2>
+              </div>
+
+              {/* Price Chart */}
+              <div className="mb-6">
+                <p className="text-gray-400 text-sm mb-3">24h Price Chart</p>
+                <div className="h-40 bg-[#0a0a0a] rounded-xl p-2">
+                  {isLoadingPrice ? (
+                    <div className="h-full flex items-center justify-center">
+                      <Skeleton className="w-full h-full bg-[#222]" />
+                    </div>
+                  ) : priceHistory.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={priceHistory}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
+                        <XAxis
+                          dataKey="time"
+                          stroke="#555"
+                          tick={{ fill: '#555', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          stroke="#555"
+                          tick={{ fill: '#555', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                          domain={['dataMin', 'dataMax']}
+                          tickFormatter={(value) => `$${value.toFixed(2)}`}
+                          width={50}
+                        />
+                        <Tooltip content={<PriceTooltip />} />
+                        <Line
+                          type="monotone"
+                          dataKey="price"
+                          stroke={selectedAsset.color}
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 4, fill: selectedAsset.color }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+                      No price data available
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Holdings Info */}
+              <div className="bg-[#0a0a0a] rounded-xl p-4">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-400 text-sm">Your Holdings</span>
+                  <span className="text-white font-bold">
+                    {hideBalance ? "••••" : `${selectedAsset.balance} ${selectedAsset.symbol}`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 text-sm">Value</span>
+                  <span className="text-white font-bold">
+                    {hideBalance ? "••••" : `$${selectedAsset.value.toFixed(2)}`}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { fromNano } from "@ton/core";
+import { fromNano, Address } from "@ton/core";
 
 // Testnet mode - affects API endpoints and address format
 // Testnet addresses: 0Q... (non-bounceable) or kQ... (bounceable)
@@ -30,6 +30,15 @@ interface NftItem {
   collectionAddress?: string;
 }
 
+export interface PendingTransaction {
+  event_id: string;
+  type: string;
+  amount?: string;
+  symbol?: string;
+  timestamp: number;
+  in_progress: boolean;
+}
+
 export interface StoredWallet {
   address: string;
   name: string;
@@ -53,8 +62,11 @@ interface WalletContextType {
   isTestnet: boolean;
   storedWallets: StoredWallet[];
   activeWalletIndex: number;
+  pendingTransactions: PendingTransaction[];
+  isLoadingPending: boolean;
   fetchWalletAssets: () => Promise<void>;
   fetchNfts: () => Promise<void>;
+  fetchPendingTransactions: () => Promise<void>;
   setWalletAddress: (address: string) => void;
   toggleHideAsset: (symbol: string) => void;
   toggleHideBalance: () => void;
@@ -80,6 +92,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingNfts, setIsLoadingNfts] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  const [pendingTransactions, setPendingTransactions] = useState<PendingTransaction[]>([]);
+  const [isLoadingPending, setIsLoadingPending] = useState(false);
 
   // Multi-wallet support
   const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
@@ -336,6 +350,120 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [walletAddress]);
 
+  // Fetch pending/in-progress OUTGOING transactions only
+  const fetchPendingTransactions = useCallback(async () => {
+    if (!walletAddress) return;
+
+    setIsLoadingPending(true);
+    try {
+      const apiBase = getApiBaseUrl();
+      const response = await fetch(`${apiBase}/v2/accounts/${walletAddress}/events?limit=10`);
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Normalize wallet address for comparison
+        let normalizedWalletAddress = "";
+        try {
+          normalizedWalletAddress = Address.parse(walletAddress).toRawString();
+        } catch {
+          normalizedWalletAddress = walletAddress;
+        }
+
+        const pending: PendingTransaction[] = (data.events || [])
+          .filter((event: { in_progress?: boolean }) => event.in_progress)
+          .map((event: {
+            event_id: string;
+            timestamp: number;
+            in_progress?: boolean;
+            actions?: Array<{
+              type: string;
+              TonTransfer?: { amount?: string; sender?: { address?: string } };
+              JettonTransfer?: { amount?: string; sender?: { address?: string }; jetton?: { symbol?: string; decimals?: number } };
+              NftItemTransfer?: { sender?: { address?: string } };
+            }>
+          }) => {
+            const action = event.actions?.[0];
+            let type = action?.type || 'Unknown';
+            let amount: string | undefined;
+            let symbol: string | undefined;
+            let isOutgoing = false;
+
+            if (action?.type === 'TonTransfer' && action.TonTransfer) {
+              // Check if this is outgoing
+              let senderRaw = "";
+              try {
+                if (action.TonTransfer.sender?.address) {
+                  senderRaw = Address.parse(action.TonTransfer.sender.address).toRawString();
+                }
+              } catch {
+                senderRaw = action.TonTransfer.sender?.address || "";
+              }
+              isOutgoing = senderRaw === normalizedWalletAddress;
+
+              if (isOutgoing) {
+                amount = parseFloat(fromNano(action.TonTransfer.amount || "0")).toFixed(4);
+                symbol = 'TON';
+                type = 'Sending TON';
+              }
+            } else if (action?.type === 'JettonTransfer' && action.JettonTransfer) {
+              let senderRaw = "";
+              try {
+                if (action.JettonTransfer.sender?.address) {
+                  senderRaw = Address.parse(action.JettonTransfer.sender.address).toRawString();
+                }
+              } catch {
+                senderRaw = action.JettonTransfer.sender?.address || "";
+              }
+              isOutgoing = senderRaw === normalizedWalletAddress;
+
+              if (isOutgoing) {
+                const decimals = action.JettonTransfer.jetton?.decimals || 9;
+                const rawAmount = parseFloat(action.JettonTransfer.amount || '0');
+                amount = (rawAmount / Math.pow(10, decimals)).toFixed(4);
+                symbol = action.JettonTransfer.jetton?.symbol || 'TOKEN';
+                type = 'Sending Token';
+              }
+            } else if (action?.type === 'NftItemTransfer' && action.NftItemTransfer) {
+              let senderRaw = "";
+              try {
+                if (action.NftItemTransfer.sender?.address) {
+                  senderRaw = Address.parse(action.NftItemTransfer.sender.address).toRawString();
+                }
+              } catch {
+                senderRaw = action.NftItemTransfer.sender?.address || "";
+              }
+              isOutgoing = senderRaw === normalizedWalletAddress;
+
+              if (isOutgoing) {
+                type = 'Sending NFT';
+                symbol = 'NFT';
+              }
+            }
+
+            // Only return if it's an outgoing transaction
+            if (!isOutgoing) return null;
+
+            return {
+              event_id: event.event_id,
+              type,
+              amount,
+              symbol,
+              timestamp: event.timestamp,
+              in_progress: event.in_progress || false,
+            };
+          })
+          .filter((tx: PendingTransaction | null): tx is PendingTransaction => tx !== null);
+
+        setPendingTransactions(pending);
+      }
+    } catch (error) {
+      console.error("Failed to fetch pending transactions:", error);
+    } finally {
+      setIsLoadingPending(false);
+    }
+  }, [walletAddress]);
+
   // Handle wallet address changes - reset state and refetch
   const handleSetWalletAddress = useCallback((address: string) => {
     if (address !== walletAddress) {
@@ -346,6 +474,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setTotalUsdBalance("0.00");
         setJettons([]);
         setHasFetched(false);
+        setPendingTransactions([]);
       }
       setWalletAddress(address);
       setHasFetched(false);
@@ -362,8 +491,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (walletAddress && !hasFetched) {
       fetchWalletAssets();
+      fetchPendingTransactions();
     }
-  }, [walletAddress, hasFetched, fetchWalletAssets]);
+  }, [walletAddress, hasFetched, fetchWalletAssets, fetchPendingTransactions]);
+
+  // Auto-poll for pending transactions when they exist
+  useEffect(() => {
+    if (!walletAddress || pendingTransactions.length === 0) return;
+
+    const interval = setInterval(() => {
+      fetchPendingTransactions();
+      // Also refresh assets when pending transactions clear
+      if (pendingTransactions.length > 0) {
+        fetchWalletAssets();
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [walletAddress, pendingTransactions.length, fetchPendingTransactions, fetchWalletAssets]);
 
   return (
     <WalletContext.Provider value={{
@@ -382,8 +527,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isTestnet: IS_TESTNET,
       storedWallets,
       activeWalletIndex,
+      pendingTransactions,
+      isLoadingPending,
       fetchWalletAssets,
       fetchNfts,
+      fetchPendingTransactions,
       setWalletAddress: handleSetWalletAddress,
       toggleHideAsset,
       toggleHideBalance,

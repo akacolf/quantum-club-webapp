@@ -325,8 +325,8 @@ export default function HistoryPage() {
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${type === 'Deploy' ? 'bg-blue-500/10 text-blue-500' :
-                              symbol === 'NFT' ? (isIncoming ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-500/10 text-purple-400') :
-                                isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                            symbol === 'NFT' ? (isIncoming ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-500/10 text-purple-400') :
+                              isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
                             }`}>
                             {type === 'Deploy' ? (
                               <Layers className="w-5 h-5" />
