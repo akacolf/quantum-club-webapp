@@ -12,11 +12,11 @@ import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
 import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 /*import { toNano } from "@ton/core";*/
 import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
-import ClaimToaster from "./(components)/ClaimToaster";
+
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
 import DailyCheckIn from "./(components)/DailyCheck";
 import PullToRefresh from "./(components)/PullToRefresh";
@@ -40,13 +40,13 @@ const calculateRemainingTime = (timestamp: number) => {
   );
   return ` ${hours}h ${minutes}m`;
 };
-const QntmBalance = dynamic(() => import('./(components)/QntmBalance'), { 
+const QntmBalance = dynamic(() => import('./(components)/QntmBalance'), {
   ssr: false,
-  loading: () =><Skeleton/>
+  loading: () => <Skeleton />
 });
-const SolveToEarnCard = dynamic(() => import('./(components)/SolveToEarnCard'), { 
+const SolveToEarnCard = dynamic(() => import('./(components)/SolveToEarnCard'), {
   ssr: false,
-  loading: () =><Skeleton/>
+  loading: () => <Skeleton />
 });
 function getRankIcon(rank: string | null) {
   if (rank === "OG") {
@@ -109,20 +109,20 @@ const HomeContent = () => {
   const router = useRouter();
 
   useEffect(() => {
-        const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp;
 
-        tg?.disableClosingConfirmation();
-    }, []);
-  
-     useEffect(() => {
-      if (typeof window === "undefined") return;
-  
-      const mp = sessionStorage.getItem("maintenance");
-      if (mp === "true") {
-        router.replace("/maintenance");
-        return;
-      }
-    }, [router]);
+    tg?.disableClosingConfirmation();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mp = sessionStorage.getItem("maintenance");
+    if (mp === "true") {
+      router.replace("/maintenance");
+      return;
+    }
+  }, [router]);
 
   // Prefetch rewards history for faster navigation
   useEffect(() => {
@@ -297,7 +297,7 @@ const HomeContent = () => {
       }
     }
   }, [remainingSolveToEarn, router, setRemainingSolveToEarn, telegramId]);
- 
+
   {
     /*interface Itransaction {
     messages: [
@@ -398,7 +398,7 @@ const HomeContent = () => {
             const formattedDateISO = `${year}-${month}-${day}`;
             const diffInMs = Math.abs(
               new Date(formattedDateISO).getTime() -
-                new Date(checktime).getTime()
+              new Date(checktime).getTime()
             );
             const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
             if (diffInDays > 2) {
@@ -477,7 +477,7 @@ const HomeContent = () => {
             const solveToEarnDateConvert: string = `${yearSTE}-${monthSTE}-${daySTE}`;
             const diffInMs = Math.abs(
               new Date(formattedDateISO).getTime() -
-                new Date(solveToEarnDateConvert).getTime()
+              new Date(solveToEarnDateConvert).getTime()
             );
             const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
             setRemainingSolveToEarn(remainingSolveToEarn);
@@ -609,9 +609,9 @@ const HomeContent = () => {
               platform: "dailycheck-in-reward",
               Date: formattedslash,
             });
-           
 
-         
+
+
             if (typeof window !== "undefined") {
               localStorage.setItem("QAmount", `${rewardDay}`);
             }
@@ -632,7 +632,7 @@ const HomeContent = () => {
               const formattedslash = `${day}/${month}/${year}`;
               const diffInMs = Math.abs(
                 new Date(formattedDateISO).getTime() -
-                  new Date(checktime).getTime()
+                new Date(checktime).getTime()
               );
               const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
               const quantReward = dailyDay <= 7 ? (daily - 1) * 100 + 50 : 650;
@@ -654,9 +654,9 @@ const HomeContent = () => {
                   platform: "dailycheck-in-reward",
                   Date: formattedslash,
                 });
-               
 
-           
+
+
                 const formattedAmount = rewardDay.toLocaleString("en-US", {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
@@ -696,9 +696,9 @@ const HomeContent = () => {
                   platform: "dailycheck-in-reward",
                   Date: formattedslash,
                 });
-              
 
-               
+
+
                 SetMainQuantAmount(formattedAmount);
                 if (typeof window !== "undefined") {
                   localStorage.setItem("QAmount", rewardDay);
@@ -769,7 +769,7 @@ const HomeContent = () => {
             Date: formattedslash,
           });
 
-        
+
           SetMainQuantAmount(formattedAmount);
           if (typeof window !== "undefined") {
             localStorage.setItem("QAmount", formattedAmount);
@@ -856,7 +856,7 @@ const HomeContent = () => {
           });
           SetMainQuantAmount(formattedAmount);
           localStorage.setItem("QAmount", formattedAmount);
-          
+
           // Also refresh solve to earn
           const remainingSTE = snapshotValue.data().remainingSolveToEarn;
           if (remainingSTE != null) {
@@ -864,7 +864,7 @@ const HomeContent = () => {
             sessionStorage.setItem("remainingSolveToEarn", `${remainingSTE}`);
           }
         }
-        
+
         // Refresh daily check-in status
         const checkTimeRef = doc(dbfs, "user", telegramId, "miningData", "checkTime");
         const snapshot = await getDoc(checkTimeRef);
@@ -882,7 +882,7 @@ const HomeContent = () => {
             const formattedDateISO = `${year}-${month}-${day}`;
             const diffInMs = Math.abs(
               new Date(formattedDateISO).getTime() -
-                new Date(checktime).getTime()
+              new Date(checktime).getTime()
             );
             const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
             if (diffInDays >= 1 && diffInDays < 2) {
@@ -899,7 +899,7 @@ const HomeContent = () => {
           }
         }
       }
-      
+
       // No toast on success - visual animation is enough
     } catch (error) {
       console.error("Refresh error:", error);
@@ -909,10 +909,10 @@ const HomeContent = () => {
 
   return (
     <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen">
-      <ClaimToaster />
-      
+
+
       <PersonalizedGreeting />
-      
+
       <QntmBalance
         MainQuantAmount={MainQuantAmount}
         rank={rank}

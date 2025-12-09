@@ -3,11 +3,11 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
-import { 
-  Settings, 
-  HelpCircle, 
-  ChevronRight, 
+import { toast } from "sonner";
+import {
+  Settings,
+  HelpCircle,
+  ChevronRight,
   Trash2,
   AlertTriangle,
   FileText,
@@ -17,18 +17,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
 } from "@/components/ui/accordion";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function WalletSettingsPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-  
+
   const [showDeleteWalletConfirm, setShowDeleteWalletConfirm] = useState(false);
 
   const handleDeleteWallet = useCallback(() => {
@@ -78,7 +78,7 @@ export default function WalletSettingsPage() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
@@ -95,7 +95,7 @@ export default function WalletSettingsPage() {
           {/* Security Section */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider ml-1">Security</h2>
-            
+
             <Card className="bg-[#111] border-[#222] overflow-hidden">
               <CardContent className="p-0">
                 <button
@@ -113,9 +113,9 @@ export default function WalletSettingsPage() {
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
                 </button>
-                
+
                 <div className="border-t border-[#222]" />
-                
+
                 <button
                   onClick={() => router.push("/wallet/settings/wallets")}
                   className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
@@ -138,7 +138,7 @@ export default function WalletSettingsPage() {
           {/* Legal Section */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider ml-1">Legal</h2>
-            
+
             <Card className="bg-[#111] border-[#222] overflow-hidden">
               <CardContent className="p-0">
                 <button
@@ -156,9 +156,9 @@ export default function WalletSettingsPage() {
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
                 </button>
-                
+
                 <div className="border-t border-[#222]" />
-                
+
                 <button
                   onClick={() => router.push("/wallet/settings/privacy")}
                   className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
@@ -181,7 +181,7 @@ export default function WalletSettingsPage() {
           {/* Danger Zone */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider ml-1">Danger Zone</h2>
-            
+
             <Card className="bg-[#111] border-red-500/20 overflow-hidden">
               <CardContent className="p-0">
                 <button
@@ -209,11 +209,11 @@ export default function WalletSettingsPage() {
               <HelpCircle className="w-4 h-4" />
               Frequently Asked Questions
             </h2>
-            
+
             <Accordion type="single" collapsible className="space-y-2">
               {faqItems.map((item, index) => (
-                <AccordionItem 
-                  key={index} 
+                <AccordionItem
+                  key={index}
                   value={`item-${index}`}
                   className="bg-[#111] border border-[#222] rounded-xl overflow-hidden px-4"
                 >
@@ -230,9 +230,9 @@ export default function WalletSettingsPage() {
 
           {/* Links */}
           <div className="flex justify-center pt-4">
-            <a 
-              href="https://t.me/quantumclubinc" 
-              target="_blank" 
+            <a
+              href="https://t.me/quantumclubinc"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
             >
@@ -265,13 +265,13 @@ export default function WalletSettingsPage() {
                   <p className="text-xs text-gray-400">This action cannot be undone</p>
                 </div>
               </div>
-              
+
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
                 <p className="text-xs text-red-400 leading-relaxed">
                   <strong>Warning:</strong> Make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"

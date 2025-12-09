@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { IS_TESTNET } from "../../WalletContext";
 import { Address } from "@ton/core";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 // Helper to format address to EQ format (bounceable - for contracts/NFTs)
 const formatFriendlyAddress = (address: string): string => {

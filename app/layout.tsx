@@ -7,6 +7,7 @@ import { Onest } from "next/font/google";
 import ClientProviders from "./(providers)/ClientProviders";
 import type { Metadata } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
+import { Toaster } from "@/components/ui/sonner";
 
 
 const onest = Onest({
@@ -45,8 +46,10 @@ export default function RootLayout({
               </div>
             </div>
           </div>
+          <Toaster />
         </ClientProviders>
       </body>
     </html>
   );
 };
+

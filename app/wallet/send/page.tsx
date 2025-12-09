@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, ChangeEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,14 +45,14 @@ interface SendableAsset {
 export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-  
+
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
-  
-  const { 
+
+  const {
     walletAddress,
-    tonBalance, 
-    tonPrice, 
-    jettons, 
+    tonBalance,
+    tonPrice,
+    jettons,
     isLoadingAssets: isContextLoading,
     hasFetched,
     walletStatus,
@@ -82,7 +82,7 @@ export default function SendPage() {
 
   // Explorer URL based on network
   const EXPLORER_BASE_URL = IS_TESTNET ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
- 
+
   // Resolve .ton domain addresses
   useEffect(() => {
     const resolveAddress = async () => {
@@ -98,9 +98,9 @@ export default function SendPage() {
         setIsDomainAddress(true);
         setIsResolvingAddress(true);
         setAddressError("");
-        
+
         const result = await resolveTonAddress(recipient);
-        
+
         if (result.isValid) {
           setResolvedAddress(result.address);
           setAddressError("");
@@ -148,7 +148,7 @@ export default function SendPage() {
         priceUsd: tonPrice
       },
     ];
-    
+
     jettons.forEach((jetton) => {
       assets.push({
         type: "jetton",
@@ -162,7 +162,7 @@ export default function SendPage() {
         priceUsd: jetton.priceUsd
       });
     });
-    
+
     return assets;
   }, [tonBalance, jettons, tonPrice]);
 
@@ -172,7 +172,7 @@ export default function SendPage() {
       setSelectedAsset(sendableAssets[0]);
     }
   }, [hasFetched, selectedAsset, sendableAssets]);
-   
+
   const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(',', '.');
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
@@ -180,9 +180,9 @@ export default function SendPage() {
       // Check if exceeds balance
       if (selectedAsset) {
         const numValue = parseFloat(value) || 0;
-        if(numValue < (walletStatus ==="active" ? 0.01 : 0.05)) {
+        if (numValue < (walletStatus === "active" ? 0.01 : 0.05)) {
           setNeedMinimum(true);
-        }else{
+        } else {
           setNeedMinimum(false);
         }
         setInsufficientFunds(numValue > parseFloat(selectedAsset.balance));
@@ -203,43 +203,43 @@ export default function SendPage() {
       toast.error("Please enter a recipient address or .ton domain");
       return false;
     }
-    
+
     if (isResolvingAddress) {
       toast.error("Please wait for address resolution");
       return false;
     }
-    
+
     if (!resolvedAddress) {
       toast.error(addressError || "Invalid recipient address");
       return false;
     }
-    
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return false;
     }
-    
+
     // Check that amount doesn't exceed balance
     if (selectedAsset && parseFloat(amount) > parseFloat(selectedAsset.balance)) {
       toast.error("Insufficient balance");
       setInsufficientFunds(true);
       return false;
     }
-    
+
     // For TON, check minimum after fee deduction
     if (selectedAsset?.type === "ton") {
       const sendAmount = parseFloat(amount);
       const estimatedFeeAmount = 0.01
       const recipientWouldReceive = sendAmount - estimatedFeeAmount;
-      
+
       if (recipientWouldReceive < 0.001) {
         toast.error("Amount too small - recipient would receive less than 0.001 TON after fees");
         return false;
       }
     }
-    
-    if (parseFloat(amount) < (walletStatus ==="active" ? 0.01 : 0.05)) {
-      toast.error(`Minimum send amount is ${(walletStatus ==="active" ? "0.01" :"0.05")} TON`);
+
+    if (parseFloat(amount) < (walletStatus === "active" ? 0.01 : 0.05)) {
+      toast.error(`Minimum send amount is ${(walletStatus === "active" ? "0.01" : "0.05")} TON`);
       setNeedMinimum(true);
       return false;
     }
@@ -250,41 +250,41 @@ export default function SendPage() {
   const calculateNetworkFee = (messageCount: number, hasComment: boolean): number => {
     // Based on TON fee documentation:
     // transaction_fee = storage_fees + in_fwd_fees + computation_fees + action_fees + out_fwd_fees
-    
+
     // Constants from TON config (basechain)
     const GAS_PRICE = 0.0000004; // TON per gas unit
     const LUMP_PRICE = 0.0004; // Base forward fee
     const BIT_PRICE = 0.000001; // Per bit forward fee
     const CELL_PRICE = 0.0004; // Per cell forward fee
-    
+
     // Estimated gas usage for wallet v5r1 transfer
     const BASE_GAS = 5000; // Base compute gas
     const GAS_PER_MESSAGE = 3000; // Additional gas per outgoing message
-    
+
     // Calculate compute fee
     const totalGas = BASE_GAS + (messageCount * GAS_PER_MESSAGE);
     const computeFee = totalGas * GAS_PRICE;
-    
+
     // Calculate forward fees (for each outgoing message)
     // Simple TON transfer message: ~128 bits header + body
     const baseBits = 128;
     const commentBits = hasComment ? 256 : 0; // Approximate comment size
     const bitsPerMessage = baseBits + commentBits;
     const cellsPerMessage = hasComment ? 2 : 1;
-    
+
     let totalForwardFee = 0;
     for (let i = 0; i < messageCount; i++) {
       const msgFwdFee = LUMP_PRICE + (BIT_PRICE * bitsPerMessage) + (CELL_PRICE * cellsPerMessage);
       const actionFee = msgFwdFee / 3; // Action fee is ~1/3 of forward fee
       totalForwardFee += msgFwdFee + actionFee;
     }
-    
+
     // Storage fee is negligible for simple transfers
     const storageFee = 0.0001;
-    
+
     // Total fee with 10% buffer for network fluctuations
     const totalFee = (computeFee + totalForwardFee + storageFee) * 1.1;
-    
+
     return totalFee;
   };
 
@@ -298,7 +298,7 @@ export default function SendPage() {
 
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
-      
+
       const wallet = WalletContractV5R1.create({
         workchain: 0,
         publicKey: keyPair.publicKey,
@@ -314,19 +314,19 @@ export default function SendPage() {
       if (selectedAsset?.type === "ton") {
         // Direct P2P transfer
         const hasComment = comment.trim().length > 0;
-        
+
         // Calculate network fee for single message
         networkFee = calculateNetworkFee(1, hasComment);
         networkFee = Math.max(networkFee, 0.003);
-        
+
         // Build comment body if provided
         const messageBody = hasComment
           ? beginCell()
-              .storeUint(0, 32)
-              .storeStringTail(comment.trim())
-              .endCell()
+            .storeUint(0, 32)
+            .storeStringTail(comment.trim())
+            .endCell()
           : undefined;
-        
+
         const messages = [
           internal({
             to: toAddress,
@@ -339,11 +339,11 @@ export default function SendPage() {
         // Check if wallet is deployed by getting account state
         let seqno = 0;
         let isNewWallet = false;
-        
+
         try {
           const state = await ta.accounts.getAccount(wallet.address);
           isNewWallet = state.status !== 'active';
-          
+
           if (!isNewWallet) {
             seqno = await contract.getSeqno();
           }
@@ -352,7 +352,7 @@ export default function SendPage() {
           isNewWallet = true;
           seqno = 0;
         }
-        
+
         // Track if this is first transaction for UI display
         setIsFirstTransaction(isNewWallet);
 
@@ -398,14 +398,14 @@ export default function SendPage() {
             const emulateData = await emulateResponse.json();
             const transactions = emulateData.transactions || [];
             let totalFees = 0;
-            
+
             for (const tx of transactions) {
               const computeFee = tx.compute_phase?.gas_fees || 0;
               const storageFee = tx.storage_phase?.storage_fees_collected || 0;
               const actionFee = tx.action_phase?.total_action_fees || 0;
               totalFees += computeFee + storageFee + actionFee;
             }
-            
+
             networkFee = totalFees / 1e9;
             if (networkFee < 0.001) {
               networkFee = 0.005;
@@ -418,31 +418,31 @@ export default function SendPage() {
           // Fallback to calculated fee
           networkFee = calculateNetworkFee(1, hasComment);
         }
-        
+
         networkFee = Math.max(networkFee, 0.003);
         networkFee = Math.min(networkFee, 0.02);
-        
+
         // Add deployment fee for first transaction
         if (isNewWallet) {
           networkFee += DEPLOYMENT_FEE;
         }
-        
+
       } else {
         // Jetton transfer - more complex, higher fees
         networkFee = 0.05;
-        
+
         if (selectedAsset?.decimals && selectedAsset.decimals < 6) {
           networkFee += 0.01;
         }
       }
-      
+
       setEstimatedFee(networkFee.toFixed(6));
       setStep("confirm");
     } catch (error) {
       console.error("Fee estimation failed", error);
       // Fallback to safe default estimates
       const hasComment = comment.trim().length > 0;
-      const baseFee = selectedAsset?.type === "ton" 
+      const baseFee = selectedAsset?.type === "ton"
         ? calculateNetworkFee(1, hasComment)
         : 0.06;
       setEstimatedFee(Math.max(baseFee, 0.003).toFixed(6));
@@ -465,7 +465,7 @@ export default function SendPage() {
     );
 
     const authenticated = await requestAuth();
-    
+
     if (authenticated) {
       await executeSend();
     } else {
@@ -487,7 +487,7 @@ export default function SendPage() {
     try {
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
-      
+
       const wallet = WalletContractV5R1.create({
         workchain: 0,
         publicKey: keyPair.publicKey,
@@ -496,16 +496,16 @@ export default function SendPage() {
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
-      
+
       // Check if wallet is deployed by getting its state
       let seqno = 0;
       let isWalletDeployed = false;
-      
+
       try {
         // Try to get the contract state to check if it's active
         const state = await ta.accounts.getAccount(wallet.address);
         isWalletDeployed = state.status === 'active';
-        
+
         if (isWalletDeployed) {
           seqno = await contract.getSeqno();
         }
@@ -514,7 +514,7 @@ export default function SendPage() {
         isWalletDeployed = false;
         seqno = 0;
       }
-      
+
       const toAddress = Address.parse(resolvedAddress);
 
       if (selectedAsset?.type === "ton") {
@@ -522,15 +522,15 @@ export default function SendPage() {
         const inputAmount = parseFloat(amount);
         const fee = parseFloat(estimatedFee);
         const recipientAmount = Math.max(0, inputAmount - fee);
-        
+
         // Build comment body if provided
         const messageBody = comment.trim()
           ? beginCell()
-              .storeUint(0, 32)
-              .storeStringTail(comment.trim())
-              .endCell()
+            .storeUint(0, 32)
+            .storeStringTail(comment.trim())
+            .endCell()
           : undefined;
-        
+
         // For first transaction with undeployed wallet, we need to manually send with StateInit
         if (!isWalletDeployed && seqno === 0) {
           // Create the transfer message
@@ -547,7 +547,7 @@ export default function SendPage() {
               }),
             ],
           });
-          
+
           // Build external message with StateInit for wallet deployment
           const externalMessage = beginCell()
             .storeWritable((builder) => {
@@ -569,7 +569,7 @@ export default function SendPage() {
             .storeBit(true) // body in ref
             .storeRef(transfer)
             .endCell();
-          
+
           // Send the external message via TonAPI
           const boc = externalMessage.toBoc().toString('base64');
           await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
@@ -598,12 +598,12 @@ export default function SendPage() {
         if (!isWalletDeployed) {
           throw new Error("Your wallet needs to have some TON first. Send TON to your wallet address to activate it, then try again.");
         }
-        
+
         const sendAmount = parseFloat(amount);
-        
+
         const jettonAmount = BigInt(Math.floor(sendAmount * Math.pow(10, selectedAsset.decimals)));
         const jettonWallet = Address.parse(selectedAsset.walletAddress);
-        
+
         const body = beginCell()
           .storeUint(0xf8a7ea5, 32)
           .storeUint(0, 64)
@@ -638,10 +638,10 @@ export default function SendPage() {
 
       // Store wallet address for explorer link (transaction will appear in account history)
       setLastTxHash(walletAddress || "");
-      
+
       setStep("success");
       toast.success("Transaction sent!");
-      
+
       // Refresh assets after delay
       setTimeout(() => {
         fetchWalletAssets();
@@ -649,11 +649,11 @@ export default function SendPage() {
 
     } catch (error) {
       console.error("Send failed:", error);
-      
+
       // Track failed transaction
       const errorMessage = error instanceof Error ? error.message : "Transaction failed";
       analyticsEvents.transactionSigningFailed(errorMessage);
-      
+
       // Show detailed error to user
       toast.error(`Transaction failed: ${errorMessage}`);
       setStep("input");
@@ -749,10 +749,9 @@ export default function SendPage() {
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
                     placeholder="Enter TON address or name.ton"
-                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl transition-all font-mono text-sm ${
-                      addressError ? 'border-red-500 focus:border-red-500' : 
-                      resolvedAddress ? 'border-green-500/50 focus:border-green-500' : 'focus:border-blue-500/50'
-                    }`}
+                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl transition-all font-mono text-sm ${addressError ? 'border-red-500 focus:border-red-500' :
+                        resolvedAddress ? 'border-green-500/50 focus:border-green-500' : 'focus:border-blue-500/50'
+                      }`}
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     {isResolvingAddress ? (
@@ -802,7 +801,7 @@ export default function SendPage() {
                     <span className="text-xs text-gray-500">
                       {selectedAsset?.balance} {selectedAsset?.symbol}
                     </span>
-                    <button 
+                    <button
                       onClick={handleMaxAmount}
                       className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase"
                     >
@@ -817,9 +816,8 @@ export default function SendPage() {
                     value={amount}
                     onChange={handleAmountChange}
                     placeholder="0.00"
-                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-20 text-2xl font-bold text-white placeholder:text-gray-700 rounded-xl transition-all ${
-                      insufficientFunds ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500/50'
-                    }`}
+                    className={`bg-[#111] border-[#222] h-14 pl-4 pr-20 text-2xl font-bold text-white placeholder:text-gray-700 rounded-xl transition-all ${insufficientFunds ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500/50'
+                      }`}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-right">
                     <div className="text-sm font-bold text-white">{selectedAsset?.symbol}</div>
@@ -835,17 +833,17 @@ export default function SendPage() {
                     <Info className="w-3 h-3" />
                     Insufficient funds. You have {selectedAsset?.balance} {selectedAsset?.symbol} available.
                   </p>
-                ): needMinimum ? (
+                ) : needMinimum ? (
                   <p className="text-xs text-yellow-400 ml-1 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                    Min {walletStatus==="active" ? "0.01":"0.05"} {selectedAsset?.symbol}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                    Min {walletStatus === "active" ? "0.01" : "0.05"} {selectedAsset?.symbol}
                   </p>
                 ) : null}
               </div>
 
               <Button
                 onClick={handleContinue}
-                disabled={!recipient || !resolvedAddress || !amount || parseFloat(amount) <= 0 || isEstimating || insufficientFunds || isResolvingAddress||needMinimum}
+                disabled={!recipient || !resolvedAddress || !amount || parseFloat(amount) <= 0 || isEstimating || insufficientFunds || isResolvingAddress || needMinimum}
                 className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-xl font-bold text-lg mt-8"
               >
                 {isEstimating ? (
@@ -874,7 +872,7 @@ export default function SendPage() {
                   <span className="text-xs text-yellow-400 font-medium">Testnet Mode - For testing only</span>
                 </div>
               )}
-              
+
               <Card className="bg-[#111] border-[#222] overflow-hidden">
                 <CardContent className="p-6 space-y-6">
                   <div className="text-center space-y-1">
@@ -917,7 +915,7 @@ export default function SendPage() {
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-400">
                         Network Fee
@@ -927,7 +925,7 @@ export default function SendPage() {
                       </span>
                       <span className="text-sm text-white">≈ {estimatedFee} TON</span>
                     </div>
-                    
+
                     {isFirstTransaction && (
                       <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2 -mx-1">
                         <p className="text-xs text-yellow-500/90 text-center">
@@ -935,11 +933,11 @@ export default function SendPage() {
                         </p>
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between items-center pt-2 border-t border-[#333]">
                       <span className="text-sm text-green-400 font-medium">Recipient receives</span>
                       <span className="text-sm text-green-400 font-bold">
-                        {selectedAsset?.type === "ton" 
+                        {selectedAsset?.type === "ton"
                           ? `${Math.max(0, parseFloat(amount) - parseFloat(estimatedFee)).toFixed(6)} TON`
                           : `${amount} ${selectedAsset?.symbol}`
                         }
@@ -1018,7 +1016,7 @@ export default function SendPage() {
                   Your transaction has been successfully broadcasted to the network.
                 </p>
               </div>
-              
+
               <div className="w-full space-y-3 pt-8">
                 {lastTxHash && (
                   <Button

@@ -7,29 +7,29 @@ import { useWallet, StoredWallet } from "../../WalletContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Wallet, 
-  Plus, 
-  Trash2, 
-  Check, 
-  Edit2, 
+import {
+  Wallet,
+  Plus,
+  Trash2,
+  Check,
+  Edit2,
   Copy,
-  AlertTriangle 
+  AlertTriangle
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function ManageWalletsPage() {
   useTelegramBackButton("/wallet/settings");
   const router = useRouter();
-  const { 
-    storedWallets, 
+  const {
+    storedWallets,
     walletAddress,
-    switchWallet, 
-    removeWallet, 
-    renameWallet 
+    switchWallet,
+    removeWallet,
+    renameWallet
   } = useWallet();
-  
+
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -42,7 +42,6 @@ export default function ManageWalletsPage() {
   const handleSwitchWallet = (address: string) => {
     if (address !== walletAddress) {
       switchWallet(address);
-      toast.success("Wallet switched!");
     }
   };
 
@@ -77,7 +76,7 @@ export default function ManageWalletsPage() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto space-y-6">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-2"

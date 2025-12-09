@@ -4,7 +4,7 @@ import { useState, ClipboardEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Trash2, ShieldCheck, X } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
 
@@ -28,7 +28,7 @@ export default function ImportWalletPage() {
   useEffect(() => {
     const cleanedPhrase = seedPhrase.map(word => word.trim().toLowerCase());
     const allFilled = cleanedPhrase.every(word => word.length > 0);
-    
+
     if (allFilled) {
       mnemonicValidate(cleanedPhrase).then(setIsValidPhrase);
     } else {
@@ -56,7 +56,7 @@ export default function ImportWalletPage() {
         }
       });
       setSeedPhrase(newPhrase);
-      
+
       if (words.length >= 24) {
         toast.success("Recovery phrase pasted successfully!");
       }
@@ -70,9 +70,9 @@ export default function ImportWalletPage() {
 
   const handleImport = async () => {
     setIsLoading(true);
-    
+
     const cleanedPhrase = seedPhrase.map(word => word.trim().toLowerCase());
-    
+
     if (cleanedPhrase.some(word => !word)) {
       toast.error("Please fill in all 24 words");
       setIsLoading(false);
@@ -92,21 +92,21 @@ export default function ImportWalletPage() {
         workchain: 0,
         publicKey: keyPair.publicKey,
       });
-      
+
       const address = wallet.address.toString({ bounceable: false, testOnly: IS_TESTNET });
-      
+
       localStorage.setItem("quantum_wallet_address", address);
       localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));
       setWalletAddress(address);
-      
+
       // Add to multi-wallet storage
       const walletName = `Wallet ${storedWallets.length + 1}`;
       addWallet(address, walletName);
       switchWallet(address);
-      
+
       // Track wallet import event
       analyticsEvents.walletImported(address);
-      
+
       toast.success("Wallet imported successfully!");
       router.push("/wallet");
     } catch (error) {
@@ -120,7 +120,7 @@ export default function ImportWalletPage() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6">
       <div className="max-w-lg mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
@@ -152,11 +152,10 @@ export default function ImportWalletPage() {
           {/* Seed Phrase Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {seedPhrase.map((word, i) => (
-              <div 
-                key={i} 
-                className={`relative transition-all duration-200 ${
-                  activeWordIndex === i ? 'scale-105 z-10' : ''
-                }`}
+              <div
+                key={i}
+                className={`relative transition-all duration-200 ${activeWordIndex === i ? 'scale-105 z-10' : ''
+                  }`}
               >
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-mono select-none pointer-events-none z-10">
                   {i + 1}.
@@ -185,11 +184,10 @@ export default function ImportWalletPage() {
 
           {/* Validation Status */}
           {isValidPhrase !== null && (
-            <div className={`p-3 rounded-xl flex items-center gap-2 ${
-              isValidPhrase 
-                ? 'bg-green-500/10 border border-green-500/20' 
+            <div className={`p-3 rounded-xl flex items-center gap-2 ${isValidPhrase
+                ? 'bg-green-500/10 border border-green-500/20'
                 : 'bg-red-500/10 border border-red-500/20'
-            }`}>
+              }`}>
               {isValidPhrase ? (
                 <>
                   <Check className="w-4 h-4 text-green-500" />
@@ -208,7 +206,7 @@ export default function ImportWalletPage() {
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex gap-3">
             <ShieldCheck className="w-5 h-5 text-yellow-500 shrink-0" />
             <p className="text-xs text-yellow-200/80 leading-relaxed">
-              Ensure you are in a private location. Never share your recovery phrase with anyone. 
+              Ensure you are in a private location. Never share your recovery phrase with anyone.
               Quantum Club support will never ask for it.
             </p>
           </div>

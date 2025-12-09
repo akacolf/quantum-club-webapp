@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
-import CopyToaster from "./(components)/CopyToaster";
+
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
@@ -38,7 +38,7 @@ const FrensContent = () => {
       const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
       const snapshot = await getCountFromServer(referralsRef);
       setReferralNum(snapshot.data().count);
-      
+
       const secondTierRef = collection(dbfs, `user/${telegramId}/secondTierReferrals`);
       const secondTierSnapshot = await getCountFromServer(secondTierRef);
       setSecondTierCount(secondTierSnapshot.data().count);
@@ -192,7 +192,7 @@ const FrensContent = () => {
   }
   return (
     <div className="min-h-screen pb-24">
-      <CopyToaster />
+
       <div>
         {!loading ? (
           <div className="p-4 space-y-6">
@@ -227,7 +227,7 @@ const FrensContent = () => {
                     <div className="text-xs text-gray-500 font-medium mt-1">INVITED FRENS</div>
                   </div>
                 </div>
-                
+
                 <div className="pt-4 border-t border-[#333]">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
@@ -262,7 +262,7 @@ const FrensContent = () => {
                 <Users className="w-5 h-5" />
                 <span>Your Referrals</span>
               </div>
-              
+
               <div className="space-y-3">
                 {referralsContext && referralsContext.length > 0 ? (
                   referralsContext.map((referral, index) => (

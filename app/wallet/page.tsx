@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import hotToast from "react-hot-toast";
+import { toast } from "sonner";
 import {
   Settings,
   RefreshCw,
@@ -166,23 +166,66 @@ export default function WalletPage() {
   const fetchPriceHistory = useCallback(async (asset: AssetDetail) => {
     setIsLoadingPrice(true);
     try {
+      // TonAPI rates chart endpoint for real price data
+      const API_BASE = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+
+      // Determine the token for the API call
+      const tokenId = asset.symbol === "TON" ? "ton" : asset.jettonAddress;
+
+      if (!tokenId) {
+        // Fallback for jettons without address - use current price as baseline
+        throw new Error("No token identifier");
+      }
+
+      // Fetch chart data from TonAPI
+      const response = await fetch(
+        `${API_BASE}/v2/rates/chart?token=${tokenId}&currency=usd`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // TonAPI returns points as array of [timestamp, price] tuples
+        const points: [number, number][] = data.points || [];
+
+        if (points.length > 0) {
+          // Take last 24 points for 24h view (or all if less than 24)
+          const recentPoints = points.slice(-24);
+          const history: PricePoint[] = recentPoints.map((point: [number, number]) => ({
+            time: new Date(point[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            price: point[1],
+          }));
+          setPriceHistory(history);
+          return;
+        }
+      }
+
+      // Fallback: If no historical data, create a flat line with current price
       const basePrice = asset.priceUsd || 0.01;
       const history: PricePoint[] = [];
       const now = Date.now();
       for (let i = 23; i >= 0; i--) {
-        const variation = (Math.random() - 0.5) * 0.1 * basePrice;
         history.push({
           time: new Date(now - i * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          price: Math.max(0.0001, basePrice + variation),
+          price: basePrice,
         });
       }
       setPriceHistory(history);
     } catch {
-      setPriceHistory([]);
+      // Fallback to flat line with current price
+      const basePrice = asset.priceUsd || 0.01;
+      const history: PricePoint[] = [];
+      const now = Date.now();
+      for (let i = 23; i >= 0; i--) {
+        history.push({
+          time: new Date(now - i * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          price: basePrice,
+        });
+      }
+      setPriceHistory(history);
     } finally {
       setIsLoadingPrice(false);
     }
-  }, []);
+  }, [isTestnet]);
 
   // Fetch price when asset is selected
   useEffect(() => {
@@ -235,7 +278,7 @@ export default function WalletPage() {
       router.push("/wallet/backup");
     } catch (error) {
       console.error("Wallet creation error:", error);
-      hotToast.error("Failed to create wallet. Please try again.");
+      toast.error("Failed to create wallet. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -245,7 +288,7 @@ export default function WalletPage() {
     if (walletAddress) {
       navigator.clipboard.writeText(walletAddress);
       setCopied(true);
-      hotToast.success("Address copied!");
+      toast.success("Address copied!");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -459,24 +502,21 @@ export default function WalletPage() {
                     key={i}
                     onClick={() => !action.disabled && router.push(action.path)}
                     disabled={action.disabled}
-                    className={`flex flex-col items-center gap-2 ${
-                      action.disabled 
-                        ? 'cursor-not-allowed opacity-50' 
-                        : 'group cursor-pointer'
-                    }`}
+                    className={`flex flex-col items-center gap-2 ${action.disabled
+                      ? 'cursor-not-allowed opacity-50'
+                      : 'group cursor-pointer'
+                      }`}
                   >
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-black/20 ${
-                      action.disabled
-                        ? 'bg-[#222] text-gray-600'
-                        : 'bg-[#222] text-gray-400 transition-all duration-200 group-hover:bg-[#333] group-hover:text-white group-hover:scale-105'
-                    }`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-black/20 ${action.disabled
+                      ? 'bg-[#222] text-gray-600'
+                      : 'bg-[#222] text-gray-400 transition-all duration-200 group-hover:bg-[#333] group-hover:text-white group-hover:scale-105'
+                      }`}>
                       {action.icon}
                     </div>
-                    <span className={`text-xs font-medium ${
-                      action.disabled
-                        ? 'text-gray-600'
-                        : 'text-gray-500 transition-colors group-hover:text-gray-300'
-                    }`}>
+                    <span className={`text-xs font-medium ${action.disabled
+                      ? 'text-gray-600'
+                      : 'text-gray-500 transition-colors group-hover:text-gray-300'
+                      }`}>
                       {action.label}
                     </span>
                   </button>
