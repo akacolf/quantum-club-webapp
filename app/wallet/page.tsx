@@ -263,6 +263,20 @@ export default function WalletPage() {
     }
   }, [hasWallet, walletAddress, fetchNfts]);
 
+  // Prefetch wallet subpages for faster navigation
+  useEffect(() => {
+    if (hasWallet && walletAddress) {
+      // Prefetch main wallet function pages
+      router.prefetch("/wallet/send");
+      router.prefetch("/wallet/receive");
+      router.prefetch("/wallet/history");
+      router.prefetch("/wallet/settings");
+      router.prefetch("/wallet/send-qntm");
+      router.prefetch("/wallet/settings/wallets");
+      router.prefetch("/wallet/settings/recovery-phrase");
+    }
+  }, [hasWallet, walletAddress, router]);
+
   const createWallet = async () => {
     setIsLoading(true);
     try {
