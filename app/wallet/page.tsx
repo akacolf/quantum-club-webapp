@@ -55,6 +55,8 @@ interface PricePoint {
   price: number;
 }
 
+type ChartPeriod = '1H' | '1D' | '1W' | '1M' | '6M' | '1Y';
+
 interface AssetDetail {
   name: string;
   symbol: string;
@@ -103,6 +105,7 @@ export default function WalletPage() {
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1D');
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [change24h, setChange24h] = useState<number | null>(null);
 
@@ -163,7 +166,7 @@ export default function WalletPage() {
   }, [walletAddress, totalUsdBalance, hasFetched, isLoadingAssets]);
 
   // Fetch price history for selected asset
-  const fetchPriceHistory = useCallback(async (asset: AssetDetail) => {
+  const fetchPriceHistory = useCallback(async (asset: AssetDetail, period: ChartPeriod = '1D') => {
     setIsLoadingPrice(true);
     try {
       // TonAPI rates chart endpoint for real price data
@@ -173,66 +176,80 @@ export default function WalletPage() {
       const tokenId = asset.symbol === "TON" ? "ton" : asset.jettonAddress;
 
       if (!tokenId) {
-        // Fallback for jettons without address - use current price as baseline
         throw new Error("No token identifier");
+      }
+
+      // Calculate start time based on period
+      const now = Math.floor(Date.now() / 1000);
+      let startTime = now - 24 * 60 * 60; // Default 1D
+
+      switch (period) {
+        case '1H': startTime = now - 60 * 60; break;
+        case '1D': startTime = now - 24 * 60 * 60; break;
+        case '1W': startTime = now - 7 * 24 * 60 * 60; break;
+        case '1M': startTime = now - 30 * 24 * 60 * 60; break;
+        case '6M': startTime = now - 180 * 24 * 60 * 60; break;
+        case '1Y': startTime = now - 365 * 24 * 60 * 60; break;
       }
 
       // Fetch chart data from TonAPI
       const response = await fetch(
-        `${API_BASE}/v2/rates/chart?token=${tokenId}&currency=usd`
+        `${API_BASE}/v2/rates/chart?token=${tokenId}&currency=usd&start_date=${startTime}&end_date=${now}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        // TonAPI returns points as array of [timestamp, price] tuples
         const points: [number, number][] = data.points || [];
 
         if (points.length > 0) {
-          // Take last 24 points for 24h view (or all if less than 24)
-          const recentPoints = points.slice(-24);
-          const history: PricePoint[] = recentPoints.map((point: [number, number]) => ({
-            time: new Date(point[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            price: point[1],
-          }));
+          const history: PricePoint[] = points.map((point: [number, number]) => {
+            const date = new Date(point[0] * 1000);
+            let timeLabel = "";
+
+            // Format label based on period
+            if (period === '1H' || period === '1D') {
+              timeLabel = date.toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              });
+            } else if (period === '1W' || period === '1M') {
+              timeLabel = date.toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric'
+              });
+            } else {
+              timeLabel = date.toLocaleDateString(undefined, {
+                month: 'short',
+                year: '2-digit'
+              });
+            }
+
+            return {
+              time: timeLabel,
+              price: point[1],
+            };
+          });
           setPriceHistory(history);
           return;
         }
       }
 
-      // Fallback: If no historical data, create a flat line with current price
-      const basePrice = asset.priceUsd || 0.01;
-      const history: PricePoint[] = [];
-      const now = Date.now();
-      for (let i = 23; i >= 0; i--) {
-        history.push({
-          time: new Date(now - i * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          price: basePrice,
-        });
-      }
-      setPriceHistory(history);
+      // Fallback empty if no data
+      setPriceHistory([]);
     } catch {
-      // Fallback to flat line with current price
-      const basePrice = asset.priceUsd || 0.01;
-      const history: PricePoint[] = [];
-      const now = Date.now();
-      for (let i = 23; i >= 0; i--) {
-        history.push({
-          time: new Date(now - i * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          price: basePrice,
-        });
-      }
-      setPriceHistory(history);
+      setPriceHistory([]);
     } finally {
       setIsLoadingPrice(false);
     }
   }, [isTestnet]);
 
-  // Fetch price when asset is selected
+  // Fetch price when asset is selected or period changes
   useEffect(() => {
     if (selectedAsset) {
-      fetchPriceHistory(selectedAsset);
+      fetchPriceHistory(selectedAsset, chartPeriod);
     }
-  }, [selectedAsset, fetchPriceHistory]);
+  }, [selectedAsset, chartPeriod, fetchPriceHistory]);
 
   // Price chart tooltip
   const PriceTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) => {
@@ -606,15 +623,17 @@ export default function WalletPage() {
           <TabsContent value="assets" className="mt-4 space-y-3">
             <Card
               className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
-              onClick={() => setSelectedAsset({
-                name: "Toncoin",
-                symbol: "TON",
-                balance: tonBalance,
-                value: parseFloat(tonUsdValue) || 0,
-                priceUsd: tonPrice,
-                image: TON_ICON,
-                color: CHART_COLORS[0],
-              })}
+              onClick={() => {
+                setSelectedAsset({
+                  name: "Toncoin",
+                  symbol: "TON",
+                  balance: tonBalance,
+                  value: parseFloat(tonUsdValue) || 0,
+                  priceUsd: tonPrice,
+                  image: TON_ICON,
+                  color: CHART_COLORS[0],
+                }); setChartPeriod('1D');
+              }}
             >
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -682,16 +701,18 @@ export default function WalletPage() {
                 <Card
                   key={index}
                   className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
-                  onClick={() => setSelectedAsset({
-                    name: jetton.name,
-                    symbol: jetton.symbol,
-                    balance: formattedBalance,
-                    value: jetton.usdValue || 0,
-                    priceUsd: jetton.priceUsd || 0,
-                    image: jetton.image,
-                    color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
-                    jettonAddress: jetton.jettonAddress,
-                  })}
+                  onClick={() => {
+                    setSelectedAsset({
+                      name: jetton.name,
+                      symbol: jetton.symbol,
+                      balance: formattedBalance,
+                      value: jetton.usdValue || 0,
+                      priceUsd: jetton.priceUsd || 0,
+                      image: jetton.image,
+                      color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
+                      jettonAddress: jetton.jettonAddress,
+                    }); setChartPeriod('1D');
+                  }}
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -776,134 +797,152 @@ export default function WalletPage() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
+      </div >
 
       {/* Asset Detail Modal */}
       <AnimatePresence>
-        {selectedAsset && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center"
-            onClick={() => setSelectedAsset(null)}
-          >
+        {
+          selectedAsset && (
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-[#111] border-t border-[#333] rounded-t-3xl w-full max-w-md p-6 pb-24"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center"
+              onClick={() => setSelectedAsset(null)}
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-white/10"
-                    style={{ backgroundColor: selectedAsset.image ? 'transparent' : selectedAsset.color }}
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-[#111] border-t border-[#333] rounded-t-3xl w-full max-w-md p-6 pb-24"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-white/10"
+                      style={{ backgroundColor: selectedAsset.image ? 'transparent' : selectedAsset.color }}
+                    >
+                      {selectedAsset.image ? (
+                        <Image
+                          src={selectedAsset.image}
+                          alt={selectedAsset.symbol}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <span className="text-white text-lg font-bold">{selectedAsset.symbol.slice(0, 2)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{selectedAsset.symbol}</h3>
+                      <p className="text-sm text-gray-400">{selectedAsset.name}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedAsset(null)}
+                    className="w-8 h-8 bg-[#222] rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#333] transition-colors"
                   >
-                    {selectedAsset.image ? (
-                      <Image
-                        src={selectedAsset.image}
-                        alt={selectedAsset.symbol}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Current Price */}
+                <div className="mb-6">
+                  <p className="text-gray-400 text-sm mb-1">Current Price</p>
+                  <h2 className="text-3xl font-bold text-white">
+                    ${selectedAsset.priceUsd?.toFixed(4) || "0.0000"}
+                  </h2>
+                </div>
+
+                {/* Price Chart */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-gray-400 text-sm">Price Chart</p>
+                    <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                      {(['1H', '1D', '1W', '1M', '6M', '1Y'] as ChartPeriod[]).map((period) => (
+                        <button
+                          key={period}
+                          onClick={() => setChartPeriod(period)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors ${chartPeriod === period
+                            ? 'bg-white text-black'
+                            : 'bg-[#1a1a1a] text-gray-500 hover:text-gray-300'
+                            }`}
+                        >
+                          {period}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="h-52 bg-[#0a0a0a] rounded-xl p-2">
+                    {isLoadingPrice ? (
+                      <div className="h-full flex items-center justify-center">
+                        <Skeleton className="w-full h-full bg-[#222]" />
+                      </div>
+                    ) : priceHistory.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={priceHistory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
+                          <XAxis
+                            dataKey="time"
+                            stroke="#555"
+                            tick={{ fill: '#555', fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={false}
+                            interval="preserveStartEnd"
+                          />
+                          <YAxis
+                            stroke="#555"
+                            tick={{ fill: '#555', fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={false}
+                            domain={['dataMin', 'dataMax']}
+                            tickFormatter={(value) => `$${value.toFixed(2)}`}
+                            width={50}
+                          />
+                          <Tooltip content={<PriceTooltip />} />
+                          <Line
+                            type="monotone"
+                            dataKey="price"
+                            stroke={selectedAsset.color}
+                            strokeWidth={2}
+                            dot={false}
+                            activeDot={{ r: 4, fill: selectedAsset.color }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
                     ) : (
-                      <span className="text-white text-lg font-bold">{selectedAsset.symbol.slice(0, 2)}</span>
+                      <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+                        No price data available
+                      </div>
                     )}
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">{selectedAsset.symbol}</h3>
-                    <p className="text-sm text-gray-400">{selectedAsset.name}</p>
+                </div>
+
+                {/* Holdings Info */}
+                <div className="bg-[#0a0a0a] rounded-xl p-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-400 text-sm">Your Holdings</span>
+                    <span className="text-white font-bold">
+                      {hideBalance ? "••••" : `${selectedAsset.balance} ${selectedAsset.symbol}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 text-sm">Value</span>
+                    <span className="text-white font-bold">
+                      {hideBalance ? "••••" : `$${selectedAsset.value.toFixed(2)}`}
+                    </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelectedAsset(null)}
-                  className="w-8 h-8 bg-[#222] rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#333] transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Current Price */}
-              <div className="mb-6">
-                <p className="text-gray-400 text-sm mb-1">Current Price</p>
-                <h2 className="text-3xl font-bold text-white">
-                  ${selectedAsset.priceUsd?.toFixed(4) || "0.0000"}
-                </h2>
-              </div>
-
-              {/* Price Chart */}
-              <div className="mb-6">
-                <p className="text-gray-400 text-sm mb-3">24h Price Chart</p>
-                <div className="h-40 bg-[#0a0a0a] rounded-xl p-2">
-                  {isLoadingPrice ? (
-                    <div className="h-full flex items-center justify-center">
-                      <Skeleton className="w-full h-full bg-[#222]" />
-                    </div>
-                  ) : priceHistory.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={priceHistory}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                        <XAxis
-                          dataKey="time"
-                          stroke="#555"
-                          tick={{ fill: '#555', fontSize: 10 }}
-                          tickLine={false}
-                          axisLine={false}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis
-                          stroke="#555"
-                          tick={{ fill: '#555', fontSize: 10 }}
-                          tickLine={false}
-                          axisLine={false}
-                          domain={['dataMin', 'dataMax']}
-                          tickFormatter={(value) => `$${value.toFixed(2)}`}
-                          width={50}
-                        />
-                        <Tooltip content={<PriceTooltip />} />
-                        <Line
-                          type="monotone"
-                          dataKey="price"
-                          stroke={selectedAsset.color}
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{ r: 4, fill: selectedAsset.color }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-                      No price data available
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Holdings Info */}
-              <div className="bg-[#0a0a0a] rounded-xl p-4">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-400 text-sm">Your Holdings</span>
-                  <span className="text-white font-bold">
-                    {hideBalance ? "••••" : `${selectedAsset.balance} ${selectedAsset.symbol}`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400 text-sm">Value</span>
-                  <span className="text-white font-bold">
-                    {hideBalance ? "••••" : `$${selectedAsset.value.toFixed(2)}`}
-                  </span>
-                </div>
-              </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          )
+        }
+      </AnimatePresence >
+    </div >
   );
 }
