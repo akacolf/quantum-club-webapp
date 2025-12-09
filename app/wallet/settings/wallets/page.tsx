@@ -7,29 +7,29 @@ import { useWallet, StoredWallet } from "../../WalletContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Wallet, 
-  Plus, 
-  Trash2, 
-  Check, 
-  Edit2, 
+import {
+  Wallet,
+  Plus,
+  Trash2,
+  Check,
+  Edit2,
   Copy,
-  AlertTriangle 
+  AlertTriangle
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function ManageWalletsPage() {
   useTelegramBackButton("/wallet/settings");
   const router = useRouter();
-  const { 
-    storedWallets, 
+  const {
+    storedWallets,
     walletAddress,
-    switchWallet, 
-    removeWallet, 
-    renameWallet 
+    switchWallet,
+    removeWallet,
+    renameWallet
   } = useWallet();
-  
+
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -42,7 +42,6 @@ export default function ManageWalletsPage() {
   const handleSwitchWallet = (address: string) => {
     if (address !== walletAddress) {
       switchWallet(address);
-      toast.success("Wallet switched!");
     }
   };
 
@@ -77,7 +76,7 @@ export default function ManageWalletsPage() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto space-y-6">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-2"
@@ -101,9 +100,9 @@ export default function ManageWalletsPage() {
               >
                 <Card className={`bg-[#111] border-[#222] ${wallet.address === walletAddress ? 'ring-2 ring-blue-500/50' : ''}`}>
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${wallet.address === walletAddress ? 'bg-blue-500/20' : 'bg-[#1a1a1a]'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${wallet.address === walletAddress ? 'bg-blue-500/20' : 'bg-[#1a1a1a]'}`}>
                           <Wallet className={`w-5 h-5 ${wallet.address === walletAddress ? 'text-blue-400' : 'text-gray-400'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -113,7 +112,7 @@ export default function ManageWalletsPage() {
                                 type="text"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
-                                className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-1.5 text-white text-sm flex-1 focus:outline-none focus:border-blue-500"
+                                className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-1.5 text-white text-sm flex-1 min-w-0 focus:outline-none focus:border-blue-500"
                                 autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") handleSaveRename(wallet.address);
@@ -124,28 +123,28 @@ export default function ManageWalletsPage() {
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => handleSaveRename(wallet.address)}
-                                className="h-8 w-8 text-green-500 hover:bg-green-500/20"
+                                className="h-8 w-8 shrink-0 text-green-500 hover:bg-green-500/20"
                               >
                                 <Check className="w-4 h-4" />
                               </Button>
                             </div>
                           ) : (
                             <>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-white">{wallet.name}</span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-white truncate">{wallet.name}</span>
                                 {wallet.address === walletAddress && (
-                                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 text-xs py-0 px-1.5">
+                                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 text-xs py-0 px-1.5 shrink-0">
                                     Active
                                   </Badge>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-gray-500 text-sm font-mono">
+                                <span className="text-gray-500 text-sm font-mono truncate">
                                   {formatAddress(wallet.address)}
                                 </span>
                                 <button
                                   onClick={() => handleCopyAddress(wallet.address)}
-                                  className="text-gray-500 hover:text-gray-300"
+                                  className="text-gray-500 hover:text-gray-300 shrink-0"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
                                 </button>
@@ -156,13 +155,13 @@ export default function ManageWalletsPage() {
                       </div>
 
                       {editingWallet !== wallet.address && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           {wallet.address !== walletAddress && (
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => handleSwitchWallet(wallet.address)}
-                              className="text-blue-400 hover:bg-blue-500/20 text-xs"
+                              className="text-blue-400 hover:bg-blue-500/20 text-xs px-2"
                             >
                               Switch
                             </Button>

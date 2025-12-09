@@ -44,7 +44,7 @@ export default function Roadmap() {
       status: "upcoming"
     },
     {
-      title: "Trading Platform",
+      title: "AI-powered Trading Platform",
       date: "Q3 2026",
       description: "A powerful trading platform for seamless crypto trading. This feature is under development.",
       status: "upcoming"
@@ -85,8 +85,8 @@ export default function Roadmap() {
           >
             {/* Timeline Dot */}
             <div className={`absolute -left-[43px] top-0 flex items-center justify-center w-8 h-8 rounded-full border-4 border-black ${item.status === 'completed' ? 'bg-green-500' :
-                item.status === 'current' ? 'bg-[#333] ring-2 ring-orange-500/50 ring-offset-2 ring-offset-black' :
-                  'bg-[#333]'
+              item.status === 'current' ? 'bg-[#333] ring-2 ring-orange-500/50 ring-offset-2 ring-offset-black' :
+                'bg-[#333]'
               }`}>
               {item.status === 'completed' ? (
                 <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -104,8 +104,8 @@ export default function Roadmap() {
 
             {/* Content Card */}
             <div className={`p-5 rounded-2xl border transition-colors duration-300 ${item.status === 'completed' ? 'bg-[#111] border-green-500/20 hover:border-green-500/40' :
-                item.status === 'current' ? 'bg-[#111] border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.1)]' :
-                  'bg-[#111] border-[#333]'
+              item.status === 'current' ? 'bg-[#111] border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.1)]' :
+                'bg-[#111] border-[#333]'
               }`}>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
                 <h3 className={`text-lg font-bold ${item.status === 'completed' || item.status === 'current' ? 'text-white' : 'text-gray-300'

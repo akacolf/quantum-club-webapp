@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function ViewRecoveryPhrasePage() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  
+
   // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
@@ -45,7 +45,7 @@ export default function ViewRecoveryPhrasePage() {
         router.push("/wallet/settings");
       }
     };
-    
+
     // Small delay to ensure the component is mounted
     const timer = setTimeout(requestAuthorization, 100);
     return () => clearTimeout(timer);
@@ -89,9 +89,9 @@ export default function ViewRecoveryPhrasePage() {
         onSuccess={handleAuthSuccess}
         onCancel={handleAuthCancel}
       />
-      
+
       <div className="max-w-lg mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
@@ -126,10 +126,10 @@ export default function ViewRecoveryPhrasePage() {
                 ))}
               </div>
             </ScrollArea>
-            
+
             {!isRevealed && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
-                <Button 
+                <Button
                   onClick={() => setIsRevealed(true)}
                   variant="secondary"
                   className="bg-[#222] border border-[#333] text-white hover:bg-[#333] shadow-xl"
@@ -139,7 +139,7 @@ export default function ViewRecoveryPhrasePage() {
                 </Button>
               </div>
             )}
-            
+
             {isRevealed && (
               <Button
                 variant="ghost"

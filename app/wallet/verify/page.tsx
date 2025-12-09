@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -16,7 +16,7 @@ export default function VerifyPhrasePage() {
   const { addWallet, switchWallet, storedWallets } = useWallet();
   const [mnemonic, setMnemonic] = useState<string[]>([]);
   const [walletAddress, setWalletAddress] = useState("");
-  const [verificationWords, setVerificationWords] = useState<{index: number, word: string}[]>([]);
+  const [verificationWords, setVerificationWords] = useState<{ index: number, word: string }[]>([]);
   const [userInputs, setUserInputs] = useState<string[]>(["", "", ""]);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function VerifyPhrasePage() {
     const pendingMnemonic = sessionStorage.getItem("pending_wallet_mnemonic");
     const pendingAddress = sessionStorage.getItem("pending_wallet_address");
     const indices = sessionStorage.getItem("verification_indices");
-    
+
     if (!pendingMnemonic || !pendingAddress || !indices) {
       // No pending wallet or indices, redirect back
       router.push("/wallet");
@@ -33,7 +33,7 @@ export default function VerifyPhrasePage() {
 
     const mnemonicArr = pendingMnemonic.split(" ");
     const indicesArr: number[] = JSON.parse(indices);
-    
+
     setMnemonic(mnemonicArr);
     setWalletAddress(pendingAddress);
     setVerificationWords(indicesArr.map(i => ({ index: i, word: mnemonicArr[i] })));
@@ -41,10 +41,10 @@ export default function VerifyPhrasePage() {
 
   const verifyAndSaveWallet = () => {
     // Check if all inputs match the expected words
-    const allCorrect = verificationWords.every((item, i) => 
+    const allCorrect = verificationWords.every((item, i) =>
       userInputs[i].toLowerCase().trim() === item.word.toLowerCase()
     );
-    
+
     if (!allCorrect) {
       toast.error("Incorrect words. Please check your recovery phrase and try again.");
       return;
@@ -54,20 +54,20 @@ export default function VerifyPhrasePage() {
     if (walletAddress && mnemonic.length > 0) {
       localStorage.setItem("quantum_wallet_address", walletAddress);
       localStorage.setItem("quantum_wallet_mnemonic", mnemonic.join(" "));
-      
+
       // Add to multi-wallet storage
       const walletName = `Wallet ${storedWallets.length + 1}`;
       addWallet(walletAddress, walletName);
       switchWallet(walletAddress);
-      
+
       // Clean up session storage
       sessionStorage.removeItem("pending_wallet_mnemonic");
       sessionStorage.removeItem("pending_wallet_address");
       sessionStorage.removeItem("verification_indices");
-      
+
       // Track wallet creation event
       analyticsEvents.walletCreated(walletAddress);
-      
+
       toast.success("Wallet created successfully!");
       router.push("/wallet");
     } else {
@@ -87,7 +87,7 @@ export default function VerifyPhrasePage() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6">
       <div className="max-w-lg mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"

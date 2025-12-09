@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { useWallet } from "../WalletContext";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function ReceivePage() {
   useTelegramBackButton("/wallet");

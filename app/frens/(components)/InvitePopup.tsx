@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ const InvitePopup = () => {
     const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(
       inviteLink
     )}&text=${encodeURIComponent(shareText)}`;
-    
+
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.openTelegramLink(telegramUrl);
     } else {
@@ -87,8 +87,8 @@ const InvitePopup = () => {
                   </Button>
                   <Button
                     onClick={() => {
-                        handleSendInviteLink();
-                        closePopup();
+                      handleSendInviteLink();
+                      closePopup();
                     }}
                     className="w-full h-14 bg-[#2a2a2a] text-white hover:bg-[#333] border border-[#444] font-bold text-base rounded-xl transition-all active:scale-95"
                   >

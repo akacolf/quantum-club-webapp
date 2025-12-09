@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { fromNano } from "@ton/core";
+import { toast } from "sonner";
 
 // Testnet mode - affects API endpoints and address format
 // Testnet addresses: 0Q... (non-bounceable) or kQ... (bounceable)
@@ -54,10 +55,10 @@ interface WalletContextType {
   isTestnet: boolean;
   storedWallets: StoredWallet[];
   activeWalletIndex: number;
-  walletStatus:string
+  walletStatus: string
   fetchWalletAssets: () => Promise<void>;
   fetchNfts: () => Promise<void>;
-  setWalletStatus: (walletstatus:string)=>void;
+  setWalletStatus: (walletstatus: string) => void;
   setWalletAddress: (address: string) => void;
   toggleHideAsset: (symbol: string) => void;
   toggleHideBalance: () => void;
@@ -85,7 +86,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [hasFetched, setHasFetched] = useState(false);
   const [walletStatus, setWalletStatus] = useState("nonexist");
 
-    // Multi-wallet support
+  // Multi-wallet support
   const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("quantum_wallets");
@@ -166,6 +167,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setWalletAddress(address);
     localStorage.setItem("quantum_wallet_address", address);
     setHasFetched(false);
+    toast.success("Wallet switched!");
   }, []);
 
   const renameWallet = useCallback((address: string, newName: string) => {
