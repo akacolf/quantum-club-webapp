@@ -451,41 +451,36 @@ export default function WalletPage() {
 
               <div className="grid grid-cols-3 gap-3 mt-8">
                 {[
-                  { icon: <Send className="w-5 h-5" />, label: "Send", href: "/wallet/send", disabled: true },
-                  { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", href: "/wallet/receive", disabled: false },
-                  { icon: <History className="w-5 h-5" />, label: "History", href: "/wallet/history", disabled: false },
-                ].map((action, i) => {
-                  if (action.disabled) {
-                    return (
-                      <div
-                        key={i}
-                        className="flex flex-col items-center gap-2 cursor-not-allowed opacity-50"
-                      >
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#222] text-gray-600">
-                          {action.icon}
-                        </div>
-                        <span className="text-xs font-medium text-gray-600">
-                          {action.label}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={i}
-                      href={action.href}
-                      prefetch={true}
-                      className="flex flex-col items-center gap-2 group"
-                    >
-                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 bg-[#222] text-gray-400 group-hover:bg-[#333] group-hover:text-white group-hover:scale-105 shadow-lg shadow-black/20">
-                        {action.icon}
-                      </div>
-                      <span className="text-xs font-medium transition-colors text-gray-500 group-hover:text-gray-300">
-                        {action.label}
-                      </span>
-                    </Link>
-                  );
-                })}
+                  { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: true },
+                  { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
+                  { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
+                ].map((action, i) => (
+                  <button
+                    key={i}
+                    onClick={() => !action.disabled && router.push(action.path)}
+                    disabled={action.disabled}
+                    className={`flex flex-col items-center gap-2 ${
+                      action.disabled 
+                        ? 'cursor-not-allowed opacity-50' 
+                        : 'group cursor-pointer'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-black/20 ${
+                      action.disabled
+                        ? 'bg-[#222] text-gray-600'
+                        : 'bg-[#222] text-gray-400 transition-all duration-200 group-hover:bg-[#333] group-hover:text-white group-hover:scale-105'
+                    }`}>
+                      {action.icon}
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      action.disabled
+                        ? 'text-gray-600'
+                        : 'text-gray-500 transition-colors group-hover:text-gray-300'
+                    }`}>
+                      {action.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </CardContent>
           </Card>
