@@ -525,7 +525,7 @@ export default function WalletPage() {
 
               <div className="grid grid-cols-3 gap-3 mt-8">
                 {[
-                  { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: true },
+                  { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
                   { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
                   { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
                 ].map((action, i) => (

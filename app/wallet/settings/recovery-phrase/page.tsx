@@ -110,7 +110,7 @@ export default function ViewRecoveryPhrasePage() {
           {/* Warning */}
           <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
             <p className="text-xs text-red-400 leading-relaxed text-center">
-              <strong>⚠️ Warning:</strong> Anyone with this phrase can access your wallet. Never share it with anyone, including Quantum Club support.
+              <strong>Warning:</strong> Anyone with this phrase can access your wallet. Never share it with anyone, including Quantum Club support.
             </p>
           </div>
 

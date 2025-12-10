@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
 
           <ScrollArea className="h-[calc(100vh-280px)] rounded-xl border border-[#222] bg-[#0a0a0a] p-4">
             <div className="prose prose-invert prose-sm max-w-none space-y-6">
-              
+
               <section>
                 <h2 className="text-lg font-semibold text-white mb-2">1. Introduction</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
@@ -40,7 +40,7 @@ export default function PrivacyPolicyPage() {
 
               <section>
                 <h2 className="text-lg font-semibold text-white mb-2">2. Information We Collect</h2>
-                
+
                 <h3 className="text-md font-medium text-gray-200 mt-3 mb-2">2.1 Information from Telegram</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
                   When you use our App through Telegram, we receive:

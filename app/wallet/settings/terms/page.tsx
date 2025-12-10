@@ -14,7 +14,7 @@ export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
@@ -25,12 +25,12 @@ export default function TermsOfServicePage() {
               <FileText className="w-7 h-7 text-blue-400" />
             </div>
             <h1 className="text-2xl font-bold">Terms of Service</h1>
-            <p className="text-gray-400 text-sm">Last updated: December 3, 2025</p>
+            <p className="text-gray-400 text-sm">Last updated: December 10, 2025</p>
           </div>
 
           <ScrollArea className="h-[calc(100vh-280px)] rounded-xl border border-[#222] bg-[#0a0a0a] p-4">
             <div className="prose prose-invert prose-sm max-w-none space-y-6">
-              
+
               <section>
                 <h2 className="text-lg font-semibold text-white mb-2">1. Acceptance of Terms</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
@@ -53,6 +53,9 @@ export default function TermsOfServicePage() {
                 <ul className="text-gray-400 text-sm list-disc list-inside mt-2 space-y-1">
                   <li>Create and manage a self-custodial TON blockchain wallet</li>
                   <li>Send and receive TON and Jetton tokens</li>
+                  <li>View, manage, and receive NFTs (Non-Fungible Tokens)</li>
+                  <li>Track real-time asset prices with interactive charts</li>
+                  <li>Monitor portfolio performance and 24-hour price changes</li>
                   <li>Earn and transfer QNTM points within the platform</li>
                   <li>Participate in platform activities and tasks</li>
                 </ul>
