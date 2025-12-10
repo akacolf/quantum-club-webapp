@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,6 +28,14 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 export default function WalletSettingsPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
+
+  // Prefetch all settings subpages for faster navigation
+  useEffect(() => {
+    router.prefetch("/wallet/settings/recovery-phrase");
+    router.prefetch("/wallet/settings/wallets");
+    router.prefetch("/wallet/settings/terms");
+    router.prefetch("/wallet/settings/privacy");
+  }, [router]);
 
   const [showDeleteWalletConfirm, setShowDeleteWalletConfirm] = useState(false);
 
