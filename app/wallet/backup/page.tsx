@@ -26,6 +26,9 @@ export default function BackupPhrasePage() {
     }
 
     setMnemonic(pendingMnemonic.split(" "));
+
+    // Prefetch verify page for faster navigation
+    router.prefetch("/wallet/verify");
   }, [router]);
 
   // Enable closing confirmation while viewing seed phrase

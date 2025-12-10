@@ -124,9 +124,10 @@ const HomeContent = () => {
     }
   }, [router]);
 
-  // Prefetch rewards history for faster navigation
+  // Prefetch subpages for faster navigation
   useEffect(() => {
     router.prefetch("/home/rewardshistory");
+    router.prefetch("/home/roadmap");
   }, [router]);
 
   const lottieRef = useRef<LottieRefCurrentProps>(null);
