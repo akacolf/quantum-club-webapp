@@ -66,6 +66,10 @@ export default function WalletSettingsPage() {
       answer: "Network fees (gas fees) are small payments made to the TON blockchain to process your transactions. Fees vary based on network congestion and transaction complexity. Simple TON transfers cost ~0.003-0.007 TON, while Jetton transfers cost ~0.03-0.06 TON."
     },
     {
+      question: "What is the wallet activation fee?",
+      answer: "When you send your first transaction from a new wallet, a small one-time activation fee (~0.01 TON) is required to deploy your wallet contract on the blockchain. This is a standard TON network requirement for all new wallets and only happens once."
+    },
+    {
       question: "Are there any service fees?",
       answer: "No! Quantum Club wallet is completely free to use. You only pay standard TON network fees (gas) which go to the blockchain validators, not to us. QNTM transfers between users are also free."
     },

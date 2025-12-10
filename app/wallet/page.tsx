@@ -289,8 +289,16 @@ export default function WalletPage() {
       router.prefetch("/wallet/history");
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
+      // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
+      router.prefetch("/wallet/settings/terms");
+      router.prefetch("/wallet/settings/privacy");
+    } else {
+      // Prefetch onboarding flow pages for users without wallet
+      router.prefetch("/wallet/backup");
+      router.prefetch("/wallet/verify");
+      router.prefetch("/wallet/import");
     }
   }, [hasWallet, walletAddress, router]);
 
