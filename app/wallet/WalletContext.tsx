@@ -237,7 +237,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const balanceInNano = balanceData.balance || "0";
         const balanceInTon = fromNano(balanceInNano);
         setTonBalance(parseFloat(balanceInTon).toFixed(4));
-        console.error(balanceData.status)
+
         setWalletStatus(balanceData.status)
         // Calculate USD value
         tonUsd = parseFloat(balanceInTon) * price;
