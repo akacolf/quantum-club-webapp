@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2, ExternalLink } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -750,7 +750,7 @@ export default function SendPage() {
                     onChange={(e) => setRecipient(e.target.value)}
                     placeholder="Enter TON address or name.ton"
                     className={`bg-[#111] border-[#222] h-14 pl-4 pr-10 text-white placeholder:text-gray-600 rounded-xl transition-all font-mono text-sm ${addressError ? 'border-red-500 focus:border-red-500' :
-                        resolvedAddress ? 'border-green-500/50 focus:border-green-500' : 'focus:border-blue-500/50'
+                      resolvedAddress ? 'border-green-500/50 focus:border-green-500' : 'focus:border-blue-500/50'
                       }`}
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -834,9 +834,9 @@ export default function SendPage() {
                     Insufficient funds. You have {selectedAsset?.balance} {selectedAsset?.symbol} available.
                   </p>
                 ) : needMinimum ? (
-                  <p className="text-xs text-yellow-400 ml-1 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
-                    Min {walletStatus === "active" ? "0.01" : "0.05"} {selectedAsset?.symbol}
+                  <p className="text-xs text-yellow-500 ml-1 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="mt-[1px]">Min {walletStatus === "active" ? "0.01" : "0.05"} {selectedAsset?.symbol}</span>
                   </p>
                 ) : null}
               </div>
