@@ -211,7 +211,7 @@ const FrensContent = () => {
       const response = await fetch("/api/claim-tier2-rewards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId }),
+        body: JSON.stringify({}), // telegramId is derived server-side from session
       });
 
       const data = await response.json();
