@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
+import { createCipheriv } from 'node:crypto';
+import { decrypt } from '@/utils/session';
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -13,13 +15,40 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export async function POST(request: Request) {
-    try {
-        const { telegramId } = await request.json();
+// Server-side encryption function to get the encrypted telegram ID
+function encryptTelegramId(telegramId: string): string {
+    const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64');
+    const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
+    const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
 
-        if (!telegramId) {
-            return NextResponse.json({ error: "Missing telegramId" }, { status: 400 });
+    let encrypted = cipher.update(telegramId, 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+
+    return encrypted.replace(/['\"]+/g, "").replace(/[^a-zA-Z0-9]/g, "");
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        // SECURITY: Validate session and derive telegramId server-side
+        const sessionCookie = request.cookies.get('session')?.value;
+        if (!sessionCookie) {
+            return NextResponse.json({ error: 'Session invalid' }, { status: 401 });
         }
+
+        let sessionData;
+        try {
+            sessionData = await decrypt(sessionCookie);
+        } catch {
+            return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+        }
+
+        const rawTelegramId = sessionData.user.telegramId;
+        if (!rawTelegramId) {
+            return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
+        }
+
+        // Encrypt the telegram ID server-side (same as transfer-qntm)
+        const telegramId = encryptTelegramId(String(rawTelegramId));
 
         // Get all unclaimed second-tier referrals
         const secondTierRef = db.collection(`user/${telegramId}/secondTierReferrals`);
