@@ -7,7 +7,7 @@ import { useFrenContext } from "@/app/(contexts)/FrensContext";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
-import { collection, doc, getDoc, getDocs, getCountFromServer } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, getCountFromServer, query, where } from 'firebase/firestore';
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import InvitePopup from "./(components)/InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
@@ -15,7 +15,8 @@ import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, User, Trophy, UserPlus, Users2 } from "lucide-react";
+import { Users, User, Trophy, UserPlus, Users2, Gift } from "lucide-react";
+import { toast } from "sonner";
 
 const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
@@ -31,6 +32,8 @@ const FrensContent = () => {
   const [totalReferralSize, setTotalReferralSize] = useState(0)
   const [viewButton, setViewButton] = useState<string | React.ReactNode>("View more")
   const [secondTierCount, setSecondTierCount] = useState(0);
+  const [pendingRewards, setPendingRewards] = useState(0);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   useEffect(() => {
     router.prefetch("/frens/referrals");
@@ -42,6 +45,15 @@ const FrensContent = () => {
       const secondTierRef = collection(dbfs, `user/${telegramId}/secondTierReferrals`);
       const secondTierSnapshot = await getCountFromServer(secondTierRef);
       setSecondTierCount(secondTierSnapshot.data().count);
+
+      // Fetch pending (unclaimed) tier 2 rewards
+      const unclaimedQuery = query(secondTierRef, where("claimed", "==", false));
+      const unclaimedSnapshot = await getDocs(unclaimedQuery);
+      let totalPending = 0;
+      unclaimedSnapshot.forEach((doc) => {
+        totalPending += Number(doc.data().reward) || 0;
+      });
+      setPendingRewards(totalPending);
     };
     getReferralsNum();
     const fetchReferralsData = async () => {
@@ -190,6 +202,38 @@ const FrensContent = () => {
       console.error(error)
     }
   }
+
+  async function handleClaimRewards() {
+    if (pendingRewards <= 0 || isClaiming) return;
+
+    setIsClaiming(true);
+    try {
+      const response = await fetch("/api/claim-tier2-rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.claimedAmount > 0) {
+        toast.success(`Claimed ${data.claimedAmount.toFixed(0)} QNTM!`);
+        setPendingRewards(0);
+        // Update local storage balance
+        const currentBalance = Number(localStorage.getItem("QAmount") || "0");
+        localStorage.setItem("QAmount", String(currentBalance + data.claimedAmount));
+      } else if (data.claimedAmount === 0) {
+        toast.info("No pending rewards to claim");
+      } else {
+        toast.error(data.error || "Failed to claim rewards");
+      }
+    } catch (error) {
+      console.error("Claim error:", error);
+      toast.error("Failed to claim rewards");
+    } finally {
+      setIsClaiming(false);
+    }
+  }
   return (
     <div className="min-h-screen pb-24">
 
@@ -248,6 +292,29 @@ const FrensContent = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Pending Rewards Section */}
+                  <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-5 h-5 text-purple-400" />
+                        <div>
+                          <div className="text-sm font-medium text-white">Pending Rewards</div>
+                          <div className="text-lg font-bold text-purple-400">
+                            {pendingRewards.toFixed(0)} QNTM
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleClaimRewards}
+                        disabled={isClaiming || pendingRewards <= 0}
+                        className="bg-purple-500 hover:bg-purple-600 text-white font-bold disabled:opacity-50"
+                      >
+                        {isClaiming ? <ButtonLoader /> : "Claim"}
+                      </Button>
+                    </div>
+                  </div>
+
                   <p className="text-xs text-gray-500 mt-3 leading-relaxed">
                     When your invited friends invite others, you earn 2% of their earnings too!
                   </p>

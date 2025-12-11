@@ -77,8 +77,19 @@ export default function SendPage() {
   const [needMinimum, setNeedMinimum] = useState(false);
   const [isFirstTransaction, setIsFirstTransaction] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+
+  // Minimum TON required for jetton transfers (gas fees)
+  const MIN_TON_FOR_JETTON = 0.1;
   // Deployment fee for first transaction (wallet contract deployment)
   const DEPLOYMENT_FEE = 0.005;
+
+  // Check if TON balance is too low for jetton transfer
+  const insufficientTonForGas = useMemo(() => {
+    if (selectedAsset?.type === "jetton") {
+      return parseFloat(tonBalance) < MIN_TON_FOR_JETTON;
+    }
+    return false;
+  }, [selectedAsset, tonBalance]);
 
   // Explorer URL based on network
   const EXPLORER_BASE_URL = IS_TESTNET ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
@@ -594,11 +605,7 @@ export default function SendPage() {
           });
         }
       } else if (selectedAsset?.type === "jetton" && selectedAsset.walletAddress) {
-        // Jetton transfer - requires deployed wallet
-        if (!isWalletDeployed) {
-          throw new Error("Your wallet needs to have some TON first. Send TON to your wallet address to activate it, then try again.");
-        }
-
+        // Jetton transfer
         const sendAmount = parseFloat(amount);
 
         const jettonAmount = BigInt(Math.floor(sendAmount * Math.pow(10, selectedAsset.decimals)));
@@ -615,19 +622,68 @@ export default function SendPage() {
           .storeMaybeRef(undefined)
           .endCell();
 
-        await contract.sendTransfer({
-          seqno,
-          secretKey: keyPair.secretKey,
-          sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-          messages: [
-            internal({
-              to: jettonWallet,
-              value: toNano("0.05"),
-              body: body,
-              bounce: false
-            }),
-          ],
-        });
+        // For first transaction with undeployed wallet, we need to manually send with StateInit
+        if (!isWalletDeployed && seqno === 0) {
+          // Create the transfer message for jetton
+          const transfer = wallet.createTransfer({
+            seqno: 0,
+            secretKey: keyPair.secretKey,
+            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+            messages: [
+              internal({
+                to: jettonWallet,
+                value: toNano("0.05"),
+                body: body,
+                bounce: false
+              }),
+            ],
+          });
+
+          // Build external message with StateInit for wallet deployment
+          const externalMessage = beginCell()
+            .storeWritable((builder) => {
+              builder.storeUint(0b10, 2); // ext_in_msg_info$10
+              builder.storeUint(0, 2); // src: addr_none$00
+              builder.storeAddress(wallet.address); // dest
+              builder.storeCoins(0); // import_fee
+            })
+            .storeBit(true) // state_init present
+            .storeBit(true) // state_init in ref
+            .storeRef(
+              beginCell()
+                .storeUint(0, 2) // split_depth = 0, special = 0
+                .storeMaybeRef(wallet.init.code) // code
+                .storeMaybeRef(wallet.init.data) // data
+                .storeUint(0, 1) // library = 0
+                .endCell()
+            )
+            .storeBit(true) // body in ref
+            .storeRef(transfer)
+            .endCell();
+
+          // Send the external message via TonAPI
+          const boc = externalMessage.toBoc().toString('base64');
+          await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ boc })
+          });
+        } else {
+          // Normal transfer for deployed wallet
+          await contract.sendTransfer({
+            seqno,
+            secretKey: keyPair.secretKey,
+            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+            messages: [
+              internal({
+                to: jettonWallet,
+                value: toNano("0.05"),
+                body: body,
+                bounce: false
+              }),
+            ],
+          });
+        }
       }
 
       // Track successful transaction
@@ -841,9 +897,23 @@ export default function SendPage() {
                 ) : null}
               </div>
 
+              {/* Warning for insufficient TON for jetton gas fees */}
+              {insufficientTonForGas && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-400">Insufficient TON for Transaction</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      You need at least <span className="text-white font-medium">0.1 TON</span> to cover network fees when sending tokens.
+                      Your current TON balance is <span className="text-white font-medium">{tonBalance} TON</span>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <Button
                 onClick={handleContinue}
-                disabled={!recipient || !resolvedAddress || !amount || parseFloat(amount) <= 0 || isEstimating || insufficientFunds || isResolvingAddress || needMinimum}
+                disabled={!recipient || !resolvedAddress || !amount || parseFloat(amount) <= 0 || isEstimating || insufficientFunds || isResolvingAddress || needMinimum || insufficientTonForGas}
                 className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-xl font-bold text-lg mt-8"
               >
                 {isEstimating ? (
