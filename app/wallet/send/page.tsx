@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2, ExternalLink, AlertTriangle, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,6 +77,7 @@ export default function SendPage() {
   const [needMinimum, setNeedMinimum] = useState(false);
   const [isFirstTransaction, setIsFirstTransaction] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<{ address: string; name: string }[]>([]);
 
   // Minimum TON required for jetton transfers (gas fees)
   const MIN_TON_FOR_JETTON = 0.1;
@@ -143,6 +144,11 @@ export default function SendPage() {
     const storedWallet = localStorage.getItem("quantum_wallet_address");
     if (!storedWallet) {
       router.push("/wallet");
+    }
+    // Load saved addresses
+    const storedAddresses = localStorage.getItem("quantum_address_book");
+    if (storedAddresses) {
+      setSavedAddresses(JSON.parse(storedAddresses));
     }
   }, [router]);
 
@@ -800,6 +806,23 @@ export default function SendPage() {
               {/* Recipient */}
               <div className="space-y-2">
                 <label className="text-sm text-gray-400 ml-1">Recipient Address or .ton Domain</label>
+
+                {/* Quick Select from Address Book */}
+                {savedAddresses.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {savedAddresses.slice(0, 3).map((addr) => (
+                      <button
+                        key={addr.address}
+                        onClick={() => setRecipient(addr.address)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] border border-[#333] rounded-lg text-xs hover:bg-[#222] transition-colors"
+                      >
+                        <BookUser className="w-3 h-3 text-purple-400" />
+                        <span className="text-white">{addr.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="relative">
                   <Input
                     value={recipient}
