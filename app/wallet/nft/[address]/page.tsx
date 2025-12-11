@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Copy, Check, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Copy, Check, ExternalLink, Image as ImageIcon, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +46,7 @@ interface NftDetails {
 export default function NftDetailPage() {
     useTelegramBackButton("/wallet");
     const params = useParams();
+    const router = useRouter();
     // Decode the URL-encoded address parameter
     const nftAddress = decodeURIComponent(params.address as string);
 
@@ -57,6 +58,13 @@ export default function NftDetailPage() {
 
     const EXPLORER_BASE_URL = IS_TESTNET ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
     const API_BASE_URL = IS_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
+
+    // Prefetch send-nft page
+    useEffect(() => {
+        if (nftAddress) {
+            router.prefetch(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`);
+        }
+    }, [router, nftAddress]);
 
     useEffect(() => {
         const fetchNftDetails = async () => {
@@ -240,13 +248,23 @@ export default function NftDetailPage() {
                 </div>
 
                 {/* Actions */}
-                <Button
-                    onClick={openExplorer}
-                    className="w-full bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold"
-                >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View on Explorer
-                </Button>
+                <div className="space-y-3">
+                    <Button
+                        onClick={() => router.push(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`)}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white h-12 rounded-xl font-bold"
+                    >
+                        <Send className="w-4 h-4 mr-2" />
+                        Send NFT
+                    </Button>
+                    <Button
+                        onClick={openExplorer}
+                        variant="outline"
+                        className="w-full bg-[#111] border-[#333] text-white hover:bg-[#1a1a1a] h-12 rounded-xl font-bold"
+                    >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View on Explorer
+                    </Button>
+                </div>
             </motion.div>
         </div>
     );

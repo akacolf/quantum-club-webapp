@@ -13,7 +13,9 @@ import {
   FileText,
   Shield,
   ExternalLink,
-  Wallet
+  Wallet,
+  BookUser,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +35,8 @@ export default function WalletSettingsPage() {
   useEffect(() => {
     router.prefetch("/wallet/settings/recovery-phrase");
     router.prefetch("/wallet/settings/wallets");
+    router.prefetch("/wallet/settings/address-book");
+    router.prefetch("/wallet/settings/price-alerts");
     router.prefetch("/wallet/settings/terms");
     router.prefetch("/wallet/settings/privacy");
   }, [router]);
@@ -139,6 +143,42 @@ export default function WalletSettingsPage() {
                     <div className="text-left">
                       <p className="font-medium text-white">Manage Wallets</p>
                       <p className="text-xs text-gray-500">Add, switch, or remove wallets</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                </button>
+
+                <div className="border-t border-[#222]" />
+
+                <button
+                  onClick={() => router.push("/wallet/settings/address-book")}
+                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
+                      <BookUser className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-white">Address Book</p>
+                      <p className="text-xs text-gray-500">Save frequently used addresses</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                </button>
+
+                <div className="border-t border-[#222]" />
+
+                <button
+                  onClick={() => router.push("/wallet/settings/price-alerts")}
+                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-white">Price Alerts</p>
+                      <p className="text-xs text-gray-500">Get notified when TON hits a target</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
