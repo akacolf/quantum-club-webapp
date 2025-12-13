@@ -89,7 +89,7 @@ const tasks: EarnTask[] = [
   //In-Game
   {
     id: "tTXUukci1DJS7p9yCo6G",
-    description: "Connect wallet",
+    description: "Create your QC Wallet",
     platform: <svg xmlns="http://www.w3.org/2000/svg" width="2.5em" height="2.5em" viewBox="0 0 24 24">
       <g fill="currentColor" fillRule="evenodd" clipRule="evenodd" strokeWidth="0.5" stroke="currentColor">
         <path d="M21.1 8.004q-.085-.005-.181-.004h-2.525c-2.068 0-3.837 1.628-3.837 3.75s1.77 3.75 3.837 3.75h2.525q.096.001.182-.004a1.755 1.755 0 0 0 1.645-1.628c.004-.06.004-.125.004-.185V9.817c0-.06 0-.125-.004-.185a1.755 1.755 0 0 0-1.645-1.628m-2.928 4.746c.532 0 .963-.448.963-1s-.431-1-.963-1c-.533 0-.964.448-.964 1s.431 1 .964 1" />
