@@ -166,8 +166,8 @@ const EarnContent = () => {
           <Card
             key={task.id}
             className={`border-[#333] bg-[#1a1a1a]/60 backdrop-blur-sm transition-all duration-300 ${task.completed
-                ? "opacity-60"
-                : "hover:bg-[#252525] hover:border-white/10"
+              ? "opacity-60"
+              : "hover:bg-[#252525] hover:border-white/10"
               }`}
           >
             <CardContent className="p-4 flex items-center gap-4">
@@ -203,10 +203,10 @@ const EarnContent = () => {
                 }
                 variant={task.completed ? "secondary" : "default"}
                 className={`h-9 px-4 min-w-20 rounded-full font-medium text-xs transition-all duration-300 ${task.buttonText === "Claim"
-                    ? "bg-orange-500 hover:bg-orange-600 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]"
-                    : task.completed
-                      ? "bg-[#333] text-gray-400 hover:bg-[#333]"
-                      : "bg-white text-black hover:bg-gray-200"
+                  ? "bg-orange-500 hover:bg-orange-600 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                  : task.completed
+                    ? "bg-[#333] text-gray-400 hover:bg-[#333]"
+                    : "bg-white text-black hover:bg-gray-200"
                   }`}
               >
                 {task.buttonText === "Joined" ? (
@@ -1017,6 +1017,7 @@ const EarnContent = () => {
             : null;
 
           if (savedWalletAddress && savedWalletAddress !== "") {
+            // User has a wallet - show claim button
             setTasks((items) =>
               items.map((item) =>
                 item.id === task.id
@@ -1026,13 +1027,16 @@ const EarnContent = () => {
             );
             return;
           } else {
+            // User doesn't have a wallet - navigate to wallet page to create one
+            router.push("/wallet");
             setTasks((items) =>
               items.map((item) =>
                 item.id === task.id
-                  ? { ...item, buttonText: task.buttontitle }
+                  ? { ...item, buttonText: "Check" }
                   : item
               )
             );
+            return;
           }
         } else if (task.buttonText === claimTEXT) {
           setTasks((items) =>
