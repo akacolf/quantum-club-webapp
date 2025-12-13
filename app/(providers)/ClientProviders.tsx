@@ -13,9 +13,19 @@ if (typeof window !== "undefined") {
 }
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
-  // Track app init event on mount
+  // Track app init event on mount, with delay to ensure Telegram WebApp is ready
   useEffect(() => {
-    analyticsEvents.appInit();
+    const sendAppInit = () => {
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (tgUser?.id) {
+        analyticsEvents.appInit();
+      } else {
+        // Retry after a short delay if user data isn't ready yet
+        setTimeout(sendAppInit, 500);
+      }
+    };
+    // Initial delay to let Telegram WebApp initialize
+    setTimeout(sendAppInit, 100);
   }, []);
 
   return (
