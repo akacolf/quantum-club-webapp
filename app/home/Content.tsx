@@ -18,6 +18,7 @@ import { LottieRefCurrentProps } from "lottie-react";
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
 import DailyCheckIn from "./(components)/DailyCheck";
 import PullToRefresh from "./(components)/PullToRefresh";
+import SocialSection from "./(components)/SocialSection";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -779,6 +780,9 @@ const HomeContent = () => {
         lottieRef={lottieRef}
         TaskTimer={TaskTimer}
       />
+
+      {/* Social Section */}
+      <SocialSection />
 
       <HomeCarousel />
 
