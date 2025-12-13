@@ -212,6 +212,7 @@ export default function SendPage() {
       // Set amount to full balance - fee will be deducted before sending
       setAmount(selectedAsset.balance);
       setInsufficientFunds(false);
+      setNeedMinimum(false);
     }
   };
 

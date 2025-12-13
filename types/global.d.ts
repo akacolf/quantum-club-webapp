@@ -2,23 +2,27 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp: {
+        platform?: string;
         initData: {
           user?: {
-            is_premium:boolean,
-            is_bot:boolean,
+            is_premium: boolean,
+            is_bot: boolean,
             id: number,
             username: string | null;
             first_name: string;
+            language_code?: string;
           }
           start_param?: string;
         };
         initDataUnsafe: {
           user?: {
-            is_premium:boolean,
-            is_bot:boolean,
+            is_premium: boolean,
+            is_bot: boolean,
             id: number,
             username: string | null;
             first_name: string;
+            photo_url?: string;
+            language_code?: string;
           }
           start_param?: string;
         };
@@ -27,7 +31,7 @@ declare global {
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
         requestFullscreen: () => void;
-        openTelegramLink: (link:string|undefined) => void;
+        openTelegramLink: (link: string | undefined) => void;
         navigator: () => void;
         disableVerticalSwipes: () => void;
         enableClosingConfirmation: () => void;
@@ -36,8 +40,8 @@ declare global {
         BackButton: {
           hide: () => void;
           show: () => void;
-          onClick: (callback:()=>void) => void;
-          offClick: (callback:()=>void) => () => void;
+          onClick: (callback: () => void) => void;
+          offClick: (callback: () => void) => () => void;
         };
         BiometricManager: {
           isInited: boolean;
@@ -54,7 +58,7 @@ declare global {
           openSettings: () => void;
         };
         safeAreaInset: {
-          top: number; 
+          top: number;
           bottom: number;
           left: number;
           right: number;
@@ -72,4 +76,4 @@ declare global {
   }
 };
 
-export {};
+export { };
