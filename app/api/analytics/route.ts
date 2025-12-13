@@ -60,11 +60,9 @@ export async function POST(req: NextRequest) {
         if (response.status === 201) {
             return NextResponse.json({ success: true });
         } else {
-            console.warn(`[Analytics] Event "${eventName}" failed:`, response.status);
             return NextResponse.json({ success: false }, { status: 200 });
         }
-    } catch (error) {
-        console.error("[Analytics] API Error:", error);
+    } catch {
         return NextResponse.json({ success: false }, { status: 200 });
     }
 }
