@@ -391,33 +391,17 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
           localStorage.setItem("lastactivetime", `${lastActiveTime}`);
         }
         userData.lastActiveTime = `${lastActiveTime}`;
-        const walletResponse = await fetch("/api/tonconnections/checktonWallet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramIdEncrypted }),
-        })
-        const responseCheckWallet = await walletResponse.json();
-        const haveWallet = responseCheckWallet.haveWallet;
-        const walletAddressRes = responseCheckWallet.address;
-        if (haveWallet) {
-          try {
-            if (typeof window !== "undefined") {
-              localStorage.setItem("walletAddress", walletAddressRes);
-            }
-            userData.walletAddress = walletAddressRes;
-          } catch (error) {
-            if (error instanceof Error) {
-              console.error(error.message);
-            } else {
-              console.error("An unknown error occurred:", error);
-            }
-          }
+
+        // Check for wallet from localStorage (QC Wallet)
+        const savedWalletAddress = typeof window !== "undefined"
+          ? localStorage.getItem("walletAddress")
+          : null;
+
+        if (savedWalletAddress) {
+          userData.walletAddress = savedWalletAddress;
         } else {
-          if (typeof window !== "undefined") {
-            localStorage.setItem("walletAddress", "");
-          }
           userData.walletAddress = "";
-        };
+        }
         userData.status = "completed";
       }
     }
