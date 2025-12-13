@@ -4,6 +4,7 @@ import { GameProvider } from "../(contexts)/MiningContext";
 import { LeaderboardProvider } from "../(contexts)/LeaderboardContext";
 import { FrensProvider } from "../(contexts)/FrensContext";
 import { GroupsProvider } from "../(contexts)/GroupsContext";
+import { ChatProvider } from "../(contexts)/ChatContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
 
@@ -34,7 +35,9 @@ export default function ClientProviders({ children }: { children: React.ReactNod
         <LeaderboardProvider>
           <FrensProvider>
             <GroupsProvider>
-              {children}
+              <ChatProvider>
+                {children}
+              </ChatProvider>
             </GroupsProvider>
           </FrensProvider>
         </LeaderboardProvider>
