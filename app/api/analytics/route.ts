@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/utils/session";
 
 const SDK_AUTH_TOKEN = "eyJhcHBfbmFtZSI6InFudG1fY2x1YiIsImFwcF91cmwiOiJodHRwczovL3QubWUvUXVhbnR1bUNsdWJCb3QiLCJhcHBfZG9tYWluIjoiaHR0cHM6Ly9xdWFudHVtY2x1Yi5zcGFjZS8ifQ==!WjIA5nO87o5qYCowGzsEH+ip9PqI9jDgAiwWgAmsFLQ=";
 const APP_NAME = "qntm_club";
@@ -34,51 +33,38 @@ interface EventPayload {
     wallet_type?: string;
     from?: string;
     messages?: { address: string; amount: string }[];
-    custom_data?: Record<string, unknown>;
 }
 
 export async function POST(req: NextRequest) {
     try {
-        // Validate session to ensure request comes from authenticated user
-        const session = await getSession();
-        if (!session || !session.user?.telegramId) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
         const body = await req.json();
-        const { eventName, sessionId, isPremium, platform, locale, options } = body;
+        const { eventName, userId, sessionId, isPremium, platform, locale, options } = body;
 
         // Validate event name is in our whitelist
         if (!eventName || !ALLOWED_EVENTS.has(eventName)) {
             return NextResponse.json(
-                { error: "Invalid event name" },
-                { status: 400 }
+                { success: false },
+                { status: 200 } // Don't reveal validation errors
             );
         }
 
-        if (!sessionId) {
+        if (!sessionId || !userId) {
             return NextResponse.json(
-                { error: "Missing sessionId" },
-                { status: 400 }
+                { success: false },
+                { status: 200 }
             );
         }
-
-        // Use the authenticated user's telegramId, not client-provided userId
-        const userId = parseInt(session.user.telegramId, 10);
 
         const payload: EventPayload[] = [{
             event_name: eventName,
-            session_id: sessionId,
-            user_id: userId,
+            session_id: String(sessionId).slice(0, 100),
+            user_id: Number(userId) || 0,
             app_name: APP_NAME,
-            is_premium: isPremium,
-            platform: platform,
-            locale: locale,
+            is_premium: Boolean(isPremium),
+            platform: String(platform || "unknown").slice(0, 50),
+            locale: String(locale || "en").slice(0, 10),
             client_timestamp: Date.now().toString(),
-            ...(options?.isSuccess !== undefined && { is_success: options.isSuccess }),
+            ...(options?.isSuccess !== undefined && { is_success: Boolean(options.isSuccess) }),
             ...(options?.errorMessage && { error_message: String(options.errorMessage).slice(0, 200) }),
             ...(options?.errorCode && { error_code: Number(options.errorCode) }),
             ...(options?.walletAddress && { wallet_address: String(options.walletAddress).slice(0, 100) }),
@@ -104,18 +90,11 @@ export async function POST(req: NextRequest) {
         if (response.status === 201) {
             return NextResponse.json({ success: true });
         } else {
-            // Don't expose external API errors to client
             console.warn(`[TelegramAnalytics] Event "${eventName}" failed:`, response.status);
-            return NextResponse.json(
-                { success: false },
-                { status: 200 } // Return 200 to not reveal internal failures
-            );
+            return NextResponse.json({ success: false }, { status: 200 });
         }
     } catch (error) {
         console.error("[TelegramAnalytics] API Error:", error);
-        return NextResponse.json(
-            { success: false },
-            { status: 200 } // Don't reveal errors to client
-        );
+        return NextResponse.json({ success: false }, { status: 200 });
     }
 }

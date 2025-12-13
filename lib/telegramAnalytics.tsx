@@ -35,15 +35,16 @@ function getSessionId(): string {
 }
 
 /**
- * Get Telegram WebApp info (platform, premium status, locale)
+ * Get Telegram user info from WebApp
  */
-function getTelegramInfo(): { isPremium: boolean; platform: string; locale: string } | null {
+function getTelegramInfo(): { userId: number; isPremium: boolean; platform: string; locale: string } | null {
   if (typeof window === "undefined") return null;
 
   const tg = window.Telegram?.WebApp;
-  if (!tg?.initDataUnsafe?.user) return null;
+  if (!tg?.initDataUnsafe?.user?.id) return null;
 
   return {
+    userId: tg.initDataUnsafe.user.id,
     isPremium: tg.initDataUnsafe.user.is_premium || false,
     platform: tg.platform || "unknown",
     locale: tg.initDataUnsafe.user.language_code || "en",
@@ -52,7 +53,6 @@ function getTelegramInfo(): { isPremium: boolean; platform: string; locale: stri
 
 /**
  * Send event via server-side API route
- * Server validates session and uses authenticated userId
  * Returns true if event was recorded successfully
  */
 export async function sendAnalyticsEvent(
@@ -68,6 +68,10 @@ export async function sendAnalyticsEvent(
   }
 ): Promise<boolean> {
   const telegramInfo = getTelegramInfo();
+  if (!telegramInfo) {
+    console.warn("[Analytics] No Telegram user info, skipping event");
+    return false;
+  }
 
   try {
     const response = await fetch("/api/analytics", {
@@ -75,10 +79,11 @@ export async function sendAnalyticsEvent(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         eventName,
+        userId: telegramInfo.userId,
         sessionId: getSessionId(),
-        isPremium: telegramInfo?.isPremium,
-        platform: telegramInfo?.platform,
-        locale: telegramInfo?.locale,
+        isPremium: telegramInfo.isPremium,
+        platform: telegramInfo.platform,
+        locale: telegramInfo.locale,
         options,
       }),
     });
