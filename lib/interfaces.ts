@@ -7,26 +7,27 @@ export interface TaskHistory {
     date: string;
     platform: string;
     title: string;
-  }
+}
 
 export interface Referral {
     id: string;
     username: string;
-    quantamount:number;
+    quantamount: number;
+    photoUrl?: string;
 }
 
 export interface EarnTask {
-  id: string;
-  description:string | React.ReactNode;
-  completed:boolean;
-  category:string;
-  platform:React.ReactNode;
-  buttontitle:string;
-  buttonText:React.ReactNode|string;
-  url:string |undefined;
-  quant:number;
-  whichPlatform:string;
-  timestamp:number;
+    id: string;
+    description: string | React.ReactNode;
+    completed: boolean;
+    category: string;
+    platform: React.ReactNode;
+    buttontitle: string;
+    buttonText: React.ReactNode | string;
+    url: string | undefined;
+    quant: number;
+    whichPlatform: string;
+    timestamp: number;
 }
 
 export interface ConnectWalletButtonProps {

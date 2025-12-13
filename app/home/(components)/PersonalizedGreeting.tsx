@@ -2,77 +2,85 @@
 
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ChevronRight, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function PersonalizedGreeting() {
   const { username } = useGameContext();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
-  // Prevent hydration mismatch for time-based rendering
+  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
-  }, []);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Good morning";
-    if (hour >= 12 && hour < 17) return "Good afternoon";
-    return "Good evening";
-  };
+    // Get user photo
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (tgUser?.photo_url) {
+      setPhotoUrl(tgUser.photo_url);
+    } else if (tgUser?.id) {
+      fetch('/api/get-profile-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: tgUser.id })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.photoUrl) setPhotoUrl(data.photoUrl);
+        })
+        .catch(() => { });
+    }
 
-  const greeting = getGreeting();
+    router.prefetch('/home/profile');
+  }, [router]);
+
+  if (!mounted) return null;
+
   const displayName = username || "Quantum User";
 
-  if (!mounted) return null; // Or a skeleton loader
-
   return (
-    <>
-      <style>{`
-        .bg-grid-pattern {
-          background-size: 30px 30px;
-          background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                            linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-        }
-      `}</style>
+    <div className="w-[90%] mx-auto mt-4 mb-2">
+      <Card
+        className="relative overflow-hidden border-0 bg-[#0a0a0a]/80 backdrop-blur-xl shadow-2xl group cursor-pointer hover:bg-black/80 transition-all duration-300"
+        onClick={() => router.push('/home/profile')}
+      >
+        {/* Glow Effects */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[50px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
 
-      <div className="w-[90%] mx-auto mt-3 mb-1">
-        <Card className="relative overflow-hidden border-0 bg-black/40 backdrop-blur-md shadow-2xl group ring-1 ring-white/10 hover:ring-cyan-500/30 transition-all duration-700">
-          
-          {/* --- Background Effects --- */}
-          
-          {/* 1. Cyber Grid */}
-          <div className="absolute inset-0 bg-grid-pattern opacity-50 pointer-events-none" />
-          
-          {/* 2. Gradient Glows */}
-          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-cyan-500/10 blur-[60px] group-hover:bg-cyan-500/20 transition-all duration-700" />
-          <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-indigo-500/10 blur-[60px] group-hover:bg-indigo-500/20 transition-all duration-700" />
+        <CardContent className="p-3 relative z-10">
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: Avatar & Info */}
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Avatar - Simple border, no gradient */}
+              <Avatar className="h-11 w-11 border border-[#333]">
+                <AvatarImage src={photoUrl || undefined} alt={displayName} />
+                <AvatarFallback className="bg-zinc-800 text-zinc-400">
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
 
-          {/* 3. Subtle noise/texture overlay (Optional) */}
-          <div className="absolute inset-0 opacity-[0.03] bg-noise pointer-events-none" />
-
-          {/* --- Content --- */}
-          <CardContent className="p-2.5 sm:p-3 relative z-10">
-            <div className="flex items-center justify-center">
-              
-              {/* Centered: Text */}
-              <div className="flex flex-col gap-1">
-                <h1 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight whitespace-nowrap flex items-center gap-2.5">
-                  <Sparkles className="w-5 h-5 animate-pulse text-cyan-400/80 shrink-0" />
-                  <span className="text-gray-400 font-medium">{greeting},</span>
-                  <span className="bg-linear-to-r from-cyan-200 via-blue-100 to-indigo-200 bg-clip-text text-transparent filter drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">
-                    {displayName}
-                  </span>
-                </h1>
+              {/* Text Info */}
+              <div className="flex flex-col min-w-0">
+                <h3 className="font-bold text-base truncate pr-1">
+                  <span className="text-white">Hi, </span>
+                  <span className="bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 bg-clip-text text-transparent">{displayName}</span>
+                </h3>
               </div>
-
             </div>
-          </CardContent>
 
-          {/* Bottom Progress Line (Decoration) */}
-          <div className="absolute bottom-0 left-0 h-px w-full bg-linear-to-r from-transparent via-cyan-500/50 to-transparent opacity-50" />
-        </Card>
-      </div>
-    </>
+            {/* Right: Action Icon */}
+            <div className="shrink-0">
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                <ChevronRight className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
