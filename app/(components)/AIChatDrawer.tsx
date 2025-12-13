@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, User } from "lucide-react";
+import { X, Send, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -215,14 +215,7 @@ export default function AIChatDrawer() {
                 animate={{ opacity: 1, scale: 1 }}
                 aria-label="Open Quantum Club AI"
             >
-                <Image
-                    src="/svg/logo-white.svg"
-                    alt="Quantum Club AI"
-                    width={24}
-                    height={24}
-                    className="invert"
-                    priority
-                />
+                <Sparkles className="w-6 h-6 text-black" />
             </motion.button>
 
             {/* Chat Drawer */}
