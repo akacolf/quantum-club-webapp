@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SDK_AUTH_TOKEN = "eyJhcHBfbmFtZSI6InFudG1fY2x1YiIsImFwcF91cmwiOiJodHRwczovL3QubWUvUXVhbnR1bUNsdWJCb3QiLCJhcHBfZG9tYWluIjoiaHR0cHM6Ly9xdWFudHVtY2x1Yi5zcGFjZS8ifQ==!WjIA5nO87o5qYCowGzsEH+ip9PqI9jDgAiwWgAmsFLQ=";
 const APP_NAME = "qntm_club";
+const APP_DOMAIN = "https://quantumclub.space";
 
 interface EventPayload {
     event_name: string;
@@ -53,6 +54,8 @@ export async function POST(req: NextRequest) {
             headers: {
                 "TGA-Auth-Token": SDK_AUTH_TOKEN,
                 "Content-Type": "application/json",
+                "Origin": APP_DOMAIN,
+                "Referer": APP_DOMAIN + "/",
             },
             body: JSON.stringify(payload),
         });
