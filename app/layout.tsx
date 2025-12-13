@@ -8,6 +8,7 @@ import ClientProviders from "./(providers)/ClientProviders";
 import type { Metadata } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
+import AIChatDrawer from "./(components)/AIChatDrawer";
 
 
 const onest = Onest({
@@ -41,6 +42,7 @@ export default function RootLayout({
               <div className="inner-content">
                 {children}
                 <GlobalNavigation />
+                <AIChatDrawer />
                 <Analytics />
                 <SpeedInsights />
               </div>

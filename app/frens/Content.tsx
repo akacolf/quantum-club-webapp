@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 
@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, User, Trophy, UserPlus, Users2, Gift } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
@@ -34,6 +35,7 @@ const FrensContent = () => {
   const [secondTierCount, setSecondTierCount] = useState(0);
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     router.prefetch("/frens/referrals");
@@ -138,6 +140,33 @@ const FrensContent = () => {
 
     fetchReferralsData();
   }, []);
+
+  // Fetch profile photos for referrals
+  const fetchProfilePhoto = useCallback(async (tgId: string) => {
+    // Skip if already fetched
+    if (photoUrls[tgId] !== undefined) return;
+
+    try {
+      const response = await fetch('/api/get-profile-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: tgId })
+      });
+      const data = await response.json();
+      setPhotoUrls(prev => ({ ...prev, [tgId]: data.photoUrl || null }));
+    } catch {
+      setPhotoUrls(prev => ({ ...prev, [tgId]: null }));
+    }
+  }, [photoUrls]);
+
+  // Fetch photos when referrals are loaded
+  useEffect(() => {
+    if (referralsContext.length > 0) {
+      referralsContext.forEach((referral) => {
+        fetchProfilePhoto(referral.id);
+      });
+    }
+  }, [referralsContext, fetchProfilePhoto]);
 
   async function lookViewMore() {
     try {
@@ -336,8 +365,19 @@ const FrensContent = () => {
                     <Card key={index} className="bg-[#1a1a1a]/60 border-[#333] text-white backdrop-blur-sm hover:bg-[#1a1a1a]/80 transition-colors">
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center border border-[#333]">
-                            <User className="w-5 h-5 text-gray-400" />
+                          <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center border border-[#333] overflow-hidden">
+                            {photoUrls[referral.id] ? (
+                              <Image
+                                src={photoUrls[referral.id]!}
+                                alt={referral.username || "User"}
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <User className="w-5 h-5 text-gray-400" />
+                            )}
                           </div>
                           <div className="font-medium text-sm text-gray-200">{referral.username}</div>
                         </div>
