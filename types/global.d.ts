@@ -2,6 +2,7 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp: {
+        platform?: string;
         initData: {
           user?: {
             is_premium: boolean,
@@ -9,6 +10,7 @@ declare global {
             id: number,
             username: string | null;
             first_name: string;
+            language_code?: string;
           }
           start_param?: string;
         };
@@ -20,6 +22,7 @@ declare global {
             username: string | null;
             first_name: string;
             photo_url?: string;
+            language_code?: string;
           }
           start_param?: string;
         };

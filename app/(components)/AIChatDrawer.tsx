@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -50,13 +49,7 @@ const QuantumLogoBlackBg = memo(function QuantumLogoBlackBg() {
 });
 
 // Memoized message component for performance
-const ChatMessage = memo(function ChatMessage({
-    message,
-    userPhotoUrl
-}: {
-    message: Message;
-    userPhotoUrl: string | null;
-}) {
+const ChatMessage = memo(function ChatMessage({ message }: { message: Message }) {
     const isUser = message.role === "user";
 
     return (
@@ -67,12 +60,9 @@ const ChatMessage = memo(function ChatMessage({
         >
             {/* Avatar */}
             {isUser ? (
-                <Avatar className="shrink-0 w-7 h-7">
-                    <AvatarImage src={userPhotoUrl || undefined} alt="You" />
-                    <AvatarFallback className="bg-white text-black">
-                        <User className="w-3.5 h-3.5" />
-                    </AvatarFallback>
-                </Avatar>
+                <div className="shrink-0 w-7 h-7 rounded-full bg-white flex items-center justify-center">
+                    <User className="w-3.5 h-3.5 text-black" />
+                </div>
             ) : (
                 <QuantumLogoBlackBg />
             )}
@@ -102,7 +92,6 @@ export default function AIChatDrawer() {
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -114,15 +103,6 @@ export default function AIChatDrawer() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isLoading, scrollToBottom]);
-
-    // Fetch user photo and rate limit on mount
-    useEffect(() => {
-        // Get user photo from Telegram
-        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-        if (tgUser?.photo_url) {
-            setUserPhotoUrl(tgUser.photo_url);
-        }
-    }, []);
 
     // Handle body overflow when drawer opens
     useEffect(() => {
@@ -305,7 +285,6 @@ export default function AIChatDrawer() {
                                             <ChatMessage
                                                 key={message.id}
                                                 message={message}
-                                                userPhotoUrl={userPhotoUrl}
                                             />
                                         ))
                                     )}
