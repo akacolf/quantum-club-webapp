@@ -17,11 +17,7 @@ interface Message {
     content: string;
 }
 
-interface RateLimitStatus {
-    used: number;
-    remaining: number;
-    limit: number;
-}
+
 
 // Memoized logo components for performance
 const QuantumLogoWhiteBg = memo(function QuantumLogoWhiteBg() {
@@ -105,7 +101,7 @@ export default function AIChatDrawer() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(null);
+
     const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -128,27 +124,13 @@ export default function AIChatDrawer() {
         }
     }, []);
 
-    // Fetch rate limit when drawer opens
+    // Handle body overflow when drawer opens
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = "hidden";
-
-            fetch("/api/ai/chat")
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data.remaining !== undefined) {
-                        setRateLimitStatus({
-                            used: data.used || 0,
-                            remaining: data.remaining,
-                            limit: data.limit || 20,
-                        });
-                    }
-                })
-                .catch(() => { });
         } else {
             document.body.style.overflow = "unset";
         }
-
         return () => {
             document.body.style.overflow = "unset";
         };
@@ -159,11 +141,6 @@ export default function AIChatDrawer() {
 
         const trimmedInput = input.trim();
         if (!trimmedInput || isLoading) return;
-
-        if (rateLimitStatus && rateLimitStatus.remaining <= 0) {
-            toast.error("Daily limit reached. Try again tomorrow!");
-            return;
-        }
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -189,9 +166,8 @@ export default function AIChatDrawer() {
 
             if (!response.ok) {
                 toast.error(data.error || "Failed to get response");
-                if (response.status === 429) {
-                    setRateLimitStatus(prev => prev ? { ...prev, remaining: 0 } : null);
-                }
+                // Remove the last user message if request failed
+                setMessages((prev) => prev.slice(0, -1));
                 return;
             }
 
@@ -202,20 +178,14 @@ export default function AIChatDrawer() {
             };
 
             setMessages((prev) => [...prev, assistantMessage]);
-
-            if (data.remaining !== undefined) {
-                setRateLimitStatus(prev => prev ? {
-                    ...prev,
-                    remaining: data.remaining,
-                    used: prev.limit - data.remaining,
-                } : null);
-            }
         } catch {
             toast.error("Failed to connect. Please try again.");
+            // Remove the last user message if request failed
+            setMessages((prev) => prev.slice(0, -1));
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading, messages, rateLimitStatus]);
+    }, [input, isLoading, messages]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -231,7 +201,7 @@ export default function AIChatDrawer() {
         "What are Jettons?",
     ];
 
-    const isLimitReached = Boolean(rateLimitStatus && rateLimitStatus.remaining <= 0);
+
 
     return (
         <>
@@ -286,12 +256,7 @@ export default function AIChatDrawer() {
                                     <QuantumLogoWhiteBg />
                                     <div>
                                         <h2 className="font-bold text-white text-base">Quantum Club AI</h2>
-                                        <p className="text-xs text-gray-500">
-                                            {rateLimitStatus
-                                                ? `${rateLimitStatus.remaining}/${rateLimitStatus.limit} messages left`
-                                                : "Your assistant"
-                                            }
-                                        </p>
+                                        <p className="text-xs text-gray-500">Your assistant</p>
                                     </div>
                                 </div>
                                 <Button
@@ -377,16 +342,15 @@ export default function AIChatDrawer() {
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder={isLimitReached ? "Come back tomorrow!" : "Ask anything..."}
+                                        placeholder="Ask anything..."
                                         rows={1}
-                                        disabled={isLimitReached}
-                                        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-white/50"
                                         style={{ maxHeight: "100px" }}
                                         aria-label="Message input"
                                     />
                                     <Button
                                         type="submit"
-                                        disabled={!input.trim() || isLoading || isLimitReached}
+                                        disabled={!input.trim() || isLoading}
                                         className="h-12 w-12 rounded-xl bg-white hover:bg-gray-200 disabled:opacity-50"
                                         aria-label="Send message"
                                     >
@@ -397,11 +361,6 @@ export default function AIChatDrawer() {
                                         )}
                                     </Button>
                                 </form>
-                                {isLimitReached && (
-                                    <p className="text-xs text-red-400 mt-2 text-center">
-                                        Daily limit reached. Resets at midnight UTC.
-                                    </p>
-                                )}
                             </div>
                         </motion.div>
                     </>
