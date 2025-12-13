@@ -165,11 +165,10 @@ const EarnContent = () => {
         tasks.map((task) => (
           <Card
             key={task.id}
-            className={`border-[#333] bg-[#1a1a1a]/60 backdrop-blur-sm transition-all duration-300 ${
-              task.completed
+            className={`border-[#333] bg-[#1a1a1a]/60 backdrop-blur-sm transition-all duration-300 ${task.completed
                 ? "opacity-60"
                 : "hover:bg-[#252525] hover:border-white/10"
-            }`}
+              }`}
           >
             <CardContent className="p-4 flex items-center gap-4">
               {/* Icon */}
@@ -203,13 +202,12 @@ const EarnContent = () => {
                   task.completed
                 }
                 variant={task.completed ? "secondary" : "default"}
-                className={`h-9 px-4 min-w-20 rounded-full font-medium text-xs transition-all duration-300 ${
-                  task.buttonText === "Claim"
+                className={`h-9 px-4 min-w-20 rounded-full font-medium text-xs transition-all duration-300 ${task.buttonText === "Claim"
                     ? "bg-orange-500 hover:bg-orange-600 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]"
                     : task.completed
-                    ? "bg-[#333] text-gray-400 hover:bg-[#333]"
-                    : "bg-white text-black hover:bg-gray-200"
-                }`}
+                      ? "bg-[#333] text-gray-400 hover:bg-[#333]"
+                      : "bg-white text-black hover:bg-gray-200"
+                  }`}
               >
                 {task.buttonText === "Joined" ? (
                   <div className="flex items-center gap-1">
@@ -237,11 +235,11 @@ const EarnContent = () => {
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4 text-gray-600">
             <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 48 48">
-	<g fill="currentColor">
-		<path d="M14.807 23.233c-.683-.438-1.183-1.145-1.064-1.883a.5.5 0 0 1 .668-.389c1.818.675 3.846.256 5.642-1.448a.5.5 0 0 1 .818.203c.231.689.024 1.618-.48 2.382a3.8 3.8 0 0 1-2.654 1.665c-1.198.177-2.216-.073-2.93-.53m17.947 0c.683-.438 1.184-1.145 1.065-1.883a.5.5 0 0 0-.668-.389c-1.818.675-3.846.256-5.642-1.448a.5.5 0 0 0-.818.203c-.232.689-.024 1.618.48 2.382a3.8 3.8 0 0 0 2.653 1.665c1.199.177 2.216-.073 2.93-.53m-15.789 8.943c.097-.355.245-.72.431-1.005C18.664 29.225 21.151 28 23.892 28c2.646 0 5.048 1.139 6.354 2.962l.017.023a4 4 0 0 1 .278.403c.164.285.284.637.357.973a3.6 3.6 0 0 1 .076 1.123c-.038.356-.17.9-.64 1.268c-.523.41-1.15.372-1.656.195c-2.394-.782-3.53-1.12-4.648-1.126c-1.116-.006-2.277.317-4.714 1.128l-.008.003l-.008.002c-.56.176-1.222.216-1.772-.187c-.527-.386-.668-.976-.698-1.377a3.7 3.7 0 0 1 .135-1.214" />
-		<path fillRule="evenodd" d="M42 24c0 9.941-8.059 18-18 18S6 33.941 6 24S14.059 6 24 6s18 8.059 18 18m-2 0c0 8.837-7.163 16-16 16S8 32.837 8 24S15.163 8 24 8s16 7.163 16 16" clipRule="evenodd" />
-	</g>
-</svg>
+              <g fill="currentColor">
+                <path d="M14.807 23.233c-.683-.438-1.183-1.145-1.064-1.883a.5.5 0 0 1 .668-.389c1.818.675 3.846.256 5.642-1.448a.5.5 0 0 1 .818.203c.231.689.024 1.618-.48 2.382a3.8 3.8 0 0 1-2.654 1.665c-1.198.177-2.216-.073-2.93-.53m17.947 0c.683-.438 1.184-1.145 1.065-1.883a.5.5 0 0 0-.668-.389c-1.818.675-3.846.256-5.642-1.448a.5.5 0 0 0-.818.203c-.232.689-.024 1.618.48 2.382a3.8 3.8 0 0 0 2.653 1.665c1.199.177 2.216-.073 2.93-.53m-15.789 8.943c.097-.355.245-.72.431-1.005C18.664 29.225 21.151 28 23.892 28c2.646 0 5.048 1.139 6.354 2.962l.017.023a4 4 0 0 1 .278.403c.164.285.284.637.357.973a3.6 3.6 0 0 1 .076 1.123c-.038.356-.17.9-.64 1.268c-.523.41-1.15.372-1.656.195c-2.394-.782-3.53-1.12-4.648-1.126c-1.116-.006-2.277.317-4.714 1.128l-.008.003l-.008.002c-.56.176-1.222.216-1.772-.187c-.527-.386-.668-.976-.698-1.377a3.7 3.7 0 0 1 .135-1.214" />
+                <path fillRule="evenodd" d="M42 24c0 9.941-8.059 18-18 18S6 33.941 6 24S14.059 6 24 6s18 8.059 18 18m-2 0c0 8.837-7.163 16-16 16S8 32.837 8 24S15.163 8 24 8s16 7.163 16 16" clipRule="evenodd" />
+              </g>
+            </svg>
           </div>
           <p className="text-gray-400 font-medium">No tasks available</p>
           <p className="text-gray-600 text-sm mt-1">
@@ -279,7 +277,7 @@ const EarnContent = () => {
                 : item
             )
           );
-           setTimeout(() => {
+          setTimeout(() => {
             setTasks((items) =>
               items.map((item) =>
                 item.id === task.id ? { ...item, buttonText: claimTEXT } : item
@@ -327,8 +325,8 @@ const EarnContent = () => {
                 .getDate()
                 .toString()
                 .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
+                  .toString()
+                  .padStart(2, "0")}/${date.getFullYear()}`;
               if (!taskSnapshot.exists()) {
                 await setDoc(taskRef, {
                   quant: task.quant,
@@ -492,8 +490,8 @@ const EarnContent = () => {
             .getDate()
             .toString()
             .padStart(2, "0")}/${(date.getMonth() + 1)
-            .toString()
-            .padStart(2, "0")}/${date.getFullYear()}`;
+              .toString()
+              .padStart(2, "0")}/${date.getFullYear()}`;
           if (!taskSnapshot.exists()) {
             await setDoc(taskRef, {
               quant: task.quant,
@@ -581,8 +579,8 @@ const EarnContent = () => {
               .getDate()
               .toString()
               .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
+                .toString()
+                .padStart(2, "0")}/${date.getFullYear()}`;
             console.error(task.platform);
             await setDoc(taskRef, {
               quant: task.quant,
@@ -681,8 +679,8 @@ const EarnContent = () => {
               .getDate()
               .toString()
               .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
+                .toString()
+                .padStart(2, "0")}/${date.getFullYear()}`;
             await setDoc(taskRef, {
               quant: task.quant,
               completed: true,
@@ -747,8 +745,8 @@ const EarnContent = () => {
               .getDate()
               .toString()
               .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
+                .toString()
+                .padStart(2, "0")}/${date.getFullYear()}`;
             await setDoc(
               taskRef,
               {
@@ -824,8 +822,8 @@ const EarnContent = () => {
               .getDate()
               .toString()
               .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
+                .toString()
+                .padStart(2, "0")}/${date.getFullYear()}`;
             await setDoc(
               taskRef,
               {
@@ -945,8 +943,8 @@ const EarnContent = () => {
               .getDate()
               .toString()
               .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
+                .toString()
+                .padStart(2, "0")}/${date.getFullYear()}`;
             await setDoc(taskRef, {
               quant: task.quant,
               completed: true,
@@ -1012,41 +1010,21 @@ const EarnContent = () => {
                 : item
             )
           );
-          console.error(telegramId);
 
-          const checkWallet = await fetch(
-            "/api/tonconnections/checktonWallet",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ userId: telegramId }),
-            }
-          );
-          const responseCheckWallet = await checkWallet.json();
-          const haveWallet = responseCheckWallet.haveWallet;
-          if (haveWallet) {
-            const walletData = responseCheckWallet;
-            const address = walletData.address;
-            if (address && address !== "") {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: claimTEXT }
-                    : item
-                )
-              );
-              return;
-            } else {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: task.buttontitle }
-                    : item
-                )
-              );
-            }
+          // Check for wallet from localStorage (QC Wallet)
+          const savedWalletAddress = typeof window !== "undefined"
+            ? localStorage.getItem("walletAddress")
+            : null;
+
+          if (savedWalletAddress && savedWalletAddress !== "") {
+            setTasks((items) =>
+              items.map((item) =>
+                item.id === task.id
+                  ? { ...item, buttonText: claimTEXT }
+                  : item
+              )
+            );
+            return;
           } else {
             setTasks((items) =>
               items.map((item) =>
@@ -1070,8 +1048,8 @@ const EarnContent = () => {
               .getDate()
               .toString()
               .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
+                .toString()
+                .padStart(2, "0")}/${date.getFullYear()}`;
             await setDoc(taskRef, {
               quant: task.quant,
               completed: true,
@@ -1174,8 +1152,8 @@ const EarnContent = () => {
               .getDate()
               .toString()
               .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
+                .toString()
+                .padStart(2, "0")}/${date.getFullYear()}`;
             await setDoc(taskRef, {
               quant: task.quant,
               completed: true,
@@ -1302,7 +1280,7 @@ const EarnContent = () => {
                         {tab}
                         {tab === limitedTXT &&
                           tasks.filter((task) => task.category === limitedTXT && !task.completed).length >=
-                            1 && (
+                          1 && (
                             <Badge
                               variant="secondary"
                               className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
@@ -1313,7 +1291,7 @@ const EarnContent = () => {
                           )}
                         {tab === ingameTXT &&
                           tasks.filter((task) => task.category === ingameTXT && !task.completed).length >=
-                            1 && (
+                          1 && (
                             <Badge
                               variant="secondary"
                               className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
@@ -1324,7 +1302,7 @@ const EarnContent = () => {
                           )}
                         {tab === ParnersTXT &&
                           tasks.filter((task) => task.category === ParnersTXT && !task.completed).length >=
-                            1 && (
+                          1 && (
                             <Badge
                               variant="secondary"
                               className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
