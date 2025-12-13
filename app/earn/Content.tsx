@@ -104,7 +104,11 @@ const EarnContent = () => {
                 category,
                 platform,
                 buttontitle,
-                buttonText: completed ? "Joined" : buttontitle,
+                buttonText: completed
+                  ? "Joined"
+                  : (whichPlatform === "connectwallet" && typeof window !== "undefined" && localStorage.getItem("walletAddress"))
+                    ? "Claim"
+                    : buttontitle,
                 url,
                 quant,
                 whichPlatform,
