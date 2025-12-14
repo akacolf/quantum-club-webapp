@@ -8,6 +8,7 @@ import { useGroups, Group } from "@/app/(contexts)/GroupsContext";
 import Loader from "@/app/(components)/Loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Users, ChevronRight } from "lucide-react";
 
 interface GroupItemProps {
@@ -29,22 +30,25 @@ const GroupItem = memo(function GroupItem({ group, index, onNavigate }: GroupIte
             transition={{ delay: index * 0.05 }}
         >
             <Card
-                className="bg-[#1a1a1a]/80 border-[#333] backdrop-blur-xl cursor-pointer hover:bg-[#2a2a2a]/80 transition-colors"
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={handleClick}
             >
                 <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                            {group.name.charAt(0).toUpperCase()}
-                        </div>
+                        <Avatar className="h-12 w-12">
+                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${group.name}`} />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-lg">
+                                {group.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
                         <div>
-                            <h3 className="font-semibold text-white">{group.name}</h3>
-                            <p className="text-sm text-gray-400">
+                            <h3 className="font-semibold text-foreground">{group.name}</h3>
+                            <p className="text-sm text-muted-foreground">
                                 {group.memberCount} / 5 members
                             </p>
                         </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </CardContent>
             </Card>
         </motion.div>
@@ -70,23 +74,23 @@ export default function GroupsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white pb-24">
+        <div className="min-h-screen bg-background text-foreground pb-24 relative overflow-hidden">
             {/* Background */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[100px]" />
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px]" />
             </div>
 
             <div className="relative z-10 p-4 pt-8 space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Groups</h1>
-                        <p className="text-sm text-gray-400">Connect with your community</p>
+                        <h1 className="text-2xl font-bold text-foreground">Groups</h1>
+                        <p className="text-sm text-muted-foreground">Connect with your community</p>
                     </div>
                     <Button
                         onClick={handleNavigateToCreate}
-                        className="bg-white text-black hover:bg-gray-200"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                         <Plus className="w-4 h-4 mr-1" />
                         Create
@@ -100,16 +104,16 @@ export default function GroupsPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="flex flex-col items-center justify-center py-16 space-y-4"
                     >
-                        <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center">
-                            <Users className="w-8 h-8 text-gray-500" />
+                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                            <Users className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <p className="text-gray-400 text-center">
+                        <p className="text-muted-foreground text-center">
                             You haven&apos;t joined any groups yet
                         </p>
                         <Button
                             onClick={handleNavigateToCreate}
                             variant="outline"
-                            className="border-[#333] text-white hover:bg-[#1a1a1a]"
+                            className="text-foreground"
                         >
                             Create your first group
                         </Button>
