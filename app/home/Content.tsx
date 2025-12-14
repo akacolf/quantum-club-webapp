@@ -9,11 +9,8 @@ import {
 } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
-import { toUserFriendlyAddress } from "@tonconnect/sdk";
 import { useRouter } from "next/navigation";
-import { THEME, useTonConnectUI } from "@tonconnect/ui-react";
 import { toast } from "sonner";
-/*import { toNano } from "@ton/core";*/
 import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 
@@ -138,109 +135,12 @@ const HomeContent = () => {
     telegramId,
     daily,
     setDaily,
-    walletAddress,
-    setWalletAddress,
     setRemainingSolveToEarn,
     remainingSolveToEarn,
   } = useGameContext();
 
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
-  const [tonConnectUI] = useTonConnectUI();
-  const handleWalletConnection = useCallback(
-    (address: string) => {
-      setWalletAddress(address);
-    },
-    [setWalletAddress]
-  );
-
-  const handleWalletDisconnection = useCallback(() => {
-    setWalletAddress("");
-  }, [setWalletAddress]);
-  const updateWalletInDB = useCallback(
-    async (walletAddress: string, address: string) => {
-      const response = await fetch("/api/tonconnections/tonConnectDB", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: telegramId,
-          walletAddress: walletAddress,
-          address: address,
-        }),
-      });
-      if (!response.ok) {
-        const errorData = await response.text();
-        const parsedError = JSON.parse(errorData);
-        throw new Error(`API Error: ${parsedError.error}`);
-      }
-    },
-    [telegramId]
-  );
-  useEffect(() => {
-    if (!tonConnectUI) return;
-    tonConnectUI.uiOptions = {
-      language: "en",
-      uiPreferences: {
-        theme: THEME.DARK,
-      },
-    };
-    let isMounted = true;
-    let unsubscribe: (() => void) | undefined;
-
-    const setup = async () => {
-      try {
-        await tonConnectUI.connectionRestored;
-
-        if (!isMounted) return; // is the mount connected or not check it
-
-        // if wallet connected update state
-        if (tonConnectUI.account?.address) {
-          handleWalletConnection(tonConnectUI.account.address);
-        } else {
-          if (walletAddress) {
-            handleWalletConnection(walletAddress);
-          }
-        }
-
-        // listen to status changes (only update database here)
-        unsubscribe = tonConnectUI.onStatusChange((wallet) => {
-          if (wallet) {
-            const address = wallet.account.address;
-            const walletAddressFr = toUserFriendlyAddress(address);
-            updateWalletInDB(walletAddressFr, address);
-            handleWalletConnection(address);
-          } else {
-            updateWalletInDB("", "");
-            handleWalletDisconnection();
-          }
-        });
-      } catch (error) {
-        console.error("Could not check wallet connection: ", error);
-      }
-    };
-
-    setup();
-
-    return () => {
-      isMounted = false;
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [
-    tonConnectUI,
-    handleWalletConnection,
-    handleWalletDisconnection,
-    updateWalletInDB,
-    walletAddress,
-  ]);
-
-  {/*const formatAddress = (address: string) => {
-    const tempAddress = toUserFriendlyAddress(address);
-    return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
-  };*/}
   async function goToSolveToEarn() {
     const taskElement = document.getElementById("solvetoearnbutton");
     if (taskElement) {

@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { GameProvider } from "../(contexts)/MiningContext";
 import { LeaderboardProvider } from "../(contexts)/LeaderboardContext";
-import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { FrensProvider } from "../(contexts)/FrensContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
@@ -22,13 +21,11 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
       <GameProvider>
         <LeaderboardProvider>
-          <TonConnectUIProvider manifestUrl="https://cdn.quantumclub.space/tonconnect-manifest.json">
-            <FrensProvider>
-              {children}
-            </FrensProvider>
-          </TonConnectUIProvider>
+          <FrensProvider>
+            {children}
+          </FrensProvider>
         </LeaderboardProvider>
       </GameProvider>
     </ThemeProvider>
   );
-};
+}
