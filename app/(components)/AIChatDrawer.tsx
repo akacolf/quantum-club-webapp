@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { ButtonLoader } from "./ButtonLoader";
@@ -15,8 +16,6 @@ interface Message {
     role: "user" | "assistant";
     content: string;
 }
-
-
 
 // Memoized logo components for performance
 const QuantumLogoWhiteBg = memo(function QuantumLogoWhiteBg() {
@@ -94,6 +93,9 @@ export default function AIChatDrawer() {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    // Use ref to avoid recreating handleSubmit when messages change
+    const messagesRef = useRef<Message[]>(messages);
+    messagesRef.current = messages;
 
     // Scroll to bottom
     const scrollToBottom = useCallback(() => {
@@ -116,6 +118,12 @@ export default function AIChatDrawer() {
         };
     }, [isOpen]);
 
+    // Memoized input change handler to prevent re-renders
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(e.target.value);
+    }, []);
+
+    // Optimized handleSubmit using messagesRef to avoid dependency on messages
     const handleSubmit = useCallback(async (e?: React.FormEvent) => {
         e?.preventDefault();
 
@@ -138,7 +146,8 @@ export default function AIChatDrawer() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: trimmedInput,
-                    history: messages.slice(-10),
+                    // Use ref to get current messages without adding to dependencies
+                    history: messagesRef.current.slice(-10),
                 }),
             });
 
@@ -165,7 +174,7 @@ export default function AIChatDrawer() {
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading, messages]);
+    }, [input, isLoading]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -309,14 +318,14 @@ export default function AIChatDrawer() {
                             {/* Input */}
                             <div className="p-4 border-t border-[#333]">
                                 <form onSubmit={handleSubmit} className="flex gap-2">
-                                    <textarea
+                                    <Textarea
                                         ref={inputRef}
                                         value={input}
-                                        onChange={(e) => setInput(e.target.value)}
+                                        onChange={handleInputChange}
                                         onKeyDown={handleKeyDown}
                                         placeholder="Ask anything..."
                                         rows={1}
-                                        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-white/50"
+                                        className="flex-1 min-h-0 px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-white/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                         style={{ maxHeight: "100px" }}
                                         aria-label="Message input"
                                     />

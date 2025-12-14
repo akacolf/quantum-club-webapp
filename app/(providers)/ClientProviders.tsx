@@ -3,8 +3,6 @@ import { useEffect } from "react";
 import { GameProvider } from "../(contexts)/MiningContext";
 import { LeaderboardProvider } from "../(contexts)/LeaderboardContext";
 import { FrensProvider } from "../(contexts)/FrensContext";
-import { GroupsProvider } from "../(contexts)/GroupsContext";
-import { ChatProvider } from "../(contexts)/ChatContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
 
@@ -14,19 +12,9 @@ if (typeof window !== "undefined") {
 }
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
-  // Track app init event on mount, with delay to ensure Telegram WebApp is ready
+  // Track app init event on mount
   useEffect(() => {
-    const sendAppInit = () => {
-      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      if (tgUser?.id) {
-        analyticsEvents.appInit();
-      } else {
-        // Retry after a short delay if user data isn't ready yet
-        setTimeout(sendAppInit, 500);
-      }
-    };
-    // Initial delay to let Telegram WebApp initialize
-    setTimeout(sendAppInit, 100);
+    analyticsEvents.appInit();
   }, []);
 
   return (
@@ -34,14 +22,10 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       <GameProvider>
         <LeaderboardProvider>
           <FrensProvider>
-            <GroupsProvider>
-              <ChatProvider>
-                {children}
-              </ChatProvider>
-            </GroupsProvider>
+            {children}
           </FrensProvider>
         </LeaderboardProvider>
       </GameProvider>
     </ThemeProvider>
   );
-};
+}
