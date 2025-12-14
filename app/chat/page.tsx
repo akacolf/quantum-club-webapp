@@ -1,13 +1,95 @@
 "use client";
 
+import { memo, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useChat } from "@/app/(contexts)/ChatContext";
+import { useChat, Chat } from "@/app/(contexts)/ChatContext";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, ChevronRight, Users } from "lucide-react";
+
+// Utility function moved outside component to prevent recreation
+const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) {
+        return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    } else if (days === 1) {
+        return "Yesterday";
+    } else if (days < 7) {
+        return date.toLocaleDateString("en-US", { weekday: "short" });
+    } else {
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+};
+
+interface ChatItemProps {
+    chat: Chat;
+    index: number;
+    telegramId: string;
+    onNavigate: (chatId: string) => void;
+}
+
+// Memoized chat item component for performance
+const ChatItem = memo(function ChatItem({ chat, index, telegramId, onNavigate }: ChatItemProps) {
+    const participantName = useMemo(() => {
+        if (chat.type === "group") return chat.groupName || "Group";
+        const otherIndex = chat.participants.findIndex((p) => p !== telegramId);
+        return chat.participantNames[otherIndex] || "Unknown";
+    }, [chat, telegramId]);
+
+    const handleClick = useCallback(() => {
+        onNavigate(chat.id);
+    }, [chat.id, onNavigate]);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+        >
+            <Card
+                className="bg-[#1a1a1a]/80 border-[#333] backdrop-blur-xl cursor-pointer hover:bg-[#2a2a2a]/80 transition-colors"
+                onClick={handleClick}
+            >
+                <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+                            {chat.type === "group" ? (
+                                <Users className="w-5 h-5" />
+                            ) : (
+                                participantName.charAt(0).toUpperCase()
+                            )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-white truncate">
+                                {participantName}
+                            </h3>
+                            {chat.lastMessage && (
+                                <p className="text-sm text-gray-400 truncate">
+                                    {chat.lastMessage.senderId === telegramId && "You: "}
+                                    {chat.lastMessage.text}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {chat.lastMessage && (
+                            <span className="text-xs text-gray-500">
+                                {formatTime(chat.lastMessage.timestamp)}
+                            </span>
+                        )}
+                        <ChevronRight className="w-5 h-5 text-gray-500" />
+                    </div>
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
+});
 
 export default function ChatListPage() {
     useTelegramBackButton("/home");
@@ -15,27 +97,10 @@ export default function ChatListPage() {
     const { chats, loading } = useChat();
     const { telegramId } = useGameContext();
 
-    const getOtherParticipantName = (chat: typeof chats[0]) => {
-        if (chat.type === "group") return chat.groupName || "Group";
-        const otherIndex = chat.participants.findIndex((p) => p !== telegramId);
-        return chat.participantNames[otherIndex] || "Unknown";
-    };
-
-    const formatTime = (date: Date) => {
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-        if (days === 0) {
-            return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-        } else if (days === 1) {
-            return "Yesterday";
-        } else if (days < 7) {
-            return date.toLocaleDateString("en-US", { weekday: "short" });
-        } else {
-            return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-        }
-    };
+    // Memoized navigation handler
+    const handleNavigate = useCallback((chatId: string) => {
+        router.push(`/chat/${chatId}`);
+    }, [router]);
 
     if (loading) {
         return <Loader />;
@@ -76,48 +141,13 @@ export default function ChatListPage() {
                 ) : (
                     <div className="space-y-2">
                         {chats.map((chat, index) => (
-                            <motion.div
+                            <ChatItem
                                 key={chat.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                            >
-                                <Card
-                                    className="bg-[#1a1a1a]/80 border-[#333] backdrop-blur-xl cursor-pointer hover:bg-[#2a2a2a]/80 transition-colors"
-                                    onClick={() => router.push(`/chat/${chat.id}`)}
-                                >
-                                    <CardContent className="p-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">
-                                                {chat.type === "group" ? (
-                                                    <Users className="w-5 h-5" />
-                                                ) : (
-                                                    getOtherParticipantName(chat).charAt(0).toUpperCase()
-                                                )}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="font-semibold text-white truncate">
-                                                    {getOtherParticipantName(chat)}
-                                                </h3>
-                                                {chat.lastMessage && (
-                                                    <p className="text-sm text-gray-400 truncate">
-                                                        {chat.lastMessage.senderId === telegramId && "You: "}
-                                                        {chat.lastMessage.text}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            {chat.lastMessage && (
-                                                <span className="text-xs text-gray-500">
-                                                    {formatTime(chat.lastMessage.timestamp)}
-                                                </span>
-                                            )}
-                                            <ChevronRight className="w-5 h-5 text-gray-500" />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
+                                chat={chat}
+                                index={index}
+                                telegramId={telegramId || ""}
+                                onNavigate={handleNavigate}
+                            />
                         ))}
                     </div>
                 )}
