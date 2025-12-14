@@ -11,7 +11,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-/*import { toNano } from "@ton/core";*/
 import HomeCarousel from "@/app/home/(components)/homepagecarousel/Carousel";
 import { LottieRefCurrentProps } from "lottie-react";
 
@@ -142,7 +141,6 @@ const HomeContent = () => {
 
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
-
   async function goToSolveToEarn() {
     const taskElement = document.getElementById("solvetoearnbutton");
     if (taskElement) {
@@ -201,6 +199,58 @@ const HomeContent = () => {
     }
   }, [remainingSolveToEarn, router, setRemainingSolveToEarn, telegramId]);
 
+  {
+    /*interface Itransaction {
+    messages: [
+      {
+        address: string;
+        amount: string;
+      }
+    ];
+    validUntil: number;
+  }*/
+  }
+  {
+    /*
+    const send = () => async () => {
+    try {
+      if (!tonConnectUI.connected) {
+        await handleWalletAction();
+      }
+      const tx:Itransaction = {
+        messages: [
+          {
+            address: "UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U",
+            amount: toNano(0.1).toString(),
+          },
+        ],
+        validUntil: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 1 Day
+      };
+      const { boc } = await tonConnectUI.sendTransaction(tx);
+      console.error(boc);
+    } catch (e) {
+      console.error("Error", e);
+    }
+  };
+  };*/
+  }
+  /*const handleJoinTask = () => {
+    openTelegramGroup();
+  };
+  const openTelegramGroup = () => {
+    let newLink = task?.url;
+    if (
+      !task?.url?.startsWith("http://") &&
+      !task?.url?.startsWith("https://")
+    ) {
+      newLink = "https://" + task?.url;
+    }
+    if (typeof window !== "undefined") {
+      const tg = window?.Telegram?.WebApp;
+      if (!tg) return;
+      tg.openTelegramLink(newLink);
+    }
+  };*/
   const [loadingButtonDay, setLoadingButtonDay] = useState(true);
   useEffect(() => {
     const checkButton = async () => {

@@ -7,19 +7,34 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
 import { toast } from "sonner";
+import { dbfs } from "@/app/(firebase)/client";
+import { doc, getDoc, getDocs, collection } from "firebase/firestore";
 import {
     User,
     Copy,
     Check,
+    Coins,
+    Users,
+    ListChecks,
+    Flame,
+    Lock,
 } from "lucide-react";
+import { achievements, getUnlockedAchievements, getLockedAchievements, type UserStats } from "@/lib/achievements";
 
 export default function ProfilePage() {
     useTelegramBackButton("/home");
-    const { telegramId, username } = useGameContext();
+    const { telegramId, username, MainQuantAmount, daily } = useGameContext();
 
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [stats, setStats] = useState<UserStats>({
+        totalQntm: 0,
+        referralCount: 0,
+        tasksCompleted: 0,
+        dailyStreak: 0,
+        walletCreated: false,
+    });
 
     // Copy QC ID to clipboard
     const handleCopyId = async () => {
@@ -34,7 +49,7 @@ export default function ProfilePage() {
         }
     };
 
-    // Fetch user photo
+    // Fetch user data
     useEffect(() => {
         const fetchData = async () => {
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -54,11 +69,47 @@ export default function ProfilePage() {
                 } catch { }
             }
 
+            // Fetch stats from Firebase
+            if (telegramId) {
+                try {
+                    // Get referral count
+                    const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
+                    const referralsSnapshot = await getDocs(referralsRef);
+                    const referralCount = referralsSnapshot.size;
+
+                    // Get tasks completed
+                    const tasksRef = collection(dbfs, `user/${telegramId}/tasks`);
+                    const tasksSnapshot = await getDocs(tasksRef);
+                    const tasksCompleted = tasksSnapshot.size;
+
+                    // Get QNTM amount
+                    const valuesRef = doc(dbfs, `user/${telegramId}/miningData/values`);
+                    const valuesSnapshot = await getDoc(valuesRef);
+                    const totalQntm = valuesSnapshot.exists() ? valuesSnapshot.data()?.QuantAmount || 0 : 0;
+
+                    // Check wallet
+                    const walletCreated = typeof window !== "undefined" && !!localStorage.getItem("walletAddress");
+
+                    setStats({
+                        totalQntm,
+                        referralCount,
+                        tasksCompleted,
+                        dailyStreak: daily || 0,
+                        walletCreated,
+                    });
+                } catch (error) {
+                    console.error("Error fetching stats:", error);
+                }
+            }
+
             setIsLoading(false);
         };
 
         fetchData();
-    }, [telegramId]);
+    }, [telegramId, daily]);
+
+    const unlockedAchievements = getUnlockedAchievements(stats);
+    const lockedAchievements = getLockedAchievements(stats);
 
     if (isLoading) {
         return <Loader />;
@@ -79,7 +130,7 @@ export default function ProfilePage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center space-y-4"
                 >
-                    {/* Profile Photo - Simple border, no gradient */}
+                    {/* Profile Photo */}
                     <div className="w-28 h-28 rounded-full border-2 border-[#333] bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
                         {photoUrl ? (
                             <Image
@@ -118,6 +169,92 @@ export default function ProfilePage() {
                             <Copy className="w-4 h-4 text-gray-400" />
                         )}
                     </motion.button>
+                </motion.div>
+
+                {/* Stats Grid */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="grid grid-cols-2 gap-3"
+                >
+                    <div className="bg-[#1a1a1a]/80 border border-[#333] rounded-xl p-4 backdrop-blur-xl">
+                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+                            <Coins className="w-4 h-4" />
+                            Total QNTM
+                        </div>
+                        <p className="text-xl font-bold text-white">{MainQuantAmount || "0"}</p>
+                    </div>
+                    <div className="bg-[#1a1a1a]/80 border border-[#333] rounded-xl p-4 backdrop-blur-xl">
+                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+                            <Users className="w-4 h-4" />
+                            Referrals
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.referralCount}</p>
+                    </div>
+                    <div className="bg-[#1a1a1a]/80 border border-[#333] rounded-xl p-4 backdrop-blur-xl">
+                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+                            <ListChecks className="w-4 h-4" />
+                            Tasks Done
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.tasksCompleted}</p>
+                    </div>
+                    <div className="bg-[#1a1a1a]/80 border border-[#333] rounded-xl p-4 backdrop-blur-xl">
+                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+                            <Flame className="w-4 h-4" />
+                            Daily Streak
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.dailyStreak} day{stats.dailyStreak !== 1 ? "s" : ""}</p>
+                    </div>
+                </motion.div>
+
+                {/* Achievements Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-4"
+                >
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                        🏆 Achievements
+                        <span className="text-sm font-normal text-gray-400">
+                            ({unlockedAchievements.length}/{achievements.length})
+                        </span>
+                    </h2>
+
+                    {/* Unlocked Achievements */}
+                    {unlockedAchievements.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3">
+                            {unlockedAchievements.map((achievement) => {
+                                const Icon = achievement.icon;
+                                return (
+                                    <motion.div
+                                        key={achievement.id}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-xl p-3 flex flex-col items-center text-center"
+                                    >
+                                        <Icon className="w-8 h-8 text-yellow-400 mb-2" />
+                                        <p className="text-xs font-medium text-white">{achievement.name}</p>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Locked Achievements */}
+                    {lockedAchievements.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3">
+                            {lockedAchievements.map((achievement) => (
+                                <div
+                                    key={achievement.id}
+                                    className="bg-[#1a1a1a]/50 border border-[#333] rounded-xl p-3 flex flex-col items-center text-center opacity-50"
+                                >
+                                    <Lock className="w-8 h-8 text-gray-500 mb-2" />
+                                    <p className="text-xs text-gray-500">{achievement.name}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </motion.div>
             </div>
         </div>
