@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { GameProvider } from "../(contexts)/MiningContext";
 import { LeaderboardProvider } from "../(contexts)/LeaderboardContext";
 import { FrensProvider } from "../(contexts)/FrensContext";
+import { ChatProvider } from "../(contexts)/ChatContext";
+import { GroupsProvider } from "../(contexts)/GroupsContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
 
@@ -22,7 +24,11 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       <GameProvider>
         <LeaderboardProvider>
           <FrensProvider>
-            {children}
+            <ChatProvider>
+              <GroupsProvider>
+                {children}
+              </GroupsProvider>
+            </ChatProvider>
           </FrensProvider>
         </LeaderboardProvider>
       </GameProvider>
