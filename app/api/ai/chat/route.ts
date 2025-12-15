@@ -23,6 +23,25 @@ function sanitizeMessage(message: string): string {
     return message.trim().slice(0, MAX_MESSAGE_LENGTH);
 }
 
+// Get context-aware system prompt based on current page
+function getContextualSystemPrompt(currentPage?: string): string {
+    let contextHint = "";
+
+    if (currentPage) {
+        if (currentPage.startsWith("/wallet")) {
+            contextHint = "\n\n[Context: User is currently viewing their wallet. They may have questions about sending/receiving crypto, managing assets, or understanding transaction fees.]";
+        } else if (currentPage.startsWith("/groups") || currentPage.startsWith("/chat")) {
+            contextHint = "\n\n[Context: User is in the social/community section. They may have questions about groups, messaging, or connecting with others.]";
+        } else if (currentPage.startsWith("/earn")) {
+            contextHint = "\n\n[Context: User is in the earn section. They may have questions about earning QNTM, daily rewards, referrals, or ranks.]";
+        } else if (currentPage.startsWith("/frens")) {
+            contextHint = "\n\n[Context: User is viewing referrals. They may have questions about inviting friends or referral rewards.]";
+        }
+    }
+
+    return SYSTEM_PROMPT + contextHint;
+}
+
 export async function POST(req: NextRequest) {
     try {
         // Security: Check for API key
@@ -61,7 +80,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
         }
 
-        const { message, history = [] } = body;
+        const { message, history = [], currentPage } = body;
 
         // Security: Validate message
         if (!message || typeof message !== "string") {
@@ -100,12 +119,15 @@ export async function POST(req: NextRequest) {
             { role: "user", parts: [{ text: sanitizedMessage }] },
         ];
 
-        // Generate response
-        const response = await ai.models.generateContent({
+        // Get context-aware system prompt
+        const systemPrompt = getContextualSystemPrompt(currentPage);
+
+        // Generate streaming response
+        const streamResponse = await ai.models.generateContentStream({
             model: AI_MODEL,
             contents: contents,
             config: {
-                systemInstruction: SYSTEM_PROMPT,
+                systemInstruction: systemPrompt,
                 temperature: 0.7,
                 topP: 0.95,
                 topK: 40,
@@ -113,11 +135,33 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        const text = response.text;
+        // Create a TransformStream for more reliable streaming
+        const encoder = new TextEncoder();
 
-        return NextResponse.json({
-            response: text,
-            remaining: rateLimitResult.remaining,
+        const readable = new ReadableStream({
+            async start(controller) {
+                try {
+                    for await (const chunk of streamResponse) {
+                        // Access the text content from the chunk
+                        const text = chunk.text;
+                        if (text) {
+                            controller.enqueue(encoder.encode(text));
+                        }
+                    }
+                } catch (streamError) {
+                    console.error("Error during streaming:", streamError);
+                } finally {
+                    controller.close();
+                }
+            },
+        });
+
+        return new Response(readable, {
+            headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+            },
         });
     } catch (error) {
         console.error("AI Chat Error:", error);
@@ -152,3 +196,4 @@ export async function GET() {
         return NextResponse.json({ error: "Failed to get status" }, { status: 500 });
     }
 }
+

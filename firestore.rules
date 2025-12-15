@@ -11,6 +11,11 @@ service cloud.firestore {
       allow read: if request.auth !=null // Sadece kendi verilerini okuyabilir
       allow write: if request.auth !=null ; // Sadece kendi verilerini yazabilir
     }
+    
+    // AI Usage rate limiting - allow server to read/write
+    match /user/{userId}/aiUsage/{document=**} {
+      allow read, write: if true; // Server-side access for rate limiting
+    }
     match /userAddresses/{document=**} {
       allow read: if false;
     }
