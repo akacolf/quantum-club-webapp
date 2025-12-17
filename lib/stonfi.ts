@@ -51,23 +51,32 @@ export async function fetchSwappableAssets(): Promise<SwapAsset[]> {
     const client = createStonApiClient();
 
     try {
-        // Fetch assets with liquidity
+        // Fetch assets with liquidity - include LiquidityLow to show more tokens
         const condition = [
             AssetTag.LiquidityVeryHigh,
             AssetTag.LiquidityHigh,
             AssetTag.LiquidityMedium,
+            AssetTag.LiquidityLow,
         ].join(" | ");
 
         const assets = await client.queryAssets({ condition });
 
-        return assets.map((asset) => ({
+        // Map and sort by liquidity (TON first, then by popularity/liquidity)
+        const mappedAssets = assets.map((asset) => ({
             contractAddress: asset.contractAddress,
-            kind: asset.kind === "Ton" ? "Ton" : "Jetton",
+            kind: asset.kind === "Ton" ? "Ton" as const : "Jetton" as const,
             symbol: asset.meta?.symbol || "???",
             displayName: asset.meta?.displayName || asset.meta?.symbol || "Unknown",
             imageUrl: asset.meta?.imageUrl,
             decimals: asset.meta?.decimals ?? 9,
         }));
+
+        // Sort: TON first, then by symbol alphabetically
+        return mappedAssets.sort((a, b) => {
+            if (a.kind === "Ton") return -1;
+            if (b.kind === "Ton") return 1;
+            return a.symbol.localeCompare(b.symbol);
+        });
     } catch (error) {
         console.error("Failed to fetch swappable assets:", error);
         return [];

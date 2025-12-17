@@ -465,7 +465,7 @@ export default function SwapPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
-                                                    className="bg-white/5 border border-white/10 hover:bg-white/10 h-11 rounded-xl px-3 gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                                    className="bg-white/5 border border-white/10 hover:bg-white/10 h-11 rounded-xl px-3 gap-2 transition-colors"
                                                 >
                                                     {fromAsset?.imageUrl ? (
                                                         <Image
@@ -574,7 +574,7 @@ export default function SwapPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
-                                                    className="bg-white/5 border border-white/10 hover:bg-white/10 h-11 rounded-xl px-3 gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                                    className="bg-white/5 border border-white/10 hover:bg-white/10 h-11 rounded-xl px-3 gap-2 transition-colors"
                                                 >
                                                     {toAsset?.imageUrl ? (
                                                         <Image

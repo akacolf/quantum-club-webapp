@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, Clock, Layers, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { fromNano, Address } from "@ton/core";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet, IS_TESTNET } from "../WalletContext";
@@ -30,6 +30,17 @@ interface HistoryEvent {
       recipient?: { address?: string };
       sender?: { address?: string };
       jetton?: { decimals?: number; symbol?: string };
+    };
+    JettonSwap?: {
+      dex?: string;
+      amount_in?: string;
+      amount_out?: string;
+      ton_in?: string;
+      ton_out?: string;
+      user_wallet?: { address?: string };
+      router?: { address?: string };
+      jetton_master_in?: { symbol?: string; decimals?: number; address?: string };
+      jetton_master_out?: { symbol?: string; decimals?: number; address?: string };
     };
     NftItemTransfer?: {
       recipient?: { address?: string };
@@ -246,6 +257,11 @@ export default function HistoryPage() {
                   let symbol = "TON";
                   let isIncoming = false;
                   let address = "";
+                  let isSwap = false;
+                  let fromSymbol = "";
+                  let toSymbol = "";
+                  let fromAmount = "";
+                  let toAmount = "";
                   const status = event.in_progress ? "pending" : (event.is_scam ? "scam" : "ok");
 
                   // Normalize wallet address for comparison
@@ -306,6 +322,37 @@ export default function HistoryPage() {
                       symbol = "NFT";
                       amount = "1";
                     }
+                  } else if (action.type === "JettonSwap") {
+                    const swap = action.JettonSwap;
+                    if (swap) {
+                      isSwap = true;
+                      type = "Swap";
+                      address = swap.router?.address || swap.dex || "";
+
+                      // Determine from token (what was sent)
+                      if (swap.ton_in && swap.ton_in !== "0") {
+                        fromSymbol = "TON";
+                        fromAmount = fromNano(swap.ton_in);
+                      } else if (swap.jetton_master_in) {
+                        fromSymbol = swap.jetton_master_in.symbol || "TOKEN";
+                        const decimalsIn = swap.jetton_master_in.decimals || 9;
+                        fromAmount = swap.amount_in ? (parseFloat(swap.amount_in) / Math.pow(10, decimalsIn)).toFixed(4) : "0";
+                      }
+
+                      // Determine to token (what was received)
+                      if (swap.ton_out && swap.ton_out !== "0") {
+                        toSymbol = "TON";
+                        toAmount = fromNano(swap.ton_out);
+                      } else if (swap.jetton_master_out) {
+                        toSymbol = swap.jetton_master_out.symbol || "TOKEN";
+                        const decimalsOut = swap.jetton_master_out.decimals || 9;
+                        toAmount = swap.amount_out ? (parseFloat(swap.amount_out) / Math.pow(10, decimalsOut)).toFixed(4) : "0";
+                      }
+
+                      // For display purposes
+                      symbol = `${fromSymbol} → ${toSymbol}`;
+                      amount = toAmount;
+                    }
                   } else if (action.type === "Subscribe") {
                     type = "Subscription";
                   } else if (action.type === "UnSubscribe") {
@@ -325,11 +372,14 @@ export default function HistoryPage() {
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${type === 'Deploy' ? 'bg-blue-500/10 text-blue-500' :
-                            symbol === 'NFT' ? (isIncoming ? 'bg-purple-500/10 text-purple-400' : 'bg-purple-500/10 text-purple-400') :
-                              isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                              isSwap ? 'bg-purple-500/10 text-purple-400' :
+                                symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
+                                  isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
                             }`}>
                             {type === 'Deploy' ? (
                               <Layers className="w-5 h-5" />
+                            ) : isSwap ? (
+                              <ArrowLeftRight className="w-5 h-5" />
                             ) : symbol === 'NFT' ? (
                               <ImageIcon className="w-5 h-5" />
                             ) : isIncoming ? (
@@ -341,20 +391,35 @@ export default function HistoryPage() {
                           <div>
                             <h4 className="font-bold text-white text-base">{type}</h4>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span className="font-mono bg-[#1a1a1a] px-1.5 py-0.5 rounded text-gray-400">
-                                {formatAddress(address)}
-                              </span>
+                              {isSwap ? (
+                                <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400">
+                                  {fromSymbol} → {toSymbol}
+                                </span>
+                              ) : (
+                                <span className="font-mono bg-[#1a1a1a] px-1.5 py-0.5 rounded text-gray-400">
+                                  {formatAddress(address)}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <h4 className={`font-bold text-base ${status === 'scam' ? 'text-orange-500' :
-                              status === 'pending' ? 'text-yellow-500' :
-                                isIncoming ? 'text-green-500' : 'text-white'
-                              }`}>
-                              {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
-                            </h4>
+                            {isSwap ? (
+                              <>
+                                <div className="text-xs text-gray-500">-{parseFloat(fromAmount).toFixed(4)} {fromSymbol}</div>
+                                <h4 className="font-bold text-base text-green-500">
+                                  +{parseFloat(toAmount).toFixed(4)} {toSymbol}
+                                </h4>
+                              </>
+                            ) : (
+                              <h4 className={`font-bold text-base ${status === 'scam' ? 'text-orange-500' :
+                                status === 'pending' ? 'text-yellow-500' :
+                                  isIncoming ? 'text-green-500' : 'text-white'
+                                }`}>
+                                {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
+                              </h4>
+                            )}
                             <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
                           </div>
                           <ExternalLink className="w-4 h-4 text-gray-600" />
