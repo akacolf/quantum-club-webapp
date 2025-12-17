@@ -35,7 +35,7 @@ body {
 
 /* Theme variables: Dark mode (default) */
 :root {
-  --radius: 0.625rem;
+  --radius: 1rem;
   --background: #000; /* pure black */
   --foreground: #fff; /* pure white */
   --card: #101011;
