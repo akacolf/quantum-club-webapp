@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+"use client";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import QRCodeStyling from "qr-code-styling";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +10,60 @@ import { Copy, Share2, Users, X } from "lucide-react";
 
 const InvitePopup = () => {
   const { telegramId } = useGameContext();
-  const [inviteLink] = useState(
-    `https://t.me/QuantumClubBot/app?startapp=${telegramId}`
+  const inviteLink = useMemo(
+    () => `https://t.me/QuantumClubBot/app?startapp=${telegramId}`,
+    [telegramId]
   );
 
   const [isOpen, setIsOpen] = useState(false);
+  const qrRef = useRef<HTMLDivElement>(null);
+
+
   const openPopup = () => setIsOpen(true);
   const closePopup = () => setIsOpen(false);
+
+  // Initialize QR code when modal opens
+  useEffect(() => {
+    if (isOpen && qrRef.current) {
+      // Clear previous QR code
+      qrRef.current.innerHTML = "";
+
+      const qrCode = new QRCodeStyling({
+        width: 250,
+        height: 250,
+        type: "svg",
+        data: inviteLink,
+        image: "/svg/logo-qr.svg",
+        dotsOptions: {
+          color: "#000000",
+          type: "dots",
+        },
+        cornersSquareOptions: {
+          color: "#000000",
+          type: "extra-rounded",
+        },
+        cornersDotOptions: {
+          color: "#000000",
+          type: "dot",
+        },
+        backgroundOptions: {
+          color: "#ffffff",
+        },
+        imageOptions: {
+          crossOrigin: "anonymous",
+          margin: 5,
+          imageSize: 0.35,
+        },
+        qrOptions: {
+          errorCorrectionLevel: "H",
+        },
+      });
+
+      qrCode.append(qrRef.current);
+    }
+  }, [isOpen, inviteLink]);
+
+
 
   const handleSendInviteLink = () => {
     const shareText = "The Quantum Era on Telegram has begun.";
@@ -78,6 +127,21 @@ const InvitePopup = () => {
                   </Button>
                 </CardHeader>
                 <CardContent className="p-6 flex flex-col gap-4">
+                  {/* QR Code Section */}
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="bg-white p-4 rounded-2xl shadow-lg inline-block">
+                      <div ref={qrRef} />
+                    </div>
+                    <p className="text-gray-400 text-sm text-center">
+                      Scan to join Quantum Club
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 my-2">
+                    <div className="flex-1 h-px bg-[#333]" />
+                    <span className="text-gray-500 text-sm">or</span>
+                    <div className="flex-1 h-px bg-[#333]" />
+                  </div>
+
                   <Button
                     onClick={handleCopyLink}
                     className="w-full h-14 bg-white text-black hover:bg-gray-200 font-bold text-base rounded-xl transition-all active:scale-95"
@@ -101,7 +165,7 @@ const InvitePopup = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 };
 
