@@ -51,17 +51,17 @@ export async function fetchSwappableAssets(): Promise<SwapAsset[]> {
     const client = createStonApiClient();
 
     try {
-        // Fetch assets with liquidity - include LiquidityLow to show more tokens
+        // Fetch assets with good liquidity only
+        // Excluding LiquidityLow to avoid high slippage, failed txs, and scam tokens
         const condition = [
             AssetTag.LiquidityVeryHigh,
             AssetTag.LiquidityHigh,
             AssetTag.LiquidityMedium,
-            AssetTag.LiquidityLow,
         ].join(" | ");
 
         const assets = await client.queryAssets({ condition });
 
-        // Map and sort by liquidity (TON first, then by popularity/liquidity)
+        // Map and sort by liquidity (TON first, then by symbol alphabetically)
         const mappedAssets = assets.map((asset) => ({
             contractAddress: asset.contractAddress,
             kind: asset.kind === "Ton" ? "Ton" as const : "Jetton" as const,
