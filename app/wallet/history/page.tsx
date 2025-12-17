@@ -372,9 +372,9 @@ export default function HistoryPage() {
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${type === 'Deploy' ? 'bg-blue-500/10 text-blue-500' :
-                              isSwap ? 'bg-purple-500/10 text-purple-400' :
-                                symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
-                                  isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                            isSwap ? 'bg-purple-500/10 text-purple-400' :
+                              symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
+                                isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
                             }`}>
                             {type === 'Deploy' ? (
                               <Layers className="w-5 h-5" />
@@ -407,9 +407,9 @@ export default function HistoryPage() {
                           <div className="text-right">
                             {isSwap ? (
                               <>
-                                <div className="text-xs text-gray-500">-{parseFloat(fromAmount).toFixed(4)} {fromSymbol}</div>
+                                <div className="text-xs text-gray-500">-{(parseFloat(fromAmount) || 0).toFixed(4)} {fromSymbol}</div>
                                 <h4 className="font-bold text-base text-green-500">
-                                  +{parseFloat(toAmount).toFixed(4)} {toSymbol}
+                                  +{(parseFloat(toAmount) || 0).toFixed(4)} {toSymbol}
                                 </h4>
                               </>
                             ) : (
