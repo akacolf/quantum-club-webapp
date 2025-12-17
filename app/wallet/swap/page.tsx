@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import {
     ArrowDownUp,
     ChevronDown,
-    Loader2,
     ExternalLink,
     AlertTriangle,
     Info,
@@ -641,7 +640,7 @@ export default function SwapPage() {
 
                                         <div className="flex-1 text-right">
                                             {isSimulating ? (
-                                                <Loader2 className="w-5 h-5 animate-spin ml-auto text-gray-500" />
+                                                <div className="ml-auto"><ButtonLoader /></div>
                                             ) : (
                                                 <span className={`text-3xl font-bold ${expectedOutput ? 'text-white' : 'text-gray-600'}`}>
                                                     {expectedOutput
@@ -759,7 +758,7 @@ export default function SwapPage() {
                                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 transition-all active:scale-[0.99]"
                             >
                                 {isSimulating ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <ButtonLoader />
                                 ) : !fromAsset || !toAsset ? (
                                     "Select tokens"
                                 ) : !amount || parseFloat(amount) <= 0 ? (
@@ -883,7 +882,11 @@ export default function SwapPage() {
                             animate={{ opacity: 1, scale: 1 }}
                             className="flex flex-col items-center justify-center py-20"
                         >
-                            <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-6" />
+                            <div className="relative flex items-center justify-center mb-6">
+                                <div className="w-16 h-16 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
+                                <div className="absolute w-10 h-10 rounded-full border-2 border-blue-500/20 border-b-blue-500 animate-[spin_1.5s_linear_infinite_reverse]" />
+                                <div className="absolute w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+                            </div>
                             <h2 className="text-xl font-bold mb-2">Processing Swap</h2>
                             <p className="text-gray-400 text-center">
                                 Please wait while your swap is being processed...
