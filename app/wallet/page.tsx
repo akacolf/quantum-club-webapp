@@ -17,6 +17,7 @@ import {
   EyeOff,
   Send,
   ArrowDownLeft,
+  ArrowLeftRight,
   History,
   Plus,
   Download,
@@ -287,6 +288,7 @@ export default function WalletPage() {
       router.prefetch("/wallet/send");
       router.prefetch("/wallet/receive");
       router.prefetch("/wallet/history");
+      router.prefetch("/wallet/swap");
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
       // Prefetch all settings subpages
@@ -531,10 +533,11 @@ export default function WalletPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mt-8">
+              <div className="grid grid-cols-4 gap-2 mt-8">
                 {[
                   { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
                   { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
+                  { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", path: "/wallet/swap", disabled: false },
                   { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
                 ].map((action, i) => (
                   <button
