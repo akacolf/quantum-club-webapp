@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, Loader2, ExternalLink, AlertTriangle, BookUser } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -835,7 +835,7 @@ export default function SendPage() {
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     {isResolvingAddress ? (
-                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                      <ButtonLoader />
                     ) : resolvedAddress ? (
                       <Check className="w-4 h-4 text-green-500" />
                     ) : (
