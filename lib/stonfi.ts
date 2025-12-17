@@ -121,11 +121,15 @@ export async function simulateSwap(
 }
 
 // Build swap transaction parameters
+// NOTE: Pass original fromAssetAddress and toAssetAddress to ensure correct swap direction,
+// as the simulation API may reorder offerAddress/askAddress
 export async function buildSwapTxParams(
     simulation: SwapSimulation,
     userWalletAddress: string,
     fromAssetKind: "Ton" | "Jetton",
-    toAssetKind: "Ton" | "Jetton"
+    toAssetKind: "Ton" | "Jetton",
+    fromAssetAddress: string,
+    toAssetAddress: string
 ): Promise<{
     to: Address;
     value: bigint;
@@ -152,28 +156,31 @@ export async function buildSwapTxParams(
 
         if (fromAssetKind === "Ton") {
             // TON -> Jetton
+            // Use original toAssetAddress to ensure correct direction
             txParams = await router.getSwapTonToJettonTxParams({
                 userWalletAddress,
                 offerAmount: simulation.offerUnits,
                 minAskAmount: simulation.minAskUnits,
-                askJettonAddress: simulation.askAddress,
+                askJettonAddress: toAssetAddress,
                 proxyTon,
             });
         } else if (toAssetKind === "Ton") {
             // Jetton -> TON
+            // Use original fromAssetAddress to ensure correct direction
             txParams = await router.getSwapJettonToTonTxParams({
                 userWalletAddress,
-                offerJettonAddress: simulation.offerAddress,
+                offerJettonAddress: fromAssetAddress,
                 offerAmount: simulation.offerUnits,
                 minAskAmount: simulation.minAskUnits,
                 proxyTon,
             });
         } else {
             // Jetton -> Jetton
+            // Use original asset addresses to ensure correct direction
             txParams = await router.getSwapJettonToJettonTxParams({
                 userWalletAddress,
-                offerJettonAddress: simulation.offerAddress,
-                askJettonAddress: simulation.askAddress,
+                offerJettonAddress: fromAssetAddress,
+                askJettonAddress: toAssetAddress,
                 offerAmount: simulation.offerUnits,
                 minAskAmount: simulation.minAskUnits,
             });

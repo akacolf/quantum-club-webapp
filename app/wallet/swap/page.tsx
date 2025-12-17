@@ -318,28 +318,31 @@ export default function SwapPage() {
 
             if (fromAsset.kind === "Ton") {
                 // TON -> Jetton
+                // Use the original toAsset.contractAddress to ensure correct direction
                 txParams = await router.getSwapTonToJettonTxParams({
                     userWalletAddress: walletAddress,
                     offerAmount: simulation.offerUnits,
                     minAskAmount: simulation.minAskUnits,
-                    askJettonAddress: simulation.askAddress,
+                    askJettonAddress: toAsset.contractAddress,
                     proxyTon,
                 });
             } else if (toAsset.kind === "Ton") {
                 // Jetton -> TON
+                // Use the original fromAsset.contractAddress to ensure correct direction
                 txParams = await router.getSwapJettonToTonTxParams({
                     userWalletAddress: walletAddress,
-                    offerJettonAddress: simulation.offerAddress,
+                    offerJettonAddress: fromAsset.contractAddress,
                     offerAmount: simulation.offerUnits,
                     minAskAmount: simulation.minAskUnits,
                     proxyTon,
                 });
             } else {
                 // Jetton -> Jetton
+                // Use the original asset addresses to ensure correct direction
                 txParams = await router.getSwapJettonToJettonTxParams({
                     userWalletAddress: walletAddress,
-                    offerJettonAddress: simulation.offerAddress,
-                    askJettonAddress: simulation.askAddress,
+                    offerJettonAddress: fromAsset.contractAddress,
+                    askJettonAddress: toAsset.contractAddress,
                     offerAmount: simulation.offerUnits,
                     minAskAmount: simulation.minAskUnits,
                 });
