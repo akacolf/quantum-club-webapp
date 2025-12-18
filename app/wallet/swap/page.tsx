@@ -210,7 +210,7 @@ export default function SwapPage() {
         setSimulation(null);
     };
 
-    // Handle max amount - reserve gas fees when swapping TON
+    // Handle max amount - set full balance, fees shown separately
     const handleMaxAmount = () => {
         if (fromAsset) {
             const balance = getAssetBalance(fromAsset);
@@ -221,23 +221,7 @@ export default function SwapPage() {
                 return;
             }
 
-            // If swapping TON, reserve gas for the transaction
-            // STON.fi swaps require ~0.3-0.35 TON for gas
-            if (fromAsset.kind === "Ton") {
-                const gasReserve = 0.35; // Reserve for gas fees
-                const maxSwappable = balanceNum - gasReserve;
-
-                if (maxSwappable <= 0) {
-                    toast.error(`Insufficient balance. You need at least ${gasReserve} TON for gas fees.`);
-                    return;
-                }
-
-                // Round down to 4 decimal places
-                setAmount(maxSwappable.toFixed(4));
-            } else {
-                // For jettons, use full balance (TON gas is separate)
-                setAmount(balance);
-            }
+            setAmount(balance);
         }
     };
 
@@ -252,17 +236,12 @@ export default function SwapPage() {
 
         if (sendAmount > balance) return false;
 
-        // Gas requirements: STON.fi requires ~0.3-0.35 TON for gas
-        const gasReserve = 0.35;
+        // For TON swaps: ensure there's enough for swap + gas (will auto-adjust if needed)
+        // We allow the swap if balance >= 0.35 TON (minimum for gas)
+        if (fromAsset.kind === "Ton" && balance < 0.35) return false;
 
-        // For TON swaps: ensure remaining balance covers gas
-        if (fromAsset.kind === "Ton") {
-            const remainingBalance = balance - sendAmount;
-            if (remainingBalance < gasReserve) return false;
-        }
-
-        // For Jetton swaps: ensure TON balance covers gas
-        if (fromAsset.kind === "Jetton" && parseFloat(tonBalance) < gasReserve)
+        // Check TON balance for gas when swapping jettons
+        if (fromAsset.kind === "Jetton" && parseFloat(tonBalance) < 0.35)
             return false;
 
         return true;
@@ -340,14 +319,42 @@ export default function SwapPage() {
             );
 
             let txParams;
+            let actualOfferUnits = simulation.offerUnits;
+            let actualMinAskUnits = simulation.minAskUnits;
 
             if (fromAsset.kind === "Ton") {
-                // TON -> Jetton
+                // TON -> Jetton: Check if we need to reserve gas from the swap amount
+                const gasReserve = BigInt(350000000); // 0.35 TON in nanoTON
+                const userBalance = BigInt(Math.floor(parseFloat(tonBalance) * 1e9));
+                const offerAmount = BigInt(simulation.offerUnits);
+
+                // If user is trying to swap more than (balance - gasReserve), adjust the amount
+                if (offerAmount + gasReserve > userBalance) {
+                    const adjustedOffer = userBalance - gasReserve;
+
+                    if (adjustedOffer <= BigInt(0)) {
+                        toast.error("Insufficient balance for gas fees");
+                        setStep("input");
+                        setIsSwapping(false);
+                        return;
+                    }
+
+                    actualOfferUnits = adjustedOffer.toString();
+
+                    // Re-calculate minimum ask amount proportionally
+                    const ratio = Number(adjustedOffer) / Number(offerAmount);
+                    actualMinAskUnits = Math.floor(Number(simulation.minAskUnits) * ratio).toString();
+
+                    // Show user that amount was adjusted
+                    const adjustedTon = (Number(adjustedOffer) / 1e9).toFixed(4);
+                    toast.info(`Adjusted swap to ${adjustedTon} TON to cover gas fees`);
+                }
+
                 // Use the original toAsset.contractAddress to ensure correct direction
                 txParams = await router.getSwapTonToJettonTxParams({
                     userWalletAddress: walletAddress,
-                    offerAmount: simulation.offerUnits,
-                    minAskAmount: simulation.minAskUnits,
+                    offerAmount: actualOfferUnits,
+                    minAskAmount: actualMinAskUnits,
                     askJettonAddress: toAsset.contractAddress,
                     proxyTon,
                 });
@@ -760,50 +767,44 @@ export default function SwapPage() {
                             )}
 
                             {/* Warning for low TON balance when swapping jettons */}
-                            {fromAsset?.kind === "Jetton" && parseFloat(tonBalance) < 0.35 && (
+                            {fromAsset?.kind === "Jetton" && parseFloat(tonBalance) < 0.1 && (
                                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
                                     <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
                                     <p className="text-xs text-yellow-500/90">
-                                        You need at least 0.35 TON in your wallet to cover network fees for swaps.
+                                        You need at least 0.1 TON to cover gas fees for token swaps.
                                     </p>
                                 </div>
                             )}
 
-                            {/* Warning when swapping TON and not leaving enough for gas */}
-                            {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && (parseFloat(tonBalance) - parseFloat(amount)) < 0.35 && parseFloat(amount) <= parseFloat(tonBalance) && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
-                                    <p className="text-xs text-yellow-500/90">
-                                        Keep at least 0.35 TON for network fees. Use the MAX button to auto-calculate.
+                            {/* Warning when swapping TON and remaining balance is low */}
+                            {fromAsset?.kind === "Ton" && amount && simulation && parseFloat(tonBalance) - parseFloat(amount) < parseFloat(simulation.gasParams.estimatedGasConsumption) / 1e9 * 1.5 && parseFloat(amount) > 0 && (
+                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
+                                    <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-blue-400/90">
+                                        Network fee (~{(parseFloat(simulation.gasParams.estimatedGasConsumption) / 1e9).toFixed(4)} TON) will be deducted from your balance.
                                     </p>
                                 </div>
                             )}
 
-                            {/* Swap Button - fixed height to prevent shifting */}
+                            {/* Swap Button */}
                             <Button
                                 onClick={handleContinue}
                                 disabled={!canProceed || isSimulating}
-                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 transition-colors active:scale-[0.99] min-w-0"
+                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 transition-all active:scale-[0.99]"
                             >
-                                <span className="inline-flex items-center justify-center min-h-[24px]">
-                                    {isSimulating ? (
-                                        <ButtonLoader />
-                                    ) : !fromAsset || !toAsset ? (
-                                        "Select tokens"
-                                    ) : !amount || parseFloat(amount) <= 0 ? (
-                                        "Enter amount"
-                                    ) : parseFloat(amount) > parseFloat(getAssetBalance(fromAsset)) ? (
-                                        "Insufficient balance"
-                                    ) : fromAsset.kind === "Ton" && (parseFloat(tonBalance) - parseFloat(amount)) < 0.35 ? (
-                                        "Leave 0.35 TON for fees"
-                                    ) : fromAsset.kind === "Jetton" && parseFloat(tonBalance) < 0.35 ? (
-                                        "Need 0.35 TON for fees"
-                                    ) : !simulation ? (
-                                        "Enter amount"
-                                    ) : (
-                                        "Continue"
-                                    )}
-                                </span>
+                                {isSimulating ? (
+                                    <ButtonLoader />
+                                ) : !fromAsset || !toAsset ? (
+                                    "Select tokens"
+                                ) : !amount || parseFloat(amount) <= 0 ? (
+                                    "Enter amount"
+                                ) : parseFloat(amount) > parseFloat(getAssetBalance(fromAsset)) ? (
+                                    "Insufficient balance"
+                                ) : !simulation ? (
+                                    "Enter amount"
+                                ) : (
+                                    "Continue"
+                                )}
                             </Button>
                         </motion.div>
                     )}
@@ -935,28 +936,29 @@ export default function SwapPage() {
                             animate={{ opacity: 1, scale: 1 }}
                             className="space-y-6"
                         >
-                            {/* Success content without card wrapper */}
-                            <div className="p-8 text-center space-y-4">
-                                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-                                    <Check className="w-10 h-10 text-green-500" />
-                                </div>
-                                <h2 className="text-2xl font-bold">Swap Sent!</h2>
-                                <p className="text-gray-400">
-                                    Your swap transaction has been submitted to the network.
-                                </p>
+                            <Card className="bg-[#111] border-[#222] rounded-2xl">
+                                <CardContent className="p-8 text-center space-y-4">
+                                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                                        <Check className="w-10 h-10 text-green-500" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold">Swap Sent!</h2>
+                                    <p className="text-gray-400">
+                                        Your swap transaction has been submitted to the network.
+                                    </p>
 
-                                {lastTxHash && (
-                                    <a
-                                        href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 text-sm"
-                                    >
-                                        View on Explorer
-                                        <ExternalLink className="w-4 h-4" />
-                                    </a>
-                                )}
-                            </div>
+                                    {lastTxHash && (
+                                        <a
+                                            href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 text-sm"
+                                        >
+                                            View on Explorer
+                                            <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                    )}
+                                </CardContent>
+                            </Card>
 
                             <Button
                                 onClick={() => router.push("/wallet")}
