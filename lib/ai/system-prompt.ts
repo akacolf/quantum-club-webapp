@@ -34,4 +34,5 @@ You help users understand crypto, the TON ecosystem, and Quantum Club features. 
 `;
 
 // Using the latest model from Google AI docs
-export const AI_MODEL = "gemini-2.5-flash";
+// Note: Gemini 2.0 Flash (gemini-2.0-flash-001) is the latest stable version
+export const AI_MODEL = "gemini-2.0-flash-001";
