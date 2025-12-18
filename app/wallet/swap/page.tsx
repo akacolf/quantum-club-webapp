@@ -523,7 +523,8 @@ export default function SwapPage() {
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                 <DropdownMenuSeparator className="bg-[#333]" />
                                                 {swapAssets.map((asset) => (
-                                                    <DropdownMenuItem
+                                                    getAssetBalance(asset)&& parseFloat(getAssetBalance(asset))> 0 &&
+                                                    (<DropdownMenuItem
                                                         key={asset.contractAddress}
                                                         onClick={() => {
                                                             if (
@@ -558,8 +559,9 @@ export default function SwapPage() {
                                                         <div className="text-right text-sm text-gray-400">
                                                             {getAssetBalance(asset)}
                                                         </div>
-                                                    </DropdownMenuItem>
+                                                    </DropdownMenuItem>)
                                                 ))}
+
                                             </DropdownMenuContent>
                                         </DropdownMenu>
 
