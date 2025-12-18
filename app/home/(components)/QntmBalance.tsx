@@ -36,7 +36,7 @@ export default function QntmBalance({
       <div className="relative mb-4">
         {/* Christmas Hat */}
         <motion.div
-          className="absolute -top-4 right-0 z-10 pointer-events-none"
+          className="absolute -top-5 -right-1 z-10 pointer-events-none"
           initial={{ rotate: 15 }}
           animate={{
             rotate: [15, 20, 15],
