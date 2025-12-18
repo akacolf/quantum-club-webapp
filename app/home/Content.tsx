@@ -19,6 +19,7 @@ import DailyCheckIn from "./(components)/DailyCheck";
 import PullToRefresh from "./(components)/PullToRefresh";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
+import Snowflakes from "./(components)/Snowflakes";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -809,35 +810,37 @@ const HomeContent = () => {
   }, [telegramId, SetMainQuantAmount, setRemainingSolveToEarn, setDaily]);
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen">
+    <>
+      <Snowflakes />
+      <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen">
 
+        <PersonalizedGreeting />
 
-      <PersonalizedGreeting />
+        <QntmBalance
+          MainQuantAmount={MainQuantAmount}
+          rank={rank}
+          getRankIcon={getRankIcon}
+        />
+        {/*daily check-in*/}
+        <DailyCheckIn
+          loadingButtonDay={loadingButtonDay}
+          daily={daily}
+          isClaimDay={isClaimDay}
+          loadingDay={loadingDay}
+          ClaimDaily={ClaimDaily}
+          lottieRef={lottieRef}
+          TaskTimer={TaskTimer}
+        />
 
-      <QntmBalance
-        MainQuantAmount={MainQuantAmount}
-        rank={rank}
-        getRankIcon={getRankIcon}
-      />
-      {/*daily check-in*/}
-      <DailyCheckIn
-        loadingButtonDay={loadingButtonDay}
-        daily={daily}
-        isClaimDay={isClaimDay}
-        loadingDay={loadingDay}
-        ClaimDaily={ClaimDaily}
-        lottieRef={lottieRef}
-        TaskTimer={TaskTimer}
-      />
+        <HomeCarousel />
 
-      <HomeCarousel />
-
-      <SolveToEarnCard
-        remainingSolveToEarn={remainingSolveToEarn}
-        lottieRef={lottieRef}
-        goToSolveToEarn={goToSolveToEarn}
-      />
-    </PullToRefresh>
+        <SolveToEarnCard
+          remainingSolveToEarn={remainingSolveToEarn}
+          lottieRef={lottieRef}
+          goToSolveToEarn={goToSolveToEarn}
+        />
+      </PullToRefresh>
+    </>
   );
 };
 export default HomeContent;
