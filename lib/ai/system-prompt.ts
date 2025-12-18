@@ -34,5 +34,6 @@ You help users understand crypto, the TON ecosystem, and Quantum Club features. 
 `;
 
 // Using the latest model from Google AI docs
-// Note: Gemini 2.0 Flash (gemini-2.0-flash-001) is the latest stable version
-export const AI_MODEL = "gemini-2.0-flash-001";
+// Note: Gemini 3 Flash (gemini-3-flash) - Released December 17, 2025
+// Frontier intelligence with advanced reasoning, multimodal understanding, and low latency
+export const AI_MODEL = "gemini-3-flash";
