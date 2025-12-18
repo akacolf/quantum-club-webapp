@@ -792,7 +792,7 @@ export default function SwapPage() {
                             <Button
                                 onClick={handleContinue}
                                 disabled={!canProceed || isSimulating}
-                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 transition-all active:scale-[0.99]"
+                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
                             >
                                 {isSimulating ? (
                                     <ButtonLoader />
