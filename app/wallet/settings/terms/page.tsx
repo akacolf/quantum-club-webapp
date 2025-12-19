@@ -25,7 +25,7 @@ export default function TermsOfServicePage() {
               <FileText className="w-7 h-7 text-blue-400" />
             </div>
             <h1 className="text-2xl font-bold">Terms of Service</h1>
-            <p className="text-gray-400 text-sm">Last updated: December 18, 2025</p>
+            <p className="text-gray-400 text-sm">Last updated: December 20, 2025</p>
           </div>
 
           <ScrollArea className="h-[calc(100vh-280px)] rounded-xl border border-[#222] bg-[#0a0a0a] p-4">
@@ -34,60 +34,55 @@ export default function TermsOfServicePage() {
               <section>
                 <h2 className="text-lg font-semibold text-white mb-2">1. Acceptance of Terms</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  By accessing or using Quantum Club (&quot;the App&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App. Quantum Club reserves the right to modify these terms at any time.
+                  By using Quantum Club, you agree to these Terms of Service. If you disagree, please do not use the app. We may update these terms at any time.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-semibold text-white mb-2">2. Eligibility</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  You must be at least 18 years old or the legal age of majority in your jurisdiction to use this App. By using the App, you represent and warrant that you meet these eligibility requirements. The App is not available to users in sanctioned countries or regions.
+                  You must be at least 18 years old to use this app. The app is not available in sanctioned countries or regions.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-white mb-2">3. Description of Services</h2>
+                <h2 className="text-lg font-semibold text-white mb-2">3. What We Offer</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Quantum Club provides a non-custodial cryptocurrency wallet integrated within Telegram. The App allows you to:
+                  Quantum Club is a self-custody wallet for the TON blockchain. You can:
                 </p>
                 <ul className="text-gray-400 text-sm list-disc list-inside mt-2 space-y-1">
-                  <li>Create and manage a self-custodial TON blockchain wallet</li>
-                  <li>Send and receive TON and Jetton tokens</li>
-                  <li>Swap tokens using integrated decentralized exchange (DEX) services</li>
-                  <li>View, manage, and receive NFTs (Non-Fungible Tokens)</li>
-                  <li>Track real-time asset prices with interactive charts</li>
-                  <li>Monitor portfolio performance and 24-hour price changes</li>
-                  <li>Earn and transfer QNTM points within the platform</li>
-                  <li>Participate in platform activities and tasks</li>
+                  <li>Create and manage your own wallet</li>
+                  <li>Send and receive tokens and NFTs</li>
+                  <li>Swap tokens between different currencies</li>
+                  <li>Track your portfolio and price movements</li>
+                  <li>Earn and transfer QNTM points</li>
                 </ul>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-white mb-2">4. Non-Custodial Wallet</h2>
+                <h2 className="text-lg font-semibold text-white mb-2">4. Your Wallet, Your Responsibility</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  <strong className="text-white">You are solely responsible for your wallet.</strong> Quantum Club does not store, have access to, or control your private keys or recovery phrase. If you lose your recovery phrase, you will permanently lose access to your funds. We cannot help you recover lost funds.
+                  <strong className="text-white">You control your wallet.</strong> We never store or have access to your recovery phrase or private keys. If you lose your recovery phrase, your funds are permanently lost. We cannot recover them for you.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-white mb-2">5. Token Swap Services</h2>
+                <h2 className="text-lg font-semibold text-white mb-2">5. Token Swaps</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  The App integrates with third-party decentralized exchange (DEX) services, including STON.fi, to facilitate token swaps. By using swap features, you acknowledge:
+                  Token swaps are processed through decentralized exchanges. You should be aware that:
                 </p>
                 <ul className="text-gray-400 text-sm list-disc list-inside mt-2 space-y-1">
-                  <li>Swaps are executed on third-party DEX smart contracts, not by Quantum Club</li>
-                  <li>You are responsible for ensuring sufficient TON balance for network and DEX fees</li>
-                  <li>Swap transactions may fail due to price changes, slippage, or insufficient liquidity</li>
-                  <li>Failed transactions may still incur network fees</li>
-                  <li>Price impact and slippage may result in receiving fewer tokens than expected</li>
-                  <li>Quantum Club is not liable for losses arising from DEX interactions or smart contract risks</li>
+                  <li>Swaps may fail due to price changes or low liquidity</li>
+                  <li>Network fees apply to all transactions</li>
+                  <li>You may receive fewer tokens than expected due to market conditions</li>
+                  <li>We are not responsible for losses from swap transactions</li>
                 </ul>
               </section>
 
               <section>
                 <h2 className="text-lg font-semibold text-white mb-2">6. Fees</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Quantum Club wallet transactions are free of service fees. You pay standard TON network fees (gas fees) which are determined by the blockchain. Token swaps may incur additional DEX fees set by the third-party exchange. QNTM transfers between users are free.
+                  Quantum Club does not charge service fees. You only pay standard network fees set by the blockchain. QNTM transfers between users are free.
                 </p>
               </section>
 
@@ -95,47 +90,31 @@ export default function TermsOfServicePage() {
                 <h2 className="text-lg font-semibold text-white mb-2">7. Prohibited Activities</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">You agree not to:</p>
                 <ul className="text-gray-400 text-sm list-disc list-inside mt-2 space-y-1">
-                  <li>Use the App for any illegal purpose or in violation of any laws</li>
-                  <li>Engage in money laundering, terrorist financing, or fraud</li>
-                  <li>Attempt to circumvent geographic restrictions or sanctions</li>
-                  <li>Reverse engineer, decompile, or hack the App</li>
-                  <li>Use bots or automated systems to exploit the App</li>
-                  <li>Impersonate others or create fraudulent accounts</li>
+                  <li>Use the app for illegal purposes</li>
+                  <li>Attempt to hack or exploit the app</li>
+                  <li>Use bots or automated systems</li>
+                  <li>Impersonate others or create fake accounts</li>
                 </ul>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-white mb-2">8. Disclaimer of Warranties</h2>
+                <h2 className="text-lg font-semibold text-white mb-2">8. No Guarantees</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  THE APP IS PROVIDED &quot;AS IS&quot; WITHOUT WARRANTIES OF ANY KIND. We do not guarantee uninterrupted or error-free service. Cryptocurrency transactions carry inherent risks including price volatility, regulatory changes, and potential total loss of funds.
+                  The app is provided &quot;as is&quot; without warranties. Cryptocurrency carries risks including price volatility and potential loss of funds. We are not liable for any losses.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-white mb-2">9. Limitation of Liability</h2>
+                <h2 className="text-lg font-semibold text-white mb-2">9. Termination</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  To the maximum extent permitted by law, Quantum Club shall not be liable for any indirect, incidental, special, or consequential damages, including loss of funds, data, or profits arising from your use of the App.
+                  We may suspend or terminate access at any time for violations. You may stop using the app whenever you choose.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-white mb-2">10. Regulatory Compliance</h2>
+                <h2 className="text-lg font-semibold text-white mb-2">10. Contact</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  You are responsible for compliance with all applicable laws in your jurisdiction. The App is not available in countries subject to OFAC sanctions or similar restrictions. We reserve the right to restrict access based on geographic location.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-lg font-semibold text-white mb-2">11. Termination</h2>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  We may suspend or terminate your access to the App at any time for violation of these terms or for any other reason at our sole discretion. You may stop using the App at any time.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-lg font-semibold text-white mb-2">12. Contact</h2>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  For questions about these Terms of Service, please contact us through our Telegram channel: @quantumclubinc
+                  Questions? Reach us on Telegram: @quantumclubinc
                 </p>
               </section>
 
