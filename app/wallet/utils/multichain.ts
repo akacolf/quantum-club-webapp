@@ -177,3 +177,156 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         warningText: "Send only Bitcoin (BTC) to this address.",
     },
 };
+
+// ============== Balance Fetching Functions ==============
+
+/**
+ * Fetch ETH balance using public RPC (Cloudflare or Ankr)
+ * Returns balance in ETH (not wei)
+ */
+export async function fetchEthBalance(address: string): Promise<number> {
+    if (!address) return 0;
+
+    const rpcUrls = [
+        "https://cloudflare-eth.com",
+        "https://rpc.ankr.com/eth",
+        "https://eth.public-rpc.com"
+    ];
+
+    for (const rpcUrl of rpcUrls) {
+        try {
+            const response = await fetch(rpcUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "eth_getBalance",
+                    params: [address, "latest"],
+                    id: 1
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.result) {
+                    // Convert from wei (hex) to ETH
+                    const weiHex = data.result;
+                    const wei = BigInt(weiHex);
+                    const eth = Number(wei) / 1e18;
+                    return eth;
+                }
+            }
+        } catch (error) {
+            console.warn(`ETH RPC ${rpcUrl} failed:`, error);
+            continue;
+        }
+    }
+    return 0;
+}
+
+/**
+ * Fetch BTC balance using Blockstream API (completely free, no auth)
+ * Returns balance in BTC (not satoshis)
+ */
+export async function fetchBtcBalance(address: string): Promise<number> {
+    if (!address) return 0;
+
+    try {
+        // Blockstream API - free, no rate limits for reasonable usage
+        const response = await fetch(`https://blockstream.info/api/address/${address}`);
+
+        if (response.ok) {
+            const data = await response.json();
+            // chain_stats contains confirmed balance
+            // mempool_stats contains unconfirmed
+            const confirmedSats = data.chain_stats?.funded_txo_sum - data.chain_stats?.spent_txo_sum || 0;
+            const btc = confirmedSats / 1e8;
+            return btc;
+        }
+    } catch (error) {
+        console.error("BTC balance fetch error:", error);
+    }
+    return 0;
+}
+
+/**
+ * Fetch ETH price in USD using CoinGecko (free, no API key needed)
+ */
+export async function fetchEthPrice(): Promise<number> {
+    try {
+        const response = await fetch(
+            "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+        );
+        if (response.ok) {
+            const data = await response.json();
+            return data.ethereum?.usd || 0;
+        }
+    } catch (error) {
+        console.error("ETH price fetch error:", error);
+    }
+    return 0;
+}
+
+/**
+ * Fetch BTC price in USD using CoinGecko (free, no API key needed)
+ */
+export async function fetchBtcPrice(): Promise<number> {
+    try {
+        const response = await fetch(
+            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+        );
+        if (response.ok) {
+            const data = await response.json();
+            return data.bitcoin?.usd || 0;
+        }
+    } catch (error) {
+        console.error("BTC price fetch error:", error);
+    }
+    return 0;
+}
+
+export interface MultiChainBalances {
+    eth: {
+        address: string;
+        balance: number;
+        usdValue: number;
+        price: number;
+    };
+    btc: {
+        address: string;
+        balance: number;
+        usdValue: number;
+        price: number;
+    };
+}
+
+/**
+ * Fetch all multi-chain balances at once
+ */
+export async function fetchAllMultiChainBalances(
+    ethAddress: string,
+    btcAddress: string
+): Promise<MultiChainBalances> {
+    // Fetch all in parallel
+    const [ethBalance, btcBalance, ethPrice, btcPrice] = await Promise.all([
+        fetchEthBalance(ethAddress),
+        fetchBtcBalance(btcAddress),
+        fetchEthPrice(),
+        fetchBtcPrice()
+    ]);
+
+    return {
+        eth: {
+            address: ethAddress,
+            balance: ethBalance,
+            usdValue: ethBalance * ethPrice,
+            price: ethPrice
+        },
+        btc: {
+            address: btcAddress,
+            balance: btcBalance,
+            usdValue: btcBalance * btcPrice,
+            price: btcPrice
+        }
+    };
+}

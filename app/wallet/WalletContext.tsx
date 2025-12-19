@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { fromNano } from "@ton/core";
 import { toast } from "sonner";
+import { deriveEthAddress, deriveBtcAddress, fetchAllMultiChainBalances } from "./utils/multichain";
 
 // Testnet mode - affects API endpoints and address format
 // Testnet addresses: 0Q... (non-bounceable) or kQ... (bounceable)
@@ -55,9 +56,20 @@ interface WalletContextType {
   isTestnet: boolean;
   storedWallets: StoredWallet[];
   activeWalletIndex: number;
-  walletStatus: string
+  walletStatus: string;
+  // Multi-chain support
+  ethAddress: string;
+  btcAddress: string;
+  ethBalance: number;
+  btcBalance: number;
+  ethUsdValue: number;
+  btcUsdValue: number;
+  ethPrice: number;
+  btcPrice: number;
+  isLoadingMultiChain: boolean;
   fetchWalletAssets: () => Promise<void>;
   fetchNfts: () => Promise<void>;
+  fetchMultiChainBalances: () => Promise<void>;
   setWalletStatus: (walletstatus: string) => void;
   setWalletAddress: (address: string) => void;
   toggleHideAsset: (symbol: string) => void;
@@ -85,6 +97,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [walletStatus, setWalletStatus] = useState("nonexist");
+
+  // Multi-chain state
+  const [ethAddress, setEthAddress] = useState("");
+  const [btcAddress, setBtcAddress] = useState("");
+  const [ethBalance, setEthBalance] = useState(0);
+  const [btcBalance, setBtcBalance] = useState(0);
+  const [ethUsdValue, setEthUsdValue] = useState(0);
+  const [btcUsdValue, setBtcUsdValue] = useState(0);
+  const [ethPrice, setEthPrice] = useState(0);
+  const [btcPrice, setBtcPrice] = useState(0);
+  const [isLoadingMultiChain, setIsLoadingMultiChain] = useState(false);
 
   // Multi-wallet support
   const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
@@ -218,7 +241,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return tonPrice || 0;
   }, [tonPrice]);
-const sleep = (ms:number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   // Fetch wallet assets (TON balance + Jettons)
   const fetchWalletAssets = useCallback(async () => {
     if (!walletAddress) return;
@@ -232,7 +255,7 @@ const sleep = (ms:number) => new Promise((resolve) => setTimeout(resolve, ms));
       // Fetch TON balance using TON API
       let tonUsd = 0;
       const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
-      if(balanceResponse.status !== 200){
+      if (balanceResponse.status !== 200) {
         sleep(300)
         return fetchWalletAssets()
       }
@@ -251,7 +274,7 @@ const sleep = (ms:number) => new Promise((resolve) => setTimeout(resolve, ms));
       // Fetch Jettons (tokens) balance with USD prices
       let jettonsUsdTotal = 0;
       const jettonsResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}/jettons?currencies=usd`);
-      if(jettonsResponse.status !== 200){
+      if (jettonsResponse.status !== 200) {
         sleep(300)
         return fetchWalletAssets()
       }
@@ -292,7 +315,7 @@ const sleep = (ms:number) => new Promise((resolve) => setTimeout(resolve, ms));
         });
         setJettons(jettonBalances);
       }
-      
+
       // Set total USD balance (TON + all Jettons)
       setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
     } catch (error) {
@@ -350,6 +373,50 @@ const sleep = (ms:number) => new Promise((resolve) => setTimeout(resolve, ms));
     }
   }, [walletAddress]);
 
+  // Derive multi-chain addresses from mnemonic
+  useEffect(() => {
+    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+    if (storedMnemonic && !ethAddress && !btcAddress) {
+      try {
+        const eth = deriveEthAddress(storedMnemonic);
+        const btc = deriveBtcAddress(storedMnemonic);
+        setEthAddress(eth);
+        setBtcAddress(btc);
+      } catch (error) {
+        console.error("Failed to derive multi-chain addresses:", error);
+      }
+    }
+  }, [ethAddress, btcAddress]);
+
+  // Fetch multi-chain balances
+  const fetchMultiChainBalances = useCallback(async () => {
+    if (!ethAddress || !btcAddress) return;
+
+    setIsLoadingMultiChain(true);
+    try {
+      const balances = await fetchAllMultiChainBalances(ethAddress, btcAddress);
+
+      setEthBalance(balances.eth.balance);
+      setEthUsdValue(balances.eth.usdValue);
+      setEthPrice(balances.eth.price);
+
+      setBtcBalance(balances.btc.balance);
+      setBtcUsdValue(balances.btc.usdValue);
+      setBtcPrice(balances.btc.price);
+    } catch (error) {
+      console.error("Failed to fetch multi-chain balances:", error);
+    } finally {
+      setIsLoadingMultiChain(false);
+    }
+  }, [ethAddress, btcAddress]);
+
+  // Auto-fetch multi-chain balances when addresses are ready
+  useEffect(() => {
+    if (ethAddress && btcAddress && hasFetched) {
+      fetchMultiChainBalances();
+    }
+  }, [ethAddress, btcAddress, hasFetched, fetchMultiChainBalances]);
+
   // Handle wallet address changes - reset state and refetch
   const handleSetWalletAddress = useCallback((address: string) => {
     if (address !== walletAddress) {
@@ -397,9 +464,20 @@ const sleep = (ms:number) => new Promise((resolve) => setTimeout(resolve, ms));
       storedWallets,
       activeWalletIndex,
       walletStatus,
+      // Multi-chain
+      ethAddress,
+      btcAddress,
+      ethBalance,
+      btcBalance,
+      ethUsdValue,
+      btcUsdValue,
+      ethPrice,
+      btcPrice,
+      isLoadingMultiChain,
       setWalletStatus,
       fetchWalletAssets,
       fetchNfts,
+      fetchMultiChainBalances,
       setWalletAddress: handleSetWalletAddress,
       toggleHideAsset,
       toggleHideBalance,
@@ -420,3 +498,4 @@ export function useWallet() {
   }
   return context;
 }
+

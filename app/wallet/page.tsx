@@ -73,6 +73,8 @@ const CHART_COLORS = [
   "#3B82F6", "#F97316", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4", "#F59E0B", "#EF4444"
 ];
 const TON_ICON = "https://ton.org/download/ton_symbol.svg";
+const ETH_ICON = "/svg/eth-logo.svg";
+const BTC_ICON = "/svg/btc-logo.svg";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -93,8 +95,19 @@ export default function WalletPage() {
     fetchWalletAssets,
     fetchNfts,
     toggleHideBalance,
-    tonPrice
+    tonPrice,
+    // Multi-chain
+    ethAddress,
+    btcAddress,
+    ethBalance,
+    btcBalance,
+    ethUsdValue,
+    btcUsdValue,
+    ethPrice,
+    btcPrice,
+    isLoadingMultiChain
   } = useWallet();
+
   const { telegramId } = useGameContext();
 
   const [hasWallet, setHasWallet] = useState(false);
@@ -613,9 +626,10 @@ export default function WalletPage() {
         <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
           <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
           <p className="text-xs text-yellow-500/90 leading-relaxed">
-            This wallet only supports TON assets. Sending other tokens may result in permanent loss.
+            ETH and BTC are receive-only. Sending is currently only available for TON assets.
           </p>
         </div>
+
 
         <Tabs defaultValue="assets" className="w-full pb-24">
           <TabsList className="w-full h-12 p-1 bg-[#111] border border-[#222] rounded-xl">
@@ -684,6 +698,98 @@ export default function WalletPage() {
               </CardContent>
             </Card>
 
+            {/* ETH Balance Card */}
+            {ethAddress && (
+              <Card
+                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                onClick={() => {
+                  setSelectedAsset({
+                    name: "Ethereum",
+                    symbol: "ETH",
+                    balance: ethBalance.toFixed(6),
+                    value: ethUsdValue,
+                    priceUsd: ethPrice,
+                    image: ETH_ICON,
+                    color: "#627EEA",
+                  }); setChartPeriod('1D');
+                }}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#627EEA]/20">
+                      <Image src={ETH_ICON} alt="ETH" width={40} height={40} className="w-full h-full" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white">ETH</h4>
+                      <p className="text-xs text-gray-500">Ethereum</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      {isLoadingMultiChain ? (
+                        <div className="space-y-1 flex flex-col items-end">
+                          <Skeleton className="h-5 w-24 bg-[#222]" />
+                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : ethBalance.toFixed(4)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${ethUsdValue.toFixed(2)}`}</p>
+                        </>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* BTC Balance Card */}
+            {btcAddress && (
+              <Card
+                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                onClick={() => {
+                  setSelectedAsset({
+                    name: "Bitcoin",
+                    symbol: "BTC",
+                    balance: btcBalance.toFixed(8),
+                    value: btcUsdValue,
+                    priceUsd: btcPrice,
+                    image: BTC_ICON,
+                    color: "#F7931A",
+                  }); setChartPeriod('1D');
+                }}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#F7931A]/20">
+                      <Image src={BTC_ICON} alt="BTC" width={40} height={40} className="w-full h-full" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white">BTC</h4>
+                      <p className="text-xs text-gray-500">Bitcoin</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      {isLoadingMultiChain ? (
+                        <div className="space-y-1 flex flex-col items-end">
+                          <Skeleton className="h-5 w-24 bg-[#222]" />
+                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : btcBalance.toFixed(6)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${btcUsdValue.toFixed(2)}`}</p>
+                        </>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
               <>
                 {[1, 2].map((i) => (
@@ -705,6 +811,7 @@ export default function WalletPage() {
                 ))}
               </>
             )}
+
 
             {!isLoadingAssets && hasFetched && jettons.length === 0 && (
               <div className="py-8 text-center bg-[#111] rounded-2xl border border-[#222] border-dashed">
