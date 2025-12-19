@@ -5,12 +5,12 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 
-const Logo = React.memo(({ width = "2.5em", height = "2.5em"}: SvgProps) => (
+const Logo = React.memo(({ width = "2.5em", height = "2.5em" }: SvgProps) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={width}
     height={height}
-    className="inline-block text-blue-400"
+    className="inline-block text-white"
     viewBox="0 0 32 32"
   >
     <path
@@ -22,41 +22,41 @@ const Logo = React.memo(({ width = "2.5em", height = "2.5em"}: SvgProps) => (
 Logo.displayName = "Logo";
 
 export default function UserStatsCard() {
-    const { userRank } = useLeaderboardContext();
-    const { MainQuantAmount, username } = useGameContext();
+  const { userRank } = useLeaderboardContext();
+  const { MainQuantAmount, username } = useGameContext();
 
-    return (
-        <div className="flex flex-col mt-6 px-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy className="w-5 h-5 text-yellow-500" />
-            <span className="font-semibold text-white">Your Ranking</span>
-          </div>
+  return (
+    <div className="flex flex-col mt-6 px-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Trophy className="w-5 h-5 text-yellow-500" />
+        <span className="font-semibold text-white">Your Ranking</span>
+      </div>
 
-          <Card className="bg-linear-to-r from-blue-900/40 to-purple-900/40 border-blue-500/30 backdrop-blur-xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16" />
-            
-            <CardContent className="p-4 relative z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 flex items-center justify-center">
-                    <Logo width="2.5em" height="2.5em"/>
-                  </div>
-                  <div>
-                    <div className="text-white font-bold text-lg">
-                      {username ? username : "Quantum User"}
-                    </div>
-                    <div className="text-blue-300 text-sm font-medium">
-                      {MainQuantAmount} QNTM
-                    </div>
-                  </div>
+      <Card className="bg-gradient-to-br from-white/10 to-transparent border-white/10 backdrop-blur-2xl overflow-hidden relative rounded-[24px]">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
+
+        <CardContent className="p-5 relative z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-full border border-white/10">
+                <Logo width="2em" height="2em" />
+              </div>
+              <div>
+                <div className="text-white font-bold text-lg leading-tight">
+                  {username ? username : "Quantum User"}
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-xs text-gray-400 uppercase tracking-wider">Rank</span>
-                  <span className="text-2xl font-bold text-white">#{userRank}</span>
+                <div className="text-white/60 text-sm font-medium">
+                  {MainQuantAmount} QNTM
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-    )
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] text-white/40 uppercase tracking-[0.1em] font-bold">Rank</span>
+              <span className="text-2xl font-black text-white italic">#{userRank}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
 }

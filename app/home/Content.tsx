@@ -107,8 +107,8 @@ const HomeContent = () => {
   const router = useRouter();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     const tg = window.Telegram?.WebApp;
-
     tg?.disableClosingConfirmation();
   }, []);
 

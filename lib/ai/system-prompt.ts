@@ -33,7 +33,5 @@ You help users understand crypto, the TON ecosystem, and Quantum Club features. 
 - Keep the tone helpful and encouraging
 `;
 
-// Using the latest model from Google AI docs
-// Note: Gemini 3 Flash (gemini-3-flash) - Released December 17, 2025
-// Frontier intelligence with advanced reasoning, multimodal understanding, and low latency
-export const AI_MODEL = "gemini-3-flash";
+// Using Gemini 2.5 Flash - stable and fast model
+export const AI_MODEL = "gemini-2.5-flash";

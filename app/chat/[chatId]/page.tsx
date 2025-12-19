@@ -78,9 +78,9 @@ export default function ChatPage() {
             {/* Header */}
             <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-border p-4">
                 <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-10 w-10 border border-white/10">
                         <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getOtherName()}`} />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500">
+                        <AvatarFallback className="bg-white/10">
                             <User className="w-5 h-5 text-white" />
                         </AvatarFallback>
                     </Avatar>
@@ -155,18 +155,18 @@ function MessageBubble({
             className={`flex items-end gap-2 ${isOwn ? "flex-row-reverse" : ""}`}
         >
             {showAvatar && !isOwn && (
-                <Avatar className="h-8 w-8 shrink-0">
+                <Avatar className="h-8 w-8 shrink-0 border border-white/10">
                     <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${message.senderName}`} />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-xs font-bold text-white">
+                    <AvatarFallback className="bg-white/10 text-xs font-bold text-white">
                         {message.senderName.charAt(0).toUpperCase()}
                     </AvatarFallback>
                 </Avatar>
             )}
             {!showAvatar && !isOwn && <div className="w-8" />}
             <div
-                className={`max-w-[75%] px-4 py-2 rounded-2xl ${isOwn
-                    ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-secondary text-secondary-foreground rounded-bl-sm"
+                className={`max-w-[75%] px-4 py-2.5 rounded-2xl transition-all shadow-sm ${isOwn
+                    ? "bg-white text-black rounded-br-sm"
+                    : "bg-white/10 text-white rounded-bl-sm border border-white/5"
                     }`}
             >
                 {!isOwn && showAvatar && (

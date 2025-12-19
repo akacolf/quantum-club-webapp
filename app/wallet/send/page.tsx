@@ -752,7 +752,7 @@ export default function SendPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full bg-[#111] border-[#222] h-16 px-4 justify-between hover:bg-[#1a1a1a] hover:border-[#333] transition-all rounded-xl"
+                      className="w-full bg-white/5 border-white/5 h-16 px-5 justify-between hover:bg-white/10 hover:border-white/10 transition-all rounded-2xl shadow-sm"
                     >
                       <div className="flex items-center gap-3">
                         {selectedAsset?.image ? (
@@ -770,14 +770,14 @@ export default function SendPage() {
                       <ChevronDown className="w-4 h-4 text-gray-500" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-[calc(100vw-2rem)] max-w-md bg-[#1a1a1a] border-[#333] text-white">
-                    <DropdownMenuLabel>Select Asset</DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-[#333]" />
+                  <DropdownMenuContent className="w-[calc(100vw-2rem)] max-w-md bg-white border-white/10 text-black rounded-2xl p-2 shadow-2xl">
+                    <DropdownMenuLabel className="text-black/40 text-[10px] uppercase tracking-widest px-3 py-2 font-bold">Select Asset</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-black/5" />
                     {sendableAssets.map((asset) => (
                       <DropdownMenuItem
                         key={asset.symbol}
                         onClick={() => setSelectedAsset(asset)}
-                        className="flex items-center gap-3 p-3 hover:bg-[#222] cursor-pointer"
+                        className="flex items-center gap-3 p-3 hover:bg-black/5 cursor-pointer rounded-xl transition-colors"
                       >
                         {asset.image ? (
                           <Image src={asset.image} alt={asset.symbol} width={32} height={32} className="w-8 h-8 rounded-full" unoptimized />

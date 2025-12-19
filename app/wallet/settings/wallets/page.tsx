@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWallet, StoredWallet } from "../../WalletContext";
@@ -33,6 +33,11 @@ export default function ManageWalletsPage() {
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  // Scroll to top on navigation
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);

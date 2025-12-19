@@ -83,13 +83,24 @@ export async function fetchSwappableAssets(): Promise<SwapAsset[]> {
     }
 }
 
+// Custom error class for swap errors
+export class SwapError extends Error {
+    code: string;
+
+    constructor(message: string, code: string) {
+        super(message);
+        this.name = "SwapError";
+        this.code = code;
+    }
+}
+
 // Simulate a swap
 export async function simulateSwap(
     offerAddress: string,
     askAddress: string,
     offerUnits: string,
     slippageTolerance: string = "0.01"
-): Promise<SwapSimulation | null> {
+): Promise<SwapSimulation> {
     const client = createStonApiClient();
 
     try {
@@ -123,9 +134,33 @@ export async function simulateSwap(
                 minorVersion: result.router.minorVersion,
             },
         };
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Swap simulation failed:", error);
-        return null;
+
+        // Parse error response for more specific messages
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorString = String(error);
+
+        // Check for common error scenarios
+        if (errorString.includes("400") || errorMessage.includes("400")) {
+            // 400 errors typically mean no route/pool exists or invalid params
+            if (errorString.includes("no route") || errorString.includes("pool")) {
+                throw new SwapError("No liquidity pool available for this token pair", "NO_POOL");
+            }
+            // Could be amount related
+            throw new SwapError("Cannot swap these tokens. The pair may not have enough liquidity.", "SWAP_UNAVAILABLE");
+        }
+
+        if (errorString.includes("429") || errorMessage.includes("rate")) {
+            throw new SwapError("Too many requests. Please wait a moment and try again.", "RATE_LIMITED");
+        }
+
+        if (errorString.includes("500") || errorString.includes("502") || errorString.includes("503")) {
+            throw new SwapError("STON.fi service is temporarily unavailable. Please try again later.", "SERVICE_ERROR");
+        }
+
+        // Generic error
+        throw new SwapError("Unable to get swap quote. Please try a different amount or token pair.", "SIMULATION_FAILED");
     }
 }
 

@@ -21,7 +21,7 @@ export default function DailyCheckIn({
     <Card className="w-[90%] mx-auto mt-6 relative overflow-hidden border-[#333] bg-[#111] shadow-lg">
       {/* Background Glow Effect */}
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
-      
+
       <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-2 relative z-10">
         <div className="flex items-center gap-3 min-w-0">
           <div className="shrink-0">
@@ -34,7 +34,7 @@ export default function DailyCheckIn({
               />
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="text-sm sm:text-base font-bold text-white truncate">
               {daily} Day Streak
@@ -53,11 +53,10 @@ export default function DailyCheckIn({
           onClick={() => ClaimDaily()}
           disabled={isClaimDay || loadingDay}
           className={`
-            h-9 sm:h-10 px-3 sm:px-5 rounded-xl font-semibold transition-all duration-300 shrink-0 text-xs sm:text-sm
-            ${
-              isClaimDay
-                ? "bg-[#222] text-gray-500 border border-[#333] hover:bg-[#222] cursor-default"
-                : "bg-orange-500 hover:bg-orange-600 text-black shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:shadow-[0_0_20px_rgba(249,115,22,0.6)] border border-orange-400"
+            h-9 px-4 rounded-xl font-bold transition-all duration-300 shrink-0 text-xs
+            ${isClaimDay
+              ? "bg-white/5 text-gray-500 border border-white/5 hover:bg-white/5 cursor-default"
+              : "bg-white hover:bg-white/90 text-black shadow-lg border-0"
             }
           `}
         >

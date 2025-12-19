@@ -206,11 +206,11 @@ const EarnContent = () => {
                   task.completed
                 }
                 variant={task.completed ? "secondary" : "default"}
-                className={`h-9 px-4 min-w-20 rounded-full font-medium text-xs transition-all duration-300 ${task.buttonText === "Claim"
-                  ? "bg-orange-500 hover:bg-orange-600 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                className={`h-9 px-4 min-w-20 rounded-xl font-bold text-xs transition-all duration-300 active:scale-95 ${task.buttonText === "Claim"
+                  ? "bg-white text-black hover:bg-white/90 shadow-lg"
                   : task.completed
-                    ? "bg-[#333] text-gray-400 hover:bg-[#333]"
-                    : "bg-white text-black hover:bg-gray-200"
+                    ? "bg-white/5 text-white/20 border border-white/5 hover:bg-white/5"
+                    : "bg-white text-black hover:bg-white/90"
                   }`}
               >
                 {task.buttonText === "Joined" ? (

@@ -53,10 +53,10 @@ export default function ReceivePage() {
           </p>
         </div>
 
-        <Card className="bg-[#111] border-[#222] overflow-hidden">
+        <Card className="bg-white/5 border-white/5 backdrop-blur-2xl overflow-hidden rounded-[32px] shadow-sm">
           <CardContent className="flex flex-col items-center p-8 space-y-8">
             <div className="relative group">
-              <div className="absolute -inset-4 bg-linear-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute -inset-4 bg-white/5 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
               <div className="relative bg-white p-4 rounded-2xl shadow-xl">
                 <QRCode
                   value={walletAddress}
@@ -68,13 +68,13 @@ export default function ReceivePage() {
             </div>
 
             <div className="w-full space-y-3">
-              <div className="flex items-center justify-between text-sm text-gray-400 px-1">
-                <span>Your Address</span>
-                <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20">TON</span>
+              <div className="flex items-center justify-between text-sm text-white/40 px-1">
+                <span className="font-medium uppercase tracking-wider text-[10px]">Your Address</span>
+                <span className="text-[10px] bg-white text-black px-2 py-0.5 rounded-full border border-white font-bold tracking-tight">TON</span>
               </div>
               <div
                 onClick={copyAddress}
-                className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl p-4 flex items-center justify-between gap-3 hover:bg-[#222] hover:border-[#444] transition-all group cursor-pointer"
+                className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-3 hover:bg-white/10 hover:border-white/10 transition-all group cursor-pointer"
               >
                 <p className="text-sm text-gray-300 font-mono break-all leading-relaxed">
                   {walletAddress}
@@ -90,7 +90,7 @@ export default function ReceivePage() {
         <div className="grid grid-cols-2 gap-3">
           <Button
             onClick={copyAddress}
-            className="bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold transition-all shadow-lg shadow-white/5"
+            className="bg-white text-black hover:bg-white/90 h-12 rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-white/5"
           >
             {copied ? (
               <>
@@ -105,7 +105,7 @@ export default function ReceivePage() {
           <Button
             onClick={handleShare}
             variant="outline"
-            className="bg-[#1a1a1a] border-[#333] text-white hover:bg-[#222] hover:text-white h-12 rounded-xl font-bold transition-all"
+            className="bg-white/5 border-white/5 text-white hover:bg-white/10 h-12 rounded-2xl font-bold transition-all active:scale-95"
           >
             <Share2 className="w-4 h-4 mr-2" /> Share
           </Button>

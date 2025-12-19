@@ -24,6 +24,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -40,6 +45,7 @@ import {
     toUnits,
     fromUnits,
     formatSwapRate,
+    SwapError,
     type SwapAsset,
     type SwapSimulation,
 } from "@/lib/stonfi";
@@ -82,6 +88,12 @@ export default function SwapPage() {
     const [isSwapping, setIsSwapping] = useState(false);
     const [lastTxHash, setLastTxHash] = useState<string | null>(null);
     const [slippage, setSlippage] = useState("1"); // 1% default
+    const [simulationError, setSimulationError] = useState<string | null>(null);
+
+    // Gas reserve constants
+    const MIN_TON_BALANCE = 0.35; // Minimum 0.35 TON required in wallet for swaps
+    const MIN_GAS_RESERVE_TON = 0.1; // Minimum gas reserve fallback
+    const GAS_SAFETY_MULTIPLIER = 1.5; // Add 50% safety buffer to estimated gas
 
     const EXPLORER_BASE_URL = IS_TESTNET
         ? "https://testnet.tonviewer.com"
@@ -173,11 +185,13 @@ export default function SwapPage() {
     useEffect(() => {
         if (!fromAsset || !toAsset || !amount || parseFloat(amount) <= 0) {
             setSimulation(null);
+            setSimulationError(null);
             return;
         }
 
         const timer = setTimeout(async () => {
             setIsSimulating(true);
+            setSimulationError(null);
             try {
                 const offerUnits = toUnits(amount, fromAsset.decimals);
                 const slippageTolerance = (parseFloat(slippage) / 100).toString();
@@ -190,9 +204,17 @@ export default function SwapPage() {
                 );
 
                 setSimulation(result);
+                setSimulationError(null);
             } catch (error) {
                 console.error("Simulation failed:", error);
                 setSimulation(null);
+
+                // Set user-friendly error message
+                if (error instanceof SwapError) {
+                    setSimulationError(error.message);
+                } else {
+                    setSimulationError("Unable to get swap quote. Please try again.");
+                }
             } finally {
                 setIsSimulating(false);
             }
@@ -210,7 +232,7 @@ export default function SwapPage() {
         setSimulation(null);
     };
 
-    // Handle max amount - set full balance, fees shown separately
+    // Handle max amount - show full balance, gas will be deducted during execution if needed
     const handleMaxAmount = () => {
         if (fromAsset) {
             const balance = getAssetBalance(fromAsset);
@@ -221,9 +243,100 @@ export default function SwapPage() {
                 return;
             }
 
+            // For TON: check minimum balance requirement
+            if (fromAsset.kind === "Ton" && balanceNum < MIN_TON_BALANCE) {
+                toast.error(`You need at least ${MIN_TON_BALANCE} TON in your wallet to swap`);
+                return;
+            }
+
+            // Set full balance - gas deduction happens during execution
             setAmount(balance);
         }
     };
+
+    // Calculate required gas based on simulation - use total gas (consumption + forward) for safety
+    const requiredGas = useMemo(() => {
+        if (simulation && simulation.gasParams) {
+            const estimatedGas = parseFloat(simulation.gasParams.estimatedGasConsumption || "0") / 1e9;
+            const forwardGas = parseFloat(simulation.gasParams.forwardGas || "0") / 1e9;
+
+            // Total gas = estimated consumption + forward gas (for DEX routing)
+            const totalGas = estimatedGas + forwardGas;
+
+            // Apply safety multiplier and ensure minimum
+            // The multiplier covers: network variance, wallet deployment if needed, timing gaps
+            return Math.max(totalGas * GAS_SAFETY_MULTIPLIER, MIN_GAS_RESERVE_TON);
+        }
+        return MIN_GAS_RESERVE_TON;
+    }, [simulation]);
+
+    const requiredGasNano = useMemo(() => {
+        return BigInt(Math.floor(requiredGas * 1e9));
+    }, [requiredGas]);
+
+    // Calculate swap details including gas handling
+    const swapDetails = useMemo(() => {
+        if (!fromAsset || !amount || parseFloat(amount) <= 0) {
+            return {
+                swapAmount: 0,
+                actualSwapAmount: 0,
+                isMaxSwap: false,
+                hasEnoughForGas: true,
+                hasMinBalance: true,
+                estimatedGas: requiredGas
+            };
+        }
+
+        const balance = parseFloat(getAssetBalance(fromAsset));
+        const swapAmount = parseFloat(amount);
+
+        if (fromAsset.kind === "Ton") {
+            // Check minimum balance requirement
+            const hasMinBalance = balance >= MIN_TON_BALANCE;
+
+            // Check if user is swapping their full balance (MAX)
+            const isMaxSwap = Math.abs(balance - swapAmount) < 0.0001;
+
+            // If MAX swap, gas will be deducted from swap amount
+            // Otherwise, gas comes from remaining balance
+            const remainingAfterSwap = balance - swapAmount;
+
+            if (isMaxSwap) {
+                // MAX swap: deduct gas from swap amount
+                const actualSwapAmount = swapAmount - requiredGas;
+                return {
+                    swapAmount,
+                    actualSwapAmount: Math.max(0, actualSwapAmount),
+                    isMaxSwap: true,
+                    hasEnoughForGas: actualSwapAmount > 0,
+                    hasMinBalance,
+                    estimatedGas: requiredGas
+                };
+            } else {
+                // Normal swap: gas from remaining balance
+                const hasEnoughForGas = remainingAfterSwap >= requiredGas;
+                return {
+                    swapAmount,
+                    actualSwapAmount: swapAmount,
+                    isMaxSwap: false,
+                    hasEnoughForGas,
+                    hasMinBalance,
+                    estimatedGas: requiredGas
+                };
+            }
+        }
+
+        // For jettons, check if user has enough TON for gas
+        const hasEnoughTonForGas = parseFloat(tonBalance) >= requiredGas;
+        return {
+            swapAmount,
+            actualSwapAmount: swapAmount,
+            isMaxSwap: false,
+            hasEnoughForGas: hasEnoughTonForGas,
+            hasMinBalance: true,
+            estimatedGas: requiredGas
+        };
+    }, [fromAsset, amount, getAssetBalance, tonBalance, requiredGas]);
 
     // Validation
     const canProceed = useMemo(() => {
@@ -236,16 +349,21 @@ export default function SwapPage() {
 
         if (sendAmount > balance) return false;
 
-        // For TON swaps: ensure there's enough for swap + gas (will auto-adjust if needed)
-        // We allow the swap if balance >= 0.35 TON (minimum for gas)
-        if (fromAsset.kind === "Ton" && balance < 0.35) return false;
+        // Check minimum TON balance requirement
+        if (fromAsset.kind === "Ton" && !swapDetails.hasMinBalance) return false;
+
+        // Check if there's enough for gas
+        if (!swapDetails.hasEnoughForGas) return false;
+
+        // For TON swaps: ensure actual swap amount is positive
+        if (fromAsset.kind === "Ton" && swapDetails.actualSwapAmount <= 0) return false;
 
         // Check TON balance for gas when swapping jettons
-        if (fromAsset.kind === "Jetton" && parseFloat(tonBalance) < 0.35)
+        if (fromAsset.kind === "Jetton" && parseFloat(tonBalance) < MIN_GAS_RESERVE_TON)
             return false;
 
         return true;
-    }, [fromAsset, toAsset, amount, simulation, getAssetBalance, tonBalance]);
+    }, [fromAsset, toAsset, amount, simulation, getAssetBalance, tonBalance, swapDetails]);
 
     // Handle continue to confirm
     const handleContinue = () => {
@@ -323,14 +441,14 @@ export default function SwapPage() {
             let actualMinAskUnits = simulation.minAskUnits;
 
             if (fromAsset.kind === "Ton") {
-                // TON -> Jetton: Check if we need to reserve gas from the swap amount
-                const gasReserve = BigInt(350000000); // 0.35 TON in nanoTON
+                // TON -> Jetton: Safety check - ensure we have enough for gas
+                // This should already be handled by the UI, but double-check here
                 const userBalance = BigInt(Math.floor(parseFloat(tonBalance) * 1e9));
                 const offerAmount = BigInt(simulation.offerUnits);
 
-                // If user is trying to swap more than (balance - gasReserve), adjust the amount
-                if (offerAmount + gasReserve > userBalance) {
-                    const adjustedOffer = userBalance - gasReserve;
+                // If user somehow bypassed UI validation, check and fail gracefully
+                if (offerAmount + requiredGasNano > userBalance) {
+                    const adjustedOffer = userBalance - requiredGasNano;
 
                     if (adjustedOffer <= BigInt(0)) {
                         toast.error("Insufficient balance for gas fees");
@@ -446,18 +564,21 @@ export default function SwapPage() {
         }
     };
 
+    // Get expected output amount for display
+    const expectedOutput = useMemo(() => {
+        if (!simulation || !toAsset) return "0.0";
+        return parseFloat(fromUnits(simulation.askUnits, toAsset.decimals)).toFixed(4);
+    }, [simulation, toAsset]);
+
+    const minimumReceived = useMemo(() => {
+        if (!simulation || !toAsset) return "0.0";
+        return parseFloat(fromUnits(simulation.minAskUnits, toAsset.decimals)).toFixed(4);
+    }, [simulation, toAsset]);
+
     // Loading state
     if (isLoadingAssets || (isContextLoading && !hasFetched)) {
         return <Loader />;
     }
-
-    // Get expected output amount for display
-    const expectedOutput = simulation
-        ? fromUnits(simulation.askUnits, toAsset?.decimals || 9)
-        : "";
-    const minimumReceived = simulation
-        ? fromUnits(simulation.minAskUnits, toAsset?.decimals || 9)
-        : "";
 
     return (
         <div className="min-h-screen bg-black text-white p-4 pt-6">
@@ -522,45 +643,54 @@ export default function SwapPage() {
                                             <DropdownMenuContent className="w-64 bg-[#1a1a1a] border-[#333] text-white max-h-80 overflow-y-auto">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                 <DropdownMenuSeparator className="bg-[#333]" />
-                                                {swapAssets.map((asset) => (
-                                                    getAssetBalance(asset)&& parseFloat(getAssetBalance(asset))> 0 &&
-                                                    (<DropdownMenuItem
-                                                        key={asset.contractAddress}
-                                                        onClick={() => {
-                                                            if (
-                                                                asset.contractAddress !== toAsset?.contractAddress
-                                                            ) {
-                                                                setFromAsset(asset);
-                                                                setSimulation(null);
-                                                            }
-                                                        }}
-                                                        className="flex items-center gap-3 p-3 hover:bg-[#222] cursor-pointer"
-                                                    >
-                                                        {asset.imageUrl ? (
-                                                            <Image
-                                                                src={asset.imageUrl}
-                                                                alt={asset.symbol}
-                                                                width={32}
-                                                                height={32}
-                                                                className="w-8 h-8 rounded-full"
-                                                                unoptimized
-                                                            />
-                                                        ) : (
-                                                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
-                                                                {asset.symbol.slice(0, 2)}
+                                                {swapAssets.filter(asset => {
+                                                    const balance = getAssetBalance(asset);
+                                                    return balance && parseFloat(balance) > 0;
+                                                }).length === 0 ? (
+                                                    <div className="p-4 text-center text-gray-500">
+                                                        <p className="text-sm font-medium">No assets available</p>
+                                                    </div>
+                                                ) : (
+                                                    swapAssets.map((asset) => (
+                                                        getAssetBalance(asset) && parseFloat(getAssetBalance(asset)) > 0 &&
+                                                        (<DropdownMenuItem
+                                                            key={asset.contractAddress}
+                                                            onClick={() => {
+                                                                if (
+                                                                    asset.contractAddress !== toAsset?.contractAddress
+                                                                ) {
+                                                                    setFromAsset(asset);
+                                                                    setSimulation(null);
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-3 p-3 hover:bg-[#222] cursor-pointer"
+                                                        >
+                                                            {asset.imageUrl ? (
+                                                                <Image
+                                                                    src={asset.imageUrl}
+                                                                    alt={asset.symbol}
+                                                                    width={32}
+                                                                    height={32}
+                                                                    className="w-8 h-8 rounded-full"
+                                                                    unoptimized
+                                                                />
+                                                            ) : (
+                                                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
+                                                                    {asset.symbol.slice(0, 2)}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1">
+                                                                <div className="font-bold">{asset.symbol}</div>
+                                                                <div className="text-xs text-gray-400 truncate">
+                                                                    {asset.displayName}
+                                                                </div>
                                                             </div>
-                                                        )}
-                                                        <div className="flex-1">
-                                                            <div className="font-bold">{asset.symbol}</div>
-                                                            <div className="text-xs text-gray-400 truncate">
-                                                                {asset.displayName}
+                                                            <div className="text-right text-sm text-gray-400">
+                                                                {getAssetBalance(asset)}
                                                             </div>
-                                                        </div>
-                                                        <div className="text-right text-sm text-gray-400">
-                                                            {getAssetBalance(asset)}
-                                                        </div>
-                                                    </DropdownMenuItem>)
-                                                ))}
+                                                        </DropdownMenuItem>)
+                                                    ))
+                                                )}
 
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -708,7 +838,7 @@ export default function SwapPage() {
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-gray-400 flex items-center gap-1">
                                                 Minimum received
-                                                <Info className="w-3 h-3" />
+                                                <Info className="w-3 h-3 text-gray-500" />
                                             </span>
                                             <span className="text-white">
                                                 {parseFloat(minimumReceived).toFixed(4)}{" "}
@@ -729,61 +859,102 @@ export default function SwapPage() {
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-400">Slippage</span>
-                                            <div className="flex items-center gap-2">
-                                                {["0.5", "1", "3"].map((s) => (
-                                                    <button
-                                                        key={s}
-                                                        onClick={() => setSlippage(s)}
-                                                        className={`px-2 py-1 rounded text-xs ${slippage === s
-                                                            ? "bg-blue-500 text-white"
-                                                            : "bg-[#222] text-gray-400 hover:bg-[#333]"
-                                                            }`}
-                                                    >
-                                                        {s}%
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
                                         <div className="border-t border-[#222] pt-3 mt-2 space-y-2">
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-gray-400 flex items-center gap-1">
                                                     Network fee
-                                                    <Info className="w-3 h-3" />
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button type="button" className="inline-flex">
+                                                                <Info className="w-3 h-3 text-gray-500 cursor-help" />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent side="top" className="w-56 bg-[#1a1a1a] border-[#333] text-gray-300 p-3">
+                                                            <p className="font-medium text-white mb-1 text-xs">Includes 50% safety buffer</p>
+                                                            <p className="text-[11px] leading-relaxed">This ensures your swap completes successfully. Any unused gas is automatically returned to your wallet.</p>
+                                                        </PopoverContent>
+                                                    </Popover>
                                                 </span>
-                                                <span className="text-white">
-                                                    ~{(parseFloat(simulation.gasParams.estimatedGasConsumption) / 1e9).toFixed(4)} TON
+                                                <span className="text-white font-medium">
+                                                    ~{swapDetails.estimatedGas.toFixed(4)} TON
                                                 </span>
                                             </div>
+                                            {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && simulation && (
+                                                <div className="flex items-center justify-between text-sm">
+                                                    <span className="text-gray-400">Actual swap amount</span>
+                                                    <span className="text-blue-400 font-medium">
+                                                        {swapDetails.actualSwapAmount.toFixed(4)} TON
+                                                    </span>
+                                                </div>
+                                            )}
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-400">DEX fee</span>
-                                                <span className="text-white">
-                                                    {(parseFloat(simulation.feePercent) * 100).toFixed(2)}%
-                                                </span>
+                                                <span className="text-gray-400">Slippage tolerance</span>
+                                                <div className="flex items-center gap-2">
+                                                    {["0.5", "1", "3"].map((s) => (
+                                                        <button
+                                                            key={s}
+                                                            onClick={() => setSlippage(s)}
+                                                            className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-tight transition-all active:scale-95 ${slippage === s
+                                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                                                                : "bg-[#222] text-gray-500 hover:text-gray-300 hover:bg-[#2a2a2a]"
+                                                                }`}
+                                                        >
+                                                            {s}%
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
                             )}
 
-                            {/* Warning for low TON balance when swapping jettons */}
-                            {fromAsset?.kind === "Jetton" && parseFloat(tonBalance) < 0.1 && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
-                                    <p className="text-xs text-yellow-500/90">
-                                        You need at least 0.1 TON to cover gas fees for token swaps.
+                            {/* Info: Fee deduction explanation for MAX swaps */}
+                            {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && simulation && swapDetails.hasEnoughForGas && (
+                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
+                                    <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-blue-400/90">
+                                        <span className="font-semibold">~{swapDetails.estimatedGas.toFixed(4)} TON</span> network fee will be deducted from your swap amount.
                                     </p>
                                 </div>
                             )}
 
-                            {/* Warning when swapping TON and remaining balance is low */}
-                            {fromAsset?.kind === "Ton" && amount && simulation && parseFloat(tonBalance) - parseFloat(amount) < parseFloat(simulation.gasParams.estimatedGasConsumption) / 1e9 * 1.5 && parseFloat(amount) > 0 && (
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-                                    <p className="text-xs text-blue-400/90">
-                                        Network fee (~{(parseFloat(simulation.gasParams.estimatedGasConsumption) / 1e9).toFixed(4)} TON) will be deducted from your balance.
+                            {/* Simulation error message */}
+                            {simulationError && !isSimulating && (
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3">
+                                    <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-red-500/90">
+                                        {simulationError}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Warning: Minimum balance not met */}
+                            {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && !swapDetails.hasMinBalance && (
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
+                                    <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-yellow-500/90">
+                                        You need at least {MIN_TON_BALANCE} TON in your wallet to swap.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Warning for low TON balance when swapping jettons */}
+                            {fromAsset?.kind === "Jetton" && parseFloat(tonBalance) < MIN_GAS_RESERVE_TON && (
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
+                                    <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-yellow-500/90">
+                                        You need at least {MIN_GAS_RESERVE_TON} TON to cover network fees for token swaps.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Error when not enough balance for both swap and gas */}
+                            {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && !swapDetails.isMaxSwap && !swapDetails.hasEnoughForGas && (
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3">
+                                    <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-red-500/90">
+                                        Insufficient balance for network fees. Reduce swap amount or use MAX.
                                     </p>
                                 </div>
                             )}
@@ -791,7 +962,7 @@ export default function SwapPage() {
                             {/* Swap Button */}
                             <Button
                                 onClick={handleContinue}
-                                disabled={!canProceed || isSimulating}
+                                disabled={!canProceed || isSimulating || !!simulationError}
                                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
                             >
                                 {isSimulating ? (
@@ -802,8 +973,16 @@ export default function SwapPage() {
                                     "Enter amount"
                                 ) : parseFloat(amount) > parseFloat(getAssetBalance(fromAsset)) ? (
                                     "Insufficient balance"
+                                ) : fromAsset.kind === "Ton" && !swapDetails.hasMinBalance ? (
+                                    `Need ${MIN_TON_BALANCE} TON minimum`
+                                ) : fromAsset.kind === "Ton" && !swapDetails.hasEnoughForGas ? (
+                                    "Insufficient balance for gas"
+                                ) : fromAsset.kind === "Jetton" && parseFloat(tonBalance) < MIN_GAS_RESERVE_TON ? (
+                                    "Insufficient TON for gas"
+                                ) : simulationError ? (
+                                    "Swap unavailable"
                                 ) : !simulation ? (
-                                    "Enter amount"
+                                    "Getting quote..."
                                 ) : (
                                     "Continue"
                                 )}
@@ -936,35 +1115,33 @@ export default function SwapPage() {
                             key="success"
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="space-y-6"
+                            className="flex flex-col items-center justify-center py-8 space-y-6"
                         >
-                            <Card className="bg-[#111] border-[#222] rounded-2xl">
-                                <CardContent className="p-8 text-center space-y-4">
-                                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-                                        <Check className="w-10 h-10 text-green-500" />
-                                    </div>
-                                    <h2 className="text-2xl font-bold">Swap Sent!</h2>
-                                    <p className="text-gray-400">
-                                        Your swap transaction has been submitted to the network.
-                                    </p>
+                            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
+                                <Check className="w-10 h-10 text-green-500" />
+                            </div>
+                            <div className="text-center space-y-2">
+                                <h2 className="text-2xl font-bold">Swap Sent!</h2>
+                                <p className="text-gray-400">
+                                    Your swap transaction has been submitted to the network.
+                                </p>
+                            </div>
 
-                                    {lastTxHash && (
-                                        <a
-                                            href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 text-sm"
-                                        >
-                                            View on Explorer
-                                            <ExternalLink className="w-4 h-4" />
-                                        </a>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            {lastTxHash && (
+                                <a
+                                    href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 text-sm"
+                                >
+                                    View on Explorer
+                                    <ExternalLink className="w-4 h-4" />
+                                </a>
+                            )}
 
                             <Button
                                 onClick={() => router.push("/wallet")}
-                                className="w-full bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold"
+                                className="w-full bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold mt-4"
                             >
                                 Back to Wallet
                             </Button>

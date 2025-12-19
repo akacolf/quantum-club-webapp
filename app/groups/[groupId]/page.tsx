@@ -94,9 +94,9 @@ export default function GroupDetailPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center space-y-3"
                 >
-                    <Avatar className="h-20 w-20">
+                    <Avatar className="h-20 w-20 border-2 border-white/10">
                         <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${group.name}`} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-3xl">
+                        <AvatarFallback className="bg-white/10 text-white font-bold text-3xl">
                             {group.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
@@ -120,7 +120,7 @@ export default function GroupDetailPage() {
                     <Button
                         onClick={handleCopyInvite}
                         variant="outline"
-                        className="w-full text-foreground hover:bg-accent"
+                        className="w-full h-11 px-6 rounded-2xl border-white/10 bg-white/5 text-white hover:bg-white/10 active:scale-95 transition-all"
                     >
                         {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                         {copied ? "Copied!" : "Copy Invite Link"}
@@ -139,24 +139,24 @@ export default function GroupDetailPage() {
                         {members.map((member) => (
                             <div
                                 key={member.telegramId}
-                                className="bg-card border border-border rounded-xl p-3 flex items-center justify-between"
+                                className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]"
                             >
                                 <div className="flex items-center gap-3">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarFallback className="bg-muted">
-                                            <Users className="w-5 h-5 text-muted-foreground" />
+                                    <Avatar className="h-11 w-11 border border-white/10">
+                                        <AvatarFallback className="bg-white/10">
+                                            <Users className="w-5 h-5 text-white" />
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <p className="font-medium text-foreground">{member.username}</p>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="font-bold text-white text-sm">{member.username}</p>
+                                        <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">
                                             {member.telegramId === telegramId && "You"}
                                             {member.telegramId !== telegramId && member.role}
                                         </p>
                                     </div>
                                 </div>
                                 {member.role === "admin" && (
-                                    <Crown className="w-4 h-4 text-yellow-400" />
+                                    <Crown className="w-4 h-4 text-white" />
                                 )}
                             </div>
                         ))}
@@ -174,7 +174,7 @@ export default function GroupDetailPage() {
                             onClick={handleLeave}
                             disabled={leaving}
                             variant="destructive"
-                            className="w-full"
+                            className="w-full h-11 rounded-2xl font-bold bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 active:scale-95 transition-all"
                         >
                             <LogOut className="w-4 h-4 mr-2" />
                             {leaving ? "Leaving..." : "Leave Group"}

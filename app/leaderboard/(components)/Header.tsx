@@ -4,24 +4,24 @@ import { useRef } from "react";
 
 export default function LeaderboardHeader() {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
-  
-    return (
-        <div className="items-center px-4 py-6 flex justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-14 h-14 flex items-center justify-center bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
-                <Lottie
-                  lottieRef={lottieRef}
-                  animationData={trophyAnimationData}
-                  loop={1}
-                  autoplay={true}
-                  style={{ width: "2.2em", height: "2.2em" }}
-                />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">Leaderboard</h1>
-                <p className="text-sm text-gray-400">Top users ranking</p>
-              </div>
-            </div>
-          </div>
-    )
+
+  return (
+    <div className="items-center px-4 py-6 flex justify-between">
+      <div className="flex items-center space-x-3">
+        <div className="w-14 h-14 flex items-center justify-center bg-white/5 rounded-2xl border border-white/10">
+          <Lottie
+            lottieRef={lottieRef}
+            animationData={trophyAnimationData}
+            loop={1}
+            autoplay={true}
+            style={{ width: "2.2em", height: "2.2em" }}
+          />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Leaderboard</h1>
+          <p className="text-sm text-gray-400">Top users ranking</p>
+        </div>
+      </div>
+    </div>
+  )
 }

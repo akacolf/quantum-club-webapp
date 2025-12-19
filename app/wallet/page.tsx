@@ -103,6 +103,11 @@ export default function WalletPage() {
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Scroll to top on navigation
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
@@ -393,15 +398,14 @@ export default function WalletPage() {
               )}
             </Button>
 
-            <Link href="/wallet/import" className="block w-full">
-              <Button
-                variant="outline"
-                className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] border-[#333] h-12 rounded-xl font-semibold text-base"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Import Existing Wallet
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/wallet/import")}
+              className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] border-[#333] h-12 rounded-xl font-semibold text-base"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Import Existing Wallet
+            </Button>
           </div>
         </motion.div>
       </div>
@@ -425,7 +429,7 @@ export default function WalletPage() {
           animate={{ y: 0, opacity: 1 }}
           className="w-full"
         >
-          <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#111] border-[#333] rounded-3xl relative overflow-hidden shadow-xl">
+          <Card className="bg-gradient-to-br from-[#0c0c0c] to-black border-white/5 rounded-[32px] relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
 
             <CardContent className="p-6 relative z-10">
@@ -450,13 +454,13 @@ export default function WalletPage() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleRefresh}
                     disabled={isRefreshing}
-                    className="h-8 w-8 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 rounded-full disabled:opacity-50"
+                    className="size-9 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white rounded-full disabled:opacity-50 transition-all active:scale-90"
                   >
                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   </Button>
@@ -464,7 +468,7 @@ export default function WalletPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/wallet/settings")}
-                    className="h-8 w-8 bg-[#222] text-gray-400 hover:bg-[#333] hover:text-white rounded-full"
+                    className="size-9 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white rounded-full transition-all active:scale-90"
                   >
                     <Settings className="w-4 h-4" />
                   </Button>
@@ -472,7 +476,7 @@ export default function WalletPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => walletExit()}
-                    className="h-8 w-8 bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500 rounded-full"
+                    className="size-9 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-full transition-all active:scale-90"
                   >
                     <LogOut className="w-4 h-4" />
                   </Button>
@@ -591,14 +595,13 @@ export default function WalletPage() {
                   <p className="text-xs text-gray-500">QC Points</p>
                 </div>
               </div>
-              <Link href="/wallet/send-qntm" className="w-full">
-                <Button
-                  className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold transform-none hover:transform-none transition-opacity duration-200 hover:opacity-80 border-0 focus:ring-0 focus-visible:ring-0"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Send QNTM
-                </Button>
-              </Link>
+              <Button
+                onClick={() => router.push("/wallet/send-qntm")}
+                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold transform-none hover:transform-none transition-opacity duration-200 hover:opacity-80 border-0 focus:ring-0 focus-visible:ring-0"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Send QNTM
+              </Button>
             </CardContent>
           </Card>
         </div>

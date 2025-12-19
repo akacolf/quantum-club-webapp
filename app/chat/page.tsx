@@ -54,20 +54,20 @@ const ChatItem = memo(function ChatItem({ chat, index, telegramId, onNavigate }:
             transition={{ delay: index * 0.05 }}
         >
             <Card
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                className="cursor-pointer bg-white/5 border-white/5 hover:bg-white/10 transition-all active:scale-[0.98] rounded-2xl"
                 onClick={handleClick}
             >
                 <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-12 w-12">
+                        <Avatar className="h-12 w-12 border border-white/10">
                             {chat.type === "group" ? (
-                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                                <AvatarFallback className="bg-white/10 text-white">
                                     <Users className="w-5 h-5" />
                                 </AvatarFallback>
                             ) : (
                                 <>
                                     <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${participantName}`} />
-                                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold">
+                                    <AvatarFallback className="bg-white/10 text-white font-bold">
                                         {participantName.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                 </>
@@ -126,8 +126,8 @@ export default function ChatListPage() {
             <div className="relative z-10 p-4 pt-8 space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Messages</h1>
-                    <p className="text-sm text-muted-foreground">Chat with your community</p>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">Messages</h1>
+                    <p className="text-sm text-white/40">Chat with your community</p>
                 </div>
 
                 {/* Chats List */}

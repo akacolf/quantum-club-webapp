@@ -30,14 +30,14 @@ const GroupItem = memo(function GroupItem({ group, index, onNavigate }: GroupIte
             transition={{ delay: index * 0.05 }}
         >
             <Card
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                className="cursor-pointer bg-white/5 border-white/5 hover:bg-white/10 transition-all active:scale-[0.98] rounded-2xl"
                 onClick={handleClick}
             >
                 <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
+                        <Avatar className="h-12 w-12 border border-white/10">
                             <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${group.name}`} />
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-lg">
+                            <AvatarFallback className="bg-white/10 text-white font-bold text-lg">
                                 {group.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
@@ -90,7 +90,7 @@ export default function GroupsPage() {
                     </div>
                     <Button
                         onClick={handleNavigateToCreate}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="h-11 px-6 bg-white text-black hover:bg-white/90 font-bold rounded-2xl active:scale-95 transition-all"
                     >
                         <Plus className="w-4 h-4 mr-1" />
                         Create

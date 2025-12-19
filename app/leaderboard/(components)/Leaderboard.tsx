@@ -4,34 +4,32 @@ import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { Trophy } from "lucide-react";
 
 export default function LeaderboardList() {
-    const { leaderboardContext } = useLeaderboardContext(); 
+    const { leaderboardContext } = useLeaderboardContext();
     return (
         <div className="mt-6 px-4 pb-24 space-y-4">
             <div className="flex items-center gap-2 mb-2">
-                <Trophy className="w-5 h-5 text-yellow-500" />
-                <span className="font-semibold text-white">Top Users</span>
+                <Trophy className="w-5 h-5 text-white/40" />
+                <span className="text-[10px] text-white/40 uppercase tracking-[0.1em] font-bold">Top Users</span>
             </div>
-            
+
             <div className="space-y-1">
                 {leaderboardContext && leaderboardContext.length > 0 &&
                     leaderboardContext.map((item, index) => (
-                        <div 
+                        <div
                             key={index}
-                            className={`p-4 flex items-center justify-between rounded-xl transition-colors ${
-                                index < 3 ? 'bg-white/5' : 'hover:bg-white/5'
-                            }`}
+                            className={`p-4 flex items-center justify-between rounded-2xl transition-all active:scale-[0.98] border border-transparent ${index < 3 ? 'bg-white/5 border-white/5 shadow-sm' : 'hover:bg-white/5'
+                                }`}
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 flex items-center justify-center">
-                                    <Image src={logoWhite} alt="logo" height={24} width={24} className="opacity-80"/>
+                                    <Image src={logoWhite} alt="logo" height={24} width={24} className="opacity-80" />
                                 </div>
                                 <div>
-                                    <div className={`font-bold text-sm ${
-                                        index === 0 ? 'text-yellow-500' :
+                                    <div className={`font-bold text-sm ${index === 0 ? 'text-yellow-500' :
                                         index === 1 ? 'text-gray-300' :
-                                        index === 2 ? 'text-orange-400' :
-                                        'text-white'
-                                    }`}>
+                                            index === 2 ? 'text-orange-400' :
+                                                'text-white'
+                                        }`}>
                                         {item.username}
                                     </div>
                                     <div className="font-medium text-xs text-gray-500">

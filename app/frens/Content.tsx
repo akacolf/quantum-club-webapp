@@ -337,7 +337,7 @@ const FrensContent = () => {
                       <Button
                         onClick={handleClaimRewards}
                         disabled={isClaiming || pendingRewards <= 0}
-                        className="bg-purple-500 hover:bg-purple-600 text-white font-bold disabled:opacity-50"
+                        className="h-9 px-4 bg-white text-black hover:bg-white/90 font-bold disabled:opacity-50 transition-all active:scale-95 rounded-xl text-xs"
                       >
                         {isClaiming ? <ButtonLoader /> : "Claim"}
                       </Button>
@@ -362,7 +362,7 @@ const FrensContent = () => {
               <div className="space-y-3">
                 {referralsContext && referralsContext.length > 0 ? (
                   referralsContext.map((referral, index) => (
-                    <Card key={index} className="bg-[#1a1a1a]/60 border-[#333] text-white backdrop-blur-sm hover:bg-[#1a1a1a]/80 transition-colors">
+                    <Card key={index} className="bg-white/5 border-white/5 text-white backdrop-blur-sm hover:bg-white/10 transition-all active:scale-[0.98]">
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center border border-[#333] overflow-hidden">
