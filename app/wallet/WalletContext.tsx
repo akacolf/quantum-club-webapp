@@ -218,7 +218,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return tonPrice || 0;
   }, [tonPrice]);
-
+const sleep = (ms:number) => new Promise((resolve) => setTimeout(resolve, ms));
   // Fetch wallet assets (TON balance + Jettons)
   const fetchWalletAssets = useCallback(async () => {
     if (!walletAddress) return;
@@ -232,6 +232,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Fetch TON balance using TON API
       let tonUsd = 0;
       const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
+      if(balanceResponse.status !== 200){
+        sleep(300)
+        return fetchWalletAssets()
+      }
       if (balanceResponse.ok) {
         const balanceData = await balanceResponse.json();
         const balanceInNano = balanceData.balance || "0";
@@ -247,6 +251,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Fetch Jettons (tokens) balance with USD prices
       let jettonsUsdTotal = 0;
       const jettonsResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}/jettons?currencies=usd`);
+      if(jettonsResponse.status !== 200){
+        sleep(300)
+        return fetchWalletAssets()
+      }
       if (jettonsResponse.ok) {
         const jettonsData = await jettonsResponse.json();
         const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton: {
@@ -270,7 +278,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const usdValue = actualBalance * priceUsd;
 
           jettonsUsdTotal += usdValue;
-
           return {
             symbol: jetton.jetton?.symbol || "Unknown",
             name: jetton.jetton?.name || "Unknown Token",
@@ -285,7 +292,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         });
         setJettons(jettonBalances);
       }
-
+      
       // Set total USD balance (TON + all Jettons)
       setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
     } catch (error) {
