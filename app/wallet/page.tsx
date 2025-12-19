@@ -492,16 +492,18 @@ export default function WalletPage() {
                       TESTNET
                     </Badge>
                   )}
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={toggleHideBalance}
-                    className="text-gray-500 hover:text-gray-300 transition-colors"
+                    className="h-8 w-8 text-gray-500 hover:text-gray-300 hover:bg-transparent transition-colors"
                   >
                     {hideBalance ? (
                       <EyeOff className="w-3.5 h-3.5" />
                     ) : (
                       <Eye className="w-3.5 h-3.5" />
                     )}
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex items-baseline gap-1">
                   {isLoadingAssets ? (
@@ -537,6 +539,7 @@ export default function WalletPage() {
                 )}
               </div>
 
+              {/* Action Grid */}
               <div className="grid grid-cols-4 gap-2 mt-8">
                 {[
                   { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
@@ -544,11 +547,12 @@ export default function WalletPage() {
                   { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", path: "/wallet/swap", disabled: false },
                   { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
                 ].map((action, i) => (
-                  <button
+                  <Button
                     key={i}
+                    variant="ghost"
                     onClick={() => !action.disabled && router.push(action.path)}
                     disabled={action.disabled}
-                    className={`flex flex-col items-center gap-2 ${action.disabled
+                    className={`h-auto flex flex-col items-center gap-2 p-0 bg-transparent hover:bg-transparent transition-none ${action.disabled
                       ? 'cursor-not-allowed opacity-50'
                       : 'group cursor-pointer'
                       }`}
@@ -565,7 +569,7 @@ export default function WalletPage() {
                       }`}>
                       {action.label}
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </CardContent>
@@ -857,12 +861,14 @@ export default function WalletPage() {
                       <p className="text-sm text-gray-400">{selectedAsset.name}</p>
                     </div>
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setSelectedAsset(null)}
                     className="w-8 h-8 bg-[#222] rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#333] transition-colors"
                   >
                     <X className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Current Price */}
@@ -879,16 +885,18 @@ export default function WalletPage() {
                     <p className="text-gray-400 text-sm">Price Chart</p>
                     <div className="flex gap-1 overflow-x-auto no-scrollbar">
                       {(['1H', '1D', '1W', '1M', '6M', '1Y'] as ChartPeriod[]).map((period) => (
-                        <button
+                        <Button
                           key={period}
+                          size="sm"
+                          variant="ghost"
                           onClick={() => setChartPeriod(period)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors ${chartPeriod === period
-                            ? 'bg-white text-black'
-                            : 'bg-[#1a1a1a] text-gray-500 hover:text-gray-300'
+                          className={`px-2.5 py-1 h-auto rounded-lg text-[10px] font-medium transition-colors ${chartPeriod === period
+                            ? 'bg-white text-black hover:bg-white/90 shadow-sm'
+                            : 'bg-[#1a1a1a] text-gray-500 hover:text-gray-300 hover:bg-[#252525]'
                             }`}
                         >
                           {period}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>

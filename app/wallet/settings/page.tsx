@@ -114,9 +114,10 @@ export default function WalletSettingsPage() {
 
             <Card className="bg-[#111] border-[#222] overflow-hidden">
               <CardContent className="p-0">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => router.push("/wallet/settings/recovery-phrase")}
-                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-[#1a1a1a] rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
@@ -127,14 +128,15 @@ export default function WalletSettingsPage() {
                       <p className="text-xs text-gray-500">View your 24-word seed phrase</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </button>
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                </Button>
 
                 <div className="border-t border-[#222]" />
 
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => router.push("/wallet/settings/wallets")}
-                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-[#1a1a1a] rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
@@ -145,14 +147,15 @@ export default function WalletSettingsPage() {
                       <p className="text-xs text-gray-500">Add, switch, or remove wallets</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </button>
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                </Button>
 
                 <div className="border-t border-[#222]" />
 
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => router.push("/wallet/settings/address-book")}
-                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-[#1a1a1a] rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
@@ -163,14 +166,15 @@ export default function WalletSettingsPage() {
                       <p className="text-xs text-gray-500">Save frequently used addresses</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </button>
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                </Button>
 
                 <div className="border-t border-[#222]" />
 
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => router.push("/wallet/settings/price-alerts")}
-                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-[#1a1a1a] rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center">
@@ -181,8 +185,8 @@ export default function WalletSettingsPage() {
                       <p className="text-xs text-gray-500">Get notified when TON hits a target</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </button>
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -193,9 +197,10 @@ export default function WalletSettingsPage() {
 
             <Card className="bg-[#111] border-[#222] overflow-hidden">
               <CardContent className="p-0">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => router.push("/wallet/settings/terms")}
-                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-[#1a1a1a] rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
@@ -206,14 +211,15 @@ export default function WalletSettingsPage() {
                       <p className="text-xs text-gray-500">Read our terms and conditions</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </button>
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                </Button>
 
                 <div className="border-t border-[#222]" />
 
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => router.push("/wallet/settings/privacy")}
-                  className="w-full flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-[#1a1a1a] rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
@@ -224,8 +230,8 @@ export default function WalletSettingsPage() {
                       <p className="text-xs text-gray-500">How we handle your data</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </button>
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -236,9 +242,10 @@ export default function WalletSettingsPage() {
 
             <Card className="bg-[#111] border-red-500/20 overflow-hidden">
               <CardContent className="p-0">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setShowDeleteWalletConfirm(true)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors"
+                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-red-500/5 rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
@@ -249,8 +256,8 @@ export default function WalletSettingsPage() {
                       <p className="text-xs text-gray-500">Delete wallet from this device</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </button>
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                </Button>
               </CardContent>
             </Card>
           </div>

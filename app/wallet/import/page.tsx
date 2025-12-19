@@ -10,6 +10,7 @@ import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/t
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useWallet, IS_TESTNET } from "../WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -237,9 +238,9 @@ export default function ImportWalletPage() {
             >
               <div className="flex items-center gap-2 px-1">
                 <Sparkles className="w-4 h-4 text-white/40" />
-                <label className="text-xs font-bold uppercase tracking-widest text-white/40">
+                <Label className="text-xs font-bold uppercase tracking-widest text-white/40">
                   Select Version
-                </label>
+                </Label>
               </div>
 
               <DropdownMenu>
@@ -294,9 +295,9 @@ export default function ImportWalletPage() {
               className="space-y-4"
             >
               <div className="flex items-center justify-between px-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-white/40">
+                <Label className="text-xs font-bold uppercase tracking-widest text-white/40">
                   Recovery Phrase
-                </label>
+                </Label>
                 <Button
                   variant="ghost"
                   size="sm"

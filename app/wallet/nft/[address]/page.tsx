@@ -191,12 +191,14 @@ export default function NftDetailPage() {
                     <div>
                         <h1 className="text-2xl font-bold text-white">{nft.name}</h1>
                         {nft.collectionName && (
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => nft.collectionAddress && window.open(`${EXPLORER_BASE_URL}/${nft.collectionAddress}`, "_blank")}
-                                className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-1"
+                                className="h-auto p-0 text-sm text-blue-400 hover:text-blue-300 hover:bg-transparent transition-colors mt-1"
                             >
                                 {nft.collectionName}
-                            </button>
+                            </Button>
                         )}
                     </div>
 
@@ -234,13 +236,14 @@ export default function NftDetailPage() {
                             {nft.ownerAddress && (
                                 <div>
                                     <h3 className="text-xs text-gray-500 uppercase mb-2">Owner</h3>
-                                    <button
+                                    <Button
+                                        variant="ghost"
                                         onClick={() => window.open(`${EXPLORER_BASE_URL}/${nft.ownerAddress}`, "_blank")}
-                                        className="flex items-center justify-between w-full gap-3 bg-[#1a1a1a] border border-[#333] rounded-xl p-3 hover:bg-[#222] transition-colors"
+                                        className="flex items-center justify-between w-full h-auto gap-3 bg-[#1a1a1a] border border-[#333] rounded-xl p-3 hover:bg-[#222] transition-colors"
                                     >
                                         <p className="text-xs text-blue-400 font-mono break-all">{formatWalletAddress(nft.ownerAddress)}</p>
                                         <ExternalLink className="w-4 h-4 text-gray-500 shrink-0" />
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                         </CardContent>

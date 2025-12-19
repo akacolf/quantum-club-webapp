@@ -7,6 +7,7 @@ import { X, Send, User, Sparkles, Copy, Check, Trash2, History, Plus, ArrowLeft,
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { ButtonLoader } from "./ButtonLoader";
@@ -81,16 +82,18 @@ const ChatMessage = memo(function ChatMessage({ message }: { message: Message })
                 </div>
                 {/* Copy button for AI responses */}
                 {!isUser && message.content && (
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={handleCopy}
-                        className="self-start flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+                        className="self-start h-auto p-0 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors opacity-0 group-hover:opacity-100"
                     >
                         {copied ? (
                             <><Check className="w-3 h-3" /> Copied</>
                         ) : (
                             <><Copy className="w-3 h-3" /> Copy</>
                         )}
-                    </button>
+                    </Button>
                 )}
             </div>
         </motion.div>
@@ -126,14 +129,14 @@ const ChatInputForm = memo(function ChatInputForm({
     return (
         <div className="p-4 border-t border-border">
             <form onSubmit={handleSubmit} className="flex gap-2">
-                <textarea
+                <Textarea
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask anything..."
                     rows={1}
-                    className="flex-1 min-h-0 px-4 py-3 bg-secondary border border-border rounded-xl text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:border-ring focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="flex-1 min-h-[48px] px-4 py-3 bg-secondary border border-border rounded-xl text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:border-ring focus-visible:ring-0 focus-visible:ring-offset-0"
                     style={{ maxHeight: "100px" }}
                     aria-label="Message input"
                 />

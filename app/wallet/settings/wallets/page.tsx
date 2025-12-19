@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWallet, StoredWallet } from "../../WalletContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -113,7 +114,7 @@ export default function ManageWalletsPage() {
                         <div className="flex-1 min-w-0">
                           {editingWallet === wallet.address ? (
                             <div className="flex items-center gap-2">
-                              <input
+                              <Input
                                 type="text"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
@@ -147,12 +148,14 @@ export default function ManageWalletsPage() {
                                 <span className="text-gray-500 text-sm font-mono truncate">
                                   {formatAddress(wallet.address)}
                                 </span>
-                                <button
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => handleCopyAddress(wallet.address)}
-                                  className="text-gray-500 hover:text-gray-300 shrink-0"
+                                  className="h-auto w-auto p-0 text-gray-500 hover:text-gray-300 hover:bg-transparent shrink-0"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
-                                </button>
+                                </Button>
                               </div>
                             </>
                           )}

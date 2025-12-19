@@ -5,6 +5,9 @@ import { dbfs } from '@/app/(firebase)/client';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useTelegramBackButton } from '@/app/(hooks)/useBackButton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import React, { useEffect, useState } from 'react';
 
 export default function AnswerPage() {
@@ -113,27 +116,27 @@ export default function AnswerPage() {
         }
     }
     return (
-                <div className='bg-black flex flex-col'>
-                    {!isLoading &&
-                        (<div> <div className='flex flex-col ml-4 mt-28'>
-                            {/*<button onClick={()=>router.back()}>{"<"}</button> {/*Back Button */}
-                            <label className='mb-2 text-lg font-medium text-gray-400'>Answer</label>
-                            <input
-                                type="text" id="answerWrong"
-                                className={`${isCorrect ? "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5" : "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5 border border-red-600"}`}
-                                onInput={(e) => {
-                                    const input = e.target as HTMLInputElement;
-                                    setTextBox(input.value = input.value.toUpperCase());
-                                    ; setIsCorrect(true)
-                                }}>
-                            </input>
-                        </div>
-                            <div className='mt-4 ml-4'>
-                                <button onClick={() => check()} className='bg-white font-semibold text-black px-6 py-2 rounded-full'>
-                                    Check
-                                </button>
-                            </div>
-                        </div>)}
+        <div className='bg-black flex flex-col'>
+            {!isLoading &&
+                (<div> <div className='flex flex-col ml-4 mt-28'>
+                    {/*<button onClick={()=>router.back()}>{"<"}</button> {/*Back Button */}
+                    <Label className='mb-2 text-lg font-medium text-gray-400'>Answer</Label>
+                    <Input
+                        type="text" id="answerWrong"
+                        className={`h-11 ${isCorrect ? "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5" : "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5 border border-red-600"}`}
+                        onInput={(e) => {
+                            const input = e.target as HTMLInputElement;
+                            setTextBox(input.value = input.value.toUpperCase());
+                            ; setIsCorrect(true)
+                        }}>
+                    </Input>
                 </div>
+                    <div className='mt-4 ml-4'>
+                        <Button onClick={() => check()} className='bg-white font-semibold text-black px-8 h-12 rounded-xl'>
+                            Check
+                        </Button>
+                    </div>
+                </div>)}
+        </div>
     )
 }

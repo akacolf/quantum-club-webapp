@@ -605,12 +605,14 @@ export default function SwapPage() {
                                 <CardContent className="p-5 relative">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-gray-400">You pay</span>
-                                        <button
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={handleMaxAmount}
-                                            className="text-xs text-blue-400 hover:text-blue-300"
+                                            className="h-auto p-0 text-xs text-blue-400 hover:text-blue-300 hover:bg-transparent"
                                         >
                                             MAX: {fromAsset ? getAssetBalance(fromAsset) : "0"}
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     <div className="flex items-center gap-3">
@@ -714,12 +716,14 @@ export default function SwapPage() {
 
                             {/* Swap Direction Toggle */}
                             <div className="flex justify-center -my-5 relative z-10">
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={handleToggleDirection}
                                     className="w-10 h-10 bg-[#222] hover:bg-[#333] active:scale-95 rounded-xl flex items-center justify-center border-[4px] border-black transition-all shadow-lg text-blue-400 hover:text-blue-300"
                                 >
                                     <ArrowDownUp className="w-5 h-5" />
-                                </button>
+                                </Button>
                             </div>
 
                             {/* To Asset */}
@@ -865,9 +869,9 @@ export default function SwapPage() {
                                                     Network fee
                                                     <Popover>
                                                         <PopoverTrigger asChild>
-                                                            <button type="button" className="inline-flex">
+                                                            <Button variant="ghost" size="icon" type="button" className="h-auto w-auto p-0 hover:bg-transparent inline-flex">
                                                                 <Info className="w-3 h-3 text-gray-500 cursor-help" />
-                                                            </button>
+                                                            </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent side="top" className="w-56 bg-[#1a1a1a] border-[#333] text-gray-300 p-3">
                                                             <p className="font-medium text-white mb-1 text-xs">Includes 50% safety buffer</p>
@@ -891,16 +895,18 @@ export default function SwapPage() {
                                                 <span className="text-gray-400">Slippage tolerance</span>
                                                 <div className="flex items-center gap-2">
                                                     {["0.5", "1", "3"].map((s) => (
-                                                        <button
+                                                        <Button
                                                             key={s}
+                                                            variant="ghost"
+                                                            size="sm"
                                                             onClick={() => setSlippage(s)}
-                                                            className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-tight transition-all active:scale-95 ${slippage === s
-                                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                                                            className={`h-auto px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-tight transition-all active:scale-95 ${slippage === s
+                                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600 hover:text-white"
                                                                 : "bg-[#222] text-gray-500 hover:text-gray-300 hover:bg-[#2a2a2a]"
                                                                 }`}
                                                         >
                                                             {s}%
-                                                        </button>
+                                                        </Button>
                                                     ))}
                                                 </div>
                                             </div>
@@ -1128,15 +1134,20 @@ export default function SwapPage() {
                             </div>
 
                             {lastTxHash && (
-                                <a
-                                    href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 text-sm"
+                                <Button
+                                    variant="ghost"
+                                    asChild
+                                    className="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 hover:bg-transparent text-sm h-auto p-0"
                                 >
-                                    View on Explorer
-                                    <ExternalLink className="w-4 h-4" />
-                                </a>
+                                    <a
+                                        href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        View on Explorer
+                                        <ExternalLink className="w-4 h-4" />
+                                    </a>
+                                </Button>
                             )}
 
                             <Button

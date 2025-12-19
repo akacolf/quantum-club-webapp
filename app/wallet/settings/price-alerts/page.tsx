@@ -155,26 +155,28 @@ export default function PriceAlertsPage() {
                             <Card className="bg-[#111] border-[#222] mb-4">
                                 <CardContent className="p-4 space-y-4">
                                     <div className="grid grid-cols-2 gap-2">
-                                        <button
+                                        <Button
+                                            variant="ghost"
                                             onClick={() => setDirection("above")}
-                                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-colors ${direction === "above"
-                                                ? "bg-green-500/20 border-green-500/50 text-green-400"
-                                                : "bg-[#1a1a1a] border-[#333] text-gray-400"
+                                            className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${direction === "above"
+                                                ? "bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30 hover:text-green-300"
+                                                : "bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#222] hover:text-gray-300"
                                                 }`}
                                         >
                                             <TrendingUp className="w-4 h-4" />
                                             Above
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
                                             onClick={() => setDirection("below")}
-                                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-colors ${direction === "below"
-                                                ? "bg-red-500/20 border-red-500/50 text-red-400"
-                                                : "bg-[#1a1a1a] border-[#333] text-gray-400"
+                                            className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${direction === "below"
+                                                ? "bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30 hover:text-red-300"
+                                                : "bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#222] hover:text-gray-300"
                                                 }`}
                                         >
                                             <TrendingDown className="w-4 h-4" />
                                             Below
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     <div className="flex gap-2">

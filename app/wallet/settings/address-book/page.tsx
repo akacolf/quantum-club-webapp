@@ -238,13 +238,14 @@ export default function AddressBookPage() {
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0 flex-1">
                                                 <div className="font-medium text-white">{entry.name}</div>
-                                                <button
+                                                <Button
+                                                    variant="ghost"
                                                     onClick={() => copyAddress(entry.address)}
-                                                    className="text-xs text-gray-500 font-mono break-all text-left hover:text-gray-400 flex items-center gap-1 mt-1"
+                                                    className="h-auto p-0 text-xs text-gray-500 font-mono break-all text-left hover:text-gray-400 hover:bg-transparent flex items-center gap-1 mt-1"
                                                 >
                                                     {entry.address.slice(0, 12)}...{entry.address.slice(-8)}
                                                     <Copy className="w-3 h-3 shrink-0" />
-                                                </button>
+                                                </Button>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
                                                 <Button

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon } from "lucide-react";
@@ -211,12 +212,14 @@ export default function HistoryPage() {
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
               {error}
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => walletAddress && fetchHistory(walletAddress)}
-                className="ml-2 underline hover:no-underline"
+                className="ml-2 h-auto p-0 underline hover:no-underline text-red-400 hover:text-red-300 hover:bg-transparent"
               >
                 Retry
-              </button>
+              </Button>
             </div>
           )}
 

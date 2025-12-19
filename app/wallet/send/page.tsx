@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -747,7 +748,7 @@ export default function SendPage() {
             >
               {/* Asset Selection */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400 ml-1">Asset</label>
+                <Label className="text-sm text-gray-400 ml-1">Asset</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -806,20 +807,22 @@ export default function SendPage() {
 
               {/* Recipient */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400 ml-1">Recipient Address or .ton Domain</label>
+                <Label className="text-sm text-gray-400 ml-1">Recipient Address or .ton Domain</Label>
 
                 {/* Quick Select from Address Book */}
                 {savedAddresses.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-2">
                     {savedAddresses.slice(0, 3).map((addr) => (
-                      <button
+                      <Button
                         key={addr.address}
+                        variant="outline"
+                        size="sm"
                         onClick={() => setRecipient(addr.address)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] border border-[#333] rounded-lg text-xs hover:bg-[#222] transition-colors"
+                        className="flex items-center gap-1.5 h-8 px-3 bg-[#1a1a1a] border-[#333] text-white hover:bg-[#222] transition-colors rounded-lg text-xs"
                       >
                         <BookUser className="w-3 h-3 text-purple-400" />
-                        <span className="text-white">{addr.name}</span>
-                      </button>
+                        <span>{addr.name}</span>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -859,10 +862,10 @@ export default function SendPage() {
 
               {/* Comment (Optional) */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400 ml-1 flex items-center gap-2">
+                <Label className="text-sm text-gray-400 ml-1 flex items-center gap-2">
                   <MessageSquare className="w-3 h-3" />
                   Comment (Optional)
-                </label>
+                </Label>
                 <Textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
@@ -876,17 +879,19 @@ export default function SendPage() {
               {/* Amount */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-sm text-gray-400">Amount</label>
+                  <Label className="text-sm text-gray-400">Amount</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">
                       {selectedAsset?.balance} {selectedAsset?.symbol}
                     </span>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={handleMaxAmount}
-                      className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase"
+                      className="h-auto p-0 text-xs font-bold text-blue-400 hover:text-blue-300 hover:bg-transparent transition-colors uppercase"
                     >
                       Max
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="relative">

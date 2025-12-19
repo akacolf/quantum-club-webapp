@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Wallet, Info, AlertTriangle, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -339,7 +340,7 @@ export default function SendNftPage() {
 
                             {/* Recipient */}
                             <div className="space-y-2">
-                                <label className="text-sm text-gray-400 ml-1">Recipient Address</label>
+                                <Label className="text-sm text-gray-400 ml-1">Recipient Address</Label>
                                 <div className="relative">
                                     <Input
                                         value={recipient}

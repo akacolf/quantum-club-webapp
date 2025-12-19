@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Check, User, Info, ArrowRight, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -214,7 +215,7 @@ export default function SendQNTMPage() {
 
               {/* Recipient QC ID */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400 ml-1">Recipient&apos;s QC ID</label>
+                <Label className="text-sm text-gray-400 ml-1">Recipient&apos;s QC ID</Label>
                 <div className="relative">
                   <Input
                     value={recipientQcId}
@@ -242,14 +243,16 @@ export default function SendQNTMPage() {
               <div className="bg-[#111] rounded-xl p-4 border border-[#222]">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-gray-400">Your QC ID (share to receive QNTM)</span>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleCopyQcId}
-                    className={`flex items-center gap-1 text-xs transition-colors ${qcIdCopied ? 'text-green-400' : 'text-orange-400 hover:text-orange-300'
+                    className={`h-auto p-0 flex items-center gap-1 text-xs transition-colors hover:bg-transparent ${qcIdCopied ? 'text-green-400 hover:text-green-400' : 'text-orange-400 hover:text-orange-300'
                       }`}
                   >
                     {qcIdCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                     {qcIdCopied ? 'Copied!' : 'Copy'}
-                  </button>
+                  </Button>
                 </div>
                 <p className="text-sm text-white font-mono break-all select-all">{telegramId || "Loading..."}</p>
               </div>
@@ -257,15 +260,17 @@ export default function SendQNTMPage() {
               {/* Amount */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-sm text-gray-400">Amount</label>
+                  <Label className="text-sm text-gray-400">Amount</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">{MainQuantAmount} QNTM</span>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={handleMaxAmount}
-                      className="text-xs font-bold text-orange-400 hover:text-orange-300 transition-colors uppercase"
+                      className="h-auto p-0 text-xs font-bold text-orange-400 hover:text-orange-300 hover:bg-transparent transition-colors uppercase"
                     >
                       Max
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="relative">

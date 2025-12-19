@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { useWallet } from "../WalletContext";
@@ -107,10 +109,10 @@ export default function VerifyPhrasePage() {
           <div className="space-y-4">
             {verificationWords.map((item, i) => (
               <div key={item.index} className="space-y-2">
-                <label className="text-sm text-gray-400 ml-1">
+                <Label className="text-sm text-gray-400 ml-1">
                   Word #{item.index + 1}
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   value={userInputs[i]}
                   onChange={(e) => {
@@ -119,7 +121,7 @@ export default function VerifyPhrasePage() {
                     setUserInputs(newInputs);
                   }}
                   placeholder={`Enter word #${item.index + 1}`}
-                  className="w-full bg-[#0a0a0a] border border-[#222] rounded-xl px-4 py-3.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-mono transition-colors"
+                  className="w-full bg-[#0a0a0a] border border-[#222] rounded-xl px-4 py-6 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-mono transition-colors"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"

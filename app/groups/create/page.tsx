@@ -7,6 +7,7 @@ import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Users } from "lucide-react";
@@ -68,7 +69,7 @@ export default function CreateGroupPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Group Name</label>
+                            <Label className="text-sm font-medium text-muted-foreground">Group Name</Label>
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
@@ -79,7 +80,7 @@ export default function CreateGroupPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Description (optional)</label>
+                            <Label className="text-sm font-medium text-muted-foreground">Description (optional)</Label>
                             <Textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
