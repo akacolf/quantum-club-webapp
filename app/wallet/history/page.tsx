@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { fromNano, Address } from "@ton/core";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useWallet, IS_TESTNET } from "../WalletContext";
+import { useWallet } from "../WalletContext";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
@@ -63,17 +63,18 @@ interface QNTMTransfer {
 
 export default function HistoryPage() {
   useTelegramBackButton("/wallet");
-  const { walletAddress } = useWallet();
+  const { walletAddress, isTestnet } = useWallet();
   const { telegramId } = useGameContext();
   const [history, setHistory] = useState<HistoryEvent[]>([]);
   const [qntmHistory, setQntmHistory] = useState<QNTMTransfer[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingQntm, setIsLoadingQntm] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("blockchain");
+  const [activeTab, setActiveTab] = useState("ton");
 
   // Explorer URL based on network
-  const EXPLORER_BASE_URL = IS_TESTNET ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
+  const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
+  const TON_API_BASE_URL = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
   // Fetch QNTM transfer history from Firebase
   const fetchQntmHistory = useCallback(async () => {
@@ -119,7 +120,7 @@ export default function HistoryPage() {
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch(
-        `https://tonapi.io/v2/accounts/${encodeURIComponent(address)}/events?limit=50`,
+        `${TON_API_BASE_URL}/v2/accounts/${encodeURIComponent(address)}/events?limit=50`,
         {
           signal: controller.signal,
           headers: {
@@ -148,16 +149,17 @@ export default function HistoryPage() {
     } finally {
       setIsLoadingHistory(false);
     }
-  }, []);
+  }, [TON_API_BASE_URL]);
 
-  // Fetch history when wallet address is available from context
+  // Fetch history when wallet address is available or network changes
   useEffect(() => {
     if (walletAddress) {
+      setHistory([]); // Clear history when refetching
       fetchHistory(walletAddress);
     } else {
       setIsLoadingHistory(false);
     }
-  }, [walletAddress, fetchHistory]);
+  }, [walletAddress, fetchHistory, isTestnet]);
 
   // Fetch QNTM history when telegramId is available
   useEffect(() => {
@@ -185,30 +187,30 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto p-4 h-screen bg-black text-white">
+    <div className="flex flex-col w-full max-w-md mx-auto p-4 h-screen bg-background text-foreground">
       <div className="flex items-center justify-center mb-4">
-        <h2 className="text-xl font-bold text-white">History</h2>
+        <h2 className="text-xl font-bold text-foreground">History</h2>
       </div>
 
       {/* Tabs for Blockchain and QNTM */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-2 bg-[#111] border border-[#222] mb-4">
+        <TabsList className="w-full h-12 p-1 bg-background border border-border rounded-xl mb-6">
           <TabsTrigger
-            value="blockchain"
-            className="data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+            value="ton"
+            className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg text-muted-foreground transition-all"
           >
             Blockchain
           </TabsTrigger>
           <TabsTrigger
             value="qntm"
-            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+            className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg text-muted-foreground transition-all"
           >
             QNTM
           </TabsTrigger>
         </TabsList>
 
         {/* Blockchain History Tab */}
-        <TabsContent value="blockchain" className="flex-1 mt-0">
+        <TabsContent value="ton" className="flex-1 mt-0">
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
               {error}
@@ -227,26 +229,26 @@ export default function HistoryPage() {
             <div className="space-y-3 pb-20">
               {isLoadingHistory ? (
                 [1, 2, 3, 4, 5].map((i) => (
-                  <Card key={i} className="bg-[#111] border-[#222] shadow-none">
+                  <Card key={i} className="bg-card border-border shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <Skeleton className="w-12 h-12 rounded-full bg-[#222]" />
+                        <Skeleton className="w-12 h-12 rounded-full bg-muted" />
                         <div className="space-y-2">
-                          <Skeleton className="w-24 h-4 bg-[#222]" />
-                          <Skeleton className="w-16 h-3 bg-[#222]" />
+                          <Skeleton className="w-24 h-4 bg-muted" />
+                          <Skeleton className="w-16 h-3 bg-muted" />
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        <Skeleton className="w-20 h-5 bg-[#222]" />
-                        <Skeleton className="w-12 h-3 bg-[#222]" />
+                        <Skeleton className="w-20 h-5 bg-muted" />
+                        <Skeleton className="w-12 h-3 bg-muted" />
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : history.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-gray-500 space-y-4">
-                  <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center border border-[#222]">
-                    <Clock className="w-8 h-8 text-gray-600" />
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
+                    <Clock className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <p>No blockchain transactions yet</p>
                 </div>
@@ -369,12 +371,12 @@ export default function HistoryPage() {
                   return (
                     <Card
                       key={event.event_id}
-                      className="bg-[#111] border-[#222] shadow-none hover:border-[#333] transition-all active:scale-[0.99] cursor-pointer"
+                      className="bg-card border-border shadow-none hover:border-muted-foreground/20 transition-all active:scale-[0.99] cursor-pointer"
                       onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${event.event_id}`, "_blank")}
                     >
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${type === 'Deploy' ? 'bg-blue-500/10 text-blue-500' :
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${type === 'Deploy' ? 'bg-primary/10 text-primary' :
                             isSwap ? 'bg-purple-500/10 text-purple-400' :
                               symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
                                 isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
@@ -392,14 +394,14 @@ export default function HistoryPage() {
                             )}
                           </div>
                           <div>
-                            <h4 className="font-bold text-white text-base">{type}</h4>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <h4 className="font-bold text-foreground text-base">{type}</h4>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               {isSwap ? (
                                 <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400">
                                   {fromSymbol} → {toSymbol}
                                 </span>
                               ) : (
-                                <span className="font-mono bg-[#1a1a1a] px-1.5 py-0.5 rounded text-gray-400">
+                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                                   {formatAddress(address)}
                                 </span>
                               )}
@@ -410,7 +412,7 @@ export default function HistoryPage() {
                           <div className="text-right">
                             {isSwap ? (
                               <>
-                                <div className="text-xs text-gray-500">-{(parseFloat(fromAmount) || 0).toFixed(4)} {fromSymbol}</div>
+                                <div className="text-xs text-muted-foreground">-{(parseFloat(fromAmount) || 0).toFixed(4)} {fromSymbol}</div>
                                 <h4 className="font-bold text-base text-green-500">
                                   +{(parseFloat(toAmount) || 0).toFixed(4)} {toSymbol}
                                 </h4>
@@ -418,14 +420,14 @@ export default function HistoryPage() {
                             ) : (
                               <h4 className={`font-bold text-base ${status === 'scam' ? 'text-orange-500' :
                                 status === 'pending' ? 'text-yellow-500' :
-                                  isIncoming ? 'text-green-500' : 'text-white'
+                                  isIncoming ? 'text-green-500' : 'text-foreground'
                                 }`}>
                                 {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
                               </h4>
                             )}
-                            <p className="text-xs text-gray-500 mt-1">{formattedDate} • {formattedTime}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{formattedDate} • {formattedTime}</p>
                           </div>
-                          <ExternalLink className="w-4 h-4 text-gray-600" />
+                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </CardContent>
                     </Card>
@@ -442,29 +444,29 @@ export default function HistoryPage() {
             <div className="space-y-3 pb-20">
               {isLoadingQntm ? (
                 [1, 2, 3, 4, 5].map((i) => (
-                  <Card key={i} className="bg-[#111] border-[#222] shadow-none">
+                  <Card key={i} className="bg-card border-border shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <Skeleton className="w-12 h-12 rounded-full bg-[#222]" />
+                        <Skeleton className="w-12 h-12 rounded-full bg-muted" />
                         <div className="space-y-2">
-                          <Skeleton className="w-24 h-4 bg-[#222]" />
-                          <Skeleton className="w-16 h-3 bg-[#222]" />
+                          <Skeleton className="w-24 h-4 bg-muted" />
+                          <Skeleton className="w-16 h-3 bg-muted" />
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        <Skeleton className="w-20 h-5 bg-[#222]" />
-                        <Skeleton className="w-12 h-3 bg-[#222]" />
+                        <Skeleton className="w-20 h-5 bg-muted" />
+                        <Skeleton className="w-12 h-3 bg-muted" />
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : qntmHistory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-gray-500 space-y-4">
-                  <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center border border-[#222]">
-                    <Clock className="w-8 h-8 text-gray-600" />
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
+                    <Clock className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <p>No QNTM transfers yet</p>
-                  <p className="text-xs text-gray-600 text-center px-6">
+                  <p className="text-xs text-muted-foreground text-center px-6">
                     Transfer QNTM to other Quantum Club members to see your history here
                   </p>
                 </div>
@@ -484,10 +486,10 @@ export default function HistoryPage() {
                   }
 
                   return (
-                    <Card key={transfer.id} className="bg-[#111] border-[#222] shadow-none hover:border-orange-500/30 transition-all active:scale-[0.99]">
+                    <Card key={transfer.id} className="bg-card border-border shadow-none hover:border-orange-500/30 transition-all active:scale-[0.99]">
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/5 ${isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'
                             }`}>
                             {isIncoming ? (
                               <ArrowDownLeft className="w-5 h-5" />
@@ -496,10 +498,10 @@ export default function HistoryPage() {
                             )}
                           </div>
                           <div>
-                            <h4 className="font-bold text-white text-base">
+                            <h4 className="font-bold text-foreground text-base">
                               {isIncoming ? 'Received' : 'Sent'}
                             </h4>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <span className="font-mono bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400">
                                 {formatQcId(counterparty || "")}
                               </span>
@@ -507,11 +509,11 @@ export default function HistoryPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <h4 className={`font-bold text-base ${isIncoming ? 'text-green-500' : 'text-white'
+                          <h4 className={`font-bold text-base ${isIncoming ? 'text-green-500' : 'text-foreground'
                             }`}>
                             {isIncoming ? '+' : '-'}{transfer.amount.toLocaleString()} QNTM
                           </h4>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
                           </p>
                         </div>

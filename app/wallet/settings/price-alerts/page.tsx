@@ -125,20 +125,19 @@ export default function PriceAlertsPage() {
     const triggeredAlerts = alerts.filter(a => a.triggered);
 
     return (
-        <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
+        <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
             <div className="max-w-md mx-auto">
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-xl font-bold">Price Alerts</h1>
                         {currentTonPrice > 0 && (
-                            <p className="text-sm text-gray-500">TON: ${currentTonPrice.toFixed(2)}</p>
+                            <p className="text-sm text-muted-foreground">TON: ${currentTonPrice.toFixed(2)}</p>
                         )}
                     </div>
                     <Button
-                        variant="outline"
                         size="sm"
                         onClick={() => setIsAdding(true)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white border-0"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 rounded-xl px-4 font-semibold shadow-sm"
                     >
                         <Plus className="w-4 h-4 mr-1" />
                         Add
@@ -152,15 +151,15 @@ export default function PriceAlertsPage() {
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                         >
-                            <Card className="bg-[#111] border-[#222] mb-4">
+                            <Card className="bg-card border-border mb-4">
                                 <CardContent className="p-4 space-y-4">
                                     <div className="grid grid-cols-2 gap-2">
                                         <Button
                                             variant="ghost"
                                             onClick={() => setDirection("above")}
                                             className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${direction === "above"
-                                                ? "bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30 hover:text-green-300"
-                                                : "bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#222] hover:text-gray-300"
+                                                ? "bg-green-500/20 border-green-500/50 text-green-500 hover:bg-green-500/30 hover:text-green-600"
+                                                : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                                 }`}
                                         >
                                             <TrendingUp className="w-4 h-4" />
@@ -170,8 +169,8 @@ export default function PriceAlertsPage() {
                                             variant="ghost"
                                             onClick={() => setDirection("below")}
                                             className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${direction === "below"
-                                                ? "bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30 hover:text-red-300"
-                                                : "bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#222] hover:text-gray-300"
+                                                ? "bg-destructive/20 border-destructive/50 text-destructive hover:bg-destructive/30"
+                                                : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                                 }`}
                                         >
                                             <TrendingDown className="w-4 h-4" />
@@ -180,15 +179,15 @@ export default function PriceAlertsPage() {
                                     </div>
 
                                     <div className="flex gap-2">
-                                        <div className="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-xl">
-                                            <span className="text-white font-medium">{symbol}</span>
+                                        <div className="flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded-xl">
+                                            <span className="text-foreground font-medium">{symbol}</span>
                                         </div>
                                         <Input
                                             type="number"
                                             value={targetPrice}
                                             onChange={(e) => setTargetPrice(e.target.value)}
                                             placeholder="Target price (USD)"
-                                            className="bg-[#1a1a1a] border-[#333] text-white flex-1"
+                                            className="bg-muted border-border text-foreground flex-1"
                                         />
                                     </div>
 
@@ -199,13 +198,13 @@ export default function PriceAlertsPage() {
                                                 setIsAdding(false);
                                                 setTargetPrice("");
                                             }}
-                                            className="flex-1 bg-[#1a1a1a] border-[#333] text-white"
+                                            className="flex-1 bg-muted border-border text-foreground"
                                         >
                                             Cancel
                                         </Button>
                                         <Button
                                             onClick={handleAdd}
-                                            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                                            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                                         >
                                             Create Alert
                                         </Button>
@@ -218,9 +217,9 @@ export default function PriceAlertsPage() {
 
                 {alerts.length === 0 && !isAdding ? (
                     <div className="text-center py-12">
-                        <Bell className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400">No price alerts</p>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                        <p className="text-muted-foreground">No price alerts</p>
+                        <p className="text-sm text-muted-foreground/50 mt-1">
                             Get notified when TON hits your target price
                         </p>
                     </div>
@@ -228,24 +227,24 @@ export default function PriceAlertsPage() {
                     <div className="space-y-6">
                         {activeAlerts.length > 0 && (
                             <div className="space-y-3">
-                                <h2 className="text-sm font-medium text-gray-400">Active</h2>
+                                <h2 className="text-sm font-medium text-muted-foreground">Active</h2>
                                 {activeAlerts.map((alert) => (
-                                    <Card key={alert.id} className="bg-[#111] border-[#222]">
+                                    <Card key={alert.id} className="bg-card border-border">
                                         <CardContent className="p-4 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${alert.direction === "above" ? "bg-green-500/20" : "bg-red-500/20"
                                                     }`}>
                                                     {alert.direction === "above" ? (
-                                                        <TrendingUp className="w-5 h-5 text-green-400" />
+                                                        <TrendingUp className="w-5 h-5 text-green-500" />
                                                     ) : (
-                                                        <TrendingDown className="w-5 h-5 text-red-400" />
+                                                        <TrendingDown className="w-5 h-5 text-destructive" />
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium text-white">
+                                                    <div className="font-medium text-foreground">
                                                         {alert.symbol} {alert.direction === "above" ? "≥" : "≤"} ${alert.targetPrice.toFixed(2)}
                                                     </div>
-                                                    <div className="text-xs text-gray-500">
+                                                    <div className="text-xs text-muted-foreground">
                                                         Alert when price goes {alert.direction}
                                                     </div>
                                                 </div>
@@ -254,7 +253,7 @@ export default function PriceAlertsPage() {
                                                 size="icon"
                                                 variant="ghost"
                                                 onClick={() => handleDelete(alert.id)}
-                                                className="text-red-500 hover:text-red-400 h-8 w-8"
+                                                className="text-destructive hover:text-destructive/80 h-8 w-8"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
@@ -266,26 +265,26 @@ export default function PriceAlertsPage() {
 
                         {triggeredAlerts.length > 0 && (
                             <div className="space-y-3">
-                                <h2 className="text-sm font-medium text-gray-400">Triggered</h2>
+                                <h2 className="text-sm font-medium text-muted-foreground">Triggered</h2>
                                 {triggeredAlerts.map((alert) => (
-                                    <Card key={alert.id} className="bg-[#111] border-[#222] opacity-60">
+                                    <Card key={alert.id} className="bg-card border-border opacity-60">
                                         <CardContent className="p-4 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 bg-gray-500/20 rounded-full flex items-center justify-center">
                                                     <BellOff className="w-5 h-5 text-gray-400" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium text-gray-400 line-through">
+                                                    <div className="font-medium text-muted-foreground line-through">
                                                         {alert.symbol} {alert.direction === "above" ? "≥" : "≤"} ${alert.targetPrice.toFixed(2)}
                                                     </div>
-                                                    <div className="text-xs text-green-400">Triggered ✓</div>
+                                                    <div className="text-xs text-green-500">Triggered ✓</div>
                                                 </div>
                                             </div>
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
                                                 onClick={() => handleDelete(alert.id)}
-                                                className="text-gray-500 hover:text-gray-400 h-8 w-8"
+                                                className="text-muted-foreground hover:text-foreground h-8 w-8"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>

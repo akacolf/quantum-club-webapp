@@ -35,21 +35,27 @@ export function deriveEthAddress(mnemonic: string): string {
 }
 
 /**
- * Derive Bitcoin address from mnemonic (Native SegWit - bc1...)
+ * Derive Bitcoin address from mnemonic
+ * @param mnemonic - 24-word recovery phrase
+ * @param isTestnet - if true, returns testnet address (tb1...), otherwise mainnet (bc1...)
  */
-export function deriveBtcAddress(mnemonic: string): string {
+export function deriveBtcAddress(mnemonic: string, isTestnet: boolean = false): string {
     try {
         const seed = mnemonicToSeedSync(mnemonic);
         const hdKey = HDKey.fromMasterSeed(seed);
-        const derived = hdKey.derive(BTC_PATH);
+        // Use testnet path if testnet mode
+        const path = isTestnet ? "m/44'/1'/0'/0/0" : BTC_PATH;
+        const derived = hdKey.derive(path);
 
         if (!derived.publicKey) {
             throw new Error("Failed to derive public key");
         }
 
         // Create SegWit (bech32) address
+        // Use "tb" for testnet, "bc" for mainnet
         const pubKeyHash = hash160(Buffer.from(derived.publicKey));
-        const address = bech32Encode("bc", 0, pubKeyHash);
+        const hrp = isTestnet ? "tb" : "bc";
+        const address = bech32Encode(hrp, 0, pubKeyHash);
         return address;
     } catch (error) {
         console.error("BTC address derivation error:", error);
@@ -181,17 +187,23 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
 // ============== Balance Fetching Functions ==============
 
 /**
- * Fetch ETH balance using public RPC (Cloudflare or Ankr)
+ * Fetch ETH balance using public RPC (Cloudflare/Ankr for mainnet, Sepolia for testnet)
  * Returns balance in ETH (not wei)
  */
-export async function fetchEthBalance(address: string): Promise<number> {
+export async function fetchEthBalance(address: string, isTestnet: boolean = false): Promise<number> {
     if (!address) return 0;
 
-    const rpcUrls = [
-        "https://cloudflare-eth.com",
-        "https://rpc.ankr.com/eth",
-        "https://eth.public-rpc.com"
-    ];
+    const rpcUrls = isTestnet
+        ? [
+            "https://rpc.sepolia.org",
+            "https://rpc.ankr.com/eth_sepolia",
+            "https://ethereum-sepolia.publicnode.com"
+        ]
+        : [
+            "https://cloudflare-eth.com",
+            "https://rpc.ankr.com/eth",
+            "https://eth.public-rpc.com"
+        ];
 
     for (const rpcUrl of rpcUrls) {
         try {
@@ -228,12 +240,15 @@ export async function fetchEthBalance(address: string): Promise<number> {
  * Fetch BTC balance using Blockstream API (completely free, no auth)
  * Returns balance in BTC (not satoshis)
  */
-export async function fetchBtcBalance(address: string): Promise<number> {
+export async function fetchBtcBalance(address: string, isTestnet: boolean = false): Promise<number> {
     if (!address) return 0;
 
     try {
-        // Blockstream API - free, no rate limits for reasonable usage
-        const response = await fetch(`https://blockstream.info/api/address/${address}`);
+        // Blockstream API - use testnet endpoint if isTestnet
+        const baseUrl = isTestnet
+            ? "https://blockstream.info/testnet/api"
+            : "https://blockstream.info/api";
+        const response = await fetch(`${baseUrl}/address/${address}`);
 
         if (response.ok) {
             const data = await response.json();
@@ -305,12 +320,13 @@ export interface MultiChainBalances {
  */
 export async function fetchAllMultiChainBalances(
     ethAddress: string,
-    btcAddress: string
+    btcAddress: string,
+    isTestnet: boolean = false
 ): Promise<MultiChainBalances> {
     // Fetch all in parallel
     const [ethBalance, btcBalance, ethPrice, btcPrice] = await Promise.all([
-        fetchEthBalance(ethAddress),
-        fetchBtcBalance(btcAddress),
+        fetchEthBalance(ethAddress, isTestnet),
+        fetchBtcBalance(btcAddress, isTestnet),
         fetchEthPrice(),
         fetchBtcPrice()
     ]);

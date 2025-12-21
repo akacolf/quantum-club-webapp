@@ -49,8 +49,8 @@ export function BiometricAuth({
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasBiometric, setHasBiometric] = useState(false);
   const [hasStoredPin, setHasStoredPin] = useState(false);
-  const {telegramId} = useGameContext();
-  
+  const { telegramId } = useGameContext();
+
   // Secure PIN hashing using SHA-256 (Web Crypto API)
   const hashPin = useCallback(async (pinValue: string): Promise<string> => {
     const encoder = new TextEncoder();
@@ -62,11 +62,11 @@ export function BiometricAuth({
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }, [telegramId]);
 
-  const getPin = useCallback(async() => {
+  const getPin = useCallback(async () => {
     if (!telegramId) {
       return null;
     }
-    const pinRef = doc(dbfs,"wallet",telegramId);
+    const pinRef = doc(dbfs, "wallet", telegramId);
     const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
     if (!storedHash) {
       const getPinDoc = await getDoc(pinRef);
@@ -88,7 +88,7 @@ export function BiometricAuth({
       if (isOpen) {
         // Check for biometric availability
         isPlatformAuthenticatorAvailable().then(setHasBiometric);
-        
+
         // Check if PIN is set up
         if (!telegramId) {
           return;
@@ -102,9 +102,9 @@ export function BiometricAuth({
     };
     checkAuthMethods();
   }, [isOpen, telegramId, getPin]);
-  
+
   // Verify PIN
-  const verifyPin = useCallback(async() => {
+  const verifyPin = useCallback(async () => {
     if (pin.length < 4) {
       setPinError("PIN must be at least 4 digits");
       return;
@@ -112,16 +112,16 @@ export function BiometricAuth({
     if (!telegramId) {
       return;
     }
-    
+
     const pinRef = doc(dbfs, "wallet", telegramId);
     const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
     const hashedPin = await hashPin(pin);
-    
+
     if (!storedHash) {
       // Check if PIN exists in Firestore
       const getPinDoc = await getDoc(pinRef);
       const existingHash = getPinDoc.data()?.pinHash;
-      
+
       if (existingHash) {
         // PIN exists in DB, verify against it
         localStorage.setItem("quantum_wallet_pin_hash", existingHash);
@@ -147,7 +147,7 @@ export function BiometricAuth({
       } else {
         setPinError("Incorrect PIN. Please try again.");
         setPin("");
-    }
+      }
     }
 
   }, [pin, hashPin, onSuccess, telegramId]);
@@ -160,11 +160,11 @@ export function BiometricAuth({
     }
 
     setIsAuthenticating(true);
-    
+
     try {
       // Check if we have existing credentials
       const credentialId = localStorage.getItem("quantum_wallet_credential_id");
-      
+
       if (credentialId) {
         // Use existing credential
         const credential = await navigator.credentials.get({
@@ -187,7 +187,7 @@ export function BiometricAuth({
         // Create new credential for first-time setup
         const userId = new Uint8Array(16);
         crypto.getRandomValues(userId);
-        
+
         const credential = await navigator.credentials.create({
           publicKey: {
             challenge: new Uint8Array(32),
@@ -223,7 +223,7 @@ export function BiometricAuth({
       }
     } catch (error) {
       console.error("Biometric authentication failed:", error);
-      
+
       // Handle specific errors
       if (error instanceof Error) {
         if (error.name === "NotAllowedError") {
@@ -263,7 +263,7 @@ export function BiometricAuth({
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="w-full max-w-sm"
+          className="w-[92vw] max-w-sm"
         >
           <Card className="bg-card border-border text-card-foreground shadow-2xl">
             <CardHeader className="relative pb-4 text-center">
@@ -308,7 +308,7 @@ export function BiometricAuth({
                       </div>
                     </Button>
                   )}
-                  
+
                   <Button
                     variant="outline"
                     className="w-full h-14 justify-start gap-4 bg-secondary/50 border-border hover:bg-secondary"
@@ -425,21 +425,21 @@ export function BiometricAuth({
     </AnimatePresence>
   );
 }
-export function DeletePin(telegramId:string) {
-    const runDeleteProcess = async () => {
-      if (!telegramId || telegramId.trim() === "") return;
-      try {
-        const pinRef = doc(dbfs, "wallet", telegramId);
-        localStorage.removeItem("quantum_wallet_pin_hash");
-        await updateDoc(pinRef, { 
-            pinHash: ""
-        });
-        return;
-      } catch {
-        return;
-      }
-    };
-    runDeleteProcess();
+export function DeletePin(telegramId: string) {
+  const runDeleteProcess = async () => {
+    if (!telegramId || telegramId.trim() === "") return;
+    try {
+      const pinRef = doc(dbfs, "wallet", telegramId);
+      localStorage.removeItem("quantum_wallet_pin_hash");
+      await updateDoc(pinRef, {
+        pinHash: ""
+      });
+      return;
+    } catch {
+      return;
+    }
+  };
+  runDeleteProcess();
 }
 // Hook for easy integration
 export function useBiometricAuth() {

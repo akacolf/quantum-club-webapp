@@ -653,6 +653,15 @@ export default function WalletPage() {
           </TabsList>
 
           <TabsContent value="assets" className="mt-4 space-y-3">
+            {/* TON Network Section Header */}
+            <div className="flex items-center gap-2 px-1">
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-[10px] font-bold px-2 py-0.5">
+                TON
+              </Badge>
+              <span className="text-xs text-muted-foreground font-medium">TON Network</span>
+            </div>
+
+            {/* TON Card */}
             <Card
               className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
               onClick={() => {
@@ -698,98 +707,7 @@ export default function WalletPage() {
               </CardContent>
             </Card>
 
-            {/* ETH Balance Card */}
-            {ethAddress && (
-              <Card
-                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
-                onClick={() => {
-                  setSelectedAsset({
-                    name: "Ethereum",
-                    symbol: "ETH",
-                    balance: ethBalance.toFixed(6),
-                    value: ethUsdValue,
-                    priceUsd: ethPrice,
-                    image: ETH_ICON,
-                    color: "#627EEA",
-                  }); setChartPeriod('1D');
-                }}
-              >
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#627EEA]/20">
-                      <Image src={ETH_ICON} alt="ETH" width={40} height={40} className="w-full h-full" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-white">ETH</h4>
-                      <p className="text-xs text-gray-500">Ethereum</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
-                      {isLoadingMultiChain ? (
-                        <div className="space-y-1 flex flex-col items-end">
-                          <Skeleton className="h-5 w-24 bg-[#222]" />
-                          <Skeleton className="h-3 w-16 bg-[#222]" />
-                        </div>
-                      ) : (
-                        <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : ethBalance.toFixed(4)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${ethUsdValue.toFixed(2)}`}</p>
-                        </>
-                      )}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* BTC Balance Card */}
-            {btcAddress && (
-              <Card
-                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
-                onClick={() => {
-                  setSelectedAsset({
-                    name: "Bitcoin",
-                    symbol: "BTC",
-                    balance: btcBalance.toFixed(8),
-                    value: btcUsdValue,
-                    priceUsd: btcPrice,
-                    image: BTC_ICON,
-                    color: "#F7931A",
-                  }); setChartPeriod('1D');
-                }}
-              >
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#F7931A]/20">
-                      <Image src={BTC_ICON} alt="BTC" width={40} height={40} className="w-full h-full" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-white">BTC</h4>
-                      <p className="text-xs text-gray-500">Bitcoin</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
-                      {isLoadingMultiChain ? (
-                        <div className="space-y-1 flex flex-col items-end">
-                          <Skeleton className="h-5 w-24 bg-[#222]" />
-                          <Skeleton className="h-3 w-16 bg-[#222]" />
-                        </div>
-                      ) : (
-                        <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : btcBalance.toFixed(6)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${btcUsdValue.toFixed(2)}`}</p>
-                        </>
-                      )}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
+            {/* Jetton loading skeleton */}
             {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
               <>
                 {[1, 2].map((i) => (
@@ -812,13 +730,14 @@ export default function WalletPage() {
               </>
             )}
 
-
+            {/* No tokens message */}
             {!isLoadingAssets && hasFetched && jettons.length === 0 && (
               <div className="py-8 text-center bg-[#111] rounded-2xl border border-[#222] border-dashed">
                 <p className="text-sm text-gray-500">Tokens will appear here automatically.</p>
               </div>
             )}
 
+            {/* TON Jettons */}
             {jettons.map((jetton, index) => {
               const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
               const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
@@ -864,6 +783,113 @@ export default function WalletPage() {
                 </Card>
               );
             })}
+
+            {/* Multi-Chain Section Header - Only show in mainnet when addresses exist */}
+            {!isTestnet && (ethAddress || btcAddress) && (
+              <div className="flex items-center justify-between px-1 pt-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px] font-bold px-2 py-0.5">
+                    MULTI-CHAIN
+                  </Badge>
+                  <span className="text-xs text-muted-foreground font-medium">Other Networks</span>
+                </div>
+                <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px] font-medium">
+                  Receive Only
+                </Badge>
+              </div>
+            )}
+
+            {/* BTC Balance Card - Only show in mainnet */}
+            {!isTestnet && btcAddress && (
+              <Card
+                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                onClick={() => {
+                  setSelectedAsset({
+                    name: "Bitcoin",
+                    symbol: "BTC",
+                    balance: btcBalance.toFixed(8),
+                    value: btcUsdValue,
+                    priceUsd: btcPrice,
+                    image: BTC_ICON,
+                    color: "#F7931A",
+                  }); setChartPeriod('1D');
+                }}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#F7931A]/20">
+                      <Image src={BTC_ICON} alt="BTC" width={40} height={40} className="w-full h-full" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white">BTC</h4>
+                      <p className="text-xs text-gray-500">Bitcoin</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      {isLoadingMultiChain ? (
+                        <div className="space-y-1 flex flex-col items-end">
+                          <Skeleton className="h-5 w-24 bg-[#222]" />
+                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : btcBalance.toFixed(6)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${btcUsdValue.toFixed(2)}`}</p>
+                        </>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ETH Balance Card - Only show in mainnet */}
+            {!isTestnet && ethAddress && (
+              <Card
+                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                onClick={() => {
+                  setSelectedAsset({
+                    name: "Ethereum",
+                    symbol: "ETH",
+                    balance: ethBalance.toFixed(6),
+                    value: ethUsdValue,
+                    priceUsd: ethPrice,
+                    image: ETH_ICON,
+                    color: "#627EEA",
+                  }); setChartPeriod('1D');
+                }}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#627EEA]/20">
+                      <Image src={ETH_ICON} alt="ETH" width={40} height={40} className="w-full h-full" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white">ETH</h4>
+                      <p className="text-xs text-gray-500">Ethereum</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      {isLoadingMultiChain ? (
+                        <div className="space-y-1 flex flex-col items-end">
+                          <Skeleton className="h-5 w-24 bg-[#222]" />
+                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : ethBalance.toFixed(4)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${ethUsdValue.toFixed(2)}`}</p>
+                        </>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="nfts" className="mt-4">

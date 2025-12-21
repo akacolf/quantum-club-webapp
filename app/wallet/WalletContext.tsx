@@ -5,10 +5,8 @@ import { fromNano } from "@ton/core";
 import { toast } from "sonner";
 import { deriveEthAddress, deriveBtcAddress, fetchAllMultiChainBalances } from "./utils/multichain";
 
-// Testnet mode - affects API endpoints and address format
-// Testnet addresses: 0Q... (non-bounceable) or kQ... (bounceable)
-// Mainnet addresses: UQ... (non-bounceable) or EQ... (bounceable)
-export const IS_TESTNET = false;
+// Default testnet mode - can be overridden by user preference in localStorage
+const DEFAULT_TESTNET = false;
 
 interface JettonBalance {
   symbol: string;
@@ -74,6 +72,7 @@ interface WalletContextType {
   setWalletAddress: (address: string) => void;
   toggleHideAsset: (symbol: string) => void;
   toggleHideBalance: () => void;
+  toggleTestnet: () => void;
   addWallet: (address: string, name?: string) => void;
   removeWallet: (address: string) => void;
   switchWallet: (address: string) => void;
@@ -81,9 +80,6 @@ interface WalletContextType {
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
-
-// API URLs based on network
-const getApiBaseUrl = () => IS_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [walletAddress, setWalletAddress] = useState("");
@@ -97,6 +93,82 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [walletStatus, setWalletStatus] = useState("nonexist");
+
+  // TON Testnet mode
+  const [isTestnet, setIsTestnet] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("quantum_ton_testnet") === "true";
+    }
+    return DEFAULT_TESTNET;
+  });
+
+  // Re-derive TON address when network changes
+  const rederiveTonAddress = useCallback(async (testnet: boolean) => {
+    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+    const storedVersion = localStorage.getItem("quantum_wallet_version") || "v5r1";
+
+    if (!storedMnemonic) return;
+
+    try {
+      const { mnemonicToWalletKey } = await import("@ton/crypto");
+      const { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } = await import("@ton/ton");
+
+      const mnemonic = storedMnemonic.split(" ");
+      const keyPair = await mnemonicToWalletKey(mnemonic);
+
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
+
+      const newAddress = wallet.address.toString({ bounceable: false, testOnly: testnet });
+      setWalletAddress(newAddress);
+      localStorage.setItem("quantum_wallet_address", newAddress);
+    } catch (error) {
+      console.error("Failed to re-derive address:", error);
+    }
+  }, []);
+
+  const toggleTestnet = useCallback(() => {
+    setIsTestnet(prev => {
+      const newValue = !prev;
+      localStorage.setItem("quantum_ton_testnet", String(newValue));
+
+      // Reset wallet state when switching networks
+      setHasFetched(false);
+      setJettons([]);
+      setNfts([]);
+      setTonBalance("0");
+      setTonUsdValue("0.00");
+      setTotalUsdBalance("0.00");
+
+      // Clear multi-chain state (ETH/BTC are mainnet-only)
+      if (newValue) {
+        setEthBalance(0);
+        setBtcBalance(0);
+        setEthUsdValue(0);
+        setBtcUsdValue(0);
+      }
+
+      // Re-derive TON address with new network flag
+      rederiveTonAddress(newValue);
+
+      toast.success(newValue ? "Switched to TON Testnet" : "Switched to TON Mainnet");
+      return newValue;
+    });
+  }, [rederiveTonAddress]);
+
+  // API URLs based on network
+  const getApiBaseUrl = useCallback(() => isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io", [isTestnet]);
 
   // Multi-chain state
   const [ethAddress, setEthAddress] = useState("");
@@ -223,7 +295,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const fetchTonPrice = useCallback(async () => {
     // On testnet, use a mock price for testing
-    if (IS_TESTNET) {
+    if (isTestnet) {
       setTonPrice(5.0); // Mock price for testnet
       return 5.0;
     }
@@ -240,7 +312,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.error("Failed to fetch TON price:", error);
     }
     return tonPrice || 0;
-  }, [tonPrice]);
+  }, [isTestnet, getApiBaseUrl, tonPrice]);
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   // Fetch wallet assets (TON balance + Jettons)
   const fetchWalletAssets = useCallback(async () => {
@@ -324,7 +396,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setIsLoadingAssets(false);
       setHasFetched(true);
     }
-  }, [walletAddress, fetchTonPrice]);
+  }, [walletAddress, fetchTonPrice, getApiBaseUrl]);
 
   // Fetch NFTs from TonAPI
   const fetchNfts = useCallback(async () => {
@@ -371,30 +443,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoadingNfts(false);
     }
-  }, [walletAddress]);
+  }, [walletAddress, getApiBaseUrl]);
 
-  // Derive multi-chain addresses from mnemonic
+  // Derive multi-chain addresses from mnemonic (always mainnet)
+  // Re-derive when wallet address changes (e.g., after import or wallet switch)
   useEffect(() => {
     const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
-    if (storedMnemonic && !ethAddress && !btcAddress) {
+    if (storedMnemonic && walletAddress) {
       try {
+        // Always re-derive to ensure addresses match current mnemonic
         const eth = deriveEthAddress(storedMnemonic);
-        const btc = deriveBtcAddress(storedMnemonic);
+        const btc = deriveBtcAddress(storedMnemonic, false); // Always mainnet (bc1...)
         setEthAddress(eth);
         setBtcAddress(btc);
       } catch (error) {
         console.error("Failed to derive multi-chain addresses:", error);
       }
     }
-  }, [ethAddress, btcAddress]);
+  }, [walletAddress]);
 
-  // Fetch multi-chain balances
+  // Fetch multi-chain balances (always mainnet)
   const fetchMultiChainBalances = useCallback(async () => {
     if (!ethAddress || !btcAddress) return;
 
     setIsLoadingMultiChain(true);
     try {
-      const balances = await fetchAllMultiChainBalances(ethAddress, btcAddress);
+      const balances = await fetchAllMultiChainBalances(ethAddress, btcAddress, false); // Always mainnet
 
       setEthBalance(balances.eth.balance);
       setEthUsdValue(balances.eth.usdValue);
@@ -460,7 +534,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isLoadingNfts,
       hasFetched,
       hideBalance,
-      isTestnet: IS_TESTNET,
+      isTestnet,
       storedWallets,
       activeWalletIndex,
       walletStatus,
@@ -481,6 +555,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setWalletAddress: handleSetWalletAddress,
       toggleHideAsset,
       toggleHideBalance,
+      toggleTestnet,
       addWallet,
       removeWallet,
       switchWallet,

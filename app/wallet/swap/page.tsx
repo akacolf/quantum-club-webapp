@@ -38,7 +38,7 @@ import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { beginCell, Address } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
-import { useWallet, IS_TESTNET } from "../WalletContext";
+import { useWallet } from "../WalletContext";
 import {
     fetchSwappableAssets,
     simulateSwap,
@@ -70,9 +70,10 @@ export default function SwapPage() {
         isLoadingAssets: isContextLoading,
         hasFetched,
         fetchWalletAssets,
+        isTestnet
     } = useWallet();
 
-    const TON_API_BASE_URL = IS_TESTNET
+    const TON_API_BASE_URL = isTestnet
         ? "https://testnet.tonapi.io"
         : "https://tonapi.io";
 
@@ -95,7 +96,7 @@ export default function SwapPage() {
     const MIN_GAS_RESERVE_TON = 0.1; // Minimum gas reserve fallback
     const GAS_SAFETY_MULTIPLIER = 1.5; // Add 50% safety buffer to estimated gas
 
-    const EXPLORER_BASE_URL = IS_TESTNET
+    const EXPLORER_BASE_URL = isTestnet
         ? "https://testnet.tonviewer.com"
         : "https://tonviewer.com";
 
@@ -580,13 +581,47 @@ export default function SwapPage() {
         return <Loader />;
     }
 
+    // Swap not available in testnet mode
+    if (isTestnet) {
+        return (
+            <div className="min-h-screen bg-background text-foreground p-4 pt-6">
+                <div className="max-w-md mx-auto">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Powered by <span className="font-semibold text-foreground">STON.fi</span>
+                        </p>
+                    </div>
+
+                    <div className="text-center py-16 space-y-6">
+                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                            <AlertTriangle className="w-10 h-10 text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                            <h2 className="text-xl font-bold text-foreground">Not Available in Testnet</h2>
+                            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                                Token swapping is only available on mainnet. Switch to mainnet mode in Settings to use this feature.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => router.push("/wallet")}
+                            className="bg-card border border-border text-foreground hover:bg-accent h-12 px-8 rounded-xl"
+                        >
+                            Back to Wallet
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-black text-white p-4 pt-6">
+        <div className="min-h-screen bg-background text-foreground p-4 pt-6">
             <div className="max-w-md mx-auto">
                 <div className="mb-8 text-center">
-                    <h1 className="text-2xl font-bold text-white">Swap Tokens</h1>
-                    <p className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1.5">
-                        Powered by <span className="font-semibold text-white">STON.fi</span>
+                    <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
+                        Powered by <span className="font-semibold text-foreground">STON.fi</span>
                     </p>
                 </div>
 
@@ -600,16 +635,16 @@ export default function SwapPage() {
                             className="space-y-4"
                         >
                             {/* From Asset */}
-                            <Card className="bg-[#111]/80 backdrop-blur-xl border-white/5 rounded-3xl overflow-hidden relative group">
+                            <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden relative group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 <CardContent className="p-5 relative">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-400">You pay</span>
+                                        <span className="text-sm text-muted-foreground">You pay</span>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={handleMaxAmount}
-                                            className="h-auto p-0 text-xs text-blue-400 hover:text-blue-300 hover:bg-transparent"
+                                            className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:bg-transparent"
                                         >
                                             MAX: {fromAsset ? getAssetBalance(fromAsset) : "0"}
                                         </Button>
@@ -620,7 +655,7 @@ export default function SwapPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
-                                                    className="bg-white/5 border border-white/10 hover:bg-white/10 h-11 rounded-xl px-3 gap-2 transition-colors"
+                                                    className="bg-accent/50 border border-border hover:bg-accent h-11 rounded-xl px-3 gap-2 transition-colors"
                                                 >
                                                     {fromAsset?.imageUrl ? (
                                                         <Image
@@ -639,17 +674,17 @@ export default function SwapPage() {
                                                     <span className="font-bold">
                                                         {fromAsset?.symbol || "Select"}
                                                     </span>
-                                                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-64 bg-[#1a1a1a] border-[#333] text-white max-h-80 overflow-y-auto">
+                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
-                                                <DropdownMenuSeparator className="bg-[#333]" />
+                                                <DropdownMenuSeparator className="bg-border" />
                                                 {swapAssets.filter(asset => {
                                                     const balance = getAssetBalance(asset);
                                                     return balance && parseFloat(balance) > 0;
                                                 }).length === 0 ? (
-                                                    <div className="p-4 text-center text-gray-500">
+                                                    <div className="p-4 text-center text-muted-foreground">
                                                         <p className="text-sm font-medium">No assets available</p>
                                                     </div>
                                                 ) : (
@@ -665,7 +700,7 @@ export default function SwapPage() {
                                                                     setSimulation(null);
                                                                 }
                                                             }}
-                                                            className="flex items-center gap-3 p-3 hover:bg-[#222] cursor-pointer"
+                                                            className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
                                                         >
                                                             {asset.imageUrl ? (
                                                                 <Image
@@ -687,7 +722,7 @@ export default function SwapPage() {
                                                                     {asset.displayName}
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right text-sm text-gray-400">
+                                                            <div className="text-right text-sm text-muted-foreground">
                                                                 {getAssetBalance(asset)}
                                                             </div>
                                                         </DropdownMenuItem>)
@@ -708,7 +743,7 @@ export default function SwapPage() {
                                                     setAmount(value);
                                                 }
                                             }}
-                                            className="flex-1 bg-transparent border-0 text-3xl font-bold text-right h-14 focus-visible:ring-0 p-0 placeholder:text-gray-600"
+                                            className="flex-1 bg-transparent border-0 text-3xl font-bold text-right h-14 focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50"
                                         />
                                     </div>
                                 </CardContent>
@@ -720,19 +755,19 @@ export default function SwapPage() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleToggleDirection}
-                                    className="w-10 h-10 bg-[#222] hover:bg-[#333] active:scale-95 rounded-xl flex items-center justify-center border-[4px] border-black transition-all shadow-lg text-blue-400 hover:text-blue-300"
+                                    className="w-10 h-10 bg-card hover:bg-accent active:scale-95 rounded-xl flex items-center justify-center border-[4px] border-background transition-all shadow-lg text-primary hover:text-primary/80"
                                 >
                                     <ArrowDownUp className="w-5 h-5" />
                                 </Button>
                             </div>
 
                             {/* To Asset */}
-                            <Card className="bg-[#111]/80 backdrop-blur-xl border-white/5 rounded-3xl overflow-hidden relative group">
+                            <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden relative group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 <CardContent className="p-5 relative">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-400">You receive</span>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-sm text-muted-foreground">You receive</span>
+                                        <span className="text-xs text-muted-foreground">
                                             Balance: {toAsset ? getAssetBalance(toAsset) : "0"}
                                         </span>
                                     </div>
@@ -742,7 +777,7 @@ export default function SwapPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
-                                                    className="bg-white/5 border border-white/10 hover:bg-white/10 h-11 rounded-xl px-3 gap-2 transition-colors"
+                                                    className="bg-accent/50 border border-border hover:bg-accent h-11 rounded-xl px-3 gap-2 transition-colors"
                                                 >
                                                     {toAsset?.imageUrl ? (
                                                         <Image
@@ -754,19 +789,19 @@ export default function SwapPage() {
                                                             unoptimized
                                                         />
                                                     ) : (
-                                                        <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-xs font-bold">
+                                                        <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold">
                                                             {toAsset?.symbol?.slice(0, 2)}
                                                         </div>
                                                     )}
                                                     <span className="font-bold">
                                                         {toAsset?.symbol || "Select"}
                                                     </span>
-                                                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-64 bg-[#1a1a1a] border-[#333] text-white max-h-80 overflow-y-auto">
+                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
-                                                <DropdownMenuSeparator className="bg-[#333]" />
+                                                <DropdownMenuSeparator className="bg-border" />
                                                 {swapAssets.map((asset) => (
                                                     <DropdownMenuItem
                                                         key={asset.contractAddress}
@@ -779,7 +814,7 @@ export default function SwapPage() {
                                                                 setSimulation(null);
                                                             }
                                                         }}
-                                                        className="flex items-center gap-3 p-3 hover:bg-[#222] cursor-pointer"
+                                                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
                                                     >
                                                         {asset.imageUrl ? (
                                                             <Image
@@ -797,11 +832,11 @@ export default function SwapPage() {
                                                         )}
                                                         <div className="flex-1">
                                                             <div className="font-bold">{asset.symbol}</div>
-                                                            <div className="text-xs text-gray-400 truncate">
+                                                            <div className="text-xs text-muted-foreground truncate">
                                                                 {asset.displayName}
                                                             </div>
                                                         </div>
-                                                        <div className="text-right text-sm text-gray-400">
+                                                        <div className="text-right text-sm text-muted-foreground">
                                                             {getAssetBalance(asset)}
                                                         </div>
                                                     </DropdownMenuItem>
@@ -813,7 +848,7 @@ export default function SwapPage() {
                                             {isSimulating ? (
                                                 <div className="ml-auto"><ButtonLoader /></div>
                                             ) : (
-                                                <span className={`text-3xl font-bold ${expectedOutput ? 'text-white' : 'text-gray-600'}`}>
+                                                <span className={`text-3xl font-bold ${expectedOutput ? 'text-foreground' : 'text-muted-foreground'}`}>
                                                     {expectedOutput
                                                         ? parseFloat(expectedOutput).toFixed(4)
                                                         : "0.0"}
@@ -826,11 +861,11 @@ export default function SwapPage() {
 
                             {/* Swap Details */}
                             {simulation && (
-                                <Card className="bg-[#0a0a0a] border-[#222] rounded-xl">
+                                <Card className="bg-muted/50 border-border rounded-xl">
                                     <CardContent className="p-4 space-y-3">
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-400">Rate</span>
-                                            <span className="text-white">
+                                            <span className="text-muted-foreground">Rate</span>
+                                            <span className="text-foreground">
                                                 {formatSwapRate(
                                                     fromAsset?.symbol || "",
                                                     toAsset?.symbol || "",
@@ -840,59 +875,59 @@ export default function SwapPage() {
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-400 flex items-center gap-1">
+                                            <span className="text-muted-foreground flex items-center gap-1">
                                                 Minimum received
-                                                <Info className="w-3 h-3 text-gray-500" />
+                                                <Info className="w-3 h-3 text-muted-foreground" />
                                             </span>
-                                            <span className="text-white">
+                                            <span className="text-foreground">
                                                 {parseFloat(minimumReceived).toFixed(4)}{" "}
                                                 {toAsset?.symbol}
                                             </span>
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-400">Price impact</span>
+                                            <span className="text-muted-foreground">Price impact</span>
                                             <span
                                                 className={
                                                     parseFloat(simulation.priceImpact) > 5
-                                                        ? "text-red-400"
-                                                        : "text-white"
+                                                        ? "text-destructive"
+                                                        : "text-foreground"
                                                 }
                                             >
                                                 {parseFloat(simulation.priceImpact).toFixed(2)}%
                                             </span>
                                         </div>
 
-                                        <div className="border-t border-[#222] pt-3 mt-2 space-y-2">
+                                        <div className="border-t border-border pt-3 mt-2 space-y-2">
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-400 flex items-center gap-1">
+                                                <span className="text-muted-foreground flex items-center gap-1">
                                                     Network fee
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <Button variant="ghost" size="icon" type="button" className="h-auto w-auto p-0 hover:bg-transparent inline-flex">
-                                                                <Info className="w-3 h-3 text-gray-500 cursor-help" />
+                                                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
                                                             </Button>
                                                         </PopoverTrigger>
-                                                        <PopoverContent side="top" className="w-56 bg-[#1a1a1a] border-[#333] text-gray-300 p-3">
-                                                            <p className="font-medium text-white mb-1 text-xs">Includes 50% safety buffer</p>
+                                                        <PopoverContent side="top" className="w-56 bg-popover border-border text-popover-foreground p-3">
+                                                            <p className="font-medium text-foreground mb-1 text-xs">Includes 50% safety buffer</p>
                                                             <p className="text-[11px] leading-relaxed">This ensures your swap completes successfully. Any unused gas is automatically returned to your wallet.</p>
                                                         </PopoverContent>
                                                     </Popover>
                                                 </span>
-                                                <span className="text-white font-medium">
+                                                <span className="text-foreground font-medium">
                                                     ~{swapDetails.estimatedGas.toFixed(4)} TON
                                                 </span>
                                             </div>
                                             {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && simulation && (
                                                 <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-400">Actual swap amount</span>
-                                                    <span className="text-blue-400 font-medium">
+                                                    <span className="text-muted-foreground">Actual swap amount</span>
+                                                    <span className="text-primary font-medium">
                                                         {swapDetails.actualSwapAmount.toFixed(4)} TON
                                                     </span>
                                                 </div>
                                             )}
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-400">Slippage tolerance</span>
+                                                <span className="text-muted-foreground">Slippage tolerance</span>
                                                 <div className="flex items-center gap-2">
                                                     {["0.5", "1", "3"].map((s) => (
                                                         <Button
@@ -901,8 +936,8 @@ export default function SwapPage() {
                                                             size="sm"
                                                             onClick={() => setSlippage(s)}
                                                             className={`h-auto px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-tight transition-all active:scale-95 ${slippage === s
-                                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600 hover:text-white"
-                                                                : "bg-[#222] text-gray-500 hover:text-gray-300 hover:bg-[#2a2a2a]"
+                                                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary hover:text-primary-foreground"
+                                                                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
                                                                 }`}
                                                         >
                                                             {s}%
@@ -918,8 +953,8 @@ export default function SwapPage() {
                             {/* Info: Fee deduction explanation for MAX swaps */}
                             {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && simulation && swapDetails.hasEnoughForGas && (
                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-                                    <p className="text-xs text-blue-400/90">
+                                    <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                                    <p className="text-xs text-primary/90">
                                         <span className="font-semibold">~{swapDetails.estimatedGas.toFixed(4)} TON</span> network fee will be deducted from your swap amount.
                                     </p>
                                 </div>
@@ -928,8 +963,8 @@ export default function SwapPage() {
                             {/* Simulation error message */}
                             {simulationError && !isSimulating && (
                                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                                    <p className="text-xs text-red-500/90">
+                                    <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                                    <p className="text-xs text-destructive/90">
                                         {simulationError}
                                     </p>
                                 </div>
@@ -958,8 +993,8 @@ export default function SwapPage() {
                             {/* Error when not enough balance for both swap and gas */}
                             {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && !swapDetails.isMaxSwap && !swapDetails.hasEnoughForGas && (
                                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                                    <p className="text-xs text-red-500/90">
+                                    <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                                    <p className="text-xs text-destructive/90">
                                         Insufficient balance for network fees. Reduce swap amount or use MAX.
                                     </p>
                                 </div>
@@ -969,7 +1004,7 @@ export default function SwapPage() {
                             <Button
                                 onClick={handleContinue}
                                 disabled={!canProceed || isSimulating || !!simulationError}
-                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                                className="w-full bg-primary text-primary-foreground h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 hover:bg-primary/90"
                             >
                                 {isSimulating ? (
                                     <ButtonLoader />
@@ -1004,7 +1039,7 @@ export default function SwapPage() {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-6"
                         >
-                            <Card className="bg-[#111] border-[#222] rounded-2xl">
+                            <Card className="bg-card border-border rounded-2xl">
                                 <CardContent className="p-6 text-center space-y-4">
                                     <h2 className="text-lg font-bold">Confirm Swap</h2>
 
@@ -1028,7 +1063,7 @@ export default function SwapPage() {
                                             <p className="text-gray-400">{fromAsset?.symbol}</p>
                                         </div>
 
-                                        <div className="text-2xl text-gray-500">→</div>
+                                        <div className="text-2xl text-muted-foreground">→</div>
 
                                         <div className="text-center">
                                             {toAsset?.imageUrl ? (
@@ -1048,13 +1083,13 @@ export default function SwapPage() {
                                             <p className="text-xl font-bold">
                                                 {parseFloat(expectedOutput).toFixed(4)}
                                             </p>
-                                            <p className="text-gray-400">{toAsset?.symbol}</p>
+                                            <p className="text-muted-foreground">{toAsset?.symbol}</p>
                                         </div>
                                     </div>
 
-                                    <div className="border-t border-[#222] pt-4 space-y-2 text-sm text-left">
+                                    <div className="border-t border-border pt-4 space-y-2 text-sm text-left">
                                         <div className="flex justify-between">
-                                            <span className="text-gray-400">Rate</span>
+                                            <span className="text-muted-foreground">Rate</span>
                                             <span>
                                                 {formatSwapRate(
                                                     fromAsset?.symbol || "",
@@ -1064,14 +1099,14 @@ export default function SwapPage() {
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-400">Minimum received</span>
+                                            <span className="text-muted-foreground">Minimum received</span>
                                             <span>
                                                 {parseFloat(minimumReceived).toFixed(4)}{" "}
                                                 {toAsset?.symbol}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-400">Slippage tolerance</span>
+                                            <span className="text-muted-foreground">Slippage tolerance</span>
                                             <span>{slippage}%</span>
                                         </div>
                                     </div>
@@ -1082,14 +1117,14 @@ export default function SwapPage() {
                                 <Button
                                     variant="outline"
                                     onClick={() => setStep("input")}
-                                    className="flex-1 bg-[#111] border-[#333] h-12 hover:bg-[#222]"
+                                    className="flex-1 bg-secondary text-secondary-foreground border-border h-12 hover:bg-secondary/80"
                                 >
                                     Back
                                 </Button>
                                 <Button
                                     onClick={handleConfirmSwap}
                                     disabled={isSwapping}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 h-12"
+                                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground h-12"
                                 >
                                     {isSwapping ? <ButtonLoader /> : "Confirm Swap"}
                                 </Button>
@@ -1105,12 +1140,12 @@ export default function SwapPage() {
                             className="flex flex-col items-center justify-center py-20"
                         >
                             <div className="relative flex items-center justify-center mb-6">
-                                <div className="w-16 h-16 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
-                                <div className="absolute w-10 h-10 rounded-full border-2 border-blue-500/20 border-b-blue-500 animate-[spin_1.5s_linear_infinite_reverse]" />
-                                <div className="absolute w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+                                <div className="w-16 h-16 rounded-full border-2 border-primary/20 border-t-primary animate-spin shadow-[0_0_15px] shadow-primary/30" />
+                                <div className="absolute w-10 h-10 rounded-full border-2 border-primary/20 border-b-primary animate-[spin_1.5s_linear_infinite_reverse]" />
+                                <div className="absolute w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px] shadow-primary/80" />
                             </div>
                             <h2 className="text-xl font-bold mb-2">Processing Swap</h2>
-                            <p className="text-gray-400 text-center">
+                            <p className="text-muted-foreground text-center">
                                 Please wait while your swap is being processed...
                             </p>
                         </motion.div>
@@ -1128,7 +1163,7 @@ export default function SwapPage() {
                             </div>
                             <div className="text-center space-y-2">
                                 <h2 className="text-2xl font-bold">Swap Sent!</h2>
-                                <p className="text-gray-400">
+                                <p className="text-muted-foreground">
                                     Your swap transaction has been submitted to the network.
                                 </p>
                             </div>
@@ -1137,7 +1172,7 @@ export default function SwapPage() {
                                 <Button
                                     variant="ghost"
                                     asChild
-                                    className="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 hover:bg-transparent text-sm h-auto p-0"
+                                    className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 hover:bg-transparent text-sm h-auto p-0"
                                 >
                                     <a
                                         href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
@@ -1152,7 +1187,7 @@ export default function SwapPage() {
 
                             <Button
                                 onClick={() => router.push("/wallet")}
-                                className="w-full bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold mt-4"
+                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold mt-4"
                             >
                                 Back to Wallet
                             </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Edit2, Check, X, User, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { Address } from "@ton/core";
-import { IS_TESTNET } from "../../WalletContext";
+import { useWallet } from "../../WalletContext";
 
 interface SavedAddress {
     address: string;
@@ -19,18 +19,9 @@ interface SavedAddress {
 
 const STORAGE_KEY = "quantum_address_book";
 
-// Format address for display
-const formatAddress = (address: string): string => {
-    try {
-        const addr = Address.parse(address);
-        return addr.toString({ bounceable: false, testOnly: IS_TESTNET });
-    } catch {
-        return address;
-    }
-};
-
 export default function AddressBookPage() {
     useTelegramBackButton("/wallet/settings");
+    const { isTestnet } = useWallet();
 
     const [addresses, setAddresses] = useState<SavedAddress[]>([]);
     const [isAdding, setIsAdding] = useState(false);
@@ -39,6 +30,16 @@ export default function AddressBookPage() {
     const [newAddress, setNewAddress] = useState("");
     const [editName, setEditName] = useState("");
     const [addressError, setAddressError] = useState("");
+
+    // Format address for display
+    const formatAddress = useCallback((address: string): string => {
+        try {
+            const addr = Address.parse(address);
+            return addr.toString({ bounceable: false, testOnly: isTestnet });
+        } catch {
+            return address;
+        }
+    }, [isTestnet]);
 
     // Load from localStorage
     useEffect(() => {
@@ -127,15 +128,14 @@ export default function AddressBookPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
+        <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
             <div className="max-w-md mx-auto">
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-xl font-bold">Address Book</h1>
                     <Button
-                        variant="outline"
                         size="sm"
                         onClick={() => setIsAdding(true)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white border-0"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 rounded-xl px-4 font-semibold shadow-sm"
                     >
                         <Plus className="w-4 h-4 mr-1" />
                         Add
@@ -149,13 +149,13 @@ export default function AddressBookPage() {
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                         >
-                            <Card className="bg-[#111] border-[#222] mb-4">
+                            <Card className="bg-card border-border mb-4">
                                 <CardContent className="p-4 space-y-3">
                                     <Input
                                         value={newName}
                                         onChange={(e) => setNewName(e.target.value)}
                                         placeholder="Name (e.g., My Friend)"
-                                        className="bg-[#1a1a1a] border-[#333] text-white"
+                                        className="bg-muted border-border text-foreground"
                                     />
                                     <Input
                                         value={newAddress}
@@ -164,11 +164,11 @@ export default function AddressBookPage() {
                                             if (e.target.value) validateAddress(e.target.value);
                                         }}
                                         placeholder="TON Address"
-                                        className={`bg-[#1a1a1a] border-[#333] text-white font-mono text-sm ${addressError ? "border-red-500" : ""
+                                        className={`bg-muted border-border text-foreground font-mono text-sm ${addressError ? "border-destructive" : ""
                                             }`}
                                     />
                                     {addressError && (
-                                        <p className="text-xs text-red-500">{addressError}</p>
+                                        <p className="text-xs text-destructive">{addressError}</p>
                                     )}
                                     <div className="flex gap-2">
                                         <Button
@@ -179,13 +179,13 @@ export default function AddressBookPage() {
                                                 setNewAddress("");
                                                 setAddressError("");
                                             }}
-                                            className="flex-1 bg-[#1a1a1a] border-[#333] text-white"
+                                            className="flex-1 bg-muted border-border text-foreground"
                                         >
                                             Cancel
                                         </Button>
                                         <Button
                                             onClick={handleAdd}
-                                            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                                            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                                         >
                                             Save
                                         </Button>
@@ -198,23 +198,23 @@ export default function AddressBookPage() {
 
                 {addresses.length === 0 && !isAdding ? (
                     <div className="text-center py-12">
-                        <User className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400">No saved addresses</p>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <User className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                        <p className="text-muted-foreground">No saved addresses</p>
+                        <p className="text-sm text-muted-foreground/50 mt-1">
                             Add frequently used addresses for quick access
                         </p>
                     </div>
                 ) : (
                     <div className="space-y-3">
                         {addresses.map((entry) => (
-                            <Card key={entry.address} className="bg-[#111] border-[#222]">
+                            <Card key={entry.address} className="bg-card border-border">
                                 <CardContent className="p-4">
                                     {editingAddress === entry.address ? (
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 value={editName}
                                                 onChange={(e) => setEditName(e.target.value)}
-                                                className="bg-[#1a1a1a] border-[#333] text-white flex-1"
+                                                className="bg-muted border-border text-foreground flex-1"
                                                 autoFocus
                                             />
                                             <Button
@@ -229,7 +229,7 @@ export default function AddressBookPage() {
                                                 size="icon"
                                                 variant="ghost"
                                                 onClick={() => setEditingAddress(null)}
-                                                className="text-gray-500 hover:text-gray-400"
+                                                className="text-muted-foreground hover:text-foreground"
                                             >
                                                 <X className="w-4 h-4" />
                                             </Button>
@@ -237,11 +237,11 @@ export default function AddressBookPage() {
                                     ) : (
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0 flex-1">
-                                                <div className="font-medium text-white">{entry.name}</div>
+                                                <div className="font-medium text-foreground">{entry.name}</div>
                                                 <Button
                                                     variant="ghost"
                                                     onClick={() => copyAddress(entry.address)}
-                                                    className="h-auto p-0 text-xs text-gray-500 font-mono break-all text-left hover:text-gray-400 hover:bg-transparent flex items-center gap-1 mt-1"
+                                                    className="h-auto p-0 text-xs text-muted-foreground font-mono break-all text-left hover:text-foreground hover:bg-transparent flex items-center gap-1 mt-1"
                                                 >
                                                     {entry.address.slice(0, 12)}...{entry.address.slice(-8)}
                                                     <Copy className="w-3 h-3 shrink-0" />
@@ -252,7 +252,7 @@ export default function AddressBookPage() {
                                                     size="icon"
                                                     variant="ghost"
                                                     onClick={() => handleEdit(entry.address)}
-                                                    className="text-gray-500 hover:text-white h-8 w-8"
+                                                    className="text-muted-foreground hover:text-foreground h-8 w-8"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>
@@ -260,7 +260,7 @@ export default function AddressBookPage() {
                                                     size="icon"
                                                     variant="ghost"
                                                     onClick={() => handleDelete(entry.address)}
-                                                    className="text-red-500 hover:text-red-400 h-8 w-8"
+                                                    className="text-destructive hover:text-destructive/80 h-8 w-8"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>

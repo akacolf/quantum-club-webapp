@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useWallet, StoredWallet } from "../../WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,22 @@ import {
   Trash2,
   Check,
   Edit2,
-  Copy,
-  AlertTriangle
+  Copy
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 export default function ManageWalletsPage() {
   useTelegramBackButton("/wallet/settings");
@@ -33,7 +44,6 @@ export default function ManageWalletsPage() {
 
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   // Scroll to top on navigation
   useEffect(() => {
@@ -70,7 +80,6 @@ export default function ManageWalletsPage() {
       return;
     }
     removeWallet(address);
-    setConfirmDelete(null);
     toast.success("Wallet removed!");
   };
 
@@ -80,18 +89,18 @@ export default function ManageWalletsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
+    <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-2"
         >
-          <div className="mx-auto w-14 h-14 bg-blue-500/10 rounded-full flex items-center justify-center ring-1 ring-blue-500/20">
-            <Wallet className="w-7 h-7 text-blue-400" />
+          <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
+            <Wallet className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">Manage Wallets</h1>
-          <p className="text-gray-400 text-sm">Switch between or manage your wallets</p>
+          <p className="text-muted-foreground text-sm">Switch between or manage your wallets</p>
         </motion.div>
 
         {/* Wallet List */}
@@ -104,12 +113,12 @@ export default function ManageWalletsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className={`bg-[#111] border-[#222] ${wallet.address === walletAddress ? 'ring-2 ring-blue-500/50' : ''}`}>
+                <Card className={`bg-card border-border ${wallet.address === walletAddress ? 'ring-2 ring-primary/50' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${wallet.address === walletAddress ? 'bg-blue-500/20' : 'bg-[#1a1a1a]'}`}>
-                          <Wallet className={`w-5 h-5 ${wallet.address === walletAddress ? 'text-blue-400' : 'text-gray-400'}`} />
+                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${wallet.address === walletAddress ? 'bg-primary/20' : 'bg-muted'}`}>
+                          <Wallet className={`w-5 h-5 ${wallet.address === walletAddress ? 'text-primary' : 'text-muted-foreground'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           {editingWallet === wallet.address ? (
@@ -118,7 +127,7 @@ export default function ManageWalletsPage() {
                                 type="text"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
-                                className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-1.5 text-white text-sm flex-1 min-w-0 focus:outline-none focus:border-blue-500"
+                                className="bg-muted border border-border rounded-lg px-3 py-1.5 text-foreground text-sm flex-1 min-w-0 focus:outline-none focus:border-primary"
                                 autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") handleSaveRename(wallet.address);
@@ -137,22 +146,22 @@ export default function ManageWalletsPage() {
                           ) : (
                             <>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-semibold text-white truncate">{wallet.name}</span>
+                                <span className="font-semibold text-foreground truncate">{wallet.name}</span>
                                 {wallet.address === walletAddress && (
-                                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 text-xs py-0 px-1.5 shrink-0">
+                                  <Badge variant="secondary" className="bg-primary/20 text-primary text-xs py-0 px-1.5 shrink-0">
                                     Active
                                   </Badge>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-gray-500 text-sm font-mono truncate">
+                                <span className="text-muted-foreground text-sm font-mono truncate">
                                   {formatAddress(wallet.address)}
                                 </span>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleCopyAddress(wallet.address)}
-                                  className="h-auto w-auto p-0 text-gray-500 hover:text-gray-300 hover:bg-transparent shrink-0"
+                                  className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground hover:bg-transparent shrink-0"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
                                 </Button>
@@ -169,7 +178,7 @@ export default function ManageWalletsPage() {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleSwitchWallet(wallet.address)}
-                              className="text-blue-400 hover:bg-blue-500/20 text-xs px-2"
+                              className="text-primary hover:bg-primary/20 text-xs px-2"
                             >
                               Switch
                             </Button>
@@ -178,68 +187,54 @@ export default function ManageWalletsPage() {
                             size="icon"
                             variant="ghost"
                             onClick={() => handleStartRename(wallet)}
-                            className="h-8 w-8 text-gray-400 hover:bg-[#1a1a1a]"
+                            className="h-8 w-8 text-muted-foreground hover:bg-muted"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setConfirmDelete(wallet.address)}
-                            className="h-8 w-8 text-red-400 hover:bg-red-500/20"
-                            disabled={storedWallets.length === 1}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/20"
+                                disabled={storedWallets.length === 1}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-card border-border text-foreground">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove this wallet?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-muted-foreground">
+                                  This wallet will be removed from this device. You will need your recovery phrase to restore it later.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteWallet(wallet.address)}
+                                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0"
+                                >
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       )}
                     </div>
 
-                    {/* Delete Confirmation */}
-                    <AnimatePresence>
-                      {confirmDelete === wallet.address && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="mt-4 pt-4 border-t border-[#222]">
-                            <div className="flex items-center gap-2 text-yellow-500 mb-3">
-                              <AlertTriangle className="w-4 h-4" />
-                              <span className="text-sm">Remove this wallet?</span>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setConfirmDelete(null)}
-                                className="flex-1 bg-[#1a1a1a] border-[#333] text-white hover:bg-[#222]"
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handleDeleteWallet(wallet.address)}
-                                className="flex-1 bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+
                   </CardContent>
                 </Card>
               </motion.div>
             ))
           ) : (
-            <Card className="bg-[#111] border-[#222]">
+            <Card className="bg-card border-border">
               <CardContent className="p-8 text-center">
-                <Wallet className="w-12 h-12 mx-auto text-gray-500 mb-3" />
-                <p className="text-gray-400">No wallets found</p>
-                <p className="text-gray-500 text-sm mt-1">Create or import a wallet to get started</p>
+                <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground">No wallets found</p>
+                <p className="text-muted-foreground/60 text-sm mt-1">Create or import a wallet to get started</p>
               </CardContent>
             </Card>
           )}
@@ -254,7 +249,7 @@ export default function ManageWalletsPage() {
         >
           <Button
             onClick={() => router.push("/wallet/import")}
-            className="w-full bg-[#111] border border-[#222] text-white hover:bg-[#1a1a1a] h-14"
+            className="w-full bg-card border border-border text-foreground hover:bg-muted h-14"
             disabled={storedWallets.length >= 5}
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -263,7 +258,7 @@ export default function ManageWalletsPage() {
         </motion.div>
 
         {/* Info */}
-        <div className="text-center text-gray-500 text-sm">
+        <div className="text-center text-muted-foreground text-sm">
           <p>You can manage up to 5 wallets</p>
           <p className="text-xs mt-1">{storedWallets.length}/5 wallets</p>
         </div>

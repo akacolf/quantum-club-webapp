@@ -63,27 +63,27 @@ export default function ViewRecoveryPhrasePage() {
   // Show auth modal if not authorized
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <BiometricAuth
           isOpen={isAuthOpen}
           onSuccess={handleAuthSuccess}
           onCancel={handleAuthCancel}
         />
-        <p className="text-gray-400">Authenticating...</p>
+        <p className="text-muted-foreground">Authenticating...</p>
       </div>
     );
   }
 
   if (mnemonic.length === 0) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 pt-6 pb-24">
+    <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
       <BiometricAuth
         isOpen={isAuthOpen}
         onSuccess={handleAuthSuccess}
@@ -98,30 +98,30 @@ export default function ViewRecoveryPhrasePage() {
         >
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="mx-auto w-14 h-14 bg-green-500/10 rounded-full flex items-center justify-center ring-1 ring-green-500/20">
-              <ShieldAlert className="w-7 h-7 text-green-400" />
+            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
+              <ShieldAlert className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Recovery Phrase</h1>
-            <p className="text-gray-400 text-sm max-w-xs mx-auto">
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               This is the only way to recover your wallet. Keep it safe and never share it.
             </p>
           </div>
 
           {/* Warning */}
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-            <p className="text-xs text-red-400 leading-relaxed text-center">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
+            <p className="text-xs text-destructive leading-relaxed text-center">
               <strong>Warning:</strong> Anyone with this phrase can access your wallet. Never share it with anyone, including Quantum Club support.
             </p>
           </div>
 
           {/* Mnemonic Grid */}
           <div className="relative">
-            <ScrollArea className="h-64 rounded-xl border border-[#222] bg-[#0a0a0a]">
+            <ScrollArea className="h-64 rounded-xl border border-border bg-card">
               <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
                 {mnemonic.map((word, i) => (
-                  <div key={i} className="flex items-center space-x-2 bg-[#111] border border-[#222] rounded-lg px-3 py-2.5">
-                    <span className="text-[10px] font-mono text-gray-600 w-4 select-none">{i + 1}.</span>
-                    <span className="text-sm font-medium text-gray-200 font-mono">{word}</span>
+                  <div key={i} className="flex items-center space-x-2 bg-muted border border-border rounded-lg px-3 py-2.5">
+                    <span className="text-[10px] font-mono text-muted-foreground/50 w-4 select-none">{i + 1}.</span>
+                    <span className="text-sm font-medium text-foreground font-mono">{word}</span>
                   </div>
                 ))}
               </div>
@@ -132,7 +132,7 @@ export default function ViewRecoveryPhrasePage() {
                 <Button
                   onClick={() => setIsRevealed(true)}
                   variant="secondary"
-                  className="bg-[#222] border border-[#333] text-white hover:bg-[#333] shadow-xl"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Reveal Phrase
@@ -145,7 +145,7 @@ export default function ViewRecoveryPhrasePage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsRevealed(false)}
-                className="absolute -top-3 -right-3 text-gray-500 hover:text-white h-8 w-8 p-0 bg-[#111] rounded-full border border-[#333]"
+                className="absolute -top-3 -right-3 text-muted-foreground hover:text-foreground h-8 w-8 p-0 bg-card rounded-full border border-border shadow-sm"
               >
                 <EyeOff className="w-3 h-3" />
               </Button>
@@ -157,7 +157,7 @@ export default function ViewRecoveryPhrasePage() {
             <Button
               onClick={copyMnemonic}
               variant="outline"
-              className="w-full bg-[#111] border-[#222] text-gray-300 hover:text-white hover:bg-[#1a1a1a] h-12 transition-colors"
+              className="w-full bg-card border-border text-foreground hover:bg-muted h-12 transition-colors"
             >
               {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
               {copied ? "Copied to Clipboard" : "Copy to Clipboard"}
@@ -166,7 +166,7 @@ export default function ViewRecoveryPhrasePage() {
             <Button
               onClick={() => router.push("/wallet/settings")}
               variant="ghost"
-              className="w-full text-gray-400 hover:text-white h-12"
+              className="w-full text-muted-foreground hover:text-foreground h-12"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Settings

@@ -87,7 +87,7 @@ export default function VerifyPhrasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 pt-6">
+    <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -96,11 +96,11 @@ export default function VerifyPhrasePage() {
         >
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="mx-auto w-14 h-14 bg-green-500/10 rounded-full flex items-center justify-center ring-1 ring-green-500/20">
-              <Check className="w-7 h-7 text-green-400" />
+            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
+              <Check className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Verify Your Phrase</h1>
-            <p className="text-gray-400 text-sm max-w-xs mx-auto">
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               Enter the correct words from your recovery phrase to verify you saved it.
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function VerifyPhrasePage() {
           <div className="space-y-4">
             {verificationWords.map((item, i) => (
               <div key={item.index} className="space-y-2">
-                <Label className="text-sm text-gray-400 ml-1">
+                <Label className="text-sm text-muted-foreground ml-1">
                   Word #{item.index + 1}
                 </Label>
                 <Input
@@ -121,7 +121,7 @@ export default function VerifyPhrasePage() {
                     setUserInputs(newInputs);
                   }}
                   placeholder={`Enter word #${item.index + 1}`}
-                  className="w-full bg-[#0a0a0a] border border-[#222] rounded-xl px-4 py-6 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-mono transition-colors"
+                  className="w-full bg-muted border border-border rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-mono transition-colors"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -136,7 +136,7 @@ export default function VerifyPhrasePage() {
             <Button
               onClick={handleGoBack}
               variant="outline"
-              className="w-full bg-[#111] border-[#222] text-gray-300 hover:text-white hover:bg-[#1a1a1a] h-12 transition-colors"
+              className="w-full bg-card border-border text-foreground hover:bg-muted h-12 transition-colors"
             >
               Go Back
             </Button>
@@ -144,7 +144,7 @@ export default function VerifyPhrasePage() {
             <Button
               onClick={verifyAndSaveWallet}
               disabled={userInputs.some(input => !input.trim())}
-              className="w-full bg-white text-black hover:bg-gray-200 h-12 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Verify & Create Wallet
             </Button>
