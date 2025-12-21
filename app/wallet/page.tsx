@@ -682,12 +682,21 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-          <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
-          <p className="text-xs text-yellow-500/90 leading-relaxed">
-            ETH and BTC are receive-only. Sending is currently only available for TON assets.
-          </p>
-        </div>
+        {isTestnet ? (
+          <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
+            <FlaskConical className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-blue-400/90 leading-relaxed">
+              You&apos;re on TON Testnet. Assets here have no real value. Switch to mainnet in settings for real transactions.
+            </p>
+          </div>
+        ) : (ethAddress || btcAddress) && (
+          <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
+            <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-yellow-500/90 leading-relaxed">
+              Multi-chain assets (BTC, ETH) are receive-only. Sending is currently only available for TON.
+            </p>
+          </div>
+        )}
 
 
         <Tabs defaultValue="assets" className="w-full pb-24">
