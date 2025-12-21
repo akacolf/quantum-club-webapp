@@ -188,7 +188,66 @@ export default function WalletPage() {
   const fetchPriceHistory = useCallback(async (asset: AssetDetail, period: ChartPeriod = '1D') => {
     setIsLoadingPrice(true);
     try {
-      // TonAPI rates chart endpoint for real price data
+      // For ETH and BTC, use CoinGecko API
+      if (asset.symbol === "ETH" || asset.symbol === "BTC") {
+        const coinId = asset.symbol === "ETH" ? "ethereum" : "bitcoin";
+        const days = { '1H': '1', '1D': '1', '1W': '7', '1M': '30', '6M': '180', '1Y': '365' }[period];
+
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const prices: [number, number][] = data.prices || [];
+
+          if (prices.length > 0) {
+            // For shorter periods, sample fewer points for better chart readability
+            const maxPoints = period === '1H' ? 60 : period === '1D' ? 96 : 100;
+            const step = Math.max(1, Math.floor(prices.length / maxPoints));
+            const sampledPrices = prices.filter((_, i) => i % step === 0);
+
+            const history: PricePoint[] = sampledPrices.map((point: [number, number]) => {
+              const date = new Date(point[0]);
+              let timeLabel = "";
+
+              // Format label based on period
+              if (period === '1H' || period === '1D') {
+                timeLabel = date.toLocaleTimeString(undefined, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                });
+              } else if (period === '1W' || period === '1M') {
+                timeLabel = date.toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric'
+                });
+              } else {
+                timeLabel = date.toLocaleDateString(undefined, {
+                  month: 'short',
+                  year: '2-digit'
+                });
+              }
+
+              return {
+                time: timeLabel,
+                price: point[1],
+              };
+            });
+            setPriceHistory(history);
+            setIsLoadingPrice(false);
+            return;
+          }
+        }
+
+        // Fallback empty if no data
+        setPriceHistory([]);
+        setIsLoadingPrice(false);
+        return;
+      }
+
+      // For TON and other tokens, use TonAPI
       const API_BASE = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
       // Determine the token for the API call
@@ -658,7 +717,7 @@ export default function WalletPage() {
               <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-[10px] font-bold px-2 py-0.5">
                 TON
               </Badge>
-              <span className="text-xs text-muted-foreground font-medium">TON Network</span>
+
             </div>
 
             {/* TON Card */}
@@ -732,8 +791,8 @@ export default function WalletPage() {
 
             {/* No tokens message */}
             {!isLoadingAssets && hasFetched && jettons.length === 0 && (
-              <div className="py-8 text-center bg-[#111] rounded-2xl border border-[#222] border-dashed">
-                <p className="text-sm text-gray-500">Tokens will appear here automatically.</p>
+              <div className="py-4 text-center bg-[#111] rounded-xl border border-[#222] border-dashed">
+                <p className="text-xs text-gray-500">Tokens will appear here automatically.</p>
               </div>
             )}
 
@@ -791,7 +850,7 @@ export default function WalletPage() {
                   <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px] font-bold px-2 py-0.5">
                     MULTI-CHAIN
                   </Badge>
-                  <span className="text-xs text-muted-foreground font-medium">Other Networks</span>
+
                 </div>
                 <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px] font-medium">
                   Receive Only
