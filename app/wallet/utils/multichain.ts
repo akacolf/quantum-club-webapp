@@ -1,16 +1,20 @@
 /**
  * Multi-chain address derivation utilities
- * Derives ETH and BTC addresses from the same seed phrase used for TON wallet
+ * Derives ETH, BTC, SOL, and TRX addresses from the same seed phrase used for TON wallet
  */
 
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
 import { privateKeyToAddress } from "viem/accounts";
 import { createHash } from "crypto";
+import { ed25519 } from "@noble/curves/ed25519.js";
+import bs58 from "bs58";
 
 // BIP-44 derivation paths
 const ETH_PATH = "m/44'/60'/0'/0/0";
 const BTC_PATH = "m/44'/0'/0'/0/0";
+const SOL_PATH = "m/44'/501'/0'/0'";
+const TRX_PATH = "m/44'/195'/0'/0/0";
 
 /**
  * Derive Ethereum address from mnemonic
@@ -146,7 +150,71 @@ function polymod(values: number[]): number {
     return chk;
 }
 
-export type ChainType = "ton" | "eth" | "btc";
+/**
+ * Derive Solana address from mnemonic
+ * Uses Ed25519 curve with BIP44 path m/44'/501'/0'/0'
+ */
+export function deriveSolAddress(mnemonic: string): string {
+    try {
+        const seed = mnemonicToSeedSync(mnemonic);
+        const hdKey = HDKey.fromMasterSeed(seed);
+        const derived = hdKey.derive(SOL_PATH);
+
+        if (!derived.privateKey) {
+            throw new Error("Failed to derive private key");
+        }
+
+        // For Solana, we need to use the first 32 bytes of the derived key as seed for Ed25519
+        const seedBytes = derived.privateKey.slice(0, 32);
+
+        // Generate Ed25519 public key from seed
+        const publicKey = ed25519.getPublicKey(seedBytes);
+
+        // Encode public key as base58 (Solana address format)
+        return bs58.encode(publicKey);
+    } catch (error) {
+        console.error("SOL address derivation error:", error);
+        return "";
+    }
+}
+
+/**
+ * Derive Tron address from mnemonic
+ * Uses secp256k1 (like ETH) with Base58Check encoding
+ */
+export function deriveTronAddress(mnemonic: string): string {
+    try {
+        const seed = mnemonicToSeedSync(mnemonic);
+        const hdKey = HDKey.fromMasterSeed(seed);
+        const derived = hdKey.derive(TRX_PATH);
+
+        if (!derived.privateKey) {
+            throw new Error("Failed to derive private key");
+        }
+
+        // Get ETH-style address first (using viem)
+        const privateKeyHex = `0x${Buffer.from(derived.privateKey).toString("hex")}` as `0x${string}`;
+        const ethAddress = privateKeyToAddress(privateKeyHex);
+
+        // Convert ETH address to Tron format
+        // Remove 0x prefix and add 41 (Tron mainnet prefix)
+        const addressHex = "41" + ethAddress.slice(2);
+        const addressBytes = Buffer.from(addressHex, "hex");
+
+        // Base58Check encode
+        const hash1 = createHash("sha256").update(addressBytes).digest();
+        const hash2 = createHash("sha256").update(hash1).digest();
+        const checksum = hash2.slice(0, 4);
+
+        const addressWithChecksum = Buffer.concat([addressBytes, checksum]);
+        return bs58.encode(addressWithChecksum);
+    } catch (error) {
+        console.error("TRX address derivation error:", error);
+        return "";
+    }
+}
+
+export type ChainType = "ton" | "eth" | "btc" | "sol" | "trx";
 
 export interface ChainInfo {
     id: ChainType;
@@ -155,6 +223,7 @@ export interface ChainInfo {
     logo: string;
     color: string;
     warningText: string;
+    receiveOnly?: boolean;
 }
 
 export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
@@ -165,6 +234,7 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         logo: "/svg/ton-logo.svg",
         color: "#0098EA",
         warningText: "Send only TON, TON-based tokens, and NFTs to this address.",
+        receiveOnly: false,
     },
     eth: {
         id: "eth",
@@ -173,6 +243,7 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         logo: "/svg/eth-logo.svg",
         color: "#627EEA",
         warningText: "Send only ETH and ERC-20 tokens to this address.",
+        receiveOnly: true,
     },
     btc: {
         id: "btc",
@@ -181,6 +252,25 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         logo: "/svg/btc-logo.svg",
         color: "#F7931A",
         warningText: "Send only Bitcoin (BTC) to this address.",
+        receiveOnly: true,
+    },
+    sol: {
+        id: "sol",
+        name: "Solana",
+        symbol: "SOL",
+        logo: "/svg/sol-logo.svg",
+        color: "#9945FF",
+        warningText: "Send only SOL and SPL tokens to this address.",
+        receiveOnly: true,
+    },
+    trx: {
+        id: "trx",
+        name: "TRON",
+        symbol: "TRX",
+        logo: "/svg/trx-logo.svg",
+        color: "#FF0013",
+        warningText: "Send only TRX and TRC-20 tokens to this address.",
+        receiveOnly: true,
     },
 };
 
@@ -300,19 +390,120 @@ export async function fetchBtcPrice(): Promise<number> {
     return 0;
 }
 
+/**
+ * Fetch SOL balance using Solana public RPC
+ * Returns balance in SOL (not lamports)
+ */
+export async function fetchSolBalance(address: string): Promise<number> {
+    if (!address) return 0;
+
+    const rpcUrls = [
+        "https://api.mainnet-beta.solana.com",
+        "https://solana-mainnet.g.alchemy.com/v2/demo",
+        "https://rpc.ankr.com/solana"
+    ];
+
+    for (const rpcUrl of rpcUrls) {
+        try {
+            const response = await fetch(rpcUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "getBalance",
+                    params: [address],
+                    id: 1
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.result?.value !== undefined) {
+                    // Convert from lamports to SOL
+                    return data.result.value / 1e9;
+                }
+            }
+        } catch (error) {
+            console.warn(`SOL RPC ${rpcUrl} failed:`, error);
+            continue;
+        }
+    }
+    return 0;
+}
+
+/**
+ * Fetch SOL price in USD using CoinGecko
+ */
+export async function fetchSolPrice(): Promise<number> {
+    try {
+        const response = await fetch(
+            "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+        );
+        if (response.ok) {
+            const data = await response.json();
+            return data.solana?.usd || 0;
+        }
+    } catch (error) {
+        console.error("SOL price fetch error:", error);
+    }
+    return 0;
+}
+
+/**
+ * Fetch TRX balance using TronGrid API (free public endpoint)
+ * Returns balance in TRX (not sun)
+ */
+export async function fetchTrxBalance(address: string): Promise<number> {
+    if (!address) return 0;
+
+    try {
+        const response = await fetch(
+            `https://api.trongrid.io/v1/accounts/${address}`
+        );
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.data?.[0]?.balance !== undefined) {
+                // Convert from sun to TRX
+                return data.data[0].balance / 1e6;
+            }
+        }
+    } catch (error) {
+        console.error("TRX balance fetch error:", error);
+    }
+    return 0;
+}
+
+/**
+ * Fetch TRX price in USD using CoinGecko
+ */
+export async function fetchTrxPrice(): Promise<number> {
+    try {
+        const response = await fetch(
+            "https://api.coingecko.com/api/v3/simple/price?ids=tron&vs_currencies=usd"
+        );
+        if (response.ok) {
+            const data = await response.json();
+            return data.tron?.usd || 0;
+        }
+    } catch (error) {
+        console.error("TRX price fetch error:", error);
+    }
+    return 0;
+}
+
+export interface ChainBalance {
+    address: string;
+    balance: number;
+    usdValue: number;
+    price: number;
+}
+
 export interface MultiChainBalances {
-    eth: {
-        address: string;
-        balance: number;
-        usdValue: number;
-        price: number;
-    };
-    btc: {
-        address: string;
-        balance: number;
-        usdValue: number;
-        price: number;
-    };
+    eth: ChainBalance;
+    btc: ChainBalance;
+    sol: ChainBalance;
+    trx: ChainBalance;
 }
 
 /**
@@ -321,14 +512,23 @@ export interface MultiChainBalances {
 export async function fetchAllMultiChainBalances(
     ethAddress: string,
     btcAddress: string,
+    solAddress: string,
+    trxAddress: string,
     isTestnet: boolean = false
 ): Promise<MultiChainBalances> {
     // Fetch all in parallel
-    const [ethBalance, btcBalance, ethPrice, btcPrice] = await Promise.all([
+    const [
+        ethBalance, btcBalance, solBalance, trxBalance,
+        ethPrice, btcPrice, solPrice, trxPrice
+    ] = await Promise.all([
         fetchEthBalance(ethAddress, isTestnet),
         fetchBtcBalance(btcAddress, isTestnet),
+        fetchSolBalance(solAddress),
+        fetchTrxBalance(trxAddress),
         fetchEthPrice(),
-        fetchBtcPrice()
+        fetchBtcPrice(),
+        fetchSolPrice(),
+        fetchTrxPrice()
     ]);
 
     return {
@@ -343,6 +543,19 @@ export async function fetchAllMultiChainBalances(
             balance: btcBalance,
             usdValue: btcBalance * btcPrice,
             price: btcPrice
+        },
+        sol: {
+            address: solAddress,
+            balance: solBalance,
+            usdValue: solBalance * solPrice,
+            price: solPrice
+        },
+        trx: {
+            address: trxAddress,
+            balance: trxBalance,
+            usdValue: trxBalance * trxPrice,
+            price: trxPrice
         }
     };
 }
+

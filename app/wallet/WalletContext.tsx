@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { fromNano } from "@ton/core";
 import { toast } from "sonner";
-import { deriveEthAddress, deriveBtcAddress, fetchAllMultiChainBalances } from "./utils/multichain";
+import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
 
 // Default testnet mode - can be overridden by user preference in localStorage
 const DEFAULT_TESTNET = false;
@@ -55,21 +55,31 @@ interface WalletContextType {
   storedWallets: StoredWallet[];
   activeWalletIndex: number;
   walletStatus: string;
+  selectedNetwork: ChainType;
   // Multi-chain support
   ethAddress: string;
   btcAddress: string;
+  solAddress: string;
+  trxAddress: string;
   ethBalance: number;
   btcBalance: number;
+  solBalance: number;
+  trxBalance: number;
   ethUsdValue: number;
   btcUsdValue: number;
+  solUsdValue: number;
+  trxUsdValue: number;
   ethPrice: number;
   btcPrice: number;
+  solPrice: number;
+  trxPrice: number;
   isLoadingMultiChain: boolean;
   fetchWalletAssets: () => Promise<void>;
   fetchNfts: () => Promise<void>;
   fetchMultiChainBalances: () => Promise<void>;
   setWalletStatus: (walletstatus: string) => void;
   setWalletAddress: (address: string) => void;
+  setSelectedNetwork: (network: ChainType) => void;
   toggleHideAsset: (symbol: string) => void;
   toggleHideBalance: () => void;
   toggleTestnet: () => void;
@@ -170,15 +180,37 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // API URLs based on network
   const getApiBaseUrl = useCallback(() => isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io", [isTestnet]);
 
+  // Selected network for display
+  const [selectedNetwork, setSelectedNetworkState] = useState<ChainType>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("quantum_selected_network");
+      return (stored as ChainType) || "ton";
+    }
+    return "ton";
+  });
+
+  const setSelectedNetwork = useCallback((network: ChainType) => {
+    setSelectedNetworkState(network);
+    localStorage.setItem("quantum_selected_network", network);
+  }, []);
+
   // Multi-chain state
   const [ethAddress, setEthAddress] = useState("");
   const [btcAddress, setBtcAddress] = useState("");
+  const [solAddress, setSolAddress] = useState("");
+  const [trxAddress, setTrxAddress] = useState("");
   const [ethBalance, setEthBalance] = useState(0);
   const [btcBalance, setBtcBalance] = useState(0);
+  const [solBalance, setSolBalance] = useState(0);
+  const [trxBalance, setTrxBalance] = useState(0);
   const [ethUsdValue, setEthUsdValue] = useState(0);
   const [btcUsdValue, setBtcUsdValue] = useState(0);
+  const [solUsdValue, setSolUsdValue] = useState(0);
+  const [trxUsdValue, setTrxUsdValue] = useState(0);
   const [ethPrice, setEthPrice] = useState(0);
   const [btcPrice, setBtcPrice] = useState(0);
+  const [solPrice, setSolPrice] = useState(0);
+  const [trxPrice, setTrxPrice] = useState(0);
   const [isLoadingMultiChain, setIsLoadingMultiChain] = useState(false);
 
   // Multi-wallet support
@@ -454,8 +486,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         // Always re-derive to ensure addresses match current mnemonic
         const eth = deriveEthAddress(storedMnemonic);
         const btc = deriveBtcAddress(storedMnemonic, false); // Always mainnet (bc1...)
+        const sol = deriveSolAddress(storedMnemonic);
+        const trx = deriveTronAddress(storedMnemonic);
         setEthAddress(eth);
         setBtcAddress(btc);
+        setSolAddress(sol);
+        setTrxAddress(trx);
       } catch (error) {
         console.error("Failed to derive multi-chain addresses:", error);
       }
@@ -464,11 +500,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Fetch multi-chain balances (always mainnet)
   const fetchMultiChainBalances = useCallback(async () => {
-    if (!ethAddress || !btcAddress) return;
+    if (!ethAddress || !btcAddress || !solAddress || !trxAddress) return;
 
     setIsLoadingMultiChain(true);
     try {
-      const balances = await fetchAllMultiChainBalances(ethAddress, btcAddress, false); // Always mainnet
+      const balances = await fetchAllMultiChainBalances(ethAddress, btcAddress, solAddress, trxAddress, false);
 
       setEthBalance(balances.eth.balance);
       setEthUsdValue(balances.eth.usdValue);
@@ -477,19 +513,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setBtcBalance(balances.btc.balance);
       setBtcUsdValue(balances.btc.usdValue);
       setBtcPrice(balances.btc.price);
+
+      setSolBalance(balances.sol.balance);
+      setSolUsdValue(balances.sol.usdValue);
+      setSolPrice(balances.sol.price);
+
+      setTrxBalance(balances.trx.balance);
+      setTrxUsdValue(balances.trx.usdValue);
+      setTrxPrice(balances.trx.price);
     } catch (error) {
       console.error("Failed to fetch multi-chain balances:", error);
     } finally {
       setIsLoadingMultiChain(false);
     }
-  }, [ethAddress, btcAddress]);
+  }, [ethAddress, btcAddress, solAddress, trxAddress]);
 
   // Auto-fetch multi-chain balances when addresses are ready
   useEffect(() => {
-    if (ethAddress && btcAddress && hasFetched) {
+    if (ethAddress && btcAddress && solAddress && trxAddress && hasFetched) {
       fetchMultiChainBalances();
     }
-  }, [ethAddress, btcAddress, hasFetched, fetchMultiChainBalances]);
+  }, [ethAddress, btcAddress, solAddress, trxAddress, hasFetched, fetchMultiChainBalances]);
 
   // Handle wallet address changes - reset state and refetch
   const handleSetWalletAddress = useCallback((address: string) => {
@@ -538,21 +582,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       storedWallets,
       activeWalletIndex,
       walletStatus,
+      selectedNetwork,
       // Multi-chain
       ethAddress,
       btcAddress,
+      solAddress,
+      trxAddress,
       ethBalance,
       btcBalance,
+      solBalance,
+      trxBalance,
       ethUsdValue,
       btcUsdValue,
+      solUsdValue,
+      trxUsdValue,
       ethPrice,
       btcPrice,
+      solPrice,
+      trxPrice,
       isLoadingMultiChain,
       setWalletStatus,
       fetchWalletAssets,
       fetchNfts,
       fetchMultiChainBalances,
       setWalletAddress: handleSetWalletAddress,
+      setSelectedNetwork,
       toggleHideAsset,
       toggleHideBalance,
       toggleTestnet,

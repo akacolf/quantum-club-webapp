@@ -75,6 +75,8 @@ const CHART_COLORS = [
 const TON_ICON = "https://ton.org/download/ton_symbol.svg";
 const ETH_ICON = "/svg/eth-logo.svg";
 const BTC_ICON = "/svg/btc-logo.svg";
+const SOL_ICON = "/svg/sol-logo.svg";
+const TRX_ICON = "/svg/trx-logo.svg";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -99,12 +101,20 @@ export default function WalletPage() {
     // Multi-chain
     ethAddress,
     btcAddress,
+    solAddress,
+    trxAddress,
     ethBalance,
     btcBalance,
+    solBalance,
+    trxBalance,
     ethUsdValue,
     btcUsdValue,
+    solUsdValue,
+    trxUsdValue,
     ethPrice,
     btcPrice,
+    solPrice,
+    trxPrice,
     isLoadingMultiChain
   } = useWallet();
 
@@ -189,8 +199,15 @@ export default function WalletPage() {
     setIsLoadingPrice(true);
     try {
       // For ETH and BTC, use CoinGecko API
-      if (asset.symbol === "ETH" || asset.symbol === "BTC") {
-        const coinId = asset.symbol === "ETH" ? "ethereum" : "bitcoin";
+      // For ETH, BTC, SOL, TRX use CoinGecko API
+      if (['ETH', 'BTC', 'SOL', 'TRX'].includes(asset.symbol)) {
+        let coinId = "";
+        switch (asset.symbol) {
+          case "ETH": coinId = "ethereum"; break;
+          case "BTC": coinId = "bitcoin"; break;
+          case "SOL": coinId = "solana"; break;
+          case "TRX": coinId = "tron"; break;
+        }
         const days = { '1H': '1', '1D': '1', '1W': '7', '1M': '30', '6M': '180', '1Y': '365' }[period];
 
         const response = await fetch(
@@ -689,11 +706,11 @@ export default function WalletPage() {
               You&apos;re on TON Testnet. Assets here have no real value. Switch to mainnet in settings for real transactions.
             </p>
           </div>
-        ) : (ethAddress || btcAddress) && (
+        ) : (ethAddress || btcAddress || solAddress || trxAddress) && (
           <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
             <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
             <p className="text-xs text-yellow-500/90 leading-relaxed">
-              Multi-chain assets (BTC, ETH) are receive-only. Sending is currently only available for TON.
+              Multi-chain assets are receive-only. Sending is currently only available for TON.
             </p>
           </div>
         )}
@@ -853,7 +870,7 @@ export default function WalletPage() {
             })}
 
             {/* Multi-Chain Section Header - Only show in mainnet when addresses exist */}
-            {!isTestnet && (ethAddress || btcAddress) && (
+            {!isTestnet && (ethAddress || btcAddress || solAddress || trxAddress) && (
               <div className="flex items-center justify-between px-1 pt-3">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px] font-bold px-2 py-0.5">
@@ -950,6 +967,98 @@ export default function WalletPage() {
                         <>
                           <h4 className="font-bold text-white">{hideBalance ? "••••" : ethBalance.toFixed(4)}</h4>
                           <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${ethUsdValue.toFixed(2)}`}</p>
+                        </>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* SOL Balance Card - Only show in mainnet */}
+            {!isTestnet && solAddress && (
+              <Card
+                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                onClick={() => {
+                  setSelectedAsset({
+                    name: "Solana",
+                    symbol: "SOL",
+                    balance: solBalance.toFixed(4),
+                    value: solUsdValue,
+                    priceUsd: solPrice,
+                    image: SOL_ICON,
+                    color: "#9945FF",
+                  }); setChartPeriod('1D');
+                }}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#9945FF]/20">
+                      <Image src={SOL_ICON} alt="SOL" width={40} height={40} className="w-full h-full" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white">SOL</h4>
+                      <p className="text-xs text-gray-500">Solana</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      {isLoadingMultiChain ? (
+                        <div className="space-y-1 flex flex-col items-end">
+                          <Skeleton className="h-5 w-24 bg-[#222]" />
+                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : solBalance.toFixed(2)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${solUsdValue.toFixed(2)}`}</p>
+                        </>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* TRX Balance Card - Only show in mainnet */}
+            {!isTestnet && trxAddress && (
+              <Card
+                className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                onClick={() => {
+                  setSelectedAsset({
+                    name: "TRON",
+                    symbol: "TRX",
+                    balance: trxBalance.toFixed(2),
+                    value: trxUsdValue,
+                    priceUsd: trxPrice,
+                    image: TRX_ICON,
+                    color: "#FF0013",
+                  }); setChartPeriod('1D');
+                }}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-lg shadow-[#FF0013]/20">
+                      <Image src={TRX_ICON} alt="TRX" width={40} height={40} className="w-full h-full" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white">TRX</h4>
+                      <p className="text-xs text-gray-500">TRON</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      {isLoadingMultiChain ? (
+                        <div className="space-y-1 flex flex-col items-end">
+                          <Skeleton className="h-5 w-24 bg-[#222]" />
+                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : trxBalance.toFixed(2)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${trxUsdValue.toFixed(2)}`}</p>
                         </>
                       )}
                     </div>
