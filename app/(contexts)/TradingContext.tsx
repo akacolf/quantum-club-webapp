@@ -43,6 +43,7 @@ import {
     calculateMaxSellAmount,
     getNextVesting,
 } from "@/lib/anti-dump";
+import { updatePriceCandle } from "@/lib/price-history";
 
 interface TradingContextType {
     // Token discovery
@@ -389,6 +390,25 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            // Server-side validation first
+            const validationResponse = await fetch("/api/trade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId,
+                    type: "buy",
+                    amount: tonAmount,
+                }),
+            });
+
+            if (!validationResponse.ok) {
+                const errorData = await validationResponse.json();
+                if (validationResponse.status === 429) {
+                    return { success: false, error: `Rate limit exceeded. Try again in ${errorData.retryAfter}s` };
+                }
+                return { success: false, error: errorData.error || "Validation failed" };
+            }
+
             // In the foundation phase, this is a simulated/centralized buy
             // Will be replaced with on-chain transactions later
 
@@ -489,6 +509,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             await refreshPositions();
 
+            // Update price history for charts
+            updatePriceCandle(tokenId, newPrice.toString()).catch(console.error);
+
             return {
                 success: true,
                 trade: {
@@ -522,6 +545,25 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            // Server-side validation first
+            const validationResponse = await fetch("/api/trade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId,
+                    type: "sell",
+                    amount: tokenAmount,
+                }),
+            });
+
+            if (!validationResponse.ok) {
+                const errorData = await validationResponse.json();
+                if (validationResponse.status === 429) {
+                    return { success: false, error: `Rate limit exceeded. Try again in ${errorData.retryAfter}s` };
+                }
+                return { success: false, error: errorData.error || "Validation failed" };
+            }
+
             const position = getPosition(tokenId);
             if (!position) {
                 return { success: false, error: "No position found" };
@@ -610,6 +652,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             });
 
             await refreshPositions();
+
+            // Update price history for charts
+            updatePriceCandle(tokenId, newPrice.toString()).catch(console.error);
 
             return {
                 success: true,

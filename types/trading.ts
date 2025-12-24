@@ -128,19 +128,19 @@ export const DEFAULT_BONDING_CURVE: BondingCurveParams = {
 
 export const DEFAULT_ANTI_DUMP_CONFIG: AntiDumpConfig = {
     vestingSchedule: {
-        immediatePercent: 50, // 50% immediately available
-        oneHourPercent: 0, // Simplified: no 1h tranche
-        fourHourPercent: 0, // Simplified: no 4h tranche
-        twentyFourHourPercent: 50, // 50% unlocks after 6 hours (using 24h field as "delayed")
+        immediatePercent: 100, // 100% immediately available - no vesting
+        oneHourPercent: 0,
+        fourHourPercent: 0,
+        twentyFourHourPercent: 0,
     },
     sellLimits: {
-        whaleThresholdPercent: 5, // 5% of supply = whale
-        whaleDailyLimitPercent: 25, // Relaxed: 25% daily (was 10%)
-        largeHolderThresholdPercent: 2, // 2% of supply = large holder
-        largeHolderDailyLimitPercent: 50, // Relaxed: 50% daily (was 25%)
+        whaleThresholdPercent: 100, // Effectively disabled - no one is a "whale"
+        whaleDailyLimitPercent: 100, // Can sell 100% daily
+        largeHolderThresholdPercent: 100, // Effectively disabled
+        largeHolderDailyLimitPercent: 100, // Can sell 100% daily
     },
-    twapThresholdUsd: 1000, // Raised from $500 to $1000
-    twapDurationMinutes: 15, // Reduced from 30 to 15 minutes
+    twapThresholdUsd: 100000, // Effectively disabled - very high threshold
+    twapDurationMinutes: 0, // No TWAP splitting
 };
 
 // Graduation threshold - balanced at $50K market cap

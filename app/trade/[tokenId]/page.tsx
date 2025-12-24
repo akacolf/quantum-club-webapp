@@ -8,16 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { formatPrice, formatMarketCap } from "@/lib/bonding-curve";
-import { formatVestingCountdown } from "@/lib/anti-dump";
 import { toast } from "sonner";
 import TokenChat from "@/app/trade/(components)/TokenChat";
 import LiveTrades from "@/app/trade/(components)/LiveTrades";
+import PriceChart from "@/app/trade/(components)/PriceChart";
 
 export default function TokenDetailPage() {
     const params = useParams();
@@ -34,7 +33,6 @@ export default function TokenDetailPage() {
         buyTokens,
         sellTokens,
         getAvailableToSell,
-        getNextVestingTime,
     } = useTrading();
     const { walletAddress, tonBalance, tonPrice } = useWallet();
 
@@ -63,7 +61,6 @@ export default function TokenDetailPage() {
     // Get user position
     const position = getPosition(tokenId);
     const availableToSell = getAvailableToSell(tokenId);
-    const nextVesting = getNextVestingTime(tokenId);
 
     // Preview calculation
     useEffect(() => {
@@ -240,6 +237,9 @@ export default function TokenDetailPage() {
                     </CardContent>
                 </Card>
 
+                {/* Price Chart */}
+                <PriceChart tokenId={tokenId} currentPrice={selectedToken.currentPrice} />
+
                 {/* Live Trades */}
                 <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} />
 
@@ -247,22 +247,14 @@ export default function TokenDetailPage() {
                 {position && BigInt(position.balance) > BigInt(0) && (
                     <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
                         <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                                        <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <h3 className="font-semibold text-white">Your Position</h3>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                    <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-primary" />
                                 </div>
-                                {nextVesting.time && (
-                                    <Badge variant="secondary" className="bg-white/10 text-xs">
-                                        <Icon icon="solar:clock-circle-bold" className="w-3 h-3 mr-1" />
-                                        {formatVestingCountdown(nextVesting.time)}
-                                    </Badge>
-                                )}
+                                <h3 className="font-semibold text-white">Your Position</h3>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="p-3 rounded-xl bg-white/5">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Icon icon="solar:coins-bold" className="w-4 h-4 text-yellow-400" />
@@ -275,31 +267,14 @@ export default function TokenDetailPage() {
                                 </div>
                                 <div className="p-3 rounded-xl bg-white/5">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-green-400" />
-                                        <p className="text-xs text-muted-foreground">Available</p>
+                                        <Icon icon="solar:dollar-minimalistic-bold" className="w-4 h-4 text-green-400" />
+                                        <p className="text-xs text-muted-foreground">Value</p>
                                     </div>
                                     <p className="text-lg font-bold text-white">
-                                        {(Number(availableToSell.amount) / 1e9).toLocaleString()}
+                                        {((Number(position.balance) / 1e9) * (Number(selectedToken.currentPrice) / 1e9)).toFixed(4)}
                                     </p>
-                                    <p className="text-[10px] text-muted-foreground">Ready to sell</p>
+                                    <p className="text-[10px] text-muted-foreground">TON</p>
                                 </div>
-                            </div>
-
-                            {/* Vesting Progress */}
-                            <div className="p-3 rounded-xl bg-white/5">
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon="solar:lock-keyhole-unlocked-bold" className="w-4 h-4 text-primary" />
-                                        <span className="text-xs text-muted-foreground">Unlock Progress</span>
-                                    </div>
-                                    <span className="text-xs font-semibold text-white">
-                                        {Math.round((Number(position.vestedBalance) / Number(position.balance)) * 100)}%
-                                    </span>
-                                </div>
-                                <Progress
-                                    value={(Number(position.vestedBalance) / Number(position.balance)) * 100}
-                                    className="h-2 bg-white/10"
-                                />
                             </div>
                         </CardContent>
                     </Card>
@@ -486,35 +461,35 @@ export default function TokenDetailPage() {
                     </Card>
                 )}
 
-                {/* Anti-Dump Info */}
+                {/* Trade Info */}
                 <Card className="bg-white/5 border-white/10">
                     <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                                <Icon icon="solar:shield-check-bold" className="w-4 h-4 text-green-400" />
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Icon icon="solar:bolt-circle-bold" className="w-4 h-4 text-primary" />
                             </div>
-                            <h3 className="font-semibold text-white">Trade Protection</h3>
+                            <h3 className="font-semibold text-white">How It Works</h3>
                         </div>
                         <div className="space-y-3">
                             <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02]">
-                                <Icon icon="solar:clock-circle-bold" className="w-5 h-5 text-blue-400" />
+                                <Icon icon="solar:flash-circle-bold" className="w-5 h-5 text-green-400" />
                                 <div>
-                                    <p className="text-xs font-medium text-white">Quick Unlock</p>
-                                    <p className="text-[11px] text-muted-foreground">50% instant • 50% after 6h</p>
+                                    <p className="text-xs font-medium text-white">Instant Unlock</p>
+                                    <p className="text-[11px] text-muted-foreground">100% available immediately</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02]">
-                                <Icon icon="solar:scale-bold" className="w-5 h-5 text-purple-400" />
+                                <Icon icon="solar:chart-bold" className="w-5 h-5 text-blue-400" />
                                 <div>
-                                    <p className="text-xs font-medium text-white">Whale Limits</p>
-                                    <p className="text-[11px] text-muted-foreground">5%+ holders: max 25%/day</p>
+                                    <p className="text-xs font-medium text-white">Bonding Curve</p>
+                                    <p className="text-[11px] text-muted-foreground">Price set by supply & demand</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02]">
-                                <Icon icon="solar:graph-down-new-bold" className="w-5 h-5 text-orange-400" />
+                                <Icon icon="solar:safe-circle-bold" className="w-5 h-5 text-orange-400" />
                                 <div>
-                                    <p className="text-xs font-medium text-white">Slippage Protection</p>
-                                    <p className="text-[11px] text-muted-foreground">Bonding curve limits impact</p>
+                                    <p className="text-xs font-medium text-white">Natural Protection</p>
+                                    <p className="text-[11px] text-muted-foreground">Large sells = higher slippage</p>
                                 </div>
                             </div>
                         </div>

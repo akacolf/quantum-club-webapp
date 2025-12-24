@@ -90,14 +90,33 @@ export default function TermsOfServicePage() {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">6. Fees</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">6. Token Trading (RocketStart)</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Quantum Club does not charge service fees for basic wallet functionality. Users are responsible for blockchain network fees (gas fees) required to process transactions. Network fees are determined by the respective blockchain networks and are not controlled by Quantum Club. QNTM point transfers between users are free of charge.
+                  Quantum Club provides access to RocketStart, a token launchpad feature that uses bonding curve mechanics. <strong className="text-foreground">By using RocketStart, you acknowledge and accept the following risks:</strong>
+                </p>
+                <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
+                  <li><strong className="text-foreground">High Risk:</strong> Tokens on RocketStart are highly speculative and may lose all value</li>
+                  <li><strong className="text-foreground">No Guarantees:</strong> Past performance does not indicate future results</li>
+                  <li><strong className="text-foreground">Bonding Curve:</strong> Prices are determined algorithmically; large trades cause significant slippage</li>
+                  <li><strong className="text-foreground">Irreversible:</strong> All trades are final once executed on the blockchain</li>
+                  <li><strong className="text-foreground">No Refunds:</strong> Quantum Club cannot reverse or refund any trades</li>
+                  <li><strong className="text-foreground">Your Responsibility:</strong> You are solely responsible for your trading decisions</li>
+                  <li><strong className="text-foreground">Not Investment Advice:</strong> Nothing in the App constitutes financial or investment advice</li>
+                </ul>
+                <p className="text-muted-foreground text-sm leading-relaxed mt-3">
+                  <strong className="text-red-400">WARNING:</strong> Only trade with funds you can afford to lose entirely. Cryptocurrency and token trading involves substantial risk of loss.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">7. Prohibited Activities</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">7. Fees</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Quantum Club does not charge service fees for basic wallet functionality. Users are responsible for blockchain network fees (gas fees) required to process transactions. Network fees are determined by the respective blockchain networks and are not controlled by Quantum Club. QNTM point transfers between users are free of charge. RocketStart token trades are subject to a 1% platform fee, split between the platform and token creator.
+                </p>
+              </section>
+
+              <section>
+                <h2 className="text-lg font-semibold text-foreground mb-2">8. Prohibited Activities</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">You agree not to:</p>
                 <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
                   <li>Use the App for any unlawful purpose or in violation of any laws</li>
@@ -111,56 +130,56 @@ export default function TermsOfServicePage() {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">8. Third-Party Services</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">9. Third-Party Services</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   The App integrates with third-party services including blockchain networks, decentralized exchanges, and price data providers. These services are governed by their own terms and policies. We do not control and are not responsible for the availability, accuracy, or functionality of third-party services.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">9. Disclaimer of Warranties</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">10. Disclaimer of Warranties</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   THE APP IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. WE DISCLAIM ALL WARRANTIES INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE APP WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">10. Limitation of Liability</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">11. Limitation of Liability</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   TO THE MAXIMUM EXTENT PERMITTED BY LAW, QUANTUM CLUB AND ITS AFFILIATES SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR DIGITAL ASSETS, ARISING FROM YOUR USE OF THE APP. CRYPTOCURRENCY INVESTMENTS CARRY SIGNIFICANT RISK INCLUDING POTENTIAL TOTAL LOSS OF FUNDS.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">11. Indemnification</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">12. Indemnification</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   You agree to indemnify and hold harmless Quantum Club, its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from your use of the App, violation of these Terms, or infringement of any third-party rights.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">12. Termination</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">13. Termination</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   We may suspend or terminate your access to the App at any time, with or without cause, and with or without notice. You may discontinue use of the App at any time. Upon termination, you retain access to your funds through your recovery phrase, as the wallet is non-custodial.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">13. Changes to Terms</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">14. Changes to Terms</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   We reserve the right to modify these Terms at any time. Material changes will be communicated through the App. Your continued use of the App after changes take effect constitutes acceptance of the modified Terms.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">14. Governing Law</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">15. Governing Law</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   These Terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law principles. Any disputes arising from these Terms shall be resolved through binding arbitration.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">15. Contact Information</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">16. Contact Information</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   For questions or concerns about these Terms, please contact us on Telegram: @quantumclubinc
                 </p>
