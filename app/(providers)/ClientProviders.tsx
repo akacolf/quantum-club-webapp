@@ -5,6 +5,8 @@ import { LeaderboardProvider } from "../(contexts)/LeaderboardContext";
 import { FrensProvider } from "../(contexts)/FrensContext";
 import { ChatProvider } from "../(contexts)/ChatContext";
 import { GroupsProvider } from "../(contexts)/GroupsContext";
+import { TradingProvider } from "../(contexts)/TradingContext";
+import { WalletProvider } from "../wallet/WalletContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
 
@@ -26,7 +28,11 @@ export default function ClientProviders({ children }: { children: React.ReactNod
           <FrensProvider>
             <ChatProvider>
               <GroupsProvider>
-                {children}
+                <WalletProvider>
+                  <TradingProvider>
+                    {children}
+                  </TradingProvider>
+                </WalletProvider>
               </GroupsProvider>
             </ChatProvider>
           </FrensProvider>

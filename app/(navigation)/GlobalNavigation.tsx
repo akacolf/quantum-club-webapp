@@ -6,11 +6,12 @@ import NavigationBar from "./NavigationBar";
 export default function GlobalNavigation() {
   const pathname = usePathname();
 
-  const shouldShow = 
-    pathname === "/home" || 
-    pathname === "/earn" || 
-    pathname.startsWith("/frens") || 
-    pathname.startsWith("/wallet");
+  const shouldShow =
+    pathname === "/home" ||
+    pathname === "/earn" ||
+    pathname.startsWith("/frens") ||
+    pathname.startsWith("/wallet") ||
+    pathname.startsWith("/trade");
 
   if (!shouldShow) return null;
 
