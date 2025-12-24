@@ -60,6 +60,12 @@ export interface Token extends TokenMetadata {
     status: TokenStatus;
     graduationThreshold: string; // Market cap in USD to graduate to DEX
 
+    // DEX info (only populated when status === "graduated")
+    dexPoolAddress?: string; // STON.fi pool address
+    jettonMasterAddress?: string; // Token's jetton master for DEX trading
+    graduatedAt?: Date; // When the token graduated
+    collectedTon?: string; // Total TON collected during bonding phase
+
     // Stats
     holders: number;
     trades: number;

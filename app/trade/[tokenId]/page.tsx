@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import TokenChat from "@/app/trade/(components)/TokenChat";
 import LiveTrades from "@/app/trade/(components)/LiveTrades";
 import PriceChart from "@/app/trade/(components)/PriceChart";
+import GraduatedTrading from "@/app/trade/(components)/GraduatedTrading";
+import GraduationProgress from "@/app/trade/(components)/GraduationProgress";
 
 export default function TokenDetailPage() {
     const params = useParams();
@@ -280,165 +282,174 @@ export default function TokenDetailPage() {
                     </Card>
                 )}
 
-                {/* Trading Panel */}
-                <Card className="bg-white/5 border-white/10 overflow-hidden">
-                    <CardContent className="p-4">
-                        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); }}>
-                            <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
-                                <TabsTrigger
-                                    value="buy"
-                                    className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg"
-                                >
-                                    <Icon icon="solar:arrow-up-bold" className="w-4 h-4" />
-                                    Buy
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="sell"
-                                    className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg"
-                                    disabled={!position || BigInt(position.balance) <= BigInt(0)}
-                                >
-                                    <Icon icon="solar:arrow-down-bold" className="w-4 h-4" />
-                                    Sell
-                                </TabsTrigger>
-                            </TabsList>
+                {/* Graduation Progress - Only for bonding tokens */}
+                {selectedToken.status === "bonding" && (
+                    <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
+                )}
 
-                            <TabsContent value="buy" className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between mb-2">
-                                        <label className="text-sm text-muted-foreground">Amount (TON)</label>
-                                        <span className="text-sm text-muted-foreground">
-                                            Balance: {parseFloat(tonBalance || "0").toFixed(2)} TON
-                                        </span>
-                                    </div>
-                                    <Input
-                                        type="number"
-                                        placeholder="0.0"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                        className="bg-white/5 border-white/10 text-white text-lg h-12"
-                                    />
-                                    <div className="flex gap-2 mt-2">
-                                        {quickAmounts.map((value) => (
-                                            <Button
-                                                key={value}
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleQuickAmount(value)}
-                                                className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
-                                            >
-                                                {value}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
+                {/* Trading Panel - Show different UI based on graduation status */}
+                {selectedToken.status === "graduated" ? (
+                    <GraduatedTrading token={selectedToken} />
+                ) : (
+                    <Card className="bg-white/5 border-white/10 overflow-hidden">
+                        <CardContent className="p-4">
+                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); }}>
+                                <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
+                                    <TabsTrigger
+                                        value="buy"
+                                        className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg"
+                                    >
+                                        <Icon icon="solar:bag-smile-bold" className="w-4 h-4" />
+                                        Buy
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="sell"
+                                        className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg"
+                                        disabled={!position || BigInt(position.balance) <= BigInt(0)}
+                                    >
+                                        <Icon icon="solar:hand-money-bold" className="w-4 h-4" />
+                                        Sell
+                                    </TabsTrigger>
+                                </TabsList>
 
-                                {preview && (
-                                    <div className="p-3 rounded-lg bg-white/5 space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">You receive</span>
-                                            <span className="text-white font-medium">
-                                                ~{(Number(preview.tokensReceived) / 1e9).toLocaleString()} {selectedToken.symbol}
+                                <TabsContent value="buy" className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <label className="text-sm text-muted-foreground">Amount (TON)</label>
+                                            <span className="text-sm text-muted-foreground">
+                                                Balance: {parseFloat(tonBalance || "0").toFixed(2)} TON
                                             </span>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Price per token</span>
-                                            <span className="text-white">{preview.averagePrice} TON</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Fee (1%)</span>
-                                            <span className="text-white">{preview.fee} TON</span>
+                                        <Input
+                                            type="number"
+                                            placeholder="0.0"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            className="bg-white/5 border-white/10 text-white text-lg h-12"
+                                        />
+                                        <div className="flex gap-2 mt-2">
+                                            {quickAmounts.map((value) => (
+                                                <Button
+                                                    key={value}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleQuickAmount(value)}
+                                                    className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                                                >
+                                                    {value}
+                                                </Button>
+                                            ))}
                                         </div>
                                     </div>
-                                )}
 
-                                <Button
-                                    className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-semibold"
-                                    onClick={handleTrade}
-                                    disabled={isLoading || !amount || parseFloat(amount) <= 0}
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="solar:arrow-up-bold" className="w-5 h-5 mr-2" />
-                                            Buy {selectedToken.symbol}
-                                        </>
+                                    {preview && (
+                                        <div className="p-3 rounded-lg bg-white/5 space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">You receive</span>
+                                                <span className="text-white font-medium">
+                                                    ~{(Number(preview.tokensReceived) / 1e9).toLocaleString()} {selectedToken.symbol}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Price per token</span>
+                                                <span className="text-white">{preview.averagePrice} TON</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Fee (1%)</span>
+                                                <span className="text-white">{preview.fee} TON</span>
+                                            </div>
+                                        </div>
                                     )}
-                                </Button>
-                            </TabsContent>
 
-                            <TabsContent value="sell" className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between mb-2">
-                                        <label className="text-sm text-muted-foreground">Amount (Tokens)</label>
-                                        <span className="text-sm text-muted-foreground">
-                                            Available: {(Number(availableToSell.amount) / 1e9).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                        className="bg-white/5 border-white/10 text-white text-lg h-12"
-                                    />
-                                    <div className="flex gap-2 mt-2">
-                                        {quickAmounts.map((value) => (
-                                            <Button
-                                                key={value}
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleQuickAmount(value)}
-                                                className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
-                                            >
-                                                {value}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-2">{availableToSell.reason}</p>
-                                </div>
+                                    <Button
+                                        className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-semibold"
+                                        onClick={handleTrade}
+                                        disabled={isLoading || !amount || parseFloat(amount) <= 0}
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Icon icon="solar:arrow-up-bold" className="w-5 h-5 mr-2" />
+                                                Buy {selectedToken.symbol}
+                                            </>
+                                        )}
+                                    </Button>
+                                </TabsContent>
 
-                                {preview && (
-                                    <div className="p-3 rounded-lg bg-white/5 space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">You receive</span>
-                                            <span className="text-white font-medium">{preview.tonReceived} TON</span>
+                                <TabsContent value="sell" className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <label className="text-sm text-muted-foreground">Amount (Tokens)</label>
+                                            <span className="text-sm text-muted-foreground">
+                                                Available: {(Number(availableToSell.amount) / 1e9).toLocaleString()}
+                                            </span>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Price per token</span>
-                                            <span className="text-white">{preview.averagePrice} TON</span>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            className="bg-white/5 border-white/10 text-white text-lg h-12"
+                                        />
+                                        <div className="flex gap-2 mt-2">
+                                            {quickAmounts.map((value) => (
+                                                <Button
+                                                    key={value}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleQuickAmount(value)}
+                                                    className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                                                >
+                                                    {value}
+                                                </Button>
+                                            ))}
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Fee (1%)</span>
-                                            <span className="text-white">{preview.fee} TON</span>
-                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-2">{availableToSell.reason}</p>
                                     </div>
-                                )}
 
-                                <Button
-                                    className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-semibold"
-                                    onClick={handleTrade}
-                                    disabled={isLoading || !amount || parseFloat(amount) <= 0}
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="solar:arrow-down-bold" className="w-5 h-5 mr-2" />
-                                            Sell {selectedToken.symbol}
-                                        </>
+                                    {preview && (
+                                        <div className="p-3 rounded-lg bg-white/5 space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">You receive</span>
+                                                <span className="text-white font-medium">{preview.tonReceived} TON</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Price per token</span>
+                                                <span className="text-white">{preview.averagePrice} TON</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Fee (1%)</span>
+                                                <span className="text-white">{preview.fee} TON</span>
+                                            </div>
+                                        </div>
                                     )}
-                                </Button>
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
+
+                                    <Button
+                                        className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-semibold"
+                                        onClick={handleTrade}
+                                        disabled={isLoading || !amount || parseFloat(amount) <= 0}
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Icon icon="solar:arrow-down-bold" className="w-5 h-5 mr-2" />
+                                                Sell {selectedToken.symbol}
+                                            </>
+                                        )}
+                                    </Button>
+                                </TabsContent>
+                            </Tabs>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Token Description */}
                 {selectedToken.description && (

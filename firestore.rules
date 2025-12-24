@@ -80,8 +80,23 @@ service cloud.firestore {
     match /{path=**}/trades/{tradeId} {
       allow read: if true; // Anyone can read trades across all tokens
     }
+    
+    // Graduation queue - function/admin only write, public read for status
+    match /graduationQueue/{queueId} {
+      allow read: if true; // Anyone can check graduation status
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Graduation logs - public read for transparency
+    match /graduationLogs/{logId} {
+      allow read: if true;
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Trade logs - function only
+    match /tradeLogs/{logId} {
+      allow read: if false; // Admin only
+      allow write: if false; // Only API routes can write
+    }
   }
 }
-
-
-

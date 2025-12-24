@@ -111,8 +111,8 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                                     <div className="font-bold text-white text-sm tracking-tight">
                                         {formatPrice(BigInt(token.currentPrice || "0"))}
                                     </div>
-                                    <div className={`flex items-center justify-end gap-1 text-[11px] font-bold ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                        <Icon icon={isPositive ? "solar:graph-up-linear" : "solar:graph-down-linear"} className="w-3 h-3" />
+                                    <div className={`flex items-center justify-end gap-0.5 text-[11px] font-bold ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                                        <span className="text-xs">{isPositive ? "+" : "-"}</span>
                                         {Math.abs(priceChange).toFixed(2)}%
                                     </div>
                                 </div>
@@ -279,7 +279,7 @@ export default function TradePage() {
                 <div className="px-4 pt-4 pb-2">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white">
+                            <h1 className="text-2xl font-bold tracking-tight text-white">
                                 QC <span className="text-primary">RocketStart</span>
                             </h1>
                             <p className="text-xs text-muted-foreground font-medium tracking-wide">Token Launchpad on TON</p>
