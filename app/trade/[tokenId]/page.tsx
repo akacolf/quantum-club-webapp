@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -158,9 +159,9 @@ export default function TokenDetailPage() {
             {/* Header - Using Telegram's native back button */}
             <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5">
                 <div className="px-4 py-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 relative">
                         {selectedToken.image ? (
-                            <img src={selectedToken.image} alt={selectedToken.name} className="w-full h-full object-cover" />
+                            <Image src={selectedToken.image} alt={selectedToken.name} fill className="object-cover" unoptimized />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-primary font-bold">
                                 {selectedToken.symbol.slice(0, 2)}

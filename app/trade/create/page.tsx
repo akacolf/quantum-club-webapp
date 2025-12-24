@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -216,10 +217,12 @@ export default function CreateTokenPage() {
                                         >
                                             {imagePreview ? (
                                                 <>
-                                                    <img
+                                                    <Image
                                                         src={imagePreview}
                                                         alt="Token preview"
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
                                                     />
                                                     <button
                                                         type="button"
