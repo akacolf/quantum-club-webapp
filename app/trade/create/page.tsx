@@ -351,7 +351,7 @@ export default function CreateTokenPage() {
                             ) : !walletAddress ? (
                                 <>
                                     <Icon icon="solar:wallet-bold" className="w-5 h-5 mr-2" />
-                                    Connect Wallet First
+                                    Connect QC Wallet First
                                 </>
                             ) : (
                                 <>

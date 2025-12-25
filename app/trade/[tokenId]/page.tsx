@@ -190,7 +190,7 @@ export default function TokenDetailPage() {
                 {/* Price Card */}
                 <Card className="bg-white/5 border-white/10 overflow-hidden">
                     <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                                     <Icon icon="solar:tag-price-bold" className="w-5 h-5 text-primary" />
@@ -208,8 +208,17 @@ export default function TokenDetailPage() {
                                 {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)}%
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
 
-                        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                {/* Stats Card */}
+                <Card className="bg-white/5 border-white/10 overflow-hidden">
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Icon icon="solar:chart-square-bold" className="w-4 h-4 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground font-medium">Token Stats</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
                                     <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-blue-400" />
@@ -227,7 +236,7 @@ export default function TokenDetailPage() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">Holders</p>
-                                    <p className="text-xs font-semibold text-white">{selectedToken.holders}</p>
+                                    <p className="text-xs font-semibold text-white">{formatCompactNumber(selectedToken.holders, 0)}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -237,14 +246,14 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">24h Vol</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {formatCompactNumber(parseFloat(selectedToken.volume24h || "0"), 1)} <span className="text-muted-foreground font-normal">TON</span>
+                                        {formatCompactNumber(parseFloat(selectedToken.volume24h || "0"), 1)} TON
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Additional Stats Row */}
-                        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                        {/* Second Stats Row */}
+                        <div className="grid grid-cols-3 gap-3 pt-3 mt-3 border-t border-white/5">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
                                     <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-green-400" />
@@ -252,7 +261,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">Collected</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {(Number(selectedToken.reserveBalance || "0") / 1e9).toFixed(1)} TON
+                                        {formatCompactNumber(Number(selectedToken.reserveBalance || "0") / 1e9, 1)} TON
                                     </p>
                                 </div>
                             </div>
@@ -262,7 +271,7 @@ export default function TokenDetailPage() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">Trades</p>
-                                    <p className="text-xs font-semibold text-white">{selectedToken.trades24h || 0}</p>
+                                    <p className="text-xs font-semibold text-white">{formatCompactNumber(selectedToken.trades24h || 0, 0)}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">

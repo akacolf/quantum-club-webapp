@@ -325,10 +325,10 @@ export default function TradePage() {
                     {/* Tabs */}
                     {!searchQuery && (
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-2xl grid grid-cols-3 gap-1 border border-white/5 items-stretch">
+                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-xl grid grid-cols-3 gap-1 border border-white/5 items-stretch">
                                 <TabsTrigger
                                     value="trending"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-2xl text-xs font-bold tracking-wide transition-all shadow-none"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <Lottie
@@ -343,7 +343,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="new"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-2xl text-xs font-bold tracking-wide transition-all shadow-none"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <Lottie
@@ -358,7 +358,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="holdings"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-2xl text-xs font-bold tracking-wide transition-all shadow-none"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <Lottie

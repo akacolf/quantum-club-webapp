@@ -8,6 +8,7 @@ import { collectionGroup, query, orderBy, limit, onSnapshot, Timestamp } from "f
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatCompactNumber } from "@/lib/bonding-curve";
 
 interface GlobalTrade {
     id: string;
@@ -120,8 +121,10 @@ export default function GlobalLiveTrades() {
 
     const currentTrade = trades[currentIndex];
     const isBuy = currentTrade.type === "buy";
-    const tonAmount = parseFloat(currentTrade.totalTon).toFixed(2);
-    const usdAmount = (parseFloat(currentTrade.totalTon) * (tonPrice || 5)).toFixed(0);
+    const tonValue = parseFloat(currentTrade.totalTon);
+    const usdValue = tonValue * (tonPrice || 5);
+    const tonAmount = formatCompactNumber(tonValue, 1);
+    const usdAmount = formatCompactNumber(usdValue, 0);
 
     return (
         <Card
@@ -188,8 +191,8 @@ export default function GlobalLiveTrades() {
                                         setCurrentIndex(i);
                                     }}
                                     className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentIndex
-                                            ? "bg-primary w-3"
-                                            : "bg-white/20 hover:bg-white/40"
+                                        ? "bg-primary w-3"
+                                        : "bg-white/20 hover:bg-white/40"
                                         }`}
                                 />
                             ))}
