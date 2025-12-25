@@ -202,9 +202,9 @@ export default function TokenDetailPage() {
                                     </p>
                                 </div>
                             </div>
-                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium ${isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
                                 }`}>
-                                <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-4 h-4" />
+                                <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-3 h-3" />
                                 {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)}%
                             </div>
                         </div>
@@ -237,7 +237,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">24h Vol</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {parseFloat(selectedToken.volume24h || "0").toFixed(1)} TON
+                                        {formatCompactNumber(parseFloat(selectedToken.volume24h || "0"), 1)} <span className="text-muted-foreground font-normal">TON</span>
                                     </p>
                                 </div>
                             </div>

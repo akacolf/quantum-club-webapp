@@ -42,10 +42,10 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
                     </div>
                     <Badge
                         className={`text-[10px] ${progress >= 100
-                                ? "bg-green-500/20 text-green-400"
-                                : progress >= 75
-                                    ? "bg-amber-500/20 text-amber-400"
-                                    : "bg-white/10 text-muted-foreground"
+                            ? "bg-green-500/20 text-green-400"
+                            : progress >= 75
+                                ? "bg-amber-500/20 text-amber-400"
+                                : "bg-white/10 text-muted-foreground"
                             }`}
                     >
                         {progress.toFixed(1)}%
@@ -64,8 +64,8 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
                             <div
                                 key={milestone}
                                 className={`w-1.5 h-1.5 rounded-full transition-colors ${progress >= milestone
-                                        ? "bg-amber-400"
-                                        : "bg-white/20"
+                                    ? "bg-amber-400"
+                                    : "bg-white/20"
                                     }`}
                             />
                         ))}
@@ -77,13 +77,13 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
                     <div>
                         <span className="text-muted-foreground">Current: </span>
                         <span className="text-white font-medium">
-                            ${marketCapUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            {marketCapTon.toLocaleString(undefined, { maximumFractionDigits: 0 })} TON
                         </span>
                     </div>
                     <div>
                         <span className="text-muted-foreground">Target: </span>
                         <span className="text-amber-400 font-medium">
-                            ${threshold.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            {(threshold / tonPriceUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })} TON
                         </span>
                     </div>
                 </div>
