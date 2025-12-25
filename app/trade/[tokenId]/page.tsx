@@ -199,8 +199,8 @@ export default function TokenDetailPage() {
                             </div>
                             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium ${isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
                                 }`}>
-                                <Icon icon={isPositive ? "solar:arrow-up-bold" : "solar:arrow-down-bold"} className="w-4 h-4" />
-                                {Math.abs(priceChange).toFixed(2)}%
+                                <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-4 h-4" />
+                                {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)}%
                             </div>
                         </div>
 
@@ -233,6 +233,41 @@ export default function TokenDetailPage() {
                                     <p className="text-[10px] text-muted-foreground">24h Vol</p>
                                     <p className="text-xs font-semibold text-white">
                                         {parseFloat(selectedToken.volume24h || "0").toFixed(1)} TON
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Additional Stats Row */}
+                        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                                    <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-green-400" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground">Collected</p>
+                                    <p className="text-xs font-semibold text-white">
+                                        {(Number(selectedToken.reserveBalance || "0") / 1e9).toFixed(1)} TON
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                                    <Icon icon="solar:transfer-horizontal-bold" className="w-4 h-4 text-cyan-400" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground">Trades</p>
+                                    <p className="text-xs font-semibold text-white">{selectedToken.trades24h || 0}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                                    <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-pink-400" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground">To Grad</p>
+                                    <p className="text-xs font-semibold text-white">
+                                        {Math.max(0, 69000 - (Number(selectedToken.marketCap || "0") / 1e9 * (tonPrice || 5))).toFixed(0)}$
                                     </p>
                                 </div>
                             </div>

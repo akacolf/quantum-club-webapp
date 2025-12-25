@@ -69,6 +69,8 @@ export interface Token extends TokenMetadata {
     // Stats
     holders: number;
     trades: number;
+    trades24h?: number; // 24h trade count
+    reserveBalance?: string; // TON collected in bonding curve
 }
 
 export interface VestingTranche {
@@ -154,10 +156,11 @@ export const DEFAULT_GRADUATION_THRESHOLD = "69000";
 
 // Platform fees
 export const PLATFORM_FEES = {
-    creationFee: "1", // 1 TON to create a token
+    creationFee: "0.5", // 0.5 TON to create a token (covers ~0.25 TON network fee + platform costs)
     tradingFeePercent: 1, // 1% total trading fee
     platformFeePercent: 0.5, // 0.5% goes to platform
     creatorFeePercent: 0.5, // 0.5% goes to creator
+    graduationFeePercent: 2, // 2% of collected TON on graduation
 };
 
 // Token chat message type (extends existing chat)

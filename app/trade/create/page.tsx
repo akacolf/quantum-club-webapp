@@ -180,23 +180,76 @@ export default function CreateTokenPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    {/* Info Card */}
-                    <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 mb-6">
-                        <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                    <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-primary" />
+                    {/* Protection Features */}
+                    <div className="space-y-3 mb-6">
+                        {/* Locked Liquidity */}
+                        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                            <CardContent className="p-3">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Icon icon="solar:lock-bold" className="w-4 h-4 text-green-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-white text-sm">Locked Liquidity</h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            LP tokens are burned on graduation - liquidity is permanently locked
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-white mb-1">Anti-Dump Protection</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Your token includes smart protection: 50% instant + 50% unlocks after 6h,
-                                        whale daily limits (25%), and smooth selling for large orders.
-                                    </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* Fair Launch */}
+                        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+                            <CardContent className="p-3">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-blue-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-white text-sm">Fair Launch</h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            No pre-sale, no team allocation - everyone starts equal
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+
+                        {/* DEX Graduation */}
+                        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                            <CardContent className="p-3">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-purple-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-white text-sm">Auto DEX Graduation</h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            At $69K market cap, token graduates to STON.fi DEX
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Creator Rewards */}
+                        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+                            <CardContent className="p-3">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-white text-sm">Creator Rewards</h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            Earn {PLATFORM_FEES.creatorFeePercent}% on every trade as passive income
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-6">
