@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
+import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/bonding-curve";
 import { toast } from "sonner";
@@ -38,6 +39,10 @@ export default function TokenDetailPage() {
         getAvailableToSell,
     } = useTrading();
     const { walletAddress, tonBalance, tonPrice } = useWallet();
+    const { getGroupByToken, joinGroup, isGroupMember, createGroup } = useGroups();
+
+    // Get linked community group for this token
+    const tokenGroup = getGroupByToken(tokenId);
 
     // Telegram back button
     useTelegramBackButton("/trade");
@@ -540,6 +545,83 @@ export default function TokenDetailPage() {
                                 </div>
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Community Group Section */}
+                <Card className="bg-white/5 border-white/10 overflow-hidden">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                    <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-primary" />
+                                </div>
+                                <h3 className="font-semibold text-white">Community</h3>
+                            </div>
+                            {tokenGroup && (
+                                <Badge variant="secondary" className="text-xs">
+                                    {tokenGroup.memberCount} members
+                                </Badge>
+                            )}
+                        </div>
+
+                        {tokenGroup ? (
+                            <div className="space-y-3">
+                                <p className="text-sm text-muted-foreground">{tokenGroup.description || `Join the ${selectedToken.symbol} community`}</p>
+                                {isGroupMember(tokenGroup.id) ? (
+                                    <Button
+                                        onClick={() => router.push(`/groups/${tokenGroup.id}`)}
+                                        className="w-full bg-primary/20 hover:bg-primary/30 text-primary"
+                                    >
+                                        <Icon icon="solar:chat-round-line-bold" className="w-4 h-4 mr-2" />
+                                        Open Group Chat
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={async () => {
+                                            const success = await joinGroup(tokenGroup.id);
+                                            if (success) {
+                                                toast.success("Joined community!");
+                                                router.push(`/groups/${tokenGroup.id}`);
+                                            } else {
+                                                toast.error("Failed to join");
+                                            }
+                                        }}
+                                        className="w-full bg-white hover:bg-white/90 text-black"
+                                    >
+                                        <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
+                                        Join Community
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <p className="text-sm text-muted-foreground">No community group yet</p>
+                                {selectedToken.creatorId && (
+                                    <Button
+                                        onClick={async () => {
+                                            const groupId = await createGroup(
+                                                `${selectedToken.symbol} Community`,
+                                                `Official community for ${selectedToken.name} token holders`,
+                                                tokenId,
+                                                selectedToken.symbol
+                                            );
+                                            if (groupId) {
+                                                toast.success("Community created!");
+                                                router.push(`/groups/${groupId}`);
+                                            } else {
+                                                toast.error("Failed to create community");
+                                            }
+                                        }}
+                                        variant="outline"
+                                        className="w-full border-white/20 text-white hover:bg-white/10"
+                                    >
+                                        <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
+                                        Create Community
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
