@@ -211,6 +211,9 @@ export default function TokenDetailPage() {
                     </CardContent>
                 </Card>
 
+                {/* Price Chart */}
+                <PriceChart tokenId={tokenId} currentPrice={selectedToken.currentPrice} />
+
                 {/* Stats Card */}
                 <Card className="bg-white/5 border-white/10 overflow-hidden">
                     <CardContent className="p-4">
@@ -288,9 +291,6 @@ export default function TokenDetailPage() {
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* Price Chart */}
-                <PriceChart tokenId={tokenId} currentPrice={selectedToken.currentPrice} />
 
                 {/* Live Trades */}
                 <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} />
@@ -423,7 +423,6 @@ export default function TokenDetailPage() {
                                             </>
                                         ) : (
                                             <>
-                                                <Icon icon="solar:arrow-up-bold" className="w-5 h-5 mr-2" />
                                                 Buy {selectedToken.symbol}
                                             </>
                                         )}
@@ -490,7 +489,6 @@ export default function TokenDetailPage() {
                                             </>
                                         ) : (
                                             <>
-                                                <Icon icon="solar:arrow-down-bold" className="w-5 h-5 mr-2" />
                                                 Sell {selectedToken.symbol}
                                             </>
                                         )}

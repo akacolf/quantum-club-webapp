@@ -17,8 +17,9 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
     const marketCapTon = Number(token.marketCap || "0") / 1e9;
     const marketCapUsd = marketCapTon * tonPriceUsd;
     const threshold = parseFloat(token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD);
+    const thresholdTon = threshold / tonPriceUsd;
     const progress = Math.min(100, (marketCapUsd / threshold) * 100);
-    const remaining = Math.max(0, threshold - marketCapUsd);
+    const remainingTon = Math.max(0, thresholdTon - marketCapTon);
 
     // Status check
     if (token.status === "graduated") {
@@ -36,7 +37,7 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
                         <div>
                             <h3 className="text-sm font-semibold text-white">Graduation Progress</h3>
                             <p className="text-[10px] text-muted-foreground">
-                                {progress >= 100 ? "Ready to graduate!" : `$${remaining.toLocaleString(undefined, { maximumFractionDigits: 0 })} to go`}
+                                {progress >= 100 ? "Ready to graduate!" : `${remainingTon.toLocaleString(undefined, { maximumFractionDigits: 0 })} TON to go`}
                             </p>
                         </div>
                     </div>

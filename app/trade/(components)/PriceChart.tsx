@@ -154,8 +154,8 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                             <h3 className="font-semibold text-white text-sm">Price Chart</h3>
                             {chartData.length > 0 && (
                                 <div className={`flex items-center gap-1 text-xs ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                    <Icon icon={isPositive ? "solar:arrow-up-bold" : "solar:arrow-down-bold"} className="w-3 h-3" />
-                                    {Math.abs(priceChange).toFixed(2)}%
+                                    <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-3 h-3" />
+                                    {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)}%
                                 </div>
                             )}
                         </div>
