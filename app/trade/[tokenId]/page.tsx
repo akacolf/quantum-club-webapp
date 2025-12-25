@@ -353,7 +353,7 @@ export default function TokenDetailPage() {
                                         <p className="text-xs text-muted-foreground">Balance</p>
                                     </div>
                                     <p className="text-lg font-bold text-white">
-                                        {(Number(position.balance) / 1e9).toLocaleString()}
+                                        {formatCompactNumber(Number(position.balance) / 1e9, 2)}
                                     </p>
                                     <p className="text-[10px] text-muted-foreground">{selectedToken.symbol}</p>
                                 </div>
@@ -363,7 +363,7 @@ export default function TokenDetailPage() {
                                         <p className="text-xs text-muted-foreground">Value</p>
                                     </div>
                                     <p className="text-lg font-bold text-white">
-                                        {((Number(position.balance) / 1e9) * (Number(selectedToken.currentPrice) / 1e9)).toFixed(4)}
+                                        {formatCompactNumber((Number(position.balance) / 1e9) * (Number(selectedToken.currentPrice) / 1e9), 4)}
                                     </p>
                                     <p className="text-[10px] text-muted-foreground">TON</p>
                                 </div>
