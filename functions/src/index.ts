@@ -41,7 +41,7 @@ const config = {
     // TON price in USD (should be fetched dynamically in production)
     tonPriceUsd: 5,
     // Graduation threshold in USD
-    defaultThreshold: 50000,
+    defaultThreshold: 69000,
     // Platform wallet mnemonic (set via Firebase environment config)
     platformMnemonic: functions.config().platform?.mnemonic || "",
     // TON RPC endpoint

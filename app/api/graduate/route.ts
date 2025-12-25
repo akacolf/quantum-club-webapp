@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         // Calculate if ready to graduate
         // Assuming $50K market cap threshold and TON price ~$5
         const marketCapUsd = parseFloat(tokenData.marketCap || "0") / 1e9 * 5; // rough estimate
-        const threshold = parseFloat(tokenData.graduationThreshold || "50000");
+        const threshold = parseFloat(tokenData.graduationThreshold || "69000");
         const isReady = marketCapUsd >= threshold;
 
         return NextResponse.json({
