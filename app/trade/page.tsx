@@ -282,6 +282,9 @@ export default function TradePage() {
                 <div className="px-4 pt-4 pb-2">
                     <div className="flex items-center justify-between mb-4">
                         <div>
+                            <div className="flex items-center gap-2">
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-md">BETA</span>
+                            </div>
                             <h1 className="text-2xl font-bold tracking-tight text-white">
                                 QC <span className="text-primary">RocketStart</span>
                             </h1>

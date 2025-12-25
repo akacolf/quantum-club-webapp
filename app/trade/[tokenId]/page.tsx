@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { formatPrice, formatMarketCap } from "@/lib/bonding-curve";
+import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/bonding-curve";
 import { toast } from "sonner";
 import TokenChat from "@/app/trade/(components)/TokenChat";
 import LiveTrades from "@/app/trade/(components)/LiveTrades";
@@ -267,7 +267,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">To Grad</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {Math.max(0, 69000 - (Number(selectedToken.marketCap || "0") / 1e9 * (tonPrice || 5))).toFixed(0)}$
+                                        ${formatCompactNumber(Math.max(0, 69000 - (Number(selectedToken.marketCap || "0") / 1e9 * (tonPrice || 5))), 0)}
                                     </p>
                                 </div>
                             </div>

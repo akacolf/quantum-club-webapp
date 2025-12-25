@@ -226,6 +226,21 @@ export function formatPrice(priceNano: bigint): string {
 }
 
 /**
+ * Format any number in compact form (K, M, B)
+ */
+export function formatCompactNumber(value: number, decimals: number = 1): string {
+    if (value < 1000) {
+        return value.toFixed(decimals);
+    } else if (value < 1000000) {
+        return `${(value / 1000).toFixed(decimals)}K`;
+    } else if (value < 1000000000) {
+        return `${(value / 1000000).toFixed(decimals)}M`;
+    } else {
+        return `${(value / 1000000000).toFixed(decimals)}B`;
+    }
+}
+
+/**
  * Format market cap for display
  */
 export function formatMarketCap(marketCapTon: bigint, tonPriceUsd: number): string {
@@ -235,8 +250,10 @@ export function formatMarketCap(marketCapTon: bigint, tonPriceUsd: number): stri
         return `$${mcUsd.toFixed(2)}`;
     } else if (mcUsd < 1000000) {
         return `$${(mcUsd / 1000).toFixed(1)}K`;
-    } else {
+    } else if (mcUsd < 1000000000) {
         return `$${(mcUsd / 1000000).toFixed(2)}M`;
+    } else {
+        return `$${(mcUsd / 1000000000).toFixed(2)}B`;
     }
 }
 
