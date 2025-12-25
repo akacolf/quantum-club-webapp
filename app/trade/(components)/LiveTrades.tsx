@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
 import { useWallet } from "@/app/wallet/WalletContext";
+import { formatCompactNumber } from "@/lib/bonding-curve";
 
 interface Trade {
     id: string;
@@ -127,11 +128,11 @@ export default function LiveTrades({ tokenId, tokenSymbol }: LiveTradesProps) {
                     <div className="space-y-2">
                         {trades.map((trade, index) => {
                             const isBuy = trade.type === "buy";
-                            const tokenAmount = (Number(trade.amount) / 1e9).toLocaleString(undefined, {
-                                maximumFractionDigits: 2,
-                            });
-                            const tonAmount = parseFloat(trade.totalTon).toFixed(4);
-                            const usdAmount = (parseFloat(trade.totalTon) * (tonPrice || 5)).toFixed(2);
+                            const tokenAmount = formatCompactNumber(Number(trade.amount) / 1e9, 2);
+                            const tonValue = parseFloat(trade.totalTon);
+                            const usdValue = tonValue * (tonPrice || 5);
+                            const tonAmount = formatCompactNumber(tonValue, 2);
+                            const usdAmount = formatCompactNumber(usdValue, 0);
 
                             return (
                                 <div
@@ -149,7 +150,7 @@ export default function LiveTrades({ tokenId, tokenSymbol }: LiveTradesProps) {
                                                 }`}
                                         >
                                             <Icon
-                                                icon={isBuy ? "solar:arrow-up-bold" : "solar:arrow-down-bold"}
+                                                icon={isBuy ? "solar:graph-up-bold" : "solar:graph-down-bold"}
                                                 className="w-4 h-4"
                                             />
                                         </div>

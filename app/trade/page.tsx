@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { Token, DEFAULT_GRADUATION_THRESHOLD } from "@/types/trading";
-import { formatPrice, formatMarketCap } from "@/lib/bonding-curve";
+import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/bonding-curve";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { seedTestTokens, isDevelopment } from "@/lib/dev-utils";
@@ -149,10 +149,10 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                         <div className="px-3 py-2 bg-white/[0.02]">
                             <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block mb-0.5">Volume (24h)</span>
                             <span className="text-xs font-bold text-white block">
-                                {parseFloat(token.volume24h || "0").toLocaleString(undefined, { maximumFractionDigits: 1 })} TON
+                                {formatCompactNumber(parseFloat(token.volume24h || "0"), 1)} TON
                             </span>
                             <span className="text-[9px] text-muted-foreground block">
-                                ~${(parseFloat(token.volume24h || "0") * tonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                ~${formatCompactNumber(parseFloat(token.volume24h || "0") * tonPrice, 0)}
                             </span>
                         </div>
                     </div>

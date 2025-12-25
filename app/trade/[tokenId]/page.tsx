@@ -211,6 +211,46 @@ export default function TokenDetailPage() {
                     </CardContent>
                 </Card>
 
+                {/* Contract Address */}
+                {selectedToken.jettonMasterAddress && (
+                    <Card className="bg-white/5 border-white/10 overflow-hidden">
+                        <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:document-text-bold" className="w-4 h-4 text-muted-foreground" />
+                                    <div>
+                                        <p className="text-[10px] text-muted-foreground">Contract Address</p>
+                                        <p className="text-xs font-mono text-white">
+                                            {selectedToken.jettonMasterAddress.slice(0, 8)}...{selectedToken.jettonMasterAddress.slice(-8)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2 text-muted-foreground hover:text-white"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
+                                            toast.success("Address copied!");
+                                        }}
+                                    >
+                                        <Icon icon="solar:copy-bold" className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2 text-primary hover:text-primary/80"
+                                        onClick={() => window.open(`https://tonviewer.com/${selectedToken.jettonMasterAddress}`, "_blank")}
+                                    >
+                                        <Icon icon="solar:arrow-right-up-bold" className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Price Chart */}
                 <PriceChart tokenId={tokenId} currentPrice={selectedToken.currentPrice} />
 

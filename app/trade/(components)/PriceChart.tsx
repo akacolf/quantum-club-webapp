@@ -208,9 +208,28 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                                         border: "1px solid rgba(255,255,255,0.1)",
                                         borderRadius: "8px",
                                         fontSize: "12px",
+                                        padding: "8px 12px",
                                     }}
-                                    labelStyle={{ color: "#999" }}
-                                    formatter={(value) => [`${formatPrice(Number(value) || 0)} TON`, "Price"]}
+                                    labelStyle={{ color: "#999", marginBottom: "4px" }}
+                                    formatter={(value: number | undefined) => [`${formatPrice(value || 0)} TON`, "Price"]}
+                                    labelFormatter={(label) => `Time: ${label}`}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 shadow-xl">
+                                                    <p className="text-xs text-muted-foreground mb-1">{data.displayTime}</p>
+                                                    <p className="text-sm font-semibold text-white">
+                                                        {formatPrice(data.price)} TON
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        ≈ ${(data.priceUsd || data.price * 5).toFixed(6)}
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
                                 />
                                 <Area
                                     type="monotone"
