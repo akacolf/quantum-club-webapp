@@ -112,10 +112,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Update token document with pending deployment info
+        // Save jettonMasterAddress immediately so it's visible in UI
         await tokenRef.update({
             deploymentPending: true,
             deploymentRequestedAt: FieldValue.serverTimestamp(),
             expectedJettonAddress: jettonAddress,
+            jettonMasterAddress: jettonAddress, // Save immediately for UI display
+            isOnChain: false, // Mark as not yet confirmed on-chain
         });
 
         // Return the transaction data for the user's wallet to sign
