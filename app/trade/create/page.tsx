@@ -135,15 +135,44 @@ export default function CreateTokenPage() {
             return;
         }
 
-        // Validate file size (max 10MB input - will be compressed)
-        if (file.size > 10 * 1024 * 1024) {
-            toast.error("Image must be less than 10MB");
-            return;
-        }
-
         setIsUploading(true);
 
         try {
+            // Special handling for GIFs to preserve animation
+            if (file.type === "image/gif") {
+                // GIFs must be under 800KB to store in Firestore
+                const maxGifSize = 800 * 1024;
+                if (file.size > maxGifSize) {
+                    toast.error("Animated GIFs must be under 800KB. Please use a smaller GIF.");
+                    setIsUploading(false);
+                    return;
+                }
+
+                // Read GIF as base64 directly (preserves animation)
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64 = reader.result as string;
+                    setImagePreview(base64);
+                    setFormData(prev => ({ ...prev, image: base64 }));
+                    const sizeKB = Math.round(file.size / 1024);
+                    toast.success(`GIF uploaded (${sizeKB}KB)`);
+                    setIsUploading(false);
+                };
+                reader.onerror = () => {
+                    toast.error("Failed to read GIF");
+                    setIsUploading(false);
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            // For non-GIF images: validate size and compress
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error("Image must be less than 10MB");
+                setIsUploading(false);
+                return;
+            }
+
             // Compress image to 512x512 JPEG (typically ~50-100KB)
             const compressedBase64 = await compressImage(file, 512);
 
