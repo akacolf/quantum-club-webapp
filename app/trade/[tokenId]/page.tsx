@@ -90,13 +90,13 @@ export default function TokenDetailPage() {
     // Handle trade
     const handleTrade = async () => {
         if (!walletAddress) {
-            toast.error("Connect your wallet first");
+            toast.error("Please connect your wallet first");
             router.push("/wallet");
             return;
         }
 
         if (!amount || parseFloat(amount) <= 0) {
-            toast.error("Enter a valid amount");
+            toast.error("Please enter a valid amount");
             return;
         }
 
@@ -106,22 +106,22 @@ export default function TokenDetailPage() {
             if (activeTab === "buy") {
                 const result = await buyTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("You bought some tokens! 🎉");
+                    toast.success("Purchase successful! 🎉");
                     setAmount("");
                 } else {
-                    toast.error(result.error || "Trade failed, try again?");
+                    toast.error(result.error || "Transaction failed");
                 }
             } else {
                 const result = await sellTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("Sold! 💰");
+                    toast.success("Sell successful! 💰");
                     setAmount("");
                 } else {
-                    toast.error(result.error || "Trade failed, try again?");
+                    toast.error(result.error || "Transaction failed");
                 }
             }
         } catch {
-            toast.error("Something went wrong, try again?");
+            toast.error("An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -232,7 +232,7 @@ export default function TokenDetailPage() {
                                         className="h-8 px-2 text-muted-foreground hover:text-white"
                                         onClick={() => {
                                             navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
-                                            toast.success("Copied!");
+                                            toast.success("Address copied!");
                                         }}
                                     >
                                         <Icon icon="solar:copy-bold" className="w-4 h-4" />
@@ -628,10 +628,10 @@ export default function TokenDetailPage() {
                                         onClick={async () => {
                                             const success = await joinGroup(tokenGroup.id);
                                             if (success) {
-                                                toast.success("You're in!");
+                                                toast.success("Joined community!");
                                                 router.push(`/groups/${tokenGroup.id}`);
                                             } else {
-                                                toast.error("Couldn't join, try again?");
+                                                toast.error("Failed to join");
                                             }
                                         }}
                                         className="w-full bg-white hover:bg-white/90 text-black"
@@ -654,10 +654,10 @@ export default function TokenDetailPage() {
                                                 selectedToken.symbol
                                             );
                                             if (groupId) {
-                                                toast.success("Community is live!");
+                                                toast.success("Community created!");
                                                 router.push(`/groups/${groupId}`);
                                             } else {
-                                                toast.error("Couldn't create community, try again?");
+                                                toast.error("Failed to create community");
                                             }
                                         }}
                                         variant="outline"
