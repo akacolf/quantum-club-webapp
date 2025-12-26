@@ -609,35 +609,67 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const tonClient = new TonClient({
         endpoint: isTestnet
           ? "https://testnet.toncenter.com/api/v2/jsonRPC"
-          : "https://toncenter.com/api/v2/jsonRPC"
+          : "https://toncenter.com/api/v2/jsonRPC",
+        // Use API key if available for higher rate limits
+        apiKey: process.env.NEXT_PUBLIC_TONCENTER_API_KEY || undefined,
       });
 
       const contract = tonClient.open(wallet);
       const toAddress = Address.parse(params.to);
 
-      // Get seqno
+      // Get seqno with retry logic for rate limits
       let seqno = 0;
-      try {
-        seqno = await contract.getSeqno();
-      } catch {
-        seqno = 0; // New wallet
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          seqno = await contract.getSeqno();
+          break;
+        } catch (err) {
+          const error = err as { response?: { status?: number } };
+          if (error?.response?.status === 429 && retries > 1) {
+            // Wait and retry for rate limit
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retries--;
+            continue;
+          }
+          if (retries === 1) {
+            seqno = 0; // New wallet or network issue
+            break;
+          }
+          retries--;
+        }
       }
 
-      // Create and send transfer
-      await contract.sendTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-        messages: [
-          internal({
-            to: toAddress,
-            value: BigInt(params.value),
-            body: params.body,
-            init: params.stateInit ? { code: params.stateInit, data: beginCell().endCell() } : undefined,
-            bounce: false,
-          }),
-        ],
-      });
+      // Create and send transfer with retry logic
+      retries = 3;
+      while (retries > 0) {
+        try {
+          await contract.sendTransfer({
+            seqno,
+            secretKey: keyPair.secretKey,
+            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+            messages: [
+              internal({
+                to: toAddress,
+                value: BigInt(params.value),
+                body: params.body,
+                init: params.stateInit ? { code: params.stateInit, data: beginCell().endCell() } : undefined,
+                bounce: false,
+              }),
+            ],
+          });
+          break;
+        } catch (err) {
+          const error = err as { response?: { status?: number } };
+          if (error?.response?.status === 429 && retries > 1) {
+            // Wait and retry for rate limit
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retries--;
+            continue;
+          }
+          throw err; // Re-throw if not rate limit or out of retries
+        }
+      }
 
       // Refresh assets after transaction
       setTimeout(() => {
