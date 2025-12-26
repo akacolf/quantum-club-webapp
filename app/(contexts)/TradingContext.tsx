@@ -652,7 +652,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             };
 
             const initialPrice = getCurrentPrice(BigInt(0), bondingCurve);
-
             const tokenData = {
                 name: params.name,
                 nameLower: params.name.toLowerCase(),

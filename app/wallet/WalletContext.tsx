@@ -101,7 +101,10 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [walletAddress, setWalletAddress] = useState("");
+  const [walletAddress, setWalletAddress] = useState(()=>{
+    const wallet = typeof window !== "undefined" ? localStorage.getItem("quantum_wallet_address"):""
+    return wallet;
+  });
   const [tonBalance, setTonBalance] = useState("0");
   const [tonPrice, setTonPrice] = useState(0);
   const [tonUsdValue, setTonUsdValue] = useState("0.00");
