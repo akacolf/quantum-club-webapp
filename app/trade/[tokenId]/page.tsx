@@ -90,13 +90,13 @@ export default function TokenDetailPage() {
     // Handle trade
     const handleTrade = async () => {
         if (!walletAddress) {
-            toast.error("Please connect your wallet first");
+            toast.error("Connect your wallet first");
             router.push("/wallet");
             return;
         }
 
         if (!amount || parseFloat(amount) <= 0) {
-            toast.error("Please enter a valid amount");
+            toast.error("Enter a valid amount");
             return;
         }
 
@@ -106,22 +106,22 @@ export default function TokenDetailPage() {
             if (activeTab === "buy") {
                 const result = await buyTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("Purchase successful! 🎉");
+                    toast.success("You bought some tokens! 🎉");
                     setAmount("");
                 } else {
-                    toast.error(result.error || "Transaction failed");
+                    toast.error(result.error || "Trade failed, try again?");
                 }
             } else {
                 const result = await sellTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("Sell successful! 💰");
+                    toast.success("Sold! 💰");
                     setAmount("");
                 } else {
-                    toast.error(result.error || "Transaction failed");
+                    toast.error(result.error || "Trade failed, try again?");
                 }
             }
         } catch {
-            toast.error("An error occurred. Please try again.");
+            toast.error("Something went wrong, try again?");
         } finally {
             setIsLoading(false);
         }
@@ -232,7 +232,7 @@ export default function TokenDetailPage() {
                                         className="h-8 px-2 text-muted-foreground hover:text-white"
                                         onClick={() => {
                                             navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
-                                            toast.success("Address copied!");
+                                            toast.success("Copied!");
                                         }}
                                     >
                                         <Icon icon="solar:copy-bold" className="w-4 h-4" />
@@ -324,7 +324,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">To Grad</p>
                                     <p className="text-xs font-semibold text-white">
-                                        ${formatCompactNumber(Math.max(0, 69000 - (Number(selectedToken.marketCap || "0") / 1e9 * (tonPrice || 5))), 0)}
+                                        ${formatCompactNumber(Math.max(0, 10000 - (Number(selectedToken.marketCap || "0") / 1e9 * (tonPrice || 5))), 0)}
                                     </p>
                                 </div>
                             </div>
@@ -628,10 +628,10 @@ export default function TokenDetailPage() {
                                         onClick={async () => {
                                             const success = await joinGroup(tokenGroup.id);
                                             if (success) {
-                                                toast.success("Joined community!");
+                                                toast.success("You're in!");
                                                 router.push(`/groups/${tokenGroup.id}`);
                                             } else {
-                                                toast.error("Failed to join");
+                                                toast.error("Couldn't join, try again?");
                                             }
                                         }}
                                         className="w-full bg-white hover:bg-white/90 text-black"
@@ -654,10 +654,10 @@ export default function TokenDetailPage() {
                                                 selectedToken.symbol
                                             );
                                             if (groupId) {
-                                                toast.success("Community created!");
+                                                toast.success("Community is live!");
                                                 router.push(`/groups/${groupId}`);
                                             } else {
-                                                toast.error("Failed to create community");
+                                                toast.error("Couldn't create community, try again?");
                                             }
                                         }}
                                         variant="outline"

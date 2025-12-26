@@ -143,7 +143,7 @@ export default function CreateTokenPage() {
                 // GIFs must be under 800KB to store in Firestore
                 const maxGifSize = 800 * 1024;
                 if (file.size > maxGifSize) {
-                    toast.error("Animated GIFs must be under 800KB. Please use a smaller GIF.");
+                    toast.error("Animated GIFs need to be under 800KB. Try a smaller one!");
                     setIsUploading(false);
                     return;
                 }
@@ -159,7 +159,7 @@ export default function CreateTokenPage() {
                     setIsUploading(false);
                 };
                 reader.onerror = () => {
-                    toast.error("Failed to read GIF");
+                    toast.error("Couldn't read that GIF, try again?");
                     setIsUploading(false);
                 };
                 reader.readAsDataURL(file);
@@ -168,7 +168,7 @@ export default function CreateTokenPage() {
 
             // For non-GIF images: validate size and compress
             if (file.size > 10 * 1024 * 1024) {
-                toast.error("Image must be less than 10MB");
+                toast.error("Image is too large, keep it under 10MB");
                 setIsUploading(false);
                 return;
             }
@@ -184,7 +184,7 @@ export default function CreateTokenPage() {
             toast.success(`Image compressed to ${sizeKB}KB`);
         } catch (error) {
             console.error("Image compression error:", error);
-            toast.error("Failed to process image");
+            toast.error("Couldn't process that image, try another?");
             setImagePreview(null);
         } finally {
             setIsUploading(false);
@@ -203,7 +203,7 @@ export default function CreateTokenPage() {
         e.preventDefault();
 
         if (!walletAddress) {
-            toast.error("Please connect your wallet first");
+            toast.error("Connect your wallet first to create a token");
             router.push("/wallet");
             return;
         }
@@ -217,7 +217,7 @@ export default function CreateTokenPage() {
         const creationFee = parseFloat(PLATFORM_FEES.creationFee);
 
         if (!isDevelopment && balance < creationFee) {
-            toast.error(`Insufficient balance. Need ${creationFee} TON to create a token.`);
+            toast.error(`Not enough TON! You need ${creationFee} TON to create a token.`);
             return;
         }
 
@@ -232,13 +232,13 @@ export default function CreateTokenPage() {
             });
 
             if (token) {
-                toast.success("Token created successfully! 🚀");
+                toast.success("Your token is live! 🚀");
                 router.push(`/trade/${token.id}`);
             } else {
-                toast.error("Failed to create token. Please try again.");
+                toast.error("Something went wrong, try again?");
             }
         } catch {
-            toast.error("An error occurred. Please try again.");
+            toast.error("Something went wrong, try again?");
         } finally {
             setIsLoading(false);
         }
@@ -425,12 +425,12 @@ export default function CreateTokenPage() {
                             {isLoading ? (
                                 <>
                                     <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                    Creating Token...
+                                    Creating your token...
                                 </>
                             ) : !walletAddress ? (
                                 <>
                                     <Icon icon="solar:wallet-bold" className="w-5 h-5 mr-2" />
-                                    Connect QC Wallet First
+                                    Connect wallet first
                                 </>
                             ) : (
                                 <>

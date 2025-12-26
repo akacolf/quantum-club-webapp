@@ -151,8 +151,8 @@ export const DEFAULT_ANTI_DUMP_CONFIG: AntiDumpConfig = {
     twapDurationMinutes: 0, // No TWAP splitting
 };
 
-// Graduation threshold - industry standard at $69K market cap
-export const DEFAULT_GRADUATION_THRESHOLD = "69000";
+// Graduation threshold - industry standard at ~$10K market cap (approx 1,500-2,000 TON)
+export const DEFAULT_GRADUATION_THRESHOLD = "10000";
 
 // Platform fees
 export const PLATFORM_FEES = {
