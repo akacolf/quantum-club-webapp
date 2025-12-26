@@ -20,26 +20,6 @@ export interface BondingCurveParams {
     virtualReserve: string; // Virtual TON reserve for initial liquidity
 }
 
-export interface AntiDumpConfig {
-    // Graduated vesting - percentages that unlock over time
-    vestingSchedule: {
-        immediatePercent: number; // e.g., 25
-        oneHourPercent: number; // e.g., 25
-        fourHourPercent: number; // e.g., 25
-        twentyFourHourPercent: number; // e.g., 25
-    };
-    // Dynamic sell limits based on holder percentage
-    sellLimits: {
-        whaleThresholdPercent: number; // e.g., 5% of supply
-        whaleDailyLimitPercent: number; // e.g., 10% of holdings per day
-        largeHolderThresholdPercent: number; // e.g., 2% of supply
-        largeHolderDailyLimitPercent: number; // e.g., 25% of holdings per day
-    };
-    // TWAP selling for large orders
-    twapThresholdUsd: number; // e.g., 500 USD - triggers TWAP
-    twapDurationMinutes: number; // e.g., 30 minutes
-}
-
 export type TokenStatus = "bonding" | "graduated" | "paused";
 
 export interface Token extends TokenMetadata {
@@ -53,12 +33,14 @@ export interface Token extends TokenMetadata {
     // Bonding curve
     bondingCurve: BondingCurveParams;
 
-    // Anti-dump configuration
-    antiDumpConfig: AntiDumpConfig;
-
     // Status
     status: TokenStatus;
-    graduationThreshold: string; // Market cap in USD to graduate to DEX
+    graduationThreshold: string; // Market cap in TON to graduate to DEX (default: 2000 TON)
+
+    // On-chain deployment status
+    isOnChain?: boolean; // Whether Jetton is deployed on TON blockchain
+    deploymentPending?: boolean; // Whether deployment is in progress
+    deployedAt?: Date; // When deployed on-chain
 
     // DEX info (only populated when status === "graduated")
     dexPoolAddress?: string; // STON.fi pool address
@@ -73,24 +55,14 @@ export interface Token extends TokenMetadata {
     reserveBalance?: string; // TON collected in bonding curve
 }
 
-export interface VestingTranche {
-    amount: string;
-    unlocksAt: Date;
-    isUnlocked: boolean;
-}
-
 export interface HolderPosition {
     tokenId: string;
     token?: Token; // Populated on fetch
     balance: string;
-    vestedBalance: string; // Currently available to sell
-    vestingSchedule: VestingTranche[];
     averageBuyPrice: string;
     totalInvested: string;
     unrealizedPnl: string;
     unrealizedPnlPercent: number;
-    lastSellTime?: Date;
-    dailySoldAmount?: string;
 }
 
 export interface Trade {
@@ -112,7 +84,6 @@ export interface TradeResult {
     trade?: Trade;
     error?: string;
     newBalance?: string;
-    newVestedBalance?: string;
 }
 
 export interface CreateTokenParams {
@@ -122,8 +93,6 @@ export interface CreateTokenParams {
     image: string;
     // Optional custom bonding curve (defaults will be applied if not provided)
     bondingCurve?: Partial<BondingCurveParams>;
-    // Optional custom anti-dump config (defaults will be applied if not provided)
-    antiDumpConfig?: Partial<AntiDumpConfig>;
 }
 
 // Default configurations
@@ -134,25 +103,8 @@ export const DEFAULT_BONDING_CURVE: BondingCurveParams = {
     virtualReserve: "30", // 30 TON virtual reserve
 };
 
-export const DEFAULT_ANTI_DUMP_CONFIG: AntiDumpConfig = {
-    vestingSchedule: {
-        immediatePercent: 100, // 100% immediately available - no vesting
-        oneHourPercent: 0,
-        fourHourPercent: 0,
-        twentyFourHourPercent: 0,
-    },
-    sellLimits: {
-        whaleThresholdPercent: 100, // Effectively disabled - no one is a "whale"
-        whaleDailyLimitPercent: 100, // Can sell 100% daily
-        largeHolderThresholdPercent: 100, // Effectively disabled
-        largeHolderDailyLimitPercent: 100, // Can sell 100% daily
-    },
-    twapThresholdUsd: 100000, // Effectively disabled - very high threshold
-    twapDurationMinutes: 0, // No TWAP splitting
-};
-
-// Graduation threshold - industry standard at ~$10K market cap (approx 1,500-2,000 TON)
-export const DEFAULT_GRADUATION_THRESHOLD = "10000";
+// Graduation threshold in TON (when market cap reaches this amount in TON, token can graduate to DEX)
+export const DEFAULT_GRADUATION_THRESHOLD_TON = "2000";
 
 // Platform fees
 export const PLATFORM_FEES = {

@@ -16,12 +16,11 @@ import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { PLATFORM_FEES } from "@/types/trading";
-import { isDevelopment } from "@/lib/dev-utils";
 
 export default function CreateTokenPage() {
     const router = useRouter();
     const { createToken } = useTrading();
-    const { walletAddress, tonBalance } = useWallet();
+    const { walletAddress, tonBalance, sendTransaction } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Telegram back button
@@ -212,18 +211,23 @@ export default function CreateTokenPage() {
             return;
         }
 
-        // Check balance for creation fee (skip in dev mode)
+        // Check balance for creation + deployment fee
         const balance = parseFloat(tonBalance || "0");
         const creationFee = parseFloat(PLATFORM_FEES.creationFee);
+        const deploymentFee = 0.15; // TON for on-chain deployment
+        const totalFee = creationFee + deploymentFee;
 
-        if (!isDevelopment && balance < creationFee) {
-            toast.error(`Insufficient balance. Need ${creationFee} TON to create a token.`);
+        if (balance < totalFee) {
+            toast.error(`Insufficient balance. Need ${totalFee.toFixed(2)} TON to create and deploy a token.`);
             return;
         }
 
         setIsLoading(true);
 
         try {
+            toast.info("Creating token...", { duration: 2000 });
+
+            // Step 1: Create token in database
             const token = await createToken({
                 name: formData.name.trim(),
                 symbol: formData.symbol.trim().toUpperCase(),
@@ -231,13 +235,77 @@ export default function CreateTokenPage() {
                 image: formData.image.trim(),
             });
 
-            if (token) {
-                toast.success("Token created successfully! 🚀");
-                router.push(`/trade/${token.id}`);
-            } else {
+            if (!token) {
                 toast.error("Failed to create token. Please try again.");
+                return;
             }
-        } catch {
+
+            toast.info("Deploying to TON blockchain...", { duration: 3000 });
+
+            // Step 2: Deploy on-chain via API
+            const deployResponse = await fetch("/api/deploy-jetton", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId: token.id,
+                    creatorAddress: walletAddress,
+                }),
+            });
+
+            if (!deployResponse.ok) {
+                const error = await deployResponse.json();
+                toast.error(error.error || "Failed to prepare deployment");
+                // Token was created but not deployed - still redirect
+                router.push(`/trade/${token.id}`);
+                return;
+            }
+
+            const { jettonAddress, deployTx } = await deployResponse.json();
+
+            // Step 3: Send deployment transaction using QC Wallet
+            toast.info("Sending transaction to blockchain...", { duration: 3000 });
+
+            const txResult = await sendTransaction({
+                to: jettonAddress,
+                value: deployTx.value, // 0.15 TON for deployment
+            });
+
+            if (!txResult.success) {
+                toast.warning(`Token created but deployment failed: ${txResult.error}`, {
+                    description: "You can deploy it later from the token page.",
+                    duration: 5000,
+                });
+                router.push(`/trade/${token.id}`);
+                return;
+            }
+
+            // Wait for transaction to propagate
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Step 4: Confirm deployment
+            const confirmResponse = await fetch("/api/deploy-jetton", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId: token.id,
+                    jettonAddress,
+                    txHash: txResult.txHash,
+                }),
+            });
+
+            if (confirmResponse.ok) {
+                toast.success(`${token.symbol} created and deployed on TON! 🚀`, {
+                    description: `Contract: ${jettonAddress.slice(0, 12)}...`,
+                });
+            } else {
+                toast.success("Token created! Deployment confirmed.", {
+                    duration: 4000,
+                });
+            }
+
+            router.push(`/trade/${token.id}`);
+        } catch (err) {
+            console.error("Token creation error:", err);
             toast.error("An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
@@ -277,7 +345,7 @@ export default function CreateTokenPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-purple-400" />
-                                    <span className="text-xs text-muted-foreground">Auto DEX at $69K</span>
+                                    <span className="text-xs text-muted-foreground">Auto DEX at 2,000 TON</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-400" />

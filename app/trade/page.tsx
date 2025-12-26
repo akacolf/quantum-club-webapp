@@ -12,12 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
-import { Token, DEFAULT_GRADUATION_THRESHOLD } from "@/types/trading";
+import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/bonding-curve";
 import { useWallet } from "@/app/wallet/WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
-import { seedTestTokens, isDevelopment } from "@/lib/dev-utils";
-import { toast } from "sonner";
+
 import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
 
 // Lottie animations for tabs (Telegram-style animated emojis)
@@ -25,14 +23,13 @@ import fireAnimation from "@/public/lottie/fire-lottie.json";
 import sparklesAnimation from "@/public/lottie/sparkles-lottie.json";
 import diamondAnimation from "@/public/lottie/diamond-lottie.json";
 
-// Utility for progress calculation
-const calculateProgress = (marketCapNano: string, tonPrice: number, thresholdUsd: string) => {
+// Utility for progress calculation - now TON-based
+const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
     try {
         const mcTon = Number(BigInt(marketCapNano || "0")) / 1e9;
-        const mcUsd = mcTon * (tonPrice || 0);
-        const total = Number(thresholdUsd);
+        const total = Number(thresholdTon);
         if (total <= 0) return 0;
-        return Math.min((mcUsd / total) * 100, 100);
+        return Math.min((mcTon / total) * 100, 100);
     } catch {
         return 0;
     }
@@ -44,8 +41,7 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
     const isPositive = priceChange >= 0;
     const progress = calculateProgress(
         token.marketCap,
-        tonPrice,
-        token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD
+        token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON
     );
 
     return (
@@ -206,31 +202,11 @@ function EmptyState({ message }: { message: string }) {
 
 export default function TradePage() {
     const router = useRouter();
-    const { trendingTokens, newTokens, searchResults, isLoading, searchTokens, clearSearch, positions, refreshTokens } = useTrading();
+    const { trendingTokens, newTokens, searchResults, isLoading, searchTokens, clearSearch, positions } = useTrading();
     const { walletAddress, tonPrice } = useWallet();
-    const { telegramId, username } = useGameContext();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
-    const [isSeeding, setIsSeeding] = useState(false);
 
-    // Seed test tokens (dev mode only)
-    const handleSeedTokens = async () => {
-        if (!telegramId) {
-            toast.error("Please wait for app to load");
-            return;
-        }
-        setIsSeeding(true);
-        try {
-            await seedTestTokens(telegramId, username || "TestUser", 5);
-            toast.success("Test tokens created! 🎉");
-            await refreshTokens();
-        } catch (error) {
-            console.error("Error seeding tokens:", error);
-            toast.error("Failed to create test tokens");
-        } finally {
-            setIsSeeding(false);
-        }
-    };
 
     // Lottie refs for tab icons
     const fireLottieRef = useRef<LottieRefCurrentProps>(null);
@@ -410,25 +386,6 @@ export default function TradePage() {
                                 <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground" />
                             </div>
                             <p className="text-muted-foreground mb-4">No tokens available yet. Be the first to create one!</p>
-                            {isDevelopment && (
-                                <Button
-                                    onClick={handleSeedTokens}
-                                    disabled={isSeeding}
-                                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
-                                >
-                                    {isSeeding ? (
-                                        <>
-                                            <Icon icon="solar:spinner-bold" className="w-4 h-4 mr-2 animate-spin" />
-                                            Seeding...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="solar:test-tube-bold" className="w-4 h-4 mr-2" />
-                                            Seed Test Tokens (Dev)
-                                        </>
-                                    )}
-                                </Button>
-                            )}
                         </div>
                     ) : (
                         <div className="space-y-3">

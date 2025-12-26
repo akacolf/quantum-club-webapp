@@ -1,7 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { fromNano } from "@ton/core";
+import { Address, beginCell, fromNano, internal, SendMode, Cell } from "@ton/core";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, TonClient } from "@ton/ton";
+import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
 
@@ -87,6 +89,13 @@ interface WalletContextType {
   removeWallet: (address: string) => void;
   switchWallet: (address: string) => void;
   renameWallet: (address: string, newName: string) => void;
+  // Transaction sending for QC Wallet integration
+  sendTransaction: (params: {
+    to: string;
+    value: string; // In nano
+    body?: Cell;
+    stateInit?: Cell;
+  }) => Promise<{ success: boolean; txHash?: string; error?: string }>;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
@@ -564,6 +573,87 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [walletAddress, hasFetched, fetchWalletAssets]);
 
+  // Send transaction using QC Wallet credentials
+  const sendTransaction = useCallback(async (params: {
+    to: string;
+    value: string;
+    body?: Cell;
+    stateInit?: Cell;
+  }): Promise<{ success: boolean; txHash?: string; error?: string }> => {
+    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+    const storedVersion = localStorage.getItem("quantum_wallet_version") || "v5r1";
+
+    if (!storedMnemonic) {
+      return { success: false, error: "Wallet not found" };
+    }
+
+    try {
+      const mnemonic = storedMnemonic.split(" ");
+      const keyPair = await mnemonicToPrivateKey(mnemonic);
+
+      // Create wallet based on stored version
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
+
+      const tonClient = new TonClient({
+        endpoint: isTestnet
+          ? "https://testnet.toncenter.com/api/v2/jsonRPC"
+          : "https://toncenter.com/api/v2/jsonRPC"
+      });
+
+      const contract = tonClient.open(wallet);
+      const toAddress = Address.parse(params.to);
+
+      // Get seqno
+      let seqno = 0;
+      try {
+        seqno = await contract.getSeqno();
+      } catch {
+        seqno = 0; // New wallet
+      }
+
+      // Create and send transfer
+      await contract.sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+        messages: [
+          internal({
+            to: toAddress,
+            value: BigInt(params.value),
+            body: params.body,
+            init: params.stateInit ? { code: params.stateInit, data: beginCell().endCell() } : undefined,
+            bounce: false,
+          }),
+        ],
+      });
+
+      // Refresh assets after transaction
+      setTimeout(() => {
+        fetchWalletAssets();
+      }, 3000);
+
+      return { success: true, txHash: `${seqno}` };
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Transaction failed"
+      };
+    }
+  }, [isTestnet, fetchWalletAssets]);
+
   return (
     <WalletContext.Provider value={{
       walletAddress,
@@ -614,6 +704,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       removeWallet,
       switchWallet,
       renameWallet,
+      sendTransaction,
     }}>
       {children}
     </WalletContext.Provider>

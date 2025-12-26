@@ -21,6 +21,8 @@ import LiveTrades from "@/app/trade/(components)/LiveTrades";
 import PriceChart from "@/app/trade/(components)/PriceChart";
 import GraduatedTrading from "@/app/trade/(components)/GraduatedTrading";
 import GraduationProgress from "@/app/trade/(components)/GraduationProgress";
+import { DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
+import ImageViewer from "@/components/ui/image-viewer";
 
 export default function TokenDetailPage() {
     const params = useParams();
@@ -57,6 +59,7 @@ export default function TokenDetailPage() {
         fee: string;
         newPrice: string;
     } | null>(null);
+    const [isImageViewOpen, setIsImageViewOpen] = useState(false);
 
     // Load token
     useEffect(() => {
@@ -164,7 +167,10 @@ export default function TokenDetailPage() {
             {/* Header - Using Telegram's native back button */}
             <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5">
                 <div className="px-4 py-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 relative">
+                    <button
+                        onClick={() => selectedToken.image && setIsImageViewOpen(true)}
+                        className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 relative cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    >
                         {selectedToken.image ? (
                             <Image src={selectedToken.image} alt={selectedToken.name} fill className="object-cover" unoptimized />
                         ) : (
@@ -172,7 +178,7 @@ export default function TokenDetailPage() {
                                 {selectedToken.symbol.slice(0, 2)}
                             </div>
                         )}
-                    </div>
+                    </button>
                     <div className="flex-1">
                         <h1 className="text-lg font-bold text-white">{selectedToken.name}</h1>
                         <p className="text-sm text-muted-foreground">${selectedToken.symbol}</p>
@@ -324,7 +330,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">To Grad</p>
                                     <p className="text-xs font-semibold text-white">
-                                        ${formatCompactNumber(Math.max(0, 10000 - (Number(selectedToken.marketCap || "0") / 1e9 * (tonPrice || 5))), 0)}
+                                        {formatCompactNumber(Math.max(0, parseFloat(selectedToken.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON) - (Number(selectedToken.marketCap || "0") / 1e9)), 0)} TON
                                     </p>
                                 </div>
                             </div>
@@ -371,7 +377,6 @@ export default function TokenDetailPage() {
                         </CardContent>
                     </Card>
                 )}
-
                 {/* Graduation Progress - Only for bonding tokens */}
                 {selectedToken.status === "bonding" && (
                     <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
@@ -675,6 +680,14 @@ export default function TokenDetailPage() {
                 {/* Token Chat */}
                 <TokenChat tokenId={tokenId} tokenSymbol={selectedToken.symbol} />
             </div>
+
+            {/* Image Viewer Modal */}
+            <ImageViewer
+                isOpen={isImageViewOpen}
+                onClose={() => setIsImageViewOpen(false)}
+                imageUrl={selectedToken.image || ""}
+                alt={selectedToken.name}
+            />
         </div>
     );
 }

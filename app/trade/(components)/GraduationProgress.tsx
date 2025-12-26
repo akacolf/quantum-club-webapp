@@ -5,20 +5,25 @@ import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Token, DEFAULT_GRADUATION_THRESHOLD } from "@/types/trading";
+import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
 
 interface GraduationProgressProps {
     token: Token;
-    tonPriceUsd: number;
+    tonPriceUsd?: number; // Now optional, kept for backward compatibility
 }
 
 export default function GraduationProgress({ token, tonPriceUsd }: GraduationProgressProps) {
-    // Calculate market cap in USD
+    // Calculate market cap in TON (graduation is now TON-based)
     const marketCapTon = Number(token.marketCap || "0") / 1e9;
-    const marketCapUsd = marketCapTon * tonPriceUsd;
-    const threshold = parseFloat(token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD);
-    const thresholdTon = threshold / tonPriceUsd;
-    const progress = Math.min(100, (marketCapUsd / threshold) * 100);
+
+    // Normalize threshold: if > 5000, it's likely an old USD-based value
+    // Use the new TON default (2000) instead
+    const rawThreshold = parseFloat(token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
+    const thresholdTon = rawThreshold > 5000
+        ? parseFloat(DEFAULT_GRADUATION_THRESHOLD_TON)
+        : rawThreshold;
+
+    const progress = Math.min(100, (marketCapTon / thresholdTon) * 100);
     const remainingTon = Math.max(0, thresholdTon - marketCapTon);
 
     // Status check
@@ -80,11 +85,16 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
                         <span className="text-white font-medium">
                             {marketCapTon.toLocaleString(undefined, { maximumFractionDigits: 0 })} TON
                         </span>
+                        {tonPriceUsd && tonPriceUsd > 0 && (
+                            <span className="text-muted-foreground ml-1">
+                                (~${(marketCapTon * tonPriceUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })})
+                            </span>
+                        )}
                     </div>
                     <div>
                         <span className="text-muted-foreground">Target: </span>
                         <span className="text-amber-400 font-medium">
-                            {(threshold / tonPriceUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })} TON
+                            {thresholdTon.toLocaleString(undefined, { maximumFractionDigits: 0 })} TON
                         </span>
                     </div>
                 </div>

@@ -134,20 +134,20 @@ export async function GET(request: NextRequest) {
 
         const tokenData = tokenDoc.data()!;
 
-        // Calculate if ready to graduate
-        // Assuming $50K market cap threshold and TON price ~$5
-        const marketCapUsd = parseFloat(tokenData.marketCap || "0") / 1e9 * 5; // rough estimate
-        const threshold = parseFloat(tokenData.graduationThreshold || "10000");
-        const isReady = marketCapUsd >= threshold;
+        // Calculate if ready to graduate (now TON-based)
+        // Market cap is stored in nanoTON, threshold is in TON
+        const marketCapTon = parseFloat(tokenData.marketCap || "0") / 1e9;
+        const thresholdTon = parseFloat(tokenData.graduationThreshold || "2000"); // 2000 TON default
+        const isReady = marketCapTon >= thresholdTon;
 
         return NextResponse.json({
             tokenId,
             symbol: tokenData.symbol,
             status: tokenData.status,
-            marketCapUsd: marketCapUsd.toFixed(2),
-            threshold,
+            marketCapTon: marketCapTon.toFixed(2),
+            thresholdTon,
             isReadyToGraduate: isReady && tokenData.status === "bonding",
-            percentComplete: Math.min(100, (marketCapUsd / threshold) * 100).toFixed(1),
+            percentComplete: Math.min(100, (marketCapTon / thresholdTon) * 100).toFixed(1),
         });
     } catch (error) {
         console.error("Graduation check error:", error);
