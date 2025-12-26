@@ -501,7 +501,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             console.error("Error buying tokens:", error);
             return { success: false, error: "Transaction failed" };
         }
-    }, [telegramId, username, walletAddress, docToToken, previewBuy, refreshPositions]);
+    }, [telegramId, username, walletAddress, docToToken, previewBuy, refreshPositions, sendTransaction]);
 
     // Sell tokens
     const sellTokens = useCallback(async (
@@ -634,7 +634,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             console.error("Error selling tokens:", error);
             return { success: false, error: "Transaction failed" };
         }
-    }, [telegramId, username, getPosition, docToToken, previewSell, refreshPositions]);
+    }, [telegramId, username, getPosition, docToToken, previewSell, refreshPositions, sendTransaction]);
 
     // Create new token
     const createToken = useCallback(async (params: CreateTokenParams): Promise<Token | null> => {
