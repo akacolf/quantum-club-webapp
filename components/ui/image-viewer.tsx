@@ -25,7 +25,7 @@ export default function ImageViewer({ isOpen, onClose, imageUrl, alt }: ImageVie
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent
                 side="bottom"
-                className="h-[85vh] bg-background/95 backdrop-blur-xl border-white/10 p-0 overflow-hidden"
+                className="h-[70vh] bg-background/98 backdrop-blur-xl border-white/10 p-0 overflow-hidden"
             >
                 <VisuallyHidden>
                     <SheetTitle>{alt}</SheetTitle>
@@ -45,14 +45,14 @@ export default function ImageViewer({ isOpen, onClose, imageUrl, alt }: ImageVie
                         </Button>
                     </div>
 
-                    {/* Image container */}
-                    <div className="flex-1 relative flex items-center justify-center bg-black/30 p-4">
-                        <div className="relative w-full h-full max-w-md mx-auto">
+                    {/* Circular image container */}
+                    <div className="flex-1 flex items-center justify-center p-8">
+                        <div className="relative w-64 h-64 rounded-full overflow-hidden ring-4 ring-white/20 shadow-2xl">
                             <Image
                                 src={imageUrl}
                                 alt={alt}
                                 fill
-                                className="object-contain"
+                                className="object-cover"
                                 unoptimized
                                 priority
                             />

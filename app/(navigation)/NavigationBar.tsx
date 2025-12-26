@@ -42,7 +42,7 @@ const TradeIcon = React.memo(() => (
   >
     <path
       fill="currentColor"
-      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87c1.96 0 2.4-.98 2.4-1.59c0-.83-.44-1.61-2.67-2.14c-2.48-.6-4.18-1.62-4.18-3.67c0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87c-1.5 0-2.4.68-2.4 1.64c0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16"
+      d="m9.25 22l-.4-3.2q-.325-.125-.612-.3t-.563-.375L4.7 19.375l-2.75-4.75l2.575-1.95Q4.5 12.5 4.5 12.338v-.675q0-.163.025-.338L1.95 9.375l2.75-4.75l2.975 1.25q.275-.2.575-.375t.6-.3l.4-3.2h5.5l.4 3.2q.325.125.612.3t.563.375l2.975-1.25l2.75 4.75l-2.575 1.95q.025.175.025.338v.675q0 .162-.05.337l2.575 1.95l-2.75 4.75l-2.95-1.25q-.275.2-.575.375t-.6.3l-.4 3.2zm2.8-6.5q1.45 0 2.475-1.025T15.55 12t-1.025-2.475T12.05 8.5q-1.475 0-2.488 1.025T8.55 12t1.013 2.475T12.05 15.5"
     />
   </svg>
 ));
@@ -115,6 +115,7 @@ const NavigationBar = () => {
               key={tab.id}
               id={tab.id}
               href={tab.href}
+              prefetch={true}
               onClick={(e) => pathname === tab.href && e.preventDefault()}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
@@ -122,8 +123,8 @@ const NavigationBar = () => {
             >
               <div
                 className={`transition-all duration-300 ${isActive
-                    ? "text-primary scale-110"
-                    : "text-muted-foreground group-hover:text-foreground"
+                  ? "text-primary scale-110"
+                  : "text-muted-foreground group-hover:text-foreground"
                   }`}
               >
                 <div className="scale-100">

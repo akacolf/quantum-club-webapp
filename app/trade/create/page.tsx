@@ -474,10 +474,14 @@ export default function CreateTokenPage() {
                         <Alert className="bg-white/5 border-white/10">
                             <Icon icon="solar:info-circle-bold" className="w-4 h-4" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-white">Creation Fee: {PLATFORM_FEES.creationFee} TON</span>
+                                <span className="font-medium text-white">Total Fee: 0.65 TON</span>
                                 <br />
-                                <span className="text-sm">
-                                    Trading Fee: {PLATFORM_FEES.tradingFeePercent}% (split between platform and you as creator)
+                                <span className="text-xs">
+                                    Creation: {PLATFORM_FEES.creationFee} TON + Blockchain Deploy: 0.15 TON
+                                </span>
+                                <br />
+                                <span className="text-xs">
+                                    Trading Fee: {PLATFORM_FEES.tradingFeePercent}% (split between platform and you)
                                 </span>
                             </AlertDescription>
                         </Alert>
