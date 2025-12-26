@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const userId = session.userId as string;
+        const userId = String(session.user?.telegramId || "");
         const body = await request.json();
         const { tokenId, creatorAddress } = body;
 
@@ -160,7 +160,7 @@ export async function PATCH(request: NextRequest) {
             );
         }
 
-        const userId = session.userId as string;
+        const userId = String(session.user?.telegramId || "");
         const body = await request.json();
         const { tokenId, jettonAddress, txHash } = body;
 

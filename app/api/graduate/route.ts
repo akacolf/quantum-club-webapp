@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const userId = session.userId as string;
+        const userId = String(session.user?.telegramId || "");
 
         // Check if user is admin
         if (!ADMIN_IDS.includes(userId)) {

@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const userId = session.userId as string;
+        const userId = String(session.user?.telegramId || "");
 
         // Check rate limit
         const rateLimit = checkRateLimit(userId);
@@ -218,7 +218,7 @@ export async function GET() {
             );
         }
 
-        const userId = session.userId as string;
+        const userId = String(session.user?.telegramId || "");
         const userLimit = rateLimitStore.get(userId);
         const now = Date.now();
 
