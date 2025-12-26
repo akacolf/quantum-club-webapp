@@ -35,6 +35,7 @@ import {
     calculateTokensForTon,
 } from "@/lib/bonding-curve";
 import { updatePriceCandle } from "@/lib/price-history";
+import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 
 interface TradingContextType {
     // Token discovery
@@ -89,7 +90,7 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 export function TradingProvider({ children }: { children: React.ReactNode }) {
     const { telegramId, username } = useGameContext();
-    const { walletAddress } = useWallet();
+    const { walletAddress, sendTransaction } = useWallet();
 
     // State
     const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
@@ -404,6 +405,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const newPrice = getCurrentPrice(newSupply, token.bondingCurve);
             const newMarketCap = calculateMarketCap(newSupply, newPrice);
 
+            // Convert TON amount to nanoTON for tracking
+            const tonAmountNano = Math.floor(parseFloat(tonAmount) * 1e9);
+
             // Update token
             await updateDoc(doc(dbfs, `tokens/${tokenId}`), {
                 totalSupply: newSupply.toString(),
@@ -412,6 +416,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 holders: increment(1), // Simplified - should check if new holder
                 trades: increment(1),
                 volume24h: increment(parseFloat(tonAmount)),
+                collectedTon: increment(tonAmountNano), // Track total collected for graduation
             });
 
             // Update user position
@@ -446,6 +451,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 amount: preview.tokensReceived,
                 price: preview.averagePrice,
                 totalTon: tonAmount,
+                fee: preview.fee,
                 timestamp: serverTimestamp(),
                 status: "completed",
             });
@@ -459,6 +465,15 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                     : preview.tokensReceived,
                 lastTradeAt: serverTimestamp(),
             }, { merge: true });
+
+            // Collect platform fee (50% of trading fee goes to platform)
+            const platformFeeNano = Math.floor(parseFloat(preview.fee) * 1e9 * (FEE_CONFIG.platformSharePercent / 100));
+            if (platformFeeNano > 0) {
+                sendTransaction({
+                    to: PLATFORM_WALLET_ADDRESS,
+                    value: String(platformFeeNano),
+                }).catch(err => console.error("Fee collection failed:", err));
+            }
 
             await refreshPositions();
 
@@ -581,9 +596,19 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 amount: tokenAmount,
                 price: preview.averagePrice,
                 totalTon: preview.tonReceived,
+                fee: preview.fee,
                 timestamp: serverTimestamp(),
                 status: "completed",
             });
+
+            // Collect platform fee (50% of trading fee goes to platform)
+            const platformFeeNano = Math.floor(parseFloat(preview.fee) * 1e9 * (FEE_CONFIG.platformSharePercent / 100));
+            if (platformFeeNano > 0) {
+                sendTransaction({
+                    to: PLATFORM_WALLET_ADDRESS,
+                    value: String(platformFeeNano),
+                }).catch(err => console.error("Fee collection failed:", err));
+            }
 
             await refreshPositions();
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/utils/session";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
+import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
+import { calculateGraduationLiquidity } from "@/lib/graduation";
 
 // Admin check - only platform admins can graduate tokens
 const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS?.split(",") || [];
@@ -67,12 +69,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Calculate graduation liquidity and platform fee
+        const collectedTon = tokenData.collectedTon || "0";
+        const totalSupply = tokenData.totalSupply || "0";
+        const graduation = calculateGraduationLiquidity(
+            collectedTon,
+            totalSupply,
+            FEE_CONFIG.graduationFeePercent
+        );
+
         // Update token to graduated status
         await tokenRef.update({
             status: "graduated",
             graduatedAt: FieldValue.serverTimestamp(),
             dexPoolAddress: dexPoolAddress || null,
             jettonMasterAddress: jettonMasterAddress || null,
+            graduationFee: graduation.platformFee,
+            platformWallet: PLATFORM_WALLET_ADDRESS,
         });
 
         // Log the graduation event
@@ -81,7 +94,11 @@ export async function POST(request: NextRequest) {
             tokenName: tokenData.name,
             tokenSymbol: tokenData.symbol,
             marketCapAtGraduation: tokenData.marketCap,
-            collectedTon: tokenData.collectedTon || "0",
+            collectedTon,
+            tonForLp: graduation.tonForLp,
+            tokensForLp: graduation.tokensForLp,
+            platformFee: graduation.platformFee,
+            platformWallet: PLATFORM_WALLET_ADDRESS,
             dexPoolAddress,
             jettonMasterAddress,
             graduatedBy: userId,

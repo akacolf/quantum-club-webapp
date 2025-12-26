@@ -15,7 +15,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
-import { PLATFORM_FEES } from "@/types/trading";
+import { PLATFORM_WALLET_ADDRESS, TOTAL_CREATION_FEE, FEE_CONFIG } from "@/lib/platform-config";
 
 export default function CreateTokenPage() {
     const router = useRouter();
@@ -213,21 +213,32 @@ export default function CreateTokenPage() {
 
         // Check balance for creation + deployment fee
         const balance = parseFloat(tonBalance || "0");
-        const creationFee = parseFloat(PLATFORM_FEES.creationFee);
-        const deploymentFee = 0.15; // TON for on-chain deployment
-        const totalFee = creationFee + deploymentFee;
 
-        if (balance < totalFee) {
-            toast.error(`Insufficient balance. Need ${totalFee.toFixed(2)} TON to create and deploy a token.`);
+        if (balance < TOTAL_CREATION_FEE) {
+            toast.error(`Insufficient balance. Need ${TOTAL_CREATION_FEE.toFixed(2)} TON to create and deploy a token.`);
             return;
         }
 
         setIsLoading(true);
 
         try {
+            // Step 1: Send creation fee to platform wallet
+            toast.info("Sending creation fee...", { duration: 2000 });
+
+            const feeResult = await sendTransaction({
+                to: PLATFORM_WALLET_ADDRESS,
+                value: String(Math.floor(FEE_CONFIG.tokenCreation * 1e9)), // 0.5 TON in nano
+            });
+
+            if (!feeResult.success) {
+                toast.error(`Failed to send creation fee: ${feeResult.error}`);
+                setIsLoading(false);
+                return;
+            }
+
             toast.info("Creating token...", { duration: 2000 });
 
-            // Step 1: Create token in database
+            // Step 2: Create token in database
             const token = await createToken({
                 name: formData.name.trim(),
                 symbol: formData.symbol.trim().toUpperCase(),
@@ -349,7 +360,7 @@ export default function CreateTokenPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-400" />
-                                    <span className="text-xs text-muted-foreground">{PLATFORM_FEES.creatorFeePercent}% Creator Fee</span>
+                                    <span className="text-xs text-muted-foreground">{FEE_CONFIG.creatorSharePercent}% Creator Fee</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -474,14 +485,14 @@ export default function CreateTokenPage() {
                         <Alert className="bg-white/5 border-white/10">
                             <Icon icon="solar:info-circle-bold" className="w-4 h-4" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-white">Total Fee: 0.65 TON</span>
+                                <span className="font-medium text-white">Total Fee: {TOTAL_CREATION_FEE} TON</span>
                                 <br />
                                 <span className="text-xs">
-                                    Creation: {PLATFORM_FEES.creationFee} TON + Blockchain Deploy: 0.15 TON
+                                    Creation: {FEE_CONFIG.tokenCreation} TON + Blockchain Deploy: {FEE_CONFIG.tokenDeployment} TON
                                 </span>
                                 <br />
                                 <span className="text-xs">
-                                    Trading Fee: {PLATFORM_FEES.tradingFeePercent}% (split between platform and you)
+                                    Trading Fee: {FEE_CONFIG.tradingFeePercent}% (split between platform and you)
                                 </span>
                             </AlertDescription>
                         </Alert>
