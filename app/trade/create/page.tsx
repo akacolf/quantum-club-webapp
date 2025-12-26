@@ -17,6 +17,8 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { PLATFORM_FEES } from "@/types/trading";
 import { isDevelopment } from "@/lib/dev-utils";
+import { storage } from "@/app/(firebase)/client";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function CreateTokenPage() {
     const router = useRouter();
@@ -96,17 +98,20 @@ export default function CreateTokenPage() {
             };
             reader.readAsDataURL(file);
 
-            // For now, we'll use a data URL (in production, upload to storage)
-            // Convert to base64 for storage
-            const base64Reader = new FileReader();
-            base64Reader.onloadend = () => {
-                const base64 = base64Reader.result as string;
-                setFormData(prev => ({ ...prev, image: base64 }));
-                toast.success("Image uploaded successfully");
-            };
-            base64Reader.readAsDataURL(file);
-        } catch {
+            // Upload to Firebase Storage
+            const fileExtension = file.name.split('.').pop() || 'png';
+            const fileName = `token-images/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+            const storageRef = ref(storage, fileName);
+
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            setFormData(prev => ({ ...prev, image: downloadURL }));
+            toast.success("Image uploaded successfully");
+        } catch (error) {
+            console.error("Image upload error:", error);
             toast.error("Failed to upload image");
+            setImagePreview(null);
         } finally {
             setIsUploading(false);
         }
