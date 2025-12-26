@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { Cell } from "@ton/core";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -274,11 +275,33 @@ export default function CreateTokenPage() {
             const { jettonAddress, deployTx } = await deployResponse.json();
 
             // Step 3: Send deployment transaction using QC Wallet
-            toast.info("Sending transaction to blockchain...", { duration: 3000 });
+            toast.info("Deploying contract to TON blockchain...", { duration: 3000 });
+
+            // Parse stateInit from base64 if provided
+            let stateInitCell: Cell | undefined;
+            if (deployTx.stateInit) {
+                try {
+                    stateInitCell = Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0];
+                } catch (e) {
+                    console.error("Failed to parse stateInit:", e);
+                }
+            }
+
+            // Parse body from base64 if provided
+            let bodyCell: Cell | undefined;
+            if (deployTx.body) {
+                try {
+                    bodyCell = Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0];
+                } catch (e) {
+                    console.error("Failed to parse body:", e);
+                }
+            }
 
             const txResult = await sendTransaction({
                 to: jettonAddress,
                 value: deployTx.value, // 0.15 TON for deployment
+                body: bodyCell,
+                stateInit: stateInitCell,
             });
 
             if (!txResult.success) {
