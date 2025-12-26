@@ -17,8 +17,6 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { PLATFORM_FEES } from "@/types/trading";
 import { isDevelopment } from "@/lib/dev-utils";
-import { storage } from "@/app/(firebase)/client";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function CreateTokenPage() {
     const router = useRouter();
@@ -70,47 +68,94 @@ export default function CreateTokenPage() {
         return Object.keys(newErrors).length === 0;
     };
 
+    // Compress image to fit within Firestore limits (< 1MB)
+    const compressImage = (file: File, maxSize: number = 512): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement("img");
+                img.onload = () => {
+                    // Calculate new dimensions (max 512x512)
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height = Math.round((height * maxSize) / width);
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width = Math.round((width * maxSize) / height);
+                            height = maxSize;
+                        }
+                    }
+
+                    // Create canvas and draw resized image
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) {
+                        reject(new Error("Could not get canvas context"));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Convert to JPEG with compression (quality 0.8)
+                    const compressedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+
+                    // Check final size (should be well under 1MB for 512x512)
+                    const sizeInBytes = Math.round((compressedBase64.length * 3) / 4);
+                    if (sizeInBytes > 900000) {
+                        // If still too large, compress more
+                        const moreCompressed = canvas.toDataURL("image/jpeg", 0.5);
+                        resolve(moreCompressed);
+                    } else {
+                        resolve(compressedBase64);
+                    }
+                };
+                img.onerror = reject;
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
     // Handle image upload
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file type (including GIF)
+        // Validate file type
         const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
         if (!allowedTypes.includes(file.type)) {
             toast.error("Please select a PNG, JPG, GIF, or WebP image");
             return;
         }
 
-        // Validate file size (max 2MB - plenty for token icons)
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error("Image must be less than 2MB");
+        // Validate file size (max 10MB input - will be compressed)
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("Image must be less than 10MB");
             return;
         }
 
         setIsUploading(true);
 
         try {
-            // Create preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            // Compress image to 512x512 JPEG (typically ~50-100KB)
+            const compressedBase64 = await compressImage(file, 512);
 
-            // Upload to Firebase Storage
-            const fileExtension = file.name.split('.').pop() || 'png';
-            const fileName = `token-images/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-            const storageRef = ref(storage, fileName);
+            // Set preview and form data
+            setImagePreview(compressedBase64);
+            setFormData(prev => ({ ...prev, image: compressedBase64 }));
 
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
-
-            setFormData(prev => ({ ...prev, image: downloadURL }));
-            toast.success("Image uploaded successfully");
+            const sizeKB = Math.round((compressedBase64.length * 3) / 4 / 1024);
+            toast.success(`Image compressed to ${sizeKB}KB`);
         } catch (error) {
-            console.error("Image upload error:", error);
-            toast.error("Failed to upload image");
+            console.error("Image compression error:", error);
+            toast.error("Failed to process image");
             setImagePreview(null);
         } finally {
             setIsUploading(false);
