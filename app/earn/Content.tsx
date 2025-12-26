@@ -21,10 +21,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWallet } from "../wallet/WalletContext";
 
 const EarnContent = () => {
-  const {walletAddress,} = useWallet()
   const [tasks, setTasks] = useState<EarnTask[]>([]);
   const [loading, setLoading] = useState(true);
   const limitedTXT = "Limited";
