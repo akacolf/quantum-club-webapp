@@ -98,5 +98,45 @@ service cloud.firestore {
       allow read: if false; // Admin only
       allow write: if false; // Only API routes can write
     }
+    
+    // Price history - candlestick data for charts
+    match /priceHistory/{tokenId}/candles/{candleId} {
+      allow read: if true; // Anyone can read price history
+      allow write: if false; // Only server can write
+    }
+    
+    // Wallet collection - user wallet data
+    match /wallet/{userId}/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Deployment logs - server only
+    match /deploymentLogs/{logId} {
+      allow read: if false; // Admin only
+      allow write: if false; // Only API routes can write
+    }
+    
+    // User groups subcollection (already covered by user/{userId}/** but explicit for clarity)
+    match /user/{userId}/groups/{groupId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // User positions subcollection (already covered by users/{userId}/** but explicit for clarity)
+    match /users/{userId}/positions/{tokenId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // CollectionGroup queries - allows querying positions across all users
+    match /{path=**}/positions/{tokenId} {
+      allow read: if request.auth != null;
+    }
+    
+    // CollectionGroup queries - allows querying messages across all chats
+    match /{path=**}/messages/{messageId} {
+      allow read: if request.auth != null;
+    }
   }
 }
