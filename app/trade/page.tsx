@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
@@ -9,16 +10,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
-import { Token, DEFAULT_GRADUATION_THRESHOLD } from "@/types/trading";
-import { formatPrice, formatMarketCap } from "@/lib/bonding-curve";
+import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
+import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/bonding-curve";
 import { useWallet } from "@/app/wallet/WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
-import { seedTestTokens, isDevelopment } from "@/lib/dev-utils";
-import { toast } from "sonner";
+
 import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
 
 // Lottie animations for tabs (Telegram-style animated emojis)
@@ -26,14 +23,13 @@ import fireAnimation from "@/public/lottie/fire-lottie.json";
 import sparklesAnimation from "@/public/lottie/sparkles-lottie.json";
 import diamondAnimation from "@/public/lottie/diamond-lottie.json";
 
-// Utility for progress calculation
-const calculateProgress = (marketCapNano: string, tonPrice: number, thresholdUsd: string) => {
+// Utility for progress calculation - now TON-based
+const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
     try {
         const mcTon = Number(BigInt(marketCapNano || "0")) / 1e9;
-        const mcUsd = mcTon * (tonPrice || 0);
-        const total = Number(thresholdUsd);
+        const total = Number(thresholdTon);
         if (total <= 0) return 0;
-        return Math.min((mcUsd / total) * 100, 100);
+        return Math.min((mcTon / total) * 100, 100);
     } catch {
         return 0;
     }
@@ -45,8 +41,7 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
     const isPositive = priceChange >= 0;
     const progress = calculateProgress(
         token.marketCap,
-        tonPrice,
-        token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD
+        token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON
     );
 
     return (
@@ -67,10 +62,12 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                         {/* Token Image - Larger & detached */}
                         <div className="relative w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden bg-white/5 flex-shrink-0 shadow-inner border border-white/5">
                             {token.image ? (
-                                <img
+                                <Image
                                     src={token.image}
                                     alt={token.name}
-                                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                    fill
+                                    className="object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                    unoptimized
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-primary font-bold text-2xl bg-gradient-to-br from-white/10 to-transparent">
@@ -113,8 +110,8 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                                     <div className="font-bold text-white text-sm tracking-tight">
                                         {formatPrice(BigInt(token.currentPrice || "0"))}
                                     </div>
-                                    <div className={`flex items-center justify-end gap-1 text-[11px] font-bold ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                        <Icon icon={isPositive ? "solar:graph-up-linear" : "solar:graph-down-linear"} className="w-3 h-3" />
+                                    <div className={`flex items-center justify-end gap-0.5 text-[11px] font-bold ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                                        <span className="text-xs">{isPositive ? "+" : "-"}</span>
                                         {Math.abs(priceChange).toFixed(2)}%
                                     </div>
                                 </div>
@@ -148,10 +145,10 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                         <div className="px-3 py-2 bg-white/[0.02]">
                             <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block mb-0.5">Volume (24h)</span>
                             <span className="text-xs font-bold text-white block">
-                                {parseFloat(token.volume24h || "0").toLocaleString(undefined, { maximumFractionDigits: 1 })} TON
+                                {formatCompactNumber(parseFloat(token.volume24h || "0"), 1)} TON
                             </span>
                             <span className="text-[9px] text-muted-foreground block">
-                                ~${(parseFloat(token.volume24h || "0") * tonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                ~${formatCompactNumber(parseFloat(token.volume24h || "0") * tonPrice, 0)}
                             </span>
                         </div>
                     </div>
@@ -205,31 +202,11 @@ function EmptyState({ message }: { message: string }) {
 
 export default function TradePage() {
     const router = useRouter();
-    const { trendingTokens, newTokens, searchResults, isLoading, searchTokens, clearSearch, positions, refreshTokens } = useTrading();
+    const { trendingTokens, newTokens, searchResults, isLoading, searchTokens, clearSearch, positions } = useTrading();
     const { walletAddress, tonPrice } = useWallet();
-    const { telegramId, username } = useGameContext();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
-    const [isSeeding, setIsSeeding] = useState(false);
 
-    // Seed test tokens (dev mode only)
-    const handleSeedTokens = async () => {
-        if (!telegramId) {
-            toast.error("Please wait for app to load");
-            return;
-        }
-        setIsSeeding(true);
-        try {
-            await seedTestTokens(telegramId, username || "TestUser", 5);
-            toast.success("Test tokens created! 🎉");
-            await refreshTokens();
-        } catch (error) {
-            console.error("Error seeding tokens:", error);
-            toast.error("Failed to create test tokens");
-        } finally {
-            setIsSeeding(false);
-        }
-    };
 
     // Lottie refs for tab icons
     const fireLottieRef = useRef<LottieRefCurrentProps>(null);
@@ -281,7 +258,10 @@ export default function TradePage() {
                 <div className="px-4 pt-4 pb-2">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white">
+                            <div className="flex items-center gap-2">
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-md">BETA</span>
+                            </div>
+                            <h1 className="text-2xl font-bold tracking-tight text-white">
                                 QC <span className="text-primary">RocketStart</span>
                             </h1>
                             <p className="text-xs text-muted-foreground font-medium tracking-wide">Token Launchpad on TON</p>
@@ -321,10 +301,10 @@ export default function TradePage() {
                     {/* Tabs */}
                     {!searchQuery && (
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-2xl grid grid-cols-3 gap-1 border border-white/5 items-stretch">
+                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-xl grid grid-cols-3 gap-1 border border-white/5 items-stretch">
                                 <TabsTrigger
                                     value="trending"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-2xl text-xs font-bold tracking-wide transition-all shadow-none"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <Lottie
@@ -339,7 +319,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="new"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-2xl text-xs font-bold tracking-wide transition-all shadow-none"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <Lottie
@@ -354,7 +334,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="holdings"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-2xl text-xs font-bold tracking-wide transition-all shadow-none"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <Lottie
@@ -406,25 +386,6 @@ export default function TradePage() {
                                 <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground" />
                             </div>
                             <p className="text-muted-foreground mb-4">No tokens available yet. Be the first to create one!</p>
-                            {isDevelopment && (
-                                <Button
-                                    onClick={handleSeedTokens}
-                                    disabled={isSeeding}
-                                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
-                                >
-                                    {isSeeding ? (
-                                        <>
-                                            <Icon icon="solar:spinner-bold" className="w-4 h-4 mr-2 animate-spin" />
-                                            Seeding...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="solar:test-tube-bold" className="w-4 h-4 mr-2" />
-                                            Seed Test Tokens (Dev)
-                                        </>
-                                    )}
-                                </Button>
-                            )}
                         </div>
                     ) : (
                         <div className="space-y-3">

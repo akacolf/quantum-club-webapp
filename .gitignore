@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Turbo
 .turbo
+
+# Firebase Functions
+functions/node_modules
+functions/lib
+functions/.runtimeconfig.json

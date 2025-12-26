@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,13 +15,12 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
-import { PLATFORM_FEES } from "@/types/trading";
-import { isDevelopment } from "@/lib/dev-utils";
+import { PLATFORM_WALLET_ADDRESS, TOTAL_CREATION_FEE, FEE_CONFIG } from "@/lib/platform-config";
 
 export default function CreateTokenPage() {
     const router = useRouter();
     const { createToken } = useTrading();
-    const { walletAddress, tonBalance } = useWallet();
+    const { walletAddress, tonBalance, sendTransaction } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Telegram back button
@@ -67,45 +67,124 @@ export default function CreateTokenPage() {
         return Object.keys(newErrors).length === 0;
     };
 
+    // Compress image to fit within Firestore limits (< 1MB)
+    const compressImage = (file: File, maxSize: number = 512): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement("img");
+                img.onload = () => {
+                    // Calculate new dimensions (max 512x512)
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height = Math.round((height * maxSize) / width);
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width = Math.round((width * maxSize) / height);
+                            height = maxSize;
+                        }
+                    }
+
+                    // Create canvas and draw resized image
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) {
+                        reject(new Error("Could not get canvas context"));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Convert to JPEG with compression (quality 0.8)
+                    const compressedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+
+                    // Check final size (should be well under 1MB for 512x512)
+                    const sizeInBytes = Math.round((compressedBase64.length * 3) / 4);
+                    if (sizeInBytes > 900000) {
+                        // If still too large, compress more
+                        const moreCompressed = canvas.toDataURL("image/jpeg", 0.5);
+                        resolve(moreCompressed);
+                    } else {
+                        resolve(compressedBase64);
+                    }
+                };
+                img.onerror = reject;
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
     // Handle image upload
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file type (including GIF)
+        // Validate file type
         const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
         if (!allowedTypes.includes(file.type)) {
             toast.error("Please select a PNG, JPG, GIF, or WebP image");
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("Image must be less than 5MB");
-            return;
-        }
-
         setIsUploading(true);
 
         try {
-            // Create preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            // Special handling for GIFs to preserve animation
+            if (file.type === "image/gif") {
+                // GIFs must be under 800KB to store in Firestore
+                const maxGifSize = 800 * 1024;
+                if (file.size > maxGifSize) {
+                    toast.error("Animated GIFs must be under 800KB. Please use a smaller GIF.");
+                    setIsUploading(false);
+                    return;
+                }
 
-            // For now, we'll use a data URL (in production, upload to storage)
-            // Convert to base64 for storage
-            const base64Reader = new FileReader();
-            base64Reader.onloadend = () => {
-                const base64 = base64Reader.result as string;
-                setFormData(prev => ({ ...prev, image: base64 }));
-                toast.success("Image uploaded successfully");
-            };
-            base64Reader.readAsDataURL(file);
-        } catch {
-            toast.error("Failed to upload image");
+                // Read GIF as base64 directly (preserves animation)
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64 = reader.result as string;
+                    setImagePreview(base64);
+                    setFormData(prev => ({ ...prev, image: base64 }));
+                    const sizeKB = Math.round(file.size / 1024);
+                    toast.success(`GIF uploaded (${sizeKB}KB)`);
+                    setIsUploading(false);
+                };
+                reader.onerror = () => {
+                    toast.error("Failed to read GIF");
+                    setIsUploading(false);
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            // For non-GIF images: validate size and compress
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error("Image must be less than 10MB");
+                setIsUploading(false);
+                return;
+            }
+
+            // Compress image to 512x512 JPEG (typically ~50-100KB)
+            const compressedBase64 = await compressImage(file, 512);
+
+            // Set preview and form data
+            setImagePreview(compressedBase64);
+            setFormData(prev => ({ ...prev, image: compressedBase64 }));
+
+            const sizeKB = Math.round((compressedBase64.length * 3) / 4 / 1024);
+            toast.success(`Image compressed to ${sizeKB}KB`);
+        } catch (error) {
+            console.error("Image compression error:", error);
+            toast.error("Failed to process image");
+            setImagePreview(null);
         } finally {
             setIsUploading(false);
         }
@@ -132,18 +211,34 @@ export default function CreateTokenPage() {
             return;
         }
 
-        // Check balance for creation fee (skip in dev mode)
+        // Check balance for creation + deployment fee
         const balance = parseFloat(tonBalance || "0");
-        const creationFee = parseFloat(PLATFORM_FEES.creationFee);
 
-        if (!isDevelopment && balance < creationFee) {
-            toast.error(`Insufficient balance. Need ${creationFee} TON to create a token.`);
+        if (balance < TOTAL_CREATION_FEE) {
+            toast.error(`Insufficient balance. Need ${TOTAL_CREATION_FEE.toFixed(2)} TON to create and deploy a token.`);
             return;
         }
 
         setIsLoading(true);
 
         try {
+            // Step 1: Send creation fee to platform wallet
+            toast.info("Sending creation fee...", { duration: 2000 });
+
+            const feeResult = await sendTransaction({
+                to: PLATFORM_WALLET_ADDRESS,
+                value: String(Math.floor(FEE_CONFIG.tokenCreation * 1e9)), // 0.5 TON in nano
+            });
+
+            if (!feeResult.success) {
+                toast.error(`Failed to send creation fee: ${feeResult.error}`);
+                setIsLoading(false);
+                return;
+            }
+
+            toast.info("Creating token...", { duration: 2000 });
+
+            // Step 2: Create token in database
             const token = await createToken({
                 name: formData.name.trim(),
                 symbol: formData.symbol.trim().toUpperCase(),
@@ -151,13 +246,77 @@ export default function CreateTokenPage() {
                 image: formData.image.trim(),
             });
 
-            if (token) {
-                toast.success("Token created successfully! 🚀");
-                router.push(`/trade/${token.id}`);
-            } else {
+            if (!token) {
                 toast.error("Failed to create token. Please try again.");
+                return;
             }
-        } catch {
+
+            toast.info("Deploying to TON blockchain...", { duration: 3000 });
+
+            // Step 2: Deploy on-chain via API
+            const deployResponse = await fetch("/api/deploy-jetton", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId: token.id,
+                    creatorAddress: walletAddress,
+                }),
+            });
+
+            if (!deployResponse.ok) {
+                const error = await deployResponse.json();
+                toast.error(error.error || "Failed to prepare deployment");
+                // Token was created but not deployed - still redirect
+                router.push(`/trade/${token.id}`);
+                return;
+            }
+
+            const { jettonAddress, deployTx } = await deployResponse.json();
+
+            // Step 3: Send deployment transaction using QC Wallet
+            toast.info("Sending transaction to blockchain...", { duration: 3000 });
+
+            const txResult = await sendTransaction({
+                to: jettonAddress,
+                value: deployTx.value, // 0.15 TON for deployment
+            });
+
+            if (!txResult.success) {
+                toast.warning(`Token created but deployment failed: ${txResult.error}`, {
+                    description: "You can deploy it later from the token page.",
+                    duration: 5000,
+                });
+                router.push(`/trade/${token.id}`);
+                return;
+            }
+
+            // Wait for transaction to propagate
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Step 4: Confirm deployment
+            const confirmResponse = await fetch("/api/deploy-jetton", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId: token.id,
+                    jettonAddress,
+                    txHash: txResult.txHash,
+                }),
+            });
+
+            if (confirmResponse.ok) {
+                toast.success(`${token.symbol} created and deployed on TON! 🚀`, {
+                    description: `Contract: ${jettonAddress.slice(0, 12)}...`,
+                });
+            } else {
+                toast.success("Token created! Deployment confirmed.", {
+                    duration: 4000,
+                });
+            }
+
+            router.push(`/trade/${token.id}`);
+        } catch (err) {
+            console.error("Token creation error:", err);
             toast.error("An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
@@ -179,19 +338,29 @@ export default function CreateTokenPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    {/* Info Card */}
+                    {/* Token Protections - Unified Card */}
                     <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 mb-6">
                         <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                    <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-primary" />
+                            <div className="flex items-center gap-2 mb-3">
+                                <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-primary" />
+                                <h3 className="font-semibold text-white">Token Protections</h3>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:lock-bold" className="w-4 h-4 text-green-400" />
+                                    <span className="text-xs text-muted-foreground">Locked Liquidity</span>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-white mb-1">Anti-Dump Protection</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Your token includes smart protection: 50% instant + 50% unlocks after 6h,
-                                        whale daily limits (25%), and smooth selling for large orders.
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-blue-400" />
+                                    <span className="text-xs text-muted-foreground">Fair Launch</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-purple-400" />
+                                    <span className="text-xs text-muted-foreground">Auto DEX at 2,000 TON</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-400" />
+                                    <span className="text-xs text-muted-foreground">{FEE_CONFIG.creatorSharePercent}% Creator Fee</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -216,10 +385,12 @@ export default function CreateTokenPage() {
                                         >
                                             {imagePreview ? (
                                                 <>
-                                                    <img
+                                                    <Image
                                                         src={imagePreview}
                                                         alt="Token preview"
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
                                                     />
                                                     <button
                                                         type="button"
@@ -314,25 +485,19 @@ export default function CreateTokenPage() {
                         <Alert className="bg-white/5 border-white/10">
                             <Icon icon="solar:info-circle-bold" className="w-4 h-4" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-white">Creation Fee: {PLATFORM_FEES.creationFee} TON</span>
+                                <span className="font-medium text-white">Total Fee: {TOTAL_CREATION_FEE} TON</span>
                                 <br />
-                                <span className="text-sm">
-                                    Trading Fee: {PLATFORM_FEES.tradingFeePercent}% (split between platform and you as creator)
+                                <span className="text-xs">
+                                    Creation: {FEE_CONFIG.tokenCreation} TON + Blockchain Deploy: {FEE_CONFIG.tokenDeployment} TON
+                                </span>
+                                <br />
+                                <span className="text-xs">
+                                    Trading Fee: {FEE_CONFIG.tradingFeePercent}% (split between platform and you)
                                 </span>
                             </AlertDescription>
                         </Alert>
 
-                        {/* Creator Note */}
-                        <Alert className="bg-amber-500/10 border-amber-500/20">
-                            <Icon icon="solar:shield-warning-bold" className="w-4 h-4 text-amber-500" />
-                            <AlertDescription className="text-amber-200">
-                                <span className="font-medium">Fair Launch</span>
-                                <br />
-                                <span className="text-sm text-amber-300/80">
-                                    You start with 0 tokens. Buy them just like everyone else!
-                                </span>
-                            </AlertDescription>
-                        </Alert>
+
 
                         {/* Submit Button - White background with black text */}
                         <Button
@@ -343,12 +508,12 @@ export default function CreateTokenPage() {
                             {isLoading ? (
                                 <>
                                     <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                    Creating Token...
+                                    Creating token...
                                 </>
                             ) : !walletAddress ? (
                                 <>
                                     <Icon icon="solar:wallet-bold" className="w-5 h-5 mr-2" />
-                                    Connect Wallet First
+                                    Connect QC wallet first
                                 </>
                             ) : (
                                 <>

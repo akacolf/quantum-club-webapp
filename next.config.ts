@@ -4,7 +4,6 @@ const nextConfig: import('next').NextConfig = {
   // Enable React Strict Mode for identifying potential problems
   reactStrictMode: true,
 
-
   // Image Optimiz1ation Configuration
   images: {
     remotePatterns: [
@@ -72,7 +71,7 @@ const nextConfig: import('next').NextConfig = {
     ];
   },
 
- 
+
 
   // Experimental features
   experimental: {

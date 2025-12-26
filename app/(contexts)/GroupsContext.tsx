@@ -20,6 +20,8 @@ export interface Group {
     createdBy: string;
     createdAt: Date;
     memberCount: number;
+    linkedTokenId?: string; // Optional link to a trading token
+    linkedTokenSymbol?: string; // Token symbol for display
 }
 
 export interface GroupMember {
@@ -32,10 +34,11 @@ export interface GroupMember {
 interface GroupsContextType {
     groups: Group[];
     loading: boolean;
-    createGroup: (name: string, description: string) => Promise<string | null>;
+    createGroup: (name: string, description: string, tokenId?: string, tokenSymbol?: string) => Promise<string | null>;
     joinGroup: (groupId: string) => Promise<boolean>;
     leaveGroup: (groupId: string) => Promise<boolean>;
     getGroupMembers: (groupId: string) => Promise<GroupMember[]>;
+    getGroupByToken: (tokenId: string) => Group | undefined;
     isGroupMember: (groupId: string) => boolean;
     refreshGroups: () => Promise<void>;
 }
@@ -81,6 +84,8 @@ export function GroupsProvider({ children }: { children: React.ReactNode }) {
                                 createdBy: data.createdBy,
                                 createdAt: data.createdAt?.toDate() || new Date(),
                                 memberCount: membersSnap.size,
+                                linkedTokenId: data.linkedTokenId,
+                                linkedTokenSymbol: data.linkedTokenSymbol,
                             } as Group;
                         }
                         return null;
@@ -100,8 +105,13 @@ export function GroupsProvider({ children }: { children: React.ReactNode }) {
         }
     }, [telegramId]);
 
-    // Create a new group
-    const createGroup = useCallback(async (name: string, description: string): Promise<string | null> => {
+    // Create a new group (optionally linked to a token)
+    const createGroup = useCallback(async (
+        name: string,
+        description: string,
+        tokenId?: string,
+        tokenSymbol?: string
+    ): Promise<string | null> => {
         if (!telegramId || !username) return null;
 
         try {
@@ -113,7 +123,9 @@ export function GroupsProvider({ children }: { children: React.ReactNode }) {
                 description,
                 createdBy: telegramId,
                 createdAt: serverTimestamp(),
-                maxMembers: 5,
+                maxMembers: tokenId ? 1000 : 5, // Token groups can have up to 1000 members
+                ...(tokenId && { linkedTokenId: tokenId }),
+                ...(tokenSymbol && { linkedTokenSymbol: tokenSymbol }),
             });
 
             // Add creator as admin member
@@ -223,6 +235,11 @@ export function GroupsProvider({ children }: { children: React.ReactNode }) {
         return myGroupIds.has(groupId);
     }, [myGroupIds]);
 
+    // Get group linked to a specific token
+    const getGroupByToken = useCallback((tokenId: string): Group | undefined => {
+        return groups.find(g => g.linkedTokenId === tokenId);
+    }, [groups]);
+
     // Initial fetch
     useEffect(() => {
         if (telegramId) {
@@ -239,6 +256,7 @@ export function GroupsProvider({ children }: { children: React.ReactNode }) {
                 joinGroup,
                 leaveGroup,
                 getGroupMembers,
+                getGroupByToken,
                 isGroupMember,
                 refreshGroups,
             }}

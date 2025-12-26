@@ -62,6 +62,7 @@ export async function middleware(request: NextRequest) {
                            request.nextUrl.pathname.startsWith("/earn") ||
                            request.nextUrl.pathname.startsWith("/story") ||
                            request.nextUrl.pathname.startsWith("/leaderboard") ||
+                           request.nextUrl.pathname.startsWith("/trade") ||
                            request.nextUrl.pathname.startsWith("/ecosystem");
   
   if (isProtectedRoute && isFromSanctionedLocation(request)) {
@@ -87,6 +88,7 @@ export const config = {
     "/leaderboard/:path*",
     "/ecosystem/:path*",
     "/wallet/:path*",
+    "/trade/:path*",
     "/unsupported-region",
   ],
 };

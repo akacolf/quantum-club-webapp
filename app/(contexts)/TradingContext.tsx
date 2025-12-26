@@ -25,9 +25,7 @@ import {
     CreateTokenParams,
     TradeResult,
     DEFAULT_BONDING_CURVE,
-    DEFAULT_ANTI_DUMP_CONFIG,
-    DEFAULT_GRADUATION_THRESHOLD,
-    VestingTranche,
+    DEFAULT_GRADUATION_THRESHOLD_TON,
 } from "@/types/trading";
 import {
     calculateBuyPrice,
@@ -36,13 +34,8 @@ import {
     calculateMarketCap,
     calculateTokensForTon,
 } from "@/lib/bonding-curve";
-import {
-    calculateVestingSchedule,
-    mergeVestingSchedules,
-    calculateVestedBalance,
-    calculateMaxSellAmount,
-    getNextVesting,
-} from "@/lib/anti-dump";
+import { updatePriceCandle } from "@/lib/price-history";
+import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 
 interface TradingContextType {
     // Token discovery
@@ -86,9 +79,8 @@ interface TradingContextType {
     // Token creation
     createToken: (params: CreateTokenParams) => Promise<Token | null>;
 
-    // Anti-dump helpers
+    // Sell helpers (simplified - no anti-dump)
     getAvailableToSell: (tokenId: string) => { amount: string; reason: string };
-    getNextVestingTime: (tokenId: string) => { time: Date | null; amount: string };
 
     // Refresh
     refreshTokens: () => Promise<void>;
@@ -98,7 +90,7 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 export function TradingProvider({ children }: { children: React.ReactNode }) {
     const { telegramId, username } = useGameContext();
-    const { walletAddress } = useWallet();
+    const { walletAddress, sendTransaction } = useWallet();
 
     // State
     const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
@@ -130,11 +122,17 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             volume24h: data.volume24h || "0",
             priceChange24h: data.priceChange24h || 0,
             bondingCurve: data.bondingCurve || DEFAULT_BONDING_CURVE,
-            antiDumpConfig: data.antiDumpConfig || DEFAULT_ANTI_DUMP_CONFIG,
             status: data.status || "bonding",
-            graduationThreshold: data.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD,
+            graduationThreshold: data.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON,
             holders: data.holders || 0,
             trades: data.trades || 0,
+            // On-chain status
+            isOnChain: data.isOnChain || false,
+            deploymentPending: data.deploymentPending || false,
+            deployedAt: data.deployedAt instanceof Timestamp
+                ? data.deployedAt.toDate()
+                : undefined,
+            jettonMasterAddress: data.jettonMasterAddress || undefined,
         };
     }, []);
 
@@ -255,35 +253,14 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                     const tokenDoc = await getDoc(doc(dbfs, `tokens/${data.tokenId}`));
                     const token = tokenDoc.exists() ? docToToken(tokenDoc) : undefined;
 
-                    const vestingSchedule: VestingTranche[] = (data.vestingSchedule || []).map(
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        (v: any) => ({
-                            amount: v.amount,
-                            unlocksAt: v.unlocksAt instanceof Timestamp
-                                ? v.unlocksAt.toDate()
-                                : new Date(v.unlocksAt),
-                            isUnlocked: v.unlocksAt instanceof Timestamp
-                                ? v.unlocksAt.toDate() <= new Date()
-                                : new Date(v.unlocksAt) <= new Date(),
-                        })
-                    );
-
-                    const vestedBalance = calculateVestedBalance(vestingSchedule);
-
                     return {
                         tokenId: data.tokenId,
                         token,
                         balance: data.balance || "0",
-                        vestedBalance,
-                        vestingSchedule,
                         averageBuyPrice: data.averageBuyPrice || "0",
                         totalInvested: data.totalInvested || "0",
-                        unrealizedPnl: "0", // Calculated based on current price
+                        unrealizedPnl: "0",
                         unrealizedPnlPercent: 0,
-                        lastSellTime: data.lastSellTime instanceof Timestamp
-                            ? data.lastSellTime.toDate()
-                            : undefined,
-                        dailySoldAmount: data.dailySoldAmount || "0",
                     };
                 })
             );
@@ -389,6 +366,25 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            // Server-side validation first
+            const validationResponse = await fetch("/api/trade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId,
+                    type: "buy",
+                    amount: tonAmount,
+                }),
+            });
+
+            if (!validationResponse.ok) {
+                const errorData = await validationResponse.json();
+                if (validationResponse.status === 429) {
+                    return { success: false, error: `Rate limit exceeded. Try again in ${errorData.retryAfter}s` };
+                }
+                return { success: false, error: errorData.error || "Validation failed" };
+            }
+
             // In the foundation phase, this is a simulated/centralized buy
             // Will be replaced with on-chain transactions later
 
@@ -409,12 +405,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const newPrice = getCurrentPrice(newSupply, token.bondingCurve);
             const newMarketCap = calculateMarketCap(newSupply, newPrice);
 
-            // Create vesting schedule for new tokens
-            const vestingTranches = calculateVestingSchedule(
-                preview.tokensReceived,
-                new Date(),
-                token.antiDumpConfig
-            );
+            // Convert TON amount to nanoTON for tracking
+            const tonAmountNano = Math.floor(parseFloat(tonAmount) * 1e9);
 
             // Update token
             await updateDoc(doc(dbfs, `tokens/${tokenId}`), {
@@ -424,6 +416,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 holders: increment(1), // Simplified - should check if new holder
                 trades: increment(1),
                 volume24h: increment(parseFloat(tonAmount)),
+                collectedTon: increment(tonAmountNano), // Track total collected for graduation
             });
 
             // Update user position
@@ -433,30 +426,15 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             if (existingPosition.exists()) {
                 const data = existingPosition.data();
                 const newBalance = (BigInt(data.balance || "0") + tokensReceived).toString();
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const existingVesting = (data.vestingSchedule || []).map((v: any) => ({
-                    amount: v.amount,
-                    unlocksAt: v.unlocksAt instanceof Timestamp ? v.unlocksAt.toDate() : new Date(v.unlocksAt),
-                    isUnlocked: false,
-                }));
-                const mergedVesting = mergeVestingSchedules(existingVesting, vestingTranches);
 
                 await updateDoc(positionRef, {
                     balance: newBalance,
-                    vestingSchedule: mergedVesting.map(v => ({
-                        amount: v.amount,
-                        unlocksAt: Timestamp.fromDate(v.unlocksAt),
-                    })),
                     totalInvested: (parseFloat(data.totalInvested || "0") + parseFloat(tonAmount)).toString(),
                 });
             } else {
                 await setDoc(positionRef, {
                     tokenId,
                     balance: preview.tokensReceived,
-                    vestingSchedule: vestingTranches.map(v => ({
-                        amount: v.amount,
-                        unlocksAt: Timestamp.fromDate(v.unlocksAt),
-                    })),
                     averageBuyPrice: preview.averagePrice,
                     totalInvested: tonAmount,
                     createdAt: serverTimestamp(),
@@ -473,6 +451,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 amount: preview.tokensReceived,
                 price: preview.averagePrice,
                 totalTon: tonAmount,
+                fee: preview.fee,
                 timestamp: serverTimestamp(),
                 status: "completed",
             });
@@ -487,7 +466,19 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 lastTradeAt: serverTimestamp(),
             }, { merge: true });
 
+            // Collect platform fee (50% of trading fee goes to platform)
+            const platformFeeNano = Math.floor(parseFloat(preview.fee) * 1e9 * (FEE_CONFIG.platformSharePercent / 100));
+            if (platformFeeNano > 0) {
+                sendTransaction({
+                    to: PLATFORM_WALLET_ADDRESS,
+                    value: String(platformFeeNano),
+                }).catch(err => console.error("Fee collection failed:", err));
+            }
+
             await refreshPositions();
+
+            // Update price history for charts
+            updatePriceCandle(tokenId, newPrice.toString()).catch(console.error);
 
             return {
                 success: true,
@@ -522,6 +513,25 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            // Server-side validation first
+            const validationResponse = await fetch("/api/trade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId,
+                    type: "sell",
+                    amount: tokenAmount,
+                }),
+            });
+
+            if (!validationResponse.ok) {
+                const errorData = await validationResponse.json();
+                if (validationResponse.status === 429) {
+                    return { success: false, error: `Rate limit exceeded. Try again in ${errorData.retryAfter}s` };
+                }
+                return { success: false, error: errorData.error || "Validation failed" };
+            }
+
             const position = getPosition(tokenId);
             if (!position) {
                 return { success: false, error: "No position found" };
@@ -534,17 +544,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             const token = docToToken(tokenDoc);
 
-            // Check sell limits (anti-dump)
-            const { maxSellable, reason } = calculateMaxSellAmount(
-                position,
-                token.totalSupply,
-                token.antiDumpConfig
-            );
-
-            if (BigInt(tokenAmount) > BigInt(maxSellable)) {
+            // Check if user has enough balance
+            if (BigInt(tokenAmount) > BigInt(position.balance)) {
                 return {
                     success: false,
-                    error: `Cannot sell that amount. ${reason}. Max: ${maxSellable}`
+                    error: `Insufficient balance. You have ${position.balance} tokens`
                 };
             }
 
@@ -571,27 +575,14 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const positionRef = doc(dbfs, `users/${telegramId}/positions/${tokenId}`);
             const newBalance = BigInt(position.balance) - sellAmount;
 
-            // Reduce vesting schedule proportionally
-            const remainingPercent = Number(newBalance) / Number(BigInt(position.balance));
-            const updatedVesting = position.vestingSchedule.map(v => ({
-                amount: (BigInt(v.amount) * BigInt(Math.floor(remainingPercent * 100)) / BigInt(100)).toString(),
-                unlocksAt: Timestamp.fromDate(v.unlocksAt),
-            }));
-
             if (newBalance > BigInt(0)) {
                 await updateDoc(positionRef, {
                     balance: newBalance.toString(),
-                    vestingSchedule: updatedVesting,
-                    lastSellTime: serverTimestamp(),
-                    dailySoldAmount: (BigInt(position.dailySoldAmount || "0") + sellAmount).toString(),
                 });
             } else {
                 // Remove position if fully sold
-                // Note: In production, we'd use deleteDoc, but keeping for history
                 await updateDoc(positionRef, {
                     balance: "0",
-                    vestingSchedule: [],
-                    lastSellTime: serverTimestamp(),
                 });
             }
 
@@ -605,11 +596,24 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 amount: tokenAmount,
                 price: preview.averagePrice,
                 totalTon: preview.tonReceived,
+                fee: preview.fee,
                 timestamp: serverTimestamp(),
                 status: "completed",
             });
 
+            // Collect platform fee (50% of trading fee goes to platform)
+            const platformFeeNano = Math.floor(parseFloat(preview.fee) * 1e9 * (FEE_CONFIG.platformSharePercent / 100));
+            if (platformFeeNano > 0) {
+                sendTransaction({
+                    to: PLATFORM_WALLET_ADDRESS,
+                    value: String(platformFeeNano),
+                }).catch(err => console.error("Fee collection failed:", err));
+            }
+
             await refreshPositions();
+
+            // Update price history for charts
+            updatePriceCandle(tokenId, newPrice.toString()).catch(console.error);
 
             return {
                 success: true,
@@ -647,11 +651,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 ...params.bondingCurve,
             };
 
-            const antiDumpConfig = {
-                ...DEFAULT_ANTI_DUMP_CONFIG,
-                ...params.antiDumpConfig,
-            };
-
             const initialPrice = getCurrentPrice(BigInt(0), bondingCurve);
 
             const tokenData = {
@@ -670,9 +669,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 volume24h: "0",
                 priceChange24h: 0,
                 bondingCurve,
-                antiDumpConfig,
                 status: "bonding" as const,
-                graduationThreshold: DEFAULT_GRADUATION_THRESHOLD,
+                graduationThreshold: DEFAULT_GRADUATION_THRESHOLD_TON,
                 holders: 0,
                 trades: 0,
             };
@@ -695,34 +693,14 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
     }, [telegramId, username, refreshTokens]);
 
-    // Get available to sell (anti-dump)
+    // Get available to sell (simplified - no restrictions)
     const getAvailableToSell = useCallback((tokenId: string) => {
         const position = getPosition(tokenId);
         if (!position) {
             return { amount: "0", reason: "No position" };
         }
-
-        const token = [...trendingTokens, ...newTokens, selectedToken].find(
-            t => t?.id === tokenId
-        );
-
-        if (!token) {
-            return { amount: position.vestedBalance, reason: "Token not found" };
-        }
-
-        const result = calculateMaxSellAmount(position, token.totalSupply, token.antiDumpConfig);
-        return { amount: result.maxSellable, reason: result.reason };
-    }, [getPosition, trendingTokens, newTokens, selectedToken]);
-
-    // Get next vesting time
-    const getNextVestingTime = useCallback((tokenId: string) => {
-        const position = getPosition(tokenId);
-        if (!position) {
-            return { time: null, amount: "0" };
-        }
-
-        const { nextUnlockTime, nextUnlockAmount } = getNextVesting(position.vestingSchedule);
-        return { time: nextUnlockTime, amount: nextUnlockAmount };
+        // No restrictions - can sell full balance
+        return { amount: position.balance, reason: "No restrictions" };
     }, [getPosition]);
 
     // Initial load
@@ -758,7 +736,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 previewSell,
                 createToken,
                 getAvailableToSell,
-                getNextVestingTime,
                 refreshTokens,
             }}
         >
