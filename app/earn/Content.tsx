@@ -21,8 +21,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useWallet } from "../wallet/WalletContext";
 
 const EarnContent = () => {
+  const {walletAddress,} = useWallet()
   const [tasks, setTasks] = useState<EarnTask[]>([]);
   const [loading, setLoading] = useState(true);
   const limitedTXT = "Limited";
@@ -1016,11 +1018,8 @@ const EarnContent = () => {
           );
 
           // Check for wallet from localStorage (QC Wallet)
-          const savedWalletAddress = typeof window !== "undefined"
-            ? localStorage.getItem("walletAddress")
-            : null;
-
-          if (savedWalletAddress && savedWalletAddress !== "") {
+             const storedWallet = localStorage.getItem("quantum_wallet_address");
+          if (storedWallet && storedWallet !== "") {
             // User has a wallet - show claim button
             setTasks((items) =>
               items.map((item) =>
