@@ -17,6 +17,7 @@ import {
     Timestamp,
     increment,
 } from "firebase/firestore";
+// import { Address, toNano } from "@ton/core"; // For on-chain ops
 import { useGameContext } from "./MiningContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import {
@@ -36,6 +37,18 @@ import {
 } from "@/lib/bonding-curve";
 import { updatePriceCandle } from "@/lib/price-history";
 import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
+// On-chain operations - imported for future use when fully on-chain
+// import {
+//     buildBuyTransaction,
+//     buildSellTransaction,
+//     createTonClient,
+//     getJettonWalletAddress,
+//     getBondingCurveData,
+//     previewBuyOnChain,
+//     previewSellOnChain,
+//     formatTokenAmount,
+//     parseTokenAmount,
+// } from "@/lib/jetton-operations";
 
 interface TradingContextType {
     // Token discovery
