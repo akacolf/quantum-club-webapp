@@ -1,6 +1,7 @@
 import { Firestore, getFirestore } from "firebase-admin/firestore";
-import { getApps, ServiceAccount, cert as certCredential, initializeApp } from "firebase-admin/app";
-
+import { getApps, ServiceAccount } from "firebase-admin/app";
+import admin from 'firebase-admin'
+import { Auth, getAuth } from "firebase-admin/auth";
 // Parse private key - handle escaped newlines from environment variable
 const privateKey = process.env.FIREBASE_PRIVATE_KEY
   ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
@@ -21,31 +22,24 @@ const serviceAccount = {
 };
 
 // Initialize function to ensure proper setup
-function initializeFirestore(): Firestore {
-  try {
-    const currentApps = getApps();
 
-    if (currentApps.length > 0) {
-      return getFirestore(currentApps[0]);
-    }
+let firestore: Firestore
+let auth:Auth;
+const currentApps = getApps();
 
-    // Only initialize if we have the required credentials
-    if (privateKey && process.env.FIREBASE_CLIENT_EMAIL) {
-      const app = initializeApp({
-        credential: certCredential(serviceAccount as ServiceAccount)
-      });
-      return getFirestore(app);
-    }
-
-    // During build time without credentials
-    console.warn("Firebase Admin: Missing credentials, using placeholder during build");
-    return {} as Firestore;
-  } catch (error) {
-    console.error("Firebase Admin initialization error:", error);
-    return {} as Firestore;
-  }
+if(!currentApps.length){
+    const app = admin.initializeApp({
+        credential:admin.credential.cert(serviceAccount as ServiceAccount)
+    });
+    firestore = getFirestore(app); 
+    auth = getAuth(app);
+}else{
+   const app = currentApps[0];
+   firestore = getFirestore(app);
+   auth = getAuth(app);
 }
 
-const firestore: Firestore = initializeFirestore();
+export {firestore,auth};
 
-export { firestore };
+
+
