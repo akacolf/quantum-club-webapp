@@ -1,0 +1,208 @@
+import { NextRequest, NextResponse } from "next/server";
+import { Address, beginCell, toNano } from "@ton/core";
+import { TonClient } from "@ton/ton";
+import { firestore as adminDb } from "@/app/(firebase)/server";
+import { 
+    ADMIN_API_KEY, 
+    PLATFORM_WALLET_ADDRESS,
+    DEX_CONFIG 
+} from "@/lib/platform-config";
+
+// Environment-based API endpoint
+const TON_CENTER_ENDPOINT = process.env.NEXT_PUBLIC_TON_CENTER_ENDPOINT || 
+    "https://toncenter.com/api/v2/jsonRPC";
+const TON_CENTER_API_KEY = process.env.NEXT_PUBLIC_TON_CENTER_API_KEY || "";
+
+/**
+ * POST /api/admin/graduate
+ * 
+ * Initiate graduation of a token to STON.fi DEX.
+ * This is a two-step process:
+ * 1. This endpoint checks eligibility and returns the graduate transaction
+ * 2. Platform wallet signs and sends the transaction
+ * 3. After confirmation, PATCH endpoint creates the DEX pool
+ * 
+ * Headers:
+ *   x-api-key: Admin API key
+ * 
+ * Body: {
+ *   tokenId: string;     // Firestore token ID
+ *   jettonAddress: string; // Token contract address
+ * }
+ */
+export async function POST(request: NextRequest) {
+    try {
+        // Verify API key
+        const apiKey = request.headers.get("x-api-key");
+        if (!ADMIN_API_KEY || apiKey !== ADMIN_API_KEY) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        if (!PLATFORM_WALLET_ADDRESS) {
+            return NextResponse.json(
+                { error: "Platform wallet not configured" },
+                { status: 500 }
+            );
+        }
+
+        const body = await request.json();
+        const { tokenId, jettonAddress } = body;
+
+        if (!tokenId || !jettonAddress) {
+            return NextResponse.json(
+                { error: "Token ID and jetton address required" },
+                { status: 400 }
+            );
+        }
+
+        // Parse and validate address
+        let targetAddress: Address;
+        try {
+            targetAddress = Address.parse(jettonAddress);
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid jetton address" },
+                { status: 400 }
+            );
+        }
+
+        // Verify token exists and is not already graduated
+        const tokenDoc = await adminDb.collection("tokens").doc(tokenId).get();
+        if (!tokenDoc.exists) {
+            return NextResponse.json(
+                { error: "Token not found" },
+                { status: 404 }
+            );
+        }
+
+        const tokenData = tokenDoc.data()!;
+        if (tokenData.isGraduated) {
+            return NextResponse.json(
+                { error: "Token already graduated" },
+                { status: 400 }
+            );
+        }
+
+        // Query on-chain state to verify graduation eligibility
+        const client = new TonClient({
+            endpoint: TON_CENTER_ENDPOINT,
+            apiKey: TON_CENTER_API_KEY || undefined,
+        });
+
+        try {
+            const result = await client.runMethod(targetAddress, "get_bonding_curve_data");
+            const tonReserve = result.stack.readBigNumber();
+            const graduated = result.stack.readNumber();
+            const graduationTarget = result.stack.readBigNumber();
+
+            if (graduated === 1) {
+                // Update Firestore to match on-chain state
+                await adminDb.collection("tokens").doc(tokenId).update({
+                    isGraduated: true,
+                });
+                return NextResponse.json(
+                    { error: "Token already graduated on-chain" },
+                    { status: 400 }
+                );
+            }
+
+            if (tonReserve < graduationTarget) {
+                return NextResponse.json({
+                    error: "Token has not reached graduation threshold",
+                    currentReserve: tonReserve.toString(),
+                    required: graduationTarget.toString(),
+                }, { status: 400 });
+            }
+        } catch (error) {
+            console.error("Failed to query on-chain state:", error);
+            // Continue anyway - let the contract validate
+        }
+
+        // Build graduate message
+        // op::graduate = 0x47524144 ("GRAD")
+        const dexRouterAddress = Address.parse(DEX_CONFIG.routerAddress);
+        
+        const messageBody = beginCell()
+            .storeUint(0x47524144, 32) // op::graduate
+            .storeUint(Date.now(), 64) // query_id
+            .storeAddress(dexRouterAddress) // DEX router address
+            .endCell();
+
+        return NextResponse.json({
+            success: true,
+            tokenId,
+            jettonAddress: targetAddress.toString({ bounceable: true }),
+            transaction: {
+                to: targetAddress.toString({ bounceable: true }),
+                value: toNano("0.1").toString(), // Gas for graduation
+                body: messageBody.toBoc().toString("base64"),
+            },
+            dexRouter: DEX_CONFIG.routerAddress,
+            message: "Sign this transaction from the platform wallet to graduate the token",
+        });
+    } catch (error) {
+        console.error("Graduate error:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
+    }
+}
+
+/**
+ * PATCH /api/admin/graduate
+ * 
+ * Confirm graduation after the on-chain transaction is complete.
+ * Updates Firestore with graduated status and DEX pool info.
+ * 
+ * Body: {
+ *   tokenId: string;
+ *   txHash: string;
+ *   poolAddress?: string; // DEX pool address if created
+ * }
+ */
+export async function PATCH(request: NextRequest) {
+    try {
+        // Verify API key
+        const apiKey = request.headers.get("x-api-key");
+        if (!ADMIN_API_KEY || apiKey !== ADMIN_API_KEY) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        const body = await request.json();
+        const { tokenId, txHash, poolAddress } = body;
+
+        if (!tokenId) {
+            return NextResponse.json(
+                { error: "Token ID required" },
+                { status: 400 }
+            );
+        }
+
+        // Update token with graduation status
+        await adminDb.collection("tokens").doc(tokenId).update({
+            isGraduated: true,
+            graduatedAt: new Date(),
+            graduationTxHash: txHash || null,
+            dexPoolAddress: poolAddress || null,
+            dexPlatform: "stonfi",
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: "Token graduated successfully",
+        });
+    } catch (error) {
+        console.error("Confirm graduation error:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
+    }
+}

@@ -613,8 +613,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         endpoint: isTestnet
           ? "https://testnet.toncenter.com/api/v2/jsonRPC"
           : "https://toncenter.com/api/v2/jsonRPC",
-        // Use API key if available for higher rate limits
-        apiKey: process.env.NEXT_PUBLIC_TONCENTER_API_KEY || undefined,
+        // Use appropriate API key based on network
+        apiKey: isTestnet
+          ? process.env.NEXT_PUBLIC_TONCENTER_TESTNET_API_KEY || undefined
+          : process.env.NEXT_PUBLIC_TONCENTER_API_KEY || undefined,
       });
 
       const contract = tonClient.open(wallet);

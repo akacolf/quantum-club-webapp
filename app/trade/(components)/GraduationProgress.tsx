@@ -16,12 +16,18 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
     // Calculate market cap in TON (graduation is now TON-based)
     const marketCapTon = Number(token.marketCap || "0") / 1e9;
 
-    // Normalize threshold: if > 5000, it's likely an old USD-based value
-    // Use the new TON default (2000) instead
+    // Graduation threshold is stored in nanoTON, convert to TON
+    // If value is very large (> 1e9), it's in nanoTON format - divide by 1e9
+    // Otherwise it's already in TON format
     const rawThreshold = parseFloat(token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
-    const thresholdTon = rawThreshold > 5000
-        ? parseFloat(DEFAULT_GRADUATION_THRESHOLD_TON)
+    let thresholdTon = rawThreshold > 1e9
+        ? rawThreshold / 1e9
         : rawThreshold;
+    
+    // Override old 100 TON threshold to new 2000 TON standard
+    if (thresholdTon === 100) {
+        thresholdTon = 2000;
+    }
 
     const progress = Math.min(100, (marketCapTon / thresholdTon) * 100);
     const remainingTon = Math.max(0, thresholdTon - marketCapTon);

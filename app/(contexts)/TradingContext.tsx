@@ -9,7 +9,7 @@
  * TEP-74: https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import {
     collection,
@@ -71,8 +71,8 @@ interface TradingContextType {
     selectedToken: Token | null;
     selectToken: (tokenId: string) => Promise<void>;
 
-    // On-chain trading
-    buyTokens: (tokenId: string, tonAmount: string) => Promise<TradeResult>;
+    // On-chain trading (slippageTolerance is percentage, e.g., 0.05 = 5%)
+    buyTokens: (tokenId: string, tonAmount: string, slippageTolerance?: number) => Promise<TradeResult>;
     sellTokens: (tokenId: string, tokenAmount: string) => Promise<TradeResult>;
 
     // Preview trades (on-chain queries)
@@ -108,7 +108,7 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 export function TradingProvider({ children }: { children: React.ReactNode }) {
     const { telegramId } = useGameContext();
-    const { walletAddress, sendTransaction } = useWallet();
+    const { walletAddress, sendTransaction, isTestnet } = useWallet();
 
     // State
     const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
@@ -118,8 +118,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const [positions, setPositions] = useState<HolderPosition[]>([]);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
-    // TON client for on-chain queries
-    const [tonClient] = useState(() => createTonClient(false));
+    // TON client for on-chain queries - use correct network based on wallet settings
+    const tonClient = useMemo(() => createTonClient(isTestnet), [isTestnet]);
 
     // =====================================================
     // Helper: Convert Firestore doc to Token
@@ -168,7 +168,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const fetchTokens = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Trending = highest volume
+            // Trending = highest volume (only confirmed on-chain tokens)
             const trendingQuery = query(
                 collection(dbfs, "tokens"),
                 where("isOnChain", "==", true),
@@ -178,10 +178,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const trendingSnapshot = await getDocs(trendingQuery);
             setTrendingTokens(trendingSnapshot.docs.map(docToToken));
 
-            // New = recently created
+            // New = recently created (include pending deployments so users see their newly created tokens)
             const newQuery = query(
                 collection(dbfs, "tokens"),
-                where("isOnChain", "==", true),
                 orderBy("createdAt", "desc"),
                 limit(20)
             );
@@ -290,7 +289,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             const token = docToToken(tokenDoc);
 
-            // If on-chain, fetch live data
+            // If on-chain, try to fetch live data (may fail if contract not fully deployed)
             if (token.isOnChain && token.jettonMasterAddress) {
                 try {
                     const curveData = await getBondingCurveData(
@@ -304,7 +303,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                         token.isGraduated = curveData.graduated;
                     }
                 } catch (error) {
-                    console.error("Error fetching on-chain data:", error);
+                    // Contract may not be fully deployed yet or may not have get_curve_data method
+                    // This is expected for newly deployed tokens - use cached Firestore data
+                    console.warn("Could not fetch on-chain data (contract may still be deploying):", 
+                        error instanceof Error ? error.message : error);
                 }
             }
 
@@ -395,11 +397,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     }, [docToToken, tonClient]);
 
     // =====================================================
-    // BUY TOKENS (On-Chain)
+    // BUY TOKENS (On-Chain with Slippage Protection)
     // =====================================================
     const buyTokens = useCallback(async (
         tokenId: string,
-        tonAmount: string
+        tonAmount: string,
+        slippageTolerance: number = 0.05 // Default 5% slippage
     ): Promise<TradeResult> => {
         if (!walletAddress) {
             return { success: false, error: "Wallet not connected" };
@@ -422,9 +425,20 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Token graduated - trade on DEX" };
             }
 
-            // Build buy transaction
+            // Preview buy to calculate expected tokens
+            const preview = await previewBuy(tokenId, tonAmount);
+            let minTokensOut = BigInt(0);
+            
+            if (preview && preview.tokensReceived) {
+                // Calculate minimum tokens with slippage tolerance
+                const expectedTokens = BigInt(Math.floor(parseFloat(preview.tokensReceived) * 1e9));
+                const slippageMultiplier = 1 - slippageTolerance;
+                minTokensOut = BigInt(Math.floor(Number(expectedTokens) * slippageMultiplier));
+            }
+
+            // Build buy transaction with slippage protection
             const tonNano = toNano(tonAmount);
-            const buyBody = buildBuyMessage({});
+            const buyBody = buildBuyMessage({ minTokensOut });
 
             // Send transaction via QC Wallet
             const result = await sendTransaction({
@@ -459,7 +473,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             console.error("Buy error:", error);
             return { success: false, error: "Transaction failed" };
         }
-    }, [walletAddress, telegramId, docToToken, sendTransaction, refreshPositions]);
+    }, [walletAddress, telegramId, docToToken, sendTransaction, refreshPositions, previewBuy]);
 
     // =====================================================
     // SELL TOKENS (On-Chain)

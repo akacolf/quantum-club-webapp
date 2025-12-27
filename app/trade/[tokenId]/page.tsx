@@ -38,7 +38,7 @@ export default function TokenDetailPage() {
         buyTokens,
         sellTokens,
     } = useTrading();
-    const { walletAddress, tonBalance, tonPrice } = useWallet();
+    const { walletAddress, tonBalance, tonPrice, isTestnet } = useWallet();
     const { getGroupByToken, joinGroup, isGroupMember, createGroup } = useGroups();
 
     // Get linked community group for this token
@@ -108,7 +108,7 @@ export default function TokenDetailPage() {
             if (activeTab === "buy") {
                 const result = await buyTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("Purchase successful! 🎉");
+                    toast.success("Purchase successful");
                     setAmount("");
                 } else {
                     toast.error(result.error || "Transaction failed");
@@ -116,7 +116,7 @@ export default function TokenDetailPage() {
             } else {
                 const result = await sellTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("Sell successful! 💰");
+                    toast.success("Sell successful");
                     setAmount("");
                 } else {
                     toast.error(result.error || "Transaction failed");
@@ -246,7 +246,7 @@ export default function TokenDetailPage() {
                                         variant="ghost"
                                         size="sm"
                                         className="h-8 px-2 text-primary hover:text-primary/80"
-                                        onClick={() => window.open(`https://tonviewer.com/${selectedToken.jettonMasterAddress}`, "_blank")}
+                                        onClick={() => window.open(`${isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com"}/${selectedToken.jettonMasterAddress}`, "_blank")}
                                     >
                                         <Icon icon="solar:arrow-right-up-bold" className="w-4 h-4" />
                                     </Button>
@@ -329,7 +329,13 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">To Grad</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {formatCompactNumber(Math.max(0, parseFloat(selectedToken.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON) - (Number(selectedToken.marketCap || "0") / 1e9)), 0)} TON
+                                        {(() => {
+                                            const rawThreshold = parseFloat(selectedToken.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
+                                            let thresholdTon = rawThreshold > 1e9 ? rawThreshold / 1e9 : rawThreshold;
+                                            if (thresholdTon === 100) thresholdTon = 2000; // Migrate old tokens
+                                            const marketCapTon = Number(selectedToken.marketCap || "0") / 1e9;
+                                            return formatCompactNumber(Math.max(0, thresholdTon - marketCapTon), 0);
+                                        })()} TON
                                     </p>
                                 </div>
                             </div>

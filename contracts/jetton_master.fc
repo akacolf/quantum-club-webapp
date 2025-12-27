@@ -69,7 +69,7 @@ const int JETTON_WALLET_DEPLOY_GAS = 100000000; ;; 0.1 TON
 ;; Bonding curve parameters
 const int INITIAL_PRICE = 1000000;              ;; 0.001 TON per token (in nanotons, scaled)
 const int CURVE_SLOPE = 100000;                 ;; Price increase per token (configurable)
-const int GRADUATION_TARGET = 100000000000;     ;; 100 TON graduation threshold
+const int GRADUATION_TARGET = 2000000000000;    ;; 2000 TON graduation threshold
 const int PLATFORM_FEE_BPS = 100;               ;; 1% = 100 basis points
 const int CREATOR_FEE_BPS = 100;                ;; 1% to creator
 
@@ -299,7 +299,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 }
 
 ;; =====================================================
-;; Buy Handler
+;; Buy Handler (with slippage protection)
 ;; =====================================================
 () handle_buy(
     slice sender_address,
@@ -324,6 +324,12 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     ;; Cannot buy after graduation
     throw_if(error::already_graduated, graduated);
     
+    ;; Parse slippage protection: minimum tokens expected (0 = no slippage check)
+    int min_tokens_out = 0;
+    if (~ in_msg_body.slice_empty?()) {
+        min_tokens_out = in_msg_body~load_coins();
+    }
+    
     ;; Calculate fees
     int gross_amount = msg_value - GAS_CONSUMPTION;
     throw_if(error::insufficient_gas, gross_amount <= 0);
@@ -337,6 +343,9 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     ;; Calculate tokens to mint
     int tokens_to_mint = calculate_buy_price(net_amount, total_supply);
     throw_if(error::zero_amount, tokens_to_mint <= 0);
+    
+    ;; Slippage check: ensure we get at least min_tokens_out
+    throw_if(error::slippage_exceeded, (min_tokens_out > 0) & (tokens_to_mint < min_tokens_out));
     
     ;; Check max supply
     throw_if(error::insufficient_liquidity, total_supply + tokens_to_mint > MAX_SUPPLY);
@@ -555,14 +564,51 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     
     ;; ===== ADMIN: Graduate to DEX =====
     if (op == op::graduate) {
-        (_, _, slice admin_address, _, _, _, _, _, _, int graduated, _) = load_data();
+        (
+            int total_supply, int mintable, slice admin_address, slice creator_address,
+            cell jetton_content, cell jetton_wallet_code, int ton_reserve,
+            int platform_fees, int creator_fees, int graduated, int graduation_target
+        ) = load_data();
+        
         throw_unless(error::not_admin, equal_slices(sender_address, admin_address));
         throw_if(error::already_graduated, graduated);
+        throw_unless(error::insufficient_liquidity, ton_reserve >= graduation_target);
         
-        ;; TODO: Implement DEX graduation
-        ;; 1. Send TON + tokens to DEX router
-        ;; 2. Create liquidity pool
-        ;; 3. Burn LP tokens or send to creator
+        ;; Parse DEX router address from message (for flexibility)
+        slice dex_router = in_msg_body~load_msg_addr();
+        
+        ;; Mark as graduated BEFORE sending funds (reentrancy protection)
+        graduated = 1;
+        
+        ;; Calculate graduation fee (2% to platform)
+        int graduation_fee = muldiv(ton_reserve, 200, 10000); ;; 2%
+        int liquidity_ton = ton_reserve - graduation_fee;
+        
+        ;; Update state - keep liquidity for DEX, add graduation fee to platform fees
+        platform_fees += graduation_fee;
+        ton_reserve = 0; ;; All TON will be sent to DEX
+        
+        save_data(
+            total_supply, mintable, admin_address, creator_address,
+            jetton_content, jetton_wallet_code, ton_reserve,
+            platform_fees, creator_fees, graduated, graduation_target
+        );
+        
+        ;; Send TON to DEX router for pool creation
+        ;; The actual pool creation will be handled by the backend calling DEX API
+        cell message = begin_cell()
+            .store_uint(0x10, 6)
+            .store_slice(dex_router)
+            .store_coins(liquidity_ton)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(log::graduate, 32)
+            .store_uint(query_id, 64)
+            .end_cell();
+        
+        send_raw_message(message, 1); ;; Pay fees separately
+        
+        ;; Log graduation
+        send_log(log::graduate, creator_address, total_supply, liquidity_ton);
         
         return ();
     }
@@ -609,6 +655,12 @@ slice get_wallet_address(slice owner_address) method_id {
         graduation_target,
         platform_fees + creator_fees
     );
+}
+
+;; Custom: get platform fees for withdrawal check
+(int, int) get_fees_data() method_id {
+    (_, _, _, _, _, _, _, int platform_fees, int creator_fees, _, _) = load_data();
+    return (platform_fees, creator_fees);
 }
 
 ;; Custom: preview buy

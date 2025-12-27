@@ -256,7 +256,9 @@ export function createTonClient(testnet: boolean = false): TonClient {
         endpoint: testnet
             ? "https://testnet.toncenter.com/api/v2/jsonRPC"
             : "https://toncenter.com/api/v2/jsonRPC",
-        apiKey: process.env.NEXT_PUBLIC_TONCENTER_API_KEY || undefined,
+        apiKey: testnet
+            ? process.env.NEXT_PUBLIC_TONCENTER_TESTNET_API_KEY || undefined
+            : process.env.NEXT_PUBLIC_TONCENTER_API_KEY || undefined,
     });
 }
 

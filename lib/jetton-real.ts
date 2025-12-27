@@ -80,13 +80,28 @@ export function buildOffChainMetadata(metadataUri: string): Cell {
 
 /**
  * Build Jetton minter initial data cell
+ * Must match the load_data() layout in jetton_master.fc exactly:
+ *   total_supply, mintable, admin_address, creator_address,
+ *   content, wallet_code, ton_reserve, platform_fees,
+ *   creator_fees, graduated, graduation_target
  */
-function buildJettonMinterData(config: JettonDeployConfig, walletCode: Cell): Cell {
+function buildJettonMinterData(
+    config: JettonDeployConfig, 
+    walletCode: Cell,
+    platformAddress: Address
+): Cell {
     return beginCell()
-        .storeCoins(config.totalSupply ?? BigInt(0)) // total_supply
-        .storeAddress(config.owner) // admin_address
-        .storeRef(buildOnChainMetadata(config)) // content
-        .storeRef(walletCode) // jetton_wallet_code
+        .storeCoins(config.totalSupply ?? BigInt(0))  // total_supply (0 initially)
+        .storeInt(1, 1)                               // mintable (1 = true)
+        .storeAddress(platformAddress)                // admin_address (PLATFORM wallet for fees)
+        .storeAddress(config.owner)                   // creator_address (token creator)
+        .storeRef(buildOnChainMetadata(config))       // jetton_content
+        .storeRef(walletCode)                         // jetton_wallet_code
+        .storeCoins(0)                                // ton_reserve (starts at 0)
+        .storeCoins(0)                                // platform_fees (starts at 0)
+        .storeCoins(0)                                // creator_fees (starts at 0)
+        .storeInt(0, 1)                               // graduated (0 = not graduated)
+        .storeCoins(toNano("2000"))                   // graduation_target (2000 TON)
         .endCell();
 }
 
@@ -101,14 +116,19 @@ export function calculateJettonMasterAddress(stateInit: StateInit): Address {
  * Build complete Jetton deployment package
  * Returns stateInit and deploy message for the user's wallet to send
  */
-export function buildJettonDeploy(config: JettonDeployConfig): JettonDeployResult {
+export function buildJettonDeploy(config: JettonDeployConfig, platformWallet?: string): JettonDeployResult {
     try {
         // Parse contract code from hex
         const minterCode = Cell.fromBoc(Buffer.from(JETTON_MASTER_CODE_HEX, 'hex'))[0];
         const walletCode = Cell.fromBoc(Buffer.from(JETTON_WALLET_CODE_HEX, 'hex'))[0];
 
-        // Build initial data
-        const minterData = buildJettonMinterData(config, walletCode);
+        // Parse platform address (admin) - defaults to hardcoded platform wallet
+        const platformAddress = Address.parse(
+            platformWallet || "UQBUSXMd54HOJlmmh4TsuMvIcwB91kkIlz6HTgj62dN43S3U"
+        );
+
+        // Build initial data with correct layout
+        const minterData = buildJettonMinterData(config, walletCode, platformAddress);
 
         // Create StateInit
         const stateInit: StateInit = {

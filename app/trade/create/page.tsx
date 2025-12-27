@@ -20,7 +20,7 @@ import { PLATFORM_WALLET_ADDRESS, TOTAL_CREATION_FEE, FEE_CONFIG } from "@/lib/p
 
 export default function CreateTokenPage() {
     const router = useRouter();
-    const { createToken } = useTrading();
+    const { createToken, refreshTokens } = useTrading();
     const { walletAddress, tonBalance, sendTransaction } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -336,6 +336,9 @@ export default function CreateTokenPage() {
                     duration: 4000,
                 });
             }
+
+            // Refresh token list so the new token appears
+            refreshTokens();
 
             router.push(`/trade/${token.id}`);
         } catch (err) {

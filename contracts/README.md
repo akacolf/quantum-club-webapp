@@ -49,7 +49,7 @@ price = INITIAL_PRICE + (total_supply * CURVE_SLOPE / ONE_TOKEN)
 Default parameters:
 - `INITIAL_PRICE`: 0.001 TON per token
 - `CURVE_SLOPE`: 0.0001 (price increases per token)
-- `GRADUATION_TARGET`: 100 TON (triggers DEX graduation)
+- `GRADUATION_TARGET`: 2000 TON (triggers DEX graduation)
 - `PLATFORM_FEE`: 1%
 - `CREATOR_FEE`: 1%
 

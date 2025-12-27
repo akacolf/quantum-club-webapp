@@ -1,0 +1,180 @@
+"use server";
+
+/**
+ * Platform Wallet Server-Side Utilities
+ * 
+ * This module handles server-side transaction signing using the platform wallet.
+ * The platform mnemonic is stored securely in environment variables.
+ * 
+ * SECURITY: Never expose these functions to client-side code!
+ * The "use server" directive ensures this module is only used server-side.
+ */
+
+import { Address, internal, SendMode, Cell, beginCell } from "@ton/core";
+import { WalletContractV5R1, WalletContractV4, TonClient } from "@ton/ton";
+import { mnemonicToPrivateKey } from "@ton/crypto";
+import { PLATFORM_WALLET_ADDRESS } from "./platform-config";
+
+// Platform wallet configuration
+const PLATFORM_MNEMONIC = process.env.PLATFORM_WALLET_MNEMONIC || "";
+const PLATFORM_WALLET_VERSION = process.env.PLATFORM_WALLET_VERSION || "v5r1";
+
+// TON API configuration
+const TON_CENTER_ENDPOINT = process.env.NEXT_PUBLIC_TON_CENTER_ENDPOINT || 
+    "https://toncenter.com/api/v2/jsonRPC";
+const TON_CENTER_API_KEY = process.env.NEXT_PUBLIC_TON_CENTER_API_KEY || "";
+
+/**
+ * Check if platform wallet is configured
+ */
+export function isPlatformWalletConfigured(): boolean {
+    return !!(PLATFORM_MNEMONIC && PLATFORM_WALLET_ADDRESS);
+}
+
+/**
+ * Get TonClient instance
+ */
+function getTonClient(): TonClient {
+    return new TonClient({
+        endpoint: TON_CENTER_ENDPOINT,
+        apiKey: TON_CENTER_API_KEY || undefined,
+    });
+}
+
+/**
+ * Send a transaction from the platform wallet
+ * 
+ * @param to - Destination address
+ * @param value - Amount in nanoTON
+ * @param body - Optional message body cell
+ * @returns Transaction result
+ */
+export async function sendFromPlatformWallet(params: {
+    to: string;
+    value: bigint;
+    body?: Cell;
+}): Promise<{ success: boolean; error?: string }> {
+    if (!isPlatformWalletConfigured()) {
+        return { success: false, error: "Platform wallet not configured" };
+    }
+
+    try {
+        const mnemonic = PLATFORM_MNEMONIC.split(" ");
+        if (mnemonic.length !== 24) {
+            return { success: false, error: "Invalid platform mnemonic" };
+        }
+
+        const keyPair = await mnemonicToPrivateKey(mnemonic);
+
+        // Create wallet based on version
+        let wallet;
+        switch (PLATFORM_WALLET_VERSION) {
+            case "v4r2":
+                wallet = WalletContractV4.create({ 
+                    workchain: 0, 
+                    publicKey: keyPair.publicKey 
+                });
+                break;
+            case "v5r1":
+            default:
+                wallet = WalletContractV5R1.create({ 
+                    workchain: 0, 
+                    publicKey: keyPair.publicKey 
+                });
+                break;
+        }
+
+        // Verify wallet address matches expected
+        const derivedAddress = wallet.address.toString({ bounceable: false });
+        const expectedAddress = Address.parse(PLATFORM_WALLET_ADDRESS).toString({ bounceable: false });
+        
+        if (derivedAddress !== expectedAddress) {
+            console.error(`Wallet mismatch: derived ${derivedAddress}, expected ${expectedAddress}`);
+            return { success: false, error: "Platform wallet address mismatch" };
+        }
+
+        const tonClient = getTonClient();
+        const contract = tonClient.open(wallet);
+        const toAddress = Address.parse(params.to);
+
+        // Get seqno with retry
+        let seqno = 0;
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                seqno = await contract.getSeqno();
+                break;
+            } catch (err) {
+                const error = err as { response?: { status?: number } };
+                if (error?.response?.status === 429 && retries > 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    retries--;
+                    continue;
+                }
+                if (retries === 1) {
+                    seqno = 0;
+                    break;
+                }
+                retries--;
+            }
+        }
+
+        // Send transfer with retry
+        retries = 3;
+        while (retries > 0) {
+            try {
+                await contract.sendTransfer({
+                    seqno,
+                    secretKey: keyPair.secretKey,
+                    sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+                    messages: [
+                        internal({
+                            to: toAddress,
+                            value: params.value,
+                            body: params.body,
+                            bounce: true, // Bounce on error so we don't lose funds
+                        }),
+                    ],
+                });
+                break;
+            } catch (err) {
+                const error = err as { response?: { status?: number } };
+                if (error?.response?.status === 429 && retries > 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    retries--;
+                    continue;
+                }
+                throw err;
+            }
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Platform wallet transaction failed:", error);
+        return { 
+            success: false, 
+            error: error instanceof Error ? error.message : "Transaction failed" 
+        };
+    }
+}
+
+/**
+ * Build withdraw fees message
+ */
+export function buildWithdrawFeesMessage(): Cell {
+    return beginCell()
+        .storeUint(0x46454553, 32) // op::withdraw_fees ("FEES")
+        .storeUint(Date.now(), 64) // query_id
+        .endCell();
+}
+
+/**
+ * Build graduate message
+ */
+export function buildGraduateMessage(dexRouterAddress: string): Cell {
+    return beginCell()
+        .storeUint(0x47524144, 32) // op::graduate ("GRAD")
+        .storeUint(Date.now(), 64) // query_id
+        .storeAddress(Address.parse(dexRouterAddress))
+        .endCell();
+}

@@ -17,7 +17,13 @@ export async function POST(request:NextRequest) {
 
         // Save the session in a cookie
         const sessionCookie = await cookies()
-        sessionCookie.set("session", session, { expires, httpOnly: true })
+        sessionCookie.set("session", session, { 
+            expires, 
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: "/",
+        })
     
 
         return NextResponse.json({message:'Authentication succesful'})

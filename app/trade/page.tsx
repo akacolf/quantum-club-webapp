@@ -206,6 +206,15 @@ export default function TradePage() {
     const { walletAddress, tonPrice } = useWallet();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
+    
+    // Check if wallet exists (either address is set OR mnemonic exists in localStorage)
+    const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
+    
+    useEffect(() => {
+        // Check both walletAddress from context and mnemonic from localStorage
+        const mnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+        setHasWallet(!!walletAddress || !!mnemonic);
+    }, [walletAddress]);
 
 
     // Lottie refs for tab icons
@@ -403,7 +412,7 @@ export default function TradePage() {
             </div>
 
             {/* Floating CTA for non-wallet users */}
-            {!walletAddress && (
+            {!hasWallet && (
                 <motion.div
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}

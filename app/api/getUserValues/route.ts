@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
+import { decrypt } from '@/utils/session';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -13,14 +14,22 @@ if (!admin.apps.length) {
 
 export async function POST(request:NextRequest) {
   try {
-    const session = request.cookies.get('session')?.value
-    if(!session) {
-        return NextResponse.json("Session invalid",{status:400})
+    const sessionCookie = request.cookies.get('session')?.value;
+    if(!sessionCookie) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const body = await request.json();
-    const {telegramId} = body;
+    
+    // Decrypt and validate session - derive telegramId from session, not request
+    let sessionData;
+    try {
+        sessionData = await decrypt(sessionCookie);
+    } catch {
+        return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
+    
+    const telegramId = sessionData.user?.telegramId;
     if (!telegramId) {
-      return new Response(JSON.stringify({ error: 'telegramId is required',telegramId }), { status: 400 });
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
     const valuesSnapshot = await admin.firestore()
       .collection('userRanks') 

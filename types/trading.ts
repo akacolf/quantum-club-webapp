@@ -120,5 +120,5 @@ export const DEFAULT_BONDING_CURVE: BondingCurveParams = {
     slope: "100000", // Price increase per token
 };
 
-// 100 TON graduation threshold (in nanoTON)
-export const DEFAULT_GRADUATION_THRESHOLD_TON = "100000000000";
+// 2000 TON graduation threshold (in nanoTON)
+export const DEFAULT_GRADUATION_THRESHOLD_TON = "2000000000000";

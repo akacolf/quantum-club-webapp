@@ -1,28 +1,30 @@
 // app/api/encrypt/route.js
 import { NextRequest, NextResponse } from 'next/server';
 import { createCipheriv } from 'node:crypto';
+import { decrypt } from '@/utils/session';
 
 export async function POST(request:NextRequest) {
   try {
-    const session = request.cookies.get('session')?.value
-    if(!session) {
-        return NextResponse.json("Session timeout",{status:400})
+    const sessionCookie = request.cookies.get('session')?.value;
+    if(!sessionCookie) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    // 1. Receive the ID from request
-    const {input} = await request.json();
-    if (!input) {
-      return NextResponse.json(
-        { error: "Telegram ID is requested" },
-        { status: 400 }
-      );
+    
+    // Decrypt and validate session
+    let sessionData;
+    try {
+        sessionData = await decrypt(sessionCookie);
+    } catch {
+        return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
-
-    if (!input) {
-      return NextResponse.json(
-        { error: "Could not find Telegram ID" },
-        { status: 400 }
-      ); 
+    
+    // Only encrypt the authenticated user's own telegramId - ignore any input
+    const telegramId = sessionData.user?.telegramId;
+    if (!telegramId) {
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
+    
+    const input = String(telegramId);
 
     // 5. Encryption with AES-256-GCM
     const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64'); // 32 byte

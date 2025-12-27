@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Build REAL Jetton deployment
+        // Build REAL Jetton deployment with platform as admin
         const deployResult = buildJettonDeploy({
             owner: ownerAddress,
             name,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
             image: image || "",
             decimals: 9,
             totalSupply: BigInt(0), // Mint on demand via bonding curve
-        });
+        }, PLATFORM_WALLET_ADDRESS);
 
         if (!deployResult.success || !deployResult.stateInit) {
             return NextResponse.json(
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
                 basePrice: "1000000",
                 slope: "100000",
             },
-            graduationThreshold: "100000000000", // 100 TON
+            graduationThreshold: "2000000000000", // 2000 TON
             isGraduated: false,
 
             // Platform config
