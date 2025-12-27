@@ -1,13 +1,12 @@
-"use server";
-
 /**
  * Platform Wallet Server-Side Utilities
  * 
  * This module handles server-side transaction signing using the platform wallet.
  * The platform mnemonic is stored securely in environment variables.
  * 
- * SECURITY: Never expose these functions to client-side code!
- * The "use server" directive ensures this module is only used server-side.
+ * SECURITY: This module should only be imported from API routes (server-side).
+ * It is NOT a "use server" module because it's not called directly from client components.
+ * API routes are inherently server-side in Next.js.
  */
 
 import { Address, internal, SendMode, Cell, beginCell } from "@ton/core";
