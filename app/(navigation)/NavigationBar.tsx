@@ -34,17 +34,9 @@ const EarnIcon = React.memo(() => (
 EarnIcon.displayName = "EarnIcon";
 
 const TradeIcon = React.memo(() => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="1.5em"
-    height="1.5em"
-    viewBox="0 0 24 24"
-  >
-    <path
-      fill="currentColor"
-      d="M3 22V8l4-4l3.5 3.5l2-2L17 10V3h4v19zm13-3q.825 0 1.413-.587T18 17t-.587-1.412T16 15t-1.412.588T14 17t.588 1.413T16 19m-4.5-4.5q.625 0 1.063-.437T13 13t-.437-1.062T11.5 11.5t-1.062.438T10 13t.438 1.063t1.062.437M8 16q.825 0 1.413-.587T10 14t-.587-1.412T8 12t-1.412.588T6 14t.588 1.413T8 16"
-    />
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
+	<path fill="none" stroke="currentColor" strokeLinecap="square" strokeWidth="2" d="M21 14.5H4l5 5m-6-10h17l-5-5" />
+</svg>
 ));
 TradeIcon.displayName = "TradeIcon";
 
