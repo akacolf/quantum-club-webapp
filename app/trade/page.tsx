@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
-import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/bonding-curve";
+import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { useWallet } from "@/app/wallet/WalletContext";
 
 import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
@@ -100,7 +100,7 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                                             ${token.symbol}
                                         </span>
                                         <span className="text-[10px] text-muted-foreground truncate">
-                                            by {token.creatorAddress ? `${token.creatorAddress.slice(0, 4)}...${token.creatorAddress.slice(-4)}` : "unknown"}
+                                            by {token.creatorWallet ? `${token.creatorWallet.slice(0, 4)}...${token.creatorWallet.slice(-4)}` : "unknown"}
                                         </span>
                                     </div>
                                 </div>
@@ -139,16 +139,16 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                         <div className="px-3 py-2 bg-white/[0.02]">
                             <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block mb-0.5">Market Cap</span>
                             <span className="text-xs font-bold text-white block">
-                                {formatMarketCap(BigInt(token.marketCap || "0"), tonPrice)}
+                                {formatMarketCap(token.marketCap || "0")}
                             </span>
                         </div>
                         <div className="px-3 py-2 bg-white/[0.02]">
                             <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block mb-0.5">Volume (24h)</span>
                             <span className="text-xs font-bold text-white block">
-                                {formatCompactNumber(parseFloat(token.volume24h || "0"), 1)} TON
+                                {formatCompactNumber(token.volume24h || 0, 1)} TON
                             </span>
                             <span className="text-[9px] text-muted-foreground block">
-                                ~${formatCompactNumber(parseFloat(token.volume24h || "0") * tonPrice, 0)}
+                                ~${formatCompactNumber((token.volume24h || 0) * tonPrice, 0)}
                             </span>
                         </div>
                     </div>

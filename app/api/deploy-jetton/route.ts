@@ -4,16 +4,19 @@ import { firestore as adminDb } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { Address } from "@ton/core";
 import { buildJettonDeploy } from "@/lib/jetton-real";
+import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 
 /**
  * POST /api/deploy-jetton
  * 
- * Prepare REAL Jetton deployment transaction for a created token.
- * This generates the actual contract deployment data using TEP-74 standard.
+ * Create and deploy a new Jetton token on TON blockchain.
  * 
  * Body: {
- *   tokenId: string;       // Firebase token document ID
- *   creatorAddress: string; // User's TON wallet address
+ *   name: string;
+ *   symbol: string;
+ *   description?: string;
+ *   image?: string;
+ *   creatorAddress: string;
  * }
  */
 export async function POST(request: NextRequest) {
@@ -28,11 +31,12 @@ export async function POST(request: NextRequest) {
 
         const userId = String(session.user?.telegramId || "");
         const body = await request.json();
-        const { tokenId, creatorAddress } = body;
+        const { name, symbol, description, image, creatorAddress } = body;
 
-        if (!tokenId) {
+        // Validate required fields
+        if (!name || !symbol) {
             return NextResponse.json(
-                { error: "Token ID required" },
+                { error: "Name and symbol required" },
                 { status: 400 }
             );
         }
@@ -44,47 +48,26 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get token from Firestore
-        const tokenRef = adminDb.collection("tokens").doc(tokenId);
-        const tokenDoc = await tokenRef.get();
-
-        if (!tokenDoc.exists) {
+        // Parse and validate creator address
+        let ownerAddress: Address;
+        try {
+            ownerAddress = Address.parse(creatorAddress);
+        } catch {
             return NextResponse.json(
-                { error: "Token not found" },
-                { status: 404 }
-            );
-        }
-
-        const tokenData = tokenDoc.data()!;
-
-        // Verify the user is the creator
-        if (tokenData.creatorId !== userId) {
-            return NextResponse.json(
-                { error: "Only token creator can deploy" },
-                { status: 403 }
-            );
-        }
-
-        // Check if already deployed
-        if (tokenData.isOnChain === true) {
-            return NextResponse.json(
-                { error: "Token already deployed on-chain", jettonAddress: tokenData.jettonMasterAddress },
+                { error: "Invalid creator address" },
                 { status: 400 }
             );
         }
 
-        // Parse owner address
-        const ownerAddress = Address.parse(creatorAddress);
-
-        // Build REAL Jetton deployment with actual contract code
+        // Build REAL Jetton deployment
         const deployResult = buildJettonDeploy({
             owner: ownerAddress,
-            name: tokenData.name,
-            symbol: tokenData.symbol,
-            description: tokenData.description || "",
-            image: tokenData.image || "",
+            name,
+            symbol,
+            description: description || "",
+            image: image || "",
             decimals: 9,
-            totalSupply: BigInt(0), // Mint on demand
+            totalSupply: BigInt(0), // Mint on demand via bonding curve
         });
 
         if (!deployResult.success || !deployResult.stateInit) {
@@ -94,26 +77,66 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update token document with pending deployment info
-        await tokenRef.update({
-            deploymentPending: true,
-            deploymentRequestedAt: FieldValue.serverTimestamp(),
-            expectedJettonAddress: deployResult.jettonMasterAddress,
+        // Create token document in Firestore
+        const tokenRef = adminDb.collection("tokens").doc();
+        const tokenId = tokenRef.id;
+
+        await tokenRef.set({
+            // Basic info
+            name,
+            nameLower: name.toLowerCase(),
+            symbol: symbol.toUpperCase(),
+            symbolLower: symbol.toLowerCase(),
+            description: description || "",
+            image: image || "",
+
+            // Creator info
+            creatorId: userId,
+            creatorWallet: creatorAddress,
+
+            // On-chain data
             jettonMasterAddress: deployResult.jettonMasterAddress,
-            isOnChain: false, // Will be set to true after confirmation
+            isOnChain: false, // Will be true after deployment confirmed
+            deploymentPending: true,
+
+            // Bonding curve initial state
+            totalSupply: "0",
+            currentPrice: "1000000", // 0.001 TON initial price (in nanoton)
+            marketCap: "0",
+
+            // Stats
+            holders: 0,
+            trades: 0,
+            volume24h: 0,
+            priceChange24h: 0,
+
+            // Configuration
+            bondingCurve: {
+                basePrice: "1000000",
+                slope: "100000",
+            },
+            graduationThreshold: "100000000000", // 100 TON
+            isGraduated: false,
+
+            // Platform config
+            platformWallet: PLATFORM_WALLET_ADDRESS,
+            platformFeePercent: FEE_CONFIG.tradingFeePercent,
+
+            // Timestamps
+            createdAt: FieldValue.serverTimestamp(),
         });
 
-        // Return the transaction data for the user's wallet to send
         return NextResponse.json({
             success: true,
+            tokenId,
             jettonAddress: deployResult.jettonMasterAddress,
             deployTx: {
                 to: deployResult.jettonMasterAddress,
-                value: "150000000", // 0.15 TON for deployment gas
+                value: "200000000", // 0.2 TON for deployment + initial reserve
                 stateInit: deployResult.stateInit.toBoc().toString("base64"),
                 body: deployResult.deployMessage?.toBoc().toString("base64") || "",
             },
-            message: "Sign this transaction to deploy your token on TON blockchain",
+            message: "Sign transaction to deploy your token on TON blockchain",
         });
     } catch (error) {
         console.error("Deploy Jetton error:", error);
@@ -168,14 +191,6 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json(
                 { error: "Only token creator can confirm deployment" },
                 { status: 403 }
-            );
-        }
-
-        // Verify the expected address matches
-        if (tokenData.expectedJettonAddress && tokenData.expectedJettonAddress !== jettonAddress) {
-            return NextResponse.json(
-                { error: "Jetton address mismatch" },
-                { status: 400 }
             );
         }
 

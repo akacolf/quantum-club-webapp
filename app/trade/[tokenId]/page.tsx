@@ -14,7 +14,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/bonding-curve";
+import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { toast } from "sonner";
 import TokenChat from "@/app/trade/(components)/TokenChat";
 import LiveTrades from "@/app/trade/(components)/LiveTrades";
@@ -32,13 +32,11 @@ export default function TokenDetailPage() {
     const {
         selectedToken,
         selectToken,
-        clearSelectedToken,
         getPosition,
         previewBuy,
         previewSell,
         buyTokens,
         sellTokens,
-        getAvailableToSell,
     } = useTrading();
     const { walletAddress, tonBalance, tonPrice } = useWallet();
     const { getGroupByToken, joinGroup, isGroupMember, createGroup } = useGroups();
@@ -66,12 +64,11 @@ export default function TokenDetailPage() {
         if (tokenId) {
             selectToken(tokenId);
         }
-        return () => clearSelectedToken();
-    }, [tokenId, selectToken, clearSelectedToken]);
+    }, [tokenId, selectToken]);
 
     // Get user position
     const position = getPosition(tokenId);
-    const availableToSell = getAvailableToSell(tokenId);
+    const availableToSell = position?.balance || "0";
 
     // Preview calculation
     useEffect(() => {
@@ -80,14 +77,16 @@ export default function TokenDetailPage() {
             return;
         }
 
-        if (activeTab === "buy") {
-            const result = previewBuy(tokenId, amount);
-            setPreview(result);
-        } else {
-            // For selling, amount is in tokens
-            const result = previewSell(tokenId, amount);
-            setPreview(result);
-        }
+        const fetchPreview = async () => {
+            if (activeTab === "buy") {
+                const result = await previewBuy(tokenId, amount);
+                setPreview(result);
+            } else {
+                const result = await previewSell(tokenId, amount);
+                setPreview(result);
+            }
+        };
+        fetchPreview();
     }, [amount, activeTab, tokenId, selectedToken, previewBuy, previewSell]);
 
     // Handle trade
@@ -140,7 +139,7 @@ export default function TokenDetailPage() {
             setAmount(value);
         } else {
             if (!position) return;
-            const available = BigInt(availableToSell.amount);
+            const available = BigInt(availableToSell || "0");
             let percentage = 1;
             if (value === "25%") percentage = 0.25;
             else if (value === "50%") percentage = 0.5;
@@ -184,10 +183,10 @@ export default function TokenDetailPage() {
                         <p className="text-sm text-muted-foreground">${selectedToken.symbol}</p>
                     </div>
                     <Badge
-                        variant={selectedToken.status === "bonding" ? "default" : "secondary"}
-                        className={selectedToken.status === "bonding" ? "bg-green-500/20 text-green-400" : ""}
+                        variant={!selectedToken.isGraduated ? "default" : "secondary"}
+                        className={!selectedToken.isGraduated ? "bg-green-500/20 text-green-400" : ""}
                     >
-                        {selectedToken.status === "bonding" ? "Active" : "Graduated"}
+                        {!selectedToken.isGraduated ? "Active" : "Graduated"}
                     </Badge>
                 </div>
             </div>
@@ -275,7 +274,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">MCap</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {formatMarketCap(BigInt(selectedToken.marketCap || "0"), tonPrice || 5)}
+                                        {formatMarketCap(selectedToken.marketCap || "0")}
                                     </p>
                                 </div>
                             </div>
@@ -295,7 +294,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">24h Vol</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {formatCompactNumber(parseFloat(selectedToken.volume24h || "0"), 1)} TON
+                                        {formatCompactNumber(selectedToken.volume24h || 0, 1)} TON
                                     </p>
                                 </div>
                             </div>
@@ -310,7 +309,7 @@ export default function TokenDetailPage() {
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">Collected</p>
                                     <p className="text-xs font-semibold text-white">
-                                        {formatCompactNumber(Number(selectedToken.reserveBalance || "0") / 1e9, 1)} TON
+                                        {formatCompactNumber(Number(selectedToken.marketCap || "0") / 1e9, 1)} TON
                                     </p>
                                 </div>
                             </div>
@@ -320,7 +319,7 @@ export default function TokenDetailPage() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-muted-foreground">Trades</p>
-                                    <p className="text-xs font-semibold text-white">{formatCompactNumber(selectedToken.trades24h || 0, 0)}</p>
+                                    <p className="text-xs font-semibold text-white">{formatCompactNumber(selectedToken.trades || 0, 0)}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -378,12 +377,12 @@ export default function TokenDetailPage() {
                     </Card>
                 )}
                 {/* Graduation Progress - Only for bonding tokens */}
-                {selectedToken.status === "bonding" && (
+                {!selectedToken.isGraduated && (
                     <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
                 )}
 
                 {/* Trading Panel - Show different UI based on graduation status */}
-                {selectedToken.status === "graduated" ? (
+                {selectedToken.isGraduated ? (
                     <GraduatedTrading token={selectedToken} />
                 ) : (
                     <Card className="bg-white/5 border-white/10 overflow-hidden">
@@ -479,7 +478,7 @@ export default function TokenDetailPage() {
                                         <div className="flex justify-between mb-2">
                                             <label className="text-sm text-muted-foreground">Amount (Tokens)</label>
                                             <span className="text-sm text-muted-foreground">
-                                                Available: {(Number(availableToSell.amount) / 1e9).toLocaleString()}
+                                                Available: {(Number(availableToSell || 0) / 1e9).toLocaleString()}
                                             </span>
                                         </div>
                                         <Input
@@ -502,7 +501,7 @@ export default function TokenDetailPage() {
                                                 </Button>
                                             ))}
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-2">{availableToSell.reason}</p>
+                                        {/* Sell info */}
                                     </div>
 
                                     {preview && (
@@ -558,7 +557,7 @@ export default function TokenDetailPage() {
                             <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/5">
                                 <Icon icon="solar:user-circle-bold" className="w-4 h-4 text-muted-foreground" />
                                 <p className="text-xs text-muted-foreground">
-                                    Created by {selectedToken.creatorAddress ? `${selectedToken.creatorAddress.slice(0, 6)}...${selectedToken.creatorAddress.slice(-4)}` : "unknown"}
+                                    Created by {selectedToken.creatorWallet ? `${selectedToken.creatorWallet.slice(0, 6)}...${selectedToken.creatorWallet.slice(-4)}` : "unknown"}
                                 </p>
                             </div>
                         </CardContent>

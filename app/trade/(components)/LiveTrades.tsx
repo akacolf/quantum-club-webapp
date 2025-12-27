@@ -8,7 +8,7 @@ import { Icon } from "@iconify/react";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
 import { useWallet } from "@/app/wallet/WalletContext";
-import { formatCompactNumber } from "@/lib/bonding-curve";
+import { formatCompactNumber } from "@/lib/jetton-operations";
 
 interface Trade {
     id: string;

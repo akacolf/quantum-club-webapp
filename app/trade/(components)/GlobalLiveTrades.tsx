@@ -8,7 +8,7 @@ import { collectionGroup, query, orderBy, limit, onSnapshot, Timestamp } from "f
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatCompactNumber } from "@/lib/bonding-curve";
+import { formatCompactNumber } from "@/lib/jetton-operations";
 
 interface GlobalTrade {
     id: string;

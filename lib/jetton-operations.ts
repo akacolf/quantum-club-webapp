@@ -588,3 +588,53 @@ export function formatTonAmount(nanotons: bigint): string {
 export function generateQueryId(): bigint {
     return BigInt(Date.now()) * BigInt(1000) + BigInt(Math.floor(Math.random() * 1000));
 }
+
+// =====================================================
+// Price/Display Formatting
+// =====================================================
+
+/**
+ * Format price for display (handles small decimals)
+ */
+export function formatPrice(price: string | number | bigint): string {
+    const num = typeof price === "bigint"
+        ? Number(price) / 1e9
+        : typeof price === "string"
+            ? parseFloat(price) / 1e9
+            : price;
+
+    if (num === 0) return "0";
+    if (num < 0.00000001) return num.toExponential(2);
+    if (num < 0.0001) return num.toFixed(8);
+    if (num < 0.01) return num.toFixed(6);
+    if (num < 1) return num.toFixed(4);
+    if (num < 1000) return num.toFixed(2);
+    return formatCompactNumber(num);
+}
+
+/**
+ * Format market cap for display
+ */
+export function formatMarketCap(marketCap: string | number | bigint): string {
+    const num = typeof marketCap === "bigint"
+        ? Number(marketCap) / 1e9
+        : typeof marketCap === "string"
+            ? parseFloat(marketCap) / 1e9
+            : marketCap;
+
+    return formatCompactNumber(num) + " TON";
+}
+
+/**
+ * Format number in compact notation (K, M, B)
+ */
+export function formatCompactNumber(num: number, precision: number = 2): string {
+    if (num === 0) return "0";
+    if (Math.abs(num) < 0.01) return num.toFixed(precision > 2 ? precision : 4);
+    if (Math.abs(num) < 1) return num.toFixed(precision);
+    if (Math.abs(num) < 1000) return num.toFixed(precision);
+    if (Math.abs(num) < 1000000) return (num / 1000).toFixed(precision) + "K";
+    if (Math.abs(num) < 1000000000) return (num / 1000000).toFixed(precision) + "M";
+    return (num / 1000000000).toFixed(precision) + "B";
+}
+

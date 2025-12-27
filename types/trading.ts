@@ -1,126 +1,124 @@
-// Trading Platform Types
-// Core types for the QC Trade token trading platform
+/**
+ * Trading Platform Types
+ * Types for QC RocketStart on-chain trading platform
+ * 
+ * All trading happens on TON blockchain via smart contracts
+ */
 
-export interface TokenMetadata {
+// =====================================================
+// Token Types
+// =====================================================
+
+export interface Token {
+    // Identity
     id: string;
     name: string;
+    nameLower: string;
     symbol: string;
+    symbolLower: string;
     description: string;
     image: string;
+
+    // Creator
     creatorId: string;
-    creatorAddress?: string; // Wallet address of creator
+    creatorWallet: string;
     creatorUsername?: string;
+
+    // On-chain data
+    jettonMasterAddress: string; // Jetton Master contract address
+    isOnChain: boolean; // True when deployed and confirmed
+
+    // Bonding curve state (from blockchain)
+    totalSupply: string; // Current minted supply
+    currentPrice: string; // Current price in nanoTON
+    marketCap: string;
+
+    // Configuration
+    bondingCurve: BondingCurveParams;
+    graduationThreshold: string; // TON amount to graduate
+    isGraduated: boolean;
+
+    // Statistics (indexed from blockchain events)
+    holders: number;
+    trades: number;
+    volume24h: number;
+    priceChange24h: number;
+
+    // DEX info (when graduated)
+    dexPoolAddress?: string;
+    graduatedAt?: Date;
+
+    // Timestamps
     createdAt: Date;
+    deployedAt?: Date;
 }
 
 export interface BondingCurveParams {
-    type: "exponential";
-    basePrice: string; // Starting price in TON (e.g., "0.000001")
-    steepness: number; // k value - determines how fast price rises
-    virtualReserve: string; // Virtual TON reserve for initial liquidity
+    basePrice: string; // Initial price in nanoTON
+    slope: string; // Price increase per token
 }
 
-export type TokenStatus = "bonding" | "graduated" | "paused";
-
-export interface Token extends TokenMetadata {
-    // Supply & pricing
-    totalSupply: string;
-    currentPrice: string;
-    marketCap: string;
-    volume24h: string;
-    priceChange24h: number; // percentage
-
-    // Bonding curve
-    bondingCurve: BondingCurveParams;
-
-    // Status
-    status: TokenStatus;
-    graduationThreshold: string; // Market cap in TON to graduate to DEX (default: 2000 TON)
-
-    // On-chain deployment status
-    isOnChain?: boolean; // Whether Jetton is deployed on TON blockchain
-    deploymentPending?: boolean; // Whether deployment is in progress
-    deployedAt?: Date; // When deployed on-chain
-
-    // DEX info (only populated when status === "graduated")
-    dexPoolAddress?: string; // STON.fi pool address
-    jettonMasterAddress?: string; // Token's jetton master for DEX trading
-    graduatedAt?: Date; // When the token graduated
-    collectedTon?: string; // Total TON collected during bonding phase
-
-    // Stats
-    holders: number;
-    trades: number;
-    trades24h?: number; // 24h trade count
-    reserveBalance?: string; // TON collected in bonding curve
-}
+// =====================================================
+// User Positions
+// =====================================================
 
 export interface HolderPosition {
     tokenId: string;
-    token?: Token; // Populated on fetch
-    balance: string;
+    token?: Token;
+    balance: string; // On-chain balance
     averageBuyPrice: string;
     totalInvested: string;
-    unrealizedPnl: string;
-    unrealizedPnlPercent: number;
+    currentValue: string;
+    pnl: number;
+    pnlPercent: number;
 }
+
+// =====================================================
+// Trade Types
+// =====================================================
 
 export interface Trade {
     id: string;
     tokenId: string;
     type: "buy" | "sell";
     userId: string;
+    walletAddress: string;
     username?: string;
     amount: string; // Token amount
-    price: string; // Price per token in TON
-    totalTon: string; // Total TON spent/received
-    timestamp: Date;
+    price: string; // Price per token
+    totalTon: string;
     txHash?: string;
+    timestamp: Date;
     status: "pending" | "completed" | "failed";
 }
 
 export interface TradeResult {
     success: boolean;
-    trade?: Trade;
     error?: string;
+    txHash?: string;
+    trade?: Trade;
     newBalance?: string;
 }
+
+// =====================================================
+// Token Creation
+// =====================================================
 
 export interface CreateTokenParams {
     name: string;
     symbol: string;
     description: string;
     image: string;
-    // Optional custom bonding curve (defaults will be applied if not provided)
-    bondingCurve?: Partial<BondingCurveParams>;
 }
 
-// Default configurations
+// =====================================================
+// Defaults
+// =====================================================
+
 export const DEFAULT_BONDING_CURVE: BondingCurveParams = {
-    type: "exponential",
-    basePrice: "0.00001", // 0.00001 TON starting price
-    steepness: 0.0000001, // Gradual price increase
-    virtualReserve: "30", // 30 TON virtual reserve
+    basePrice: "1000000", // 0.001 TON in nanoTON
+    slope: "100000", // Price increase per token
 };
 
-// Graduation threshold in TON (when market cap reaches this amount in TON, token can graduate to DEX)
-export const DEFAULT_GRADUATION_THRESHOLD_TON = "2000";
-
-// Platform fees
-export const PLATFORM_FEES = {
-    creationFee: "0.5", // 0.5 TON to create a token (covers ~0.25 TON network fee + platform costs)
-    tradingFeePercent: 1, // 1% total trading fee
-    platformFeePercent: 0.5, // 0.5% goes to platform
-    creatorFeePercent: 0.5, // 0.5% goes to creator
-    graduationFeePercent: 2, // 2% of collected TON on graduation
-};
-
-// Token chat message type (extends existing chat)
-export interface TokenChatMessage {
-    id: string;
-    tokenId: string;
-    senderId: string;
-    senderName: string;
-    text: string;
-    timestamp: Date;
-}
+// 100 TON graduation threshold (in nanoTON)
+export const DEFAULT_GRADUATION_THRESHOLD_TON = "100000000000";

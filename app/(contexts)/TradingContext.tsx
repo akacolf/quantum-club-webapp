@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * QC RocketStart - On-Chain Trading Context
+ * 
+ * All trading operations happen directly on TON blockchain via smart contracts.
+ * Firebase/Firestore is only used for metadata caching and indexing.
+ * 
+ * TEP-74: https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
+ */
+
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import {
@@ -8,16 +17,14 @@ import {
     getDoc,
     getDocs,
     setDoc,
-    updateDoc,
     query,
     where,
     orderBy,
     limit,
     serverTimestamp,
     Timestamp,
-    increment,
 } from "firebase/firestore";
-// import { Address, toNano } from "@ton/core"; // For on-chain ops
+import { Address, toNano, Cell } from "@ton/core";
 import { useGameContext } from "./MiningContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import {
@@ -29,29 +36,25 @@ import {
     DEFAULT_GRADUATION_THRESHOLD_TON,
 } from "@/types/trading";
 import {
-    calculateBuyPrice,
-    calculateSellPrice,
-    getCurrentPrice,
-    calculateMarketCap,
-    calculateTokensForTon,
-} from "@/lib/bonding-curve";
-import { updatePriceCandle } from "@/lib/price-history";
-import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
-// On-chain operations - imported for future use when fully on-chain
-// import {
-//     buildBuyTransaction,
-//     buildSellTransaction,
-//     createTonClient,
-//     getJettonWalletAddress,
-//     getBondingCurveData,
-//     previewBuyOnChain,
-//     previewSellOnChain,
-//     formatTokenAmount,
-//     parseTokenAmount,
-// } from "@/lib/jetton-operations";
+    createTonClient,
+    getJettonWalletAddress,
+    getJettonBalance,
+    getBondingCurveData,
+    previewBuyOnChain,
+    previewSellOnChain,
+    formatTokenAmount,
+    parseTokenAmount,
+    buildBuyMessage,
+    buildBurnMessage,
+} from "@/lib/jetton-operations";
+import { FEE_CONFIG } from "@/lib/platform-config";
+
+// =====================================================
+// Types
+// =====================================================
 
 interface TradingContextType {
-    // Token discovery
+    // Token discovery (cached from blockchain indexing)
     trendingTokens: Token[];
     newTokens: Token[];
     searchResults: Token[];
@@ -61,188 +64,160 @@ interface TradingContextType {
     searchTokens: (query: string) => Promise<void>;
     clearSearch: () => void;
 
-    // User positions
+    // User positions (from on-chain queries)
     positions: HolderPosition[];
-    getPosition: (tokenId: string) => HolderPosition | null;
-    refreshPositions: () => Promise<void>;
 
-    // Token details
+    // Selected token
     selectedToken: Token | null;
     selectToken: (tokenId: string) => Promise<void>;
-    clearSelectedToken: () => void;
 
-    // Trading actions
+    // On-chain trading
     buyTokens: (tokenId: string, tonAmount: string) => Promise<TradeResult>;
     sellTokens: (tokenId: string, tokenAmount: string) => Promise<TradeResult>;
 
-    // Price calculations (for UI preview)
-    previewBuy: (tokenId: string, tonAmount: string) => {
+    // Preview trades (on-chain queries)
+    previewBuy: (tokenId: string, tonAmount: string) => Promise<{
         tokensReceived: string;
         averagePrice: string;
         fee: string;
         newPrice: string;
-    } | null;
-    previewSell: (tokenId: string, tokenAmount: string) => {
+    } | null>;
+    previewSell: (tokenId: string, tokenAmount: string) => Promise<{
         tonReceived: string;
         averagePrice: string;
         fee: string;
         newPrice: string;
-    } | null;
+    } | null>;
 
-    // Token creation
+    // Token creation (deploys on-chain)
     createToken: (params: CreateTokenParams) => Promise<Token | null>;
 
-    // Sell helpers (simplified - no anti-dump)
-    getAvailableToSell: (tokenId: string) => { amount: string; reason: string };
-
-    // Refresh
+    // Refresh data
     refreshTokens: () => Promise<void>;
+    refreshPositions: () => Promise<void>;
+
+    // Utils
+    getPosition: (tokenId: string) => HolderPosition | null;
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
+// =====================================================
+// Provider
+// =====================================================
+
 export function TradingProvider({ children }: { children: React.ReactNode }) {
-    const { telegramId, username } = useGameContext();
+    const { telegramId } = useGameContext();
     const { walletAddress, sendTransaction } = useWallet();
 
     // State
     const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
     const [newTokens, setNewTokens] = useState<Token[]>([]);
     const [searchResults, setSearchResults] = useState<Token[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [positions, setPositions] = useState<HolderPosition[]>([]);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
 
+    // TON client for on-chain queries
+    const [tonClient] = useState(() => createTonClient(false));
+
+    // =====================================================
     // Helper: Convert Firestore doc to Token
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const docToToken = useCallback((docSnap: any): Token => {
-        const data = docSnap.data();
+    // =====================================================
+    const docToToken = useCallback((doc: { id: string; data: () => Record<string, unknown> }): Token => {
+        const data = doc.data();
         return {
-            id: docSnap.id,
-            name: data.name,
-            symbol: data.symbol,
-            description: data.description || "",
-            image: data.image || "",
-            creatorId: data.creatorId,
-            creatorAddress: data.creatorAddress,
-            creatorUsername: data.creatorUsername,
-            createdAt: data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate()
-                : new Date(),
-            totalSupply: data.totalSupply || "0",
-            currentPrice: data.currentPrice || "0",
-            marketCap: data.marketCap || "0",
-            volume24h: data.volume24h || "0",
-            priceChange24h: data.priceChange24h || 0,
-            bondingCurve: data.bondingCurve || DEFAULT_BONDING_CURVE,
-            status: data.status || "bonding",
-            graduationThreshold: data.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON,
-            holders: data.holders || 0,
-            trades: data.trades || 0,
-            // On-chain status
-            isOnChain: data.isOnChain || false,
-            deploymentPending: data.deploymentPending || false,
-            deployedAt: data.deployedAt instanceof Timestamp
-                ? data.deployedAt.toDate()
-                : undefined,
-            jettonMasterAddress: data.jettonMasterAddress || undefined,
+            id: doc.id,
+            name: data.name as string || "",
+            nameLower: (data.nameLower as string) || (data.name as string || "").toLowerCase(),
+            symbol: data.symbol as string || "",
+            symbolLower: (data.symbolLower as string) || (data.symbol as string || "").toLowerCase(),
+            description: data.description as string || "",
+            image: data.image as string || "",
+            creatorId: data.creatorId as string || "",
+            creatorWallet: data.creatorWallet as string || "",
+            creatorUsername: data.creatorUsername as string || "",
+
+            // On-chain data (fetched from blockchain)
+            jettonMasterAddress: data.jettonMasterAddress as string || "",
+            isOnChain: data.isOnChain as boolean || false,
+
+            // Cached from blockchain (updated by indexer)
+            totalSupply: data.totalSupply as string || "0",
+            currentPrice: data.currentPrice as string || "0",
+            marketCap: data.marketCap as string || "0",
+
+            // Metadata
+            holders: data.holders as number || 0,
+            trades: data.trades as number || 0,
+            volume24h: data.volume24h as number || 0,
+            priceChange24h: data.priceChange24h as number || 0,
+
+            // Bonding curve config
+            bondingCurve: (data.bondingCurve as { basePrice: string; slope: string }) || DEFAULT_BONDING_CURVE,
+            graduationThreshold: data.graduationThreshold as string || DEFAULT_GRADUATION_THRESHOLD_TON,
+            isGraduated: data.isGraduated as boolean || false,
+
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
         };
     }, []);
 
-    // Fetch trending tokens (by volume)
-    const fetchTrendingTokens = useCallback(async () => {
+    // =====================================================
+    // Fetch tokens (from cache/index)
+    // =====================================================
+    const fetchTokens = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const tokensRef = collection(dbfs, "tokens");
-            const q = query(
-                tokensRef,
-                where("status", "==", "bonding"),
+            // Trending = highest volume
+            const trendingQuery = query(
+                collection(dbfs, "tokens"),
+                where("isOnChain", "==", true),
                 orderBy("volume24h", "desc"),
                 limit(20)
             );
-            const snapshot = await getDocs(q);
-            const tokens = snapshot.docs.map(docToToken);
-            setTrendingTokens(tokens);
-        } catch (error) {
-            console.error("Error fetching trending tokens:", error);
-        }
-    }, [docToToken]);
+            const trendingSnapshot = await getDocs(trendingQuery);
+            setTrendingTokens(trendingSnapshot.docs.map(docToToken));
 
-    // Fetch new tokens
-    const fetchNewTokens = useCallback(async () => {
-        try {
-            const tokensRef = collection(dbfs, "tokens");
-            const q = query(
-                tokensRef,
+            // New = recently created
+            const newQuery = query(
+                collection(dbfs, "tokens"),
+                where("isOnChain", "==", true),
                 orderBy("createdAt", "desc"),
                 limit(20)
             );
-            const snapshot = await getDocs(q);
-            const tokens = snapshot.docs.map(docToToken);
-            setNewTokens(tokens);
+            const newSnapshot = await getDocs(newQuery);
+            setNewTokens(newSnapshot.docs.map(docToToken));
         } catch (error) {
-            console.error("Error fetching new tokens:", error);
+            console.error("Error fetching tokens:", error);
+        } finally {
+            setIsLoading(false);
         }
     }, [docToToken]);
 
-    // Refresh all tokens
-    const refreshTokens = useCallback(async () => {
-        setIsLoading(true);
-        await Promise.all([fetchTrendingTokens(), fetchNewTokens()]);
-        setIsLoading(false);
-    }, [fetchTrendingTokens, fetchNewTokens]);
-
+    // =====================================================
     // Search tokens
+    // =====================================================
     const searchTokens = useCallback(async (searchQuery: string) => {
         if (!searchQuery.trim()) {
             setSearchResults([]);
             return;
         }
 
+        setIsLoading(true);
         try {
-            const searchLower = searchQuery.toLowerCase().trim();
-            const searchUpper = searchQuery.toUpperCase().trim();
-            const tokensRef = collection(dbfs, "tokens");
-
-            // Search by name (case-insensitive prefix match)
-            const nameQuery = query(
-                tokensRef,
-                where("nameLower", ">=", searchLower),
-                where("nameLower", "<=", searchLower + "\uf8ff"),
+            const q = searchQuery.toLowerCase();
+            const searchQ = query(
+                collection(dbfs, "tokens"),
+                where("nameLower", ">=", q),
+                where("nameLower", "<=", q + "\uf8ff"),
                 limit(20)
             );
-
-            // Search by symbol (exact or prefix match - symbols are typically uppercase)
-            const symbolQuery = query(
-                tokensRef,
-                where("symbol", ">=", searchUpper),
-                where("symbol", "<=", searchUpper + "\uf8ff"),
-                limit(20)
-            );
-
-            // Execute both queries
-            const [nameSnapshot, symbolSnapshot] = await Promise.all([
-                getDocs(nameQuery),
-                getDocs(symbolQuery)
-            ]);
-
-            // Merge results and deduplicate by token ID
-            const tokenMap = new Map<string, ReturnType<typeof docToToken>>();
-
-            nameSnapshot.docs.forEach(doc => {
-                const token = docToToken(doc);
-                tokenMap.set(token.id, token);
-            });
-
-            symbolSnapshot.docs.forEach(doc => {
-                const token = docToToken(doc);
-                if (!tokenMap.has(token.id)) {
-                    tokenMap.set(token.id, token);
-                }
-            });
-
-            setSearchResults(Array.from(tokenMap.values()));
+            const snapshot = await getDocs(searchQ);
+            setSearchResults(snapshot.docs.map(docToToken));
         } catch (error) {
-            console.error("Error searching tokens:", error);
+            console.error("Search error:", error);
+        } finally {
+            setIsLoading(false);
         }
     }, [docToToken]);
 
@@ -250,306 +225,255 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         setSearchResults([]);
     }, []);
 
-    // Fetch user positions
+    // =====================================================
+    // Fetch user positions (from blockchain)
+    // =====================================================
     const refreshPositions = useCallback(async () => {
-        if (!telegramId) return;
+        if (!walletAddress) {
+            setPositions([]);
+            return;
+        }
 
         try {
-            const positionsRef = collection(dbfs, `users/${telegramId}/positions`);
-            const snapshot = await getDocs(positionsRef);
-
-            const positionsList: HolderPosition[] = await Promise.all(
-                snapshot.docs.map(async (docSnap) => {
-                    const data = docSnap.data();
-
-                    // Fetch token data for each position
-                    const tokenDoc = await getDoc(doc(dbfs, `tokens/${data.tokenId}`));
-                    const token = tokenDoc.exists() ? docToToken(tokenDoc) : undefined;
-
-                    return {
-                        tokenId: data.tokenId,
-                        token,
-                        balance: data.balance || "0",
-                        averageBuyPrice: data.averageBuyPrice || "0",
-                        totalInvested: data.totalInvested || "0",
-                        unrealizedPnl: "0",
-                        unrealizedPnlPercent: 0,
-                    };
-                })
+            // Get all tokens user might hold (from cache)
+            const tokensSnapshot = await getDocs(
+                query(collection(dbfs, "tokens"), where("isOnChain", "==", true))
             );
 
-            setPositions(positionsList);
+            const positionsPromises = tokensSnapshot.docs.map(async (docSnap) => {
+                const token = docToToken(docSnap);
+                if (!token.jettonMasterAddress) return null;
+
+                try {
+                    // Query on-chain balance
+                    const balance = await getJettonBalance(
+                        token.jettonMasterAddress,
+                        walletAddress,
+                        tonClient
+                    );
+
+                    if (balance > BigInt(0)) {
+                        return {
+                            tokenId: token.id,
+                            balance: balance.toString(),
+                            averageBuyPrice: "0", // Can't determine without indexing
+                            totalInvested: "0",
+                            currentValue: formatTokenAmount(balance),
+                            pnl: 0,
+                            pnlPercent: 0,
+                            token,
+                        } as HolderPosition;
+                    }
+                } catch {
+                    // Token might not be deployed yet
+                }
+                return null;
+            });
+
+            const results = await Promise.all(positionsPromises);
+            setPositions(results.filter((p): p is HolderPosition => p !== null));
         } catch (error) {
-            console.error("Error fetching positions:", error);
+            console.error("Error refreshing positions:", error);
         }
-    }, [telegramId, docToToken]);
+    }, [walletAddress, tonClient, docToToken]);
 
-    // Get position for a specific token
-    const getPosition = useCallback((tokenId: string) => {
-        return positions.find(p => p.tokenId === tokenId) || null;
-    }, [positions]);
-
-    // Select a token (fetch full details)
+    // =====================================================
+    // Select token (fetch on-chain data)
+    // =====================================================
     const selectToken = useCallback(async (tokenId: string) => {
         try {
             const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
-            if (tokenDoc.exists()) {
-                setSelectedToken(docToToken(tokenDoc));
+            if (!tokenDoc.exists()) {
+                setSelectedToken(null);
+                return;
             }
+
+            const token = docToToken(tokenDoc);
+
+            // If on-chain, fetch live data
+            if (token.isOnChain && token.jettonMasterAddress) {
+                try {
+                    const curveData = await getBondingCurveData(
+                        token.jettonMasterAddress,
+                        tonClient
+                    );
+
+                    if (curveData) {
+                        token.totalSupply = curveData.totalSupply.toString();
+                        token.currentPrice = curveData.currentPrice.toString();
+                        token.isGraduated = curveData.graduated;
+                    }
+                } catch (error) {
+                    console.error("Error fetching on-chain data:", error);
+                }
+            }
+
+            setSelectedToken(token);
         } catch (error) {
-            console.error("Error fetching token:", error);
+            console.error("Error selecting token:", error);
         }
-    }, [docToToken]);
+    }, [docToToken, tonClient]);
 
-    const clearSelectedToken = useCallback(() => {
-        setSelectedToken(null);
-    }, []);
-
-    // Preview buy (for UI)
-    const previewBuy = useCallback((tokenId: string, tonAmount: string) => {
-        const token = selectedToken?.id === tokenId
-            ? selectedToken
-            : [...trendingTokens, ...newTokens].find(t => t.id === tokenId);
-
-        if (!token || !tonAmount || parseFloat(tonAmount) <= 0) return null;
-
+    // =====================================================
+    // Preview Buy (on-chain query)
+    // =====================================================
+    const previewBuy = useCallback(async (
+        tokenId: string,
+        tonAmount: string
+    ) => {
         try {
-            const tonNano = BigInt(Math.floor(parseFloat(tonAmount) * 1e9));
-            const currentSupply = BigInt(token.totalSupply);
-            const tokensReceived = calculateTokensForTon(currentSupply, tonNano, token.bondingCurve);
+            const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
+            if (!tokenDoc.exists()) return null;
 
-            if (tokensReceived <= BigInt(0)) return null;
+            const token = docToToken(tokenDoc);
+            if (!token.jettonMasterAddress) return null;
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { totalCost, averagePrice, newPrice, fee } = calculateBuyPrice(
-                currentSupply,
-                tokensReceived,
-                token.bondingCurve
+            const tonNano = toNano(tonAmount);
+
+            // Query on-chain preview
+            const tokensOut = await previewBuyOnChain(
+                token.jettonMasterAddress,
+                tonNano,
+                tonClient
             );
 
+            if (tokensOut === BigInt(0)) return null;
+
+            const fee = (parseFloat(tonAmount) * FEE_CONFIG.tradingFeePercent / 100).toFixed(4);
+            const avgPrice = (parseFloat(tonAmount) / parseFloat(formatTokenAmount(tokensOut))).toFixed(9);
+
             return {
-                tokensReceived: tokensReceived.toString(),
-                averagePrice: (Number(averagePrice) / 1e9).toFixed(9),
-                fee: (Number(fee) / 1e9).toFixed(6),
-                newPrice: (Number(newPrice) / 1e9).toFixed(9),
+                tokensReceived: formatTokenAmount(tokensOut),
+                averagePrice: avgPrice,
+                fee,
+                newPrice: avgPrice, // Approximate
             };
         } catch (error) {
-            console.error("Error previewing buy:", error);
+            console.error("Preview buy error:", error);
             return null;
         }
-    }, [selectedToken, trendingTokens, newTokens]);
+    }, [docToToken, tonClient]);
 
-    // Preview sell (for UI)
-    const previewSell = useCallback((tokenId: string, tokenAmount: string) => {
-        const token = selectedToken?.id === tokenId
-            ? selectedToken
-            : [...trendingTokens, ...newTokens].find(t => t.id === tokenId);
-
-        if (!token || !tokenAmount || parseFloat(tokenAmount) <= 0) return null;
-
+    // =====================================================
+    // Preview Sell (on-chain query)
+    // =====================================================
+    const previewSell = useCallback(async (
+        tokenId: string,
+        tokenAmount: string
+    ) => {
         try {
-            const sellAmount = BigInt(tokenAmount);
-            const currentSupply = BigInt(token.totalSupply);
+            const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
+            if (!tokenDoc.exists()) return null;
 
-            const { totalProceeds, averagePrice, newPrice, fee } = calculateSellPrice(
-                currentSupply,
-                sellAmount,
-                token.bondingCurve
+            const token = docToToken(tokenDoc);
+            if (!token.jettonMasterAddress) return null;
+
+            const tokenNano = parseTokenAmount(tokenAmount);
+
+            // Query on-chain preview
+            const tonOut = await previewSellOnChain(
+                token.jettonMasterAddress,
+                tokenNano,
+                tonClient
             );
 
+            if (tonOut === BigInt(0)) return null;
+
+            const fee = (parseFloat(formatTokenAmount(tonOut)) * FEE_CONFIG.tradingFeePercent / 100).toFixed(4);
+            const avgPrice = (parseFloat(formatTokenAmount(tonOut)) / parseFloat(tokenAmount)).toFixed(9);
+
             return {
-                tonReceived: (Number(totalProceeds) / 1e9).toFixed(6),
-                averagePrice: (Number(averagePrice) / 1e9).toFixed(9),
-                fee: (Number(fee) / 1e9).toFixed(6),
-                newPrice: (Number(newPrice) / 1e9).toFixed(9),
+                tonReceived: formatTokenAmount(tonOut),
+                averagePrice: avgPrice,
+                fee,
+                newPrice: avgPrice,
             };
         } catch (error) {
-            console.error("Error previewing sell:", error);
+            console.error("Preview sell error:", error);
             return null;
         }
-    }, [selectedToken, trendingTokens, newTokens]);
+    }, [docToToken, tonClient]);
 
-    // Buy tokens
+    // =====================================================
+    // BUY TOKENS (On-Chain)
+    // =====================================================
     const buyTokens = useCallback(async (
         tokenId: string,
         tonAmount: string
     ): Promise<TradeResult> => {
-        if (!telegramId || !walletAddress) {
+        if (!walletAddress) {
             return { success: false, error: "Wallet not connected" };
         }
 
         try {
-            // Server-side validation first
-            const validationResponse = await fetch("/api/trade", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    tokenId,
-                    type: "buy",
-                    amount: tonAmount,
-                }),
-            });
-
-            if (!validationResponse.ok) {
-                const errorData = await validationResponse.json();
-                if (validationResponse.status === 429) {
-                    return { success: false, error: `Rate limit exceeded. Try again in ${errorData.retryAfter}s` };
-                }
-                return { success: false, error: errorData.error || "Validation failed" };
-            }
-
-            // In the foundation phase, this is a simulated/centralized buy
-            // Will be replaced with on-chain transactions later
-
+            // Get token data
             const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
             if (!tokenDoc.exists()) {
                 return { success: false, error: "Token not found" };
             }
 
             const token = docToToken(tokenDoc);
-            const preview = previewBuy(tokenId, tonAmount);
 
-            if (!preview) {
-                return { success: false, error: "Invalid amount" };
+            if (!token.jettonMasterAddress || !token.isOnChain) {
+                return { success: false, error: "Token not deployed on-chain" };
             }
 
-            const tokensReceived = BigInt(preview.tokensReceived);
-            const newSupply = BigInt(token.totalSupply) + tokensReceived;
-            const newPrice = getCurrentPrice(newSupply, token.bondingCurve);
-            const newMarketCap = calculateMarketCap(newSupply, newPrice);
+            if (token.isGraduated) {
+                return { success: false, error: "Token graduated - trade on DEX" };
+            }
 
-            // Convert TON amount to nanoTON for tracking
-            const tonAmountNano = Math.floor(parseFloat(tonAmount) * 1e9);
+            // Build buy transaction
+            const tonNano = toNano(tonAmount);
+            const buyBody = buildBuyMessage({});
 
-            // Update token
-            await updateDoc(doc(dbfs, `tokens/${tokenId}`), {
-                totalSupply: newSupply.toString(),
-                currentPrice: newPrice.toString(),
-                marketCap: newMarketCap.toString(),
-                holders: increment(1), // Simplified - should check if new holder
-                trades: increment(1),
-                volume24h: increment(parseFloat(tonAmount)),
-                collectedTon: increment(tonAmountNano), // Track total collected for graduation
+            // Send transaction via QC Wallet
+            const result = await sendTransaction({
+                to: token.jettonMasterAddress,
+                value: tonNano.toString(),
+                body: buyBody,
             });
 
-            // Update user position
-            const positionRef = doc(dbfs, `users/${telegramId}/positions/${tokenId}`);
-            const existingPosition = await getDoc(positionRef);
-
-            if (existingPosition.exists()) {
-                const data = existingPosition.data();
-                const newBalance = (BigInt(data.balance || "0") + tokensReceived).toString();
-
-                await updateDoc(positionRef, {
-                    balance: newBalance,
-                    totalInvested: (parseFloat(data.totalInvested || "0") + parseFloat(tonAmount)).toString(),
-                });
-            } else {
-                await setDoc(positionRef, {
-                    tokenId,
-                    balance: preview.tokensReceived,
-                    averageBuyPrice: preview.averagePrice,
-                    totalInvested: tonAmount,
-                    createdAt: serverTimestamp(),
-                });
+            if (!result.success) {
+                return { success: false, error: result.error || "Transaction failed" };
             }
 
-            // Create trade record
-            const tradeId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            await setDoc(doc(dbfs, `tokens/${tokenId}/trades/${tradeId}`), {
+            // Log trade for indexing (async, don't wait)
+            setDoc(doc(dbfs, `tokens/${tokenId}/trades/${Date.now()}`), {
                 type: "buy",
                 userId: telegramId,
-                walletAddress: walletAddress || "",
-                username: username || "Unknown",
-                amount: preview.tokensReceived,
-                price: preview.averagePrice,
-                totalTon: tonAmount,
-                fee: preview.fee,
+                walletAddress,
+                tonAmount,
+                txHash: result.txHash,
                 timestamp: serverTimestamp(),
-                status: "completed",
-            });
+                status: "pending",
+            }).catch(console.error);
 
-            // Record in user's holder entry
-            await setDoc(doc(dbfs, `tokens/${tokenId}/holders/${telegramId}`), {
-                telegramId,
-                username: username || "Unknown",
-                balance: existingPosition.exists()
-                    ? (BigInt(existingPosition.data().balance || "0") + tokensReceived).toString()
-                    : preview.tokensReceived,
-                lastTradeAt: serverTimestamp(),
-            }, { merge: true });
-
-            // Collect platform fee (50% of trading fee goes to platform)
-            const platformFeeNano = Math.floor(parseFloat(preview.fee) * 1e9 * (FEE_CONFIG.platformSharePercent / 100));
-            if (platformFeeNano > 0) {
-                sendTransaction({
-                    to: PLATFORM_WALLET_ADDRESS,
-                    value: String(platformFeeNano),
-                }).catch(err => console.error("Fee collection failed:", err));
-            }
-
-            await refreshPositions();
-
-            // Update price history for charts
-            updatePriceCandle(tokenId, newPrice.toString()).catch(console.error);
+            // Refresh positions after a delay
+            setTimeout(() => refreshPositions(), 5000);
 
             return {
                 success: true,
-                trade: {
-                    id: tradeId,
-                    tokenId,
-                    type: "buy",
-                    userId: telegramId,
-                    amount: preview.tokensReceived,
-                    price: preview.averagePrice,
-                    totalTon: tonAmount,
-                    timestamp: new Date(),
-                    status: "completed",
-                },
-                newBalance: existingPosition.exists()
-                    ? (BigInt(existingPosition.data().balance || "0") + tokensReceived).toString()
-                    : preview.tokensReceived,
+                txHash: result.txHash,
             };
         } catch (error) {
-            console.error("Error buying tokens:", error);
+            console.error("Buy error:", error);
             return { success: false, error: "Transaction failed" };
         }
-    }, [telegramId, username, walletAddress, docToToken, previewBuy, refreshPositions, sendTransaction]);
+    }, [walletAddress, telegramId, docToToken, sendTransaction, refreshPositions]);
 
-    // Sell tokens
+    // =====================================================
+    // SELL TOKENS (On-Chain)
+    // =====================================================
     const sellTokens = useCallback(async (
         tokenId: string,
         tokenAmount: string
     ): Promise<TradeResult> => {
-        if (!telegramId) {
-            return { success: false, error: "Not authenticated" };
+        if (!walletAddress) {
+            return { success: false, error: "Wallet not connected" };
         }
 
         try {
-            // Server-side validation first
-            const validationResponse = await fetch("/api/trade", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    tokenId,
-                    type: "sell",
-                    amount: tokenAmount,
-                }),
-            });
-
-            if (!validationResponse.ok) {
-                const errorData = await validationResponse.json();
-                if (validationResponse.status === 429) {
-                    return { success: false, error: `Rate limit exceeded. Try again in ${errorData.retryAfter}s` };
-                }
-                return { success: false, error: errorData.error || "Validation failed" };
-            }
-
-            const position = getPosition(tokenId);
-            if (!position) {
-                return { success: false, error: "No position found" };
-            }
-
+            // Get token data
             const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
             if (!tokenDoc.exists()) {
                 return { success: false, error: "Token not found" };
@@ -557,209 +481,201 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             const token = docToToken(tokenDoc);
 
-            // Check if user has enough balance
-            if (BigInt(tokenAmount) > BigInt(position.balance)) {
-                return {
-                    success: false,
-                    error: `Insufficient balance. You have ${position.balance} tokens`
-                };
+            if (!token.jettonMasterAddress || !token.isOnChain) {
+                return { success: false, error: "Token not deployed on-chain" };
             }
 
-            const preview = previewSell(tokenId, tokenAmount);
-            if (!preview) {
-                return { success: false, error: "Invalid amount" };
+            if (token.isGraduated) {
+                return { success: false, error: "Token graduated - trade on DEX" };
             }
 
-            const sellAmount = BigInt(tokenAmount);
-            const newSupply = BigInt(token.totalSupply) - sellAmount;
-            const newPrice = getCurrentPrice(newSupply, token.bondingCurve);
-            const newMarketCap = calculateMarketCap(newSupply, newPrice);
+            // Get user's Jetton wallet address
+            const jettonWalletAddress = await getJettonWalletAddress(
+                token.jettonMasterAddress,
+                walletAddress,
+                tonClient
+            );
 
-            // Update token
-            await updateDoc(doc(dbfs, `tokens/${tokenId}`), {
-                totalSupply: newSupply.toString(),
-                currentPrice: newPrice.toString(),
-                marketCap: newMarketCap.toString(),
-                trades: increment(1),
-                volume24h: increment(parseFloat(preview.tonReceived)),
+            if (!jettonWalletAddress) {
+                return { success: false, error: "Jetton wallet not found" };
+            }
+
+            // Build burn message (sell = burn tokens to get TON back)
+            const tokenNano = parseTokenAmount(tokenAmount);
+            const burnBody = buildBurnMessage({
+                amount: tokenNano,
+                responseDestination: Address.parse(walletAddress),
             });
 
-            // Update user position
-            const positionRef = doc(dbfs, `users/${telegramId}/positions/${tokenId}`);
-            const newBalance = BigInt(position.balance) - sellAmount;
+            // Send transaction via QC Wallet
+            const result = await sendTransaction({
+                to: jettonWalletAddress,
+                value: toNano("0.1").toString(), // Gas for burn operation
+                body: burnBody,
+            });
 
-            if (newBalance > BigInt(0)) {
-                await updateDoc(positionRef, {
-                    balance: newBalance.toString(),
-                });
-            } else {
-                // Remove position if fully sold
-                await updateDoc(positionRef, {
-                    balance: "0",
-                });
+            if (!result.success) {
+                return { success: false, error: result.error || "Transaction failed" };
             }
 
-            // Create trade record
-            const tradeId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            await setDoc(doc(dbfs, `tokens/${tokenId}/trades/${tradeId}`), {
+            // Log trade for indexing
+            setDoc(doc(dbfs, `tokens/${tokenId}/trades/${Date.now()}`), {
                 type: "sell",
                 userId: telegramId,
-                walletAddress: walletAddress || "",
-                username: username || "Unknown",
-                amount: tokenAmount,
-                price: preview.averagePrice,
-                totalTon: preview.tonReceived,
-                fee: preview.fee,
+                walletAddress,
+                tokenAmount,
+                txHash: result.txHash,
                 timestamp: serverTimestamp(),
-                status: "completed",
-            });
+                status: "pending",
+            }).catch(console.error);
 
-            // Collect platform fee (50% of trading fee goes to platform)
-            const platformFeeNano = Math.floor(parseFloat(preview.fee) * 1e9 * (FEE_CONFIG.platformSharePercent / 100));
-            if (platformFeeNano > 0) {
-                sendTransaction({
-                    to: PLATFORM_WALLET_ADDRESS,
-                    value: String(platformFeeNano),
-                }).catch(err => console.error("Fee collection failed:", err));
-            }
-
-            await refreshPositions();
-
-            // Update price history for charts
-            updatePriceCandle(tokenId, newPrice.toString()).catch(console.error);
+            // Refresh positions after a delay
+            setTimeout(() => refreshPositions(), 5000);
 
             return {
                 success: true,
-                trade: {
-                    id: tradeId,
-                    tokenId,
-                    type: "sell",
-                    userId: telegramId,
-                    amount: tokenAmount,
-                    price: preview.averagePrice,
-                    totalTon: preview.tonReceived,
-                    timestamp: new Date(),
-                    status: "completed",
-                },
-                newBalance: newBalance.toString(),
+                txHash: result.txHash,
             };
         } catch (error) {
-            console.error("Error selling tokens:", error);
+            console.error("Sell error:", error);
             return { success: false, error: "Transaction failed" };
         }
-    }, [telegramId, username, getPosition, docToToken, previewSell, refreshPositions, sendTransaction]);
+    }, [walletAddress, telegramId, docToToken, tonClient, sendTransaction, refreshPositions]);
 
-    // Create new token
+    // =====================================================
+    // CREATE TOKEN (Deploy on-chain)
+    // =====================================================
     const createToken = useCallback(async (params: CreateTokenParams): Promise<Token | null> => {
-        if (!telegramId || !username) {
-            console.error("Not authenticated");
+        if (!walletAddress || !telegramId) {
             return null;
         }
 
         try {
-            const tokenId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            // Call API to prepare deployment
+            const response = await fetch("/api/deploy-jetton", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: params.name,
+                    symbol: params.symbol,
+                    description: params.description,
+                    image: params.image,
+                    creatorAddress: walletAddress,
+                }),
+            });
 
-            const bondingCurve = {
-                ...DEFAULT_BONDING_CURVE,
-                ...params.bondingCurve,
-            };
+            if (!response.ok) {
+                console.error("Deployment preparation failed");
+                return null;
+            }
 
-            const initialPrice = getCurrentPrice(BigInt(0), bondingCurve);
-            const tokenData = {
-                name: params.name,
-                nameLower: params.name.toLowerCase(),
-                symbol: params.symbol.toUpperCase(),
-                description: params.description,
-                image: params.image,
-                creatorId: telegramId,
-                creatorAddress: walletAddress,
-                creatorUsername: username,
-                createdAt: serverTimestamp(),
-                totalSupply: "0", // Creators start with 0 tokens
-                currentPrice: initialPrice.toString(),
-                marketCap: "0",
-                volume24h: "0",
-                priceChange24h: 0,
-                bondingCurve,
-                status: "bonding" as const,
-                graduationThreshold: DEFAULT_GRADUATION_THRESHOLD_TON,
-                holders: 0,
-                trades: 0,
-            };
+            const { tokenId, jettonAddress, deployTx } = await response.json();
 
-            await setDoc(doc(dbfs, `tokens/${tokenId}`), tokenData);
+            // Parse stateInit and body from API response
+            let stateInitCell: Cell | undefined;
+            let bodyCell: Cell | undefined;
 
-            const token: Token = {
-                id: tokenId,
-                ...tokenData,
-                createdAt: new Date(),
-            };
+            if (deployTx.stateInit) {
+                stateInitCell = Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0];
+            }
+            if (deployTx.body) {
+                bodyCell = Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0];
+            }
 
-            // Refresh token lists
-            await refreshTokens();
+            // Send deployment transaction
+            const result = await sendTransaction({
+                to: jettonAddress,
+                value: deployTx.value,
+                body: bodyCell,
+                stateInit: stateInitCell,
+            });
 
-            return token;
+            if (!result.success) {
+                console.error("Deployment transaction failed:", result.error);
+                return null;
+            }
+
+            // Confirm deployment
+            await fetch("/api/deploy-jetton", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tokenId,
+                    jettonAddress,
+                    txHash: result.txHash,
+                }),
+            });
+
+            // Return the created token
+            const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
+            if (tokenDoc.exists()) {
+                return docToToken(tokenDoc);
+            }
+
+            return null;
         } catch (error) {
-            console.error("Error creating token:", error);
+            console.error("Create token error:", error);
             return null;
         }
-    }, [telegramId, username, refreshTokens]);
+    }, [walletAddress, telegramId, docToToken, sendTransaction]);
 
-    // Get available to sell (simplified - no restrictions)
-    const getAvailableToSell = useCallback((tokenId: string) => {
-        const position = getPosition(tokenId);
-        if (!position) {
-            return { amount: "0", reason: "No position" };
-        }
-        // No restrictions - can sell full balance
-        return { amount: position.balance, reason: "No restrictions" };
-    }, [getPosition]);
+    // =====================================================
+    // Get position helper
+    // =====================================================
+    const getPosition = useCallback((tokenId: string): HolderPosition | null => {
+        return positions.find(p => p.tokenId === tokenId) || null;
+    }, [positions]);
 
-    // Initial load
+    // =====================================================
+    // Effects
+    // =====================================================
     useEffect(() => {
-        refreshTokens();
-    }, [refreshTokens]);
+        fetchTokens();
+    }, [fetchTokens]);
 
-    // Load positions when user changes
     useEffect(() => {
-        if (telegramId) {
+        if (walletAddress) {
             refreshPositions();
         }
-    }, [telegramId, refreshPositions]);
+    }, [walletAddress, refreshPositions]);
+
+    // =====================================================
+    // Context Value
+    // =====================================================
+    const value: TradingContextType = {
+        trendingTokens,
+        newTokens,
+        searchResults,
+        isLoading,
+        searchTokens,
+        clearSearch,
+        positions,
+        selectedToken,
+        selectToken,
+        buyTokens,
+        sellTokens,
+        previewBuy,
+        previewSell,
+        createToken,
+        refreshTokens: fetchTokens,
+        refreshPositions,
+        getPosition,
+    };
 
     return (
-        <TradingContext.Provider
-            value={{
-                trendingTokens,
-                newTokens,
-                searchResults,
-                isLoading,
-                searchTokens,
-                clearSearch,
-                positions,
-                getPosition,
-                refreshPositions,
-                selectedToken,
-                selectToken,
-                clearSelectedToken,
-                buyTokens,
-                sellTokens,
-                previewBuy,
-                previewSell,
-                createToken,
-                getAvailableToSell,
-                refreshTokens,
-            }}
-        >
+        <TradingContext.Provider value={value}>
             {children}
         </TradingContext.Provider>
     );
 }
 
+// =====================================================
+// Hook
+// =====================================================
 export function useTrading() {
     const context = useContext(TradingContext);
     if (!context) {
-        throw new Error("useTrading must be used within a TradingProvider");
+        throw new Error("useTrading must be used within TradingProvider");
     }
     return context;
 }

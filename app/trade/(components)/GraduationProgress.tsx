@@ -27,7 +27,7 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
     const remainingTon = Math.max(0, thresholdTon - marketCapTon);
 
     // Status check
-    if (token.status === "graduated") {
+    if (token.isGraduated) {
         return null; // Don't show for graduated tokens
     }
 
