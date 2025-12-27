@@ -79,6 +79,11 @@ const int ONE_TOKEN = 1000000000;               ;; 10^9 for 9 decimals
 const int MAX_SUPPLY = 1000000000000000000;     ;; 1 billion tokens * 10^9
 
 ;; =====================================================
+;; Helper Functions
+;; =====================================================
+int equal_slices(slice a, slice b) asm "SDEQ";
+
+;; =====================================================
 ;; Storage Layout
 ;; =====================================================
 ;; storage:
@@ -225,7 +230,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 ;; =====================================================
 ;; Message Sending Helpers
 ;; =====================================================
-() send_raw_message(cell message, int mode) impure inline {
+() send_msg_with_reserve(cell message, int mode) impure inline {
     raw_reserve(MIN_TON_FOR_STORAGE, 0);
     send_raw_message(message, mode);
 }

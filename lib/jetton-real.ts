@@ -1,10 +1,9 @@
 /**
  * Real Jetton Deployment Library for TON Blockchain
  * 
- * This implements TEP-74 (Jetton Standard) compliant token deployment
- * using the official TON Jetton Minter contract.
+ * This deploys the custom QC RocketStart bonding curve Jetton contracts.
  * 
- * Contract Source: https://github.com/ton-blockchain/minter-contract
+ * Contract Source: /contracts/jetton_master.fc, /contracts/jetton_wallet.fc
  */
 
 import {
@@ -18,21 +17,11 @@ import {
 } from "@ton/core";
 import { TonClient } from "@ton/ton";
 
-// Jetton Minter contract compiled code (from official minter-contract)
-// This is the standard mintable Jetton master contract bytecode
-const JETTON_MINTER_CODE_HEX =
-    "b5ee9c7241021101000323000114ff00f4a413f4bcf2c80b010201200203020148040504f8f28308d71820d31" +
-    "fd31fd31f02f823bbf264ed44d0d31fd31fd3fff404d15143baf2a15151baf2a205f901541064f910f2a3f800" +
-    "20d749c120d749d120d74cd0018e38a001f861ed1eed44d0d31fd31fd3fff40430d0840ff2f00082106d8e5e3" +
-    "0bef2a2f82098fc1c06bef2a304f910f2a3f80001d3ff3001f861ed1eed44d0d31fd31fd3fff404d1002301" +
-    "f861ed1eed44d0d31fd31fd3fff404d1f86102f861ed44d0d31fd31fd3ff3ed10e06021023054";
-
-// Jetton Wallet contract compiled code
-const JETTON_WALLET_CODE_HEX =
-    "b5ee9c7241021001000239000114ff00f4a413f4bcf2c80b010201200203020148040504f4f28308d71820" +
-    "d31fd31fd31f02f823bbf264ed44d0d31fd31fd3fff404d15143baf2a15151baf2a205f901541064f910f2" +
-    "a3f80020d749c120d749d120d74cd0d31f0101d31f01f862ed44d0d31fd31fd3ff00d33f0130f861ed44d0" +
-    "d31fd31fd3ff8e8ef861d31f0111a8018ed44d0d31fd31fd3ff8e17";
+// Import compiled contract bytecode
+import {
+    JETTON_MASTER_CODE_HEX,
+    JETTON_WALLET_CODE_HEX
+} from "@/contracts/build/contract-code";
 
 export interface JettonDeployConfig {
     owner: Address;
@@ -115,7 +104,7 @@ export function calculateJettonMasterAddress(stateInit: StateInit): Address {
 export function buildJettonDeploy(config: JettonDeployConfig): JettonDeployResult {
     try {
         // Parse contract code from hex
-        const minterCode = Cell.fromBoc(Buffer.from(JETTON_MINTER_CODE_HEX, 'hex'))[0];
+        const minterCode = Cell.fromBoc(Buffer.from(JETTON_MASTER_CODE_HEX, 'hex'))[0];
         const walletCode = Cell.fromBoc(Buffer.from(JETTON_WALLET_CODE_HEX, 'hex'))[0];
 
         // Build initial data
