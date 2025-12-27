@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { Address, beginCell, fromNano, internal, SendMode, Cell } from "@ton/core";
+import { Address, fromNano, internal, SendMode, Cell, loadStateInit } from "@ton/core";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, TonClient } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
@@ -656,7 +656,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 to: toAddress,
                 value: BigInt(params.value),
                 body: params.body,
-                init: params.stateInit ? { code: params.stateInit, data: beginCell().endCell() } : undefined,
+                // Parse stateInit Cell back to StateInit object using loadStateInit
+                init: params.stateInit ? loadStateInit(params.stateInit.beginParse()) : undefined,
                 bounce: false,
               }),
             ],
