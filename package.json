@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "compile:contracts": "node scripts/compile-contracts.js"
+    "compile:contracts": "npx tsx scripts/compile-contracts.ts"
   },
   "dependencies": {
     "@google/genai": "^1.33.0",

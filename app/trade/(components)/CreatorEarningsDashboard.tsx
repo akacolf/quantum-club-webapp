@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -189,12 +190,14 @@ export default function CreatorEarningsDashboard() {
                             >
                                 <div className="flex items-center gap-3">
                                     {/* Token Icon */}
-                                    <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
+                                    <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden relative">
                                         {token.tokenImage ? (
-                                            <img
+                                            <Image
                                                 src={token.tokenImage}
                                                 alt={token.tokenName}
-                                                className="w-full h-full object-cover"
+                                                fill
+                                                className="object-cover"
+                                                unoptimized={token.tokenImage.startsWith("data:")}
                                             />
                                         ) : (
                                             <span className="text-sm font-bold text-primary">

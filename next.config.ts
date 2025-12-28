@@ -75,8 +75,37 @@ const nextConfig: import('next').NextConfig = {
 
   // Experimental features
   experimental: {
-    // Optimizations
-    optimizePackageImports: ['@radix-ui', 'lucide-react'],
+    // Optimizations - tree-shake these large packages
+    optimizePackageImports: [
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-progress',
+      '@radix-ui/react-scroll-area',
+      '@radix-ui/react-select',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-slider',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-tooltip',
+      'lucide-react',
+      '@iconify/react',
+      'lottie-react',
+      'framer-motion',
+      'recharts',
+      'date-fns',
+      'firebase',
+      '@ton/core',
+      '@ton/ton',
+      '@ton/crypto',
+    ],
   },
 
   // Disable x-powered-by header for security
