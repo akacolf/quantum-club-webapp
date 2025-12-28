@@ -181,9 +181,41 @@ export default function TokenDetailPage() {
                             </div>
                         )}
                     </button>
-                    <div className="flex-1">
-                        <h1 className="text-lg font-bold text-white">{selectedToken.name}</h1>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-lg font-bold text-white truncate">{selectedToken.name}</h1>
                         <p className="text-sm text-muted-foreground">${selectedToken.symbol}</p>
+
+                        {selectedToken.jettonMasterAddress && (
+                            <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
+                                <span className="text-[11px] text-muted-foreground font-mono truncate">
+                                    {selectedToken.jettonMasterAddress.slice(0, 8)}...{selectedToken.jettonMasterAddress.slice(-8)}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-white"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
+                                        toast.success("Address copied!");
+                                    }}
+                                >
+                                    <Icon icon="solar:copy-bold" className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-primary hover:text-primary/80"
+                                    onClick={() =>
+                                        window.open(
+                                            `${isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com"}/${selectedToken.jettonMasterAddress}`,
+                                            "_blank"
+                                        )
+                                    }
+                                >
+                                    <Icon icon="solar:link-round-bold" className="w-3.5 h-3.5" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
                     <Badge
                         variant={!selectedToken.isGraduated ? "default" : "secondary"}
@@ -195,44 +227,9 @@ export default function TokenDetailPage() {
             </div>
 
             <div className="px-4 py-4 space-y-4">
-                {/* Contract Address - First */}
-                {selectedToken.jettonMasterAddress && (
-                    <Card className="bg-white/5 border-white/10 overflow-hidden">
-                        <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="solar:document-text-bold" className="w-4 h-4 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-[10px] text-muted-foreground">Contract Address</p>
-                                        <p className="text-xs font-mono text-white">
-                                            {selectedToken.jettonMasterAddress.slice(0, 8)}...{selectedToken.jettonMasterAddress.slice(-8)}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2 text-muted-foreground hover:text-white"
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
-                                            toast.success("Address copied!");
-                                        }}
-                                    >
-                                        <Icon icon="solar:copy-bold" className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2 text-primary hover:text-primary/80"
-                                        onClick={() => window.open(`${isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com"}/${selectedToken.jettonMasterAddress}`, "_blank")}
-                                    >
-                                        <Icon icon="solar:arrow-right-up-bold" className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                {/* Graduation Progress - Above price */}
+                {!selectedToken.isGraduated && (
+                    <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
                 )}
 
                 {/* Price Card */}
@@ -262,11 +259,6 @@ export default function TokenDetailPage() {
                 {/* Price Chart */}
                 <PriceChart tokenId={tokenId} currentPrice={selectedToken.currentPrice} />
 
-                {/* Graduation Progress - Only for bonding tokens (moved up) */}
-                {!selectedToken.isGraduated && (
-                    <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
-                )}
-
                 {/* Trading Panel - Show different UI based on graduation status (moved up, under graduation progress) */}
                 {selectedToken.isGraduated ? (
                     <GraduatedTrading token={selectedToken} />
@@ -285,7 +277,6 @@ export default function TokenDetailPage() {
                                         value="buy"
                                         className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg"
                                     >
-                                        <Icon icon="solar:bag-smile-bold" className="w-4 h-4" />
                                         Buy
                                     </TabsTrigger>
                                     <TabsTrigger
@@ -293,7 +284,6 @@ export default function TokenDetailPage() {
                                         className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg"
                                         disabled={!position || BigInt(position.balance) <= BigInt(0)}
                                     >
-                                        <Icon icon="solar:hand-money-bold" className="w-4 h-4" />
                                         Sell
                                     </TabsTrigger>
                                 </TabsList>

@@ -45,6 +45,16 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
         token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON
     );
 
+    let marketCapUsd: number | null = null;
+    try {
+        const mcTon = Number(BigInt(token.marketCap || "0")) / 1e9;
+        if (Number.isFinite(mcTon) && Number.isFinite(tonPrice) && tonPrice > 0) {
+            marketCapUsd = mcTon * tonPrice;
+        }
+    } catch {
+        marketCapUsd = null;
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -142,6 +152,11 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                             <span className="text-xs font-bold text-white block">
                                 {formatMarketCap(token.marketCap || "0")}
                             </span>
+                            {marketCapUsd !== null && (
+                                <span className="text-[9px] text-muted-foreground block">
+                                    ~${formatCompactNumber(marketCapUsd, 0)}
+                                </span>
+                            )}
                         </div>
                         <div className="px-3 py-2 bg-white/[0.02]">
                             <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block mb-0.5">Volume (24h)</span>

@@ -136,14 +136,12 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                                 value="buy"
                                 className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg"
                             >
-                                <Icon icon="solar:bag-smile-bold" className="w-4 h-4" />
                                 Buy
                             </TabsTrigger>
                             <TabsTrigger
                                 value="sell"
                                 className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg"
                             >
-                                <Icon icon="solar:hand-money-bold" className="w-4 h-4" />
                                 Sell
                             </TabsTrigger>
                         </TabsList>
@@ -206,10 +204,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                                         Processing...
                                     </>
                                 ) : (
-                                    <>
-                                        <Icon icon="solar:bag-smile-bold" className="w-5 h-5 mr-2" />
-                                        Buy on STON.fi
-                                    </>
+                                    <>Buy on STON.fi</>
                                 )}
                             </Button>
                         </TabsContent>
@@ -269,10 +264,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                                         Processing...
                                     </>
                                 ) : (
-                                    <>
-                                        <Icon icon="solar:hand-money-bold" className="w-5 h-5 mr-2" />
-                                        Sell on STON.fi
-                                    </>
+                                    <>Sell on STON.fi</>
                                 )}
                             </Button>
                         </TabsContent>

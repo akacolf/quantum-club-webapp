@@ -450,14 +450,14 @@ export default function CreateTokenPage() {
 
                         {/* Initial Buy Option */}
                         <Card className="bg-white/5 border-white/10">
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle className="text-white text-base">Initial Buy (Optional)</CardTitle>
-                                        <CardDescription className="text-xs">
-                                            Buy tokens at launch price. Max {MAX_INITIAL_BUY} TON.
-                                        </CardDescription>
-                                    </div>
+                            <CardHeader className="pb-2 relative">
+                                <div className="text-center px-8">
+                                    <CardTitle className="text-white text-base">Initial Buy (Optional)</CardTitle>
+                                    <CardDescription className="text-xs">
+                                        Buy tokens at launch price. Max {MAX_INITIAL_BUY} TON.
+                                    </CardDescription>
+                                </div>
+                                <div className="absolute right-6 top-6">
                                     <Switch
                                         checked={parseFloat(initialBuyAmount || "0") > 0}
                                         onCheckedChange={(checked) => {
@@ -513,10 +513,10 @@ export default function CreateTokenPage() {
                                     )}
 
                                     <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                                        <div className="flex items-start gap-2">
-                                            <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                                        <div className="flex flex-col items-center gap-2 text-center">
+                                            <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-green-400" />
                                             <p className="text-xs text-green-300">
-                                                Initial buy gives you tokens at the lowest price before anyone else can buy. 
+                                                Initial buy gives you tokens at the lowest price before anyone else can buy.
                                                 You&apos;ll be the first holder with {initialBuyAmount} TON worth of tokens.
                                             </p>
                                         </div>

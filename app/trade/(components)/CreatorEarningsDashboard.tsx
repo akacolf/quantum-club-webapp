@@ -137,21 +137,21 @@ export default function CreatorEarningsDashboard() {
     }
 
     return (
-        <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20 overflow-hidden">
+        <Card className="bg-white/5 border-white/10 overflow-hidden">
             <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-white flex items-center gap-2">
-                        <Icon icon="solar:money-bag-bold" className="w-5 h-5 text-amber-400" />
+                        <Icon icon="solar:money-bag-bold" className="w-5 h-5 text-primary" />
                         Creator Earnings
                     </CardTitle>
-                    <Badge className="bg-amber-500/20 text-amber-400 border-0">
+                    <Badge className="bg-primary/15 text-primary border-0">
                         {FEE_CONFIG.creatorFeePercent}% per trade
                     </Badge>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
                 {/* Total Earnings Summary */}
-                <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-muted-foreground mb-1">Total Estimated Earnings</p>
@@ -164,8 +164,8 @@ export default function CreatorEarningsDashboard() {
                                 </p>
                             )}
                         </div>
-                        <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
-                            <Icon icon="solar:wallet-money-bold" className="w-7 h-7 text-amber-400" />
+                        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Icon icon="solar:wallet-money-bold" className="w-7 h-7 text-primary" />
                         </div>
                     </div>
                 </div>
@@ -219,7 +219,7 @@ export default function CreatorEarningsDashboard() {
 
                                     {/* Earnings */}
                                     <div className="text-right">
-                                        <p className="font-medium text-amber-400">
+                                        <p className="font-medium text-primary">
                                             +{formatCompactNumber(token.estimatedEarnings, 4)} TON
                                         </p>
                                         {tonPrice && (
