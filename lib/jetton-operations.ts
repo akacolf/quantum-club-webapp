@@ -18,7 +18,7 @@ import {
 import { TonClient } from "@ton/ton";
 
 // =====================================================
-// Operation Codes (TEP-74 Standard)
+// Operation Codes (TEP-74 Standard + Blum/BigPump Compatible)
 // =====================================================
 export const JettonOps = {
     // Standard TEP-74 ops
@@ -29,10 +29,12 @@ export const JettonOps = {
     BURN: 0x595f07bc,
     BURN_NOTIFICATION: 0x7bdd97de,
 
-    // Custom trading ops (QC RocketStart)
-    BUY: 0x402eff0b,
-    SELL: 0x7a32a8a6,
-    WITHDRAW_FEES: 0x46454553,
+    // Custom trading ops (Blum/BigPump compatible)
+    BUY: 0xaf750d34,            // Buy tokens via bonding curve
+    SELL_REQUEST: 0x742b36d8,   // Sell request (sent to jetton wallet)
+    SELL_NOTIFICATION: 0xb7e76bfd, // Sell notification from wallet to master
+    FEE_COMMENT: 0xfdaa7c9d,    // Fee transfer comment
+    WITHDRAW_FEES: 0x46454553,  // Deprecated - fees sent directly now
     GRADUATE: 0x47524144,
 } as const;
 
@@ -68,7 +70,6 @@ export interface BondingCurveData {
     currentPrice: bigint;
     graduated: boolean;
     graduationTarget: bigint;
-    totalFees: bigint;
 }
 
 export interface TransactionParams {
@@ -287,7 +288,11 @@ export async function getJettonData(
             walletCode,
         };
     } catch (error) {
-        console.error("Failed to get Jetton data:", error);
+        // Exit code -13 means contract doesn't exist - expected for new tokens
+        const errorMessage = error instanceof Error ? error.message : "";
+        if (!errorMessage.includes("exit_code: -13")) {
+            console.error("Failed to get Jetton data:", error);
+        }
         return null;
     }
 }
@@ -314,7 +319,11 @@ export async function getJettonWalletAddress(
 
         return walletAddress?.toString() ?? null;
     } catch (error) {
-        console.error("Failed to get wallet address:", error);
+        // Exit code -13 means contract doesn't exist - this is expected for new tokens
+        const errorMessage = error instanceof Error ? error.message : "";
+        if (!errorMessage.includes("exit_code: -13")) {
+            console.error("Failed to get wallet address:", error);
+        }
         return null;
     }
 }
@@ -342,7 +351,11 @@ export async function getJettonWalletData(
             walletCode,
         };
     } catch (error) {
-        console.error("Failed to get wallet data:", error);
+        // Exit code -13 means contract doesn't exist - this is expected for new tokens
+        const errorMessage = error instanceof Error ? error.message : "";
+        if (!errorMessage.includes("exit_code: -13")) {
+            console.error("Failed to get wallet data:", error);
+        }
         return null;
     }
 }
@@ -373,6 +386,7 @@ export async function getJettonBalance(
 
 /**
  * Get bonding curve data (custom: get_curve_data)
+ * Contract returns: (total_supply, ton_reserve, current_price, graduated, graduation_target)
  */
 export async function getBondingCurveData(
     jettonMasterAddress: string,
@@ -387,7 +401,6 @@ export async function getBondingCurveData(
         const currentPrice = result.stack.readBigNumber();
         const graduated = result.stack.readNumber() === 1;
         const graduationTarget = result.stack.readBigNumber();
-        const totalFees = result.stack.readBigNumber();
 
         return {
             totalSupply,
@@ -395,10 +408,13 @@ export async function getBondingCurveData(
             currentPrice,
             graduated,
             graduationTarget,
-            totalFees,
         };
     } catch (error) {
-        console.error("Failed to get curve data:", error);
+        // Exit code -13 means contract doesn't exist - expected for new tokens
+        const errorMessage = error instanceof Error ? error.message : "";
+        if (!errorMessage.includes("exit_code: -13")) {
+            console.error("Failed to get curve data:", error);
+        }
         return null;
     }
 }

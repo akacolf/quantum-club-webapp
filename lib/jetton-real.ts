@@ -13,7 +13,8 @@ import {
     toNano,
     contractAddress,
     StateInit,
-    storeStateInit
+    storeStateInit,
+    Dictionary
 } from "@ton/core";
 import { TonClient } from "@ton/ton";
 
@@ -43,29 +44,71 @@ export interface JettonDeployResult {
 
 /**
  * Build Jetton metadata content cell (on-chain metadata per TEP-64)
+ * Uses Dictionary with SHA256 key hashes for proper explorer display
  */
 function buildOnChainMetadata(config: JettonDeployConfig): Cell {
-    // On-chain metadata format with key-value dictionary
-    const contentCell = beginCell();
+    // TEP-64 on-chain metadata format requires a dictionary with SHA256 key hashes
 
-    // On-chain metadata indicator
-    contentCell.storeUint(0x00, 8);
+    // Create dictionary with Buffer keys (256-bit SHA256 hashes)
+    const dict = Dictionary.empty(Dictionary.Keys.Buffer(32), Dictionary.Values.Cell());
 
-    // Store metadata as snake format
-    const nameCell = beginCell().storeBuffer(Buffer.from(config.name)).endCell();
-    const symbolCell = beginCell().storeBuffer(Buffer.from(config.symbol)).endCell();
-    const descCell = beginCell().storeBuffer(Buffer.from(config.description)).endCell();
-    const decimalsCell = beginCell().storeUint(config.decimals ?? 9, 8).endCell();
+    // Helper to build snake-format value cell with proper chunking for long strings
+    // Snake format: data split across cells, each cell up to 127 bytes, linked via refs
+    const makeSnakeCell = (data: string): Cell => {
+        const buffer = Buffer.from(data, 'utf-8');
+        const CELL_MAX_SIZE_BYTES = 127; // Safe limit (1023 bits / 8 ≈ 127 bytes)
 
-    // Build dictionary with metadata keys
-    // Keys: 0xffffffff => uri, 0x434 => name, 0x435 => symbol, 0x437 => decimals, 0x436 => description
-    contentCell
-        .storeRef(nameCell)
-        .storeRef(symbolCell)
-        .storeRef(decimalsCell)
-        .storeRef(descCell);
+        if (buffer.length <= CELL_MAX_SIZE_BYTES) {
+            // Short data - fits in one cell
+            return beginCell()
+                .storeBuffer(buffer)
+                .endCell();
+        }
 
-    return contentCell.endCell();
+        // Long data - need to chain cells
+        const chunks: Buffer[] = [];
+        for (let i = 0; i < buffer.length; i += CELL_MAX_SIZE_BYTES) {
+            chunks.push(buffer.subarray(i, Math.min(i + CELL_MAX_SIZE_BYTES, buffer.length)));
+        }
+
+        // Build from last to first (reversed to create chain)
+        let cell: Cell | null = null;
+        for (let i = chunks.length - 1; i >= 0; i--) {
+            const builder = beginCell().storeBuffer(chunks[i]);
+            if (cell) {
+                builder.storeRef(cell);
+            }
+            cell = builder.endCell();
+        }
+
+        return cell!;
+    };
+
+    // Pre-computed SHA256 hashes of standard keys
+    const keyName = Buffer.from("82a3537ff0dbce7eec35d69edc3a189ee6f17d82f353a553f9aa96cb0be3ce89", "hex");
+    const keySymbol = Buffer.from("b76a7ca153c24671658335bbd08946350ffc621fa1c516e7123095d4ffd5c581", "hex");
+    const keyDecimals = Buffer.from("ee80fd2f1e03480e2282363596ee752d7bb27f50776b95086a0279189675923e", "hex");
+    const keyDescription = Buffer.from("c9046f7a37ad0ea7cee73355984fa5428982f8b37c8f7bcec91f7ac71a7cd104", "hex");
+    const keyImage = Buffer.from("6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d", "hex");
+
+    // Add metadata entries
+    dict.set(keyName, makeSnakeCell(config.name));
+    dict.set(keySymbol, makeSnakeCell(config.symbol));
+    dict.set(keyDecimals, makeSnakeCell(String(config.decimals ?? 9)));
+
+    if (config.description) {
+        dict.set(keyDescription, makeSnakeCell(config.description));
+    }
+
+    if (config.image) {
+        dict.set(keyImage, makeSnakeCell(config.image));
+    }
+
+    // Build content cell: 0x00 prefix (on-chain) + dictionary
+    return beginCell()
+        .storeUint(0x00, 8) // On-chain metadata indicator
+        .storeDict(dict)
+        .endCell();
 }
 
 /**
@@ -82,25 +125,24 @@ export function buildOffChainMetadata(metadataUri: string): Cell {
  * Build Jetton minter initial data cell
  * Must match the load_data() layout in jetton_master.fc exactly:
  *   total_supply, mintable, admin_address, creator_address,
- *   content, wallet_code, ton_reserve, platform_fees,
- *   creator_fees, graduated, graduation_target
+ *   content, wallet_code, ton_reserve, graduated, graduation_target
+ * 
+ * Note: Fees are sent directly during transactions (Blum/BigPump pattern)
  */
 function buildJettonMinterData(
-    config: JettonDeployConfig, 
+    config: JettonDeployConfig,
     walletCode: Cell,
     platformAddress: Address
 ): Cell {
     return beginCell()
         .storeCoins(config.totalSupply ?? BigInt(0))  // total_supply (0 initially)
-        .storeInt(1, 1)                               // mintable (1 = true)
+        .storeBit(true)                               // mintable (true = can mint)
         .storeAddress(platformAddress)                // admin_address (PLATFORM wallet for fees)
         .storeAddress(config.owner)                   // creator_address (token creator)
         .storeRef(buildOnChainMetadata(config))       // jetton_content
         .storeRef(walletCode)                         // jetton_wallet_code
         .storeCoins(0)                                // ton_reserve (starts at 0)
-        .storeCoins(0)                                // platform_fees (starts at 0)
-        .storeCoins(0)                                // creator_fees (starts at 0)
-        .storeInt(0, 1)                               // graduated (0 = not graduated)
+        .storeBit(false)                              // graduated (false = not graduated)
         .storeCoins(toNano("2000"))                   // graduation_target (2000 TON)
         .endCell();
 }

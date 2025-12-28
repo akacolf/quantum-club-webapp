@@ -5,18 +5,20 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
-import { Cell } from "@ton/core";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { PLATFORM_WALLET_ADDRESS, TOTAL_CREATION_FEE, FEE_CONFIG } from "@/lib/platform-config";
+import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 
 export default function CreateTokenPage() {
     const router = useRouter();
@@ -35,6 +37,7 @@ export default function CreateTokenPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [initialBuyAmount, setInitialBuyAmount] = useState("");
     const [formData, setFormData] = useState({
         name: "",
         symbol: "",
@@ -64,9 +67,23 @@ export default function CreateTokenPage() {
             newErrors.description = "Description must be 500 characters or less";
         }
 
+        // Validate initial buy amount
+        const buyAmount = parseFloat(initialBuyAmount || "0");
+        if (buyAmount > 0) {
+            if (buyAmount < MIN_INITIAL_BUY) {
+                newErrors.initialBuy = `Minimum initial buy is ${MIN_INITIAL_BUY} TON`;
+            } else if (buyAmount > MAX_INITIAL_BUY) {
+                newErrors.initialBuy = `Maximum initial buy is ${MAX_INITIAL_BUY} TON`;
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
+
+    // Calculate total cost including initial buy
+    const initialBuyValue = parseFloat(initialBuyAmount || "0");
+    const totalCost = TOTAL_CREATION_FEE + (initialBuyValue > 0 ? initialBuyValue : 0);
 
     // Compress image to fit within Firestore limits (< 1MB)
     const compressImage = (file: File, maxSize: number = 512): Promise<string> => {
@@ -202,7 +219,7 @@ export default function CreateTokenPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!walletAddress) {
+        if (!walletAddress || walletAddress === "") {
             toast.error("Please connect your wallet first");
             router.push("/wallet");
             return;
@@ -212,11 +229,11 @@ export default function CreateTokenPage() {
             return;
         }
 
-        // Check balance for creation + deployment fee
+        // Check balance for creation + deployment fee + initial buy
         const balance = parseFloat(tonBalance || "0");
 
-        if (balance < TOTAL_CREATION_FEE) {
-            toast.error(`Insufficient balance. Need ${TOTAL_CREATION_FEE.toFixed(2)} TON to create and deploy a token.`);
+        if (balance < totalCost) {
+            toast.error(`Insufficient balance. Need ${totalCost.toFixed(2)} TON (${TOTAL_CREATION_FEE} creation + ${initialBuyValue > 0 ? initialBuyValue + " initial buy" : "no initial buy"}).`);
             return;
         }
 
@@ -237,105 +254,29 @@ export default function CreateTokenPage() {
                 return;
             }
 
-            toast.info("Creating token...", { duration: 2000 });
+            toast.info("Creating and deploying token...", { duration: 3000 });
 
-            // Step 2: Create token in database
+            // Step 2: Create token and deploy on-chain via TradingContext
+            // This handles: API call, deployment tx, and confirmation
             const token = await createToken({
                 name: formData.name.trim(),
                 symbol: formData.symbol.trim().toUpperCase(),
                 description: formData.description.trim(),
                 image: formData.image.trim(),
+                initialBuyAmount: initialBuyValue > 0 ? initialBuyAmount : undefined,
             });
 
             if (!token) {
                 toast.error("Failed to create token. Please try again.");
+                setIsLoading(false);
                 return;
             }
 
-            toast.info("Deploying to TON blockchain...", { duration: 3000 });
-
-            // Step 2: Deploy on-chain via API
-            const deployResponse = await fetch("/api/deploy-jetton", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    tokenId: token.id,
-                    creatorAddress: walletAddress,
-                }),
+            toast.success(`${token.symbol} created and deployed on TON! 🚀`, {
+                description: token.jettonMasterAddress
+                    ? `Contract: ${token.jettonMasterAddress.slice(0, 12)}...${initialBuyValue > 0 ? ` + ${initialBuyValue} TON initial buy` : ""}`
+                    : "Deployment in progress...",
             });
-
-            if (!deployResponse.ok) {
-                const error = await deployResponse.json();
-                toast.error(error.error || "Failed to prepare deployment");
-                // Token was created but not deployed - still redirect
-                router.push(`/trade/${token.id}`);
-                return;
-            }
-
-            const { jettonAddress, deployTx } = await deployResponse.json();
-
-            // Step 3: Send deployment transaction using QC Wallet
-            toast.info("Deploying contract to TON blockchain...", { duration: 3000 });
-
-            // Parse stateInit from base64 if provided
-            let stateInitCell: Cell | undefined;
-            if (deployTx.stateInit) {
-                try {
-                    stateInitCell = Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0];
-                } catch (e) {
-                    console.error("Failed to parse stateInit:", e);
-                }
-            }
-
-            // Parse body from base64 if provided
-            let bodyCell: Cell | undefined;
-            if (deployTx.body) {
-                try {
-                    bodyCell = Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0];
-                } catch (e) {
-                    console.error("Failed to parse body:", e);
-                }
-            }
-
-            const txResult = await sendTransaction({
-                to: jettonAddress,
-                value: deployTx.value, // 0.15 TON for deployment
-                body: bodyCell,
-                stateInit: stateInitCell,
-            });
-
-            if (!txResult.success) {
-                toast.warning(`Token created but deployment failed: ${txResult.error}`, {
-                    description: "You can deploy it later from the token page.",
-                    duration: 5000,
-                });
-                router.push(`/trade/${token.id}`);
-                return;
-            }
-
-            // Wait for transaction to propagate
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // Step 4: Confirm deployment
-            const confirmResponse = await fetch("/api/deploy-jetton", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    tokenId: token.id,
-                    jettonAddress,
-                    txHash: txResult.txHash,
-                }),
-            });
-
-            if (confirmResponse.ok) {
-                toast.success(`${token.symbol} created and deployed on TON! 🚀`, {
-                    description: `Contract: ${jettonAddress.slice(0, 12)}...`,
-                });
-            } else {
-                toast.success("Token created! Deployment confirmed.", {
-                    duration: 4000,
-                });
-            }
 
             // Refresh token list so the new token appears
             refreshTokens();
@@ -386,7 +327,7 @@ export default function CreateTokenPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-400" />
-                                    <span className="text-xs text-muted-foreground">{FEE_CONFIG.creatorSharePercent}% Creator Fee</span>
+                                    <span className="text-xs text-muted-foreground">{FEE_CONFIG.creatorFeePercent}% Creator Fee</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -455,7 +396,7 @@ export default function CreateTokenPage() {
                                     <Input
                                         id="name"
                                         type="text"
-                                        placeholder="e.g., Quantum Coin"
+                                        placeholder="e.g., Quantum Club"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${errors.name ? "border-red-500" : ""
@@ -507,18 +448,124 @@ export default function CreateTokenPage() {
                             </CardContent>
                         </Card>
 
+                        {/* Initial Buy Option */}
+                        <Card className="bg-white/5 border-white/10">
+                            <CardHeader className="pb-2">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-white text-base">Initial Buy (Optional)</CardTitle>
+                                        <CardDescription className="text-xs">
+                                            Buy tokens at launch price. Max {MAX_INITIAL_BUY} TON.
+                                        </CardDescription>
+                                    </div>
+                                    <Switch
+                                        checked={parseFloat(initialBuyAmount || "0") > 0}
+                                        onCheckedChange={(checked) => {
+                                            if (!checked) setInitialBuyAmount("");
+                                            else setInitialBuyAmount("1");
+                                        }}
+                                    />
+                                </div>
+                            </CardHeader>
+                            {parseFloat(initialBuyAmount || "0") > 0 || initialBuyAmount !== "" ? (
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <Label className="text-muted-foreground">Amount (TON)</Label>
+                                            <span className="text-white font-medium">{initialBuyAmount || "0"} TON</span>
+                                        </div>
+                                        <Slider
+                                            value={[parseFloat(initialBuyAmount || "0")]}
+                                            onValueChange={([value]) => setInitialBuyAmount(value.toString())}
+                                            min={0}
+                                            max={MAX_INITIAL_BUY}
+                                            step={1}
+                                            className="w-full"
+                                        />
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>0 TON</span>
+                                            <span>{MAX_INITIAL_BUY} TON</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Quick amount buttons */}
+                                    <div className="flex gap-2">
+                                        {[1, 5, 10, 25, 50].map((amount) => (
+                                            <Button
+                                                key={amount}
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setInitialBuyAmount(amount.toString())}
+                                                className={`flex-1 h-8 text-xs ${
+                                                    parseFloat(initialBuyAmount) === amount
+                                                        ? "bg-primary/20 border-primary text-primary"
+                                                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                                                }`}
+                                            >
+                                                {amount}
+                                            </Button>
+                                        ))}
+                                    </div>
+
+                                    {errors.initialBuy && (
+                                        <p className="text-xs text-red-400">{errors.initialBuy}</p>
+                                    )}
+
+                                    <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                                        <div className="flex items-start gap-2">
+                                            <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                                            <p className="text-xs text-green-300">
+                                                Initial buy gives you tokens at the lowest price before anyone else can buy. 
+                                                You&apos;ll be the first holder with {initialBuyAmount} TON worth of tokens.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            ) : null}
+                        </Card>
+
+                        {/* Token Info */}
+                        <Card className="bg-white/5 border-white/10">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">Token Details</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="p-2 rounded-lg bg-white/5">
+                                        <p className="text-muted-foreground mb-1">Max Supply</p>
+                                        <p className="text-white font-medium">{MAX_SUPPLY_FORMATTED}</p>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-white/5">
+                                        <p className="text-muted-foreground mb-1">Decimals</p>
+                                        <p className="text-white font-medium">9</p>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-white/5">
+                                        <p className="text-muted-foreground mb-1">Graduation</p>
+                                        <p className="text-white font-medium">2,000 TON</p>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-white/5">
+                                        <p className="text-muted-foreground mb-1">DEX</p>
+                                        <p className="text-white font-medium">STON.fi</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         {/* Fee Info */}
                         <Alert className="bg-white/5 border-white/10">
                             <Icon icon="solar:info-circle-bold" className="w-4 h-4" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-white">Total Fee: {TOTAL_CREATION_FEE} TON</span>
+                                <span className="font-medium text-white">Total Cost: {totalCost.toFixed(2)} TON</span>
                                 <br />
                                 <span className="text-xs">
-                                    Creation: {FEE_CONFIG.tokenCreation} TON + Blockchain Deploy: {FEE_CONFIG.tokenDeployment} TON
+                                    Creation: {FEE_CONFIG.tokenCreation} TON + Deploy: {FEE_CONFIG.tokenDeployment} TON
+                                    {initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
                                 </span>
                                 <br />
                                 <span className="text-xs">
-                                    Trading Fee: {FEE_CONFIG.tradingFeePercent}% (split between platform and you)
+                                    Trading Fee: {FEE_CONFIG.totalTradingFeePercent}% ({FEE_CONFIG.platformFeePercent}% platform + {FEE_CONFIG.creatorFeePercent}% to you)
                                 </span>
                             </AlertDescription>
                         </Alert>
@@ -529,17 +576,17 @@ export default function CreateTokenPage() {
                         <Button
                             type="submit"
                             className="w-full h-12 bg-white hover:bg-white/90 text-black font-semibold"
-                            disabled={isLoading || !walletAddress}
+                            disabled={isLoading || !walletAddress || walletAddress === ""}
                         >
                             {isLoading ? (
                                 <>
                                     <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
                                     Creating token...
                                 </>
-                            ) : !walletAddress ? (
+                            ) : (!walletAddress || walletAddress === "") ? (
                                 <>
                                     <Icon icon="solar:wallet-bold" className="w-5 h-5 mr-2" />
-                                    Connect QC wallet first
+                                    Connect QC Wallet first
                                 </>
                             ) : (
                                 <>

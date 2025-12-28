@@ -134,16 +134,21 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             symbolLower: (data.symbolLower as string) || (data.symbol as string || "").toLowerCase(),
             description: data.description as string || "",
             image: data.image as string || "",
-            creatorId: data.creatorId as string || "",
-            creatorWallet: data.creatorWallet as string || "",
+            creatorId: data.creatorId as string || data.creatorUserId as string || "",
+            creatorWallet: data.creatorWallet as string || data.creatorAddress as string || "",
             creatorUsername: data.creatorUsername as string || "",
 
             // On-chain data (fetched from blockchain)
             jettonMasterAddress: data.jettonMasterAddress as string || "",
             isOnChain: data.isOnChain as boolean || false,
 
-            // Cached from blockchain (updated by indexer)
+            // Supply info
+            maxSupply: data.maxSupply as string || "1000000000000000000", // 1B * 10^9
             totalSupply: data.totalSupply as string || "0",
+            circulatingSupply: data.circulatingSupply as string || data.totalSupply as string || "0",
+            tonReserve: data.tonReserve as string || data.marketCap as string || "0",
+
+            // Price data
             currentPrice: data.currentPrice as string || "0",
             marketCap: data.marketCap as string || "0",
 
@@ -152,6 +157,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             trades: data.trades as number || 0,
             volume24h: data.volume24h as number || 0,
             priceChange24h: data.priceChange24h as number || 0,
+
+            // Creator earnings
+            creatorEarnings: data.creatorEarnings as string || "0",
 
             // Bonding curve config
             bondingCurve: (data.bondingCurve as { basePrice: string; slope: string }) || DEFAULT_BONDING_CURVE,
@@ -305,7 +313,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 } catch (error) {
                     // Contract may not be fully deployed yet or may not have get_curve_data method
                     // This is expected for newly deployed tokens - use cached Firestore data
-                    console.warn("Could not fetch on-chain data (contract may still be deploying):", 
+                    console.warn("Could not fetch on-chain data (contract may still be deploying):",
                         error instanceof Error ? error.message : error);
                 }
             }
@@ -317,7 +325,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     }, [docToToken, tonClient]);
 
     // =====================================================
-    // Preview Buy (on-chain query)
+    // Preview Buy (on-chain query with local fallback)
     // =====================================================
     const previewBuy = useCallback(async (
         tokenId: string,
@@ -331,21 +339,39 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             if (!token.jettonMasterAddress) return null;
 
             const tonNano = toNano(tonAmount);
+            const tonAmountNum = parseFloat(tonAmount);
 
-            // Query on-chain preview
-            const tokensOut = await previewBuyOnChain(
+            // Try on-chain preview first
+            let tokensOut = await previewBuyOnChain(
                 token.jettonMasterAddress,
                 tonNano,
                 tonClient
             );
 
+            // If on-chain preview fails, use local bonding curve calculation
+            if (tokensOut === BigInt(0)) {
+                // Apply trading fee first (1% platform + 0.5% creator = 1.5% total)
+                const feePercent = FEE_CONFIG.totalTradingFeePercent / 100;
+                const tonAfterFee = tonAmountNum * (1 - feePercent);
+
+                // Simple linear bonding curve approximation:
+                // tokens = tonAmount / currentPrice
+                const currentPrice = Number(token.currentPrice || "1000000") / 1e9; // in TON
+                if (currentPrice > 0) {
+                    const tokensNumeric = tonAfterFee / currentPrice;
+                    tokensOut = BigInt(Math.floor(tokensNumeric * 1e9)); // Convert to nano-tokens
+                }
+            }
+
             if (tokensOut === BigInt(0)) return null;
 
-            const fee = (parseFloat(tonAmount) * FEE_CONFIG.tradingFeePercent / 100).toFixed(4);
-            const avgPrice = (parseFloat(tonAmount) / parseFloat(formatTokenAmount(tokensOut))).toFixed(9);
+            const fee = (tonAmountNum * FEE_CONFIG.totalTradingFeePercent / 100).toFixed(4);
+            const tokensFormatted = formatTokenAmount(tokensOut);
+            const tokensNum = parseFloat(tokensFormatted);
+            const avgPrice = tokensNum > 0 ? (tonAmountNum / tokensNum).toFixed(9) : "0";
 
             return {
-                tokensReceived: formatTokenAmount(tokensOut),
+                tokensReceived: tokensFormatted,
                 averagePrice: avgPrice,
                 fee,
                 newPrice: avgPrice, // Approximate
@@ -357,7 +383,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     }, [docToToken, tonClient]);
 
     // =====================================================
-    // Preview Sell (on-chain query)
+    // Preview Sell (on-chain query with local fallback)
     // =====================================================
     const previewSell = useCallback(async (
         tokenId: string,
@@ -371,21 +397,36 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             if (!token.jettonMasterAddress) return null;
 
             const tokenNano = parseTokenAmount(tokenAmount);
+            const tokenAmountNum = parseFloat(tokenAmount);
 
-            // Query on-chain preview
-            const tonOut = await previewSellOnChain(
+            // Try on-chain preview first
+            let tonOut = await previewSellOnChain(
                 token.jettonMasterAddress,
                 tokenNano,
                 tonClient
             );
 
+            // If on-chain preview fails, use local bonding curve calculation
+            if (tonOut === BigInt(0)) {
+                // Simple linear bonding curve approximation:
+                // tonOut = tokens * currentPrice * (1 - fee)
+                const currentPrice = Number(token.currentPrice || "1000000") / 1e9; // in TON
+                if (currentPrice > 0) {
+                    const feePercent = FEE_CONFIG.totalTradingFeePercent / 100;
+                    const tonNumeric = tokenAmountNum * currentPrice * (1 - feePercent);
+                    tonOut = BigInt(Math.floor(tonNumeric * 1e9)); // Convert to nano-TON
+                }
+            }
+
             if (tonOut === BigInt(0)) return null;
 
-            const fee = (parseFloat(formatTokenAmount(tonOut)) * FEE_CONFIG.tradingFeePercent / 100).toFixed(4);
-            const avgPrice = (parseFloat(formatTokenAmount(tonOut)) / parseFloat(tokenAmount)).toFixed(9);
+            const tonFormatted = formatTokenAmount(tonOut);
+            const tonNum = parseFloat(tonFormatted);
+            const fee = (tonNum * FEE_CONFIG.totalTradingFeePercent / 100).toFixed(4);
+            const avgPrice = tokenAmountNum > 0 ? (tonNum / tokenAmountNum).toFixed(9) : "0";
 
             return {
-                tonReceived: formatTokenAmount(tonOut),
+                tonReceived: tonFormatted,
                 averagePrice: avgPrice,
                 fee,
                 newPrice: avgPrice,
@@ -428,7 +469,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             // Preview buy to calculate expected tokens
             const preview = await previewBuy(tokenId, tonAmount);
             let minTokensOut = BigInt(0);
-            
+
             if (preview && preview.tokensReceived) {
                 // Calculate minimum tokens with slippage tolerance
                 const expectedTokens = BigInt(Math.floor(parseFloat(preview.tokensReceived) * 1e9));
@@ -565,7 +606,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
-            // Call API to prepare deployment
+            // Call API to prepare deployment package (creates Firestore doc + returns deployment tx)
             const response = await fetch("/api/deploy-jetton", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -579,46 +620,93 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             });
 
             if (!response.ok) {
-                console.error("Deployment preparation failed");
+                const responseText = await response.text();
+                let errorData = {};
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch {
+                    console.error("Token creation failed - raw response:", response.status, responseText);
+                }
+                console.error("Token creation failed:", response.status, errorData);
                 return null;
             }
 
-            const { tokenId, jettonAddress, deployTx } = await response.json();
+            const { tokenId, jettonAddress, deployTx, success } = await response.json();
 
-            // Parse stateInit and body from API response
-            let stateInitCell: Cell | undefined;
-            let bodyCell: Cell | undefined;
-
-            if (deployTx.stateInit) {
-                stateInitCell = Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0];
-            }
-            if (deployTx.body) {
-                bodyCell = Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0];
-            }
-
-            // Send deployment transaction
-            const result = await sendTransaction({
-                to: jettonAddress,
-                value: deployTx.value,
-                body: bodyCell,
-                stateInit: stateInitCell,
+            console.log("Token prepared:", {
+                tokenId,
+                jettonAddress,
+                success,
+                hasDeployTx: !!deployTx,
             });
 
-            if (!result.success) {
-                console.error("Deployment transaction failed:", result.error);
+            if (!success || !deployTx) {
                 return null;
             }
 
-            // Confirm deployment
-            await fetch("/api/deploy-jetton", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    tokenId,
-                    jettonAddress,
-                    txHash: result.txHash,
-                }),
-            });
+            // Send deployment transaction from user's wallet (client-side)
+            // This ensures the token is actually deployed on-chain
+            try {
+                // Parse the base64-encoded stateInit and body cells
+                const stateInitCell = deployTx.stateInit 
+                    ? Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0] 
+                    : undefined;
+                const bodyCell = deployTx.body 
+                    ? Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0] 
+                    : undefined;
+
+                console.log("Sending deployment transaction:", {
+                    to: deployTx.to,
+                    value: deployTx.value,
+                    hasStateInit: !!stateInitCell,
+                    hasBody: !!bodyCell,
+                });
+
+                const txResult = await sendTransaction({
+                    to: deployTx.to,
+                    value: deployTx.value,
+                    stateInit: stateInitCell,
+                    body: bodyCell,
+                });
+
+                if (txResult.success) {
+                    console.log("Deployment transaction sent successfully:", txResult.txHash);
+                    
+                    // Confirm deployment to update Firestore
+                    await fetch("/api/deploy-jetton", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            tokenId,
+                            jettonAddress,
+                            txHash: txResult.txHash,
+                        }),
+                    }).catch(console.error);
+
+                    // If initial buy is specified, execute it after deployment
+                    if (params.initialBuyAmount && parseFloat(params.initialBuyAmount) > 0) {
+                        console.log("Executing initial buy:", params.initialBuyAmount, "TON");
+                        
+                        // Wait a moment for deployment to be confirmed
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        
+                        // Execute initial buy
+                        const buyResult = await buyTokens(tokenId, params.initialBuyAmount);
+                        if (buyResult.success) {
+                            console.log("Initial buy successful:", buyResult.txHash);
+                        } else {
+                            console.warn("Initial buy failed (token still created):", buyResult.error);
+                        }
+                    }
+                } else {
+                    console.error("Deployment transaction failed:", txResult.error);
+                    // Token doc was created, but deployment failed
+                    // The server-side fallback may still deploy it
+                }
+            } catch (deployError) {
+                console.error("Failed to send deployment transaction:", deployError);
+                // Continue anyway - server-side deployment may succeed
+            }
 
             // Return the created token
             const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
@@ -631,7 +719,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             console.error("Create token error:", error);
             return null;
         }
-    }, [walletAddress, telegramId, docToToken, sendTransaction]);
+    }, [walletAddress, telegramId, docToToken, sendTransaction, buyTokens]);
 
     // =====================================================
     // Get position helper

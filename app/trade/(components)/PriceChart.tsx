@@ -68,6 +68,17 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                         priceUsd: currentPriceNum * (tonPrice || 5),
                     });
                 }
+
+                // If there's only one point (current price), add a starting point for new tokens
+                // This ensures the chart is always visible
+                if (prices.length === 1) {
+                    // Add a starting point 1 hour ago with the same initial price
+                    prices.unshift({
+                        timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+                        price: currentPriceNum,
+                        priceUsd: currentPriceNum * (tonPrice || 5),
+                    });
+                }
             }
 
             setPriceHistory(prices);

@@ -563,12 +563,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [walletAddress]);
 
+  // Sync wallet address from localStorage on mount (for SSR hydration)
   useEffect(() => {
     const storedWallet = localStorage.getItem("quantum_wallet_address");
     if (storedWallet && storedWallet !== walletAddress) {
       setWalletAddress(storedWallet);
     }
-  }, [walletAddress]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
 
   useEffect(() => {
     if (walletAddress && !hasFetched) {
@@ -583,6 +585,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     body?: Cell;
     stateInit?: Cell;
   }): Promise<{ success: boolean; txHash?: string; error?: string }> => {
+    console.log("=== sendTransaction called ===", {
+      to: params.to,
+      value: params.value,
+      hasBody: !!params.body,
+      hasStateInit: !!params.stateInit,
+    });
+
     const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
     const storedVersion = localStorage.getItem("quantum_wallet_version") || "v5r1";
 
@@ -647,8 +656,45 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       // Create and send transfer with retry logic
       retries = 3;
+
+      const senderAddress = wallet.address.toString({ bounceable: false, testOnly: isTestnet });
+      console.log("Sending transaction:", {
+        from: senderAddress,
+        to: params.to,
+        value: params.value,
+        hasBody: !!params.body,
+        hasStateInit: !!params.stateInit,
+        seqno,
+        isTestnet,
+      });
+
+      // Parse stateInit if provided
+      let init: { code: import("@ton/core").Cell; data: import("@ton/core").Cell } | undefined;
+      if (params.stateInit) {
+        try {
+          console.log("Attempting to parse stateInit, cell bits:", params.stateInit.bits.length);
+          const parsedInit = loadStateInit(params.stateInit.beginParse());
+          // Ensure code and data are defined
+          if (!parsedInit.code || !parsedInit.data) {
+            console.error("stateInit missing code or data");
+            return { success: false, error: "stateInit missing required code or data" };
+          }
+          init = { code: parsedInit.code, data: parsedInit.data };
+          console.log("Parsed stateInit successfully:", {
+            hasCode: !!init.code,
+            hasData: !!init.data,
+            codeHash: init.code.hash().toString("hex").slice(0, 16) + "...",
+            dataHash: init.data.hash().toString("hex").slice(0, 16) + "...",
+          });
+        } catch (parseError) {
+          console.error("Failed to parse stateInit:", parseError);
+          return { success: false, error: "Failed to parse stateInit: " + (parseError instanceof Error ? parseError.message : String(parseError)) };
+        }
+      }
+
       while (retries > 0) {
         try {
+          console.log("Attempting sendTransfer with seqno:", seqno, "retries left:", retries);
           await contract.sendTransfer({
             seqno,
             secretKey: keyPair.secretKey,
@@ -658,14 +704,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 to: toAddress,
                 value: BigInt(params.value),
                 body: params.body,
-                // Parse stateInit Cell back to StateInit object using loadStateInit
-                init: params.stateInit ? loadStateInit(params.stateInit.beginParse()) : undefined,
+                init: init,
                 bounce: false,
               }),
             ],
           });
+          console.log("Transaction sent successfully with seqno:", seqno);
           break;
         } catch (err) {
+          console.error("sendTransfer error:", err);
           const error = err as { response?: { status?: number } };
           if (error?.response?.status === 429 && retries > 1) {
             // Wait and retry for rate limit

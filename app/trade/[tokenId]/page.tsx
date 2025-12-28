@@ -21,7 +21,9 @@ import LiveTrades from "@/app/trade/(components)/LiveTrades";
 import PriceChart from "@/app/trade/(components)/PriceChart";
 import GraduatedTrading from "@/app/trade/(components)/GraduatedTrading";
 import GraduationProgress from "@/app/trade/(components)/GraduationProgress";
-import { DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
+import SupplyInfo from "@/app/trade/(components)/SupplyInfo";
+import SlippageSettings from "@/app/trade/(components)/SlippageSettings";
+import { DEFAULT_GRADUATION_THRESHOLD_TON, DEFAULT_SLIPPAGE } from "@/types/trading";
 import ImageViewer from "@/components/ui/image-viewer";
 
 export default function TokenDetailPage() {
@@ -50,6 +52,7 @@ export default function TokenDetailPage() {
     const [activeTab, setActiveTab] = useState("buy");
     const [amount, setAmount] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [slippage, setSlippage] = useState(DEFAULT_SLIPPAGE);
     const [preview, setPreview] = useState<{
         tokensReceived?: string;
         tonReceived?: string;
@@ -192,31 +195,7 @@ export default function TokenDetailPage() {
             </div>
 
             <div className="px-4 py-4 space-y-4">
-                {/* Price Card */}
-                <Card className="bg-white/5 border-white/10 overflow-hidden">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                    <Icon icon="solar:tag-price-bold" className="w-5 h-5 text-primary" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Current Price</p>
-                                    <p className="text-xl font-bold text-white">
-                                        {formatPrice(BigInt(selectedToken.currentPrice || "0"))} TON
-                                    </p>
-                                </div>
-                            </div>
-                            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-                                }`}>
-                                <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-3 h-3" />
-                                {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)}%
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Contract Address */}
+                {/* Contract Address - First */}
                 {selectedToken.jettonMasterAddress && (
                     <Card className="bg-white/5 border-white/10 overflow-hidden">
                         <CardContent className="p-3">
@@ -256,10 +235,207 @@ export default function TokenDetailPage() {
                     </Card>
                 )}
 
+                {/* Price Card */}
+                <Card className="bg-white/5 border-white/10 overflow-hidden">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Icon icon="solar:tag-price-bold" className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Current Price</p>
+                                    <p className="text-xl font-bold text-white">
+                                        {formatPrice(BigInt(selectedToken.currentPrice || "0"))} TON
+                                    </p>
+                                </div>
+                            </div>
+                            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                                }`}>
+                                <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-3 h-3" />
+                                {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)}%
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Price Chart */}
                 <PriceChart tokenId={tokenId} currentPrice={selectedToken.currentPrice} />
 
-                {/* Stats Card */}
+                {/* Graduation Progress - Only for bonding tokens (moved up) */}
+                {!selectedToken.isGraduated && (
+                    <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
+                )}
+
+                {/* Trading Panel - Show different UI based on graduation status (moved up, under graduation progress) */}
+                {selectedToken.isGraduated ? (
+                    <GraduatedTrading token={selectedToken} />
+                ) : (
+                    <Card className="bg-white/5 border-white/10 overflow-hidden">
+                        <CardContent className="p-4">
+                            {/* Header with Slippage Settings */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-medium text-white">Trade</h3>
+                                <SlippageSettings value={slippage} onChange={setSlippage} />
+                            </div>
+
+                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); }}>
+                                <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
+                                    <TabsTrigger
+                                        value="buy"
+                                        className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg"
+                                    >
+                                        <Icon icon="solar:bag-smile-bold" className="w-4 h-4" />
+                                        Buy
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="sell"
+                                        className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg"
+                                        disabled={!position || BigInt(position.balance) <= BigInt(0)}
+                                    >
+                                        <Icon icon="solar:hand-money-bold" className="w-4 h-4" />
+                                        Sell
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="buy" className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <label className="text-sm text-muted-foreground">Amount (TON)</label>
+                                            <span className="text-sm text-muted-foreground">
+                                                Balance: {parseFloat(tonBalance || "0").toFixed(2)} TON
+                                            </span>
+                                        </div>
+                                        <Input
+                                            type="number"
+                                            placeholder="0.0"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            className="bg-white/5 border-white/10 text-white text-lg h-12"
+                                        />
+                                        <div className="flex gap-2 mt-2">
+                                            {quickAmounts.map((value) => (
+                                                <Button
+                                                    key={value}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleQuickAmount(value)}
+                                                    className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                                                >
+                                                    {value}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {preview && (
+                                        <div className="p-3 rounded-lg bg-white/5 space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">You receive</span>
+                                                <span className="text-white font-medium">
+                                                    ~{(Number(preview.tokensReceived) / 1e9).toLocaleString()} {selectedToken.symbol}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Price per token</span>
+                                                <span className="text-white">{preview.averagePrice} TON</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Fee (1.5%)</span>
+                                                <span className="text-white">{preview.fee} TON</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-semibold"
+                                        onClick={handleTrade}
+                                        disabled={isLoading || !amount || parseFloat(amount) <= 0}
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Buy {selectedToken.symbol}
+                                            </>
+                                        )}
+                                    </Button>
+                                </TabsContent>
+
+                                <TabsContent value="sell" className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <label className="text-sm text-muted-foreground">Amount (Tokens)</label>
+                                            <span className="text-sm text-muted-foreground">
+                                                Available: {(Number(availableToSell || 0) / 1e9).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            className="bg-white/5 border-white/10 text-white text-lg h-12"
+                                        />
+                                        <div className="flex gap-2 mt-2">
+                                            {quickAmounts.map((value) => (
+                                                <Button
+                                                    key={value}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleQuickAmount(value)}
+                                                    className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                                                >
+                                                    {value}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                        {/* Sell info */}
+                                    </div>
+
+                                    {preview && (
+                                        <div className="p-3 rounded-lg bg-white/5 space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">You receive</span>
+                                                <span className="text-white font-medium">{preview.tonReceived} TON</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Price per token</span>
+                                                <span className="text-white">{preview.averagePrice} TON</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Fee (1.5%)</span>
+                                                <span className="text-white">{preview.fee} TON</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-semibold"
+                                        onClick={handleTrade}
+                                        disabled={isLoading || !amount || parseFloat(amount) <= 0}
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Sell {selectedToken.symbol}
+                                            </>
+                                        )}
+                                    </Button>
+                                </TabsContent>
+                            </Tabs>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Stats Card (moved below trading panel) */}
                 <Card className="bg-white/5 border-white/10 overflow-hidden">
                     <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-3">
@@ -275,6 +451,9 @@ export default function TokenDetailPage() {
                                     <p className="text-[10px] text-muted-foreground">MCap</p>
                                     <p className="text-xs font-semibold text-white">
                                         {formatMarketCap(selectedToken.marketCap || "0")}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                        ${formatCompactNumber((Number(selectedToken.marketCap || "0") / 1e9) * (tonPrice || 5), 2)}
                                     </p>
                                 </div>
                             </div>
@@ -343,6 +522,9 @@ export default function TokenDetailPage() {
                     </CardContent>
                 </Card>
 
+                {/* Supply Info */}
+                <SupplyInfo token={selectedToken} />
+
                 {/* Live Trades */}
                 <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} />
 
@@ -379,172 +561,6 @@ export default function TokenDetailPage() {
                                     <p className="text-[10px] text-muted-foreground">TON</p>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
-                {/* Graduation Progress - Only for bonding tokens */}
-                {!selectedToken.isGraduated && (
-                    <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
-                )}
-
-                {/* Trading Panel - Show different UI based on graduation status */}
-                {selectedToken.isGraduated ? (
-                    <GraduatedTrading token={selectedToken} />
-                ) : (
-                    <Card className="bg-white/5 border-white/10 overflow-hidden">
-                        <CardContent className="p-4">
-                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); }}>
-                                <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
-                                    <TabsTrigger
-                                        value="buy"
-                                        className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg"
-                                    >
-                                        <Icon icon="solar:bag-smile-bold" className="w-4 h-4" />
-                                        Buy
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                        value="sell"
-                                        className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg"
-                                        disabled={!position || BigInt(position.balance) <= BigInt(0)}
-                                    >
-                                        <Icon icon="solar:hand-money-bold" className="w-4 h-4" />
-                                        Sell
-                                    </TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="buy" className="space-y-4">
-                                    <div>
-                                        <div className="flex justify-between mb-2">
-                                            <label className="text-sm text-muted-foreground">Amount (TON)</label>
-                                            <span className="text-sm text-muted-foreground">
-                                                Balance: {parseFloat(tonBalance || "0").toFixed(2)} TON
-                                            </span>
-                                        </div>
-                                        <Input
-                                            type="number"
-                                            placeholder="0.0"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                            className="bg-white/5 border-white/10 text-white text-lg h-12"
-                                        />
-                                        <div className="flex gap-2 mt-2">
-                                            {quickAmounts.map((value) => (
-                                                <Button
-                                                    key={value}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleQuickAmount(value)}
-                                                    className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
-                                                >
-                                                    {value}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {preview && (
-                                        <div className="p-3 rounded-lg bg-white/5 space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">You receive</span>
-                                                <span className="text-white font-medium">
-                                                    ~{(Number(preview.tokensReceived) / 1e9).toLocaleString()} {selectedToken.symbol}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Price per token</span>
-                                                <span className="text-white">{preview.averagePrice} TON</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Fee (1%)</span>
-                                                <span className="text-white">{preview.fee} TON</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <Button
-                                        className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-semibold"
-                                        onClick={handleTrade}
-                                        disabled={isLoading || !amount || parseFloat(amount) <= 0}
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                Buy {selectedToken.symbol}
-                                            </>
-                                        )}
-                                    </Button>
-                                </TabsContent>
-
-                                <TabsContent value="sell" className="space-y-4">
-                                    <div>
-                                        <div className="flex justify-between mb-2">
-                                            <label className="text-sm text-muted-foreground">Amount (Tokens)</label>
-                                            <span className="text-sm text-muted-foreground">
-                                                Available: {(Number(availableToSell || 0) / 1e9).toLocaleString()}
-                                            </span>
-                                        </div>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                            className="bg-white/5 border-white/10 text-white text-lg h-12"
-                                        />
-                                        <div className="flex gap-2 mt-2">
-                                            {quickAmounts.map((value) => (
-                                                <Button
-                                                    key={value}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleQuickAmount(value)}
-                                                    className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
-                                                >
-                                                    {value}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                        {/* Sell info */}
-                                    </div>
-
-                                    {preview && (
-                                        <div className="p-3 rounded-lg bg-white/5 space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">You receive</span>
-                                                <span className="text-white font-medium">{preview.tonReceived} TON</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Price per token</span>
-                                                <span className="text-white">{preview.averagePrice} TON</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Fee (1%)</span>
-                                                <span className="text-white">{preview.fee} TON</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <Button
-                                        className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-semibold"
-                                        onClick={handleTrade}
-                                        disabled={isLoading || !amount || parseFloat(amount) <= 0}
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                Sell {selectedToken.symbol}
-                                            </>
-                                        )}
-                                    </Button>
-                                </TabsContent>
-                            </Tabs>
                         </CardContent>
                     </Card>
                 )}

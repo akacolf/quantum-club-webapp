@@ -28,8 +28,13 @@ export interface Token {
     jettonMasterAddress: string; // Jetton Master contract address
     isOnChain: boolean; // True when deployed and confirmed
 
-    // Bonding curve state (from blockchain)
-    totalSupply: string; // Current minted supply
+    // Supply info
+    maxSupply: string; // Maximum supply (1 billion * 10^9)
+    totalSupply: string; // Current minted supply (circulating)
+    circulatingSupply: string; // Same as totalSupply for mint-on-demand model
+    tonReserve: string; // TON locked in bonding curve
+
+    // Price data
     currentPrice: string; // Current price in nanoTON
     marketCap: string;
 
@@ -43,6 +48,9 @@ export interface Token {
     trades: number;
     volume24h: number;
     priceChange24h: number;
+
+    // Creator earnings (accumulated from 0.5% trading fee)
+    creatorEarnings?: string; // Total earnings in nanoTON
 
     // DEX info (when graduated)
     dexPoolAddress?: string;
@@ -109,6 +117,28 @@ export interface CreateTokenParams {
     symbol: string;
     description: string;
     image: string;
+    initialBuyAmount?: string; // Optional initial buy in TON (0-100 TON)
+}
+
+// =====================================================
+// Slippage Settings
+// =====================================================
+
+export interface SlippageSettings {
+    tolerance: number; // Percentage (e.g., 1 = 1%)
+    isCustom: boolean;
+}
+
+// =====================================================
+// Creator Earnings
+// =====================================================
+
+export interface CreatorEarnings {
+    tokenId: string;
+    tokenSymbol: string;
+    totalEarnings: string; // In nanoTON
+    tradeCount: number;
+    lastUpdated: Date;
 }
 
 // =====================================================
@@ -122,3 +152,15 @@ export const DEFAULT_BONDING_CURVE: BondingCurveParams = {
 
 // 2000 TON graduation threshold (in nanoTON)
 export const DEFAULT_GRADUATION_THRESHOLD_TON = "2000000000000";
+
+// Max supply: 1 billion tokens with 9 decimals
+export const MAX_SUPPLY = "1000000000000000000";
+export const MAX_SUPPLY_FORMATTED = "1,000,000,000";
+
+// Slippage defaults
+export const DEFAULT_SLIPPAGE = 1; // 1%
+export const SLIPPAGE_OPTIONS = [0.5, 1, 3, 5];
+
+// Initial buy limits
+export const MIN_INITIAL_BUY = 0; // Can skip initial buy
+export const MAX_INITIAL_BUY = 100; // Max 100 TON initial buy

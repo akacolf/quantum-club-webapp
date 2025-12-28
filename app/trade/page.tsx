@@ -17,6 +17,7 @@ import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-
 import { useWallet } from "@/app/wallet/WalletContext";
 
 import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
+import CreatorEarningsDashboard from "@/app/trade/(components)/CreatorEarningsDashboard";
 
 // Lottie animations for tabs (Telegram-style animated emojis)
 import fireAnimation from "@/public/lottie/fire-lottie.json";
@@ -206,10 +207,10 @@ export default function TradePage() {
     const { walletAddress, tonPrice } = useWallet();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
-    
+
     // Check if wallet exists (either address is set OR mnemonic exists in localStorage)
     const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
-    
+
     useEffect(() => {
         // Check both walletAddress from context and mnemonic from localStorage
         const mnemonic = localStorage.getItem("quantum_wallet_mnemonic");
@@ -310,12 +311,12 @@ export default function TradePage() {
                     {/* Tabs */}
                     {!searchQuery && (
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-xl grid grid-cols-3 gap-1 border border-white/5 items-stretch">
+                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-xl grid grid-cols-4 gap-1 border border-white/5 items-stretch">
                                 <TabsTrigger
                                     value="trending"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
-                                    <div className="flex items-center justify-center gap-2">
+                                    <div className="flex items-center justify-center gap-1.5">
                                         <Lottie
                                             lottieRef={fireLottieRef}
                                             animationData={fireAnimation}
@@ -323,14 +324,14 @@ export default function TradePage() {
                                             autoplay={activeTab === "trending"}
                                             className="w-4 h-4"
                                         />
-                                        <span>Trending</span>
+                                        <span>Hot</span>
                                     </div>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="new"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
-                                    <div className="flex items-center justify-center gap-2">
+                                    <div className="flex items-center justify-center gap-1.5">
                                         <Lottie
                                             lottieRef={sparklesLottieRef}
                                             animationData={sparklesAnimation}
@@ -345,7 +346,7 @@ export default function TradePage() {
                                     value="holdings"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
-                                    <div className="flex items-center justify-center gap-2">
+                                    <div className="flex items-center justify-center gap-1.5">
                                         <Lottie
                                             lottieRef={diamondLottieRef}
                                             animationData={diamondAnimation}
@@ -353,7 +354,16 @@ export default function TradePage() {
                                             autoplay={activeTab === "holdings"}
                                             className="w-4 h-4"
                                         />
-                                        <span>Holdings</span>
+                                        <span>Bag</span>
+                                    </div>
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="creator"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
+                                >
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <Icon icon="solar:money-bag-bold" className="w-4 h-4 text-amber-400" />
+                                        <span>Earn</span>
                                     </div>
                                 </TabsTrigger>
                             </TabsList>
@@ -372,6 +382,8 @@ export default function TradePage() {
                         <TokenListSkeleton />
                     ) : searchQuery && searchResults.length === 0 ? (
                         <EmptyState message={`No tokens found for "${searchQuery}"`} />
+                    ) : activeTab === "creator" ? (
+                        <CreatorEarningsDashboard />
                     ) : activeTab === "holdings" ? (
                         positions.length === 0 ? (
                             <EmptyState message="You don't have any token holdings yet" />
@@ -420,7 +432,7 @@ export default function TradePage() {
                 >
                     <div className="bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-full border border-white/20 px-4 py-2.5 flex items-center gap-3 shadow-lg">
                         <Icon icon="solar:wallet-bold" className="w-5 h-5 text-primary" />
-                        <span className="flex-1 text-sm text-white">Connect wallet to trade</span>
+                        <span className="flex-1 text-sm text-white">Connect QC Wallet to trade</span>
                         <Button
                             onClick={() => router.push("/wallet")}
                             size="sm"

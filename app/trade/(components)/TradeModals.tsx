@@ -92,7 +92,7 @@ export function TradeConfirmation({
                             )}
                             {preview.fee && (
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Fee (1%)</span>
+                                    <span className="text-muted-foreground">Fee (1.5%)</span>
                                     <span className="text-muted-foreground">{preview.fee} TON</span>
                                 </div>
                             )}

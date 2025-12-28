@@ -28,6 +28,15 @@ export function validateTelegramWebAppData(telegramInitData:string) {
     return { message: 'auth_date is missing from initData', validatedData: null, user: {} };
   }
   
+  // Security: Validate auth_date is not too old (5 minutes max)
+  const MAX_AUTH_AGE_SECONDS = 300; // 5 minutes
+  const authTimestamp = parseInt(authDate, 10);
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+  
+  if (isNaN(authTimestamp) || currentTimestamp - authTimestamp > MAX_AUTH_AGE_SECONDS) {
+    return { message: 'initData has expired (auth_date too old)', validatedData: null, user: {} };
+  }
+  
   const dataCheckString = Array.from(initData.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)

@@ -24,10 +24,10 @@ const int op::excesses = 0xd53276db;
 const int op::burn = 0x595f07bc;
 const int op::burn_notification = 0x7bdd97de;
 
-;; Custom trading ops
-const int op::buy = 0x402eff0b;
-const int op::sell = 0x7a32a8a6;
-const int op::sell_notification = 0x5362d09c;
+;; Custom trading ops (Blum/BigPump compatible)
+const int op::buy = 0xaf750d34;         ;; Buy tokens via bonding curve
+const int op::sell_request = 0x742b36d8; ;; Sell request (sent to jetton wallet)
+const int op::sell_notification = 0xb7e76bfd; ;; Sell notification from wallet to master
 const int op::claim = 0x4e400a03;
 
 ;; Admin ops
@@ -70,8 +70,8 @@ const int JETTON_WALLET_DEPLOY_GAS = 100000000; ;; 0.1 TON
 const int INITIAL_PRICE = 1000000;              ;; 0.001 TON per token (in nanotons, scaled)
 const int CURVE_SLOPE = 100000;                 ;; Price increase per token (configurable)
 const int GRADUATION_TARGET = 2000000000000;    ;; 2000 TON graduation threshold
-const int PLATFORM_FEE_BPS = 100;               ;; 1% = 100 basis points
-const int CREATOR_FEE_BPS = 100;                ;; 1% to creator
+const int PLATFORM_FEE_BPS = 100;               ;; 1% = 100 basis points (sent directly to platform)
+const int CREATOR_FEE_BPS = 50;                 ;; 0.5% = 50 basis points (sent directly to creator)
 
 ;; Token constants
 const int DECIMALS = 9;
@@ -89,31 +89,27 @@ int equal_slices(slice a, slice b) asm "SDEQ";
 ;; storage:
 ;;   total_supply: coins (minted tokens)
 ;;   mintable: int (1 = can mint, 0 = cannot)
-;;   admin_address: MsgAddress (platform admin)
+;;   admin_address: MsgAddress (platform admin for fees)
 ;;   creator_address: MsgAddress (token creator)
 ;;   jetton_content: Cell (metadata)
 ;;   jetton_wallet_code: Cell (wallet contract code)
 ;;   ton_reserve: coins (TON in bonding curve)
-;;   platform_fees: coins (accumulated platform fees)
-;;   creator_fees: coins (accumulated creator fees)
 ;;   graduated: int (0 = bonding, 1 = graduated)
 ;;   graduation_target: coins (TON needed to graduate)
 
 ;; =====================================================
 ;; Load/Save Storage
 ;; =====================================================
-(int, int, slice, slice, cell, cell, int, int, int, int, int) load_data() inline {
+(int, int, slice, slice, cell, cell, int, int, int) load_data() inline {
     slice ds = get_data().begin_parse();
     return (
         ds~load_coins(),      ;; total_supply
         ds~load_int(1),       ;; mintable
-        ds~load_msg_addr(),   ;; admin_address
+        ds~load_msg_addr(),   ;; admin_address (platform wallet for fees)
         ds~load_msg_addr(),   ;; creator_address
         ds~load_ref(),        ;; jetton_content
         ds~load_ref(),        ;; jetton_wallet_code
         ds~load_coins(),      ;; ton_reserve
-        ds~load_coins(),      ;; platform_fees
-        ds~load_coins(),      ;; creator_fees
         ds~load_int(1),       ;; graduated (0 or 1)
         ds~load_coins()       ;; graduation_target
     );
@@ -127,8 +123,6 @@ int equal_slices(slice a, slice b) asm "SDEQ";
     cell jetton_content,
     cell jetton_wallet_code,
     int ton_reserve,
-    int platform_fees,
-    int creator_fees,
     int graduated,
     int graduation_target
 ) impure inline {
@@ -140,8 +134,6 @@ int equal_slices(slice a, slice b) asm "SDEQ";
         .store_ref(jetton_content)
         .store_ref(jetton_wallet_code)
         .store_coins(ton_reserve)
-        .store_coins(platform_fees)
-        .store_coins(creator_fees)
         .store_int(graduated, 1)
         .store_coins(graduation_target)
         .end_cell()
@@ -300,6 +292,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 
 ;; =====================================================
 ;; Buy Handler (with slippage protection)
+;; Sends fees directly: 1% to platform, 0.5% to creator
 ;; =====================================================
 () handle_buy(
     slice sender_address,
@@ -315,8 +308,6 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         cell jetton_content,
         cell jetton_wallet_code,
         int ton_reserve,
-        int platform_fees,
-        int creator_fees,
         int graduated,
         int graduation_target
     ) = load_data();
@@ -330,12 +321,12 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         min_tokens_out = in_msg_body~load_coins();
     }
     
-    ;; Calculate fees
+    ;; Calculate fees: 1% platform + 0.5% creator = 1.5% total
     int gross_amount = msg_value - GAS_CONSUMPTION;
     throw_if(error::insufficient_gas, gross_amount <= 0);
     
-    int platform_fee = muldiv(gross_amount, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(gross_amount, CREATOR_FEE_BPS, 10000);
+    int platform_fee = muldiv(gross_amount, PLATFORM_FEE_BPS, 10000);  ;; 1%
+    int creator_fee = muldiv(gross_amount, CREATOR_FEE_BPS, 10000);    ;; 0.5%
     int net_amount = gross_amount - platform_fee - creator_fee;
     
     throw_if(error::zero_amount, net_amount <= 0);
@@ -353,8 +344,6 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     ;; Update state
     total_supply += tokens_to_mint;
     ton_reserve += net_amount;
-    platform_fees += platform_fee;
-    creator_fees += creator_fee;
     
     ;; Check if should graduate
     if (ton_reserve >= graduation_target) {
@@ -365,8 +354,36 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     save_data(
         total_supply, mintable, admin_address, creator_address,
         jetton_content, jetton_wallet_code, ton_reserve,
-        platform_fees, creator_fees, graduated, graduation_target
+        graduated, graduation_target
     );
+    
+    ;; Send platform fee directly to admin wallet (1%)
+    if (platform_fee > 0) {
+        cell fee_message = begin_cell()
+            .store_uint(0x10, 6)
+            .store_slice(admin_address)
+            .store_coins(platform_fee)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(0xfdaa7c9d, 32)  ;; Fee comment opcode (same as Blum)
+            .store_uint(query_id, 64)
+            .end_cell();
+        
+        send_raw_message(fee_message, 1); ;; Pay fees separately
+    }
+    
+    ;; Send creator fee directly to creator wallet (0.5%)
+    if (creator_fee > 0) {
+        cell creator_fee_message = begin_cell()
+            .store_uint(0x10, 6)
+            .store_slice(creator_address)
+            .store_coins(creator_fee)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(0xfdaa7c9d, 32)  ;; Fee comment opcode
+            .store_uint(query_id, 64)
+            .end_cell();
+        
+        send_raw_message(creator_fee_message, 1);
+    }
     
     ;; Mint tokens to buyer
     mint_tokens(
@@ -383,6 +400,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 
 ;; =====================================================
 ;; Sell Handler (via burn notification from wallet)
+;; Sends fees directly: 1% to platform, 0.5% to creator
 ;; =====================================================
 () handle_sell(
     slice sender_address,
@@ -398,8 +416,6 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         cell jetton_content,
         cell jetton_wallet_code,
         int ton_reserve,
-        int platform_fees,
-        int creator_fees,
         int graduated,
         int graduation_target
     ) = load_data();
@@ -413,22 +429,48 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     int gross_return = calculate_sell_return(jetton_amount, total_supply);
     throw_if(error::insufficient_liquidity, gross_return > ton_reserve);
     
-    ;; Calculate fees
-    int platform_fee = muldiv(gross_return, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(gross_return, CREATOR_FEE_BPS, 10000);
+    ;; Calculate fees: 1% platform + 0.5% creator = 1.5% total
+    int platform_fee = muldiv(gross_return, PLATFORM_FEE_BPS, 10000);  ;; 1%
+    int creator_fee = muldiv(gross_return, CREATOR_FEE_BPS, 10000);    ;; 0.5%
     int net_return = gross_return - platform_fee - creator_fee;
     
     ;; Update state
     total_supply -= jetton_amount;
     ton_reserve -= gross_return;
-    platform_fees += platform_fee;
-    creator_fees += creator_fee;
     
     save_data(
         total_supply, mintable, admin_address, creator_address,
         jetton_content, jetton_wallet_code, ton_reserve,
-        platform_fees, creator_fees, graduated, graduation_target
+        graduated, graduation_target
     );
+    
+    ;; Send platform fee directly to admin wallet (1%)
+    if (platform_fee > 0) {
+        cell fee_message = begin_cell()
+            .store_uint(0x10, 6)
+            .store_slice(admin_address)
+            .store_coins(platform_fee)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(0xfdaa7c9d, 32)  ;; Fee comment opcode
+            .store_uint(query_id, 64)
+            .end_cell();
+        
+        send_raw_message(fee_message, 1);
+    }
+    
+    ;; Send creator fee directly to creator wallet (0.5%)
+    if (creator_fee > 0) {
+        cell creator_fee_message = begin_cell()
+            .store_uint(0x10, 6)
+            .store_slice(creator_address)
+            .store_coins(creator_fee)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(0xfdaa7c9d, 32)  ;; Fee comment opcode
+            .store_uint(query_id, 64)
+            .end_cell();
+        
+        send_raw_message(creator_fee_message, 1);
+    }
     
     ;; Send TON to seller
     cell message = begin_cell()
@@ -444,58 +486,6 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     
     ;; Log the sell
     send_log(log::sell, from_address, jetton_amount, get_current_price(total_supply));
-}
-
-;; =====================================================
-;; Admin: Withdraw Fees
-;; =====================================================
-() handle_withdraw_fees(
-    slice sender_address,
-    int query_id,
-    slice in_msg_body
-) impure inline {
-    (
-        int total_supply, int mintable, slice admin_address, slice creator_address,
-        cell jetton_content, cell jetton_wallet_code, int ton_reserve,
-        int platform_fees, int creator_fees, int graduated, int graduation_target
-    ) = load_data();
-    
-    int is_admin = equal_slices(sender_address, admin_address);
-    int is_creator = equal_slices(sender_address, creator_address);
-    
-    throw_unless(error::not_admin, is_admin | is_creator);
-    
-    int amount_to_send = 0;
-    
-    if (is_admin) {
-        amount_to_send = platform_fees;
-        platform_fees = 0;
-    }
-    
-    if (is_creator) {
-        amount_to_send = creator_fees;
-        creator_fees = 0;
-    }
-    
-    throw_if(error::zero_amount, amount_to_send <= 0);
-    
-    save_data(
-        total_supply, mintable, admin_address, creator_address,
-        jetton_content, jetton_wallet_code, ton_reserve,
-        platform_fees, creator_fees, graduated, graduation_target
-    );
-    
-    ;; Send fees
-    cell message = begin_cell()
-        .store_uint(0x10, 6)
-        .store_slice(sender_address)
-        .store_coins(amount_to_send)
-        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-        .store_uint(op::excesses, 32)
-        .store_uint(query_id, 64)
-        .end_cell();
-    
-    send_raw_message(message, 1);
 }
 
 ;; =====================================================
@@ -535,7 +525,22 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         slice from_address = in_msg_body~load_msg_addr();
         
         ;; Verify sender is a valid jetton wallet
-        (_, _, _, _, cell jetton_content, cell jetton_wallet_code, _, _, _, _, _) = load_data();
+        (_, _, _, _, _, cell jetton_wallet_code, _, _, _) = load_data();
+        
+        slice expected_wallet = get_jetton_wallet_address(from_address, my_address(), jetton_wallet_code);
+        throw_unless(error::not_from_wallet, equal_slices(sender_address, expected_wallet));
+        
+        handle_sell(sender_address, query_id, jetton_amount, from_address);
+        return ();
+    }
+    
+    ;; ===== Also accept sell_notification opcode (Blum compatible) =====
+    if (op == op::sell_notification) {
+        int jetton_amount = in_msg_body~load_coins();
+        slice from_address = in_msg_body~load_msg_addr();
+        
+        ;; Verify sender is a valid jetton wallet
+        (_, _, _, _, _, cell jetton_wallet_code, _, _, _) = load_data();
         
         slice expected_wallet = get_jetton_wallet_address(from_address, my_address(), jetton_wallet_code);
         throw_unless(error::not_from_wallet, equal_slices(sender_address, expected_wallet));
@@ -546,7 +551,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
     
     ;; ===== ADMIN: Mint (for testing/airdrop) =====
     if (op == op::mint) {
-        (_, _, slice admin_address, _, _, _, _, _, _, _, _) = load_data();
+        (_, _, slice admin_address, _, _, _, _, _, _) = load_data();
         throw_unless(error::not_admin, equal_slices(sender_address, admin_address));
         
         slice to_address = in_msg_body~load_msg_addr();
@@ -556,18 +561,12 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         return ();
     }
     
-    ;; ===== ADMIN: Withdraw Fees =====
-    if (op == op::withdraw_fees) {
-        handle_withdraw_fees(sender_address, query_id, in_msg_body);
-        return ();
-    }
-    
     ;; ===== ADMIN: Graduate to DEX =====
     if (op == op::graduate) {
         (
             int total_supply, int mintable, slice admin_address, slice creator_address,
             cell jetton_content, cell jetton_wallet_code, int ton_reserve,
-            int platform_fees, int creator_fees, int graduated, int graduation_target
+            int graduated, int graduation_target
         ) = load_data();
         
         throw_unless(error::not_admin, equal_slices(sender_address, admin_address));
@@ -580,22 +579,34 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         ;; Mark as graduated BEFORE sending funds (reentrancy protection)
         graduated = 1;
         
-        ;; Calculate graduation fee (2% to platform)
+        ;; Calculate graduation fee (2% to platform) - send directly
         int graduation_fee = muldiv(ton_reserve, 200, 10000); ;; 2%
         int liquidity_ton = ton_reserve - graduation_fee;
         
-        ;; Update state - keep liquidity for DEX, add graduation fee to platform fees
-        platform_fees += graduation_fee;
-        ton_reserve = 0; ;; All TON will be sent to DEX
+        ;; Update state - all TON goes to DEX
+        ton_reserve = 0;
         
         save_data(
             total_supply, mintable, admin_address, creator_address,
             jetton_content, jetton_wallet_code, ton_reserve,
-            platform_fees, creator_fees, graduated, graduation_target
+            graduated, graduation_target
         );
         
+        ;; Send graduation fee to platform wallet
+        if (graduation_fee > 0) {
+            cell fee_message = begin_cell()
+                .store_uint(0x10, 6)
+                .store_slice(admin_address)
+                .store_coins(graduation_fee)
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                .store_uint(0xfdaa7c9d, 32)
+                .store_uint(query_id, 64)
+                .end_cell();
+            
+            send_raw_message(fee_message, 1);
+        }
+        
         ;; Send TON to DEX router for pool creation
-        ;; The actual pool creation will be handled by the backend calling DEX API
         cell message = begin_cell()
             .store_uint(0x10, 6)
             .store_slice(dex_router)
@@ -605,7 +616,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
             .store_uint(query_id, 64)
             .end_cell();
         
-        send_raw_message(message, 1); ;; Pay fees separately
+        send_raw_message(message, 1);
         
         ;; Log graduation
         send_log(log::graduate, creator_address, total_supply, liquidity_ton);
@@ -625,7 +636,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 (int, int, slice, cell, cell) get_jetton_data() method_id {
     (
         int total_supply, int mintable, slice admin_address, _,
-        cell jetton_content, cell jetton_wallet_code, _, _, _, _, _
+        cell jetton_content, cell jetton_wallet_code, _, _, _
     ) = load_data();
     
     return (total_supply, mintable, admin_address, jetton_content, jetton_wallet_code);
@@ -633,15 +644,15 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 
 ;; TEP-74 required: get_wallet_address
 slice get_wallet_address(slice owner_address) method_id {
-    (_, _, _, _, _, cell jetton_wallet_code, _, _, _, _, _) = load_data();
+    (_, _, _, _, _, cell jetton_wallet_code, _, _, _) = load_data();
     return get_jetton_wallet_address(owner_address, my_address(), jetton_wallet_code);
 }
 
 ;; Custom: get bonding curve data
-(int, int, int, int, int, int) get_curve_data() method_id {
+(int, int, int, int, int) get_curve_data() method_id {
     (
         int total_supply, _, _, _,
-        _, _, int ton_reserve, int platform_fees, int creator_fees,
+        _, _, int ton_reserve,
         int graduated, int graduation_target
     ) = load_data();
     
@@ -652,36 +663,29 @@ slice get_wallet_address(slice owner_address) method_id {
         ton_reserve,
         current_price,
         graduated,
-        graduation_target,
-        platform_fees + creator_fees
+        graduation_target
     );
 }
 
-;; Custom: get platform fees for withdrawal check
-(int, int) get_fees_data() method_id {
-    (_, _, _, _, _, _, _, int platform_fees, int creator_fees, _, _) = load_data();
-    return (platform_fees, creator_fees);
-}
-
-;; Custom: preview buy
+;; Custom: preview buy (accounts for 1% platform + 0.5% creator fees)
 int preview_buy(int ton_amount) method_id {
-    (int total_supply, _, _, _, _, _, _, _, _, _, _) = load_data();
+    (int total_supply, _, _, _, _, _, _, _, _) = load_data();
     
     int net_amount = ton_amount - GAS_CONSUMPTION;
-    int platform_fee = muldiv(net_amount, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(net_amount, CREATOR_FEE_BPS, 10000);
+    int platform_fee = muldiv(net_amount, PLATFORM_FEE_BPS, 10000);  ;; 1%
+    int creator_fee = muldiv(net_amount, CREATOR_FEE_BPS, 10000);    ;; 0.5%
     net_amount -= platform_fee + creator_fee;
     
     return calculate_buy_price(net_amount, total_supply);
 }
 
-;; Custom: preview sell
+;; Custom: preview sell (accounts for 1% platform + 0.5% creator fees)
 int preview_sell(int token_amount) method_id {
-    (int total_supply, _, _, _, _, _, _, _, _, _, _) = load_data();
+    (int total_supply, _, _, _, _, _, _, _, _) = load_data();
     
     int gross_return = calculate_sell_return(token_amount, total_supply);
-    int platform_fee = muldiv(gross_return, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(gross_return, CREATOR_FEE_BPS, 10000);
+    int platform_fee = muldiv(gross_return, PLATFORM_FEE_BPS, 10000);  ;; 1%
+    int creator_fee = muldiv(gross_return, CREATOR_FEE_BPS, 10000);    ;; 0.5%
     
     return gross_return - platform_fee - creator_fee;
 }

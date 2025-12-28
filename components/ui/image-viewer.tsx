@@ -3,13 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
-import {
-    Sheet,
-    SheetContent,
-    SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface ImageViewerProps {
     isOpen: boolean;
@@ -22,32 +16,43 @@ export default function ImageViewer({ isOpen, onClose, imageUrl, alt }: ImageVie
     if (!imageUrl) return null;
 
     return (
-        <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent
-                side="bottom"
-                className="h-[70vh] bg-background/98 backdrop-blur-xl border-white/10 p-0 overflow-hidden"
-            >
-                <VisuallyHidden>
-                    <SheetTitle>{alt}</SheetTitle>
-                </VisuallyHidden>
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center"
+                    onClick={onClose}
+                >
+                    {/* Dark overlay background */}
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
 
-                <div className="relative w-full h-full flex flex-col">
-                    {/* Header with close button */}
-                    <div className="flex items-center justify-between p-4 border-b border-white/10">
-                        <p className="text-sm font-medium text-white truncate">{alt}</p>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-white"
-                            onClick={onClose}
-                        >
-                            <Icon icon="solar:close-circle-bold" className="w-5 h-5" />
-                        </Button>
+                    {/* Close button - top right with safe area */}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-12 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                        aria-label="Close"
+                    >
+                        <Icon icon="solar:close-bold" className="w-6 h-6 text-white" />
+                    </button>
+
+                    {/* Profile name - below safe area */}
+                    <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10">
+                        <p className="text-sm font-semibold text-white">{alt}</p>
                     </div>
 
-                    {/* Circular image container */}
-                    <div className="flex-1 flex items-center justify-center p-8">
-                        <div className="relative w-64 h-64 rounded-full overflow-hidden ring-4 ring-white/20 shadow-2xl">
+                    {/* Circular profile image - center */}
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="relative z-10"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-full overflow-hidden ring-2 ring-white/20">
                             <Image
                                 src={imageUrl}
                                 alt={alt}
@@ -57,9 +62,9 @@ export default function ImageViewer({ isOpen, onClose, imageUrl, alt }: ImageVie
                                 priority
                             />
                         </div>
-                    </div>
-                </div>
-            </SheetContent>
-        </Sheet>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }

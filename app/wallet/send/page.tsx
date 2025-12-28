@@ -163,7 +163,7 @@ export default function SendPage() {
         name: "Toncoin",
         balance: tonBalance,
         decimals: 9,
-        image: "https://ton.org/download/ton_symbol.png",
+        image: "/svg/ton-logo.svg",
         priceUsd: tonPrice
       },
     ];
