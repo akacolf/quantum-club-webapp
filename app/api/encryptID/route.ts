@@ -34,7 +34,7 @@ export async function POST(request:NextRequest) {
     // 2. We only encrypt telegramId (not sensitive data)
     // 3. Changing IV would break existing user data lookups
     const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64'); // 32 byte
-    const iv = Buffer.alloc(12, 0); // 12-byte zero IV for GCM (deterministic encryption)
+    const iv = Buffer.from("00000000000000000000000000000000", 'utf8'); // Original 32-char IV for backwards compatibility
     const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
     
     let encrypted = cipher.update(input, 'utf8', 'base64');

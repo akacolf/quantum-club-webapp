@@ -19,7 +19,7 @@ const db = admin.firestore();
 function encryptTelegramId(telegramId: string): string {
   const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64');
   // Note: Static IV for deterministic encryption - same telegramId = same QC ID
-  const iv = Buffer.alloc(12, 0); // 12-byte zero IV for GCM
+  const iv = Buffer.from("00000000000000000000000000000000", 'utf8'); // Original 32-char IV for backwards compatibility
   const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
   
   let encrypted = cipher.update(telegramId, 'utf8', 'base64');
