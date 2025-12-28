@@ -6,7 +6,7 @@
  * Usage: npx tsx scripts/compile-contracts.ts
  */
 
-import { compileFunc, CompilerConfig } from "@ton-community/func-js";
+import { compileFunc } from "@ton-community/func-js";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -27,30 +27,27 @@ interface CompileResult {
 async function compileContract(name: string, mainFile: string): Promise<Buffer> {
     console.log(`\n📦 Compiling ${name}...`);
 
-    const config: CompilerConfig = {
+    // Build sources map by reading all needed files upfront
+    const sources: { [key: string]: string } = {};
+    
+    // Read stdlib
+    const stdlibPath = path.join(CONTRACTS_DIR, "imports", "stdlib.fc");
+    if (fs.existsSync(stdlibPath)) {
+        sources["imports/stdlib.fc"] = fs.readFileSync(stdlibPath, "utf-8");
+    }
+    
+    // Read the main contract file
+    const mainPath = path.join(CONTRACTS_DIR, mainFile);
+    if (fs.existsSync(mainPath)) {
+        sources[mainFile] = fs.readFileSync(mainPath, "utf-8");
+    } else {
+        throw new Error(`Contract file not found: ${mainPath}`);
+    }
+
+    const result = await compileFunc({
         targets: [mainFile],
-        sources: (filePath: string): string | null => {
-            // Handle stdlib
-            if (filePath.includes("stdlib.fc")) {
-                const stdlibPath = path.join(CONTRACTS_DIR, "imports", "stdlib.fc");
-                if (fs.existsSync(stdlibPath)) {
-                    return fs.readFileSync(stdlibPath, "utf-8");
-                }
-                return null;
-            }
-
-            // Handle main contract files
-            const fullPath = path.join(CONTRACTS_DIR, filePath);
-            if (fs.existsSync(fullPath)) {
-                return fs.readFileSync(fullPath, "utf-8");
-            }
-
-            console.error(`File not found: ${fullPath}`);
-            return null;
-        },
-    };
-
-    const result = await compileFunc(config) as CompileResult;
+        sources,
+    }) as CompileResult;
 
     if (result.status === "error") {
         console.error(`❌ Compilation failed for ${name}:`);
