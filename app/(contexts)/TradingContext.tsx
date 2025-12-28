@@ -57,6 +57,7 @@ interface TradingContextType {
     // Token discovery (cached from blockchain indexing)
     trendingTokens: Token[];
     newTokens: Token[];
+    graduatedTokens: Token[];
     searchResults: Token[];
     isLoading: boolean;
 
@@ -113,6 +114,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     // State
     const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
     const [newTokens, setNewTokens] = useState<Token[]>([]);
+    const [graduatedTokens, setGraduatedTokens] = useState<Token[]>([]);
     const [searchResults, setSearchResults] = useState<Token[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [positions, setPositions] = useState<HolderPosition[]>([]);
@@ -194,6 +196,16 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             );
             const newSnapshot = await getDocs(newQuery);
             setNewTokens(newSnapshot.docs.map(docToToken));
+
+            // Graduated = tokens migrated to DEX (STON.fi)
+            const graduatedQuery = query(
+                collection(dbfs, "tokens"),
+                where("isGraduated", "==", true),
+                orderBy("graduatedAt", "desc"),
+                limit(20)
+            );
+            const graduatedSnapshot = await getDocs(graduatedQuery);
+            setGraduatedTokens(graduatedSnapshot.docs.map(docToToken));
         } catch (error) {
             console.error("Error fetching tokens:", error);
         } finally {
@@ -341,6 +353,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const tonNano = toNano(tonAmount);
             const tonAmountNum = parseFloat(tonAmount);
 
+            // Get current price in TON (from nano)
+            const currentPriceNano = Number(token.currentPrice || "1000000");
+            const currentPriceTon = currentPriceNano / 1e9;
+
             // Try on-chain preview first
             let tokensOut = await previewBuyOnChain(
                 token.jettonMasterAddress,
@@ -356,9 +372,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
                 // Simple linear bonding curve approximation:
                 // tokens = tonAmount / currentPrice
-                const currentPrice = Number(token.currentPrice || "1000000") / 1e9; // in TON
-                if (currentPrice > 0) {
-                    const tokensNumeric = tonAfterFee / currentPrice;
+                if (currentPriceTon > 0) {
+                    const tokensNumeric = tonAfterFee / currentPriceTon;
                     tokensOut = BigInt(Math.floor(tokensNumeric * 1e9)); // Convert to nano-tokens
                 }
             }
@@ -367,14 +382,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             const fee = (tonAmountNum * FEE_CONFIG.totalTradingFeePercent / 100).toFixed(4);
             const tokensFormatted = formatTokenAmount(tokensOut);
-            const tokensNum = parseFloat(tokensFormatted);
-            const avgPrice = tokensNum > 0 ? (tonAmountNum / tokensNum).toFixed(9) : "0";
 
             return {
                 tokensReceived: tokensFormatted,
-                averagePrice: avgPrice,
+                averagePrice: currentPriceTon.toFixed(9), // Use current price for consistency
                 fee,
-                newPrice: avgPrice, // Approximate
+                newPrice: currentPriceTon.toFixed(9), // Price after trade (approximately same for small trades)
             };
         } catch (error) {
             console.error("Preview buy error:", error);
@@ -399,6 +412,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const tokenNano = parseTokenAmount(tokenAmount);
             const tokenAmountNum = parseFloat(tokenAmount);
 
+            // Get current price in TON (from nano)
+            const currentPriceNano = Number(token.currentPrice || "1000000");
+            const currentPriceTon = currentPriceNano / 1e9;
+
             // Try on-chain preview first
             let tonOut = await previewSellOnChain(
                 token.jettonMasterAddress,
@@ -410,10 +427,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             if (tonOut === BigInt(0)) {
                 // Simple linear bonding curve approximation:
                 // tonOut = tokens * currentPrice * (1 - fee)
-                const currentPrice = Number(token.currentPrice || "1000000") / 1e9; // in TON
-                if (currentPrice > 0) {
+                if (currentPriceTon > 0) {
                     const feePercent = FEE_CONFIG.totalTradingFeePercent / 100;
-                    const tonNumeric = tokenAmountNum * currentPrice * (1 - feePercent);
+                    const tonNumeric = tokenAmountNum * currentPriceTon * (1 - feePercent);
                     tonOut = BigInt(Math.floor(tonNumeric * 1e9)); // Convert to nano-TON
                 }
             }
@@ -421,15 +437,15 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             if (tonOut === BigInt(0)) return null;
 
             const tonFormatted = formatTokenAmount(tonOut);
-            const tonNum = parseFloat(tonFormatted);
-            const fee = (tonNum * FEE_CONFIG.totalTradingFeePercent / 100).toFixed(4);
-            const avgPrice = tokenAmountNum > 0 ? (tonNum / tokenAmountNum).toFixed(9) : "0";
+            // Calculate fee based on gross value (before fee deduction)
+            const grossTonValue = tokenAmountNum * currentPriceTon;
+            const fee = (grossTonValue * FEE_CONFIG.totalTradingFeePercent / 100).toFixed(4);
 
             return {
                 tonReceived: tonFormatted,
-                averagePrice: avgPrice,
+                averagePrice: currentPriceTon.toFixed(9), // Use current price for consistency
                 fee,
-                newPrice: avgPrice,
+                newPrice: currentPriceTon.toFixed(9),
             };
         } catch (error) {
             console.error("Preview sell error:", error);
@@ -648,11 +664,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             // This ensures the token is actually deployed on-chain
             try {
                 // Parse the base64-encoded stateInit and body cells
-                const stateInitCell = deployTx.stateInit 
-                    ? Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0] 
+                const stateInitCell = deployTx.stateInit
+                    ? Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0]
                     : undefined;
-                const bodyCell = deployTx.body 
-                    ? Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0] 
+                const bodyCell = deployTx.body
+                    ? Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0]
                     : undefined;
 
                 console.log("Sending deployment transaction:", {
@@ -671,7 +687,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
                 if (txResult.success) {
                     console.log("Deployment transaction sent successfully:", txResult.txHash);
-                    
+
                     // Confirm deployment to update Firestore
                     await fetch("/api/deploy-jetton", {
                         method: "PATCH",
@@ -686,10 +702,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                     // If initial buy is specified, execute it after deployment
                     if (params.initialBuyAmount && parseFloat(params.initialBuyAmount) > 0) {
                         console.log("Executing initial buy:", params.initialBuyAmount, "TON");
-                        
+
                         // Wait a moment for deployment to be confirmed
                         await new Promise(resolve => setTimeout(resolve, 3000));
-                        
+
                         // Execute initial buy
                         const buyResult = await buyTokens(tokenId, params.initialBuyAmount);
                         if (buyResult.success) {
@@ -747,6 +763,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const value: TradingContextType = {
         trendingTokens,
         newTokens,
+        graduatedTokens,
         searchResults,
         isLoading,
         searchTokens,

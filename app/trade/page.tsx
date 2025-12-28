@@ -18,6 +18,7 @@ import { useWallet } from "@/app/wallet/WalletContext";
 
 import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
 import CreatorEarningsDashboard from "@/app/trade/(components)/CreatorEarningsDashboard";
+import { Badge } from "@/components/ui/badge";
 
 // Lottie animations for tabs (Telegram-style animated emojis)
 import fireAnimation from "@/public/lottie/fire-lottie.json";
@@ -36,7 +37,7 @@ const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
     }
 };
 
-function TokenCard({ token, index, tonPrice }: { token: Token; index: number; tonPrice: number }) {
+function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; index: number; tonPrice: number; showRank?: boolean }) {
     const router = useRouter();
     const priceChange = token.priceChange24h || 0;
     const isPositive = priceChange >= 0;
@@ -86,8 +87,7 @@ function TokenCard({ token, index, tonPrice }: { token: Token; index: number; to
                                 </div>
                             )}
                             {/* Rank Badge */}
-                            {/* Rank Badge */}
-                            {index < 3 && (
+                            {showRank && index < 3 && (
                                 <div className={`absolute top-0 left-0 w-6 h-6 flex items-center justify-center rounded-tl-xl rounded-br-xl backdrop-blur-md ${index === 0 ? "bg-yellow-500/20 text-yellow-400" :
                                     index === 1 ? "bg-slate-300/20 text-slate-300" :
                                         "bg-orange-500/20 text-orange-400"
@@ -218,7 +218,7 @@ function EmptyState({ message }: { message: string }) {
 
 export default function TradePage() {
     const router = useRouter();
-    const { trendingTokens, newTokens, searchResults, isLoading, searchTokens, clearSearch, positions } = useTrading();
+    const { trendingTokens, newTokens, graduatedTokens, searchResults, isLoading, searchTokens, clearSearch, positions } = useTrading();
     const { walletAddress, tonPrice } = useWallet();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
@@ -373,12 +373,12 @@ export default function TradePage() {
                                     </div>
                                 </TabsTrigger>
                                 <TabsTrigger
-                                    value="creator"
+                                    value="dex"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
                                     <div className="flex items-center justify-center gap-1.5">
-                                        <Icon icon="solar:money-bag-bold" className="w-4 h-4 text-amber-400" />
-                                        <span>Earn</span>
+                                        <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
+                                        <span>DEX</span>
                                     </div>
                                 </TabsTrigger>
                             </TabsList>
@@ -397,23 +397,60 @@ export default function TradePage() {
                         <TokenListSkeleton />
                     ) : searchQuery && searchResults.length === 0 ? (
                         <EmptyState message={`No tokens found for "${searchQuery}"`} />
-                    ) : activeTab === "creator" ? (
-                        <CreatorEarningsDashboard />
-                    ) : activeTab === "holdings" ? (
-                        positions.length === 0 ? (
-                            <EmptyState message="You don't have any token holdings yet" />
+                    ) : activeTab === "dex" ? (
+                        graduatedTokens.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+                                    <Icon icon="solar:chart-2-bold" className="w-8 h-8 text-green-400" />
+                                </div>
+                                <p className="text-white font-medium mb-2">No DEX Tokens Yet</p>
+                                <p className="text-xs text-muted-foreground max-w-[200px]">
+                                    Tokens that reach 2,000 TON market cap graduate to STON.fi DEX
+                                </p>
+                            </div>
                         ) : (
                             <div className="space-y-3">
-                                {positions.map((position, index) => (
-                                    position.token && (
-                                        <TokenCard
-                                            key={position.tokenId}
-                                            token={position.token}
-                                            index={index}
-                                            tonPrice={tonPrice || 0}
-                                        />
-                                    )
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge className="bg-green-500/20 text-green-400 border-0">
+                                        <Icon icon="solar:verified-check-bold" className="w-3 h-3 mr-1" />
+                                        Tradable on STON.fi
+                                    </Badge>
+                                </div>
+                                {graduatedTokens.map((token, index) => (
+                                    <TokenCard
+                                        key={token.id}
+                                        token={token}
+                                        index={index}
+                                        tonPrice={tonPrice || 0}
+                                        showRank={false}
+                                    />
                                 ))}
+                            </div>
+                        )
+                    ) : activeTab === "holdings" ? (
+                        positions.length === 0 ? (
+                            <div className="space-y-6">
+                                <EmptyState message="You don't have any token holdings yet" />
+                                {/* Creator Earnings for token creators */}
+                                <CreatorEarningsDashboard />
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="space-y-3">
+                                    {positions.map((position, index) => (
+                                        position.token && (
+                                            <TokenCard
+                                                key={position.tokenId}
+                                                token={position.token}
+                                                index={index}
+                                                tonPrice={tonPrice || 0}
+                                                showRank={false}
+                                            />
+                                        )
+                                    ))}
+                                </div>
+                                {/* Creator Earnings for token creators */}
+                                <CreatorEarningsDashboard />
                             </div>
                         )
                     ) : displayTokens.length === 0 ? (
@@ -431,6 +468,7 @@ export default function TradePage() {
                                     token={token}
                                     index={index}
                                     tonPrice={tonPrice || 0}
+                                    showRank={activeTab === "trending"}
                                 />
                             ))}
                         </div>

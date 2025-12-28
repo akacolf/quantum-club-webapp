@@ -13,6 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -272,7 +277,7 @@ export default function CreateTokenPage() {
                 return;
             }
 
-            toast.success(`${token.symbol} created and deployed on TON! 🚀`, {
+            toast.success(`${token.symbol} created and deployed on TON`, {
                 description: token.jettonMasterAddress
                     ? `Contract: ${token.jettonMasterAddress.slice(0, 12)}...${initialBuyValue > 0 ? ` + ${initialBuyValue} TON initial buy` : ""}`
                     : "Deployment in progress...",
@@ -448,78 +453,83 @@ export default function CreateTokenPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Initial Buy Option */}
-                        <Card className="bg-white/5 border-white/10">
-                            <CardHeader className="pb-2 relative">
-                                <div className="text-center px-8">
-                                    <CardTitle className="text-white text-base">Initial Buy (Optional)</CardTitle>
-                                    <CardDescription className="text-xs">
-                                        Buy tokens at launch price. Max {MAX_INITIAL_BUY} TON.
-                                    </CardDescription>
-                                </div>
-                                <div className="absolute right-6 top-6">
+                        <Card className="bg-white/5 border-white/10 overflow-hidden">
+                            <CardHeader className="pb-4 relative bg-white/[0.02]">
+                                <div className="flex items-center justify-between">
+                                    <div className="pr-4">
+                                        <CardTitle className="text-white text-base flex items-center gap-1.5">
+                                            <Icon icon="solar:bag-heart-bold" className="w-5 h-5 text-primary" />
+                                            Initial Buy
+                                            <span className="text-xs font-normal text-muted-foreground">(Optional)</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-xs mt-1">
+                                            Be the first to buy your token at the lowest price.
+                                        </CardDescription>
+                                    </div>
                                     <Switch
                                         checked={parseFloat(initialBuyAmount || "0") > 0}
                                         onCheckedChange={(checked) => {
                                             if (!checked) setInitialBuyAmount("");
                                             else setInitialBuyAmount("1");
                                         }}
+                                        className="data-[state=checked]:bg-primary shrink-0"
                                     />
                                 </div>
                             </CardHeader>
                             {parseFloat(initialBuyAmount || "0") > 0 || initialBuyAmount !== "" ? (
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <Label className="text-muted-foreground">Amount (TON)</Label>
-                                            <span className="text-white font-medium">{initialBuyAmount || "0"} TON</span>
+                                <CardContent className="space-y-6 pt-6 animate-in slide-in-from-top-4 duration-300">
+                                    {/* Amount Display */}
+                                    <div className="flex flex-col items-center justify-center py-2">
+                                        <div className="text-3xl font-bold text-white flex items-baseline gap-1">
+                                            {initialBuyAmount || "0"}<span className="text-lg text-primary">TON</span>
                                         </div>
+                                        <p className="text-xs text-muted-foreground mt-1 text-center max-w-[200px]">
+                                            You will receive tokens worth {initialBuyAmount || "0"} TON instantly
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4">
                                         <Slider
                                             value={[parseFloat(initialBuyAmount || "0")]}
                                             onValueChange={([value]) => setInitialBuyAmount(value.toString())}
                                             min={0}
                                             max={MAX_INITIAL_BUY}
-                                            step={1}
+                                            step={0.5}
                                             className="w-full"
                                         />
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                            <span>0 TON</span>
-                                            <span>{MAX_INITIAL_BUY} TON</span>
+
+                                        {/* Quick amount buttons */}
+                                        <div className="grid grid-cols-5 gap-2">
+                                            {[1, 5, 10, 25, 50].map((amount) => (
+                                                <Button
+                                                    key={amount}
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setInitialBuyAmount(amount.toString())}
+                                                    className={`h-9 text-xs font-medium transition-all ${parseFloat(initialBuyAmount) === amount
+                                                        ? "bg-primary text-black border-primary hover:bg-primary/90"
+                                                        : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
+                                                        }`}
+                                                >
+                                                    {amount}
+                                                </Button>
+                                            ))}
                                         </div>
-                                    </div>
-                                    
-                                    {/* Quick amount buttons */}
-                                    <div className="flex gap-2">
-                                        {[1, 5, 10, 25, 50].map((amount) => (
-                                            <Button
-                                                key={amount}
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setInitialBuyAmount(amount.toString())}
-                                                className={`flex-1 h-8 text-xs ${
-                                                    parseFloat(initialBuyAmount) === amount
-                                                        ? "bg-primary/20 border-primary text-primary"
-                                                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
-                                                }`}
-                                            >
-                                                {amount}
-                                            </Button>
-                                        ))}
                                     </div>
 
                                     {errors.initialBuy && (
-                                        <p className="text-xs text-red-400">{errors.initialBuy}</p>
+                                        <p className="text-xs text-red-400 text-center bg-red-500/10 py-2 rounded-lg border border-red-500/20">
+                                            {errors.initialBuy}
+                                        </p>
                                     )}
 
-                                    <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                                        <div className="flex flex-col items-center gap-2 text-center">
-                                            <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-green-400" />
-                                            <p className="text-xs text-green-300">
-                                                Initial buy gives you tokens at the lowest price before anyone else can buy.
-                                                You&apos;ll be the first holder with {initialBuyAmount} TON worth of tokens.
-                                            </p>
-                                        </div>
+                                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex gap-3 items-start">
+                                        <Icon icon="solar:check-circle-bold" className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                                        <p className="text-xs text-emerald-300 leading-relaxed">
+                                            Buying initially secures your position at the best possible entry price.
+                                            This amount will be added to your total creation cost.
+                                        </p>
                                     </div>
                                 </CardContent>
                             ) : null}
@@ -538,16 +548,24 @@ export default function CreateTokenPage() {
                                         <p className="text-white font-medium">{MAX_SUPPLY_FORMATTED}</p>
                                     </div>
                                     <div className="p-2 rounded-lg bg-white/5">
-                                        <p className="text-muted-foreground mb-1">Decimals</p>
-                                        <p className="text-white font-medium">9</p>
-                                    </div>
-                                    <div className="p-2 rounded-lg bg-white/5">
                                         <p className="text-muted-foreground mb-1">Graduation</p>
                                         <p className="text-white font-medium">2,000 TON</p>
                                     </div>
-                                    <div className="p-2 rounded-lg bg-white/5">
-                                        <p className="text-muted-foreground mb-1">DEX</p>
-                                        <p className="text-white font-medium">STON.fi</p>
+                                    <div className="p-2 rounded-lg bg-white/5 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-muted-foreground mb-1">DEX</p>
+                                            <p className="text-white font-medium">STON.fi</p>
+                                        </div>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button type="button" className="focus:outline-none">
+                                                    <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-muted-foreground/50 hover:text-white transition-colors" />
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-2 text-xs bg-black/90 border-white/10 text-white" side="top">
+                                                <p>Migrates to after graduation</p>
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                 </div>
                             </CardContent>

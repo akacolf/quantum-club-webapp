@@ -111,7 +111,10 @@ export default function TokenDetailPage() {
             if (activeTab === "buy") {
                 const result = await buyTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("Purchase successful");
+                    toast.success("Purchase successful!", {
+                        description: `Your ${selectedToken?.symbol || 'tokens'} will appear in QC Wallet shortly`,
+                        duration: 5000,
+                    });
                     setAmount("");
                 } else {
                     toast.error(result.error || "Transaction failed");
@@ -119,7 +122,10 @@ export default function TokenDetailPage() {
             } else {
                 const result = await sellTokens(tokenId, amount);
                 if (result.success) {
-                    toast.success("Sell successful");
+                    toast.success("Sale successful!", {
+                        description: "TON has been sent to your QC Wallet",
+                        duration: 5000,
+                    });
                     setAmount("");
                 } else {
                     toast.error(result.error || "Transaction failed");
@@ -171,7 +177,7 @@ export default function TokenDetailPage() {
                 <div className="px-4 py-4 flex items-center gap-3">
                     <button
                         onClick={() => selectedToken.image && setIsImageViewOpen(true)}
-                        className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 relative cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                        className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 relative cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all flex-shrink-0"
                     >
                         {selectedToken.image ? (
                             <Image src={selectedToken.image} alt={selectedToken.name} fill className="object-cover" unoptimized />
@@ -184,27 +190,35 @@ export default function TokenDetailPage() {
                     <div className="flex-1 min-w-0">
                         <h1 className="text-lg font-bold text-white truncate">{selectedToken.name}</h1>
                         <p className="text-sm text-muted-foreground">${selectedToken.symbol}</p>
+                    </div>
 
+                    <div className="flex flex-col items-end gap-1.5">
+                        <Badge
+                            variant={!selectedToken.isGraduated ? "default" : "secondary"}
+                            className={!selectedToken.isGraduated ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : ""}
+                        >
+                            {!selectedToken.isGraduated ? "Active" : "Graduated"}
+                        </Badge>
                         {selectedToken.jettonMasterAddress && (
-                            <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
-                                <span className="text-[11px] text-muted-foreground font-mono truncate">
-                                    {selectedToken.jettonMasterAddress.slice(0, 8)}...{selectedToken.jettonMasterAddress.slice(-8)}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-[10px] text-muted-foreground font-mono truncate">
+                                    {selectedToken.jettonMasterAddress.slice(0, 4)}...{selectedToken.jettonMasterAddress.slice(-4)}
                                 </span>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-white"
+                                    className="h-5 w-5 p-0 text-muted-foreground hover:text-white"
                                     onClick={() => {
                                         navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
                                         toast.success("Address copied!");
                                     }}
                                 >
-                                    <Icon icon="solar:copy-bold" className="w-3.5 h-3.5" />
+                                    <Icon icon="solar:copy-bold" className="w-3 h-3" />
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-6 w-6 p-0 text-primary hover:text-primary/80"
+                                    className="h-5 w-5 p-0 text-primary hover:text-primary/80"
                                     onClick={() =>
                                         window.open(
                                             `${isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com"}/${selectedToken.jettonMasterAddress}`,
@@ -212,17 +226,11 @@ export default function TokenDetailPage() {
                                         )
                                     }
                                 >
-                                    <Icon icon="solar:link-round-bold" className="w-3.5 h-3.5" />
+                                    <Icon icon="solar:link-round-bold" className="w-3 h-3" />
                                 </Button>
                             </div>
                         )}
                     </div>
-                    <Badge
-                        variant={!selectedToken.isGraduated ? "default" : "secondary"}
-                        className={!selectedToken.isGraduated ? "bg-green-500/20 text-green-400" : ""}
-                    >
-                        {!selectedToken.isGraduated ? "Active" : "Graduated"}
-                    </Badge>
                 </div>
             </div>
 
@@ -323,12 +331,12 @@ export default function TokenDetailPage() {
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">You receive</span>
                                                 <span className="text-white font-medium">
-                                                    ~{(Number(preview.tokensReceived) / 1e9).toLocaleString()} {selectedToken.symbol}
+                                                    ~{parseFloat(preview.tokensReceived || "0").toLocaleString()} {selectedToken.symbol}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">Price per token</span>
-                                                <span className="text-white">{preview.averagePrice} TON</span>
+                                                <span className="text-white">{parseFloat(preview.averagePrice || "0").toFixed(6)} TON</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">Fee (1.5%)</span>
@@ -390,11 +398,11 @@ export default function TokenDetailPage() {
                                         <div className="p-3 rounded-lg bg-white/5 space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">You receive</span>
-                                                <span className="text-white font-medium">{preview.tonReceived} TON</span>
+                                                <span className="text-white font-medium">{parseFloat(preview.tonReceived || "0").toFixed(4)} TON</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">Price per token</span>
-                                                <span className="text-white">{preview.averagePrice} TON</span>
+                                                <span className="text-white">{parseFloat(preview.averagePrice || "0").toFixed(6)} TON</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">Fee (1.5%)</span>

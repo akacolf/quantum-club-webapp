@@ -287,8 +287,8 @@ export default function ProfilePage() {
                             <SheetHeader className="text-center pb-4">
                                 <div className="flex justify-center mb-4">
                                     <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isAchievementUnlocked(selectedAchievement)
-                                            ? "bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50"
-                                            : "bg-card border-2 border-border"
+                                        ? "bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50"
+                                        : "bg-card border-2 border-border"
                                         }`}>
                                         <Icon
                                             icon={isAchievementUnlocked(selectedAchievement)
@@ -296,8 +296,8 @@ export default function ProfilePage() {
                                                 : "solar:lock-keyhole-bold"
                                             }
                                             className={`w-10 h-10 ${isAchievementUnlocked(selectedAchievement)
-                                                    ? "text-yellow-400"
-                                                    : "text-muted-foreground"
+                                                ? "text-yellow-400"
+                                                : "text-muted-foreground"
                                                 }`}
                                         />
                                     </div>
