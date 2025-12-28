@@ -27,14 +27,8 @@ export async function POST(request:NextRequest) {
     const input = String(telegramId);
 
     // 5. Encryption with AES-256-GCM
-    // Note: Static IV is used intentionally for deterministic encryption
-    // This ensures same telegramId always produces same QC ID
-    // The security tradeoff is acceptable here since:
-    // 1. Each user has a unique telegramId input
-    // 2. We only encrypt telegramId (not sensitive data)
-    // 3. Changing IV would break existing user data lookups
     const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64'); // 32 byte
-    const iv = Buffer.from("00000000000000000000000000000000", 'utf8'); // Original 32-char IV for backwards compatibility
+    const iv = Buffer.from("00000000000000000000000000000000",'utf8') // GCM için 12 byte IV
     const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
     
     let encrypted = cipher.update(input, 'utf8', 'base64');
