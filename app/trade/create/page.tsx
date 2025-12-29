@@ -22,7 +22,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
-import { PLATFORM_WALLET_ADDRESS, TOTAL_CREATION_FEE, FEE_CONFIG } from "@/lib/platform-config";
+import { DEPLOYMENT_GAS, FEE_CONFIG } from "@/lib/platform-config";
 import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 
 export default function CreateTokenPage() {
@@ -88,7 +88,7 @@ export default function CreateTokenPage() {
 
     // Calculate total cost including initial buy
     const initialBuyValue = parseFloat(initialBuyAmount || "0");
-    const totalCost = TOTAL_CREATION_FEE + (initialBuyValue > 0 ? initialBuyValue : 0);
+    const totalCost = DEPLOYMENT_GAS + (initialBuyValue > 0 ? initialBuyValue : 0);
 
     // Compress image to fit within Firestore limits (< 1MB)
     const compressImage = (file: File, maxSize: number = 512): Promise<string> => {
@@ -238,31 +238,15 @@ export default function CreateTokenPage() {
         const balance = parseFloat(tonBalance || "0");
 
         if (balance < totalCost) {
-            toast.error(`Insufficient balance. Need ${totalCost.toFixed(2)} TON (${TOTAL_CREATION_FEE} creation + ${initialBuyValue > 0 ? initialBuyValue + " initial buy" : "no initial buy"}).`);
+            toast.error(`Insufficient balance. Need ~${totalCost.toFixed(2)} TON for gas${initialBuyValue > 0 ? ` + ${initialBuyValue} TON initial buy` : ""}.`);
             return;
         }
 
         setIsLoading(true);
 
         try {
-            // Step 1: Send creation fee to platform wallet
-            toast.info("Sending creation fee...", { duration: 2000 });
+            toast.info("Creating and deploying token...", { duration: 5000 });
 
-            const feeResult = await sendTransaction({
-                to: PLATFORM_WALLET_ADDRESS,
-                value: String(Math.floor(FEE_CONFIG.tokenCreation * 1e9)), // 0.5 TON in nano
-            });
-
-            if (!feeResult.success) {
-                toast.error(`Failed to send creation fee: ${feeResult.error}`);
-                setIsLoading(false);
-                return;
-            }
-
-            toast.info("Creating and deploying token...", { duration: 3000 });
-
-            // Step 2: Create token and deploy on-chain via TradingContext
-            // This handles: API call, deployment tx, and confirmation
             const token = await createToken({
                 name: formData.name.trim(),
                 symbol: formData.symbol.trim().toUpperCase(),
@@ -277,15 +261,13 @@ export default function CreateTokenPage() {
                 return;
             }
 
-            toast.success(`${token.symbol} created and deployed on TON`, {
+            toast.success(`${token.symbol} created on TON!`, {
                 description: token.jettonMasterAddress
-                    ? `Contract: ${token.jettonMasterAddress.slice(0, 12)}...${initialBuyValue > 0 ? ` + ${initialBuyValue} TON initial buy` : ""}`
+                    ? `Contract: ${token.jettonMasterAddress.slice(0, 12)}...`
                     : "Deployment in progress...",
             });
 
-            // Refresh token list so the new token appears
             refreshTokens();
-
             router.push(`/trade/${token.id}`);
         } catch (err) {
             console.error("Token creation error:", err);
@@ -571,19 +553,17 @@ export default function CreateTokenPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Fee Info */}
-                        <Alert className="bg-white/5 border-white/10">
-                            <Icon icon="solar:info-circle-bold" className="w-4 h-4" />
+                        <Alert className="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border-green-500/20">
+                            <Icon icon="solar:gift-bold" className="w-4 h-4 text-green-400" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-white">Total Cost: {totalCost.toFixed(2)} TON</span>
+                                <span className="font-medium text-green-400">Free to Create!</span>
                                 <br />
                                 <span className="text-xs">
-                                    Creation: {FEE_CONFIG.tokenCreation} TON + Deploy: {FEE_CONFIG.tokenDeployment} TON
-                                    {initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
+                                    Gas: ~{DEPLOYMENT_GAS} TON{initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
                                 </span>
                                 <br />
                                 <span className="text-xs">
-                                    Trading Fee: {FEE_CONFIG.totalTradingFeePercent}% ({FEE_CONFIG.platformFeePercent}% platform + {FEE_CONFIG.creatorFeePercent}% to you)
+                                    Trading Fee: {FEE_CONFIG.totalTradingFeePercent}% ({FEE_CONFIG.creatorFeePercent}% goes to you!)
                                 </span>
                             </AlertDescription>
                         </Alert>

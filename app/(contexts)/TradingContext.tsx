@@ -24,6 +24,7 @@ import {
     serverTimestamp,
     Timestamp,
 } from "firebase/firestore";
+import { Buffer } from "buffer";
 import { Address, toNano, Cell } from "@ton/core";
 import { useGameContext } from "./MiningContext";
 import { useWallet } from "@/app/wallet/WalletContext";
@@ -663,26 +664,25 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             // Send deployment transaction from user's wallet (client-side)
             // This ensures the token is actually deployed on-chain
             try {
-                // Parse the base64-encoded stateInit and body cells
-                const stateInitCell = deployTx.stateInit
-                    ? Cell.fromBoc(Buffer.from(deployTx.stateInit, "base64"))[0]
-                    : undefined;
-                const bodyCell = deployTx.body
-                    ? Cell.fromBoc(Buffer.from(deployTx.body, "base64"))[0]
-                    : undefined;
+                console.log("Parsing stateInit...", { stateInitLength: deployTx.stateInit?.length });
 
-                console.log("Sending deployment transaction:", {
-                    to: deployTx.to,
-                    value: deployTx.value,
-                    hasStateInit: !!stateInitCell,
-                    hasBody: !!bodyCell,
-                });
+                let stateInitCell: Cell | undefined;
+                if (deployTx.stateInit) {
+                    const stateInitBuffer = Buffer.from(deployTx.stateInit, "base64");
+                    console.log("stateInit buffer size:", stateInitBuffer.length, "bytes");
+                    stateInitCell = Cell.fromBoc(stateInitBuffer)[0];
+                    console.log("stateInit parsed:", {
+                        bits: stateInitCell.bits.length,
+                        refs: stateInitCell.refs.length,
+                    });
+                }
+
+                console.log("Sending deployment:", { to: deployTx.to, value: deployTx.value });
 
                 const txResult = await sendTransaction({
                     to: deployTx.to,
                     value: deployTx.value,
                     stateInit: stateInitCell,
-                    body: bodyCell,
                 });
 
                 if (txResult.success) {

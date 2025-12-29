@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/utils/session";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { Address, toNano, beginCell, internal, SendMode } from "@ton/core";
-import { TonClient, WalletContractV5R1 } from "@ton/ton";
-import { mnemonicToPrivateKey } from "@ton/crypto";
+import { Address } from "@ton/core";
 import { buildJettonDeploy } from "@/lib/jetton-real";
 import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 
@@ -18,11 +16,13 @@ const MAX_SYMBOL_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 500;
 const SYMBOL_REGEX = /^[A-Za-z0-9]+$/;
 
+
 /**
  * POST /api/deploy-jetton
  * 
- * Create and deploy a new Jetton token on TON blockchain.
- * The contract is deployed from the platform wallet for reliability.
+ * Create a new Jetton token and return deployment package.
+ * User deploys from their own QC Wallet (pays deployment gas).
+ * Platform wallet only receives trading commissions (1% on trades).
  * 
  * Body: {
  *   name: string;
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
             .where("creatorUserId", "==", userId)
             .where("createdAt", ">=", new Date(Date.now() - RATE_LIMIT_WINDOW_MS))
             .limit(MAX_TOKENS_PER_WINDOW + 1);
-        
+
         const recentTokens = await recentTokensQuery.get();
         if (recentTokens.size >= MAX_TOKENS_PER_WINDOW) {
             return NextResponse.json(
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
             .where("symbolLower", "==", symbolLower)
             .limit(1)
             .get();
-        
+
         if (!duplicateCheck.empty) {
             return NextResponse.json(
                 { error: `Token with symbol ${symbol.toUpperCase()} already exists` },
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
                 // On-chain data
                 jettonMasterAddress: deployResult.jettonMasterAddress,
                 isOnChain: true,
-                isDeployed: false, // Will be set true after deployment
+                isDeployed: false, // Will be set true after verification
 
                 // Trading state
                 totalSupply: "0",
@@ -209,116 +209,24 @@ export async function POST(request: NextRequest) {
             // Continue anyway - we'll still try to deploy
         }
 
-        // ====== SERVER-SIDE DEPLOYMENT (in background, non-blocking) ======
-        const platformMnemonic = process.env.PLATFORM_WALLET_MNEMONIC;
+        // ====== CLIENT-SIDE DEPLOYMENT ONLY ======
+        // User deploys from their own QC Wallet (pays deployment gas)
+        // Platform wallet only receives trading commissions (1% on trades)
+        // This matches Blum's model - their deployer balance never changes
+        console.log("Token prepared. Client-side deployment will be triggered by user's wallet.");
 
-        if (platformMnemonic) {
-            // Don't await - let it run in background with retry logic
-            (async () => {
-                const MAX_RETRIES = 3;
-                const RETRY_DELAY_MS = 2000;
-
-                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                    try {
-                        console.log(`Server-side deployment attempt ${attempt}/${MAX_RETRIES}...`);
-
-                        const mnemonic = platformMnemonic.split(" ");
-                        const keyPair = await mnemonicToPrivateKey(mnemonic);
-
-                        const wallet = WalletContractV5R1.create({
-                            publicKey: keyPair.publicKey,
-                            workchain: 0,
-                        });
-
-                        const tonClient = new TonClient({
-                            endpoint: "https://toncenter.com/api/v2/jsonRPC",
-                            apiKey: process.env.NEXT_PUBLIC_TONCENTER_API_KEY,
-                        });
-
-                        const contract = tonClient.open(wallet);
-                        
-                        // Get seqno with retry for rate limits
-                        let seqno = 0;
-                        try {
-                            seqno = await contract.getSeqno();
-                        } catch (seqnoError) {
-                            console.warn("Failed to get seqno, assuming 0:", seqnoError);
-                        }
-
-                        console.log("Platform wallet seqno:", seqno);
-
-                        const { loadStateInit } = await import("@ton/core");
-                        const parsedInit = loadStateInit(deployResult.stateInit!.beginParse());
-
-                        console.log("Parsed stateInit:", {
-                            hasCode: !!parsedInit.code,
-                            hasData: !!parsedInit.data,
-                        });
-
-                        await contract.sendTransfer({
-                            seqno,
-                            secretKey: keyPair.secretKey,
-                            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-                            messages: [
-                                internal({
-                                    to: Address.parse(deployResult.jettonMasterAddress!),
-                                    value: toNano("0.05"),
-                                    body: deployResult.deployMessage || beginCell().endCell(),
-                                    init: parsedInit,
-                                    bounce: false,
-                                }),
-                            ],
-                        });
-
-                        console.log("Deployment transaction sent from platform wallet!");
-
-                        // Update Firestore to mark as deployed
-                        await tokenRef.update({
-                            isDeployed: true,
-                            deployedAt: FieldValue.serverTimestamp(),
-                            deploymentMethod: "server",
-                        });
-
-                        console.log("Token marked as deployed in Firestore");
-                        break; // Success - exit retry loop
-
-                    } catch (deployError) {
-                        console.error(`Server-side deployment attempt ${attempt} failed:`, deployError);
-                        
-                        if (attempt < MAX_RETRIES) {
-                            console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
-                            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-                        } else {
-                            console.error("All deployment attempts failed. Token will need client-side deployment.");
-                            // Mark token as pending deployment
-                            try {
-                                await tokenRef.update({
-                                    deploymentError: deployError instanceof Error ? deployError.message : "Unknown error",
-                                    deploymentAttempts: MAX_RETRIES,
-                                });
-                            } catch {
-                                // Ignore Firestore update errors
-                            }
-                        }
-                    }
-                }
-            })();
-        } else {
-            console.log("No PLATFORM_WALLET_MNEMONIC set, skipping server-side deployment");
-        }
-
-        // Return immediately - deployment happens in background
+        // Return deployment package for client to send
         return NextResponse.json({
             success: true,
             tokenId,
             jettonAddress: deployResult.jettonMasterAddress,
             deployTx: {
                 to: deployResult.jettonMasterAddress,
-                value: "50000000",
+                value: "20000000", // 0.02 TON for deployment gas (user pays)
                 stateInit: deployResult.stateInit.toBoc().toString("base64"),
                 body: deployResult.deployMessage?.toBoc().toString("base64") || "",
             },
-            message: "Token created! Contract deployment in progress...",
+            message: "Token created! Deploying contract...",
         });
     } catch (error) {
         console.error("Deploy Jetton error:", error);
@@ -359,7 +267,7 @@ export async function PATCH(request: NextRequest) {
         }
 
         const tokenData = tokenDoc.data();
-        
+
         // Security: Only allow creator to confirm deployment
         if (tokenData?.creatorUserId !== userId) {
             return NextResponse.json(

@@ -692,39 +692,124 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      while (retries > 0) {
-        try {
-          console.log("Attempting sendTransfer with seqno:", seqno, "retries left:", retries);
-          await contract.sendTransfer({
-            seqno,
-            secretKey: keyPair.secretKey,
-            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-            messages: [
-              internal({
-                to: toAddress,
-                value: BigInt(params.value),
-                body: params.body,
-                init: init,
-                bounce: false,
-              }),
-            ],
-          });
-          console.log("Transaction sent successfully with seqno:", seqno);
-          break;
-        } catch (err) {
-          console.error("sendTransfer error:", err);
-          const error = err as { response?: { status?: number } };
-          if (error?.response?.status === 429 && retries > 1) {
-            // Wait and retry for rate limit
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            retries--;
-            continue;
+      // Create external message manually for more control
+      const { beginCell, storeMessage, external } = await import("@ton/core");
+
+      // Build the internal message
+      const internalMsg = internal({
+        to: toAddress,
+        value: BigInt(params.value),
+        body: params.body,
+        init: init,
+        bounce: false,
+      });
+
+      // Create transfer body using the opened contract (for proper wallet type handling)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transferCell = (wallet as any).createTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+        messages: [internalMsg],
+      }) as Cell;
+
+      // Build external message
+      const externalMsg = external({
+        to: wallet.address,
+        init: seqno === 0 ? wallet.init : undefined, // Deploy wallet if needed
+        body: transferCell,
+      });
+
+      // Serialize to BOC
+      const bocCell = beginCell().store(storeMessage(externalMsg)).endCell();
+      const bocBase64 = bocCell.toBoc().toString("base64");
+
+      console.log("External message BOC created:", {
+        bocLength: bocBase64.length,
+        seqno,
+        walletDeployNeeded: seqno === 0,
+      });
+
+      let success = false;
+      let lastError = "";
+
+      const toncenterEndpoint = isTestnet
+        ? "https://testnet.toncenter.com/api/v2/sendBoc"
+        : "https://toncenter.com/api/v2/sendBoc";
+
+      const tonapiEndpoint = isTestnet
+        ? "https://testnet.tonapi.io/v2/blockchain/message"
+        : "https://tonapi.io/v2/blockchain/message";
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        if (attempt > 1) {
+          console.log(`Retry attempt ${attempt}, waiting 2s...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        if (!success) {
+          try {
+            console.log("Sending via TonCenter...");
+            const toncenterResponse = await fetch(toncenterEndpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(process.env.NEXT_PUBLIC_TONCENTER_API_KEY && !isTestnet
+                  ? { "X-API-Key": process.env.NEXT_PUBLIC_TONCENTER_API_KEY }
+                  : {}),
+              },
+              body: JSON.stringify({ boc: bocBase64 }),
+            });
+
+            const toncenterResult = await toncenterResponse.json();
+
+            if (toncenterResult.ok) {
+              console.log("Transaction sent via TonCenter!");
+              success = true;
+              break;
+            } else if (toncenterResponse.status === 429) {
+              console.log("TonCenter rate limited, will retry...");
+              lastError = "Rate limited";
+            } else {
+              console.error("TonCenter error:", toncenterResult);
+              lastError = `TonCenter: ${toncenterResult.error || JSON.stringify(toncenterResult)}`;
+            }
+          } catch (err) {
+            console.error("TonCenter request failed:", err);
+            lastError = `TonCenter: ${err instanceof Error ? err.message : String(err)}`;
           }
-          throw err; // Re-throw if not rate limit or out of retries
+        }
+
+        if (!success) {
+          try {
+            console.log("Trying TONAPI...");
+            const tonapiResponse = await fetch(tonapiEndpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ boc: bocBase64 }),
+            });
+
+            if (tonapiResponse.ok) {
+              console.log("Transaction sent via TONAPI!");
+              success = true;
+              break;
+            } else if (tonapiResponse.status === 429) {
+              console.log("TONAPI rate limited, will retry...");
+            } else {
+              const errorText = await tonapiResponse.text();
+              console.error("TONAPI error:", tonapiResponse.status, errorText);
+              lastError = `TONAPI: ${tonapiResponse.status} - ${errorText}`;
+            }
+          } catch (err) {
+            console.error("TONAPI request failed:", err);
+          }
         }
       }
 
-      // Refresh assets after transaction
+      if (!success) {
+        throw new Error(lastError || "Failed to send transaction via all endpoints");
+      }
+
       setTimeout(() => {
         fetchWalletAssets();
       }, 3000);
