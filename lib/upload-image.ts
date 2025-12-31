@@ -1,9 +1,6 @@
-import { storage } from "@/app/(firebase)/client";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
 /**
- * Upload token image to Firebase Storage
- * This is simpler and more reliable than R2 pre-signed URLs
+ * Upload token image to Cloudinary via server-side proxy
+ * Cloudinary provides reliable CDN URLs with auto-optimization
  */
 export async function uploadTokenImage(
     tokenId: string,
@@ -15,49 +12,32 @@ export async function uploadTokenImage(
             return imageData;
         }
 
-        console.log("Uploading image to Firebase Storage...");
+        console.log("Uploading image to Cloudinary...");
 
-        // Extract content type and base64 data
-        const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
-        if (!matches) {
-            console.error("Invalid image data format");
+        const response = await fetch("/api/upload-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                tokenId,
+                imageData,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("Image upload failed:", response.status, errorData);
             return null;
         }
 
-        const contentType = matches[1];
-        const base64Data = matches[2];
+        const result = await response.json();
 
-        // Convert base64 to Blob
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: contentType });
-
-        // Determine file extension
-        let extension = "webp";
-        if (contentType.includes("gif")) {
-            extension = "gif";
-        } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
-            extension = "jpg";
-        } else if (contentType.includes("png")) {
-            extension = "png";
+        if (result.success && result.publicUrl) {
+            console.log("Image uploaded successfully:", result.publicUrl);
+            return result.publicUrl;
         }
 
-        // Upload to Firebase Storage
-        const storageRef = ref(storage, `tokens/${tokenId}/image.${extension}`);
-        const snapshot = await uploadBytes(storageRef, blob, {
-            contentType,
-            cacheControl: "public, max-age=31536000, immutable",
-        });
-
-        // Get download URL
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        console.log("Image uploaded successfully:", downloadURL);
-
-        return downloadURL;
+        console.error("Upload response missing publicUrl:", result);
+        return null;
     } catch (error) {
         console.error("Failed to upload image:", error);
         return null;
