@@ -223,13 +223,20 @@ export default function TradePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
 
-    // Check if wallet exists (either address is set OR mnemonic exists in localStorage)
+    // Check if wallet exists - prioritize context state, fallback to localStorage for SSR
     const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
 
     useEffect(() => {
-        // Check both walletAddress from context and mnemonic from localStorage
+        // If context has wallet address, we definitely have a wallet
+        if (walletAddress) {
+            setHasWallet(true);
+            return;
+        }
+        
+        // If context is empty, check localStorage (for SSR hydration)
+        // This will be empty after logout due to clearWallet()
         const mnemonic = localStorage.getItem("quantum_wallet_mnemonic");
-        setHasWallet(!!walletAddress || !!mnemonic);
+        setHasWallet(!!mnemonic);
     }, [walletAddress]);
 
 

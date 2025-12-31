@@ -46,14 +46,16 @@ export default function CreateTokenPage() {
             if (!walletAddress || walletAddress === "") {
                 setWalletAddress(storedWallet);
             }
+        } else {
+            // Wallet was cleared (logout) - update state
+            setEffectiveWalletAddress("");
         }
     }, [walletAddress, setWalletAddress]);
 
-    // Update effectiveWalletAddress when context updates
+    // Update effectiveWalletAddress when context updates (including when cleared)
     useEffect(() => {
-        if (walletAddress && walletAddress !== "") {
-            setEffectiveWalletAddress(walletAddress);
-        }
+        // Sync with context - handles both setting and clearing
+        setEffectiveWalletAddress(walletAddress || "");
     }, [walletAddress]);
 
     // Prefetch trade page for faster navigation after creation
