@@ -89,6 +89,7 @@ interface WalletContextType {
   removeWallet: (address: string) => void;
   switchWallet: (address: string) => void;
   renameWallet: (address: string, newName: string) => void;
+  clearWallet: () => void; // Clears all wallet state on logout
   // Transaction sending for QC Wallet integration
   sendTransaction: (params: {
     to: string;
@@ -335,6 +336,44 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("quantum_hide_balance", String(newValue));
       return newValue;
     });
+  }, []);
+
+  // Clear all wallet state on logout
+  const clearWallet = useCallback(() => {
+    // Clear localStorage
+    localStorage.removeItem("quantum_wallet_address");
+    localStorage.removeItem("quantum_wallet_mnemonic");
+    localStorage.removeItem("quantum_wallet_pin_hash");
+    localStorage.removeItem("quantum_wallet_credential_id");
+    localStorage.removeItem("quantum_wallet_version");
+    localStorage.removeItem("quantum_wallets");
+    localStorage.removeItem("quantum_active_wallet_index");
+    
+    // Reset all state
+    setWalletAddress("");
+    setTonBalance("0");
+    setTonUsdValue("0.00");
+    setTotalUsdBalance("0.00");
+    setJettons([]);
+    setNfts([]);
+    setHasFetched(false);
+    setWalletStatus("nonexist");
+    setStoredWallets([]);
+    setActiveWalletIndex(0);
+    
+    // Clear multi-chain state
+    setEthAddress("");
+    setBtcAddress("");
+    setSolAddress("");
+    setTrxAddress("");
+    setEthBalance(0);
+    setBtcBalance(0);
+    setSolBalance(0);
+    setTrxBalance(0);
+    setEthUsdValue(0);
+    setBtcUsdValue(0);
+    setSolUsdValue(0);
+    setTrxUsdValue(0);
   }, []);
 
   const fetchTonPrice = useCallback(async () => {
@@ -874,6 +913,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       removeWallet,
       switchWallet,
       renameWallet,
+      clearWallet,
       sendTransaction,
     }}>
       {children}

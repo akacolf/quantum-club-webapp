@@ -98,6 +98,7 @@ export default function WalletPage() {
     fetchNfts,
     toggleHideBalance,
     tonPrice,
+    clearWallet,
     // Multi-chain
     ethAddress,
     btcAddress,
@@ -428,10 +429,8 @@ export default function WalletPage() {
     }
   };
   const walletExit = () => {
-    localStorage.removeItem("quantum_wallet_address");
-    localStorage.removeItem("quantum_wallet_mnemonic");
+    clearWallet();
     setHasWallet(false);
-    setContextWalletAddress("");
     DeletePin(telegramId || "");
   }
   if (isChecking) {

@@ -58,15 +58,20 @@ export async function POST(req: NextRequest) {
         const key = `tokens/${tokenId}/image.${extension}`;
 
         // Create pre-signed URL for upload (valid for 5 minutes)
+        // Note: R2 requires specific settings for pre-signed URLs
         const command = new PutObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: key,
             ContentType: fileType || "image/webp",
-            CacheControl: "public, max-age=31536000, immutable", // 1 year cache
         });
 
         const client = getR2Client();
-        const uploadUrl = await getSignedUrl(client, command, { expiresIn: 300 });
+        // Generate pre-signed URL without checksums (R2 doesn't support AWS's automatic checksums)
+        const uploadUrl = await getSignedUrl(client, command, { 
+            expiresIn: 300,
+            // Don't include checksum headers as R2 doesn't support them
+            signableHeaders: new Set(['host', 'content-type']),
+        });
 
         // Construct public URL
         // Use R2_PUBLIC_URL if provided, otherwise log a warning

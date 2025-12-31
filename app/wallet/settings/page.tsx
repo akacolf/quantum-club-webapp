@@ -82,6 +82,7 @@ function TestnetToggle() {
 export default function WalletSettingsPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
+  const { clearWallet } = useWallet();
 
   // Prefetch all settings subpages for faster navigation
   useEffect(() => {
@@ -95,13 +96,11 @@ export default function WalletSettingsPage() {
 
 
   const handleDeleteWallet = useCallback(() => {
-    localStorage.removeItem("quantum_wallet_address");
-    localStorage.removeItem("quantum_wallet_mnemonic");
-    localStorage.removeItem("quantum_wallet_pin_hash");
-    localStorage.removeItem("quantum_wallet_credential_id");
+    // Use clearWallet from context to properly reset all state
+    clearWallet();
     toast.success("Wallet removed from this device");
     router.push("/wallet");
-  }, [router]);
+  }, [router, clearWallet]);
 
   const faqItems = [
     {
