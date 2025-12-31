@@ -633,13 +633,15 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 ;; =====================================================
 
 ;; TEP-74 required: get_jetton_data
+;; Returns: (total_supply, mintable, owner_address, content, wallet_code)
+;; We return creator_address as owner (not admin) for proper explorer display
 (int, int, slice, cell, cell) get_jetton_data() method_id {
     (
-        int total_supply, int mintable, slice admin_address, _,
+        int total_supply, int mintable, _, slice creator_address,
         cell jetton_content, cell jetton_wallet_code, _, _, _
     ) = load_data();
     
-    return (total_supply, mintable, admin_address, jetton_content, jetton_wallet_code);
+    return (total_supply, mintable, creator_address, jetton_content, jetton_wallet_code);
 }
 
 ;; TEP-74 required: get_wallet_address

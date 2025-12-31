@@ -53,28 +53,37 @@ function buildOnChainMetadata(config: JettonDeployConfig): Cell {
     const dict = Dictionary.empty(Dictionary.Keys.Buffer(32), Dictionary.Values.Cell());
 
     // Helper to build snake-format value cell with proper chunking for long strings
-    // Snake format: data split across cells, each cell up to 127 bytes, linked via refs
+    // TEP-64 Snake format: 0x00 prefix byte, then data, with continuation in refs if needed
     const makeSnakeCell = (data: string): Cell => {
         const buffer = Buffer.from(data, 'utf-8');
-        const CELL_MAX_SIZE_BYTES = 127; // Safe limit (1023 bits / 8 ≈ 127 bytes)
+        // Account for the 0x00 prefix byte - leaves 126 bytes for data per cell
+        const CELL_MAX_SIZE_BYTES = 126;
 
         if (buffer.length <= CELL_MAX_SIZE_BYTES) {
-            // Short data - fits in one cell
+            // Short data - fits in one cell with prefix
             return beginCell()
+                .storeUint(0x00, 8)  // Snake format prefix byte (REQUIRED by TEP-64)
                 .storeBuffer(buffer)
                 .endCell();
         }
 
         // Long data - need to chain cells
+        // First cell has 0x00 prefix, subsequent cells are just data
         const chunks: Buffer[] = [];
-        for (let i = 0; i < buffer.length; i += CELL_MAX_SIZE_BYTES) {
-            chunks.push(buffer.subarray(i, Math.min(i + CELL_MAX_SIZE_BYTES, buffer.length)));
+        chunks.push(buffer.subarray(0, CELL_MAX_SIZE_BYTES)); // First chunk (smaller due to prefix)
+        for (let i = CELL_MAX_SIZE_BYTES; i < buffer.length; i += 127) {
+            chunks.push(buffer.subarray(i, Math.min(i + 127, buffer.length)));
         }
 
         // Build from last to first (reversed to create chain)
         let cell: Cell | null = null;
         for (let i = chunks.length - 1; i >= 0; i--) {
-            const builder = beginCell().storeBuffer(chunks[i]);
+            const builder = beginCell();
+            if (i === 0) {
+                // First cell gets the snake format prefix
+                builder.storeUint(0x00, 8);
+            }
+            builder.storeBuffer(chunks[i]);
             if (cell) {
                 builder.storeRef(cell);
             }
@@ -87,10 +96,20 @@ function buildOnChainMetadata(config: JettonDeployConfig): Cell {
     const keyName = Buffer.from("82a3537ff0dbce7eec35d69edc3a189ee6f17d82f353a553f9aa96cb0be3ce89", "hex");
     const keySymbol = Buffer.from("b76a7ca153c24671658335bbd08946350ffc621fa1c516e7123095d4ffd5c581", "hex");
     const keyDecimals = Buffer.from("ee80fd2f1e03480e2282363596ee752d7bb27f50776b95086a0279189675923e", "hex");
+    const keyDescription = Buffer.from("c9046f7a37ad0ea7cee73355984fa5428982f8b37c8f7bcec91f7ac71a7cd104", "hex");
+    const keyImage = Buffer.from("6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d", "hex");
 
     dict.set(keyName, makeSnakeCell(config.name));
     dict.set(keySymbol, makeSnakeCell(config.symbol));
     dict.set(keyDecimals, makeSnakeCell(String(config.decimals ?? 9)));
+
+    if (config.description) {
+        dict.set(keyDescription, makeSnakeCell(config.description.slice(0, 200)));
+    }
+
+    if (config.image && !config.image.startsWith('data:')) {
+        dict.set(keyImage, makeSnakeCell(config.image));
+    }
 
     return beginCell()
         .storeUint(0x00, 8)
@@ -98,39 +117,28 @@ function buildOnChainMetadata(config: JettonDeployConfig): Cell {
         .endCell();
 }
 
-/**
- * Build off-chain metadata (URI pointing to JSON)
- */
-export function buildOffChainMetadata(metadataUri: string): Cell {
+function buildOffChainMetadata(metadataUri: string): Cell {
     return beginCell()
-        .storeUint(0x01, 8) // Off-chain metadata indicator
+        .storeUint(0x01, 8)
         .storeBuffer(Buffer.from(metadataUri))
         .endCell();
 }
 
-/**
- * Build Jetton minter initial data cell
- * Must match the load_data() layout in jetton_master.fc exactly:
- *   total_supply, mintable, admin_address, creator_address,
- *   content, wallet_code, ton_reserve, graduated, graduation_target
- * 
- * Note: Fees are sent directly during transactions (Blum/BigPump pattern)
- */
 function buildJettonMinterData(
     config: JettonDeployConfig,
     walletCode: Cell,
     platformAddress: Address
 ): Cell {
     return beginCell()
-        .storeCoins(config.totalSupply ?? BigInt(0))  // total_supply (0 initially)
-        .storeBit(true)                               // mintable (true = can mint)
-        .storeAddress(platformAddress)                // admin_address (PLATFORM wallet for fees)
-        .storeAddress(config.owner)                   // creator_address (token creator)
-        .storeRef(buildOnChainMetadata(config))       // jetton_content
-        .storeRef(walletCode)                         // jetton_wallet_code
-        .storeCoins(0)                                // ton_reserve (starts at 0)
-        .storeBit(false)                              // graduated (false = not graduated)
-        .storeCoins(toNano("2000"))                   // graduation_target (2000 TON)
+        .storeCoins(config.totalSupply ?? BigInt(0))
+        .storeBit(true)
+        .storeAddress(platformAddress)
+        .storeAddress(config.owner)
+        .storeRef(buildOnChainMetadata(config))
+        .storeRef(walletCode)
+        .storeCoins(0)
+        .storeBit(false)
+        .storeCoins(toNano("2000"))
         .endCell();
 }
 

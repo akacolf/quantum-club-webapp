@@ -271,7 +271,8 @@ export default function CreateTokenPage() {
             router.push(`/trade/${token.id}`);
         } catch (err) {
             console.error("Token creation error:", err);
-            toast.error("An error occurred. Please try again.");
+            const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
+            toast.error(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -556,14 +557,14 @@ export default function CreateTokenPage() {
                         <Alert className="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border-green-500/20">
                             <Icon icon="solar:gift-bold" className="w-4 h-4 text-green-400" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-green-400">Free to Create!</span>
+                                <span className="font-medium text-green-400">Creation Fees</span>
                                 <br />
                                 <span className="text-xs">
                                     Gas: ~{DEPLOYMENT_GAS} TON{initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
                                 </span>
                                 <br />
                                 <span className="text-xs">
-                                    Trading Fee: {FEE_CONFIG.totalTradingFeePercent}% ({FEE_CONFIG.creatorFeePercent}% goes to you!)
+                                    Trading Fee: {FEE_CONFIG.totalTradingFeePercent}% (0.5% to you)
                                 </span>
                             </AlertDescription>
                         </Alert>

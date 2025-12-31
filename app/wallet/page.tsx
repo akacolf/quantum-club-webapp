@@ -1151,9 +1151,13 @@ export default function WalletPage() {
                   <div className="flex items-center gap-3">
                     <div
                       className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-white/10"
-                      style={{ backgroundColor: selectedAsset.image ? 'transparent' : selectedAsset.color }}
+                      style={{ backgroundColor: selectedAsset.symbol === 'TON' ? '#3B82F6' : (selectedAsset.image ? 'transparent' : selectedAsset.color) }}
                     >
-                      {selectedAsset.image ? (
+                      {selectedAsset.symbol === 'TON' ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" className="text-white">
+                          <path fill="currentColor" d="m20.661 7.22l-7.846 12.494a1.06 1.06 0 0 1-1.794-.006L3.328 7.214A2.2 2.2 0 0 1 3 6.05a2.29 2.29 0 0 1 2.324-2.255h13.362C19.963 3.794 21 4.8 21 6.044c0 .413-.116.82-.339 1.175M5.218 6.8l5.723 8.826V5.912H5.816c-.592 0-.857.392-.598.89m7.84 8.826L18.783 6.8c.265-.497-.006-.89-.599-.89H13.06z" />
+                        </svg>
+                      ) : selectedAsset.image && !selectedAsset.image.includes('ton.org') ? (
                         <Image
                           src={selectedAsset.image}
                           alt={selectedAsset.symbol}

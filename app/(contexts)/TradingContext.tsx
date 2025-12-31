@@ -48,6 +48,7 @@ import {
     buildBuyMessage,
     buildBurnMessage,
 } from "@/lib/jetton-operations";
+import { uploadTokenImage } from "@/lib/upload-image";
 import { FEE_CONFIG } from "@/lib/platform-config";
 
 // =====================================================
@@ -623,7 +624,22 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
-            // Call API to prepare deployment package (creates Firestore doc + returns deployment tx)
+            const tempId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            let imageUrl = params.image;
+
+            // Upload base64 image to R2 if provided
+            if (params.image?.startsWith('data:')) {
+                console.log("Uploading token image to R2...");
+                const uploaded = await uploadTokenImage(tempId, params.image);
+                if (uploaded) {
+                    console.log("Image uploaded successfully:", uploaded);
+                    imageUrl = uploaded;
+                } else {
+                    console.warn("Image upload failed - token will be created without image");
+                    imageUrl = ""; // Clear the base64 data since it can't be stored on-chain
+                }
+            }
+
             const response = await fetch("/api/deploy-jetton", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -631,21 +647,32 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                     name: params.name,
                     symbol: params.symbol,
                     description: params.description,
-                    image: params.image,
+                    image: imageUrl,
                     creatorAddress: walletAddress,
                 }),
             });
 
             if (!response.ok) {
                 const responseText = await response.text();
-                let errorData = {};
+                let errorMessage = "Token creation failed";
                 try {
-                    errorData = JSON.parse(responseText);
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.error || errorMessage;
                 } catch {
                     console.error("Token creation failed - raw response:", response.status, responseText);
                 }
-                console.error("Token creation failed:", response.status, errorData);
-                return null;
+
+                // Log with context
+                console.error("Token creation failed:", response.status, errorMessage);
+
+                // Throw specific errors that can be shown to users
+                if (response.status === 409) {
+                    throw new Error(`Symbol "${params.symbol}" already exists. Please choose a different symbol.`);
+                } else if (response.status === 429) {
+                    throw new Error("Rate limit exceeded. You can create max 3 tokens per hour.");
+                } else {
+                    throw new Error(errorMessage);
+                }
             }
 
             const { tokenId, jettonAddress, deployTx, success } = await response.json();
