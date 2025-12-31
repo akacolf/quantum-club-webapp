@@ -261,9 +261,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 query(collection(dbfs, "tokens"), where("isOnChain", "==", true))
             );
 
-            const positionsPromises = tokensSnapshot.docs.map(async (docSnap) => {
+            const results: HolderPosition[] = [];
+            
+            // Process tokens sequentially to avoid rate limits (no API key = 1 req/sec limit)
+            for (const docSnap of tokensSnapshot.docs) {
                 const token = docToToken(docSnap);
-                if (!token.jettonMasterAddress) return null;
+                if (!token.jettonMasterAddress) continue;
 
                 try {
                     // Query on-chain balance
@@ -274,7 +277,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                     );
 
                     if (balance > BigInt(0)) {
-                        return {
+                        results.push({
                             tokenId: token.id,
                             balance: balance.toString(),
                             averageBuyPrice: "0", // Can't determine without indexing
@@ -283,16 +286,17 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                             pnl: 0,
                             pnlPercent: 0,
                             token,
-                        } as HolderPosition;
+                        });
                     }
+                    
+                    // Small delay between requests to avoid rate limits
+                    await new Promise(r => setTimeout(r, 100));
                 } catch {
-                    // Token might not be deployed yet
+                    // Token might not be deployed yet - silently ignore
                 }
-                return null;
-            });
+            }
 
-            const results = await Promise.all(positionsPromises);
-            setPositions(results.filter((p): p is HolderPosition => p !== null));
+            setPositions(results);
         } catch (error) {
             console.error("Error refreshing positions:", error);
         }

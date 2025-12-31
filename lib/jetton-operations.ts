@@ -288,9 +288,13 @@ export async function getJettonData(
             walletCode,
         };
     } catch (error) {
-        // Exit code -13 means contract doesn't exist - expected for new tokens
+        // Silently handle expected errors:
+        // - exit_code: -13 = contract doesn't exist
+        // - 429 = rate limit (expected without API key)
         const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13")) {
+        if (!errorMessage.includes("exit_code: -13") && 
+            !errorMessage.includes("429") && 
+            !errorMessage.includes("rate")) {
             console.error("Failed to get Jetton data:", error);
         }
         return null;
@@ -319,9 +323,13 @@ export async function getJettonWalletAddress(
 
         return walletAddress?.toString() ?? null;
     } catch (error) {
-        // Exit code -13 means contract doesn't exist - this is expected for new tokens
+        // Silently handle expected errors:
+        // - exit_code: -13 = contract doesn't exist  
+        // - 429 = rate limit (expected without API key)
         const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13")) {
+        if (!errorMessage.includes("exit_code: -13") && 
+            !errorMessage.includes("429") && 
+            !errorMessage.includes("rate")) {
             console.error("Failed to get wallet address:", error);
         }
         return null;
@@ -351,9 +359,13 @@ export async function getJettonWalletData(
             walletCode,
         };
     } catch (error) {
-        // Exit code -13 means contract doesn't exist - this is expected for new tokens
+        // Silently handle expected errors:
+        // - exit_code: -13 = contract doesn't exist
+        // - 429 = rate limit (expected without API key)
         const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13")) {
+        if (!errorMessage.includes("exit_code: -13") && 
+            !errorMessage.includes("429") && 
+            !errorMessage.includes("rate")) {
             console.error("Failed to get wallet data:", error);
         }
         return null;
@@ -410,9 +422,13 @@ export async function getBondingCurveData(
             graduationTarget,
         };
     } catch (error) {
-        // Exit code -13 means contract doesn't exist - expected for new tokens
+        // Silently handle expected errors:
+        // - exit_code: -13 = contract doesn't exist
+        // - 429 = rate limit (expected without API key)
         const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13")) {
+        if (!errorMessage.includes("exit_code: -13") && 
+            !errorMessage.includes("429") && 
+            !errorMessage.includes("rate")) {
             console.error("Failed to get curve data:", error);
         }
         return null;
