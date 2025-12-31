@@ -48,6 +48,9 @@ export async function uploadTokenImage(
 
         const { uploadUrl, publicUrl } = await response.json();
 
+        console.log("Uploading to R2 with pre-signed URL...");
+        console.log("Upload URL domain:", new URL(uploadUrl).hostname);
+        
         // Upload directly to R2 using pre-signed URL
         const uploadResponse = await fetch(uploadUrl, {
             method: "PUT",
@@ -55,17 +58,29 @@ export async function uploadTokenImage(
             headers: {
                 "Content-Type": contentType,
             },
+            mode: "cors", // Explicitly request CORS
         });
 
         if (!uploadResponse.ok) {
-            console.error("Failed to upload to R2:", uploadResponse.status);
+            const errorText = await uploadResponse.text().catch(() => "");
+            console.error("Failed to upload to R2:", {
+                status: uploadResponse.status,
+                statusText: uploadResponse.statusText,
+                errorText,
+            });
             return null;
         }
 
         console.log("Image uploaded successfully to R2:", publicUrl);
         return publicUrl;
     } catch (error) {
-        console.error("Failed to upload image:", error);
+        // More detailed error for CORS issues
+        if (error instanceof TypeError && (error.message.includes("Failed to fetch") || error.message.includes("NetworkError"))) {
+            console.error("R2 Upload CORS Error: The R2 bucket needs CORS configuration to allow uploads from this origin.");
+            console.error("Add your domain to AllowedOrigins in R2 bucket settings:", window.location.origin);
+        } else {
+            console.error("Failed to upload image:", error);
+        }
         return null;
     }
 }

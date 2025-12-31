@@ -28,11 +28,33 @@ import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/
 export default function CreateTokenPage() {
     const router = useRouter();
     const { createToken, refreshTokens } = useTrading();
-    const { walletAddress, tonBalance, sendTransaction } = useWallet();
+    const { walletAddress, tonBalance, sendTransaction, setWalletAddress } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Telegram back button
     useTelegramBackButton("/trade");
+
+    // Check for wallet from localStorage directly to handle SSR timing issues
+    const [effectiveWalletAddress, setEffectiveWalletAddress] = useState<string>("");
+    
+    useEffect(() => {
+        // First check localStorage directly (handles SSR hydration timing)
+        const storedWallet = localStorage.getItem("quantum_wallet_address");
+        if (storedWallet && storedWallet !== "") {
+            setEffectiveWalletAddress(storedWallet);
+            // Also update context if needed
+            if (!walletAddress || walletAddress === "") {
+                setWalletAddress(storedWallet);
+            }
+        }
+    }, [walletAddress, setWalletAddress]);
+
+    // Update effectiveWalletAddress when context updates
+    useEffect(() => {
+        if (walletAddress && walletAddress !== "") {
+            setEffectiveWalletAddress(walletAddress);
+        }
+    }, [walletAddress]);
 
     // Prefetch trade page for faster navigation after creation
     useEffect(() => {
@@ -224,7 +246,7 @@ export default function CreateTokenPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!walletAddress || walletAddress === "") {
+        if (!effectiveWalletAddress) {
             toast.error("Please connect your wallet first");
             router.push("/wallet");
             return;
@@ -575,14 +597,14 @@ export default function CreateTokenPage() {
                         <Button
                             type="submit"
                             className="w-full h-12 bg-white hover:bg-white/90 text-black font-semibold"
-                            disabled={isLoading || !walletAddress || walletAddress === ""}
+                            disabled={isLoading || !effectiveWalletAddress}
                         >
                             {isLoading ? (
                                 <>
                                     <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
                                     Creating token...
                                 </>
-                            ) : (!walletAddress || walletAddress === "") ? (
+                            ) : !effectiveWalletAddress ? (
                                 <>
                                     <Icon icon="solar:wallet-bold" className="w-5 h-5 mr-2" />
                                     Connect QC Wallet first

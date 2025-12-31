@@ -71,12 +71,15 @@ export async function POST(req: NextRequest) {
         // Construct public URL
         // Use R2_PUBLIC_URL if provided, otherwise log a warning
         let publicUrl: string;
-        if (process.env.R2_PUBLIC_URL) {
-            publicUrl = `${process.env.R2_PUBLIC_URL.replace(/\/$/, '')}/${key}`;
+        const configuredPublicUrl = process.env.R2_PUBLIC_URL;
+        console.log("R2_PUBLIC_URL from env:", configuredPublicUrl ? `"${configuredPublicUrl}"` : "NOT SET");
+        
+        if (configuredPublicUrl && configuredPublicUrl.startsWith('http')) {
+            publicUrl = `${configuredPublicUrl.replace(/\/$/, '')}/${key}`;
         } else {
             // Fallback: This URL format requires enabling public access on the R2 bucket
             // The actual subdomain is shown in your Cloudflare dashboard when you enable public access
-            console.warn("R2_PUBLIC_URL not set. Using constructed URL - make sure public access is enabled on your bucket.");
+            console.warn("R2_PUBLIC_URL not set or invalid. Using constructed URL - make sure public access is enabled on your bucket.");
             publicUrl = `https://${process.env.R2_BUCKET_NAME}.${process.env.R2_ACCOUNT_ID}.r2.dev/${key}`;
         }
 

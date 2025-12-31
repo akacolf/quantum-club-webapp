@@ -6,9 +6,9 @@ import { Address } from "@ton/core";
 import { buildJettonDeploy } from "@/lib/jetton-real";
 import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 
-// Rate limiting: max 3 tokens per user per hour
+// Rate limiting: max 10 tokens per user per hour (increased for testing)
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_TOKENS_PER_WINDOW = 3;
+const MAX_TOKENS_PER_WINDOW = 10;
 
 // Validation constants
 const MAX_NAME_LENGTH = 32;
