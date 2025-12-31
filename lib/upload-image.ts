@@ -1,6 +1,9 @@
+import { storage } from "@/app/(firebase)/client";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
 /**
- * Upload token image to Cloudflare R2 via server-side proxy
- * This approach avoids CORS issues by sending the image through our API
+ * Upload token image to Firebase Storage
+ * This is simpler and more reliable than R2 pre-signed URLs
  */
 export async function uploadTokenImage(
     tokenId: string,
@@ -8,37 +11,53 @@ export async function uploadTokenImage(
 ): Promise<string | null> {
     try {
         // If it's already a URL, return it as-is
-        if (!imageData.startsWith('data:')) {
+        if (!imageData.startsWith("data:")) {
             return imageData;
         }
 
-        console.log("Uploading image via server-side proxy...");
+        console.log("Uploading image to Firebase Storage...");
 
-        // Send the image data to our API which will upload to R2
-        const response = await fetch("/api/upload-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                tokenId,
-                imageData, // Send the full base64 data URL
-            }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error("Image upload failed:", response.status, errorData);
+        // Extract content type and base64 data
+        const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) {
+            console.error("Invalid image data format");
             return null;
         }
 
-        const result = await response.json();
-        
-        if (result.success && result.publicUrl) {
-            console.log("Image uploaded successfully:", result.publicUrl);
-            return result.publicUrl;
+        const contentType = matches[1];
+        const base64Data = matches[2];
+
+        // Convert base64 to Blob
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+
+        // Determine file extension
+        let extension = "webp";
+        if (contentType.includes("gif")) {
+            extension = "gif";
+        } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
+            extension = "jpg";
+        } else if (contentType.includes("png")) {
+            extension = "png";
         }
 
-        console.error("Upload response missing publicUrl:", result);
-        return null;
+        // Upload to Firebase Storage
+        const storageRef = ref(storage, `tokens/${tokenId}/image.${extension}`);
+        const snapshot = await uploadBytes(storageRef, blob, {
+            contentType,
+            cacheControl: "public, max-age=31536000, immutable",
+        });
+
+        // Get download URL
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log("Image uploaded successfully:", downloadURL);
+
+        return downloadURL;
     } catch (error) {
         console.error("Failed to upload image:", error);
         return null;
