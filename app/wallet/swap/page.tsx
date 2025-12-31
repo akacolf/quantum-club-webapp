@@ -424,10 +424,18 @@ export default function SwapPage() {
                 seqno = 0;
             }
 
-            // Build swap transaction using STON.fi SDK
-            const tonClient = new TonClient({
-                endpoint: "https://toncenter.com/api/v2/jsonRPC",
-            });
+            // Build swap transaction using STON.fi SDK with TON Access
+            let tonClient: TonClient;
+            try {
+                const { getHttpEndpoint } = await import("@orbs-network/ton-access");
+                const endpoint = await getHttpEndpoint({ network: "mainnet" });
+                tonClient = new TonClient({ endpoint });
+            } catch {
+                // Fallback to TonCenter
+                tonClient = new TonClient({
+                    endpoint: "https://toncenter.com/api/v2/jsonRPC",
+                });
+            }
 
             const dexContracts = dexFactory(simulation.router);
             const router = tonClient.open(

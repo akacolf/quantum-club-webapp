@@ -5,6 +5,7 @@ import { Address, fromNano, internal, SendMode, Cell, loadStateInit } from "@ton
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, TonClient } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
+import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
 
 // Default testnet mode - can be overridden by user preference in localStorage
@@ -657,15 +658,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           break;
       }
 
-      const tonClient = new TonClient({
-        endpoint: isTestnet
-          ? "https://testnet.toncenter.com/api/v2/jsonRPC"
-          : "https://toncenter.com/api/v2/jsonRPC",
-        // Use appropriate API key based on network
-        apiKey: isTestnet
-          ? process.env.NEXT_PUBLIC_TONCENTER_TESTNET_API_KEY || undefined
-          : process.env.NEXT_PUBLIC_TONCENTER_API_KEY || undefined,
-      });
+      // Use TON Access for decentralized, rate-limit-free access
+      let tonClient: TonClient;
+      try {
+        const endpoint = await getHttpEndpoint({ network: isTestnet ? "testnet" : "mainnet" });
+        tonClient = new TonClient({ endpoint });
+        console.log("Using TON Access endpoint:", endpoint);
+      } catch (accessError) {
+        // Fallback to TonCenter if TON Access fails
+        console.warn("TON Access failed, falling back to TonCenter:", accessError);
+        tonClient = new TonClient({
+          endpoint: isTestnet
+            ? "https://testnet.toncenter.com/api/v2/jsonRPC"
+            : "https://toncenter.com/api/v2/jsonRPC",
+        });
+      }
 
       const contract = tonClient.open(wallet);
       const toAddress = Address.parse(params.to);

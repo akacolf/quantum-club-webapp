@@ -38,6 +38,7 @@ import {
 } from "@/types/trading";
 import {
     createTonClient,
+    createTonClientAsync,
     getJettonWalletAddress,
     getJettonBalance,
     getBondingCurveData,
@@ -122,8 +123,17 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const [positions, setPositions] = useState<HolderPosition[]>([]);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
-    // TON client for on-chain queries - use correct network based on wallet settings
-    const tonClient = useMemo(() => createTonClient(isTestnet), [isTestnet]);
+    // TON client for on-chain queries - use TON Access (decentralized, no rate limits!)
+    const [tonClient, setTonClient] = useState(() => createTonClient(isTestnet));
+    
+    // Upgrade to TON Access on mount (async initialization)
+    useEffect(() => {
+        createTonClientAsync(isTestnet).then(client => {
+            setTonClient(client);
+        }).catch(err => {
+            console.warn("Failed to init TON Access, using fallback:", err);
+        });
+    }, [isTestnet]);
 
     // =====================================================
     // Helper: Convert Firestore doc to Token

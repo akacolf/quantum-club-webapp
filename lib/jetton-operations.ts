@@ -249,18 +249,51 @@ export function getJettonWalletAddressLocal(
 // On-Chain Queries (GET Methods)
 // =====================================================
 
+import { getHttpEndpoint } from "@orbs-network/ton-access";
+
+// Cache for TON Access endpoints
+let cachedMainnetEndpoint: string | null = null;
+let cachedTestnetEndpoint: string | null = null;
+
+/**
+ * Get TON Access endpoint (decentralized, no rate limits)
+ */
+async function getTonAccessEndpoint(testnet: boolean): Promise<string> {
+    if (testnet && cachedTestnetEndpoint) return cachedTestnetEndpoint;
+    if (!testnet && cachedMainnetEndpoint) return cachedMainnetEndpoint;
+    
+    const endpoint = await getHttpEndpoint({ network: testnet ? "testnet" : "mainnet" });
+    
+    if (testnet) {
+        cachedTestnetEndpoint = endpoint;
+    } else {
+        cachedMainnetEndpoint = endpoint;
+    }
+    
+    return endpoint;
+}
+
 /**
  * Create TonClient for blockchain queries
+ * Uses TON Access by Orbs - decentralized, free, no rate limits!
  */
 export function createTonClient(testnet: boolean = false): TonClient {
+    // Use fallback TonCenter initially, will be upgraded to TON Access
     return new TonClient({
         endpoint: testnet
             ? "https://testnet.toncenter.com/api/v2/jsonRPC"
             : "https://toncenter.com/api/v2/jsonRPC",
-        apiKey: testnet
-            ? process.env.NEXT_PUBLIC_TONCENTER_TESTNET_API_KEY || undefined
-            : process.env.NEXT_PUBLIC_TONCENTER_API_KEY || undefined,
     });
+}
+
+/**
+ * Create TonClient with TON Access endpoint (async)
+ * This is the preferred method - uses decentralized nodes with no rate limits
+ */
+export async function createTonClientAsync(testnet: boolean = false): Promise<TonClient> {
+    const endpoint = await getTonAccessEndpoint(testnet);
+    console.log(`Using TON Access endpoint: ${endpoint}`);
+    return new TonClient({ endpoint });
 }
 
 /**
