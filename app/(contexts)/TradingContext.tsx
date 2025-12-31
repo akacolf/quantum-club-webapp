@@ -25,7 +25,7 @@ import {
     Timestamp,
 } from "firebase/firestore";
 import { Buffer } from "buffer";
-import { Address, toNano, Cell } from "@ton/core";
+import { Address, toNano, Cell, beginCell } from "@ton/core";
 import { useGameContext } from "./MiningContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import {
@@ -689,7 +689,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            const { tokenId, jettonAddress, deployTx, success } = await response.json();
+            const { tokenId, jettonAddress, deployTx, platformFeeTx, success } = await response.json();
 
             console.log("Token prepared:", {
                 tokenId,
@@ -720,6 +720,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
                 console.log("Sending deployment:", { to: deployTx.to, value: deployTx.value });
 
+                // Send deployment transaction
                 const txResult = await sendTransaction({
                     to: deployTx.to,
                     value: deployTx.value,
@@ -728,6 +729,30 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
                 if (txResult.success) {
                     console.log("Deployment transaction sent successfully:", txResult.txHash);
+
+                    // Send platform fee transaction (0.5 TON)
+                    if (platformFeeTx) {
+                        console.log("Sending platform fee:", platformFeeTx);
+                        
+                        // Build comment body for fee transaction
+                        const commentBody = beginCell()
+                            .storeUint(0, 32) // op = 0 (comment)
+                            .storeStringTail(platformFeeTx.comment || "Token creation fee")
+                            .endCell();
+                        
+                        const feeResult = await sendTransaction({
+                            to: platformFeeTx.to,
+                            value: platformFeeTx.value,
+                            body: commentBody,
+                        });
+                        
+                        if (feeResult.success) {
+                            console.log("Platform fee sent successfully:", feeResult.txHash);
+                        } else {
+                            console.warn("Platform fee transaction failed:", feeResult.error);
+                            // Continue anyway - token is already deployed
+                        }
+                    }
 
                     // Confirm deployment to update Firestore
                     await fetch("/api/deploy-jetton", {

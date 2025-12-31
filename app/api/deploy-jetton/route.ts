@@ -210,21 +210,36 @@ export async function POST(request: NextRequest) {
         }
 
         // ====== CLIENT-SIDE DEPLOYMENT ONLY ======
-        // User deploys from their own QC Wallet (pays deployment gas)
-        // Platform wallet only receives trading commissions (1% on trades)
-        // This matches Blum's model - their deployer balance never changes
+        // User deploys from their own QC Wallet (pays deployment gas + platform fee)
+        // Platform wallet receives 0.5 TON creation fee
         console.log("Token prepared. Client-side deployment will be triggered by user's wallet.");
+
+        // Calculate fees in nanotons
+        const deploymentGasNano = Math.floor(FEE_CONFIG.tokenDeployment * 1e9).toString(); // 0.02 TON
+        const platformFeeNano = Math.floor(FEE_CONFIG.tokenCreation * 1e9).toString(); // 0.5 TON
 
         // Return deployment package for client to send
         return NextResponse.json({
             success: true,
             tokenId,
             jettonAddress: deployResult.jettonMasterAddress,
+            // Transaction to deploy the contract
             deployTx: {
                 to: deployResult.jettonMasterAddress,
-                value: "20000000", // 0.02 TON for deployment gas (user pays)
+                value: deploymentGasNano, // 0.02 TON for deployment gas
                 stateInit: deployResult.stateInit.toBoc().toString("base64"),
                 body: deployResult.deployMessage?.toBoc().toString("base64") || "",
+            },
+            // Transaction to pay platform fee
+            platformFeeTx: PLATFORM_WALLET_ADDRESS ? {
+                to: PLATFORM_WALLET_ADDRESS,
+                value: platformFeeNano, // 0.5 TON platform fee
+                comment: `Token creation fee: ${symbol}`,
+            } : null,
+            fees: {
+                deploymentGas: FEE_CONFIG.tokenDeployment,
+                platformFee: FEE_CONFIG.tokenCreation,
+                total: FEE_CONFIG.tokenDeployment + FEE_CONFIG.tokenCreation,
             },
             message: "Token created! Deploying contract...",
         });

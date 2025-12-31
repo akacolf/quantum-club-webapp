@@ -110,9 +110,9 @@ export default function CreateTokenPage() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Calculate total cost including initial buy
+    // Calculate total cost including platform fee, gas, and initial buy
     const initialBuyValue = parseFloat(initialBuyAmount || "0");
-    const totalCost = DEPLOYMENT_GAS + (initialBuyValue > 0 ? initialBuyValue : 0);
+    const totalCost = FEE_CONFIG.tokenCreation + DEPLOYMENT_GAS + (initialBuyValue > 0 ? initialBuyValue : 0);
 
     // Compress image to fit within Firestore limits (< 1MB)
     const compressImage = (file: File, maxSize: number = 512): Promise<string> => {
@@ -262,7 +262,7 @@ export default function CreateTokenPage() {
         const balance = parseFloat(tonBalance || "0");
 
         if (balance < totalCost) {
-            toast.error(`Insufficient balance. Need ~${totalCost.toFixed(2)} TON for gas${initialBuyValue > 0 ? ` + ${initialBuyValue} TON initial buy` : ""}.`);
+            toast.error(`Insufficient balance. Need ~${totalCost.toFixed(2)} TON (${FEE_CONFIG.tokenCreation} platform fee + ${DEPLOYMENT_GAS} gas${initialBuyValue > 0 ? ` + ${initialBuyValue} initial buy` : ""}).`);
             return;
         }
 
@@ -581,14 +581,19 @@ export default function CreateTokenPage() {
                         <Alert className="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border-green-500/20">
                             <Icon icon="solar:gift-bold" className="w-4 h-4 text-green-400" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-green-400">Creation Fees</span>
+                                <span className="font-medium text-green-400">Creation Cost</span>
                                 <br />
                                 <span className="text-xs">
-                                    Gas: ~{DEPLOYMENT_GAS} TON{initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
+                                    Platform Fee: {FEE_CONFIG.tokenCreation} TON + Gas: ~{DEPLOYMENT_GAS} TON
+                                    {initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
                                 </span>
                                 <br />
-                                <span className="text-xs">
-                                    Trading Fee: {FEE_CONFIG.totalTradingFeePercent}% (0.5% to you)
+                                <span className="text-xs font-medium">
+                                    Total: ~{(FEE_CONFIG.tokenCreation + DEPLOYMENT_GAS + initialBuyValue).toFixed(2)} TON
+                                </span>
+                                <br />
+                                <span className="text-xs text-muted-foreground/80">
+                                    You earn {FEE_CONFIG.creatorFeePercent}% on every trade!
                                 </span>
                             </AlertDescription>
                         </Alert>
