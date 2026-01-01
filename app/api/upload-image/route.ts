@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
         // Upload to Cloudinary
         const result = await cloudinary.uploader.upload(imageData, {
-            folder: "quantum-club-tokens",
+            folder: "qcrocketstart-jettons",
             public_id: tokenId,
             overwrite: true,
             resource_type: "image",
