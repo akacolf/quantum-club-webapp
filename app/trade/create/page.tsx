@@ -110,9 +110,10 @@ export default function CreateTokenPage() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Calculate total cost (just gas + optional initial buy, creation is FREE)
+    // Calculate total cost (gas + buffer for network fees + optional initial buy)
     const initialBuyValue = parseFloat(initialBuyAmount || "0");
-    const totalCost = DEPLOYMENT_GAS + (initialBuyValue > 0 ? initialBuyValue : 0);
+    const networkFeeBuffer = 0.02; // Buffer for network processing fees
+    const totalCost = DEPLOYMENT_GAS + networkFeeBuffer + (initialBuyValue > 0 ? initialBuyValue : 0);
 
     // Compress image to fit within Firestore limits (< 1MB)
     const compressImage = (file: File, maxSize: number = 512): Promise<string> => {
@@ -258,11 +259,11 @@ export default function CreateTokenPage() {
             return;
         }
 
-        // Check balance for gas + initial buy (creation is FREE)
+        // Check balance for gas + network fees + initial buy
         const balance = parseFloat(tonBalance || "0");
 
         if (balance < totalCost) {
-            toast.error(`Insufficient balance. Need ~${totalCost.toFixed(2)} TON (${DEPLOYMENT_GAS} gas${initialBuyValue > 0 ? ` + ${initialBuyValue} initial buy` : ""}).`);
+            toast.error(`Insufficient balance. Need ~${totalCost.toFixed(2)} TON (${DEPLOYMENT_GAS} gas + network fees${initialBuyValue > 0 ? ` + ${initialBuyValue} initial buy` : ""}).`);
             return;
         }
 
@@ -584,12 +585,12 @@ export default function CreateTokenPage() {
                                 <span className="font-medium text-green-400">Creator Fees</span>
                                 <br />
                                 <span className="text-xs">
-                                    Gas: ~{DEPLOYMENT_GAS} TON
+                                    Gas + Network: ~{(DEPLOYMENT_GAS + networkFeeBuffer).toFixed(2)} TON
                                     {initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
                                 </span>
                                 <br />
                                 <span className="text-xs font-medium">
-                                    Total: ~{(DEPLOYMENT_GAS + initialBuyValue).toFixed(2)} TON
+                                    Total: ~{totalCost.toFixed(2)} TON
                                 </span>
                                 <br />
                                 <span className="text-xs text-muted-foreground/80">
