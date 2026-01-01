@@ -2,11 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import dynamic from "next/dynamic";
 import { TradingProvider } from "@/app/(contexts)/TradingContext";
-import rocketAnimation from "@/public/lottie/rocket-lottie.json";
-
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+import Loader from "@/app/(components)/Loader";
 
 export default function TradeLayout({
     children,
@@ -67,11 +64,7 @@ export default function TradeLayout({
         return (
             <div className="fixed inset-0 flex items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-2">
-                    <Lottie
-                        animationData={rocketAnimation}
-                        loop={true}
-                        className="w-24 h-24"
-                    />
+                    <Loader />
                     <p className="text-sm text-muted-foreground">
                         Checking access...
                     </p>
