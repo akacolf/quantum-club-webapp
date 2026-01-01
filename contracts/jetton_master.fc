@@ -36,8 +36,8 @@ const int MIN_TON_FOR_STORAGE = 50000000;
 const int GAS_CONSUMPTION = 15000000;
 const int FORWARD_FEE = 10000000;
 const int JETTON_WALLET_DEPLOY_GAS = 100000000;
-const int INITIAL_PRICE = 1000000;
-const int CURVE_SLOPE = 100000;
+const int INITIAL_PRICE = 10000;
+const int CURVE_SLOPE = 10000000;
 const int GRADUATION_TARGET = 2000000000000;
 const int PLATFORM_FEE_BPS = 100;
 const int CREATOR_FEE_BPS = 50;
@@ -120,7 +120,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 }
 
 (int) calculate_buy_price(int ton_amount, int current_supply) inline {
-    int current_price = INITIAL_PRICE + muldiv(current_supply, CURVE_SLOPE, ONE_TOKEN);
+    int current_price = INITIAL_PRICE + muldiv(current_supply, CURVE_SLOPE, MAX_SUPPLY);
     if (current_price < INITIAL_PRICE) {
         current_price = INITIAL_PRICE;
     }
@@ -133,13 +133,13 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         token_amount = current_supply;
     }
     int supply_after = current_supply - token_amount;
-    int avg_price = INITIAL_PRICE + muldiv(supply_after + token_amount / 2, CURVE_SLOPE, ONE_TOKEN);
+    int avg_price = INITIAL_PRICE + muldiv(supply_after + token_amount / 2, CURVE_SLOPE, MAX_SUPPLY);
     int ton_out = muldiv(token_amount, avg_price, ONE_TOKEN);
     return ton_out;
 }
 
 (int) get_current_price(int current_supply) inline {
-    return INITIAL_PRICE + muldiv(current_supply, CURVE_SLOPE, ONE_TOKEN);
+    return INITIAL_PRICE + muldiv(current_supply, CURVE_SLOPE, MAX_SUPPLY);
 }
 
 () send_msg_with_reserve(cell message, int mode) impure inline {
