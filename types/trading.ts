@@ -42,6 +42,7 @@ export interface Token {
     bondingCurve: BondingCurveParams;
     graduationThreshold: string; // TON amount to graduate
     isGraduated: boolean;
+    mintable?: boolean; // False when max supply reached or graduated
 
     // Statistics (indexed from blockchain events)
     holders: number;
@@ -146,7 +147,7 @@ export interface CreatorEarnings {
 // =====================================================
 
 export const DEFAULT_BONDING_CURVE: BondingCurveParams = {
-    basePrice: "1000000", // 0.001 TON in nanoTON
+    basePrice: "1000", // 0.000001 TON in nanoTON
     slope: "100000", // Price increase per token
 };
 

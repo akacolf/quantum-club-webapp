@@ -775,6 +775,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 // Continue anyway - server-side deployment may succeed
             }
 
+            // Refresh token lists so the new token appears immediately
+            await fetchTokens();
+
             // Return the created token
             const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
             if (tokenDoc.exists()) {
@@ -786,7 +789,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             console.error("Create token error:", error);
             return null;
         }
-    }, [walletAddress, telegramId, docToToken, sendTransaction, buyTokens]);
+    }, [walletAddress, telegramId, docToToken, sendTransaction, buyTokens, fetchTokens]);
 
     // =====================================================
     // Get position helper

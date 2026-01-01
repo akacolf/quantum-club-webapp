@@ -184,16 +184,17 @@ export async function POST(request: NextRequest) {
                 // Trading state
                 totalSupply: "0",
                 circulatingSupply: "0",
-                currentPrice: "1000000",
+                currentPrice: "1000", // 0.000001 TON initial price
                 tonReserve: "0",
                 marketCap: "0",
+                mintable: true, // Can mint via bonding curve until graduated
 
-                // Configuration
+                // Configuration - matches smart contract constants
                 bondingCurve: {
-                    basePrice: "1000000",
+                    basePrice: "1000", // 0.000001 TON
                     slope: "100000",
                 },
-                graduationThreshold: "2000000000000",
+                graduationThreshold: "2000000000000", // 2000 TON
                 isGraduated: false,
 
                 // Platform config

@@ -81,6 +81,8 @@ export async function POST(request: NextRequest) {
         // Update token to graduated status
         await tokenRef.update({
             status: "graduated",
+            isGraduated: true,
+            mintable: false, // No more minting after graduation
             graduatedAt: FieldValue.serverTimestamp(),
             dexPoolAddress: dexPoolAddress || null,
             jettonMasterAddress: jettonMasterAddress || null,
