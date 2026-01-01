@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { CldImage } from "next-cloudinary";
 
 interface TokenImageProps {
     src: string | undefined | null;
@@ -13,37 +12,14 @@ interface TokenImageProps {
 }
 
 /**
- * Smart token image component that uses CldImage for Cloudinary URLs
- * and falls back to regular Image for other URLs
+ * Token image component with safe error handling
+ * Uses regular Next.js Image for all URLs (simpler and more reliable)
  */
 export function TokenImage({ src, alt, width, height, className, fallback }: TokenImageProps) {
     if (!src) {
         return fallback || null;
     }
 
-    // Check if it's a Cloudinary URL
-    const isCloudinary = src.includes("res.cloudinary.com");
-
-    if (isCloudinary) {
-        // Extract public_id from Cloudinary URL
-        // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{version}/{public_id}.{ext}
-        const match = src.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.\w+)?$/);
-        const publicId = match ? match[1] : src;
-
-        return (
-            <CldImage
-                src={publicId}
-                alt={alt}
-                width={width}
-                height={height}
-                className={className}
-                crop="fill"
-                gravity="auto"
-            />
-        );
-    }
-
-    // Regular image URL
     return (
         <Image
             src={src}
@@ -64,28 +40,6 @@ export function TokenImageFill({ src, alt, className, fallback }: Omit<TokenImag
         return fallback || null;
     }
 
-    // Check if it's a Cloudinary URL
-    const isCloudinary = src.includes("res.cloudinary.com");
-
-    if (isCloudinary) {
-        // Extract public_id from Cloudinary URL
-        const match = src.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.\w+)?$/);
-        const publicId = match ? match[1] : src;
-
-        return (
-            <CldImage
-                src={publicId}
-                alt={alt}
-                fill
-                className={className}
-                crop="fill"
-                gravity="auto"
-                sizes="(max-width: 768px) 100px, 150px"
-            />
-        );
-    }
-
-    // Regular image URL
     return (
         <Image
             src={src}
@@ -96,3 +50,4 @@ export function TokenImageFill({ src, alt, className, fallback }: Omit<TokenImag
         />
     );
 }
+
