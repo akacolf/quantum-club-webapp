@@ -117,13 +117,6 @@ function buildOnChainMetadata(config: JettonDeployConfig): Cell {
         .endCell();
 }
 
-function buildOffChainMetadata(metadataUri: string): Cell {
-    return beginCell()
-        .storeUint(0x01, 8)
-        .storeBuffer(Buffer.from(metadataUri))
-        .endCell();
-}
-
 function buildJettonMinterData(
     config: JettonDeployConfig,
     walletCode: Cell,

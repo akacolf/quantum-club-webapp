@@ -9,7 +9,7 @@
  * TEP-74: https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import {
     collection,

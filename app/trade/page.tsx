@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { TokenImageFill } from "@/components/ui/token-image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";

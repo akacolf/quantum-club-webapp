@@ -28,7 +28,7 @@ import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/
 export default function CreateTokenPage() {
     const router = useRouter();
     const { createToken, refreshTokens } = useTrading();
-    const { walletAddress, tonBalance, sendTransaction, setWalletAddress } = useWallet();
+    const { walletAddress, tonBalance, setWalletAddress } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Telegram back button
