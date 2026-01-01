@@ -581,7 +581,7 @@ export default function CreateTokenPage() {
                         <Alert className="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border-green-500/20">
                             <Icon icon="solar:gift-bold" className="w-4 h-4 text-green-400" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-green-400">🎉 FREE Token Creation!</span>
+                                <span className="font-medium text-green-400">Creator Fees</span>
                                 <br />
                                 <span className="text-xs">
                                     Gas: ~{DEPLOYMENT_GAS} TON
@@ -593,7 +593,7 @@ export default function CreateTokenPage() {
                                 </span>
                                 <br />
                                 <span className="text-xs text-muted-foreground/80">
-                                    💰 You earn {FEE_CONFIG.creatorFeePercent}% on every trade!
+                                    You earn {FEE_CONFIG.creatorFeePercent}% on every trade.
                                 </span>
                             </AlertDescription>
                         </Alert>
