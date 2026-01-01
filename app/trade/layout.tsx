@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { TradingProvider } from "@/app/(contexts)/TradingContext";
-import Loader from "@/app/(components)/Loader";
 
 export default function TradeLayout({
     children,
@@ -62,9 +61,14 @@ export default function TradeLayout({
     // Show loading while checking
     if (isChecking) {
         return (
-            <div className="fixed inset-0 flex items-center justify-center bg-background">
-                <div className="flex flex-col items-center gap-2">
-                    <Loader />
+            <div className="fixed inset-0 flex items-center justify-center bg-black z-50">
+                <div className="flex flex-col items-center gap-4">
+                    {/* Spinner */}
+                    <div className="relative flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full border-2 border-white/20 border-t-white animate-spin shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                        <div className="absolute w-10 h-10 rounded-full border-2 border-white/20 border-b-white animate-[spin_1.5s_linear_infinite_reverse]" />
+                        <div className="absolute w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                    </div>
                     <p className="text-sm text-muted-foreground">
                         Checking access...
                     </p>
