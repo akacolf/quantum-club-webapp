@@ -2,7 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import { TradingProvider } from "@/app/(contexts)/TradingContext";
+import rocketAnimation from "@/public/lottie/rocket-lottie.json";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 export default function TradeLayout({
     children,
@@ -61,10 +65,16 @@ export default function TradeLayout({
     // Show loading while checking
     if (isChecking) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-muted-foreground">Checking access...</p>
+            <div className="fixed inset-0 flex items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-2">
+                    <Lottie
+                        animationData={rocketAnimation}
+                        loop={true}
+                        className="w-24 h-24"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        Checking access...
+                    </p>
                 </div>
             </div>
         );

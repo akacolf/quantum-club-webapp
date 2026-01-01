@@ -370,7 +370,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const tonAmountNum = parseFloat(tonAmount);
 
             // Get current price in TON (from nano)
-            const currentPriceNano = Number(token.currentPrice || "1000000");
+            // Default to 1000 nanotons = 0.000001 TON (new initial price)
+            const currentPriceNano = Number(token.currentPrice || "1000");
             const currentPriceTon = currentPriceNano / 1e9;
 
             // Try on-chain preview first
@@ -429,7 +430,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const tokenAmountNum = parseFloat(tokenAmount);
 
             // Get current price in TON (from nano)
-            const currentPriceNano = Number(token.currentPrice || "1000000");
+            // Default to 1000 nanotons = 0.000001 TON (new initial price)
+            const currentPriceNano = Number(token.currentPrice || "1000");
             const currentPriceTon = currentPriceNano / 1e9;
 
             // Try on-chain preview first
