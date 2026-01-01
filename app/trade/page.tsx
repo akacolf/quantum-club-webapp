@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { TokenImageFill } from "@/components/ui/token-image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -38,7 +39,6 @@ const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
 };
 
 function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; index: number; tonPrice: number; showRank?: boolean }) {
-    const router = useRouter();
     const priceChange = token.priceChange24h || 0;
     const isPositive = priceChange >= 0;
     const progress = calculateProgress(
@@ -62,9 +62,9 @@ function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; 
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.05 }}
         >
+        <Link href={`/trade/${token.id}`} prefetch={true}>
             <Card
                 className="bg-[#121212]/80 backdrop-blur-md border-white/5 hover:border-primary/50 transition-all cursor-pointer overflow-hidden group relative shadow-lg"
-                onClick={() => router.push(`/trade/${token.id}`)}
             >
                 {/* Glow effect */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:bg-primary/10 transition-all" />
@@ -168,6 +168,7 @@ function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; 
                     </div>
                 </CardContent>
             </Card>
+        </Link>
         </motion.div>
     );
 }
