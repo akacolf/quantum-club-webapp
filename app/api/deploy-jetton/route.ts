@@ -6,9 +6,9 @@ import { Address } from "@ton/core";
 import { buildJettonDeploy } from "@/lib/jetton-real";
 import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 
-// Rate limiting: max 10 tokens per user per hour (increased for testing)
+// Rate limiting: max 3 tokens per user per hour
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_TOKENS_PER_WINDOW = 10;
+const MAX_TOKENS_PER_WINDOW = 3;
 
 // Validation constants
 const MAX_NAME_LENGTH = 32;
@@ -210,13 +210,12 @@ export async function POST(request: NextRequest) {
         }
 
         // ====== CLIENT-SIDE DEPLOYMENT ONLY ======
-        // User deploys from their own QC Wallet (pays deployment gas + platform fee)
-        // Platform wallet receives 0.5 TON creation fee
+        // User deploys from their own QC Wallet (pays deployment gas only)
+        // Platform earns from trading fees (1% on every buy/sell)
         console.log("Token prepared. Client-side deployment will be triggered by user's wallet.");
 
-        // Calculate fees in nanotons
-        const deploymentGasNano = Math.floor(FEE_CONFIG.tokenDeployment * 1e9).toString(); // 0.02 TON
-        const platformFeeNano = Math.floor(FEE_CONFIG.tokenCreation * 1e9).toString(); // 0.5 TON
+        // Calculate gas in nanotons
+        const deploymentGasNano = Math.floor(FEE_CONFIG.tokenDeployment * 1e9).toString();
 
         // Return deployment package for client to send
         return NextResponse.json({
@@ -226,20 +225,16 @@ export async function POST(request: NextRequest) {
             // Transaction to deploy the contract
             deployTx: {
                 to: deployResult.jettonMasterAddress,
-                value: deploymentGasNano, // 0.02 TON for deployment gas
+                value: deploymentGasNano, // Gas for deployment
                 stateInit: deployResult.stateInit.toBoc().toString("base64"),
                 body: deployResult.deployMessage?.toBoc().toString("base64") || "",
             },
-            // Transaction to pay platform fee
-            platformFeeTx: PLATFORM_WALLET_ADDRESS ? {
-                to: PLATFORM_WALLET_ADDRESS,
-                value: platformFeeNano, // 0.5 TON platform fee
-                comment: `Token creation fee: ${symbol}`,
-            } : null,
+            // No platform fee - revenue comes from trading fees
+            platformFeeTx: null,
             fees: {
                 deploymentGas: FEE_CONFIG.tokenDeployment,
-                platformFee: FEE_CONFIG.tokenCreation,
-                total: FEE_CONFIG.tokenDeployment + FEE_CONFIG.tokenCreation,
+                platformFee: 0,
+                total: FEE_CONFIG.tokenDeployment,
             },
             message: "Token created! Deploying contract...",
         });

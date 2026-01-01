@@ -16,17 +16,18 @@ export const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
 
 // Fee configuration (in TON)
 export const FEE_CONFIG = {
-    tokenCreation: 0.5,          // 0.5 TON platform fee for token creation
-    tokenDeployment: 0.02,       // Gas for deployment (~0.02 TON)
+    tokenCreation: 0,           // FREE token creation (no platform fee)
+    tokenDeployment: 0.05,      // Gas for deployment (~0.05 TON to cover wallet deployment)
     platformFeePercent: 1,       // 1% to platform on every trade
     creatorFeePercent: 0.5,      // 0.5% to token creator on every trade
-    totalTradingFeePercent: 1.5,
+    totalTradingFeePercent: 1.5, // Total 1.5% per trade
     graduationFeePercent: 2,     // 2% on graduation to DEX
 };
 
 export const TRADING_FEE_PERCENT = FEE_CONFIG.totalTradingFeePercent;
 
-export const TOTAL_CREATION_FEE = FEE_CONFIG.tokenCreation + FEE_CONFIG.tokenDeployment; // 0.52 TON total
+// Total cost for token creation (just gas, no platform fee)
+export const TOTAL_CREATION_FEE = FEE_CONFIG.tokenDeployment;
 export const DEPLOYMENT_GAS = FEE_CONFIG.tokenDeployment;
 
 // DEX graduation settings (STON.fi)
