@@ -301,11 +301,11 @@ export default function ProfilePage() {
                     transition={{ delay: 0.3 }}
                     className="space-y-3"
                 >
-                    <Card className="bg-card/80 backdrop-blur-xl">
+                    <Card className="bg-card/80 backdrop-blur-xl overflow-hidden">
                         <CardContent className="p-0">
                             <button
                                 onClick={() => router.push("/wallet/settings/terms")}
-                                className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
+                                className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors rounded-t-xl"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
@@ -321,7 +321,7 @@ export default function ProfilePage() {
                             <div className="border-t border-border" />
                             <button
                                 onClick={() => router.push("/wallet/settings/privacy")}
-                                className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
+                                className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors rounded-b-xl"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
