@@ -12,13 +12,25 @@ export default function PersonalizedGreeting() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>("Quantum User");
 
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
 
-    // Get user photo
+    // Get user info from Telegram WebApp directly
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    
+    // Set display name from Telegram or context
+    if (tgUser?.username) {
+      setDisplayName(tgUser.username);
+    } else if (tgUser?.first_name) {
+      setDisplayName(tgUser.first_name);
+    } else if (username) {
+      setDisplayName(username);
+    }
+
+    // Get user photo
     if (tgUser?.photo_url) {
       setPhotoUrl(tgUser.photo_url);
     } else if (tgUser?.id) {
@@ -35,11 +47,9 @@ export default function PersonalizedGreeting() {
     }
 
     router.prefetch('/home/profile');
-  }, [router]);
+  }, [router, username]);
 
   if (!mounted) return null;
-
-  const displayName = username || "Quantum User";
 
   return (
     <div className="w-[90%] mx-auto mt-4 mb-2">

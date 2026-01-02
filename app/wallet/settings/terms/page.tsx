@@ -22,7 +22,7 @@ export default function TermsOfServicePage() {
               <FileText className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Terms of Service</h1>
-            <p className="text-muted-foreground text-sm">Last updated: December 20, 2025</p>
+            <p className="text-muted-foreground text-sm">Last updated: January 2, 2026</p>
           </div>
 
           <ScrollArea className="h-[calc(100vh-280px)] rounded-xl border border-border bg-card p-4">
@@ -45,7 +45,7 @@ export default function TermsOfServicePage() {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-2">3. Description of Services</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Quantum Club is a self-custody cryptocurrency wallet application that allows users to:
+                  Quantum Club is a self-custody cryptocurrency wallet and trading platform that allows users to:
                 </p>
                 <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
                   <li>Create and manage cryptocurrency wallets</li>
@@ -55,6 +55,7 @@ export default function TermsOfServicePage() {
                   <li>Earn and transfer in-app rewards (QNTM points)</li>
                   <li>Access AI-powered assistance features</li>
                   <li>Receive cryptocurrencies on multiple blockchain networks</li>
+                  <li>Create and trade tokens on RocketStart launchpad</li>
                 </ul>
               </section>
 
@@ -108,8 +109,16 @@ export default function TermsOfServicePage() {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-2">7. Fees</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Quantum Club does not charge service fees for basic wallet functionality. Users are responsible for blockchain network fees (gas fees) required to process transactions. Network fees are determined by the respective blockchain networks and are not controlled by Quantum Club. QNTM point transfers between users are free of charge. RocketStart token trades are subject to a 1% platform fee, split between the platform and token creator.
+                  Quantum Club does not charge service fees for basic wallet functionality. Users are responsible for blockchain network fees (gas fees) required to process transactions. Network fees are determined by the respective blockchain networks and are not controlled by Quantum Club. QNTM point transfers between users are free of charge.
                 </p>
+                <p className="text-muted-foreground text-sm leading-relaxed mt-2">
+                  <strong className="text-foreground">RocketStart Trading Fees:</strong>
+                </p>
+                <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
+                  <li>Token creation: Free (gas fees only, approximately 0.05 TON)</li>
+                  <li>Trading fee: 1.5% per trade (1% platform fee + 0.5% creator fee)</li>
+                  <li>Graduation to DEX: 2% of liquidity</li>
+                </ul>
               </section>
 
               <section>

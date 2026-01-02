@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
               <Shield className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Privacy Policy</h1>
-            <p className="text-muted-foreground text-sm">Last updated: December 3, 2025</p>
+            <p className="text-muted-foreground text-sm">Last updated: January 2, 2026</p>
           </div>
 
           <ScrollArea className="h-[calc(100vh-280px)] rounded-xl border border-border bg-card p-4">
@@ -66,6 +66,8 @@ export default function PrivacyPolicyPage() {
                   <li>Your public wallet address</li>
                   <li>QNTM balance and transfer history within the platform</li>
                   <li>Task completion and referral data</li>
+                  <li>Token creation and trading activity on RocketStart</li>
+                  <li>Chat messages in token communities</li>
                 </ul>
               </section>
 

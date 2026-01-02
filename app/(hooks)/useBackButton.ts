@@ -10,7 +10,7 @@ export function useTelegramBackButton(path: string = "/home") {
         tg?.ready();
 
         const handleBackButtonClick = () => {
-            router.replace(path);
+            router.push(path);
         };
         
         tg?.BackButton.show();

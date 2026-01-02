@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
+import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import Loader from "@/app/(components)/Loader";
@@ -22,6 +23,7 @@ import { achievements, getUnlockedAchievements, getLockedAchievements, type User
 
 export default function ProfilePage() {
     useTelegramBackButton("/home");
+    const router = useRouter();
     const { telegramId, username, MainQuantAmount, daily } = useGameContext();
 
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -122,8 +124,12 @@ export default function ProfilePage() {
             setIsLoading(false);
         };
 
+        // Prefetch legal pages
+        router.prefetch("/wallet/settings/terms");
+        router.prefetch("/wallet/settings/privacy");
+
         fetchData();
-    }, [telegramId, daily, username]);
+    }, [telegramId, daily, username, router]);
 
     const unlockedAchievements = getUnlockedAchievements(stats);
     const lockedAchievements = getLockedAchievements(stats);
@@ -298,7 +304,7 @@ export default function ProfilePage() {
                     <Card className="bg-card/80 backdrop-blur-xl">
                         <CardContent className="p-0">
                             <button
-                                onClick={() => window.location.href = "/wallet/settings/terms"}
+                                onClick={() => router.push("/wallet/settings/terms")}
                                 className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
                             >
                                 <div className="flex items-center gap-3">
@@ -314,7 +320,7 @@ export default function ProfilePage() {
                             </button>
                             <div className="border-t border-border" />
                             <button
-                                onClick={() => window.location.href = "/wallet/settings/privacy"}
+                                onClick={() => router.push("/wallet/settings/privacy")}
                                 className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
                             >
                                 <div className="flex items-center gap-3">
