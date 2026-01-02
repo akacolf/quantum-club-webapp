@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-2">4. Data Storage & Security</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Your sensitive wallet data (private keys, recovery phrase, PIN) is encrypted and stored locally on your device. We use Firebase for platform data storage with industry-standard security practices. Your Telegram ID is encrypted before being used as a database identifier.
+                  Your sensitive wallet data (private keys, recovery phrase, PIN) is encrypted and stored locally on your device only. We implement industry-standard security measures to protect platform data stored on our servers. Your Telegram ID is encrypted before being used as an identifier.
                 </p>
               </section>
 
