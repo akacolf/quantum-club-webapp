@@ -340,8 +340,8 @@ export default function CreateTokenPage() {
                                     <span className="text-xs text-muted-foreground">{FEE_CONFIG.creatorFeePercent}% Creator Fee</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Icon icon="solar:shield-warning-bold" className="w-4 h-4 text-blue-400" />
-                                    <span className="text-xs text-muted-foreground">Rate Limiting</span>
+                                    <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-blue-400" />
+                                    <span className="text-xs text-muted-foreground">Fair Launch</span>
                                 </div>
                             </div>
                         </CardContent>

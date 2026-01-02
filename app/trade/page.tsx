@@ -69,7 +69,7 @@ function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; 
                 {/* Glow effect */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:bg-primary/10 transition-all" />
 
-                <CardContent className="p-3.5 relative z-10">
+                <CardContent className="p-2 relative z-10">
                     <div className="flex gap-3.5">
                         {/* Token Image - Larger & detached */}
                         <div className="relative w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden bg-white/5 flex-shrink-0 shadow-inner border border-white/5">
@@ -115,7 +115,7 @@ function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; 
                                 </div>
 
                                 {/* Price Box */}
-                                <div className="text-right mr-2">
+                                <div className="text-right">
                                     <div className="font-bold text-white text-sm tracking-tight">
                                         {formatPrice(BigInt(token.currentPrice || "0"))}
                                     </div>
