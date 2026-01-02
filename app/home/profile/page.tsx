@@ -29,6 +29,7 @@ export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
     const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [displayName, setDisplayName] = useState<string>("");
     const [stats, setStats] = useState<UserStats>({
         totalQntm: 0,
         referralCount: 0,
@@ -60,6 +61,15 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchData = async () => {
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+
+            // Set display name from Telegram or context
+            if (tgUser?.username) {
+                setDisplayName(tgUser.username);
+            } else if (tgUser?.first_name) {
+                setDisplayName(tgUser.first_name);
+            } else if (username) {
+                setDisplayName(username);
+            }
 
             // Fetch photo
             if (tgUser?.photo_url) {
@@ -113,7 +123,7 @@ export default function ProfilePage() {
         };
 
         fetchData();
-    }, [telegramId, daily]);
+    }, [telegramId, daily, username]);
 
     const unlockedAchievements = getUnlockedAchievements(stats);
     const lockedAchievements = getLockedAchievements(stats);
@@ -161,7 +171,7 @@ export default function ProfilePage() {
                     {/* Username */}
                     <div className="text-center">
                         <h1 className="text-2xl font-bold text-foreground">
-                            {username || "Quantum User"}
+                            {displayName || username || "Quantum User"}
                         </h1>
                     </div>
 

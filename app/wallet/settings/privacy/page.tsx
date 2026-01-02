@@ -1,15 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Shield } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function PrivacyPolicyPage() {
   useTelegramBackButton("/home/profile");
-  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
@@ -153,15 +150,6 @@ export default function PrivacyPolicyPage() {
 
             </div>
           </ScrollArea>
-
-          <Button
-            onClick={() => router.push("/home/profile")}
-            variant="ghost"
-            className="w-full text-muted-foreground hover:text-foreground h-12"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Profile
-          </Button>
         </motion.div>
       </div>
     </div>
