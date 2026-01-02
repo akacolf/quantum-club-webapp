@@ -585,9 +585,20 @@ export default function CreateTokenPage() {
                                 <span className="font-medium text-green-400">Creator Fees</span>
                                 <br />
                                 <span className="text-xs">
-                                    Gas: ~{minBalanceRequired} TON
-                                    {initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
+                                    Deploy: 0.05 TON
                                 </span>
+                                <br />
+                                <span className="text-xs">
+                                    Gas: ~0.02-0.05 TON
+                                </span>
+                                {initialBuyValue > 0 && (
+                                    <>
+                                        <br />
+                                        <span className="text-xs">
+                                            Initial Buy: {initialBuyValue} TON
+                                        </span>
+                                    </>
+                                )}
                                 <br />
                                 <span className="text-xs font-medium">
                                     Total: ~{totalCost.toFixed(2)} TON
@@ -595,6 +606,10 @@ export default function CreateTokenPage() {
                                 <br />
                                 <span className="text-xs text-muted-foreground/80">
                                     You earn {FEE_CONFIG.creatorFeePercent}% on every trade.
+                                </span>
+                                <br />
+                                <span className="text-xs font-semibold text-white/70">
+                                    We recommend having at least 0.1 TON for token deployment.
                                 </span>
                             </AlertDescription>
                         </Alert>
