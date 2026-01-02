@@ -200,9 +200,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             const trendingSnapshot = await getDocs(trendingQuery);
             setTrendingTokens(trendingSnapshot.docs.map(docToToken));
 
-            // New = recently created (include pending deployments so users see their newly created tokens)
+            // New = recently created (only show tokens with confirmed on-chain contracts)
             const newQuery = query(
                 collection(dbfs, "tokens"),
+                where("isOnChain", "==", true),
                 orderBy("createdAt", "desc"),
                 limit(20)
             );
@@ -241,10 +242,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 collection(dbfs, "tokens"),
                 where("nameLower", ">=", q),
                 where("nameLower", "<=", q + "\uf8ff"),
-                limit(20)
+                limit(30) // Fetch more to filter
             );
             const snapshot = await getDocs(searchQ);
-            setSearchResults(snapshot.docs.map(docToToken));
+            // Filter to only show on-chain tokens
+            const tokens = snapshot.docs.map(docToToken).filter(t => t.isOnChain);
+            setSearchResults(tokens.slice(0, 20));
         } catch (error) {
             console.error("Search error:", error);
         } finally {
