@@ -196,9 +196,6 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
                                                             <span className="text-xs text-muted-foreground">
                                                                 {isOwn ? "You" : msg.senderName}
                                                             </span>
-                                                            {msg.isHolder && (
-                                                                <Icon icon="solar:verified-check-bold" className="w-3 h-3 text-primary" />
-                                                            )}
                                                         </div>
                                                     )}
                                                     <div

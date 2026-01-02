@@ -40,7 +40,7 @@ export default function TokenDetailPage() {
         buyTokens,
         sellTokens,
     } = useTrading();
-    const { walletAddress, tonBalance, tonPrice, isTestnet } = useWallet();
+    const { walletAddress, tonBalance, tonPrice, isTestnet, fetchWalletAssets } = useWallet();
     const { getGroupByToken, joinGroup, isGroupMember, createGroup } = useGroups();
 
     // Get linked community group for this token
@@ -62,12 +62,16 @@ export default function TokenDetailPage() {
     } | null>(null);
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
 
-    // Load token
+    // Load token and refresh balance
     useEffect(() => {
         if (tokenId) {
             selectToken(tokenId);
         }
-    }, [tokenId, selectToken]);
+        // Refresh wallet balance on page load
+        if (walletAddress) {
+            fetchWalletAssets();
+        }
+    }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
 
     // Get user position
     const position = getPosition(tokenId);
