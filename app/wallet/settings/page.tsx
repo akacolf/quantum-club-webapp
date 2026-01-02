@@ -11,7 +11,6 @@ import {
   Trash2,
   AlertTriangle,
   FileText,
-  Shield,
   ExternalLink,
   Wallet,
   BookUser,
@@ -233,51 +232,6 @@ export default function WalletSettingsPage() {
                     <div className="text-left">
                       <p className="font-medium text-foreground">Price Alerts</p>
                       <p className="text-xs text-muted-foreground">Get notified when TON hits a target</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Legal Section */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider ml-1">Legal</h2>
-
-            <Card className="bg-card border-border overflow-hidden">
-              <CardContent className="p-0">
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/wallet/settings/terms")}
-                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium text-foreground">Terms of Service</p>
-                      <p className="text-xs text-muted-foreground">Read our terms and conditions</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </Button>
-
-                <div className="border-t border-border" />
-
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/wallet/settings/privacy")}
-                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium text-foreground">Privacy Policy</p>
-                      <p className="text-xs text-muted-foreground">How we handle your data</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />

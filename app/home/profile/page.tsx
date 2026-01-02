@@ -277,6 +277,50 @@ export default function ProfilePage() {
                         ))}
                     </div>
                 </motion.div>
+
+                {/* Legal Links */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="space-y-3"
+                >
+                    <Card className="bg-card/80 backdrop-blur-xl">
+                        <CardContent className="p-0">
+                            <button
+                                onClick={() => window.location.href = "/wallet/settings/terms"}
+                                className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
+                                        <Icon icon="solar:file-text-bold" className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-foreground">Terms of Service</p>
+                                        <p className="text-xs text-muted-foreground">Read our terms and conditions</p>
+                                    </div>
+                                </div>
+                                <Icon icon="solar:alt-arrow-right-linear" className="w-5 h-5 text-muted-foreground" />
+                            </button>
+                            <div className="border-t border-border" />
+                            <button
+                                onClick={() => window.location.href = "/wallet/settings/privacy"}
+                                className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
+                                        <Icon icon="solar:shield-bold" className="w-5 h-5 text-purple-400" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-foreground">Privacy Policy</p>
+                                        <p className="text-xs text-muted-foreground">How we handle your data</p>
+                                    </div>
+                                </div>
+                                <Icon icon="solar:alt-arrow-right-linear" className="w-5 h-5 text-muted-foreground" />
+                            </button>
+                        </CardContent>
+                    </Card>
+                </motion.div>
             </div>
 
             {/* Achievement Detail Sheet */}

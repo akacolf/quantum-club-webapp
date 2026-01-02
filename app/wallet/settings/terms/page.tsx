@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function TermsOfServicePage() {
-  useTelegramBackButton("/wallet/settings");
+  useTelegramBackButton("/home/profile");
   const router = useRouter();
 
   return (
@@ -189,12 +189,12 @@ export default function TermsOfServicePage() {
           </ScrollArea>
 
           <Button
-            onClick={() => router.push("/wallet/settings")}
+            onClick={() => router.push("/home/profile")}
             variant="ghost"
             className="w-full text-muted-foreground hover:text-foreground h-12"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Settings
+            Back to Profile
           </Button>
         </motion.div>
       </div>
