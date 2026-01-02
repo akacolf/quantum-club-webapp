@@ -22,7 +22,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
-import { DEPLOYMENT_GAS, FEE_CONFIG } from "@/lib/platform-config";
+import { FEE_CONFIG } from "@/lib/platform-config";
 import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 
 export default function CreateTokenPage() {
@@ -110,10 +110,10 @@ export default function CreateTokenPage() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Calculate total cost (gas + buffer for network fees + optional initial buy)
+    // Calculate total cost (deployment + network fees buffer + optional initial buy)
     const initialBuyValue = parseFloat(initialBuyAmount || "0");
-    const networkFeeBuffer = 0.02; // Buffer for network processing fees
-    const totalCost = DEPLOYMENT_GAS + networkFeeBuffer + (initialBuyValue > 0 ? initialBuyValue : 0);
+    const minBalanceRequired = 0.1; // Minimum 0.1 TON for deployment + network fees
+    const totalCost = minBalanceRequired + (initialBuyValue > 0 ? initialBuyValue : 0);
 
     // Compress image to fit within Firestore limits (< 1MB)
     const compressImage = (file: File, maxSize: number = 512): Promise<string> => {
@@ -259,11 +259,11 @@ export default function CreateTokenPage() {
             return;
         }
 
-        // Check balance for gas + network fees + initial buy
+        // Check balance for gas fees
         const balance = parseFloat(tonBalance || "0");
 
         if (balance < totalCost) {
-            toast.error(`Insufficient balance. Need ~${totalCost.toFixed(2)} TON (${DEPLOYMENT_GAS} gas + network fees${initialBuyValue > 0 ? ` + ${initialBuyValue} initial buy` : ""}).`);
+            toast.error("Not enough TON for gas fees");
             return;
         }
 
@@ -585,7 +585,7 @@ export default function CreateTokenPage() {
                                 <span className="font-medium text-green-400">Creator Fees</span>
                                 <br />
                                 <span className="text-xs">
-                                    Gas + Network: ~{(DEPLOYMENT_GAS + networkFeeBuffer).toFixed(2)} TON
+                                    Gas: ~{minBalanceRequired} TON
                                     {initialBuyValue > 0 && ` + Initial Buy: ${initialBuyValue} TON`}
                                 </span>
                                 <br />
