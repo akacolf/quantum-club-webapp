@@ -323,17 +323,14 @@ export default function CreateTokenPage() {
                         <CardContent className="p-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-primary" />
-                                <h3 className="font-semibold text-white">Token Protections</h3>
+                                <h3 className="font-semibold text-white">Platform Utilities</h3>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:lock-bold" className="w-4 h-4 text-green-400" />
                                     <span className="text-xs text-muted-foreground">Locked Liquidity</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-blue-400" />
-                                    <span className="text-xs text-muted-foreground">Fair Launch</span>
-                                </div>
+                
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-purple-400" />
                                     <span className="text-xs text-muted-foreground">Auto DEX at 2,000 TON</span>
@@ -341,6 +338,10 @@ export default function CreateTokenPage() {
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-400" />
                                     <span className="text-xs text-muted-foreground">{FEE_CONFIG.creatorFeePercent}% Creator Fee</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:shield-warning-bold" className="w-4 h-4 text-blue-400" />
+                                    <span className="text-xs text-muted-foreground">Rate Limiting</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -589,7 +590,7 @@ export default function CreateTokenPage() {
                                 </span>
                                 <br />
                                 <span className="text-xs">
-                                    Gas: ~0.02-0.05 TON
+                                    Gas: ~0.03-0.05 TON
                                 </span>
                                 {initialBuyValue > 0 && (
                                     <>
@@ -604,12 +605,8 @@ export default function CreateTokenPage() {
                                     Total: ~{totalCost.toFixed(2)} TON
                                 </span>
                                 <br />
-                                <span className="text-xs text-muted-foreground/80">
-                                    You earn {FEE_CONFIG.creatorFeePercent}% on every trade.
-                                </span>
-                                <br />
-                                <span className="text-xs font-semibold text-white/70">
-                                    We recommend having at least 0.1 TON for token deployment.
+                                <span className="text-xs font-bold text-white/70">
+                                    We recommend having at least 0.1 TON in your QC Wallet for token deployment.
                                 </span>
                             </AlertDescription>
                         </Alert>

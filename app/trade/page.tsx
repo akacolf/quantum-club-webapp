@@ -115,7 +115,7 @@ function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; 
                                 </div>
 
                                 {/* Price Box */}
-                                <div className="text-right">
+                                <div className="text-right mr-2">
                                     <div className="font-bold text-white text-sm tracking-tight">
                                         {formatPrice(BigInt(token.currentPrice || "0"))}
                                     </div>
