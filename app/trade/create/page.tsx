@@ -28,7 +28,7 @@ import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/
 export default function CreateTokenPage() {
     const router = useRouter();
     const { createToken, refreshTokens } = useTrading();
-    const { walletAddress, tonBalance, setWalletAddress } = useWallet();
+    const { walletAddress, setWalletAddress } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Telegram back button
@@ -259,13 +259,8 @@ export default function CreateTokenPage() {
             return;
         }
 
-        // Check balance for gas fees
-        const balance = parseFloat(tonBalance || "0");
-
-        if (balance < totalCost) {
-            toast.error("Not enough TON for gas fees");
-            return;
-        }
+        // Note: Balance check removed - let the blockchain handle insufficient funds
+        // This allows users with borderline balances to attempt deployment
 
         setIsLoading(true);
 
@@ -412,7 +407,14 @@ export default function CreateTokenPage() {
                                         type="text"
                                         placeholder="e.g., Quantum Club"
                                         value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, name: e.target.value });
+                                            if (errors.name) {
+                                                const newErrors = { ...errors };
+                                                delete newErrors.name;
+                                                setErrors(newErrors);
+                                            }
+                                        }}
                                         className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${errors.name ? "border-red-500" : ""
                                             }`}
                                         maxLength={32}
@@ -430,7 +432,14 @@ export default function CreateTokenPage() {
                                         type="text"
                                         placeholder="e.g., QNTM"
                                         value={formData.symbol}
-                                        onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, symbol: e.target.value.toUpperCase() });
+                                            if (errors.symbol) {
+                                                const newErrors = { ...errors };
+                                                delete newErrors.symbol;
+                                                setErrors(newErrors);
+                                            }
+                                        }}
                                         className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase ${errors.symbol ? "border-red-500" : ""
                                             }`}
                                         maxLength={10}
