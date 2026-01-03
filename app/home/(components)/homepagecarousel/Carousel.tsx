@@ -14,22 +14,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import tasks from "@/app/earn/tasks";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   carouselBg,
   carouselBgJoinTG,
   bgTgeProgressCard,
 } from "@/public";
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
+
+// Dynamic import Lottie for better performance
+const Lottie = dynamic(() => import("lottie-react"), { 
+  ssr: false,
+  loading: () => <div className="w-6 h-6 bg-white/10 rounded-full animate-pulse" />
+});
+
+// Static imports for Lottie data
 import storyAnimationData from "@/public/lottie/story-lottie.json";
 import goldmedalAnimationData from "@/public/lottie/gold-medal-lottie.json";
 import diamondAnimationData from "@/public/lottie/diamond-lottie.json";
 
 const HomeCarousel = () => {
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
@@ -109,7 +116,6 @@ const HomeCarousel = () => {
                   </CardTitle>
                   <div className="w-6 h-6">
                     <Lottie
-                      lottieRef={lottieRef}
                       animationData={diamondAnimationData}
                       autoplay={true}
                       loop={true}
@@ -136,6 +142,7 @@ const HomeCarousel = () => {
                 alt="Story Card"
                 fill
                 className="object-cover z-0 opacity-60"
+                priority
               />
               <div className="absolute inset-0 bg-linear-to-r from-black/90 via-black/60 to-transparent z-0" />
 
@@ -147,7 +154,6 @@ const HomeCarousel = () => {
                     </CardTitle>
                     <div className="w-6 h-6">
                       <Lottie
-                        lottieRef={lottieRef}
                         animationData={storyAnimationData}
                         loop={true}
                         autoplay={true}
@@ -180,7 +186,6 @@ const HomeCarousel = () => {
                   </CardTitle>
                   <div className="w-6 h-6">
                     <Lottie
-                      lottieRef={lottieRef}
                       animationData={goldmedalAnimationData}
                       loop={true}
                       autoplay={true}

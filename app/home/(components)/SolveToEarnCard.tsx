@@ -1,10 +1,16 @@
-import Lottie from "lottie-react";
+import dynamic from "next/dynamic";
 import hundredAnimationData from "@/public/lottie/hundred-lottie.json";
 import { bgSolveToEarnCard } from "@/public";
 import { SolveToEarnCardProps } from "@/lib/interfaces";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
+// Dynamic import Lottie for better performance
+const Lottie = dynamic(() => import("lottie-react"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-yellow-500/20 rounded-full animate-pulse" />
+});
 
 export default function SolveToEarnCard({ remainingSolveToEarn, lottieRef, goToSolveToEarn }: SolveToEarnCardProps) {
   return (
@@ -16,6 +22,7 @@ export default function SolveToEarnCard({ remainingSolveToEarn, lottieRef, goToS
           alt="S2E Card Background"
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
+          priority
         />
         <div className="absolute inset-0 bg-black/40" />
       </div>

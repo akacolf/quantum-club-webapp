@@ -36,6 +36,10 @@ const FrensContent = () => {
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string | null>>({});
+  
+  // TON referral earnings state
+  const [tonEarnings, setTonEarnings] = useState(0);
+  const [isClaimingTon, setIsClaimingTon] = useState(false);
 
   useEffect(() => {
     router.prefetch("/frens/referrals");
@@ -56,6 +60,17 @@ const FrensContent = () => {
         totalPending += Number(doc.data().reward) || 0;
       });
       setPendingRewards(totalPending);
+      
+      // Fetch TON referral earnings
+      try {
+        const referralEarningsRef = doc(dbfs, `user/${telegramId}/referralEarnings/ton`);
+        const earningsDoc = await getDoc(referralEarningsRef);
+        if (earningsDoc.exists()) {
+          setTonEarnings(Number(earningsDoc.data()?.pendingAmount) || 0);
+        }
+      } catch (e) {
+        console.error("Error fetching TON earnings:", e);
+      }
     };
     getReferralsNum();
     const fetchReferralsData = async () => {
@@ -263,6 +278,35 @@ const FrensContent = () => {
       setIsClaiming(false);
     }
   }
+
+  async function handleClaimTonEarnings() {
+    if (tonEarnings <= 0 || isClaimingTon) return;
+
+    setIsClaimingTon(true);
+    try {
+      const response = await fetch("/api/claim-referral-ton", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.claimedAmount > 0) {
+        toast.success(`Claimed ${data.claimedAmount.toFixed(4)} TON!`);
+        setTonEarnings(0);
+      } else if (data.claimedAmount === 0) {
+        toast.info("No pending TON to claim");
+      } else {
+        toast.error(data.error || "Failed to claim TON");
+      }
+    } catch (error) {
+      console.error("Claim TON error:", error);
+      toast.error("Failed to claim TON");
+    } finally {
+      setIsClaimingTon(false);
+    }
+  }
   return (
     <div className="min-h-screen pb-24">
 
@@ -272,6 +316,36 @@ const FrensContent = () => {
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold text-white">Frens</h1>
             </div>
+
+            {/* TON Referral Earnings Card */}
+            <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-[#333] backdrop-blur-xl text-white overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
+              <CardContent className="p-5 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+                      <Image src="/svg/ton-logo.svg" alt="TON" width={40} height={40} className="w-full h-full" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-400 font-medium">TON Referral Earnings</div>
+                      <div className="text-2xl font-bold text-white">
+                        {tonEarnings.toFixed(4)} <span className="text-base font-medium text-gray-400">TON</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleClaimTonEarnings}
+                    disabled={isClaimingTon || tonEarnings <= 0}
+                    className="h-10 px-5 bg-white text-black hover:bg-white/90 font-bold disabled:opacity-50 transition-all active:scale-95 rounded-xl"
+                  >
+                    {isClaimingTon ? <ButtonLoader /> : "Claim"}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Earn 0.1% from your referrals&apos; fees when they trade on QC RocketStart.
+                </p>
+              </CardContent>
+            </Card>
 
             <Card className="bg-[#1a1a1a]/80 border-[#333] backdrop-blur-xl text-white overflow-hidden relative">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
@@ -304,7 +378,7 @@ const FrensContent = () => {
                 <div className="pt-4 border-t border-[#333]">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
-                      <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border-purple-500/20">
+                      <Badge variant="secondary" className="bg-white/10 text-gray-300 hover:bg-white/20 border-white/10">
                         EARN 2%
                       </Badge>
                       <div className="text-sm text-gray-400 font-medium">FROM THEIR INVITES</div>
@@ -312,8 +386,8 @@ const FrensContent = () => {
                     {secondTierCount > 0 && (
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
-                          <Users2 className="w-8 h-8 text-purple-400" />
-                          <div className="text-3xl font-bold bg-linear-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+                          <Users2 className="w-8 h-8 text-gray-400" />
+                          <div className="text-3xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
                             {secondTierCount}
                           </div>
                         </div>
@@ -323,13 +397,13 @@ const FrensContent = () => {
                   </div>
 
                   {/* Pending Rewards Section */}
-                  <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                  <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Gift className="w-5 h-5 text-purple-400" />
+                        <Gift className="w-5 h-5 text-white" />
                         <div>
                           <div className="text-sm font-medium text-white">Pending Rewards</div>
-                          <div className="text-lg font-bold text-purple-400">
+                          <div className="text-lg font-bold text-white">
                             {pendingRewards.toFixed(0)} QNTM
                           </div>
                         </div>
@@ -345,7 +419,7 @@ const FrensContent = () => {
                   </div>
 
                   <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                    When your invited friends invite others, you earn 2% of their earnings too!
+                    When your invited friends invite others, you earn 2% of their earnings.
                   </p>
                 </div>
               </CardContent>

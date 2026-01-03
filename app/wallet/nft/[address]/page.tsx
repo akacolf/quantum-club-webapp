@@ -240,9 +240,14 @@ export default function NftDetailPage() {
                                     <Button
                                         variant="ghost"
                                         onClick={() => window.open(`${EXPLORER_BASE_URL}/${nft.ownerAddress}`, "_blank")}
-                                        className="flex items-center justify-between w-full h-auto gap-3 bg-muted border border-border rounded-xl p-3 hover:bg-muted/80 transition-colors"
+                                        className="flex items-center justify-between w-full h-auto gap-3 bg-muted border border-border rounded-xl p-3 hover:bg-muted/80 transition-colors overflow-hidden"
                                     >
-                                        <p className="text-xs text-primary font-mono break-all">{formatWalletAddress(nft.ownerAddress)}</p>
+                                        <p className="text-xs text-primary font-mono truncate min-w-0">
+                                            {(() => {
+                                                const addr = formatWalletAddress(nft.ownerAddress);
+                                                return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+                                            })()}
+                                        </p>
                                         <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
                                     </Button>
                                 </div>

@@ -22,7 +22,6 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
-import { FEE_CONFIG } from "@/lib/platform-config";
 import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 
 export default function CreateTokenPage() {
@@ -332,7 +331,7 @@ export default function CreateTokenPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-400" />
-                                    <span className="text-xs text-muted-foreground">{FEE_CONFIG.creatorFeePercent}% Creator Fee</span>
+                                    <span className="text-xs text-muted-foreground">Referral Program</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-blue-400" />
@@ -590,16 +589,12 @@ export default function CreateTokenPage() {
                         </Card>
 
                         <Alert className="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border-green-500/20">
-                            <Icon icon="solar:gift-bold" className="w-4 h-4 text-green-400" />
+                            <Icon icon="solar:gas-station-bold" className="w-4 h-4 text-green-400" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-green-400">Creator Fees</span>
+                                <span className="font-medium text-green-400">Deployment Cost</span>
                                 <br />
                                 <span className="text-xs">
-                                    Deploy: 0.05 TON
-                                </span>
-                                <br />
-                                <span className="text-xs">
-                                    Gas: ~0.03-0.05 TON
+                                    Gas: ~0.05-0.1 TON
                                 </span>
                                 {initialBuyValue > 0 && (
                                     <>
@@ -612,10 +607,6 @@ export default function CreateTokenPage() {
                                 <br />
                                 <span className="text-xs font-medium">
                                     Total: ~{totalCost.toFixed(2)} TON
-                                </span>
-                                <br />
-                                <span className="text-xs font-bold text-white/70">
-                                    We recommend having at least 0.1 TON in your QC Wallet for token deployment.
                                 </span>
                             </AlertDescription>
                         </Alert>

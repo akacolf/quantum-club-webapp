@@ -199,8 +199,8 @@ export async function POST(request: NextRequest) {
 
                 // Platform config
                 platformWallet: PLATFORM_WALLET_ADDRESS,
-                platformFeePercent: FEE_CONFIG.platformFeePercent,
-                creatorFeePercent: FEE_CONFIG.creatorFeePercent,
+                serviceFeePercent: FEE_CONFIG.serviceFeePercent,
+                referralFeePercent: FEE_CONFIG.referralFeePercent,
 
                 // Timestamps
                 createdAt: FieldValue.serverTimestamp(),
