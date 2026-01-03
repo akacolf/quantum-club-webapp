@@ -386,7 +386,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             // If on-chain preview fails, use local bonding curve calculation
             if (tokensOut === BigInt(0)) {
-                // Apply trading fee first (1% platform + 0.5% creator = 1.5% total)
+                // Apply trading fee (1% service fee + 0.1% referral fee = 1.1% total)
                 const feePercent = FEE_CONFIG.totalTradingFeePercent / 100;
                 const tonAfterFee = tonAmountNum * (1 - feePercent);
 
@@ -487,6 +487,32 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            // CRITICAL: Check balance before proceeding
+            const tonAmountNum = parseFloat(tonAmount);
+            if (isNaN(tonAmountNum) || tonAmountNum <= 0) {
+                return { success: false, error: "Invalid amount" };
+            }
+
+            // Fetch current TON balance from API
+            const apiBase = "https://tonapi.io";
+            const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
+            if (balanceResponse.ok) {
+                const balanceData = await balanceResponse.json();
+                const balanceInNano = BigInt(balanceData.balance || "0");
+                const balanceInTon = Number(balanceInNano) / 1e9;
+                
+                // Require extra 0.1 TON for gas fees
+                const requiredTon = tonAmountNum + 0.1;
+                if (balanceInTon < requiredTon) {
+                    return { 
+                        success: false, 
+                        error: `Insufficient balance. You need ${requiredTon.toFixed(2)} TON (${tonAmountNum} + 0.1 gas) but have ${balanceInTon.toFixed(4)} TON` 
+                    };
+                }
+            } else {
+                return { success: false, error: "Failed to verify wallet balance" };
+            }
+
             // Get token data
             const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
             if (!tokenDoc.exists()) {
@@ -568,6 +594,30 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            // CRITICAL: Validate amount
+            const tokenAmountNum = parseFloat(tokenAmount);
+            if (isNaN(tokenAmountNum) || tokenAmountNum <= 0) {
+                return { success: false, error: "Invalid amount" };
+            }
+
+            // Check TON balance for gas fees (need ~0.1 TON for burn operation)
+            const apiBase = "https://tonapi.io";
+            const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
+            if (balanceResponse.ok) {
+                const balanceData = await balanceResponse.json();
+                const balanceInNano = BigInt(balanceData.balance || "0");
+                const balanceInTon = Number(balanceInNano) / 1e9;
+                
+                // Require 0.15 TON for gas fees
+                const requiredGas = 0.15;
+                if (balanceInTon < requiredGas) {
+                    return { 
+                        success: false, 
+                        error: `Insufficient TON for gas. You need at least ${requiredGas} TON but have ${balanceInTon.toFixed(4)} TON` 
+                    };
+                }
+            }
+
             // Get token data
             const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
             if (!tokenDoc.exists()) {
@@ -595,8 +645,28 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Jetton wallet not found" };
             }
 
-            // Build burn message (sell = burn tokens to get TON back)
+            // CRITICAL: Check user's token balance before selling
+            const userTokenBalance = await getJettonBalance(
+                token.jettonMasterAddress,
+                walletAddress,
+                tonClient
+            );
+            
             const tokenNano = parseTokenAmount(tokenAmount);
+            if (userTokenBalance < tokenNano) {
+                const userBalanceFormatted = (Number(userTokenBalance) / 1e9).toFixed(4);
+                const requestedFormatted = (Number(tokenNano) / 1e9).toFixed(4);
+                return { 
+                    success: false, 
+                    error: `Insufficient token balance. You have ${userBalanceFormatted} tokens but tried to sell ${requestedFormatted}` 
+                };
+            }
+
+            // Preview sell to get expected TON value
+            const sellPreview = await previewSell(tokenId, tokenAmount);
+            const expectedTonValue = sellPreview?.tonReceived || "0";
+
+            // Build burn message (sell = burn tokens to get TON back)
             const burnBody = buildBurnMessage({
                 amount: tokenNano,
                 responseDestination: Address.parse(walletAddress),
@@ -613,14 +683,14 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: result.error || "Transaction failed" };
             }
 
-            // Log trade for indexing
+            // Log trade for indexing with actual values
             setDoc(doc(dbfs, `tokens/${tokenId}/trades/${Date.now()}`), {
                 type: "sell",
                 userId: telegramId,
                 walletAddress,
                 tokenAmount,
                 amount: tokenAmount,
-                totalTon: "0", // Will be calculated after tx confirms
+                totalTon: expectedTonValue, // Use preview value instead of "0"
                 price: token.currentPrice,
                 txHash: result.txHash,
                 timestamp: serverTimestamp(),
@@ -638,7 +708,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             console.error("Sell error:", error);
             return { success: false, error: "Transaction failed" };
         }
-    }, [walletAddress, telegramId, docToToken, tonClient, sendTransaction, refreshPositions]);
+    }, [walletAddress, telegramId, docToToken, tonClient, sendTransaction, refreshPositions, previewSell]);
 
     // =====================================================
     // CREATE TOKEN (Deploy on-chain)

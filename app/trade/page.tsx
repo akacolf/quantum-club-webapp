@@ -18,7 +18,7 @@ import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-
 import { useWallet } from "@/app/wallet/WalletContext";
 
 import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
-import CreatorEarningsDashboard from "@/app/trade/(components)/CreatorEarningsDashboard";
+// CreatorEarningsDashboard removed - replaced with referral system
 import { Badge } from "@/components/ui/badge";
 
 // Lottie animations for tabs (Telegram-style animated emojis)
@@ -435,11 +435,7 @@ export default function TradePage() {
                         )
                     ) : activeTab === "holdings" ? (
                         positions.length === 0 ? (
-                            <div className="space-y-6">
-                                <EmptyState message="You don't have any token holdings yet" />
-                                {/* Creator Earnings for token creators */}
-                                <CreatorEarningsDashboard />
-                            </div>
+                            <EmptyState message="You don't have any token holdings yet" />
                         ) : (
                             <div className="space-y-6">
                                 <div className="space-y-3">
@@ -455,8 +451,6 @@ export default function TradePage() {
                                         )
                                     ))}
                                 </div>
-                                {/* Creator Earnings for token creators */}
-                                <CreatorEarningsDashboard />
                             </div>
                         )
                     ) : displayTokens.length === 0 ? (

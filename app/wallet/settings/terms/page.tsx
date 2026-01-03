@@ -116,7 +116,7 @@ export default function TermsOfServicePage() {
                 </p>
                 <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
                   <li>Token creation: Free (gas fees only, approximately 0.05 TON)</li>
-                  <li>Trading fee: 1.5% per trade (1% platform fee + 0.5% creator fee)</li>
+                  <li>Trading fee: 1.1% per trade</li>
                   <li>Graduation to DEX: 2% of liquidity</li>
                 </ul>
               </section>

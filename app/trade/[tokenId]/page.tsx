@@ -25,6 +25,12 @@ import SupplyInfo from "@/app/trade/(components)/SupplyInfo";
 import SlippageSettings from "@/app/trade/(components)/SlippageSettings";
 import { DEFAULT_GRADUATION_THRESHOLD_TON, DEFAULT_SLIPPAGE } from "@/types/trading";
 import ImageViewer from "@/components/ui/image-viewer";
+import { FEE_CONFIG } from "@/lib/platform-config";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function TokenDetailPage() {
     const params = useParams();
@@ -113,7 +119,7 @@ export default function TokenDetailPage() {
 
         try {
             if (activeTab === "buy") {
-                const result = await buyTokens(tokenId, amount);
+                const result = await buyTokens(tokenId, amount, slippage / 100);
                 if (result.success) {
                     toast.success("Purchase successful!", {
                         description: `Your ${selectedToken?.symbol || 'tokens'} will appear in QC Wallet shortly`,
@@ -343,7 +349,28 @@ export default function TokenDetailPage() {
                                                 <span className="text-white">{parseFloat(preview.averagePrice || "0").toFixed(6)} TON</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Fee (1.5%)</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-muted-foreground">Fee ({FEE_CONFIG.totalTradingFeePercent}%)</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button type="button" className="focus:outline-none">
+                                                                <Icon icon="solar:info-circle-bold" className="w-3.5 h-3.5 text-muted-foreground/50 hover:text-white transition-colors" />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-3 text-xs bg-black/95 border-white/10 text-white" side="top">
+                                                            <div className="space-y-1">
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Platform Fee</span>
+                                                                    <span className="font-medium">0%</span>
+                                                                </div>
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Protocol and Processing Fee</span>
+                                                                    <span className="font-medium">{FEE_CONFIG.totalTradingFeePercent}%</span>
+                                                                </div>
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                                 <span className="text-white">{preview.fee} TON</span>
                                             </div>
                                         </div>
@@ -409,7 +436,28 @@ export default function TokenDetailPage() {
                                                 <span className="text-white">{parseFloat(preview.averagePrice || "0").toFixed(6)} TON</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Fee (1.5%)</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-muted-foreground">Fee ({FEE_CONFIG.totalTradingFeePercent}%)</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button type="button" className="focus:outline-none">
+                                                                <Icon icon="solar:info-circle-bold" className="w-3.5 h-3.5 text-muted-foreground/50 hover:text-white transition-colors" />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-3 text-xs bg-black/95 border-white/10 text-white" side="top">
+                                                            <div className="space-y-1">
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Platform Fee</span>
+                                                                    <span className="font-medium">0%</span>
+                                                                </div>
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Protocol and Processing Fee</span>
+                                                                    <span className="font-medium">{FEE_CONFIG.totalTradingFeePercent}%</span>
+                                                                </div>
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                                 <span className="text-white">{preview.fee} TON</span>
                                             </div>
                                         </div>

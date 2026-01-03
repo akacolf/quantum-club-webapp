@@ -1,10 +1,16 @@
-import Lottie from "lottie-react";
+import dynamic from "next/dynamic";
 import fireAnimationData from "@/public/lottie/fire-lottie.json";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { DailyCheckInProps } from "@/lib/interfaces";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
+// Dynamic import Lottie for better performance
+const Lottie = dynamic(() => import("lottie-react"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-orange-500/20 rounded-full animate-pulse" />
+});
 
 export default function DailyCheckIn({
   loadingButtonDay,
