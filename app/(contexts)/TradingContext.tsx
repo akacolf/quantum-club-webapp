@@ -858,39 +858,69 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 if (txResult.success) {
                     console.log("Deployment transaction sent successfully:", txResult.txHash);
 
-                    // No platform fee - token creation is free
-                    // Platform earns from trading fees (1% on every trade)
+                    // CRITICAL: Wait for on-chain confirmation before marking as deployed
+                    // Poll the contract status until it becomes active
+                    let isDeployedOnChain = false;
+                    const maxRetries = 10;
+                    const retryDelay = 3000; // 3 seconds between retries
 
-                    // Confirm deployment to update Firestore
-                    await fetch("/api/deploy-jetton", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            tokenId,
-                            jettonAddress,
-                            txHash: txResult.txHash,
-                        }),
-                    }).catch(console.error);
+                    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                        console.log(`Checking deployment status (attempt ${attempt}/${maxRetries})...`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelay));
 
-                    // If initial buy is specified, execute it after deployment
-                    if (params.initialBuyAmount && parseFloat(params.initialBuyAmount) > 0) {
-                        console.log("Executing initial buy:", params.initialBuyAmount, "TON");
-
-                        // Wait a moment for deployment to be confirmed
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-
-                        // Execute initial buy
-                        const buyResult = await buyTokens(tokenId, params.initialBuyAmount);
-                        if (buyResult.success) {
-                            console.log("Initial buy successful:", buyResult.txHash);
-                        } else {
-                            console.warn("Initial buy failed (token still created):", buyResult.error);
+                        try {
+                            const statusResponse = await fetch(`https://tonapi.io/v2/accounts/${jettonAddress}`);
+                            if (statusResponse.ok) {
+                                const statusData = await statusResponse.json();
+                                if (statusData.status === "active" && statusData.code) {
+                                    console.log("Contract is now ACTIVE on-chain!");
+                                    isDeployedOnChain = true;
+                                    break;
+                                } else {
+                                    console.log(`Contract status: ${statusData.status}`);
+                                }
+                            }
+                        } catch (checkError) {
+                            console.log("Status check failed, will retry...", checkError);
                         }
+                    }
+
+                    if (isDeployedOnChain) {
+                        // Only confirm deployment if contract is actually active
+                        await fetch("/api/deploy-jetton", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                tokenId,
+                                jettonAddress,
+                                txHash: txResult.txHash,
+                            }),
+                        }).catch(console.error);
+
+                        // If initial buy is specified, execute it after CONFIRMED deployment
+                        if (params.initialBuyAmount && parseFloat(params.initialBuyAmount) > 0) {
+                            console.log("Executing initial buy:", params.initialBuyAmount, "TON");
+
+                            // Extra wait for contract indexing
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+
+                            // Execute initial buy
+                            const buyResult = await buyTokens(tokenId, params.initialBuyAmount);
+                            if (buyResult.success) {
+                                console.log("Initial buy successful:", buyResult.txHash);
+                            } else {
+                                console.warn("Initial buy failed (token still created):", buyResult.error);
+                            }
+                        }
+                    } else {
+                        console.error("Contract deployment not confirmed after", maxRetries, "attempts");
+                        // Don't confirm deployment - leave isDeployed as false
+                        // This prevents users from trading a non-existent contract
                     }
                 } else {
                     console.error("Deployment transaction failed:", txResult.error);
                     // Token doc was created, but deployment failed
-                    // The server-side fallback may still deploy it
+                    // isDeployed remains false, preventing trades
                 }
             } catch (deployError) {
                 console.error("Failed to send deployment transaction:", deployError);
