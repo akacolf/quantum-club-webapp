@@ -26,7 +26,8 @@ export interface Token {
 
     // On-chain data
     jettonMasterAddress: string; // Jetton Master contract address
-    isOnChain: boolean; // True when deployed and confirmed
+    isOnChain: boolean; // True when created via the platform
+    isDeployed: boolean; // True when contract is verified active on blockchain
 
     // Supply info
     maxSupply: string; // Maximum supply (1 billion * 10^9)

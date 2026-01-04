@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Bar, Cell, ComposedChart } from "recharts";
 import { useWallet } from "@/app/wallet/WalletContext";
 
 interface PriceDataPoint {
@@ -15,16 +15,28 @@ interface PriceDataPoint {
     priceUsd: number;
 }
 
+interface CandleData {
+    time: number;
+    displayTime: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    isPositive: boolean;
+}
+
 interface PriceChartProps {
     tokenId: string;
     currentPrice: string;
 }
 
 type TimeRange = "1H" | "24H" | "7D" | "30D";
+type ChartType = "line" | "candle";
 
 export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
     const [priceHistory, setPriceHistory] = useState<PriceDataPoint[]>([]);
     const [timeRange, setTimeRange] = useState<TimeRange>("24H");
+    const [chartType, setChartType] = useState<ChartType>("line");
     const [isLoading, setIsLoading] = useState(true);
     const { tonPrice } = useWallet();
 
@@ -115,13 +127,80 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
 
     const isPositive = priceChange >= 0;
 
-    // Format for chart
+    // Format for line chart
     const chartData = useMemo(() => {
         return filteredData.map(p => ({
             time: p.timestamp.getTime(),
             price: p.price,
             displayTime: formatTime(p.timestamp, timeRange),
         }));
+    }, [filteredData, timeRange]);
+
+    // Format for candlestick chart
+    const candleData = useMemo((): CandleData[] => {
+        if (filteredData.length < 2) return [];
+
+        // Determine candle interval based on time range
+        const intervals: Record<TimeRange, number> = {
+            "1H": 5 * 60 * 1000, // 5 minute candles
+            "24H": 60 * 60 * 1000, // 1 hour candles
+            "7D": 4 * 60 * 60 * 1000, // 4 hour candles
+            "30D": 24 * 60 * 60 * 1000, // 1 day candles
+        };
+
+        const interval = intervals[timeRange];
+        const candles: CandleData[] = [];
+        
+        // Type for candle accumulator
+        type CandleAccumulator = { prices: number[]; startTime: number };
+        let currentCandle: CandleAccumulator | null = null;
+
+        filteredData.forEach(point => {
+            const candleStart = Math.floor(point.timestamp.getTime() / interval) * interval;
+
+            if (!currentCandle || currentCandle.startTime !== candleStart) {
+                // Save previous candle if exists
+                if (currentCandle && currentCandle.prices.length > 0) {
+                    const prices = currentCandle.prices;
+                    const open = prices[0];
+                    const close = prices[prices.length - 1];
+                    candles.push({
+                        time: currentCandle.startTime,
+                        displayTime: formatTime(new Date(currentCandle.startTime), timeRange),
+                        open,
+                        high: Math.max(...prices),
+                        low: Math.min(...prices),
+                        close,
+                        isPositive: close >= open,
+                    });
+                }
+                // Start new candle
+                currentCandle = { prices: [point.price], startTime: candleStart };
+            } else {
+                currentCandle.prices.push(point.price);
+            }
+        });
+
+        // Don't forget the last candle
+        if (currentCandle !== null) {
+            const lc = currentCandle as CandleAccumulator;
+            if (lc.prices.length > 0) {
+                const prices = lc.prices;
+                const open = prices[0];
+                const close = prices[prices.length - 1];
+                candles.push({
+                    time: lc.startTime,
+                    displayTime: formatTime(new Date(lc.startTime), timeRange),
+                    open,
+                    high: Math.max(...prices),
+                    low: Math.min(...prices),
+                    close,
+                    isPositive: close >= open,
+                });
+            }
+        }
+
+        return candles;
     }, [filteredData, timeRange]);
 
     function formatTime(date: Date, range: TimeRange): string {
@@ -172,85 +251,164 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                         </div>
                     </div>
 
-                    {/* Time Range Selector */}
-                    <div className="flex gap-1">
-                        {(["1H", "24H", "7D", "30D"] as TimeRange[]).map((range) => (
+                    {/* Chart Type Toggle & Time Range */}
+                    <div className="flex items-center gap-2">
+                        {/* Chart Type Toggle */}
+                        <div className="flex rounded-lg bg-white/5 p-0.5">
                             <Button
-                                key={range}
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setTimeRange(range)}
-                                className={`h-7 px-2 text-xs ${timeRange === range
+                                onClick={() => setChartType("line")}
+                                className={`h-6 px-2 text-xs rounded-md ${chartType === "line"
                                     ? "bg-white/10 text-white"
                                     : "text-muted-foreground hover:text-white"
-                                    }`}
+                                }`}
                             >
-                                {range}
+                                <Icon icon="solar:chart-2-linear" className="w-3.5 h-3.5" />
                             </Button>
-                        ))}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setChartType("candle")}
+                                className={`h-6 px-2 text-xs rounded-md ${chartType === "candle"
+                                    ? "bg-white/10 text-white"
+                                    : "text-muted-foreground hover:text-white"
+                                }`}
+                            >
+                                <Icon icon="solar:chart-bold" className="w-3.5 h-3.5" />
+                            </Button>
+                        </div>
+
+                        {/* Time Range Selector */}
+                        <div className="flex gap-1">
+                            {(["1H", "24H", "7D", "30D"] as TimeRange[]).map((range) => (
+                                <Button
+                                    key={range}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setTimeRange(range)}
+                                    className={`h-7 px-2 text-xs ${timeRange === range
+                                        ? "bg-white/10 text-white"
+                                        : "text-muted-foreground hover:text-white"
+                                    }`}
+                                >
+                                    {range}
+                                </Button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
                 {/* Chart */}
                 {chartData.length > 1 ? (
                     <div className="h-[180px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                                <defs>
-                                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor={isPositive ? "#22c55e" : "#ef4444"} stopOpacity={0.3} />
-                                        <stop offset="100%" stopColor={isPositive ? "#22c55e" : "#ef4444"} stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis
-                                    dataKey="displayTime"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 10, fill: "#666" }}
-                                    interval="preserveStartEnd"
-                                />
-                                <YAxis
-                                    hide
-                                    domain={["dataMin", "dataMax"]}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        background: "#1a1a1a",
-                                        border: "1px solid rgba(255,255,255,0.1)",
-                                        borderRadius: "8px",
-                                        fontSize: "12px",
-                                        padding: "8px 12px",
-                                    }}
-                                    labelStyle={{ color: "#999", marginBottom: "4px" }}
-                                    formatter={(value: number | undefined) => [`${formatPrice(value || 0)} TON`, "Price"]}
-                                    labelFormatter={(label) => `Time: ${label}`}
-                                    content={({ active, payload }) => {
-                                        if (active && payload && payload.length) {
-                                            const data = payload[0].payload;
-                                            return (
-                                                <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 shadow-xl">
-                                                    <p className="text-xs text-muted-foreground mb-1">{data.displayTime}</p>
-                                                    <p className="text-sm font-semibold text-white">
-                                                        {formatPrice(data.price)} TON
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        ≈ ${(data.priceUsd || data.price * 5).toFixed(6)}
-                                                    </p>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="price"
-                                    stroke={isPositive ? "#22c55e" : "#ef4444"}
-                                    strokeWidth={2}
-                                    fill="url(#priceGradient)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        {chartType === "line" ? (
+                            /* Line Chart */
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                                    <defs>
+                                        <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={isPositive ? "#22c55e" : "#ef4444"} stopOpacity={0.3} />
+                                            <stop offset="100%" stopColor={isPositive ? "#22c55e" : "#ef4444"} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis
+                                        dataKey="displayTime"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 10, fill: "#666" }}
+                                        interval="preserveStartEnd"
+                                    />
+                                    <YAxis
+                                        hide
+                                        domain={["dataMin", "dataMax"]}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: "#1a1a1a",
+                                            border: "1px solid rgba(255,255,255,0.1)",
+                                            borderRadius: "8px",
+                                            fontSize: "12px",
+                                            padding: "8px 12px",
+                                        }}
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                return (
+                                                    <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 shadow-xl">
+                                                        <p className="text-xs text-muted-foreground mb-1">{data.displayTime}</p>
+                                                        <p className="text-sm font-semibold text-white">
+                                                            {formatPrice(data.price)} TON
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="price"
+                                        stroke={isPositive ? "#22c55e" : "#ef4444"}
+                                        strokeWidth={2}
+                                        fill="url(#priceGradient)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            /* Candlestick Chart */
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={candleData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                                    <XAxis
+                                        dataKey="displayTime"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 10, fill: "#666" }}
+                                        interval="preserveStartEnd"
+                                    />
+                                    <YAxis
+                                        hide
+                                        domain={["dataMin", "dataMax"]}
+                                    />
+                                    <Tooltip
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload as CandleData;
+                                                return (
+                                                    <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 shadow-xl">
+                                                        <p className="text-xs text-muted-foreground mb-2">{data.displayTime}</p>
+                                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                                            <span className="text-muted-foreground">Open:</span>
+                                                            <span className="text-white font-medium">{formatPrice(data.open)}</span>
+                                                            <span className="text-muted-foreground">High:</span>
+                                                            <span className="text-green-400 font-medium">{formatPrice(data.high)}</span>
+                                                            <span className="text-muted-foreground">Low:</span>
+                                                            <span className="text-red-400 font-medium">{formatPrice(data.low)}</span>
+                                                            <span className="text-muted-foreground">Close:</span>
+                                                            <span className={`font-medium ${data.isPositive ? "text-green-400" : "text-red-400"}`}>
+                                                                {formatPrice(data.close)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    {/* Wicks (high-low range) */}
+                                    <Bar dataKey="high" fill="transparent" />
+                                    {/* Candle bodies */}
+                                    <Bar dataKey="close" barSize={8}>
+                                        {candleData.map((entry, index) => (
+                                            <Cell 
+                                                key={`cell-${index}`} 
+                                                fill={entry.isPositive ? "#22c55e" : "#ef4444"}
+                                            />
+                                        ))}
+                                    </Bar>
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 ) : (
                     <div className="h-[180px] flex flex-col items-center justify-center text-center">
