@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 import { dbfs } from "@/app/(firebase)/client";
-import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot, Timestamp, where } from "firebase/firestore";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Bar, Cell, ComposedChart } from "recharts";
 import { useWallet } from "@/app/wallet/WalletContext";
 
@@ -30,22 +29,38 @@ interface PriceChartProps {
     currentPrice: string;
 }
 
-type TimeRange = "1H" | "24H" | "7D" | "30D";
 type ChartType = "line" | "candle";
+
+// Time range options with sliding support
+const TIME_RANGES = [
+    { label: "1H", hours: 1 },
+    { label: "4H", hours: 4 },
+    { label: "24H", hours: 24 },
+    { label: "7D", hours: 168 },
+    { label: "30D", hours: 720 },
+] as const;
 
 export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
     const [priceHistory, setPriceHistory] = useState<PriceDataPoint[]>([]);
-    const [timeRange, setTimeRange] = useState<TimeRange>("24H");
+    const [timeRangeIndex, setTimeRangeIndex] = useState(2); // Default to 24H
     const [chartType, setChartType] = useState<ChartType>("line");
     const [isLoading, setIsLoading] = useState(true);
     const { tonPrice } = useWallet();
 
+    const timeRange = TIME_RANGES[timeRangeIndex];
+
     useEffect(() => {
         if (!tokenId) return;
 
-        // Listen to trades to build price history
+        // Listen to COMPLETED trades only to build price history
         const tradesRef = collection(dbfs, `tokens/${tokenId}/trades`);
-        const q = query(tradesRef, orderBy("timestamp", "desc"), limit(200));
+        // Only show completed trades - pending trades should not affect chart
+        const q = query(
+            tradesRef, 
+            where("status", "==", "completed"),
+            orderBy("timestamp", "desc"), 
+            limit(200)
+        );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const prices: PriceDataPoint[] = [];
@@ -81,12 +96,10 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                     });
                 }
 
-                // If there's only one point (current price), add a starting point for new tokens
-                // This ensures the chart is always visible
+                // Add starting point for new tokens
                 if (prices.length === 1) {
-                    // Add a starting point 1 hour ago with the same initial price
                     prices.unshift({
-                        timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+                        timestamp: new Date(Date.now() - 60 * 60 * 1000),
                         price: currentPriceNum,
                         priceUsd: currentPriceNum * (tonPrice || 5),
                     });
@@ -96,7 +109,7 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
             setPriceHistory(prices);
             setIsLoading(false);
         }, (error) => {
-            console.error("Error fetching price history:", error);
+            console.error("Error fetching trades:", error);
             setIsLoading(false);
         });
 
@@ -106,16 +119,9 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
     // Filter data based on time range
     const filteredData = useMemo(() => {
         const now = Date.now();
-        const ranges: Record<TimeRange, number> = {
-            "1H": 60 * 60 * 1000,
-            "24H": 24 * 60 * 60 * 1000,
-            "7D": 7 * 24 * 60 * 60 * 1000,
-            "30D": 30 * 24 * 60 * 60 * 1000,
-        };
-
-        const cutoff = now - ranges[timeRange];
+        const cutoff = now - (timeRange.hours * 60 * 60 * 1000);
         return priceHistory.filter(p => p.timestamp.getTime() >= cutoff);
-    }, [priceHistory, timeRange]);
+    }, [priceHistory, timeRange.hours]);
 
     // Calculate price change
     const priceChange = useMemo(() => {
@@ -132,26 +138,25 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
         return filteredData.map(p => ({
             time: p.timestamp.getTime(),
             price: p.price,
-            displayTime: formatTime(p.timestamp, timeRange),
+            displayTime: formatTime(p.timestamp, timeRange.hours),
         }));
-    }, [filteredData, timeRange]);
+    }, [filteredData, timeRange.hours]);
 
     // Format for candlestick chart
     const candleData = useMemo((): CandleData[] => {
         if (filteredData.length < 2) return [];
 
-        // Determine candle interval based on time range
-        const intervals: Record<TimeRange, number> = {
-            "1H": 5 * 60 * 1000, // 5 minute candles
-            "24H": 60 * 60 * 1000, // 1 hour candles
-            "7D": 4 * 60 * 60 * 1000, // 4 hour candles
-            "30D": 24 * 60 * 60 * 1000, // 1 day candles
+        // Candle intervals based on time range
+        const intervals: Record<number, number> = {
+            1: 5 * 60 * 1000,     // 5 min for 1H
+            4: 15 * 60 * 1000,    // 15 min for 4H
+            24: 60 * 60 * 1000,   // 1 hr for 24H
+            168: 4 * 60 * 60 * 1000,  // 4 hr for 7D
+            720: 24 * 60 * 60 * 1000, // 1 day for 30D
         };
 
-        const interval = intervals[timeRange];
+        const interval = intervals[timeRange.hours] || 60 * 60 * 1000;
         const candles: CandleData[] = [];
-        
-        // Type for candle accumulator
         type CandleAccumulator = { prices: number[]; startTime: number };
         let currentCandle: CandleAccumulator | null = null;
 
@@ -159,14 +164,13 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
             const candleStart = Math.floor(point.timestamp.getTime() / interval) * interval;
 
             if (!currentCandle || currentCandle.startTime !== candleStart) {
-                // Save previous candle if exists
                 if (currentCandle && currentCandle.prices.length > 0) {
                     const prices = currentCandle.prices;
                     const open = prices[0];
                     const close = prices[prices.length - 1];
                     candles.push({
                         time: currentCandle.startTime,
-                        displayTime: formatTime(new Date(currentCandle.startTime), timeRange),
+                        displayTime: formatTime(new Date(currentCandle.startTime), timeRange.hours),
                         open,
                         high: Math.max(...prices),
                         low: Math.min(...prices),
@@ -174,14 +178,12 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                         isPositive: close >= open,
                     });
                 }
-                // Start new candle
                 currentCandle = { prices: [point.price], startTime: candleStart };
             } else {
                 currentCandle.prices.push(point.price);
             }
         });
 
-        // Don't forget the last candle
         if (currentCandle !== null) {
             const lc = currentCandle as CandleAccumulator;
             if (lc.prices.length > 0) {
@@ -190,7 +192,7 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                 const close = prices[prices.length - 1];
                 candles.push({
                     time: lc.startTime,
-                    displayTime: formatTime(new Date(lc.startTime), timeRange),
+                    displayTime: formatTime(new Date(lc.startTime), timeRange.hours),
                     open,
                     high: Math.max(...prices),
                     low: Math.min(...prices),
@@ -201,10 +203,10 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
         }
 
         return candles;
-    }, [filteredData, timeRange]);
+    }, [filteredData, timeRange.hours]);
 
-    function formatTime(date: Date, range: TimeRange): string {
-        if (range === "1H" || range === "24H") {
+    function formatTime(date: Date, hours: number): string {
+        if (hours <= 24) {
             return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         }
         return date.toLocaleDateString([], { month: "short", day: "numeric" });
@@ -217,98 +219,99 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
         return price.toFixed(2);
     }
 
+    // Handle sliding time range
+    const handleSlide = (direction: "left" | "right") => {
+        if (direction === "left" && timeRangeIndex > 0) {
+            setTimeRangeIndex(timeRangeIndex - 1);
+        } else if (direction === "right" && timeRangeIndex < TIME_RANGES.length - 1) {
+            setTimeRangeIndex(timeRangeIndex + 1);
+        }
+    };
+
     if (isLoading) {
         return (
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-[#111] border-[#222]">
                 <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Icon icon="solar:chart-2-bold" className="w-5 h-5 text-primary animate-pulse" />
-                        <span className="text-sm text-muted-foreground">Loading chart...</span>
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="w-5 h-5 rounded bg-white/5 animate-pulse" />
+                        <div className="w-20 h-4 rounded bg-white/5 animate-pulse" />
                     </div>
-                    <div className="h-[180px] bg-white/[0.02] rounded-xl animate-pulse" />
+                    <div className="h-[160px] bg-white/[0.02] rounded-lg animate-pulse" />
                 </CardContent>
             </Card>
         );
     }
 
     return (
-        <Card className="bg-white/5 border-white/10 overflow-hidden">
-            <CardContent className="p-4">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
+        <Card className="bg-[#111] border-[#222] overflow-hidden">
+            <CardContent className="p-0">
+                {/* Compact Header */}
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-white text-sm">Price Chart</h3>
-                            {chartData.length > 0 && (
-                                <div className={`flex items-center gap-1 text-xs ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                    <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-3 h-3" />
-                                    {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)}%
-                                </div>
-                            )}
-                        </div>
+                        <span className="text-sm font-medium text-white">Price</span>
+                        {chartData.length > 0 && (
+                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                                isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                            }`}>
+                                {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
+                            </span>
+                        )}
                     </div>
-
-                    {/* Chart Type Toggle & Time Range */}
+                    
+                    {/* Chart Type & Time Controls */}
                     <div className="flex items-center gap-2">
                         {/* Chart Type Toggle */}
-                        <div className="flex rounded-lg bg-white/5 p-0.5">
-                            <Button
-                                variant="ghost"
-                                size="sm"
+                        <div className="flex bg-white/5 rounded-md p-0.5">
+                            <button
                                 onClick={() => setChartType("line")}
-                                className={`h-6 px-2 text-xs rounded-md ${chartType === "line"
-                                    ? "bg-white/10 text-white"
-                                    : "text-muted-foreground hover:text-white"
+                                className={`p-1.5 rounded transition-colors ${
+                                    chartType === "line" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
                                 }`}
                             >
                                 <Icon icon="solar:chart-2-linear" className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
+                            </button>
+                            <button
                                 onClick={() => setChartType("candle")}
-                                className={`h-6 px-2 text-xs rounded-md ${chartType === "candle"
-                                    ? "bg-white/10 text-white"
-                                    : "text-muted-foreground hover:text-white"
+                                className={`p-1.5 rounded transition-colors ${
+                                    chartType === "candle" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
                                 }`}
                             >
-                                <Icon icon="solar:chart-bold" className="w-3.5 h-3.5" />
-                            </Button>
+                                <Icon icon="solar:tuning-2-bold" className="w-3.5 h-3.5" />
+                            </button>
                         </div>
 
-                        {/* Time Range Selector */}
-                        <div className="flex gap-1">
-                            {(["1H", "24H", "7D", "30D"] as TimeRange[]).map((range) => (
-                                <Button
-                                    key={range}
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setTimeRange(range)}
-                                    className={`h-7 px-2 text-xs ${timeRange === range
-                                        ? "bg-white/10 text-white"
-                                        : "text-muted-foreground hover:text-white"
-                                    }`}
-                                >
-                                    {range}
-                                </Button>
-                            ))}
+                        {/* Slidable Time Range */}
+                        <div className="flex items-center gap-1 bg-white/5 rounded-md px-1 py-0.5">
+                            <button
+                                onClick={() => handleSlide("left")}
+                                disabled={timeRangeIndex === 0}
+                                className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <Icon icon="solar:alt-arrow-left-linear" className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-xs font-medium text-white min-w-[28px] text-center">
+                                {timeRange.label}
+                            </span>
+                            <button
+                                onClick={() => handleSlide("right")}
+                                disabled={timeRangeIndex === TIME_RANGES.length - 1}
+                                className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <Icon icon="solar:alt-arrow-right-linear" className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Chart */}
                 {chartData.length > 1 ? (
-                    <div className="h-[180px]">
+                    <div className="h-[160px] px-2">
                         {chartType === "line" ? (
-                            /* Line Chart */
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                                     <defs>
                                         <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor={isPositive ? "#22c55e" : "#ef4444"} stopOpacity={0.3} />
+                                            <stop offset="0%" stopColor={isPositive ? "#22c55e" : "#ef4444"} stopOpacity={0.2} />
                                             <stop offset="100%" stopColor={isPositive ? "#22c55e" : "#ef4444"} stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
@@ -316,27 +319,17 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                                         dataKey="displayTime"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fontSize: 10, fill: "#666" }}
+                                        tick={{ fontSize: 9, fill: "#555" }}
                                         interval="preserveStartEnd"
                                     />
-                                    <YAxis
-                                        hide
-                                        domain={["dataMin", "dataMax"]}
-                                    />
+                                    <YAxis hide domain={["dataMin", "dataMax"]} />
                                     <Tooltip
-                                        contentStyle={{
-                                            background: "#1a1a1a",
-                                            border: "1px solid rgba(255,255,255,0.1)",
-                                            borderRadius: "8px",
-                                            fontSize: "12px",
-                                            padding: "8px 12px",
-                                        }}
                                         content={({ active, payload }) => {
                                             if (active && payload && payload.length) {
                                                 const data = payload[0].payload;
                                                 return (
-                                                    <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 shadow-xl">
-                                                        <p className="text-xs text-muted-foreground mb-1">{data.displayTime}</p>
+                                                    <div className="bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 shadow-xl">
+                                                        <p className="text-[10px] text-gray-500 mb-0.5">{data.displayTime}</p>
                                                         <p className="text-sm font-semibold text-white">
                                                             {formatPrice(data.price)} TON
                                                         </p>
@@ -350,42 +343,38 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                                         type="monotone"
                                         dataKey="price"
                                         stroke={isPositive ? "#22c55e" : "#ef4444"}
-                                        strokeWidth={2}
+                                        strokeWidth={1.5}
                                         fill="url(#priceGradient)"
                                     />
                                 </AreaChart>
                             </ResponsiveContainer>
                         ) : (
-                            /* Candlestick Chart */
                             <ResponsiveContainer width="100%" height="100%">
                                 <ComposedChart data={candleData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                                     <XAxis
                                         dataKey="displayTime"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fontSize: 10, fill: "#666" }}
+                                        tick={{ fontSize: 9, fill: "#555" }}
                                         interval="preserveStartEnd"
                                     />
-                                    <YAxis
-                                        hide
-                                        domain={["dataMin", "dataMax"]}
-                                    />
+                                    <YAxis hide domain={["dataMin", "dataMax"]} />
                                     <Tooltip
                                         content={({ active, payload }) => {
                                             if (active && payload && payload.length) {
                                                 const data = payload[0].payload as CandleData;
                                                 return (
-                                                    <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 shadow-xl">
-                                                        <p className="text-xs text-muted-foreground mb-2">{data.displayTime}</p>
-                                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                                            <span className="text-muted-foreground">Open:</span>
-                                                            <span className="text-white font-medium">{formatPrice(data.open)}</span>
-                                                            <span className="text-muted-foreground">High:</span>
-                                                            <span className="text-green-400 font-medium">{formatPrice(data.high)}</span>
-                                                            <span className="text-muted-foreground">Low:</span>
-                                                            <span className="text-red-400 font-medium">{formatPrice(data.low)}</span>
-                                                            <span className="text-muted-foreground">Close:</span>
-                                                            <span className={`font-medium ${data.isPositive ? "text-green-400" : "text-red-400"}`}>
+                                                    <div className="bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 shadow-xl">
+                                                        <p className="text-[10px] text-gray-500 mb-1">{data.displayTime}</p>
+                                                        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+                                                            <span className="text-gray-500">O:</span>
+                                                            <span className="text-white">{formatPrice(data.open)}</span>
+                                                            <span className="text-gray-500">H:</span>
+                                                            <span className="text-green-400">{formatPrice(data.high)}</span>
+                                                            <span className="text-gray-500">L:</span>
+                                                            <span className="text-red-400">{formatPrice(data.low)}</span>
+                                                            <span className="text-gray-500">C:</span>
+                                                            <span className={data.isPositive ? "text-green-400" : "text-red-400"}>
                                                                 {formatPrice(data.close)}
                                                             </span>
                                                         </div>
@@ -395,10 +384,8 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                                             return null;
                                         }}
                                     />
-                                    {/* Wicks (high-low range) */}
                                     <Bar dataKey="high" fill="transparent" />
-                                    {/* Candle bodies */}
-                                    <Bar dataKey="close" barSize={8}>
+                                    <Bar dataKey="close" barSize={6}>
                                         {candleData.map((entry, index) => (
                                             <Cell 
                                                 key={`cell-${index}`} 
@@ -411,10 +398,10 @@ export default function PriceChart({ tokenId, currentPrice }: PriceChartProps) {
                         )}
                     </div>
                 ) : (
-                    <div className="h-[180px] flex flex-col items-center justify-center text-center">
-                        <Icon icon="solar:chart-bold" className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                        <p className="text-sm text-muted-foreground">No price data yet</p>
-                        <p className="text-xs text-muted-foreground/60">Chart will appear after trades</p>
+                    <div className="h-[160px] flex flex-col items-center justify-center text-center px-4">
+                        <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-gray-700 mb-2" />
+                        <p className="text-xs text-gray-500">No confirmed trades yet</p>
+                        <p className="text-[10px] text-gray-600">Chart updates after on-chain confirmation</p>
                     </div>
                 )}
             </CardContent>
