@@ -155,6 +155,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             // On-chain data (fetched from blockchain)
             jettonMasterAddress: data.jettonMasterAddress as string || "",
             isOnChain: data.isOnChain as boolean || false,
+            isDeployed: data.isDeployed as boolean || false,
 
             // Supply info
             maxSupply: data.maxSupply as string || "1000000000000000000", // 1B * 10^9
@@ -525,6 +526,31 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Token not deployed on-chain" };
             }
 
+            // CRITICAL: Check if deployment was confirmed
+            if (!token.isDeployed) {
+                return { success: false, error: "Token deployment not confirmed. Please wait for confirmation." };
+            }
+
+            // CRITICAL: Verify contract is active on blockchain before trading
+            try {
+                const contractResponse = await fetch(`https://tonapi.io/v2/accounts/${token.jettonMasterAddress}`);
+                if (contractResponse.ok) {
+                    const contractData = await contractResponse.json();
+                    // Check if contract exists and has code
+                    if (contractData.status === "nonexist" || !contractData.code) {
+                        return { 
+                            success: false, 
+                            error: "Contract not active on blockchain. Deployment may have failed." 
+                        };
+                    }
+                } else {
+                    return { success: false, error: "Unable to verify contract status" };
+                }
+            } catch (verifyError) {
+                console.error("Contract verification error:", verifyError);
+                return { success: false, error: "Unable to verify contract status" };
+            }
+
             if (token.isGraduated) {
                 return { success: false, error: "Token graduated - trade on DEX" };
             }
@@ -628,6 +654,27 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             if (!token.jettonMasterAddress || !token.isOnChain) {
                 return { success: false, error: "Token not deployed on-chain" };
+            }
+
+            // CRITICAL: Check if deployment was confirmed
+            if (!token.isDeployed) {
+                return { success: false, error: "Token deployment not confirmed" };
+            }
+
+            // CRITICAL: Verify contract is active on blockchain before trading
+            try {
+                const contractResponse = await fetch(`https://tonapi.io/v2/accounts/${token.jettonMasterAddress}`);
+                if (contractResponse.ok) {
+                    const contractData = await contractResponse.json();
+                    if (contractData.status === "nonexist" || !contractData.code) {
+                        return { success: false, error: "Contract not active on blockchain" };
+                    }
+                } else {
+                    return { success: false, error: "Unable to verify contract status" };
+                }
+            } catch (verifyError) {
+                console.error("Contract verification error:", verifyError);
+                return { success: false, error: "Unable to verify contract status" };
             }
 
             if (token.isGraduated) {
