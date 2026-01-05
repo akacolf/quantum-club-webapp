@@ -1,0 +1,24 @@
+;; ================================================================
+;; QC RocketStart - Error Codes
+;; ================================================================
+;; Standardized error codes for all contracts
+;; ================================================================
+
+;; ----- General Errors (100-109) -----
+const int error::insufficient_gas = 100;
+const int error::not_admin = 101;
+const int error::not_owner = 102;
+const int error::not_from_wallet = 103;
+const int error::already_graduated = 104;
+const int error::not_graduated = 105;
+const int error::insufficient_balance = 106;
+const int error::insufficient_liquidity = 107;
+const int error::zero_amount = 108;
+const int error::slippage_exceeded = 109;
+
+;; ----- Wallet-Specific Errors (110-119) -----
+const int error::not_master = 110;
+const int error::not_valid_wallet = 111;
+
+;; ----- System Errors -----
+const int error::invalid_op = 0xffff;

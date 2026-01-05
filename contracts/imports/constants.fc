@@ -1,0 +1,34 @@
+;; ================================================================
+;; QC RocketStart - Constants & Configuration
+;; ================================================================
+;; All configurable parameters for the bonding curve contracts
+;; ================================================================
+
+;; ----- Gas & Storage Configuration -----
+const int MIN_TON_FOR_STORAGE = 50000000;      ;; 0.05 TON - Minimum contract balance
+const int MIN_TON_WALLET_STORAGE = 10000000;   ;; 0.01 TON - Minimum wallet balance
+const int GAS_CONSUMPTION = 15000000;          ;; 0.015 TON - Gas per operation
+const int FORWARD_FEE = 10000000;              ;; 0.01 TON - Message forward fee
+const int JETTON_WALLET_DEPLOY_GAS = 100000000 ;; 0.1 TON - Wallet deployment gas
+
+;; ----- Token Configuration -----
+const int DECIMALS = 9;
+const int ONE_TOKEN = 1000000000;              ;; 10^9 (1 token in nano)
+const int MAX_SUPPLY = 1000000000000000000;    ;; 1 billion tokens (10^9 * 10^9)
+
+;; ----- Bonding Curve Parameters -----
+;; Price = INITIAL_PRICE + (supply * CURVE_SLOPE / MAX_SUPPLY)
+const int INITIAL_PRICE = 1000;                ;; 0.000001 TON per token initially
+const int CURVE_SLOPE = 100000;                ;; Price increase rate
+
+;; ----- Graduation Configuration -----
+const int GRADUATION_TARGET = 2000000000000;   ;; 2000 TON to graduate
+const int GRADUATION_FEE_BPS = 200;            ;; 2% graduation fee
+
+;; ----- Fee Configuration (basis points = 1/10000) -----
+const int PLATFORM_FEE_BPS = 100;              ;; 1% platform fee
+const int CREATOR_FEE_BPS = 50;                ;; 0.5% creator fee (now used for referrals)
+const int TOTAL_FEE_BPS = 150;                 ;; 1.5% total fee
+
+;; ----- Referral Fee Configuration -----
+const int REFERRAL_FEE_BPS = 10;               ;; 0.1% referral fee (from creator fee pool)
