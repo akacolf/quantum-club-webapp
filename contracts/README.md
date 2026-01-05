@@ -32,7 +32,8 @@ The main Jetton Master contract with integrated bonding curve trading.
 - TEP-74 compliant Jetton standard
 - Linear bonding curve for automated price discovery
 - Buy/sell directly through the contract
-- 1% platform fee + 0.5% creator fee on trades
+- 1.1% platform fee on trades (includes referral pool)
+- Referral distribution happens off-chain
 - External logging for indexers
 - Graduation mechanism to DEX (STON.fi)
 

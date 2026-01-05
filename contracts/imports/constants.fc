@@ -26,9 +26,6 @@ const int GRADUATION_TARGET = 2000000000000;   ;; 2000 TON to graduate
 const int GRADUATION_FEE_BPS = 200;            ;; 2% graduation fee
 
 ;; ----- Fee Configuration (basis points = 1/10000) -----
-const int PLATFORM_FEE_BPS = 100;              ;; 1% platform fee
-const int CREATOR_FEE_BPS = 50;                ;; 0.5% creator fee (now used for referrals)
-const int TOTAL_FEE_BPS = 150;                 ;; 1.5% total fee
-
-;; ----- Referral Fee Configuration -----
-const int REFERRAL_FEE_BPS = 10;               ;; 0.1% referral fee (from creator fee pool)
+;; All fees go to platform, referral distribution happens off-chain
+const int PLATFORM_FEE_BPS = 110;              ;; 1.1% total platform fee (includes referral pool)
+;; Note: 0.1% of this is distributed to referrers via backend

@@ -142,10 +142,9 @@
     int gross_amount = msg_value - GAS_CONSUMPTION;
     throw_if(error::insufficient_gas, gross_amount <= 0);
     
-    ;; Calculate fees
+    ;; Calculate platform fee (1.1% - includes referral pool distributed off-chain)
     int platform_fee = muldiv(gross_amount, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(gross_amount, CREATOR_FEE_BPS, 10000);
-    int net_amount = gross_amount - platform_fee - creator_fee;
+    int net_amount = gross_amount - platform_fee;
     
     throw_if(error::zero_amount, net_amount <= 0);
     
@@ -175,11 +174,8 @@
         graduated, graduation_target
     );
     
-    ;; Send platform fee
+    ;; Send platform fee (referral distribution happens off-chain)
     send_fee(admin_address, platform_fee, query_id);
-    
-    ;; Send creator fee (used for referral distribution off-chain)
-    send_fee(creator_address, creator_fee, query_id);
     
     ;; Mint tokens to buyer
     mint_tokens(
@@ -225,10 +221,9 @@
     int gross_return = calculate_sell_return(jetton_amount, total_supply);
     throw_if(error::insufficient_liquidity, gross_return > ton_reserve);
     
-    ;; Calculate fees
+    ;; Calculate platform fee (1.1% - includes referral pool distributed off-chain)
     int platform_fee = muldiv(gross_return, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(gross_return, CREATOR_FEE_BPS, 10000);
-    int net_return = gross_return - platform_fee - creator_fee;
+    int net_return = gross_return - platform_fee;
     
     ;; Update state
     total_supply -= jetton_amount;
@@ -241,9 +236,8 @@
         graduated, graduation_target
     );
     
-    ;; Send fees
+    ;; Send platform fee (referral distribution happens off-chain)
     send_fee(admin_address, platform_fee, query_id);
-    send_fee(creator_address, creator_fee, query_id);
     
     ;; Send TON to seller
     cell message = begin_cell()
@@ -443,8 +437,7 @@ int preview_buy(int ton_amount) method_id {
     
     int net_amount = ton_amount - GAS_CONSUMPTION;
     int platform_fee = muldiv(net_amount, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(net_amount, CREATOR_FEE_BPS, 10000);
-    net_amount -= platform_fee + creator_fee;
+    net_amount -= platform_fee;
     
     return calculate_buy_price(net_amount, total_supply);
 }
@@ -455,7 +448,6 @@ int preview_sell(int token_amount) method_id {
     
     int gross_return = calculate_sell_return(token_amount, total_supply);
     int platform_fee = muldiv(gross_return, PLATFORM_FEE_BPS, 10000);
-    int creator_fee = muldiv(gross_return, CREATOR_FEE_BPS, 10000);
     
-    return gross_return - platform_fee - creator_fee;
+    return gross_return - platform_fee;
 }
