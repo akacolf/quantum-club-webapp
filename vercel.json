@@ -6,6 +6,14 @@
       "schedule": "0 0 * * *"
     },
     {
+      "path": "/api/cron/sync-token-data",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/verify-pending-trades",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/sync-quantum-club-team/OI4JNMMO67BJRV",
       "schedule": "0 12 * * *"
     }

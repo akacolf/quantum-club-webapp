@@ -2,6 +2,27 @@
 
 This directory contains the FunC smart contracts for the QC RocketStart bonding curve token platform.
 
+## File Structure
+
+```
+contracts/
+├── jetton_master.fc       # Main bonding curve contract
+├── jetton_wallet.fc       # TEP-74 wallet contract
+├── README.md              # This file
+├── VERIFICATION.md        # Verification instructions
+├── imports/
+│   ├── stdlib.fc          # Standard library
+│   ├── opcodes.fc         # Operation codes
+│   ├── errors.fc          # Error codes
+│   ├── constants.fc       # Configuration constants
+│   ├── bonding_curve.fc   # Price calculation logic
+│   └── utils.fc           # Shared utility functions
+└── build/
+    ├── jetton_master.boc  # Compiled master bytecode
+    ├── jetton_wallet.boc  # Compiled wallet bytecode
+    └── contract-code.ts   # TypeScript export
+```
+
 ## Contracts
 
 ### 1. jetton_master.fc
@@ -11,16 +32,15 @@ The main Jetton Master contract with integrated bonding curve trading.
 - TEP-74 compliant Jetton standard
 - Linear bonding curve for automated price discovery
 - Buy/sell directly through the contract
-- 1% platform fee + 1% creator fee on trades
+- 1% platform fee + 0.5% creator fee on trades
+- External logging for indexers
 - Graduation mechanism to DEX (STON.fi)
-- Fee withdrawal for platform and creator
 
 **Operations:**
 | Op Code | Name | Description |
 |---------|------|-------------|
-| 0x402eff0b | buy | Buy tokens with TON |
+| 0xaf750d34 | buy | Buy tokens with TON |
 | 0x7bdd97de | burn_notification | Sell tokens (via wallet burn) |
-| 0x46454553 | withdraw_fees | Withdraw accumulated fees |
 | 0x47524144 | graduate | Graduate to DEX |
 
 **GET Methods:**
@@ -38,12 +58,41 @@ Standard TEP-74 Jetton Wallet for user balances.
 - Receive tokens from other wallets
 - Burn tokens (triggers sell on master)
 
+## Import Modules
+
+### opcodes.fc
+All operation codes for TEP-74 and custom trading operations.
+
+### errors.fc
+Standardized error codes (100-119 range).
+
+### constants.fc
+All configurable parameters:
+- Gas configuration
+- Token decimals and max supply
+- Bonding curve parameters
+- Fee configuration (basis points)
+- Graduation thresholds
+
+### bonding_curve.fc
+Price calculation functions:
+- `get_current_price(supply)` - Current token price
+- `calculate_buy_price(ton, supply)` - Tokens for TON
+- `calculate_sell_return(tokens, supply)` - TON for tokens
+
+### utils.fc
+Shared utilities:
+- Slice comparison
+- Jetton wallet address calculation
+- Fee sending helpers
+- External log emission
+
 ## Bonding Curve Math
 
 The contract uses a linear bonding curve:
 
 ```
-price = INITIAL_PRICE + (total_supply * CURVE_SLOPE / ONE_TOKEN)
+price = INITIAL_PRICE + (total_supply * CURVE_SLOPE / MAX_SUPPLY)
 ```
 
 Default parameters:

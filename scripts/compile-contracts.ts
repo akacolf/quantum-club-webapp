@@ -24,22 +24,38 @@ interface CompileResult {
     fiftCode?: string;
 }
 
+// List of all import files (order matters for dependencies)
+const IMPORT_FILES = [
+    "imports/stdlib.fc",
+    "imports/opcodes.fc",
+    "imports/errors.fc",
+    "imports/constants.fc",
+    "imports/bonding_curve.fc",
+    "imports/utils.fc",
+];
+
 async function compileContract(name: string, mainFile: string): Promise<Buffer> {
     console.log(`\n📦 Compiling ${name}...`);
 
     // Build sources map by reading all needed files upfront
     const sources: { [key: string]: string } = {};
     
-    // Read stdlib
-    const stdlibPath = path.join(CONTRACTS_DIR, "imports", "stdlib.fc");
-    if (fs.existsSync(stdlibPath)) {
-        sources["imports/stdlib.fc"] = fs.readFileSync(stdlibPath, "utf-8");
+    // Read all import files
+    for (const importFile of IMPORT_FILES) {
+        const importPath = path.join(CONTRACTS_DIR, importFile);
+        if (fs.existsSync(importPath)) {
+            sources[importFile] = fs.readFileSync(importPath, "utf-8");
+            console.log(`   📄 Loaded ${importFile}`);
+        } else {
+            console.warn(`   ⚠️  Import file not found: ${importFile}`);
+        }
     }
     
     // Read the main contract file
     const mainPath = path.join(CONTRACTS_DIR, mainFile);
     if (fs.existsSync(mainPath)) {
         sources[mainFile] = fs.readFileSync(mainPath, "utf-8");
+        console.log(`   📄 Loaded ${mainFile}`);
     } else {
         throw new Error(`Contract file not found: ${mainPath}`);
     }
