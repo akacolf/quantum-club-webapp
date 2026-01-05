@@ -33,11 +33,13 @@ interface PriceChartProps {
 type ChartType = "line" | "candle";
 
 const TIME_RANGES = [
-    { label: "1H", hours: 1 },
-    { label: "4H", hours: 4 },
-    { label: "24H", hours: 24 },
-    { label: "7D", hours: 168 },
-    { label: "30D", hours: 720 },
+    { label: "1m", seconds: 60 },
+    { label: "5m", seconds: 300 },
+    { label: "10m", seconds: 600 },
+    { label: "30m", seconds: 1800 },
+    { label: "1H", seconds: 3600 },
+    { label: "4H", seconds: 14400 },
+    { label: "24H", seconds: 86400 },
 ] as const;
 
 /**
@@ -167,9 +169,9 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
     // Filter data based on time range
     const filteredTrades = useMemo(() => {
         const now = Date.now();
-        const cutoff = now - (timeRange.hours * 60 * 60 * 1000);
+        const cutoff = now - (timeRange.seconds * 1000);
         return trades.filter(t => t.timestamp >= cutoff);
-    }, [trades, timeRange.hours]);
+    }, [trades, timeRange.seconds]);
 
     // Calculate price change
     const priceChange = useMemo(() => {
@@ -186,7 +188,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
         const data = filteredTrades.map(t => ({
             time: t.timestamp,
             price: t.price,
-            displayTime: formatTime(new Date(t.timestamp), timeRange.hours),
+            displayTime: formatTime(new Date(t.timestamp), timeRange.seconds),
             type: t.type,
         }));
 
@@ -196,27 +198,30 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
             data.push({
                 time: Date.now(),
                 price: currentPriceNum,
-                displayTime: formatTime(new Date(), timeRange.hours),
+                displayTime: formatTime(new Date(), timeRange.seconds),
                 type: "buy" as const,
             });
         }
 
         return data;
-    }, [filteredTrades, currentPrice, timeRange.hours]);
+    }, [filteredTrades, currentPrice, timeRange.seconds]);
 
     // Format for candlestick chart  
     const candleData = useMemo((): CandleData[] => {
         if (filteredTrades.length < 2) return [];
 
+        // Candle interval in ms based on time range (in seconds)
         const intervals: Record<number, number> = {
-            1: 5 * 60 * 1000,
-            4: 15 * 60 * 1000,
-            24: 60 * 60 * 1000,
-            168: 4 * 60 * 60 * 1000,
-            720: 24 * 60 * 60 * 1000,
+            60: 5 * 1000,         // 5 second candles for 1m
+            300: 15 * 1000,       // 15 second candles for 5m
+            600: 30 * 1000,       // 30 second candles for 10m
+            1800: 60 * 1000,      // 1 minute candles for 30m
+            3600: 5 * 60 * 1000,  // 5 minute candles for 1H
+            14400: 15 * 60 * 1000, // 15 minute candles for 4H
+            86400: 60 * 60 * 1000, // 1 hour candles for 24H
         };
 
-        const interval = intervals[timeRange.hours] || 60 * 60 * 1000;
+        const interval = intervals[timeRange.seconds] || 60 * 1000;
         const candles: CandleData[] = [];
         type CandleAccumulator = { prices: number[]; startTime: number };
         let currentCandle: CandleAccumulator | null = null;
@@ -231,7 +236,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                     const close = prices[prices.length - 1];
                     candles.push({
                         time: currentCandle.startTime,
-                        displayTime: formatTime(new Date(currentCandle.startTime), timeRange.hours),
+                        displayTime: formatTime(new Date(currentCandle.startTime), timeRange.seconds),
                         open,
                         high: Math.max(...prices),
                         low: Math.min(...prices),
@@ -253,7 +258,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                 const close = prices[prices.length - 1];
                 candles.push({
                     time: lc.startTime,
-                    displayTime: formatTime(new Date(lc.startTime), timeRange.hours),
+                    displayTime: formatTime(new Date(lc.startTime), timeRange.seconds),
                     open,
                     high: Math.max(...prices),
                     low: Math.min(...prices),
@@ -264,10 +269,14 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
         }
 
         return candles;
-    }, [filteredTrades, timeRange.hours]);
+    }, [filteredTrades, timeRange.seconds]);
 
-    function formatTime(date: Date, hours: number): string {
-        if (hours <= 24) {
+    function formatTime(date: Date, seconds: number): string {
+        // Show seconds for short intervals, otherwise just time
+        if (seconds <= 600) {
+            return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        }
+        if (seconds <= 86400) {
             return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         }
         return date.toLocaleDateString([], { month: "short", day: "numeric" });
@@ -306,60 +315,46 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
         <Card className="bg-[#111] border-[#222] overflow-hidden">
             <CardContent className="p-0">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                            <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium text-white">On-Chain Price</span>
-                        </div>
-                        {chartData.length > 0 && (
-                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                                isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-                            }`}>
-                                {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
-                            </span>
-                        )}
-                        <span className="text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">
-                            {trades.length} trades
-                        </span>
-                    </div>
+                <div className="flex items-center justify-between px-4 pt-3 pb-2 z-20 relative">
+                    {/* Empty left side or could be used for something else later */}
+                    <div />
                     
-                    {/* Chart Type & Time Controls */}
+                    {/* Chart Type & Time Controls - Floating/Pill Style */}
                     <div className="flex items-center gap-2">
-                        <div className="flex bg-white/5 rounded-md p-0.5">
+                        <div className="flex bg-[#1a1a1a] rounded-full p-0.5 border border-white/5">
                             <button
                                 onClick={() => setChartType("line")}
-                                className={`p-1.5 rounded transition-colors ${
-                                    chartType === "line" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                    chartType === "line" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
                                 }`}
                             >
                                 <Icon icon="solar:chart-2-linear" className="w-3.5 h-3.5" />
                             </button>
                             <button
                                 onClick={() => setChartType("candle")}
-                                className={`p-1.5 rounded transition-colors ${
-                                    chartType === "candle" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                    chartType === "candle" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
                                 }`}
                             >
                                 <Icon icon="solar:tuning-2-bold" className="w-3.5 h-3.5" />
                             </button>
                         </div>
 
-                        <div className="flex items-center gap-1 bg-white/5 rounded-md px-1 py-0.5">
+                        <div className="flex items-center gap-1 bg-[#1a1a1a] rounded-full px-1.5 py-0.5 border border-white/5">
                             <button
                                 onClick={() => handleSlide("left")}
                                 disabled={timeRangeIndex === 0}
-                                className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                             >
                                 <Icon icon="solar:alt-arrow-left-linear" className="w-3.5 h-3.5" />
                             </button>
-                            <span className="text-xs font-medium text-white min-w-[28px] text-center">
+                            <span className="text-[10px] font-bold text-white min-w-[28px] text-center">
                                 {timeRange.label}
                             </span>
                             <button
                                 onClick={() => handleSlide("right")}
                                 disabled={timeRangeIndex === TIME_RANGES.length - 1}
-                                className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                             >
                                 <Icon icon="solar:alt-arrow-right-linear" className="w-3.5 h-3.5" />
                             </button>

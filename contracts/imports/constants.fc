@@ -9,7 +9,7 @@ const int MIN_TON_FOR_STORAGE = 50000000;      ;; 0.05 TON - Minimum contract ba
 const int MIN_TON_WALLET_STORAGE = 10000000;   ;; 0.01 TON - Minimum wallet balance
 const int GAS_CONSUMPTION = 15000000;          ;; 0.015 TON - Gas per operation
 const int FORWARD_FEE = 10000000;              ;; 0.01 TON - Message forward fee
-const int JETTON_WALLET_DEPLOY_GAS = 100000000 ;; 0.1 TON - Wallet deployment gas
+const int JETTON_WALLET_DEPLOY_GAS = 100000000; ;; 0.1 TON - Wallet deployment gas
 
 ;; ----- Token Configuration -----
 const int DECIMALS = 9;

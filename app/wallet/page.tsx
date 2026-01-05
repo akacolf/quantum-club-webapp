@@ -24,9 +24,7 @@ import {
   ShieldAlert,
   Image as ImageIcon,
   X,
-  ChevronRight,
-  TrendingUp,
-  TrendingDown
+  ChevronRight
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -610,11 +608,6 @@ export default function WalletPage() {
                       return (
                         <>
                           <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md ${isPositive ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                            {isPositive ? (
-                              <TrendingUp className="w-3 h-3 text-green-500" />
-                            ) : (
-                              <TrendingDown className="w-3 h-3 text-red-500" />
-                            )}
                             <span className={`text-xs font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
                               {hideBalance ? "••" : `${isPositive ? '+' : ''}${change24h.toFixed(2)}%`}
                             </span>

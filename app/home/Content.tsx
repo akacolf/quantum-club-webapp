@@ -19,7 +19,6 @@ import DailyCheckIn from "./(components)/DailyCheck";
 import PullToRefresh from "./(components)/PullToRefresh";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
-import Snowflakes from "./(components)/Snowflakes";
 
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -811,7 +810,6 @@ const HomeContent = () => {
 
   return (
     <>
-      <Snowflakes />
       <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen">
 
         <PersonalizedGreeting />
