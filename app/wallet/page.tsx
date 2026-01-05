@@ -479,7 +479,7 @@ export default function WalletPage() {
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create New Wallet
+                  Create new wallet
                 </>
               )}
             </Button>
@@ -490,7 +490,7 @@ export default function WalletPage() {
               className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] border-[#333] h-12 rounded-xl font-semibold text-base"
             >
               <Download className="w-4 h-4 mr-2" />
-              Import Existing Wallet
+              Import existing wallet
             </Button>
           </div>
         </motion.div>
