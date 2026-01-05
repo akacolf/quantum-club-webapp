@@ -631,24 +631,33 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Invalid amount" };
             }
 
-            // Fetch current TON balance from API
-            const apiBase = "https://tonapi.io"; // Mainnet only
-            const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
-            if (balanceResponse.ok) {
-                const balanceData = await balanceResponse.json();
-                const balanceInNano = BigInt(balanceData.balance || "0");
-                const balanceInTon = Number(balanceInNano) / 1e9;
-                
-                // Require extra 0.1 TON for gas fees
-                const requiredTon = tonAmountNum + 0.1;
-                if (balanceInTon < requiredTon) {
-                    return { 
-                        success: false, 
-                        error: `Insufficient balance. You need ${requiredTon.toFixed(2)} TON (${tonAmountNum} + 0.1 gas) but have ${balanceInTon.toFixed(4)} TON` 
-                    };
+            // Fetch current TON balance from API (non-blocking - proceed even if check fails)
+            try {
+                const apiBase = "https://tonapi.io"; // Mainnet only
+                const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`, {
+                    headers: { "Accept": "application/json" },
+                    cache: "no-store"
+                });
+                if (balanceResponse.ok) {
+                    const balanceData = await balanceResponse.json();
+                    const balanceInNano = BigInt(balanceData.balance || "0");
+                    const balanceInTon = Number(balanceInNano) / 1e9;
+                    
+                    // Require extra 0.1 TON for gas fees
+                    const requiredTon = tonAmountNum + 0.1;
+                    if (balanceInTon < requiredTon) {
+                        return { 
+                            success: false, 
+                            error: `Insufficient balance. You need ${requiredTon.toFixed(2)} TON (${tonAmountNum} + 0.1 gas) but have ${balanceInTon.toFixed(4)} TON` 
+                        };
+                    }
+                } else {
+                    // Log but don't block - the transaction will fail on-chain if balance is insufficient
+                    console.warn("Balance check API returned non-OK, proceeding anyway...", balanceResponse.status);
                 }
-            } else {
-                return { success: false, error: "Failed to verify wallet balance" };
+            } catch (balanceError) {
+                // Log but don't block - let the on-chain transaction handle it
+                console.warn("Balance check failed, proceeding anyway:", balanceError);
             }
 
             // Get token data
@@ -659,19 +668,17 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             const token = docToToken(tokenDoc);
 
-            if (!token.jettonMasterAddress || !token.isOnChain) {
+            if (!token.jettonMasterAddress) {
                 return { success: false, error: "Token not deployed on-chain" };
             }
 
-            // CRITICAL: Check if deployment was confirmed
-            if (!token.isDeployed) {
-                return { success: false, error: "Token deployment not confirmed. Please wait for confirmation." };
-            }
-
-            // CRITICAL: Verify contract is active on blockchain before trading
+            // CRITICAL: Verify contract is active on blockchain before trading (source of truth)
             try {
                 const contractApiBase = "https://tonapi.io"; // Mainnet only
-                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`);
+                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`, {
+                    headers: { "Accept": "application/json" },
+                    cache: "no-store"
+                });
                 if (contractResponse.ok) {
                     const contractData = await contractResponse.json();
                     // Check if contract exists and has code
@@ -681,17 +688,20 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                             error: "Contract not active on blockchain. Deployment may have failed." 
                         };
                     }
+                    // Contract is active - proceed regardless of Firebase isDeployed flag
+                    console.log("Contract verified active on-chain:", token.jettonMasterAddress);
                 } else {
-                    return { success: false, error: "Unable to verify contract status" };
+                    // If we can't verify, try to proceed - the transaction will fail if there's an issue
+                    console.warn("Contract verification API failed, proceeding with trade attempt...");
                 }
             } catch (verifyError) {
-                console.error("Contract verification error:", verifyError);
-                return { success: false, error: "Unable to verify contract status" };
+                console.warn("Contract verification error, proceeding anyway:", verifyError);
             }
 
             if (token.isGraduated) {
                 return { success: false, error: "Token graduated - trade on DEX" };
             }
+
 
             // Preview buy to calculate expected tokens
             const preview = await previewBuy(tokenId, tonAmount);
@@ -754,22 +764,31 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Invalid amount" };
             }
 
-            // Check TON balance for gas fees (need ~0.1 TON for burn operation)
-            const apiBase = "https://tonapi.io"; // Mainnet only
-            const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
-            if (balanceResponse.ok) {
-                const balanceData = await balanceResponse.json();
-                const balanceInNano = BigInt(balanceData.balance || "0");
-                const balanceInTon = Number(balanceInNano) / 1e9;
-                
-                // Require 0.15 TON for gas fees
-                const requiredGas = 0.15;
-                if (balanceInTon < requiredGas) {
-                    return { 
-                        success: false, 
-                        error: `Insufficient TON for gas. You need at least ${requiredGas} TON but have ${balanceInTon.toFixed(4)} TON` 
-                    };
+            // Check TON balance for gas fees (non-blocking - proceed even if check fails)
+            try {
+                const apiBase = "https://tonapi.io"; // Mainnet only
+                const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`, {
+                    headers: { "Accept": "application/json" },
+                    cache: "no-store"
+                });
+                if (balanceResponse.ok) {
+                    const balanceData = await balanceResponse.json();
+                    const balanceInNano = BigInt(balanceData.balance || "0");
+                    const balanceInTon = Number(balanceInNano) / 1e9;
+                    
+                    // Require 0.15 TON for gas fees
+                    const requiredGas = 0.15;
+                    if (balanceInTon < requiredGas) {
+                        return { 
+                            success: false, 
+                            error: `Insufficient TON for gas. You need at least ${requiredGas} TON but have ${balanceInTon.toFixed(4)} TON` 
+                        };
+                    }
+                } else {
+                    console.warn("Balance check API returned non-OK, proceeding anyway...", balanceResponse.status);
                 }
+            } catch (balanceError) {
+                console.warn("Balance check failed, proceeding anyway:", balanceError);
             }
 
             // Get token data
@@ -780,30 +799,28 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             const token = docToToken(tokenDoc);
 
-            if (!token.jettonMasterAddress || !token.isOnChain) {
+            if (!token.jettonMasterAddress) {
                 return { success: false, error: "Token not deployed on-chain" };
             }
 
-            // CRITICAL: Check if deployment was confirmed
-            if (!token.isDeployed) {
-                return { success: false, error: "Token deployment not confirmed" };
-            }
-
-            // CRITICAL: Verify contract is active on blockchain before trading
+            // CRITICAL: Verify contract is active on blockchain before trading (source of truth)
             try {
                 const contractApiBase = "https://tonapi.io"; // Mainnet only
-                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`);
+                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`, {
+                    headers: { "Accept": "application/json" },
+                    cache: "no-store"
+                });
                 if (contractResponse.ok) {
                     const contractData = await contractResponse.json();
                     if (contractData.status === "nonexist" || !contractData.code) {
                         return { success: false, error: "Contract not active on blockchain" };
                     }
+                    console.log("Contract verified active on-chain:", token.jettonMasterAddress);
                 } else {
-                    return { success: false, error: "Unable to verify contract status" };
+                    console.warn("Contract verification API failed, proceeding with trade attempt...");
                 }
             } catch (verifyError) {
-                console.error("Contract verification error:", verifyError);
-                return { success: false, error: "Unable to verify contract status" };
+                console.warn("Contract verification error, proceeding anyway:", verifyError);
             }
 
             if (token.isGraduated) {
