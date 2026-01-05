@@ -274,8 +274,11 @@ export default function TokenDetailPage() {
                     </CardContent>
                 </Card>
 
-                {/* Price Chart */}
-                <PriceChart tokenId={tokenId} currentPrice={selectedToken.currentPrice} />
+                {/* Price Chart - Now reads directly from blockchain */}
+                <PriceChart 
+                    currentPrice={selectedToken.currentPrice} 
+                    jettonAddress={selectedToken.jettonMasterAddress}
+                />
 
                 {/* Trading Panel - Show different UI based on graduation status (moved up, under graduation progress) */}
                 {selectedToken.isGraduated ? (
