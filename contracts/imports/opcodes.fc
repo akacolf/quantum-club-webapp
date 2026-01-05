@@ -15,7 +15,7 @@ const int op::burn_notification = 0x7bdd97de;
 ;; ----- Bonding Curve Trading Operations -----
 const int op::buy = 0xaf750d34;              ;; Buy tokens with TON
 const int op::sell_request = 0x742b36d8;     ;; Initiate token sell
-const int op::sell_notification = 0xb7e76bfd ;; Burn notification for sells
+const int op::sell_notification = 0xb7e76bfd; ;; Burn notification for sells
 
 ;; ----- Admin Operations -----
 const int op::mint = 0x15;
