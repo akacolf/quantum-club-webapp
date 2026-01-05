@@ -41,23 +41,13 @@ const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
     }
 };
 
-function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; index: number; tonPrice: number; showRank?: boolean }) {
+function TokenCard({ token, index, showRank = true }: { token: Token; index: number; showRank?: boolean }) {
     const priceChange = token.priceChange24h || 0;
     const isPositive = priceChange >= 0;
     const progress = calculateProgress(
         token.marketCap,
         token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON
     );
-
-    let marketCapUsd: number | null = null;
-    try {
-        const mcTon = Number(BigInt(token.marketCap || "0")) / 1e9;
-        if (Number.isFinite(mcTon) && Number.isFinite(tonPrice) && tonPrice > 0) {
-            marketCapUsd = mcTon * tonPrice;
-        }
-    } catch {
-        marketCapUsd = null;
-    }
 
     return (
         <motion.div
@@ -226,7 +216,7 @@ function EmptyState({ message }: { message: string }) {
 export default function TradePage() {
     const router = useRouter();
     const { trendingTokens, newTokens, graduatedTokens, searchResults, isLoading, searchTokens, clearSearch, positions, myTokens, retryDeployToken } = useTrading();
-    const { walletAddress, tonPrice } = useWallet();
+    const { walletAddress } = useWallet();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
     const [deployingTokenId, setDeployingTokenId] = useState<string | null>(null);
@@ -473,7 +463,6 @@ export default function TradePage() {
                                         key={token.id}
                                         token={token}
                                         index={index}
-                                        tonPrice={tonPrice || 0}
                                         showRank={false}
                                     />
                                 ))}
@@ -491,7 +480,6 @@ export default function TradePage() {
                                                 key={position.tokenId}
                                                 token={position.token}
                                                 index={index}
-                                                tonPrice={tonPrice || 0}
                                                 showRank={false}
                                             />
                                         )
@@ -587,7 +575,6 @@ export default function TradePage() {
                                                 key={token.id}
                                                 token={token}
                                                 index={index}
-                                                tonPrice={tonPrice || 0}
                                                 showRank={false}
                                             />
                                         ))}
@@ -609,7 +596,6 @@ export default function TradePage() {
                                     key={token.id}
                                     token={token}
                                     index={index}
-                                    tonPrice={tonPrice || 0}
                                     showRank={activeTab === "trending"}
                                 />
                             ))}
