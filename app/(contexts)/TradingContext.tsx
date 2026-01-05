@@ -11,20 +11,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { dbfs } from "@/app/(firebase)/client";
-import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    setDoc,
-    query,
-    where,
-    orderBy,
-    limit,
-    serverTimestamp,
-    Timestamp,
-} from "firebase/firestore";
-import { Buffer } from "buffer";
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { Address, toNano, Cell } from "@ton/core";
 import { useGameContext } from "./MiningContext";
 import { useWallet } from "@/app/wallet/WalletContext";
@@ -581,19 +568,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: result.error || "Transaction failed" };
             }
 
-            // Log trade for indexing (async, don't wait)
-            setDoc(doc(dbfs, `tokens/${tokenId}/trades/${Date.now()}`), {
-                type: "buy",
-                userId: telegramId,
-                walletAddress,
-                tonAmount,
-                amount: preview?.tokensReceived || "0",
-                totalTon: tonAmount,
-                price: token.currentPrice,
-                txHash: result.txHash,
-                timestamp: serverTimestamp(),
-                status: "pending",
-            }).catch(console.error);
+            // NOTE: Trade is NOT logged to Firebase here
+            // All trade data should come from on-chain transactions only
+            // This is intentional - logging before confirmation causes fake data
 
             // Refresh positions after a delay
             setTimeout(() => refreshPositions(), 5000);
@@ -709,9 +686,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 };
             }
 
-            // Preview sell to get expected TON value
-            const sellPreview = await previewSell(tokenId, tokenAmount);
-            const expectedTonValue = sellPreview?.tonReceived || "0";
+            // Note: Preview is no longer needed since we don't log trades to Firebase
+            // The contract handles the bonding curve calculation on-chain
 
             // Build burn message (sell = burn tokens to get TON back)
             const burnBody = buildBurnMessage({
@@ -730,19 +706,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: result.error || "Transaction failed" };
             }
 
-            // Log trade for indexing with actual values
-            setDoc(doc(dbfs, `tokens/${tokenId}/trades/${Date.now()}`), {
-                type: "sell",
-                userId: telegramId,
-                walletAddress,
-                tokenAmount,
-                amount: tokenAmount,
-                totalTon: expectedTonValue, // Use preview value instead of "0"
-                price: token.currentPrice,
-                txHash: result.txHash,
-                timestamp: serverTimestamp(),
-                status: "pending",
-            }).catch(console.error);
+            // NOTE: Trade is NOT logged to Firebase here
+            // All trade data should come from on-chain transactions only
+            // This is intentional - logging before confirmation causes fake data
 
             // Refresh positions after a delay
             setTimeout(() => refreshPositions(), 5000);
