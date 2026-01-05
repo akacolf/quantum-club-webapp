@@ -104,7 +104,7 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 export function TradingProvider({ children }: { children: React.ReactNode }) {
     const { telegramId } = useGameContext();
-    const { walletAddress, sendTransaction, isTestnet } = useWallet();
+    const { walletAddress, sendTransaction } = useWallet();
 
     // State
     const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
@@ -117,16 +117,16 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
     // TON client for on-chain queries - use TON Access (decentralized, no rate limits!)
-    const [tonClient, setTonClient] = useState(() => createTonClient(isTestnet));
+    const [tonClient, setTonClient] = useState(() => createTonClient(false)); // Always mainnet
     
     // Upgrade to TON Access on mount (async initialization)
     useEffect(() => {
-        createTonClientAsync(isTestnet).then(client => {
+        createTonClientAsync(false).then(client => { // Always mainnet
             setTonClient(client);
         }).catch(err => {
             console.warn("Failed to init TON Access, using fallback:", err);
         });
-    }, [isTestnet]);
+    }, []);
 
     // =====================================================
     // Helper: Convert Firestore doc to Token
@@ -323,7 +323,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
 
                 try {
-                    const deployApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                    const deployApiBase = "https://tonapi.io"; // Mainnet only
                     const statusResponse = await fetch(`${deployApiBase}/v2/accounts/${jettonAddress}`);
                     if (statusResponse.ok) {
                         const statusData = await statusResponse.json();
@@ -632,7 +632,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Fetch current TON balance from API
-            const apiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+            const apiBase = "https://tonapi.io"; // Mainnet only
             const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
             if (balanceResponse.ok) {
                 const balanceData = await balanceResponse.json();
@@ -670,7 +670,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             // CRITICAL: Verify contract is active on blockchain before trading
             try {
-                const contractApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                const contractApiBase = "https://tonapi.io"; // Mainnet only
                 const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`);
                 if (contractResponse.ok) {
                     const contractData = await contractResponse.json();
@@ -755,7 +755,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Check TON balance for gas fees (need ~0.1 TON for burn operation)
-            const apiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+            const apiBase = "https://tonapi.io"; // Mainnet only
             const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
             if (balanceResponse.ok) {
                 const balanceData = await balanceResponse.json();
@@ -791,7 +791,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             // CRITICAL: Verify contract is active on blockchain before trading
             try {
-                const contractApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                const contractApiBase = "https://tonapi.io"; // Mainnet only
                 const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`);
                 if (contractResponse.ok) {
                     const contractData = await contractResponse.json();
@@ -987,7 +987,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                         await new Promise(resolve => setTimeout(resolve, retryDelay));
 
                         try {
-                            const retryApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                            const retryApiBase = "https://tonapi.io"; // Mainnet only
                             const statusResponse = await fetch(`${retryApiBase}/v2/accounts/${jettonAddress}`);
                             if (statusResponse.ok) {
                                 const statusData = await statusResponse.json();
