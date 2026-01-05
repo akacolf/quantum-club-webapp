@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TokenImageFill } from "@/components/ui/token-image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,17 +17,44 @@ import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
-
-import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
-// CreatorEarningsDashboard removed - replaced with referral system
 import { Badge } from "@/components/ui/badge";
 
-// Lottie animations for tabs (Telegram-style animated emojis)
-import fireAnimation from "@/public/lottie/fire-lottie.json";
-import sparklesAnimation from "@/public/lottie/sparkles-lottie.json";
-import diamondAnimation from "@/public/lottie/diamond-lottie.json";
+// Lazy load Lottie (large library)
+const Lottie = dynamic(() => import("lottie-react"), {
+  ssr: false,
+  loading: () => <div className="w-5 h-5 bg-white/10 rounded animate-pulse" />
+});
 
-import rocketAnimation from "@/public/lottie/rocket-lottie.json";
+// Lazy load GlobalLiveTrades (below-fold content)
+const GlobalLiveTrades = dynamic(() => import("@/app/trade/(components)/GlobalLiveTrades"), {
+  ssr: false,
+  loading: () => <Skeleton className="h-40" />
+});
+
+// Lazy load Lottie animation data
+const useLottieData = () => {
+  const [data, setData] = useState<{
+    fire: object | null;
+    sparkles: object | null;
+    diamond: object | null;
+    rocket: object | null;
+  }>({ fire: null, sparkles: null, diamond: null, rocket: null });
+
+  useEffect(() => {
+    const loadAnimations = async () => {
+      const [fire, sparkles, diamond, rocket] = await Promise.all([
+        import("@/public/lottie/fire-lottie.json").then(m => m.default),
+        import("@/public/lottie/sparkles-lottie.json").then(m => m.default),
+        import("@/public/lottie/diamond-lottie.json").then(m => m.default),
+        import("@/public/lottie/rocket-lottie.json").then(m => m.default),
+      ]);
+      setData({ fire, sparkles, diamond, rocket });
+    };
+    loadAnimations();
+  }, []);
+
+  return data;
+};
 
 // Utility for progress calculation - now TON-based
 const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
@@ -237,13 +264,6 @@ export default function TradePage() {
         setHasWallet(!!mnemonic);
     }, [walletAddress]);
 
-
-    // Lottie refs for tab icons
-    const fireLottieRef = useRef<LottieRefCurrentProps>(null);
-    const sparklesLottieRef = useRef<LottieRefCurrentProps>(null);
-    const diamondLottieRef = useRef<LottieRefCurrentProps>(null);
-    const rocketLottieRef = useRef<LottieRefCurrentProps>(null);
-
     // Handle retry deployment
     const handleRetryDeploy = async (tokenId: string) => {
         setDeployingTokenId(tokenId);
@@ -260,6 +280,9 @@ export default function TradePage() {
         setDeployingTokenId(null);
     };
 
+    // Lazy load lottie animations
+    const lottieData = useLottieData();
+
     // Prefetch trade routes
     useEffect(() => {
         router.prefetch("/trade/create");
@@ -268,19 +291,6 @@ export default function TradePage() {
             router.prefetch(`/trade/${token.id}`);
         });
     }, [router, trendingTokens]);
-
-    // Play animation when tab changes
-    useEffect(() => {
-        if (activeTab === "trending") {
-            fireLottieRef.current?.goToAndPlay(0);
-        } else if (activeTab === "new") {
-            sparklesLottieRef.current?.goToAndPlay(0);
-        } else if (activeTab === "holdings") {
-            diamondLottieRef.current?.goToAndPlay(0);
-        } else if (activeTab === "created") {
-            rocketLottieRef.current?.goToAndPlay(0);
-        }
-    }, [activeTab]);
 
     useEffect(() => {
         const debounce = setTimeout(() => {
@@ -356,13 +366,16 @@ export default function TradePage() {
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
-                                        <Lottie
-                                            lottieRef={fireLottieRef}
-                                            animationData={fireAnimation}
-                                            loop={true}
-                                            autoplay={activeTab === "trending"}
-                                            className="w-4 h-4"
-                                        />
+                                        {lottieData.fire ? (
+                                            <Lottie
+                                                animationData={lottieData.fire}
+                                                loop={true}
+                                                autoplay={activeTab === "trending"}
+                                                className="w-4 h-4"
+                                            />
+                                        ) : (
+                                            <div className="w-4 h-4" />
+                                        )}
                                         <span>Hot</span>
                                     </div>
                                 </TabsTrigger>
@@ -371,13 +384,16 @@ export default function TradePage() {
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
-                                        <Lottie
-                                            lottieRef={sparklesLottieRef}
-                                            animationData={sparklesAnimation}
-                                            loop={true}
-                                            autoplay={activeTab === "new"}
-                                            className="w-4 h-4"
-                                        />
+                                        {lottieData.sparkles ? (
+                                            <Lottie
+                                                animationData={lottieData.sparkles}
+                                                loop={true}
+                                                autoplay={activeTab === "new"}
+                                                className="w-4 h-4"
+                                            />
+                                        ) : (
+                                            <div className="w-4 h-4" />
+                                        )}
                                         <span>New</span>
                                     </div>
                                 </TabsTrigger>
@@ -386,13 +402,16 @@ export default function TradePage() {
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
-                                        <Lottie
-                                            lottieRef={diamondLottieRef}
-                                            animationData={diamondAnimation}
-                                            loop={true}
-                                            autoplay={activeTab === "holdings"}
-                                            className="w-4 h-4"
-                                        />
+                                        {lottieData.diamond ? (
+                                            <Lottie
+                                                animationData={lottieData.diamond}
+                                                loop={true}
+                                                autoplay={activeTab === "holdings"}
+                                                className="w-4 h-4"
+                                            />
+                                        ) : (
+                                            <div className="w-4 h-4" />
+                                        )}
                                         <span>Bag</span>
                                     </div>
                                 </TabsTrigger>
@@ -401,13 +420,16 @@ export default function TradePage() {
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300 relative"
                                 >
                                     <div className="flex items-center justify-center gap-1">
-                                        <Lottie
-                                            lottieRef={rocketLottieRef}
-                                            animationData={rocketAnimation}
-                                            loop={true}
-                                            autoplay={activeTab === "created"}
-                                            className="w-4 h-4"
-                                        />
+                                        {lottieData.rocket ? (
+                                            <Lottie
+                                                animationData={lottieData.rocket}
+                                                loop={true}
+                                                autoplay={activeTab === "created"}
+                                                className="w-4 h-4"
+                                            />
+                                        ) : (
+                                            <div className="w-4 h-4" />
+                                        )}
                                         <span>Mine</span>
                                     </div>
                                     {myTokens.some(t => !t.isDeployed) && (
