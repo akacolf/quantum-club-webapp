@@ -629,6 +629,13 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Invalid amount" };
             }
 
+            // Minimum buy amount validation (contract gas requirements)
+            // GAS_CONSUMPTION (0.015) + JETTON_WALLET_DEPLOY_GAS (0.1) + buffer
+            const MIN_BUY = 0.15;
+            if (tonAmountNum < MIN_BUY) {
+                return { success: false, error: `Minimum buy amount is ${MIN_BUY} TON` };
+            }
+
             // Fetch current TON balance using Orbs TonClient (no rate limits!)
             try {
                 const address = Address.parse(walletAddress);

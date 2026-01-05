@@ -12,7 +12,6 @@ import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/skeleton";
 
 // Critical above-fold components - load synchronously
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
@@ -21,22 +20,22 @@ import PullToRefresh from "./(components)/PullToRefresh";
 // Below-fold / interactive components - lazy load for better FCP/LCP
 const HomeCarousel = dynamic(() => import("@/app/home/(components)/homepagecarousel/Carousel"), {
   ssr: false,
-  loading: () => <div className="w-full h-44 bg-muted/20 rounded-xl animate-pulse mt-6" />
+  loading: () => <div className="w-[90%] mx-auto h-44 bg-[#1a1a1a] rounded-xl animate-pulse mt-6" />
 });
 
 const DailyCheckIn = dynamic(() => import("./(components)/DailyCheck"), {
   ssr: false,
-  loading: () => <div className="w-full h-24 bg-muted/20 rounded-xl animate-pulse" />
+  loading: () => <div className="w-[90%] mx-auto h-16 sm:h-20 bg-[#1a1a1a] rounded-xl animate-pulse mt-6" />
 });
 
 const QntmBalance = dynamic(() => import('./(components)/QntmBalance'), {
   ssr: false,
-  loading: () => <Skeleton className="h-32" />
+  loading: () => <div className="w-[90%] mx-auto h-32 bg-[#1a1a1a] rounded-xl animate-pulse" />
 });
 
 const SolveToEarnCard = dynamic(() => import('./(components)/SolveToEarnCard'), {
   ssr: false,
-  loading: () => <Skeleton className="h-24" />
+  loading: () => <div className="w-[90%] mx-auto h-16 sm:h-20 bg-[#1a1a1a] rounded-xl animate-pulse mt-6" />
 });
 
 const calculateRemainingTime = (timestamp: number) => {
