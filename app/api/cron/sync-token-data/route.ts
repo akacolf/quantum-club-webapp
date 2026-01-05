@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { ADMIN_API_KEY } from "@/lib/platform-config";
+import { getBondingCurveData, getJettonInfo } from "@/lib/ton-api";
 
 /**
  * GET /api/cron/sync-token-data
@@ -167,42 +168,23 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Fetch bonding curve data from contract via TONAPI
+ * Fetch bonding curve data from contract via Orbs Network (rate-limit free!)
  */
 async function fetchCurveData(address: string): Promise<CurveData | null> {
     try {
-        // Use TONAPI's run_get_method endpoint
-        const response = await fetch(
-            `https://tonapi.io/v2/blockchain/accounts/${address}/methods/get_curve_data`,
-            {
-                headers: {
-                    "Accept": "application/json",
-                },
-            }
-        );
-
-        if (!response.ok) {
-            console.log(`[sync-token-data] get_curve_data failed for ${address}: ${response.status}`);
-            return null;
-        }
-
-        const data = await response.json();
-
-        if (!data.success || !data.decoded) {
+        const data = await getBondingCurveData(address);
+        
+        if (!data) {
             console.log(`[sync-token-data] get_curve_data returned no data for ${address}`);
             return null;
         }
-
-        // Decode the response
-        // get_curve_data returns: (total_supply, ton_reserve, current_price, graduated, graduation_target)
-        const decoded = data.decoded;
         
         return {
-            totalSupply: decoded[0]?.toString() || "0",
-            tonReserve: decoded[1]?.toString() || "0",
-            currentPrice: decoded[2]?.toString() || "0",
-            graduated: decoded[3] === 1 || decoded[3] === true,
-            graduationTarget: decoded[4]?.toString() || "0",
+            totalSupply: data.totalSupply.toString(),
+            tonReserve: data.tonReserve.toString(),
+            currentPrice: data.basePrice.toString(),
+            graduated: data.isGraduated,
+            graduationTarget: data.graduationThreshold.toString(),
         };
 
     } catch (error) {
@@ -212,25 +194,22 @@ async function fetchCurveData(address: string): Promise<CurveData | null> {
 }
 
 /**
- * Fetch holder count from TONAPI
+ * Fetch holder count using Orbs Network
+ * Note: Holder count requires indexed data; we estimate from jetton info
  */
 async function fetchHoldersCount(address: string): Promise<number | null> {
     try {
-        const response = await fetch(
-            `https://tonapi.io/v2/jettons/${address}/holders?limit=1`,
-            {
-                headers: {
-                    "Accept": "application/json",
-                },
-            }
-        );
-
-        if (!response.ok) {
+        // Orbs doesn't provide indexed holder counts directly
+        // We can only verify the contract exists and get basic jetton data
+        const jettonInfo = await getJettonInfo(address);
+        
+        if (!jettonInfo) {
             return null;
         }
-
-        const data = await response.json();
-        return data.total || 0;
+        
+        // Return null to indicate we couldn't get holder count
+        // The sync will skip updating holders field
+        return null;
 
     } catch (error) {
         console.error(`[sync-token-data] Error fetching holders for ${address}:`, error);

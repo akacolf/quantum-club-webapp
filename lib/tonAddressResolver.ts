@@ -27,25 +27,34 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
       // Use TON DNS to resolve the domain
       const domain = trimmedInput.toLowerCase();
       
-      // Call TON API to resolve DNS
-      const response = await fetch(
-        `https://tonapi.io/v2/dns/${encodeURIComponent(domain)}/resolve`
-      );
+      // Try tonconsole first (more generous limits), then fallback to tonapi
+      let walletAddress: string | null = null;
       
-      if (!response.ok) {
-        return {
-          address: "",
-          isValid: false,
-          isDomain: true,
-          originalInput: input,
-          error: "Domain not found or not registered"
-        };
+      try {
+        const tonconsoleResponse = await fetch(
+          `https://tonconsole.com/api/v1/dns/resolve?domain=${encodeURIComponent(domain)}`,
+          { next: { revalidate: 300 } } // Cache for 5 minutes
+        );
+        
+        if (tonconsoleResponse.ok) {
+          const data = await tonconsoleResponse.json();
+          walletAddress = data.address || null;
+        }
+      } catch {
+        // tonconsole failed, try tonapi
       }
       
-      const data = await response.json();
-      
-      // The wallet address is in the result
-      const walletAddress = data.wallet?.address;
+      // Fallback to tonapi if tonconsole didn't work
+      if (!walletAddress) {
+        const response = await fetch(
+          `https://tonapi.io/v2/dns/${encodeURIComponent(domain)}/resolve`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          walletAddress = data.wallet?.address || null;
+        }
+      }
       
       if (!walletAddress) {
         return {
@@ -53,7 +62,7 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
           isValid: false,
           isDomain: true,
           originalInput: input,
-          error: "No wallet associated with this domain"
+          error: "Domain not found or no wallet associated"
         };
       }
       

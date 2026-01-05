@@ -313,7 +313,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             console.log("Retry deployment transaction sent:", txResult.txHash);
 
-            // Wait for on-chain confirmation
+            // Wait for on-chain confirmation using Orbs TonClient (no rate limits!)
             let isDeployedOnChain = false;
             const maxRetries = 10;
             const retryDelay = 3000;
@@ -323,15 +323,13 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
 
                 try {
-                    const deployApiBase = "https://tonapi.io"; // Mainnet only
-                    const statusResponse = await fetch(`${deployApiBase}/v2/accounts/${jettonAddress}`);
-                    if (statusResponse.ok) {
-                        const statusData = await statusResponse.json();
-                        if (statusData.status === "active" && statusData.code) {
-                            console.log("Contract is now ACTIVE on-chain!");
-                            isDeployedOnChain = true;
-                            break;
-                        }
+                    const contractAddress = Address.parse(jettonAddress);
+                    const contractState = await tonClient.getContractState(contractAddress);
+                    
+                    if (contractState.state === "active") {
+                        console.log("Contract is now ACTIVE on-chain!");
+                        isDeployedOnChain = true;
+                        break;
                     }
                 } catch (checkError) {
                     console.log("Status check failed, will retry...", checkError);
@@ -631,29 +629,19 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Invalid amount" };
             }
 
-            // Fetch current TON balance from API (non-blocking - proceed even if check fails)
+            // Fetch current TON balance using Orbs TonClient (no rate limits!)
             try {
-                const apiBase = "https://tonapi.io"; // Mainnet only
-                const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`, {
-                    headers: { "Accept": "application/json" },
-                    cache: "no-store"
-                });
-                if (balanceResponse.ok) {
-                    const balanceData = await balanceResponse.json();
-                    const balanceInNano = BigInt(balanceData.balance || "0");
-                    const balanceInTon = Number(balanceInNano) / 1e9;
-                    
-                    // Require extra 0.1 TON for gas fees
-                    const requiredTon = tonAmountNum + 0.1;
-                    if (balanceInTon < requiredTon) {
-                        return { 
-                            success: false, 
-                            error: `Insufficient balance. You need ${requiredTon.toFixed(2)} TON (${tonAmountNum} + 0.1 gas) but have ${balanceInTon.toFixed(4)} TON` 
-                        };
-                    }
-                } else {
-                    // Log but don't block - the transaction will fail on-chain if balance is insufficient
-                    console.warn("Balance check API returned non-OK, proceeding anyway...", balanceResponse.status);
+                const address = Address.parse(walletAddress);
+                const balanceInNano = await tonClient.getBalance(address);
+                const balanceInTon = Number(balanceInNano) / 1e9;
+                
+                // Require extra 0.1 TON for gas fees
+                const requiredTon = tonAmountNum + 0.1;
+                if (balanceInTon < requiredTon) {
+                    return { 
+                        success: false, 
+                        error: `Insufficient balance. You need ${requiredTon.toFixed(2)} TON (${tonAmountNum} + 0.1 gas) but have ${balanceInTon.toFixed(4)} TON` 
+                    };
                 }
             } catch (balanceError) {
                 // Log but don't block - let the on-chain transaction handle it
@@ -672,28 +660,18 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Token not deployed on-chain" };
             }
 
-            // CRITICAL: Verify contract is active on blockchain before trading (source of truth)
+            // CRITICAL: Verify contract is active on blockchain using Orbs TonClient (no rate limits!)
             try {
-                const contractApiBase = "https://tonapi.io"; // Mainnet only
-                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`, {
-                    headers: { "Accept": "application/json" },
-                    cache: "no-store"
-                });
-                if (contractResponse.ok) {
-                    const contractData = await contractResponse.json();
-                    // Check if contract exists and has code
-                    if (contractData.status === "nonexist" || !contractData.code) {
-                        return { 
-                            success: false, 
-                            error: "Contract not active on blockchain. Deployment may have failed." 
-                        };
-                    }
-                    // Contract is active - proceed regardless of Firebase isDeployed flag
-                    console.log("Contract verified active on-chain:", token.jettonMasterAddress);
-                } else {
-                    // If we can't verify, try to proceed - the transaction will fail if there's an issue
-                    console.warn("Contract verification API failed, proceeding with trade attempt...");
+                const contractAddress = Address.parse(token.jettonMasterAddress);
+                const contractState = await tonClient.getContractState(contractAddress);
+                
+                if (contractState.state !== "active") {
+                    return { 
+                        success: false, 
+                        error: "Contract not active on blockchain. Deployment may have failed." 
+                    };
                 }
+                console.log("Contract verified active on-chain:", token.jettonMasterAddress);
             } catch (verifyError) {
                 console.warn("Contract verification error, proceeding anyway:", verifyError);
             }
@@ -701,7 +679,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             if (token.isGraduated) {
                 return { success: false, error: "Token graduated - trade on DEX" };
             }
-
 
             // Preview buy to calculate expected tokens
             const preview = await previewBuy(tokenId, tonAmount);
@@ -764,28 +741,19 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Invalid amount" };
             }
 
-            // Check TON balance for gas fees (non-blocking - proceed even if check fails)
+            // Check TON balance for gas fees using Orbs TonClient (no rate limits!)
             try {
-                const apiBase = "https://tonapi.io"; // Mainnet only
-                const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`, {
-                    headers: { "Accept": "application/json" },
-                    cache: "no-store"
-                });
-                if (balanceResponse.ok) {
-                    const balanceData = await balanceResponse.json();
-                    const balanceInNano = BigInt(balanceData.balance || "0");
-                    const balanceInTon = Number(balanceInNano) / 1e9;
-                    
-                    // Require 0.15 TON for gas fees
-                    const requiredGas = 0.15;
-                    if (balanceInTon < requiredGas) {
-                        return { 
-                            success: false, 
-                            error: `Insufficient TON for gas. You need at least ${requiredGas} TON but have ${balanceInTon.toFixed(4)} TON` 
-                        };
-                    }
-                } else {
-                    console.warn("Balance check API returned non-OK, proceeding anyway...", balanceResponse.status);
+                const address = Address.parse(walletAddress);
+                const balanceInNano = await tonClient.getBalance(address);
+                const balanceInTon = Number(balanceInNano) / 1e9;
+                
+                // Require 0.15 TON for gas fees
+                const requiredGas = 0.15;
+                if (balanceInTon < requiredGas) {
+                    return { 
+                        success: false, 
+                        error: `Insufficient TON for gas. You need at least ${requiredGas} TON but have ${balanceInTon.toFixed(4)} TON` 
+                    };
                 }
             } catch (balanceError) {
                 console.warn("Balance check failed, proceeding anyway:", balanceError);
@@ -803,22 +771,15 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: "Token not deployed on-chain" };
             }
 
-            // CRITICAL: Verify contract is active on blockchain before trading (source of truth)
+            // CRITICAL: Verify contract is active using Orbs TonClient (no rate limits!)
             try {
-                const contractApiBase = "https://tonapi.io"; // Mainnet only
-                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`, {
-                    headers: { "Accept": "application/json" },
-                    cache: "no-store"
-                });
-                if (contractResponse.ok) {
-                    const contractData = await contractResponse.json();
-                    if (contractData.status === "nonexist" || !contractData.code) {
-                        return { success: false, error: "Contract not active on blockchain" };
-                    }
-                    console.log("Contract verified active on-chain:", token.jettonMasterAddress);
-                } else {
-                    console.warn("Contract verification API failed, proceeding with trade attempt...");
+                const contractAddress = Address.parse(token.jettonMasterAddress);
+                const contractState = await tonClient.getContractState(contractAddress);
+                
+                if (contractState.state !== "active") {
+                    return { success: false, error: "Contract not active on blockchain" };
                 }
+                console.log("Contract verified active on-chain:", token.jettonMasterAddress);
             } catch (verifyError) {
                 console.warn("Contract verification error, proceeding anyway:", verifyError);
             }
@@ -993,8 +954,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 if (txResult.success) {
                     console.log("Deployment transaction sent successfully:", txResult.txHash);
 
-                    // CRITICAL: Wait for on-chain confirmation before marking as deployed
-                    // Poll the contract status until it becomes active
+                    // CRITICAL: Wait for on-chain confirmation using Orbs TonClient (no rate limits!)
                     let isDeployedOnChain = false;
                     const maxRetries = 10;
                     const retryDelay = 3000; // 3 seconds between retries
@@ -1004,17 +964,15 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                         await new Promise(resolve => setTimeout(resolve, retryDelay));
 
                         try {
-                            const retryApiBase = "https://tonapi.io"; // Mainnet only
-                            const statusResponse = await fetch(`${retryApiBase}/v2/accounts/${jettonAddress}`);
-                            if (statusResponse.ok) {
-                                const statusData = await statusResponse.json();
-                                if (statusData.status === "active" && statusData.code) {
-                                    console.log("Contract is now ACTIVE on-chain!");
-                                    isDeployedOnChain = true;
-                                    break;
-                                } else {
-                                    console.log(`Contract status: ${statusData.status}`);
-                                }
+                            const contractAddress = Address.parse(jettonAddress);
+                            const contractState = await tonClient.getContractState(contractAddress);
+                            
+                            if (contractState.state === "active") {
+                                console.log("Contract is now ACTIVE on-chain!");
+                                isDeployedOnChain = true;
+                                break;
+                            } else {
+                                console.log(`Contract state: ${contractState.state}`);
                             }
                         } catch (checkError) {
                             console.log("Status check failed, will retry...", checkError);
