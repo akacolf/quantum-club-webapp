@@ -323,7 +323,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
 
                 try {
-                    const statusResponse = await fetch(`https://tonapi.io/v2/accounts/${jettonAddress}`);
+                    const deployApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                    const statusResponse = await fetch(`${deployApiBase}/v2/accounts/${jettonAddress}`);
                     if (statusResponse.ok) {
                         const statusData = await statusResponse.json();
                         if (statusData.status === "active" && statusData.code) {
@@ -631,7 +632,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Fetch current TON balance from API
-            const apiBase = "https://tonapi.io";
+            const apiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
             const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
             if (balanceResponse.ok) {
                 const balanceData = await balanceResponse.json();
@@ -669,7 +670,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             // CRITICAL: Verify contract is active on blockchain before trading
             try {
-                const contractResponse = await fetch(`https://tonapi.io/v2/accounts/${token.jettonMasterAddress}`);
+                const contractApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`);
                 if (contractResponse.ok) {
                     const contractData = await contractResponse.json();
                     // Check if contract exists and has code
@@ -753,7 +755,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Check TON balance for gas fees (need ~0.1 TON for burn operation)
-            const apiBase = "https://tonapi.io";
+            const apiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
             const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
             if (balanceResponse.ok) {
                 const balanceData = await balanceResponse.json();
@@ -789,7 +791,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             // CRITICAL: Verify contract is active on blockchain before trading
             try {
-                const contractResponse = await fetch(`https://tonapi.io/v2/accounts/${token.jettonMasterAddress}`);
+                const contractApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                const contractResponse = await fetch(`${contractApiBase}/v2/accounts/${token.jettonMasterAddress}`);
                 if (contractResponse.ok) {
                     const contractData = await contractResponse.json();
                     if (contractData.status === "nonexist" || !contractData.code) {
@@ -984,7 +987,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                         await new Promise(resolve => setTimeout(resolve, retryDelay));
 
                         try {
-                            const statusResponse = await fetch(`https://tonapi.io/v2/accounts/${jettonAddress}`);
+                            const retryApiBase = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+                            const statusResponse = await fetch(`${retryApiBase}/v2/accounts/${jettonAddress}`);
                             if (statusResponse.ok) {
                                 const statusData = await statusResponse.json();
                                 if (statusData.status === "active" && statusData.code) {
