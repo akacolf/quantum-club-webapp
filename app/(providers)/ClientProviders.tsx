@@ -1,14 +1,23 @@
 "use client";
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { GameProvider } from "../(contexts)/MiningContext";
-import { LeaderboardProvider } from "../(contexts)/LeaderboardContext";
-import { FrensProvider } from "../(contexts)/FrensContext";
-import { ChatProvider } from "../(contexts)/ChatContext";
-import { GroupsProvider } from "../(contexts)/GroupsContext";
-import { TradingProvider } from "../(contexts)/TradingContext";
 import { WalletProvider } from "../wallet/WalletContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
+
+// Lazy load non-critical providers to reduce initial bundle
+const LeaderboardProvider = dynamic(() => import("../(contexts)/LeaderboardContext").then(m => ({ default: m.LeaderboardProvider })));
+const FrensProvider = dynamic(() => import("../(contexts)/FrensContext").then(m => ({ default: m.FrensProvider })));
+const ChatProvider = dynamic(() => import("../(contexts)/ChatContext").then(m => ({ default: m.ChatProvider })));
+const GroupsProvider = dynamic(() => import("../(contexts)/GroupsContext").then(m => ({ default: m.GroupsProvider })));
+const TradingProvider = dynamic(() => import("../(contexts)/TradingContext").then(m => ({ default: m.TradingProvider })));
+
+// Lazy load AI Chat Drawer - it's hidden by default and not needed for initial render
+const AIChatDrawer = dynamic(() => import("../(components)/AIChatDrawer"), {
+  ssr: false,
+  loading: () => null,
+});
 
 // Initialize analytics before render
 if (typeof window !== "undefined") {
@@ -24,19 +33,20 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   return (
     <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
       <GameProvider>
-        <LeaderboardProvider>
-          <FrensProvider>
-            <ChatProvider>
-              <GroupsProvider>
-                <WalletProvider>
+        <WalletProvider>
+          <LeaderboardProvider>
+            <FrensProvider>
+              <ChatProvider>
+                <GroupsProvider>
                   <TradingProvider>
                     {children}
+                    <AIChatDrawer />
                   </TradingProvider>
-                </WalletProvider>
-              </GroupsProvider>
-            </ChatProvider>
-          </FrensProvider>
-        </LeaderboardProvider>
+                </GroupsProvider>
+              </ChatProvider>
+            </FrensProvider>
+          </LeaderboardProvider>
+        </WalletProvider>
       </GameProvider>
     </ThemeProvider>
   );

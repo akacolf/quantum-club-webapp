@@ -12,16 +12,15 @@
 import { Address, internal, SendMode, Cell, beginCell } from "@ton/core";
 import { WalletContractV5R1, WalletContractV4, TonClient } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
+import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { PLATFORM_WALLET_ADDRESS } from "./platform-config";
 
 // Platform wallet configuration
 const PLATFORM_MNEMONIC = process.env.PLATFORM_WALLET_MNEMONIC || "";
 const PLATFORM_WALLET_VERSION = process.env.PLATFORM_WALLET_VERSION || "v5r1";
 
-// TON API configuration
-const TON_CENTER_ENDPOINT = process.env.NEXT_PUBLIC_TON_CENTER_ENDPOINT || 
-    "https://toncenter.com/api/v2/jsonRPC";
-const TON_CENTER_API_KEY = process.env.NEXT_PUBLIC_TON_CENTER_API_KEY || "";
+// Cache for Orbs endpoint
+let cachedOrbsEndpoint: string | null = null;
 
 /**
  * Check if platform wallet is configured
@@ -31,13 +30,14 @@ export function isPlatformWalletConfigured(): boolean {
 }
 
 /**
- * Get TonClient instance
+ * Get TonClient instance using Orbs Network (rate-limit free!)
  */
-function getTonClient(): TonClient {
-    return new TonClient({
-        endpoint: TON_CENTER_ENDPOINT,
-        apiKey: TON_CENTER_API_KEY || undefined,
-    });
+async function getTonClient(): Promise<TonClient> {
+    if (!cachedOrbsEndpoint) {
+        cachedOrbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
+        console.log("[platform-wallet] Using Orbs endpoint:", cachedOrbsEndpoint);
+    }
+    return new TonClient({ endpoint: cachedOrbsEndpoint });
 }
 
 /**
@@ -92,7 +92,7 @@ export async function sendFromPlatformWallet(params: {
             return { success: false, error: "Platform wallet address mismatch" };
         }
 
-        const tonClient = getTonClient();
+        const tonClient = await getTonClient();
         const contract = tonClient.open(wallet);
         const toAddress = Address.parse(params.to);
 

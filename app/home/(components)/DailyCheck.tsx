@@ -18,7 +18,6 @@ export default function DailyCheckIn({
   isClaimDay,
   loadingDay,
   ClaimDaily,
-  lottieRef,
   TaskTimer,
 }: DailyCheckInProps) {
   return loadingButtonDay ? (
@@ -33,7 +32,6 @@ export default function DailyCheckIn({
           <div className="shrink-0">
             <div className="w-10 h-10 sm:w-12 sm:h-12">
               <Lottie
-                lottieRef={lottieRef}
                 animationData={fireAnimationData}
                 loop={true}
                 autoplay={true}

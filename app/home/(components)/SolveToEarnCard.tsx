@@ -12,7 +12,7 @@ const Lottie = dynamic(() => import("lottie-react"), {
   loading: () => <div className="w-full h-full bg-yellow-500/20 rounded-full animate-pulse" />
 });
 
-export default function SolveToEarnCard({ remainingSolveToEarn, lottieRef, goToSolveToEarn }: SolveToEarnCardProps) {
+export default function SolveToEarnCard({ remainingSolveToEarn, goToSolveToEarn }: SolveToEarnCardProps) {
   return (
     <Card className="w-[90%] mx-auto mt-6 relative overflow-hidden border-0 bg-[#111] shadow-lg group">
       {/* Background Image with Overlay */}
@@ -32,7 +32,6 @@ export default function SolveToEarnCard({ remainingSolveToEarn, lottieRef, goToS
           <div className="shrink-0">
             <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
               <Lottie
-                lottieRef={lottieRef}
                 animationData={hundredAnimationData}
                 loop={true}
                 autoplay={true}

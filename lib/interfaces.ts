@@ -43,7 +43,7 @@ export interface DailyCheckInProps {
     isClaimDay: boolean;
     loadingDay: boolean;
     ClaimDaily: () => void;
-    lottieRef: React.RefObject<LottieRefCurrentProps | null>;
+    lottieRef?: React.RefObject<LottieRefCurrentProps | null>;
     TaskTimer: React.FC;
 }
 
@@ -55,6 +55,6 @@ export interface QntmBalanceProps {
 
 export interface SolveToEarnCardProps {
     remainingSolveToEarn: number;
-    lottieRef: React.RefObject<LottieRefCurrentProps | null>;
+    lottieRef?: React.RefObject<LottieRefCurrentProps | null>;
     goToSolveToEarn: () => void;
 }

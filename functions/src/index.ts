@@ -11,6 +11,7 @@ import { dexFactory } from "@ston-fi/sdk";
 import { TonClient, WalletContractV4, internal } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { beginCell, Address, toNano } from "@ton/core";
+import { getHttpEndpoint } from "@orbs-network/ton-access";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -36,6 +37,17 @@ interface GraduationResult {
     error?: string;
 }
 
+// Cache for Orbs endpoint
+let cachedOrbsEndpoint: string | null = null;
+
+async function getOrbsEndpoint(): Promise<string> {
+    if (!cachedOrbsEndpoint) {
+        cachedOrbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
+        console.log("[functions] Using Orbs endpoint:", cachedOrbsEndpoint);
+    }
+    return cachedOrbsEndpoint;
+}
+
 // Configuration
 const config = {
     // TON price in USD (should be fetched dynamically in production)
@@ -44,8 +56,6 @@ const config = {
     defaultThreshold: 69000,
     // Platform wallet mnemonic (set via Firebase environment config)
     platformMnemonic: functions.config().platform?.mnemonic || "",
-    // TON RPC endpoint
-    tonEndpoint: "https://toncenter.com/api/v2/jsonRPC",
 };
 
 /**
@@ -302,10 +312,9 @@ async function createLiquidityPool(
             return { success: false, error: "Platform mnemonic not configured" };
         }
 
-        // Initialize TON client
-        const tonClient = new TonClient({
-            endpoint: config.tonEndpoint,
-        });
+        // Initialize TON client using Orbs Network (rate-limit free!)
+        const orbsEndpoint = await getOrbsEndpoint();
+        const tonClient = new TonClient({ endpoint: orbsEndpoint });
 
         // Derive wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(platformMnemonic.split(" "));
@@ -401,10 +410,9 @@ async function burnLpTokens(
             return { success: false, error: "Platform mnemonic not configured" };
         }
 
-        // Initialize TON client
-        const tonClient = new TonClient({
-            endpoint: config.tonEndpoint,
-        });
+        // Initialize TON client using Orbs Network (rate-limit free!)
+        const orbsEndpoint = await getOrbsEndpoint();
+        const tonClient = new TonClient({ endpoint: orbsEndpoint });
 
         // Derive wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(platformMnemonic.split(" "));

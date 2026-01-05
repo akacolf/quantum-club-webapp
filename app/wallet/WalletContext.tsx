@@ -385,10 +385,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/v2/rates?tokens=ton&currencies=usd`);
+      // Use CoinGecko for price data (generous free tier, no API key needed)
+      const response = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
+        { next: { revalidate: 60 } } // Cache for 60 seconds
+      );
       if (response.ok) {
         const data = await response.json();
-        const price = data.rates?.TON?.prices?.USD || 0;
+        const price = data["the-open-network"]?.usd || 0;
         setTonPrice(price);
         return price;
       }
@@ -396,7 +400,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.error("Failed to fetch TON price:", error);
     }
     return tonPrice || 0;
-  }, [isTestnet, getApiBaseUrl, tonPrice]);
+  }, [isTestnet, tonPrice]);
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   // Fetch wallet assets (TON balance + Jettons)
   const fetchWalletAssets = useCallback(async () => {
@@ -406,29 +410,47 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       // Fetch TON price first
       const price = await fetchTonPrice();
-      const apiBase = getApiBaseUrl();
-
-      // Fetch TON balance using TON API
+      
+      // Use Orbs Network for TON balance (rate-limit free!)
       let tonUsd = 0;
-      const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
-      if (balanceResponse.status !== 200) {
-        sleep(300)
-        return fetchWalletAssets()
-      }
-      if (balanceResponse.ok) {
-        const balanceData = await balanceResponse.json();
-        const balanceInNano = balanceData.balance || "0";
-        const balanceInTon = fromNano(balanceInNano);
+      try {
+        const orbsEndpoint = await getHttpEndpoint({ 
+          network: isTestnet ? "testnet" : "mainnet" 
+        });
+        const orbsClient = new TonClient({ endpoint: orbsEndpoint });
+        const address = Address.parse(walletAddress);
+        
+        const balance = await orbsClient.getBalance(address);
+        const balanceInTon = fromNano(balance);
         setTonBalance(parseFloat(balanceInTon).toFixed(4));
-
-        setWalletStatus(balanceData.status)
+        
+        // Get contract state for wallet status
+        const state = await orbsClient.getContractState(address);
+        setWalletStatus(state.state as string);
+        
         // Calculate USD value
         tonUsd = parseFloat(balanceInTon) * price;
         setTonUsdValue(tonUsd.toFixed(2));
+      } catch (err) {
+        console.error("Failed to fetch balance via Orbs:", err);
+        // Fallback to TONAPI if Orbs fails
+        const apiBase = getApiBaseUrl();
+        const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          const balanceInNano = balanceData.balance || "0";
+          const balanceInTon = fromNano(balanceInNano);
+          setTonBalance(parseFloat(balanceInTon).toFixed(4));
+          setWalletStatus(balanceData.status);
+          tonUsd = parseFloat(balanceInTon) * price;
+          setTonUsdValue(tonUsd.toFixed(2));
+        }
       }
 
       // Fetch Jettons (tokens) balance with USD prices
+      // Note: Jetton indexed data still requires TONAPI as Orbs doesn't index jettons
       let jettonsUsdTotal = 0;
+      const apiBase = getApiBaseUrl();
       const jettonsResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}/jettons?currencies=usd`);
       if (jettonsResponse.status !== 200) {
         sleep(300)
@@ -779,81 +801,37 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       let success = false;
       let lastError = "";
 
-      const toncenterEndpoint = isTestnet
-        ? "https://testnet.toncenter.com/api/v2/sendBoc"
-        : "https://toncenter.com/api/v2/sendBoc";
-
-      const tonapiEndpoint = isTestnet
-        ? "https://testnet.tonapi.io/v2/blockchain/message"
-        : "https://tonapi.io/v2/blockchain/message";
-
+      // Use Orbs Network for transaction broadcasting (rate-limit free!)
       for (let attempt = 1; attempt <= 3; attempt++) {
         if (attempt > 1) {
           console.log(`Retry attempt ${attempt}, waiting 2s...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        if (!success) {
-          try {
-            console.log("Sending via TonCenter...");
-            const toncenterResponse = await fetch(toncenterEndpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(process.env.NEXT_PUBLIC_TONCENTER_API_KEY && !isTestnet
-                  ? { "X-API-Key": process.env.NEXT_PUBLIC_TONCENTER_API_KEY }
-                  : {}),
-              },
-              body: JSON.stringify({ boc: bocBase64 }),
-            });
-
-            const toncenterResult = await toncenterResponse.json();
-
-            if (toncenterResult.ok) {
-              console.log("Transaction sent via TonCenter!");
-              success = true;
-              break;
-            } else if (toncenterResponse.status === 429) {
-              console.log("TonCenter rate limited, will retry...");
-              lastError = "Rate limited";
-            } else {
-              console.error("TonCenter error:", toncenterResult);
-              lastError = `TonCenter: ${toncenterResult.error || JSON.stringify(toncenterResult)}`;
-            }
-          } catch (err) {
-            console.error("TonCenter request failed:", err);
-            lastError = `TonCenter: ${err instanceof Error ? err.message : String(err)}`;
-          }
-        }
-
-        if (!success) {
-          try {
-            console.log("Trying TONAPI...");
-            const tonapiResponse = await fetch(tonapiEndpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ boc: bocBase64 }),
-            });
-
-            if (tonapiResponse.ok) {
-              console.log("Transaction sent via TONAPI!");
-              success = true;
-              break;
-            } else if (tonapiResponse.status === 429) {
-              console.log("TONAPI rate limited, will retry...");
-            } else {
-              const errorText = await tonapiResponse.text();
-              console.error("TONAPI error:", tonapiResponse.status, errorText);
-              lastError = `TONAPI: ${tonapiResponse.status} - ${errorText}`;
-            }
-          } catch (err) {
-            console.error("TONAPI request failed:", err);
-          }
+        try {
+          // Get Orbs endpoint for current network
+          const orbsEndpoint = await getHttpEndpoint({ 
+            network: isTestnet ? "testnet" : "mainnet" 
+          });
+          const orbsClient = new TonClient({ endpoint: orbsEndpoint });
+          
+          console.log("Sending via Orbs Network...", orbsEndpoint);
+          
+          // Send the BOC via Orbs (TonClient.sendFile expects a Buffer)
+          const bocBuffer = Buffer.from(bocBase64, "base64");
+          await orbsClient.sendFile(bocBuffer);
+          
+          console.log("Transaction sent via Orbs Network!");
+          success = true;
+          break;
+        } catch (err) {
+          console.error(`Orbs send attempt ${attempt} failed:`, err);
+          lastError = `Orbs: ${err instanceof Error ? err.message : String(err)}`;
         }
       }
 
       if (!success) {
-        throw new Error(lastError || "Failed to send transaction via all endpoints");
+        throw new Error(lastError || "Failed to send transaction via Orbs Network");
       }
 
       setTimeout(() => {

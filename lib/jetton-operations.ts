@@ -276,9 +276,12 @@ async function getTonAccessEndpoint(testnet: boolean): Promise<string> {
 /**
  * Create TonClient for blockchain queries
  * Uses TON Access by Orbs - decentralized, free, no rate limits!
+ * 
+ * NOTE: This sync version uses toncenter as fallback.
+ * For production use createTonClientAsync() to use Orbs.
  */
 export function createTonClient(testnet: boolean = false): TonClient {
-    // Use fallback TonCenter initially, will be upgraded to TON Access
+    // Use toncenter as synchronous fallback, will be upgraded to Orbs in async init
     return new TonClient({
         endpoint: testnet
             ? "https://testnet.toncenter.com/api/v2/jsonRPC"
@@ -288,11 +291,11 @@ export function createTonClient(testnet: boolean = false): TonClient {
 
 /**
  * Create TonClient with TON Access endpoint (async)
- * This is the preferred method - uses decentralized nodes with no rate limits
+ * This is the preferred method - uses Orbs decentralized nodes with NO RATE LIMITS!
  */
 export async function createTonClientAsync(testnet: boolean = false): Promise<TonClient> {
     const endpoint = await getTonAccessEndpoint(testnet);
-    console.log(`Using TON Access endpoint: ${endpoint}`);
+    console.log(`[Orbs] Using TON Access endpoint: ${endpoint}`);
     return new TonClient({ endpoint });
 }
 

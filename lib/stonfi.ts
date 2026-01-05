@@ -4,6 +4,7 @@ import { StonApiClient, AssetTag } from "@ston-fi/api";
 import { dexFactory } from "@ston-fi/sdk";
 import { TonClient } from "@ton/ton";
 import { Address } from "@ton/core";
+import { getHttpEndpoint } from "@orbs-network/ton-access";
 
 // Types for swap assets
 export interface SwapAsset {
@@ -180,10 +181,9 @@ export async function buildSwapTxParams(
     body: Buffer | null;
 } | null> {
     try {
-        // Create TON client
-        const tonClient = new TonClient({
-            endpoint: "https://toncenter.com/api/v2/jsonRPC",
-        });
+        // Use Orbs Network for rate-limit-free access
+        const orbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
+        const tonClient = new TonClient({ endpoint: orbsEndpoint });
 
         // Build DEX contracts from simulation router
         const dexContracts = dexFactory(simulation.router);

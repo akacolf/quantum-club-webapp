@@ -163,6 +163,9 @@ export const MAX_SUPPLY_FORMATTED = "1,000,000,000";
 export const DEFAULT_SLIPPAGE = 1; // 1%
 export const SLIPPAGE_OPTIONS = [0.5, 1, 3, 5];
 
-// Initial buy limits
+// Buy limits
+// Minimum is based on contract gas requirements:
+// GAS_CONSUMPTION (0.015) + JETTON_WALLET_DEPLOY_GAS (0.1) + platform fee buffer
+export const MIN_BUY_AMOUNT = 0.15; // Minimum 0.15 TON to buy
 export const MIN_INITIAL_BUY = 0; // Can skip initial buy
 export const MAX_INITIAL_BUY = 100; // Max 100 TON initial buy

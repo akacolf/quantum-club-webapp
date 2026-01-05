@@ -25,21 +25,41 @@ import {
   bgTgeProgressCard,
 } from "@/public";
 
-// Dynamic import Lottie for better performance
+// Dynamic import Lottie for better performance (don't load until needed)
 const Lottie = dynamic(() => import("lottie-react"), { 
   ssr: false,
   loading: () => <div className="w-6 h-6 bg-white/10 rounded-full animate-pulse" />
 });
 
-// Static imports for Lottie data
-import storyAnimationData from "@/public/lottie/story-lottie.json";
-import goldmedalAnimationData from "@/public/lottie/gold-medal-lottie.json";
-import diamondAnimationData from "@/public/lottie/diamond-lottie.json";
+// Lazy load Lottie JSON data - these files are large and delay initial render
+const useLottieData = () => {
+  const [data, setData] = useState<{
+    story: object | null;
+    goldMedal: object | null;
+    diamond: object | null;
+  }>({ story: null, goldMedal: null, diamond: null });
+
+  useEffect(() => {
+    // Load animations after initial render
+    const loadAnimations = async () => {
+      const [story, goldMedal, diamond] = await Promise.all([
+        import("@/public/lottie/story-lottie.json").then(m => m.default),
+        import("@/public/lottie/gold-medal-lottie.json").then(m => m.default),
+        import("@/public/lottie/diamond-lottie.json").then(m => m.default),
+      ]);
+      setData({ story, goldMedal, diamond });
+    };
+    loadAnimations();
+  }, []);
+
+  return data;
+};
 
 const HomeCarousel = () => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const lottieData = useLottieData();
 
   useEffect(() => {
     if (!api) {
@@ -115,11 +135,13 @@ const HomeCarousel = () => {
                     AI-Powered Trading
                   </CardTitle>
                   <div className="w-6 h-6">
-                    <Lottie
-                      animationData={diamondAnimationData}
-                      autoplay={true}
-                      loop={true}
-                    />
+                    {lottieData.diamond && (
+                      <Lottie
+                        animationData={lottieData.diamond}
+                        autoplay={true}
+                        loop={true}
+                      />
+                    )}
                   </div>
                 </div>
                 <CardDescription className="text-gray-400 text-xs leading-relaxed">
@@ -153,11 +175,13 @@ const HomeCarousel = () => {
                       The Quantum Era
                     </CardTitle>
                     <div className="w-6 h-6">
-                      <Lottie
-                        animationData={storyAnimationData}
-                        loop={true}
-                        autoplay={true}
-                      />
+                      {lottieData.story && (
+                        <Lottie
+                          animationData={lottieData.story}
+                          loop={true}
+                          autoplay={true}
+                        />
+                      )}
                     </div>
                   </div>
                   <CardDescription className="text-gray-300 text-xs leading-relaxed max-w-[80%]">
@@ -185,11 +209,13 @@ const HomeCarousel = () => {
                     The Race is On
                   </CardTitle>
                   <div className="w-6 h-6">
-                    <Lottie
-                      animationData={goldmedalAnimationData}
-                      loop={true}
-                      autoplay={true}
-                    />
+                    {lottieData.goldMedal && (
+                      <Lottie
+                        animationData={lottieData.goldMedal}
+                        loop={true}
+                        autoplay={true}
+                      />
+                    )}
                   </div>
                 </div>
                 <CardDescription className="text-gray-400 text-xs leading-relaxed">
