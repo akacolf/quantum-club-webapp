@@ -16,6 +16,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { useWallet } from "@/app/wallet/WalletContext";
+import { toast } from "sonner";
 
 import GlobalLiveTrades from "@/app/trade/(components)/GlobalLiveTrades";
 // CreatorEarningsDashboard removed - replaced with referral system
@@ -25,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import fireAnimation from "@/public/lottie/fire-lottie.json";
 import sparklesAnimation from "@/public/lottie/sparkles-lottie.json";
 import diamondAnimation from "@/public/lottie/diamond-lottie.json";
+
+import rocketAnimation from "@/public/lottie/rocket-lottie.json";
 
 // Utility for progress calculation - now TON-based
 const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
@@ -58,114 +61,119 @@ function TokenCard({ token, index, tonPrice, showRank = true }: { token: Token; 
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.05 }}
         >
         <Link href={`/trade/${token.id}`} prefetch={true}>
             <Card
-                className="bg-[#121212]/80 backdrop-blur-md border-white/5 hover:border-primary/50 transition-all cursor-pointer overflow-hidden group relative shadow-lg"
+                className="bg-[#121212]/90 backdrop-blur-xl border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden group relative shadow-md hover:shadow-lg hover:bg-[#1a1a1a]"
             >
-                {/* Glow effect */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:bg-primary/10 transition-all" />
+                {/* Subtle Gradient Glow */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 blur-[80px] rounded-full translate-x-10 -translate-y-10 group-hover:bg-primary/10 transition-colors duration-700" />
+                
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                <CardContent className="p-2 relative z-10">
-                    <div className="flex gap-3.5">
-                        {/* Token Image - Larger & detached */}
-                        <div className="relative w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden bg-white/5 flex-shrink-0 shadow-inner border border-white/5">
+                <CardContent className="p-3 relative z-10">
+                    <div className="flex gap-4 items-center">
+                        {/* Token Image - Sleek with Rank */}
+                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-[#222] shadow-inner ring-1 ring-white/5 group-hover:ring-white/10 transition-all flex-shrink-0">
                             {token.image ? (
                                 <TokenImageFill
                                     src={token.image}
                                     alt={token.name}
-                                    className="object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                    className="object-cover transform group-hover:scale-105 transition-transform duration-700"
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-primary font-bold text-2xl bg-gradient-to-br from-white/10 to-transparent">
+                                <div className="w-full h-full flex items-center justify-center text-primary font-bold text-xl bg-gradient-to-br from-white/5 to-white/[0.02]">
                                     {token.symbol.slice(0, 2)}
                                 </div>
                             )}
-                            {/* Rank Badge */}
-                            {showRank && index < 3 && (
-                                <div className={`absolute top-0 left-0 w-6 h-6 flex items-center justify-center rounded-tl-xl rounded-br-xl backdrop-blur-md ${index === 0 ? "bg-yellow-500/20 text-yellow-400" :
-                                    index === 1 ? "bg-slate-300/20 text-slate-300" :
-                                        "bg-orange-500/20 text-orange-400"
-                                    }`}>
-                                    <Icon
-                                        icon={index === 0 ? "solar:crown-bold" : "solar:medal-ribbon-star-bold"}
-                                        className="w-3.5 h-3.5"
-                                    />
+                            
+                             {/* Rank Badge - Clean & Minimal */}
+                             {showRank && index < 3 && (
+                                <div className="absolute top-0 left-0">
+                                    <div className={`
+                                        w-6 h-6 flex items-center justify-center rounded-br-xl backdrop-blur-md
+                                        ${index === 0 ? "bg-yellow-500/80 text-black shadow-[0_0_10px_rgba(234,179,8,0.3)]" :
+                                          index === 1 ? "bg-slate-300/80 text-black" :
+                                          "bg-orange-500/80 text-black"}
+                                    `}>
+                                        <Icon
+                                            icon="solar:crown-bold"
+                                            className="w-3.5 h-3.5"
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
 
                         {/* Content Column */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
                             {/* Header Row */}
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <h3 className="font-bold text-white text-base leading-tight truncate pr-2">{token.name}</h3>
+                            <div className="flex items-start justify-between mb-1.5 ">
+                                <div className="min-w-0 pr-2">
+                                    <h3 className="font-bold text-white text-[15px] leading-tight truncate group-hover:text-primary transition-colors duration-300">{token.name}</h3>
                                     <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className="text-[10px] font-bold text-black bg-primary px-1.5 py-0.5 rounded-[4px]">
+                                        <span className="text-[10px] font-bold text-black bg-white/90 px-1.5 py-px rounded-[4px] tracking-tight">
                                             ${token.symbol}
                                         </span>
-                                        <span className="text-[10px] text-muted-foreground truncate">
+                                        <span className="text-[10px] text-muted-foreground truncate opacity-60">
                                             by {token.creatorWallet ? `${token.creatorWallet.slice(0, 4)}...${token.creatorWallet.slice(-4)}` : "unknown"}
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* Price Box */}
-                                <div className="text-right">
-                                    <div className="font-bold text-white text-sm tracking-tight">
+                                {/* Price Box - Right Aligned */}
+                                <div className="text-right flex-shrink-0">
+                                    <div className="font-medium text-white text-sm tracking-tight font-mono">
                                         {formatPrice(BigInt(token.currentPrice || "0"))}
                                     </div>
-                                    <div className={`flex items-center justify-end gap-0.5 text-[11px] font-bold ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                        <span className="text-xs">{isPositive ? "+" : "-"}</span>
+                                    <div className={`flex items-center justify-end gap-0.5 text-[10px] font-bold mt-0.5 ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                                        <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-2.5 h-2.5" />
                                         {Math.abs(priceChange).toFixed(2)}%
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Bonding Curve Meter (Mini) */}
-                            <div className="mt-3">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase">Curve Progress</span>
-                                    <span className="text-[10px] font-bold text-white">{progress.toFixed(1)}%</span>
+                            
+                             {/* Progress Bar - Slim & Elegant */}
+                             <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[9px] font-medium opacity-60">
+                                    <span className="text-muted-foreground uppercase tracking-wider">Bonding Curve</span>
+                                    <span className={progress > 90 ? "text-green-400" : "text-white"}>{progress.toFixed(1)}%</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-1 w-full bg-[#333] rounded-full overflow-hidden">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${progress}%` }}
-                                        className="h-full bg-gradient-to-r from-primary to-primary/50 shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]"
+                                        transition={{ duration: 1, ease: "easeOut" }}
+                                        className={`h-full relative ${
+                                            progress >= 100 
+                                            ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" 
+                                            : "bg-white shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                                        }`}
                                     />
                                 </div>
-                            </div>
+                             </div>
+
                         </div>
                     </div>
 
-                    {/* Stats Footer - Glass Strip */}
-                    <div className="grid grid-cols-2 gap-px bg-white/5 rounded-lg mt-3 overflow-hidden border border-white/5">
-                        <div className="px-3 py-2 bg-white/[0.02]">
-                            <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block mb-0.5">Market Cap</span>
-                            <span className="text-xs font-bold text-white block">
-                                {formatMarketCap(token.marketCap || "0")}
-                            </span>
-                            {marketCapUsd !== null && (
-                                <span className="text-[9px] text-muted-foreground block">
-                                    ~${formatCompactNumber(marketCapUsd, 0)}
-                                </span>
-                            )}
-                        </div>
-                        <div className="px-3 py-2 bg-white/[0.02]">
-                            <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block mb-0.5">Volume (24h)</span>
-                            <span className="text-xs font-bold text-white block">
-                                {formatCompactNumber(token.volume24h || 0, 1)} TON
-                            </span>
-                            <span className="text-[9px] text-muted-foreground block">
-                                ~${formatCompactNumber((token.volume24h || 0) * tonPrice, 0)}
-                            </span>
-                        </div>
+                    {/* Footer Stats - Minimalist Row */}
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                         <div className="flex items-center gap-1.5">
+                            <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground font-medium">MCap:</span>
+                            <span className="text-[10px] font-bold text-white tracking-wide">{formatMarketCap(token.marketCap || "0")}</span>
+                         </div>
+                         <div className="w-px h-3 bg-white/10" />
+                         <div className="flex items-center gap-1.5">
+                             <Icon icon="solar:graph-new-bold" className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground font-medium">Vol:</span>
+                            <span className="text-[10px] font-bold text-white tracking-wide">{formatCompactNumber(token.volume24h || 0, 1)} TON</span>
+                         </div>
                     </div>
+
                 </CardContent>
             </Card>
         </Link>
@@ -217,10 +225,11 @@ function EmptyState({ message }: { message: string }) {
 
 export default function TradePage() {
     const router = useRouter();
-    const { trendingTokens, newTokens, graduatedTokens, searchResults, isLoading, searchTokens, clearSearch, positions } = useTrading();
+    const { trendingTokens, newTokens, graduatedTokens, searchResults, isLoading, searchTokens, clearSearch, positions, myTokens, retryDeployToken } = useTrading();
     const { walletAddress, tonPrice } = useWallet();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
+    const [deployingTokenId, setDeployingTokenId] = useState<string | null>(null);
 
     // Check if wallet exists - prioritize context state, fallback to localStorage for SSR
     const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
@@ -243,6 +252,23 @@ export default function TradePage() {
     const fireLottieRef = useRef<LottieRefCurrentProps>(null);
     const sparklesLottieRef = useRef<LottieRefCurrentProps>(null);
     const diamondLottieRef = useRef<LottieRefCurrentProps>(null);
+    const rocketLottieRef = useRef<LottieRefCurrentProps>(null);
+
+    // Handle retry deployment
+    const handleRetryDeploy = async (tokenId: string) => {
+        setDeployingTokenId(tokenId);
+        toast.info("Deploying contract...");
+        
+        const result = await retryDeployToken(tokenId);
+        
+        if (result.success) {
+            toast.success("Token deployed successfully!");
+        } else {
+            toast.error(result.error || "Deployment failed");
+        }
+        
+        setDeployingTokenId(null);
+    };
 
     // Prefetch trade routes
     useEffect(() => {
@@ -261,6 +287,8 @@ export default function TradePage() {
             sparklesLottieRef.current?.goToAndPlay(0);
         } else if (activeTab === "holdings") {
             diamondLottieRef.current?.goToAndPlay(0);
+        } else if (activeTab === "created") {
+            rocketLottieRef.current?.goToAndPlay(0);
         }
     }, [activeTab]);
 
@@ -332,12 +360,12 @@ export default function TradePage() {
                     {/* Tabs */}
                     {!searchQuery && (
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-xl grid grid-cols-4 gap-1 border border-white/5 items-stretch">
+                            <TabsList className="w-full bg-[#121212]/50 backdrop-blur-md p-1 h-11 rounded-xl grid grid-cols-5 gap-1 border border-white/5 items-stretch">
                                 <TabsTrigger
                                     value="trending"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
-                                    <div className="flex items-center justify-center gap-1.5">
+                                    <div className="flex items-center justify-center gap-1">
                                         <Lottie
                                             lottieRef={fireLottieRef}
                                             animationData={fireAnimation}
@@ -352,7 +380,7 @@ export default function TradePage() {
                                     value="new"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
-                                    <div className="flex items-center justify-center gap-1.5">
+                                    <div className="flex items-center justify-center gap-1">
                                         <Lottie
                                             lottieRef={sparklesLottieRef}
                                             animationData={sparklesAnimation}
@@ -367,7 +395,7 @@ export default function TradePage() {
                                     value="holdings"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
-                                    <div className="flex items-center justify-center gap-1.5">
+                                    <div className="flex items-center justify-center gap-1">
                                         <Lottie
                                             lottieRef={diamondLottieRef}
                                             animationData={diamondAnimation}
@@ -379,10 +407,28 @@ export default function TradePage() {
                                     </div>
                                 </TabsTrigger>
                                 <TabsTrigger
+                                    value="created"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none relative"
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        <Lottie
+                                            lottieRef={rocketLottieRef}
+                                            animationData={rocketAnimation}
+                                            loop={true}
+                                            autoplay={activeTab === "created"}
+                                            className="w-4 h-4"
+                                        />
+                                        <span>Mine</span>
+                                    </div>
+                                    {myTokens.some(t => !t.isDeployed) && (
+                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                                    )}
+                                </TabsTrigger>
+                                <TabsTrigger
                                     value="dex"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:backdrop-blur-md border border-transparent data-[state=active]:border-white/10 rounded-lg text-xs font-bold tracking-wide transition-all shadow-none"
                                 >
-                                    <div className="flex items-center justify-center gap-1.5">
+                                    <div className="flex items-center justify-center gap-1">
                                         <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
                                         <span>DEX</span>
                                     </div>
@@ -451,6 +497,102 @@ export default function TradePage() {
                                         )
                                     ))}
                                 </div>
+                            </div>
+                        )
+                    ) : activeTab === "created" ? (
+                        myTokens.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                                    <Icon icon="solar:rocket-bold" className="w-8 h-8 text-primary" />
+                                </div>
+                                <p className="text-white font-medium mb-2">No Tokens Created Yet</p>
+                                <p className="text-xs text-muted-foreground max-w-[200px] mb-4">
+                                    Launch your own token and start building your community
+                                </p>
+                                <Button
+                                    onClick={() => router.push("/trade/create")}
+                                    className="bg-white hover:bg-white/90 text-black gap-2 font-bold rounded-full px-5"
+                                >
+                                    <Icon icon="solar:rocket-bold" className="w-4 h-4" />
+                                    Create Token
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {/* Pending Deployments Section */}
+                                {myTokens.filter(t => !t.isDeployed).length > 0 && (
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Badge className="bg-orange-500/20 text-orange-400 border-0">
+                                                <Icon icon="solar:danger-triangle-bold" className="w-3 h-3 mr-1" />
+                                                Pending Deployment
+                                            </Badge>
+                                        </div>
+                                        {myTokens.filter(t => !t.isDeployed).map((token) => (
+                                            <Card key={token.id} className="bg-orange-500/5 border-orange-500/20 mb-2">
+                                                <CardContent className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
+                                                            {token.image ? (
+                                                                <TokenImageFill src={token.image} alt={token.name} />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white/50">
+                                                                    {token.symbol?.charAt(0) || "?"}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="font-bold text-white truncate">{token.name}</h4>
+                                                            <p className="text-xs text-orange-400">${token.symbol}</p>
+                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                Contract not deployed - TON may be stuck
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            onClick={() => handleRetryDeploy(token.id)}
+                                                            disabled={deployingTokenId === token.id}
+                                                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-full px-4"
+                                                            size="sm"
+                                                        >
+                                                            {deployingTokenId === token.id ? (
+                                                                <>
+                                                                    <Icon icon="solar:refresh-bold" className="w-4 h-4 mr-1 animate-spin" />
+                                                                    Deploying...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Icon icon="solar:rocket-bold" className="w-4 h-4 mr-1" />
+                                                                    Deploy
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {/* Deployed Tokens */}
+                                {myTokens.filter(t => t.isDeployed).length > 0 && (
+                                    <>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Badge className="bg-green-500/20 text-green-400 border-0">
+                                                <Icon icon="solar:verified-check-bold" className="w-3 h-3 mr-1" />
+                                                Live Tokens
+                                            </Badge>
+                                        </div>
+                                        {myTokens.filter(t => t.isDeployed).map((token, index) => (
+                                            <TokenCard
+                                                key={token.id}
+                                                token={token}
+                                                index={index}
+                                                tonPrice={tonPrice || 0}
+                                                showRank={false}
+                                            />
+                                        ))}
+                                    </>
+                                )}
                             </div>
                         )
                     ) : displayTokens.length === 0 ? (

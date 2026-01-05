@@ -51,6 +51,11 @@ interface TradingContextType {
     searchResults: Token[];
     isLoading: boolean;
 
+    // User's created tokens (including pending deployments)
+    myTokens: Token[];
+    fetchMyTokens: () => Promise<void>;
+    retryDeployToken: (tokenId: string) => Promise<{ success: boolean; error?: string }>;
+
     // Search
     searchTokens: (query: string) => Promise<void>;
     clearSearch: () => void;
@@ -105,6 +110,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
     const [newTokens, setNewTokens] = useState<Token[]>([]);
     const [graduatedTokens, setGraduatedTokens] = useState<Token[]>([]);
+    const [myTokens, setMyTokens] = useState<Token[]>([]);
     const [searchResults, setSearchResults] = useState<Token[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [positions, setPositions] = useState<HolderPosition[]>([]);
@@ -213,6 +219,149 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(false);
         }
     }, [docToToken]);
+
+    // =====================================================
+    // Fetch MY tokens (created by current user, including pending)
+    // =====================================================
+    const fetchMyTokens = useCallback(async () => {
+        if (!telegramId) {
+            setMyTokens([]);
+            return;
+        }
+
+        try {
+            // Fetch ALL tokens created by this user (not filtered by isOnChain)
+            const myTokensQuery = query(
+                collection(dbfs, "tokens"),
+                where("creatorUserId", "==", telegramId),
+                orderBy("createdAt", "desc"),
+                limit(50)
+            );
+            const snapshot = await getDocs(myTokensQuery);
+            setMyTokens(snapshot.docs.map(docToToken));
+        } catch (error) {
+            console.error("Error fetching my tokens:", error);
+        }
+    }, [telegramId, docToToken]);
+
+    // =====================================================
+    // Retry deploy token (for failed deployments)
+    // =====================================================
+    const retryDeployToken = useCallback(async (tokenId: string): Promise<{ success: boolean; error?: string }> => {
+        if (!walletAddress || !telegramId) {
+            return { success: false, error: "Wallet not connected" };
+        }
+
+        try {
+            // Fetch token from Firestore to get details
+            const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
+            if (!tokenDoc.exists()) {
+                return { success: false, error: "Token not found" };
+            }
+
+            const tokenData = tokenDoc.data();
+            
+            // Check if already deployed
+            if (tokenData.isDeployed && tokenData.isOnChain) {
+                return { success: false, error: "Token is already deployed" };
+            }
+
+            // Re-call the deploy API to get fresh stateInit
+            const response = await fetch("/api/deploy-jetton", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: tokenData.name,
+                    symbol: tokenData.symbol,
+                    description: tokenData.description || "",
+                    image: tokenData.image || "",
+                    creatorAddress: walletAddress,
+                    tokenId: tokenId, // Pass tokenId to update existing record
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                return { success: false, error: errorData.error || "Failed to prepare deployment" };
+            }
+
+            const { jettonAddress, deployTx, success } = await response.json();
+
+            if (!success || !deployTx) {
+                return { success: false, error: "Failed to build deployment transaction" };
+            }
+
+            // Parse stateInit
+            let stateInitCell: Cell | undefined;
+            if (deployTx.stateInit) {
+                const stateInitBuffer = Buffer.from(deployTx.stateInit, "base64");
+                stateInitCell = Cell.fromBoc(stateInitBuffer)[0];
+            }
+
+            console.log("Sending retry deployment:", { to: jettonAddress, value: deployTx.value });
+
+            // Send deployment transaction
+            const txResult = await sendTransaction({
+                to: deployTx.to,
+                value: deployTx.value,
+                stateInit: stateInitCell,
+            });
+
+            if (!txResult.success) {
+                return { success: false, error: txResult.error || "Transaction failed" };
+            }
+
+            console.log("Retry deployment transaction sent:", txResult.txHash);
+
+            // Wait for on-chain confirmation
+            let isDeployedOnChain = false;
+            const maxRetries = 10;
+            const retryDelay = 3000;
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                console.log(`Checking deployment status (attempt ${attempt}/${maxRetries})...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+                try {
+                    const statusResponse = await fetch(`https://tonapi.io/v2/accounts/${jettonAddress}`);
+                    if (statusResponse.ok) {
+                        const statusData = await statusResponse.json();
+                        if (statusData.status === "active" && statusData.code) {
+                            console.log("Contract is now ACTIVE on-chain!");
+                            isDeployedOnChain = true;
+                            break;
+                        }
+                    }
+                } catch (checkError) {
+                    console.log("Status check failed, will retry...", checkError);
+                }
+            }
+
+            if (isDeployedOnChain) {
+                // Confirm deployment in database
+                await fetch("/api/deploy-jetton", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        tokenId,
+                        jettonAddress,
+                        txHash: txResult.txHash,
+                    }),
+                }).catch(console.error);
+
+                // Refresh my tokens list
+                await fetchMyTokens();
+                await fetchTokens();
+
+                return { success: true };
+            } else {
+                return { success: false, error: "Deployment not confirmed. Please try again." };
+            }
+        } catch (error) {
+            console.error("Retry deploy error:", error);
+            return { success: false, error: error instanceof Error ? error.message : "Deployment failed" };
+        }
+    }, [walletAddress, telegramId, sendTransaction, fetchMyTokens, fetchTokens]);
 
     // =====================================================
     // Search tokens
@@ -929,6 +1078,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         }
     }, [walletAddress, refreshPositions]);
 
+    useEffect(() => {
+        if (telegramId) {
+            fetchMyTokens();
+        }
+    }, [telegramId, fetchMyTokens]);
+
     // =====================================================
     // Context Value
     // =====================================================
@@ -938,6 +1093,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         graduatedTokens,
         searchResults,
         isLoading,
+        myTokens,
+        fetchMyTokens,
+        retryDeployToken,
         searchTokens,
         clearSearch,
         positions,
