@@ -21,10 +21,10 @@ import {
   History,
   Plus,
   Download,
-  ShieldAlert,
   Image as ImageIcon,
   X,
-  ChevronRight
+  ChevronRight,
+  PieChart
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -384,6 +384,8 @@ export default function WalletPage() {
       router.prefetch("/wallet/swap");
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
+      router.prefetch("/wallet/analytics");
+      router.prefetch("/wallet/send-multichain");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -621,12 +623,13 @@ export default function WalletPage() {
               </div>
 
               {/* Action Grid */}
-              <div className="grid grid-cols-4 gap-2 mt-8">
+              <div className="grid grid-cols-5 gap-2 mt-8">
                 {[
                   { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
                   { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
                   { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", path: "/wallet/swap", disabled: false },
                   { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
+                  { icon: <PieChart className="w-5 h-5" />, label: "Portfolio", path: "/wallet/analytics", disabled: false },
                 ].map((action, i) => (
                   <Button
                     key={i}
@@ -698,14 +701,7 @@ export default function WalletPage() {
               You&apos;re on TON Testnet. Assets here have no real value. Switch to mainnet in settings for real transactions.
             </p>
           </div>
-        ) : (ethAddress || btcAddress || solAddress || trxAddress) && (
-          <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-            <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-yellow-500/90 leading-relaxed">
-              Multi-chain assets are receive-only. Sending is currently only available for TON.
-            </p>
-          </div>
-        )}
+        ) : null}
 
 
         <Tabs defaultValue="assets" className="w-full pb-24">

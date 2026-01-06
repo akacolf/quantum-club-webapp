@@ -91,6 +91,11 @@ interface WalletContextType {
   switchWallet: (address: string) => void;
   renameWallet: (address: string, newName: string) => void;
   clearWallet: () => void; // Clears all wallet state on logout
+  // Auto-refresh settings
+  autoRefreshEnabled: boolean;
+  autoRefreshInterval: number; // in seconds
+  toggleAutoRefresh: () => void;
+  setAutoRefreshInterval: (seconds: number) => void;
   // Transaction sending for QC Wallet integration
   sendTransaction: (params: {
     to: string;
@@ -258,6 +263,37 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return false;
   });
+
+  // Auto-refresh settings
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("quantum_auto_refresh");
+      return stored !== "false"; // Default to true
+    }
+    return true;
+  });
+
+  const [autoRefreshInterval, setAutoRefreshIntervalState] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("quantum_auto_refresh_interval");
+      return stored ? parseInt(stored) : 60; // Default 60 seconds
+    }
+    return 60;
+  });
+
+  const toggleAutoRefresh = useCallback(() => {
+    setAutoRefreshEnabled(prev => {
+      const newValue = !prev;
+      localStorage.setItem("quantum_auto_refresh", String(newValue));
+      return newValue;
+    });
+  }, []);
+
+  const setAutoRefreshInterval = useCallback((seconds: number) => {
+    const validSeconds = Math.max(30, Math.min(300, seconds)); // Clamp between 30s and 5min
+    setAutoRefreshIntervalState(validSeconds);
+    localStorage.setItem("quantum_auto_refresh_interval", String(validSeconds));
+  }, []);
 
   // Multi-wallet management functions
   const addWallet = useCallback((address: string, name?: string) => {
@@ -640,6 +676,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [walletAddress, hasFetched, fetchWalletAssets]);
 
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefreshEnabled || !walletAddress || !hasFetched) {
+      return;
+    }
+
+    const intervalMs = autoRefreshInterval * 1000;
+    
+    const refreshInterval = setInterval(() => {
+      // Only refresh if the page is visible
+      if (document.visibilityState === "visible") {
+        fetchWalletAssets();
+        if (!isTestnet) {
+          fetchMultiChainBalances();
+        }
+      }
+    }, intervalMs);
+
+    return () => clearInterval(refreshInterval);
+  }, [autoRefreshEnabled, autoRefreshInterval, walletAddress, hasFetched, isTestnet, fetchWalletAssets, fetchMultiChainBalances]);
+
   // Send transaction using QC Wallet credentials
   const sendTransaction = useCallback(async (params: {
     to: string;
@@ -899,6 +956,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       switchWallet,
       renameWallet,
       clearWallet,
+      // Auto-refresh
+      autoRefreshEnabled,
+      autoRefreshInterval,
+      toggleAutoRefresh,
+      setAutoRefreshInterval,
       sendTransaction,
     }}>
       {children}

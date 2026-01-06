@@ -181,7 +181,8 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
-  html, body {
+  html,
+  body {
     background-color: var(--background);
     color: var(--foreground);
     transition: background-color 0.2s ease, color 0.2s ease;
@@ -200,4 +201,62 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Remove white borders from Recharts on click/focus */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-pie,
+.recharts-pie-sector,
+.recharts-bar,
+.recharts-bar-rectangle,
+.recharts-cell,
+.recharts-legend-item,
+.recharts-tooltip-wrapper {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-sector:focus,
+.recharts-sector:active,
+.recharts-bar-rectangle:focus,
+.recharts-bar-rectangle:active,
+.recharts-cell:focus,
+.recharts-cell:active {
+  outline: none !important;
+  stroke: transparent !important;
+}
+
+/* Also remove from SVG paths */
+.recharts-wrapper svg path:focus,
+.recharts-wrapper svg path:active,
+.recharts-wrapper svg rect:focus,
+.recharts-wrapper svg rect:active {
+  outline: none !important;
+}
+
+/* Remove white borders from bar chart rectangles on focus/click */
+.recharts-bar-rectangle,
+.recharts-bar-rectangle path,
+.recharts-rectangle {
+  stroke: none !important;
+  outline: none !important;
+}
+
+.recharts-bar-rectangle:focus,
+.recharts-bar-rectangle:active,
+.recharts-bar-rectangle:hover,
+.recharts-rectangle:focus,
+.recharts-rectangle:active,
+.recharts-rectangle:hover {
+  stroke: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove focus ring from the wrapper itself */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none !important;
+  stroke-width: 0 !important;
 }

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import React from "react";
-import { motion } from "framer-motion";
 import { QntmBalanceProps } from "@/lib/interfaces";
 
 const FrensIcon = React.memo(() => (
@@ -34,42 +33,6 @@ export default function QntmBalance({
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-orange-500/20 rounded-full blur-[60px] -z-10" />
 
       <div className="relative mb-4">
-        {/* Christmas Hat */}
-        <motion.div
-          className="absolute -top-5 -right-1 z-10 pointer-events-none"
-          initial={{ rotate: 15 }}
-          animate={{
-            rotate: [15, 20, 15],
-            y: [0, -1, 0],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.25))" }}
-        >
-          <svg
-            width="40"
-            height="40"
-            viewBox="0 0 100 100"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Hat Body - Red curved shape */}
-            <path
-              d="M15 75 C15 75 20 35 50 25 C65 20 85 30 90 50 C92 58 88 65 80 62 C70 58 60 45 50 50 C40 55 45 75 55 75 Z"
-              fill="#dc2626"
-            />
-
-            {/* White Fur Trim */}
-            <ellipse cx="35" cy="78" rx="28" ry="8" fill="white" />
-
-            {/* Pom Pom */}
-            <circle cx="82" cy="58" r="10" fill="white" />
-          </svg>
-        </motion.div>
-
         {/* Icon Color - Reverted to White, kept orange shadow */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
