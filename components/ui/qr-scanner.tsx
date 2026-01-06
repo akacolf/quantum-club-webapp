@@ -29,121 +29,214 @@ export function QRScanner({
   description = "Point your camera at a QR code to scan",
 }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isStartingRef = useRef(false);
+  const hasScannedRef = useRef(false);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const containerId = "qr-scanner-container";
 
-  const startScanner = useCallback(async (cameraId?: string) => {
+  // Stable refs for callbacks to avoid re-creating startScanner
+  const onScanRef = useRef(onScan);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onScanRef.current = onScan;
+    onCloseRef.current = onClose;
+  }, [onScan, onClose]);
+
+  const stopScanner = useCallback(async () => {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
-      } catch {
+        const state = scannerRef.current.getState();
+        if (state === 2) { // SCANNING state
+          await scannerRef.current.stop();
+        }
+      } catch (e) {
         // Ignore stop errors
+        console.debug("Stop scanner error (ignored):", e);
       }
+      scannerRef.current = null;
+    }
+    setIsScanning(false);
+    isStartingRef.current = false;
+  }, []);
+
+  const startScanner = useCallback(async (cameraId?: string) => {
+    // Prevent multiple simultaneous starts
+    if (isStartingRef.current || hasScannedRef.current) {
+      return;
+    }
+    
+    // Make sure container exists
+    const container = document.getElementById(containerId);
+    if (!container) {
+      console.debug("Container not ready, waiting...");
+      return;
+    }
+
+    isStartingRef.current = true;
+
+    // Stop existing scanner first
+    if (scannerRef.current) {
+      try {
+        const state = scannerRef.current.getState();
+        if (state === 2) {
+          await scannerRef.current.stop();
+        }
+      } catch {
+        // Ignore
+      }
+      scannerRef.current = null;
     }
 
     try {
+      // Get cameras list only once
+      let devicesList = cameras;
+      if (devicesList.length === 0) {
+        devicesList = await Html5Qrcode.getCameras();
+        if (devicesList && devicesList.length > 0) {
+          setCameras(devicesList);
+        }
+      }
+
+      if (!devicesList || devicesList.length === 0) {
+        setError("No cameras found on this device");
+        isStartingRef.current = false;
+        return;
+      }
+
+      // Prefer back camera
+      let selectedCamera = cameraId || devicesList[0].id;
+      if (!cameraId) {
+        const backCamera = devicesList.find(d => 
+          d.label.toLowerCase().includes("back") || 
+          d.label.toLowerCase().includes("rear") ||
+          d.label.toLowerCase().includes("environment")
+        );
+        if (backCamera) {
+          selectedCamera = backCamera.id;
+          setCurrentCameraIndex(devicesList.indexOf(backCamera));
+        }
+      }
+
       const html5Qrcode = new Html5Qrcode(containerId, {
         formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
         verbose: false,
       });
       scannerRef.current = html5Qrcode;
 
-      // Get available cameras
-      const devices = await Html5Qrcode.getCameras();
-      if (devices && devices.length > 0) {
-        setCameras(devices);
-        
-        // Prefer back camera
-        let selectedCamera = cameraId || devices[0].id;
-        const backCamera = devices.find(d => 
-          d.label.toLowerCase().includes("back") || 
-          d.label.toLowerCase().includes("rear") ||
-          d.label.toLowerCase().includes("environment")
-        );
-        if (backCamera && !cameraId) {
-          selectedCamera = backCamera.id;
-          setCurrentCameraIndex(devices.indexOf(backCamera));
+      await html5Qrcode.start(
+        selectedCamera,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1,
+        },
+        (decodedText) => {
+          // Prevent multiple scans
+          if (hasScannedRef.current) return;
+          hasScannedRef.current = true;
+          
+          // Success callback
+          onScanRef.current(decodedText);
+          
+          // Stop and close async
+          setTimeout(async () => {
+            await stopScanner();
+            onCloseRef.current();
+          }, 100);
+        },
+        () => {
+          // Error callback - ignore (constantly called when no QR is in view)
         }
-
-        await html5Qrcode.start(
-          selectedCamera,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1,
-          },
-          (decodedText) => {
-            // Success callback
-            onScan(decodedText);
-            stopScanner();
-            onClose();
-          },
-          () => {
-            // Error callback - ignore (constantly called when no QR is in view)
-          }
-        );
-        setIsScanning(true);
-        setError(null);
-      } else {
-        setError("No cameras found on this device");
-      }
+      );
+      
+      setIsScanning(true);
+      setError(null);
+      isStartingRef.current = false;
     } catch (err) {
       console.error("QR Scanner error:", err);
-      setError(
-        err instanceof Error 
-          ? err.message 
-          : "Failed to start camera. Please ensure camera permissions are granted."
-      );
-    }
-  }, [onScan, onClose]);
-
-  const stopScanner = useCallback(async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-      } catch {
-        // Ignore stop errors
+      isStartingRef.current = false;
+      
+      // Check if it's a permission error
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes("Permission") || errorMessage.includes("NotAllowed")) {
+        setError("Camera permission denied. Please allow camera access in your browser settings.");
+      } else if (errorMessage.includes("NotFound") || errorMessage.includes("not found")) {
+        setError("No camera found on this device.");
+      } else if (errorMessage.includes("NotReadable") || errorMessage.includes("in use")) {
+        setError("Camera is in use by another app. Please close other apps using the camera.");
+      } else {
+        setError("Failed to start camera. Please try again.");
       }
     }
-    setIsScanning(false);
-  }, []);
+  }, [cameras, stopScanner]);
 
   const switchCamera = useCallback(async () => {
     if (cameras.length < 2) return;
     
     const nextIndex = (currentCameraIndex + 1) % cameras.length;
     setCurrentCameraIndex(nextIndex);
+    
+    // Stop current scanner and start with new camera
     await stopScanner();
-    await startScanner(cameras[nextIndex].id);
+    // Small delay before starting new camera
+    setTimeout(() => {
+      startScanner(cameras[nextIndex].id);
+    }, 200);
   }, [cameras, currentCameraIndex, stopScanner, startScanner]);
 
+  // Start scanner when drawer opens
   useEffect(() => {
     if (isOpen) {
-      // Give the drawer time to render
+      hasScannedRef.current = false;
+      setError(null);
+      
+      // Give the drawer time to fully render
       const timeout = setTimeout(() => {
         startScanner();
-      }, 300);
-      return () => clearTimeout(timeout);
+      }, 400);
+      
+      return () => {
+        clearTimeout(timeout);
+      };
     } else {
+      // Cleanup when closing
       stopScanner();
+      hasScannedRef.current = false;
     }
-  }, [isOpen, startScanner, stopScanner]);
+  }, [isOpen]); // Only depend on isOpen, not on startScanner/stopScanner to avoid loops
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopScanner();
+      if (scannerRef.current) {
+        try {
+          const state = scannerRef.current.getState();
+          if (state === 2) {
+            scannerRef.current.stop().catch(() => {});
+          }
+        } catch {
+          // Ignore
+        }
+        scannerRef.current = null;
+      }
     };
-  }, [stopScanner]);
+  }, []);
 
   const handleClose = useCallback(() => {
+    hasScannedRef.current = true; // Prevent any pending scans
     stopScanner();
     onClose();
   }, [stopScanner, onClose]);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    hasScannedRef.current = false;
+    isStartingRef.current = false;
+    startScanner();
+  }, [startScanner]);
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
@@ -163,7 +256,7 @@ export function QRScanner({
 
           {/* Overlay with scanning frame */}
           <AnimatePresence>
-            {isScanning && (
+            {isScanning && !error && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -215,7 +308,7 @@ export function QRScanner({
               <Camera className="w-12 h-12 text-gray-600 mb-4" />
               <p className="text-sm text-gray-400 text-center mb-4">{error}</p>
               <Button
-                onClick={() => startScanner()}
+                onClick={handleRetry}
                 variant="outline"
                 className="border-[#333] bg-[#222] hover:bg-[#333]"
               >
