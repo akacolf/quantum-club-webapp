@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, Loader2, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
+import { QRScanner, useQRScanner } from "@/components/ui/qr-scanner";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell } from "@ton/core";
@@ -76,6 +77,7 @@ export default function SendPage() {
   const router = useRouter();
 
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
+  const { isOpen: isQROpen, openScanner: openQRScanner, closeScanner: closeQRScanner } = useQRScanner();
 
   const {
     walletAddress,
@@ -1059,17 +1061,26 @@ export default function SendPage() {
                       value={multiChainRecipient}
                       onChange={(e) => setMultiChainRecipient(e.target.value)}
                       placeholder={`Enter ${currentChain.symbol} address`}
-                      className={`bg-card border-border h-14 pl-4 pr-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${
+                      className={`bg-card border-border h-14 pl-4 pr-20 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${
                         multiChainAddressError ? 'border-destructive focus:border-destructive' :
                         multiChainRecipient && !multiChainAddressError ? 'border-green-500/50 focus:border-green-500' : 'focus:border-primary/50'
                       }`}
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                       {multiChainRecipient && !multiChainAddressError ? (
                         <Check className="w-4 h-4 text-green-500" />
                       ) : (
                         <Wallet className="w-4 h-4 text-muted-foreground" />
                       )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={openQRScanner}
+                        className="w-8 h-8 rounded-lg bg-muted hover:bg-accent"
+                      >
+                        <ScanLine className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                   {multiChainAddressError && (
@@ -1387,11 +1398,11 @@ export default function SendPage() {
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
                     placeholder="Enter TON address or name.ton"
-                    className={`bg-card border-border h-14 pl-4 pr-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${addressError ? 'border-destructive focus:border-destructive' :
+                    className={`bg-card border-border h-14 pl-4 pr-20 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${addressError ? 'border-destructive focus:border-destructive' :
                       resolvedAddress ? 'border-green-500/50 focus:border-green-500' : 'focus:border-primary/50'
                       }`}
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                     {isResolvingAddress ? (
                       <ButtonLoader />
                     ) : resolvedAddress ? (
@@ -1399,6 +1410,15 @@ export default function SendPage() {
                     ) : (
                       <Wallet className="w-4 h-4 text-muted-foreground" />
                     )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={openQRScanner}
+                      className="w-8 h-8 rounded-lg bg-muted hover:bg-accent"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
                 {isDomainAddress && resolvedAddress && (
@@ -1702,6 +1722,39 @@ export default function SendPage() {
         onCancel={handleAuthCancel}
         title="Confirm Transaction"
         description={`Authenticate to send ${networkMode === "multichain" ? multiChainAmount + " " + currentChain.symbol : amount + " " + (selectedAsset?.symbol || '')} to ${networkMode === "multichain" ? (multiChainRecipient ? multiChainRecipient.slice(0, 8) + '...' : 'recipient') : (recipient ? recipient.slice(0, 8) + '...' : 'recipient')}`}
+      />
+
+      {/* QR Code Scanner */}
+      <QRScanner
+        isOpen={isQROpen}
+        onClose={closeQRScanner}
+        onScan={(result) => {
+          // Handle various QR code formats
+          let address = result;
+          
+          // Handle ton:// deep links (tonkeeper, tonhub, etc.)
+          if (result.startsWith("ton://transfer/")) {
+            const url = new URL(result);
+            address = url.pathname.replace("/transfer/", "");
+          } else if (result.startsWith("tonkeeper://")) {
+            // tonkeeper://transfer/UQ...
+            address = result.replace("tonkeeper://transfer/", "").split("?")[0];
+          } else if (result.includes("?")) {
+            // Remove query params
+            address = result.split("?")[0];
+          }
+          
+          // Set the address based on current network mode
+          if (networkMode === "ton") {
+            setRecipient(address);
+            toast.success("Address scanned!");
+          } else {
+            setMultiChainRecipient(address);
+            toast.success("Address scanned!");
+          }
+        }}
+        title="Scan Wallet Address"
+        description="Point your camera at a wallet QR code"
       />
     </div>
   );

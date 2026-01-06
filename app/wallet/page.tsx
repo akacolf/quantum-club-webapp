@@ -24,7 +24,8 @@ import {
   Image as ImageIcon,
   X,
   ChevronRight,
-  PieChart
+  PieChart,
+  ShieldAlert
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
+import { assessTokenRisk, getRiskBadgeProps } from "@/lib/scamFilter";
 
 // Asset detail types
 interface PricePoint {
@@ -814,10 +816,27 @@ export default function WalletPage() {
             {jettons.map((jetton, index) => {
               const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
               const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
+              
+              // Assess token risk
+              const riskAssessment = assessTokenRisk({
+                symbol: jetton.symbol,
+                name: jetton.name,
+                address: jetton.jettonAddress,
+                decimals: jetton.decimals,
+                usdValue: jetton.usdValue,
+                balance: jetton.balance,
+              });
+              const riskBadge = getRiskBadgeProps(riskAssessment.riskLevel);
+              const showRiskWarning = riskAssessment.riskLevel !== "safe" && riskAssessment.riskLevel !== "low";
+              
               return (
                 <Card
                   key={index}
-                  className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                  className={`bg-[#111] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99] ${
+                    riskAssessment.riskLevel === "critical" ? "border-red-500/50" :
+                    riskAssessment.riskLevel === "high" ? "border-orange-500/30" :
+                    "border-[#222]"
+                  }`}
                   onClick={() => {
                     setSelectedAsset({
                       name: jetton.name,
@@ -833,15 +852,30 @@ export default function WalletPage() {
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
+                      <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333] relative">
                         {jetton.image ? (
                           <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                         ) : (
                           <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
                         )}
+                        {showRiskWarning && (
+                          <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center ${riskBadge.bgColor}`}>
+                            <ShieldAlert className={`w-2.5 h-2.5 ${riskBadge.color}`} />
+                          </div>
+                        )}
                       </div>
                       <div>
-                        <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                          {showRiskWarning && (
+                            <Badge 
+                              variant="outline" 
+                              className={`${riskBadge.bgColor} ${riskBadge.color} ${riskBadge.borderColor} text-[8px] font-bold px-1.5 py-0`}
+                            >
+                              {riskBadge.label}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500 truncate max-w-[120px]">{jetton.name}</p>
                       </div>
                     </div>
