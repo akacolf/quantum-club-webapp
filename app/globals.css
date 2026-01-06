@@ -201,3 +201,35 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Remove white borders from Recharts on click/focus */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-pie,
+.recharts-pie-sector,
+.recharts-bar,
+.recharts-bar-rectangle,
+.recharts-cell,
+.recharts-legend-item,
+.recharts-tooltip-wrapper {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-sector:focus,
+.recharts-sector:active,
+.recharts-bar-rectangle:focus,
+.recharts-bar-rectangle:active,
+.recharts-cell:focus,
+.recharts-cell:active {
+  outline: none !important;
+  stroke: transparent !important;
+}
+
+/* Also remove from SVG paths */
+.recharts-wrapper svg path:focus,
+.recharts-wrapper svg path:active,
+.recharts-wrapper svg rect:focus,
+.recharts-wrapper svg rect:active {
+  outline: none !important;
+}
