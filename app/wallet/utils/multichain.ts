@@ -506,6 +506,318 @@ export interface MultiChainBalances {
     trx: ChainBalance;
 }
 
+// ============== Transaction Sending Functions ==============
+
+/**
+ * Get ETH private key from mnemonic
+ */
+export function getEthPrivateKey(mnemonic: string): string {
+    const seed = mnemonicToSeedSync(mnemonic);
+    const hdKey = HDKey.fromMasterSeed(seed);
+    const derived = hdKey.derive(ETH_PATH);
+
+    if (!derived.privateKey) {
+        throw new Error("Failed to derive private key");
+    }
+
+    return `0x${Buffer.from(derived.privateKey).toString("hex")}`;
+}
+
+/**
+ * Get SOL private key from mnemonic (returns keypair as Uint8Array)
+ */
+export function getSolKeypair(mnemonic: string): Uint8Array {
+    const seed = mnemonicToSeedSync(mnemonic);
+    const hdKey = HDKey.fromMasterSeed(seed);
+    const derived = hdKey.derive(SOL_PATH);
+
+    if (!derived.privateKey) {
+        throw new Error("Failed to derive private key");
+    }
+
+    // For Solana, we need the first 32 bytes as seed for Ed25519
+    const seedBytes = derived.privateKey.slice(0, 32);
+    const publicKey = ed25519.getPublicKey(seedBytes);
+
+    // Solana keypair is 64 bytes: 32 bytes secret + 32 bytes public
+    const keypair = new Uint8Array(64);
+    keypair.set(seedBytes);
+    keypair.set(publicKey, 32);
+    return keypair;
+}
+
+/**
+ * Get TRX private key from mnemonic (hex string without 0x prefix)
+ */
+export function getTrxPrivateKey(mnemonic: string): string {
+    const seed = mnemonicToSeedSync(mnemonic);
+    const hdKey = HDKey.fromMasterSeed(seed);
+    const derived = hdKey.derive(TRX_PATH);
+
+    if (!derived.privateKey) {
+        throw new Error("Failed to derive private key");
+    }
+
+    return Buffer.from(derived.privateKey).toString("hex");
+}
+
+/**
+ * Validate ETH/EVM address
+ */
+export function isValidEthAddress(address: string): boolean {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+/**
+ * Validate SOL address (base58, 32-44 chars)
+ */
+export function isValidSolAddress(address: string): boolean {
+    try {
+        const decoded = bs58.decode(address);
+        return decoded.length === 32;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Validate TRX address (base58, starts with T, 34 chars)
+ */
+export function isValidTrxAddress(address: string): boolean {
+    try {
+        if (!address.startsWith("T") || address.length !== 34) {
+            return false;
+        }
+        bs58.decode(address);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Estimate ETH gas for a simple transfer
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function estimateEthGas(_from: string, _to: string, _value: string): Promise<{ gasLimit: string; gasPrice: string; estimatedFee: string }> {
+    const rpcUrl = "https://cloudflare-eth.com";
+    
+    try {
+        // Get current gas price
+        const gasPriceRes = await fetch(rpcUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                method: "eth_gasPrice",
+                params: [],
+                id: 1
+            })
+        });
+
+        let gasPrice = BigInt(20000000000); // 20 gwei fallback
+        if (gasPriceRes.ok) {
+            const data = await gasPriceRes.json();
+            if (data.result) {
+                gasPrice = BigInt(data.result);
+            }
+        }
+
+        // Simple ETH transfer uses 21000 gas
+        const gasLimit = BigInt(21000);
+        const estimatedFee = gasLimit * gasPrice;
+        
+        return {
+            gasLimit: gasLimit.toString(),
+            gasPrice: gasPrice.toString(),
+            estimatedFee: (Number(estimatedFee) / 1e18).toFixed(6)
+        };
+    } catch (error) {
+        console.error("ETH gas estimation error:", error);
+        // Return fallback values
+        return {
+            gasLimit: "21000",
+            gasPrice: "20000000000",
+            estimatedFee: "0.00042"
+        };
+    }
+}
+
+/**
+ * Send ETH transaction
+ */
+export async function sendEthTransaction(
+    mnemonic: string,
+    to: string,
+    amountEth: string
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    const rpcUrls = [
+        "https://cloudflare-eth.com",
+        "https://rpc.ankr.com/eth",
+        "https://eth.public-rpc.com"
+    ];
+
+    try {
+        // Dynamically import viem for transaction signing
+        const { createWalletClient, http, parseEther } = await import("viem");
+        const { privateKeyToAccount } = await import("viem/accounts");
+        const { mainnet } = await import("viem/chains");
+
+        const privateKey = getEthPrivateKey(mnemonic) as `0x${string}`;
+        const account = privateKeyToAccount(privateKey);
+
+        // Try each RPC until one works
+        for (const rpcUrl of rpcUrls) {
+            try {
+                const client = createWalletClient({
+                    account,
+                    chain: mainnet,
+                    transport: http(rpcUrl)
+                });
+
+                const hash = await client.sendTransaction({
+                    to: to as `0x${string}`,
+                    value: parseEther(amountEth)
+                });
+
+                return { success: true, txHash: hash };
+            } catch (err) {
+                console.warn(`ETH send via ${rpcUrl} failed:`, err);
+                continue;
+            }
+        }
+
+        return { success: false, error: "All RPC endpoints failed" };
+    } catch (error) {
+        console.error("ETH transaction error:", error);
+        return { 
+            success: false, 
+            error: error instanceof Error ? error.message : "Transaction failed" 
+        };
+    }
+}
+
+/**
+ * Estimate SOL transaction fee
+ */
+export async function estimateSolFee(): Promise<string> {
+    // Solana has very low and predictable fees (~0.000005 SOL)
+    return "0.000005";
+}
+
+/**
+ * Send SOL transaction
+ */
+export async function sendSolTransaction(
+    mnemonic: string,
+    to: string,
+    amountSol: string
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    const rpcUrls = [
+        "https://api.mainnet-beta.solana.com",
+        "https://rpc.ankr.com/solana"
+    ];
+
+    try {
+        // Dynamically import Solana web3.js
+        const { 
+            Connection, 
+            PublicKey, 
+            Transaction, 
+            SystemProgram, 
+            LAMPORTS_PER_SOL,
+            Keypair,
+            sendAndConfirmTransaction
+        } = await import("@solana/web3.js");
+
+        const keypairBytes = getSolKeypair(mnemonic);
+        const keypair = Keypair.fromSecretKey(keypairBytes);
+        const toPubkey = new PublicKey(to);
+        const lamports = Math.floor(parseFloat(amountSol) * LAMPORTS_PER_SOL);
+
+        for (const rpcUrl of rpcUrls) {
+            try {
+                const connection = new Connection(rpcUrl, "confirmed");
+
+                const transaction = new Transaction().add(
+                    SystemProgram.transfer({
+                        fromPubkey: keypair.publicKey,
+                        toPubkey,
+                        lamports
+                    })
+                );
+
+                const signature = await sendAndConfirmTransaction(
+                    connection,
+                    transaction,
+                    [keypair]
+                );
+
+                return { success: true, txHash: signature };
+            } catch (err) {
+                console.warn(`SOL send via ${rpcUrl} failed:`, err);
+                continue;
+            }
+        }
+
+        return { success: false, error: "All RPC endpoints failed" };
+    } catch (error) {
+        console.error("SOL transaction error:", error);
+        return { 
+            success: false, 
+            error: error instanceof Error ? error.message : "Transaction failed" 
+        };
+    }
+}
+
+/**
+ * Estimate TRX transaction fee (bandwidth/energy)
+ */
+export async function estimateTrxFee(): Promise<string> {
+    // TRX transactions cost ~1-5 TRX depending on bandwidth
+    return "1.0";
+}
+
+/**
+ * Send TRX transaction
+ */
+export async function sendTrxTransaction(
+    mnemonic: string,
+    to: string,
+    amountTrx: string
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    try {
+        // Dynamically import TronWeb
+        const { TronWeb } = await import("tronweb");
+
+        const privateKey = getTrxPrivateKey(mnemonic);
+
+        const tronWeb = new TronWeb({
+            fullHost: "https://api.trongrid.io",
+            privateKey
+        });
+
+        const amountSun = Math.floor(parseFloat(amountTrx) * 1e6);
+        
+        // Create and sign transaction
+        const tx = await tronWeb.transactionBuilder.sendTrx(to, amountSun);
+        const signedTx = await tronWeb.trx.sign(tx);
+        const result = await tronWeb.trx.sendRawTransaction(signedTx);
+
+        if (result.result) {
+            return { success: true, txHash: result.txid };
+        } else {
+            return { success: false, error: "Transaction rejected" };
+        }
+    } catch (error) {
+        console.error("TRX transaction error:", error);
+        return { 
+            success: false, 
+            error: error instanceof Error ? error.message : "Transaction failed" 
+        };
+    }
+}
+
 /**
  * Fetch all multi-chain balances at once
  */

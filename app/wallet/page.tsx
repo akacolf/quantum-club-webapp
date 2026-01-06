@@ -21,7 +21,6 @@ import {
   History,
   Plus,
   Download,
-  ShieldAlert,
   Image as ImageIcon,
   X,
   ChevronRight
@@ -384,6 +383,8 @@ export default function WalletPage() {
       router.prefetch("/wallet/swap");
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
+      router.prefetch("/wallet/analytics");
+      router.prefetch("/wallet/send-multichain");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -691,6 +692,50 @@ export default function WalletPage() {
           </Card>
         </div>
 
+        {/* Quick Actions */}
+        <div className="w-full grid grid-cols-2 gap-3">
+          {/* Analytics Card */}
+          <Card 
+            className="bg-[#111] border-[#222] rounded-2xl cursor-pointer hover:bg-[#161616] transition-colors"
+            onClick={() => router.push("/wallet/analytics")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+                  <path d="M22 12A10 10 0 0 0 12 2v10z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">Analytics</p>
+                <p className="text-xs text-gray-500">Portfolio</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Multi-chain Send Card - Only show on mainnet */}
+          {!isTestnet && (ethAddress || solAddress || trxAddress) && (
+            <Card 
+              className="bg-[#111] border-[#222] rounded-2xl cursor-pointer hover:bg-[#161616] transition-colors"
+              onClick={() => router.push("/wallet/send-multichain")}
+            >
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M2 12h20" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold text-white text-sm">Send Crypto</p>
+                  <p className="text-xs text-gray-500">Multi-chain</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
         {isTestnet ? (
           <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
             <FlaskConical className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
@@ -698,14 +743,7 @@ export default function WalletPage() {
               You&apos;re on TON Testnet. Assets here have no real value. Switch to mainnet in settings for real transactions.
             </p>
           </div>
-        ) : (ethAddress || btcAddress || solAddress || trxAddress) && (
-          <div className="w-full bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-            <ShieldAlert className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-yellow-500/90 leading-relaxed">
-              Multi-chain assets are receive-only. Sending is currently only available for TON.
-            </p>
-          </div>
-        )}
+        ) : null}
 
 
         <Tabs defaultValue="assets" className="w-full pb-24">
