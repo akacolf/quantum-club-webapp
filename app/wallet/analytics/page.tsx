@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
         value: tonValue,
         percentage: (tonValue / total) * 100,
         color: COLORS[colorIndex++ % COLORS.length],
-        image: "https://ton.org/download/ton_symbol.svg",
+        image: "/svg/ton-logo.svg",
       });
     }
 

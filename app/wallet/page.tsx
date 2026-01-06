@@ -23,7 +23,8 @@ import {
   Download,
   Image as ImageIcon,
   X,
-  ChevronRight
+  ChevronRight,
+  PieChart
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -622,12 +623,13 @@ export default function WalletPage() {
               </div>
 
               {/* Action Grid */}
-              <div className="grid grid-cols-4 gap-2 mt-8">
+              <div className="grid grid-cols-5 gap-2 mt-8">
                 {[
                   { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
                   { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
                   { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", path: "/wallet/swap", disabled: false },
                   { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
+                  { icon: <PieChart className="w-5 h-5" />, label: "Portfolio", path: "/wallet/analytics", disabled: false },
                 ].map((action, i) => (
                   <Button
                     key={i}
@@ -688,28 +690,6 @@ export default function WalletPage() {
                 <Send className="w-4 h-4 mr-2" />
                 Send QNTM
               </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="w-full grid grid-cols-2 gap-3">
-          {/* Analytics Card */}
-          <Card 
-            className="bg-[#111] border-[#222] rounded-2xl cursor-pointer hover:bg-[#161616] transition-colors"
-            onClick={() => router.push("/wallet/analytics")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
-                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
-                  <path d="M22 12A10 10 0 0 0 12 2v10z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-bold text-white text-sm">Analytics</p>
-                <p className="text-xs text-gray-500">Portfolio</p>
-              </div>
             </CardContent>
           </Card>
         </div>

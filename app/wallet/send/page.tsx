@@ -112,6 +112,7 @@ export default function SendPage() {
   const [isMultiChainSending, setIsMultiChainSending] = useState(false);
   const [multiChainStep, setMultiChainStep] = useState<"input" | "confirm" | "processing" | "success">("input");
   const [multiChainTxHash, setMultiChainTxHash] = useState<string | null>(null);
+  const [multiChainComment, setMultiChainComment] = useState("");
 
   // TON state
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
@@ -974,7 +975,7 @@ export default function SendPage() {
                 value="ton" 
                 className="h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
-                TON Network
+                TON
               </TabsTrigger>
               <TabsTrigger 
                 value="multichain" 
@@ -1122,6 +1123,21 @@ export default function SendPage() {
                   )}
                 </div>
 
+                {/* Comment/Memo (Optional) */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground ml-1">Comment (Optional)</Label>
+                  <Input
+                    value={multiChainComment}
+                    onChange={(e) => setMultiChainComment(e.target.value)}
+                    placeholder="Add a memo or note"
+                    maxLength={200}
+                    className="bg-card border-border h-12 px-4 text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:border-primary/50 transition-all text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground/70 ml-1">
+                    Note: Comments are for your records only and may not be stored on all chains.
+                  </p>
+                </div>
+
                 {/* Fee Estimate */}
                 <Card className="bg-card border-border rounded-xl">
                   <CardContent className="p-4">
@@ -1262,6 +1278,7 @@ export default function SendPage() {
                     setMultiChainRecipient("");
                     setMultiChainAmount("");
                     setMultiChainTxHash(null);
+                    setMultiChainComment("");
                     router.push("/wallet");
                   }}
                   className="w-full h-14 rounded-xl"
