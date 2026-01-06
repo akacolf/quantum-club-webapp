@@ -706,61 +706,67 @@ export async function estimateSolFee(): Promise<string> {
 }
 
 /**
- * Send SOL transaction
+ * Send SOL transaction using @solana/kit (modern SDK)
  */
 export async function sendSolTransaction(
     mnemonic: string,
     to: string,
     amountSol: string
 ): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    const rpcUrls = [
-        "https://api.mainnet-beta.solana.com",
-        "https://rpc.ankr.com/solana"
-    ];
+    const rpcUrl = "https://api.mainnet-beta.solana.com";
 
     try {
-        // Dynamically import Solana web3.js
-        const { 
-            Connection, 
-            PublicKey, 
-            Transaction, 
-            SystemProgram, 
-            LAMPORTS_PER_SOL,
-            Keypair,
-            sendAndConfirmTransaction
-        } = await import("@solana/web3.js");
+        // Import the new @solana/kit SDK
+        const {
+            createSolanaRpc,
+            address,
+            lamports,
+            createTransactionMessage,
+            setTransactionMessageFeePayerSigner,
+            setTransactionMessageLifetimeUsingBlockhash,
+            appendTransactionMessageInstruction,
+            signAndSendTransactionMessageWithSigners,
+            createSignerFromKeyPair,
+            createKeyPairFromBytes,
+            pipe,
+        } = await import("@solana/kit");
+        
+        const { getTransferSolInstruction } = await import("@solana-program/system");
 
+        // Get keypair bytes and create signer
         const keypairBytes = getSolKeypair(mnemonic);
-        const keypair = Keypair.fromSecretKey(keypairBytes);
-        const toPubkey = new PublicKey(to);
-        const lamports = Math.floor(parseFloat(amountSol) * LAMPORTS_PER_SOL);
-
-        for (const rpcUrl of rpcUrls) {
-            try {
-                const connection = new Connection(rpcUrl, "confirmed");
-
-                const transaction = new Transaction().add(
-                    SystemProgram.transfer({
-                        fromPubkey: keypair.publicKey,
-                        toPubkey,
-                        lamports
-                    })
-                );
-
-                const signature = await sendAndConfirmTransaction(
-                    connection,
-                    transaction,
-                    [keypair]
-                );
-
-                return { success: true, txHash: signature };
-            } catch (err) {
-                console.warn(`SOL send via ${rpcUrl} failed:`, err);
-                continue;
-            }
-        }
-
-        return { success: false, error: "All RPC endpoints failed" };
+        const keyPair = await createKeyPairFromBytes(keypairBytes);
+        const signer = await createSignerFromKeyPair(keyPair);
+        
+        // Create RPC client
+        const rpc = createSolanaRpc(rpcUrl);
+        
+        // Get latest blockhash for transaction lifetime
+        const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
+        
+        // Convert SOL to lamports (1 SOL = 1e9 lamports)
+        const lamportsAmount = lamports(BigInt(Math.floor(parseFloat(amountSol) * 1e9)));
+        
+        // Build the transaction message
+        const transactionMessage = pipe(
+            createTransactionMessage({ version: 0 }),
+            (m) => setTransactionMessageFeePayerSigner(signer, m),
+            (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
+            (m) => appendTransactionMessageInstruction(
+                getTransferSolInstruction({
+                    amount: lamportsAmount,
+                    destination: address(to),
+                    source: signer,
+                }),
+                m
+            )
+        );
+        
+        // Sign and send the transaction
+        const signature = await signAndSendTransactionMessageWithSigners(transactionMessage);
+        
+        // Convert signature bytes to base58 string
+        return { success: true, txHash: String(signature) };
     } catch (error) {
         console.error("SOL transaction error:", error);
         return { 
