@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon, Search, X, Filter } from "lucide-react";
 import { fromNano, Address } from "@ton/core";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -61,6 +63,8 @@ interface QNTMTransfer {
   timestamp?: number;
 }
 
+type FilterType = "all" | "sent" | "received" | "swap" | "nft";
+
 export default function HistoryPage() {
   useTelegramBackButton("/wallet");
   const { walletAddress, isTestnet } = useWallet();
@@ -71,6 +75,11 @@ export default function HistoryPage() {
   const [isLoadingQntm, setIsLoadingQntm] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("ton");
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Explorer URL based on network
   const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
@@ -186,15 +195,296 @@ export default function HistoryPage() {
     return `${qcId.slice(0, 6)}...${qcId.slice(-4)}`;
   };
 
+  // Parse transaction data for filtering and display
+  const parseTransaction = useCallback((event: HistoryEvent) => {
+    const action = event.actions && event.actions[0];
+    if (!action) return null;
+
+    let type = "Unknown";
+    let amount = "0";
+    let symbol = "TON";
+    let isIncoming = false;
+    let address = "";
+    let isSwap = false;
+    let fromSymbol = "";
+    let toSymbol = "";
+    let fromAmount = "";
+    let toAmount = "";
+    const status = event.in_progress ? "pending" : (event.is_scam ? "scam" : "ok");
+
+    // Normalize wallet address for comparison
+    let normalizedWalletAddress = "";
+    try {
+      normalizedWalletAddress = Address.parse(walletAddress).toRawString();
+    } catch {
+      normalizedWalletAddress = walletAddress;
+    }
+
+    if (action.type === "TonTransfer") {
+      const transfer = action.TonTransfer;
+      if (transfer) {
+        let recipientRaw = "";
+        try {
+          recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
+        } catch {
+          recipientRaw = transfer.recipient?.address || "";
+        }
+
+        isIncoming = recipientRaw === normalizedWalletAddress;
+        amount = fromNano(transfer.amount || "0");
+        address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
+        type = isIncoming ? "Received" : "Sent";
+      }
+    } else if (action.type === "JettonTransfer") {
+      const transfer = action.JettonTransfer;
+      if (transfer) {
+        let recipientRaw = "";
+        try {
+          recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
+        } catch {
+          recipientRaw = transfer.recipient?.address || "";
+        }
+
+        isIncoming = recipientRaw === normalizedWalletAddress;
+        const decimals = transfer.jetton?.decimals || 9;
+        amount = transfer.amount ? (parseFloat(transfer.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
+        symbol = transfer.jetton?.symbol || "TOKEN";
+        address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
+        type = isIncoming ? "Received" : "Sent";
+      }
+    } else if (action.type === "ContractDeploy") {
+      type = "Deploy";
+    } else if (action.type === "NftItemTransfer") {
+      const transfer = action.NftItemTransfer;
+      if (transfer) {
+        let recipientRaw = "";
+        try {
+          recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
+        } catch {
+          recipientRaw = transfer.recipient?.address || "";
+        }
+
+        isIncoming = recipientRaw === normalizedWalletAddress;
+        address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
+        type = isIncoming ? "NFT Received" : "NFT Sent";
+        symbol = "NFT";
+        amount = "1";
+      }
+    } else if (action.type === "JettonSwap") {
+      const swap = action.JettonSwap;
+      if (swap) {
+        isSwap = true;
+        type = "Swap";
+        address = swap.router?.address || swap.dex || "";
+
+        // Determine from token (what was sent)
+        if (swap.ton_in && swap.ton_in !== "0") {
+          fromSymbol = "TON";
+          fromAmount = fromNano(swap.ton_in);
+        } else if (swap.jetton_master_in) {
+          fromSymbol = swap.jetton_master_in.symbol || "TOKEN";
+          const decimalsIn = swap.jetton_master_in.decimals || 9;
+          fromAmount = swap.amount_in ? (parseFloat(swap.amount_in) / Math.pow(10, decimalsIn)).toFixed(4) : "0";
+        }
+
+        // Determine to token (what was received)
+        if (swap.ton_out && swap.ton_out !== "0") {
+          toSymbol = "TON";
+          toAmount = fromNano(swap.ton_out);
+        } else if (swap.jetton_master_out) {
+          toSymbol = swap.jetton_master_out.symbol || "TOKEN";
+          const decimalsOut = swap.jetton_master_out.decimals || 9;
+          toAmount = swap.amount_out ? (parseFloat(swap.amount_out) / Math.pow(10, decimalsOut)).toFixed(4) : "0";
+        }
+
+        // For display purposes
+        symbol = `${fromSymbol} → ${toSymbol}`;
+        amount = toAmount;
+      }
+    } else if (action.type === "Subscribe") {
+      type = "Subscription";
+    } else if (action.type === "UnSubscribe") {
+      type = "Unsubscribe";
+    }
+
+    const date = new Date(event.timestamp * 1000);
+    const formattedDate = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const formattedTime = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+    return {
+      event_id: event.event_id,
+      type,
+      amount,
+      symbol,
+      isIncoming,
+      address,
+      isSwap,
+      fromSymbol,
+      toSymbol,
+      fromAmount,
+      toAmount,
+      status,
+      formattedDate,
+      formattedTime,
+      actionType: action.type,
+    };
+  }, [walletAddress]);
+
+  // Filter and search transactions
+  const filteredHistory = useMemo(() => {
+    return history
+      .map(parseTransaction)
+      .filter((tx): tx is NonNullable<ReturnType<typeof parseTransaction>> => tx !== null)
+      .filter(tx => {
+        // Apply type filter
+        if (activeFilter !== "all") {
+          switch (activeFilter) {
+            case "sent":
+              if (!tx.type.includes("Sent") && tx.type !== "Deploy") return false;
+              break;
+            case "received":
+              if (!tx.type.includes("Received")) return false;
+              break;
+            case "swap":
+              if (!tx.isSwap) return false;
+              break;
+            case "nft":
+              if (tx.symbol !== "NFT") return false;
+              break;
+          }
+        }
+        
+        // Apply search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const matchesAddress = tx.address.toLowerCase().includes(query);
+          const matchesSymbol = tx.symbol.toLowerCase().includes(query);
+          const matchesType = tx.type.toLowerCase().includes(query);
+          const matchesAmount = tx.amount.includes(query);
+          
+          if (!matchesAddress && !matchesSymbol && !matchesType && !matchesAmount) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+  }, [history, parseTransaction, activeFilter, searchQuery]);
+
+  // Filter QNTM history
+  const filteredQntmHistory = useMemo(() => {
+    return qntmHistory.filter(tx => {
+      // Apply type filter
+      if (activeFilter !== "all") {
+        if (activeFilter === "sent" && tx.type !== "sent") return false;
+        if (activeFilter === "received" && tx.type !== "received") return false;
+        if (activeFilter === "swap" || activeFilter === "nft") return false; // QNTM doesn't have these
+      }
+      
+      // Apply search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const counterparty = tx.type === "sent" ? tx.to : tx.from;
+        const matchesCounterparty = counterparty?.toLowerCase().includes(query);
+        const matchesAmount = tx.amount.toString().includes(query);
+        
+        if (!matchesCounterparty && !matchesAmount) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [qntmHistory, activeFilter, searchQuery]);
+
+  const filterOptions: { value: FilterType; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "sent", label: "Sent" },
+    { value: "received", label: "Received" },
+    { value: "swap", label: "Swaps" },
+    { value: "nft", label: "NFTs" },
+  ];
+
   return (
     <div className="flex flex-col w-full max-w-md mx-auto p-4 h-screen bg-background text-foreground">
       <div className="flex items-center justify-center mb-4">
         <h2 className="text-xl font-bold text-foreground">History</h2>
       </div>
 
+      {/* Search and Filter Bar */}
+      <div className="mb-4 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by address, token, or amount..."
+            className="pl-10 pr-10 h-11 bg-card border-border rounded-xl text-sm"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Filter Toggle */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`h-8 px-3 rounded-lg ${showFilters ? 'bg-primary text-primary-foreground' : ''}`}
+          >
+            <Filter className="w-3.5 h-3.5 mr-1.5" />
+            Filters
+            {activeFilter !== "all" && (
+              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">1</Badge>
+            )}
+          </Button>
+          
+          {activeFilter !== "all" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveFilter("all")}
+              className="h-8 px-2 text-xs text-muted-foreground"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+
+        {/* Filter Options */}
+        {showFilters && (
+          <div className="flex flex-wrap gap-2 p-3 bg-card rounded-xl border border-border">
+            {filterOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant={activeFilter === option.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveFilter(option.value)}
+                className={`h-8 px-3 rounded-lg text-xs ${
+                  activeFilter === option.value 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-background hover:bg-muted"
+                }`}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Tabs for Blockchain and QNTM */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="w-full h-12 p-1 bg-background border border-border rounded-xl mb-6">
+        <TabsList className="w-full h-12 p-1 bg-background border border-border rounded-xl mb-4">
           <TabsTrigger
             value="ton"
             className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg text-muted-foreground transition-all"
@@ -225,7 +515,16 @@ export default function HistoryPage() {
             </div>
           )}
 
-          <ScrollArea className="flex-1 -mx-4 px-4 h-[calc(100vh-220px)]">
+          {/* Results count */}
+          {!isLoadingHistory && (searchQuery || activeFilter !== "all") && (
+            <div className="mb-3 px-1">
+              <p className="text-xs text-muted-foreground">
+                {filteredHistory.length} result{filteredHistory.length !== 1 ? 's' : ''} found
+              </p>
+            </div>
+          )}
+
+          <ScrollArea className="flex-1 -mx-4 px-4 h-[calc(100vh-340px)]">
             <div className="space-y-3 pb-20">
               {isLoadingHistory ? (
                 [1, 2, 3, 4, 5].map((i) => (
@@ -245,194 +544,96 @@ export default function HistoryPage() {
                     </CardContent>
                   </Card>
                 ))
-              ) : history.length === 0 ? (
+              ) : filteredHistory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
-                    <Clock className="w-8 h-8 text-muted-foreground" />
+                    {searchQuery || activeFilter !== "all" ? (
+                      <Search className="w-8 h-8 text-muted-foreground" />
+                    ) : (
+                      <Clock className="w-8 h-8 text-muted-foreground" />
+                    )}
                   </div>
-                  <p>No blockchain transactions yet</p>
+                  <p>
+                    {searchQuery || activeFilter !== "all" 
+                      ? "No matching transactions" 
+                      : "No blockchain transactions yet"
+                    }
+                  </p>
+                  {(searchQuery || activeFilter !== "all") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
               ) : (
-                history.map((event) => {
-                  const action = event.actions && event.actions[0];
-                  if (!action) return null;
-
-                  let type = "Unknown";
-                  let amount = "0";
-                  let symbol = "TON";
-                  let isIncoming = false;
-                  let address = "";
-                  let isSwap = false;
-                  let fromSymbol = "";
-                  let toSymbol = "";
-                  let fromAmount = "";
-                  let toAmount = "";
-                  const status = event.in_progress ? "pending" : (event.is_scam ? "scam" : "ok");
-
-                  // Normalize wallet address for comparison
-                  let normalizedWalletAddress = "";
-                  try {
-                    normalizedWalletAddress = Address.parse(walletAddress).toRawString();
-                  } catch {
-                    normalizedWalletAddress = walletAddress;
-                  }
-
-                  if (action.type === "TonTransfer") {
-                    const transfer = action.TonTransfer;
-                    if (transfer) {
-                      let recipientRaw = "";
-                      try {
-                        recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
-                      } catch {
-                        recipientRaw = transfer.recipient?.address || "";
-                      }
-
-                      isIncoming = recipientRaw === normalizedWalletAddress;
-                      amount = fromNano(transfer.amount || "0");
-                      address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
-                      type = isIncoming ? "Received" : "Sent";
-                    }
-                  } else if (action.type === "JettonTransfer") {
-                    const transfer = action.JettonTransfer;
-                    if (transfer) {
-                      let recipientRaw = "";
-                      try {
-                        recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
-                      } catch {
-                        recipientRaw = transfer.recipient?.address || "";
-                      }
-
-                      isIncoming = recipientRaw === normalizedWalletAddress;
-                      const decimals = transfer.jetton?.decimals || 9;
-                      amount = transfer.amount ? (parseFloat(transfer.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
-                      symbol = transfer.jetton?.symbol || "TOKEN";
-                      address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
-                      type = isIncoming ? "Received" : "Sent";
-                    }
-                  } else if (action.type === "ContractDeploy") {
-                    type = "Deploy";
-                  } else if (action.type === "NftItemTransfer") {
-                    const transfer = action.NftItemTransfer;
-                    if (transfer) {
-                      let recipientRaw = "";
-                      try {
-                        recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
-                      } catch {
-                        recipientRaw = transfer.recipient?.address || "";
-                      }
-
-                      isIncoming = recipientRaw === normalizedWalletAddress;
-                      address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
-                      type = isIncoming ? "NFT Received" : "NFT Sent";
-                      symbol = "NFT";
-                      amount = "1";
-                    }
-                  } else if (action.type === "JettonSwap") {
-                    const swap = action.JettonSwap;
-                    if (swap) {
-                      isSwap = true;
-                      type = "Swap";
-                      address = swap.router?.address || swap.dex || "";
-
-                      // Determine from token (what was sent)
-                      if (swap.ton_in && swap.ton_in !== "0") {
-                        fromSymbol = "TON";
-                        fromAmount = fromNano(swap.ton_in);
-                      } else if (swap.jetton_master_in) {
-                        fromSymbol = swap.jetton_master_in.symbol || "TOKEN";
-                        const decimalsIn = swap.jetton_master_in.decimals || 9;
-                        fromAmount = swap.amount_in ? (parseFloat(swap.amount_in) / Math.pow(10, decimalsIn)).toFixed(4) : "0";
-                      }
-
-                      // Determine to token (what was received)
-                      if (swap.ton_out && swap.ton_out !== "0") {
-                        toSymbol = "TON";
-                        toAmount = fromNano(swap.ton_out);
-                      } else if (swap.jetton_master_out) {
-                        toSymbol = swap.jetton_master_out.symbol || "TOKEN";
-                        const decimalsOut = swap.jetton_master_out.decimals || 9;
-                        toAmount = swap.amount_out ? (parseFloat(swap.amount_out) / Math.pow(10, decimalsOut)).toFixed(4) : "0";
-                      }
-
-                      // For display purposes
-                      symbol = `${fromSymbol} → ${toSymbol}`;
-                      amount = toAmount;
-                    }
-                  } else if (action.type === "Subscribe") {
-                    type = "Subscription";
-                  } else if (action.type === "UnSubscribe") {
-                    type = "Unsubscribe";
-                  }
-
-                  const date = new Date(event.timestamp * 1000);
-                  const formattedDate = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                  const formattedTime = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
-                  return (
-                    <Card
-                      key={event.event_id}
-                      className="bg-card border-border shadow-none hover:border-muted-foreground/20 transition-all active:scale-[0.99] cursor-pointer"
-                      onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${event.event_id}`, "_blank")}
-                    >
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${type === 'Deploy' ? 'bg-primary/10 text-primary' :
-                            isSwap ? 'bg-purple-500/10 text-purple-400' :
-                              symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
-                                isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                            }`}>
-                            {type === 'Deploy' ? (
-                              <Layers className="w-5 h-5" />
-                            ) : isSwap ? (
-                              <ArrowLeftRight className="w-5 h-5" />
-                            ) : symbol === 'NFT' ? (
-                              <ImageIcon className="w-5 h-5" />
-                            ) : isIncoming ? (
-                              <ArrowDownLeft className="w-5 h-5" />
+                filteredHistory.map((tx) => (
+                  <Card
+                    key={tx.event_id}
+                    className="bg-card border-border shadow-none hover:border-muted-foreground/20 transition-all active:scale-[0.99] cursor-pointer"
+                    onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${tx.event_id}`, "_blank")}
+                  >
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${tx.type === 'Deploy' ? 'bg-primary/10 text-primary' :
+                          tx.isSwap ? 'bg-purple-500/10 text-purple-400' :
+                            tx.symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
+                              tx.isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                          }`}>
+                          {tx.type === 'Deploy' ? (
+                            <Layers className="w-5 h-5" />
+                          ) : tx.isSwap ? (
+                            <ArrowLeftRight className="w-5 h-5" />
+                          ) : tx.symbol === 'NFT' ? (
+                            <ImageIcon className="w-5 h-5" />
+                          ) : tx.isIncoming ? (
+                            <ArrowDownLeft className="w-5 h-5" />
+                          ) : (
+                            <ArrowUpRight className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-foreground text-base">{tx.type}</h4>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {tx.isSwap ? (
+                              <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400">
+                                {tx.fromSymbol} → {tx.toSymbol}
+                              </span>
                             ) : (
-                              <ArrowUpRight className="w-5 h-5" />
+                              <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                                {formatAddress(tx.address)}
+                              </span>
                             )}
                           </div>
-                          <div>
-                            <h4 className="font-bold text-foreground text-base">{type}</h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              {isSwap ? (
-                                <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400">
-                                  {fromSymbol} → {toSymbol}
-                                </span>
-                              ) : (
-                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                                  {formatAddress(address)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            {isSwap ? (
-                              <>
-                                <div className="text-xs text-muted-foreground">-{(parseFloat(fromAmount) || 0).toFixed(4)} {fromSymbol}</div>
-                                <h4 className="font-bold text-base text-green-500">
-                                  +{(parseFloat(toAmount) || 0).toFixed(4)} {toSymbol}
-                                </h4>
-                              </>
-                            ) : (
-                              <h4 className={`font-bold text-base ${status === 'scam' ? 'text-orange-500' :
-                                status === 'pending' ? 'text-yellow-500' :
-                                  isIncoming ? 'text-green-500' : 'text-foreground'
-                                }`}>
-                                {type === 'Deploy' || type === 'Unknown' ? '' : (isIncoming ? '+' : '-')}{type !== 'Deploy' && type !== 'Unknown' ? `${parseFloat(amount).toFixed(4)} ${symbol}` : ''}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          {tx.isSwap ? (
+                            <>
+                              <div className="text-xs text-muted-foreground">-{(parseFloat(tx.fromAmount) || 0).toFixed(4)} {tx.fromSymbol}</div>
+                              <h4 className="font-bold text-base text-green-500">
+                                +{(parseFloat(tx.toAmount) || 0).toFixed(4)} {tx.toSymbol}
                               </h4>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">{formattedDate} • {formattedTime}</p>
-                          </div>
-                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                            </>
+                          ) : (
+                            <h4 className={`font-bold text-base ${tx.status === 'scam' ? 'text-orange-500' :
+                              tx.status === 'pending' ? 'text-yellow-500' :
+                                tx.isIncoming ? 'text-green-500' : 'text-foreground'
+                              }`}>
+                              {tx.type === 'Deploy' || tx.type === 'Unknown' ? '' : (tx.isIncoming ? '+' : '-')}{tx.type !== 'Deploy' && tx.type !== 'Unknown' ? `${parseFloat(tx.amount).toFixed(4)} ${tx.symbol}` : ''}
+                            </h4>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">{tx.formattedDate} • {tx.formattedTime}</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
               )}
             </div>
           </ScrollArea>
@@ -440,7 +641,16 @@ export default function HistoryPage() {
 
         {/* QNTM History Tab */}
         <TabsContent value="qntm" className="flex-1 mt-0">
-          <ScrollArea className="flex-1 -mx-4 px-4 h-[calc(100vh-220px)]">
+          {/* Results count */}
+          {!isLoadingQntm && (searchQuery || activeFilter !== "all") && (
+            <div className="mb-3 px-1">
+              <p className="text-xs text-muted-foreground">
+                {filteredQntmHistory.length} result{filteredQntmHistory.length !== 1 ? 's' : ''} found
+              </p>
+            </div>
+          )}
+
+          <ScrollArea className="flex-1 -mx-4 px-4 h-[calc(100vh-340px)]">
             <div className="space-y-3 pb-20">
               {isLoadingQntm ? (
                 [1, 2, 3, 4, 5].map((i) => (
@@ -460,18 +670,38 @@ export default function HistoryPage() {
                     </CardContent>
                   </Card>
                 ))
-              ) : qntmHistory.length === 0 ? (
+              ) : filteredQntmHistory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
-                    <Clock className="w-8 h-8 text-muted-foreground" />
+                    {searchQuery || activeFilter !== "all" ? (
+                      <Search className="w-8 h-8 text-muted-foreground" />
+                    ) : (
+                      <Clock className="w-8 h-8 text-muted-foreground" />
+                    )}
                   </div>
-                  <p>No QNTM transfers yet</p>
-                  <p className="text-xs text-muted-foreground text-center px-6">
-                    Transfer QNTM to other Quantum Club members to see your history here
+                  <p>
+                    {searchQuery || activeFilter !== "all" 
+                      ? "No matching transfers" 
+                      : "No QNTM transfers yet"
+                    }
                   </p>
+                  {!searchQuery && activeFilter === "all" && (
+                    <p className="text-xs text-muted-foreground text-center px-6">
+                      Transfer QNTM to other Quantum Club members to see your history here
+                    </p>
+                  )}
+                  {(searchQuery || activeFilter !== "all") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
               ) : (
-                qntmHistory.map((transfer) => {
+                filteredQntmHistory.map((transfer) => {
                   const isIncoming = transfer.type === 'received';
                   const counterparty = isIncoming ? transfer.from : transfer.to;
 

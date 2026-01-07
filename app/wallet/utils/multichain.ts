@@ -243,7 +243,7 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         logo: "/svg/eth-logo.svg",
         color: "#627EEA",
         warningText: "Send only ETH and ERC-20 tokens to this address.",
-        receiveOnly: true,
+        receiveOnly: false,
     },
     btc: {
         id: "btc",
@@ -252,7 +252,7 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         logo: "/svg/btc-logo.svg",
         color: "#F7931A",
         warningText: "Send only Bitcoin (BTC) to this address.",
-        receiveOnly: true,
+        receiveOnly: false,
     },
     sol: {
         id: "sol",
@@ -261,7 +261,7 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         logo: "/svg/sol-logo.svg",
         color: "#9945FF",
         warningText: "Send only SOL and SPL tokens to this address.",
-        receiveOnly: true,
+        receiveOnly: false,
     },
     trx: {
         id: "trx",
@@ -270,7 +270,7 @@ export const CHAIN_INFO: Record<ChainType, ChainInfo> = {
         logo: "/svg/trx-logo.svg",
         color: "#FF0013",
         warningText: "Send only TRX and TRC-20 tokens to this address.",
-        receiveOnly: true,
+        receiveOnly: false,
     },
 };
 
@@ -817,6 +817,260 @@ export async function sendTrxTransaction(
         }
     } catch (error) {
         console.error("TRX transaction error:", error);
+        return { 
+            success: false, 
+            error: error instanceof Error ? error.message : "Transaction failed" 
+        };
+    }
+}
+
+// ============== BTC Send Functions ==============
+
+/**
+ * Validate BTC address (supports both legacy, segwit, and native segwit)
+ */
+export function isValidBtcAddress(address: string): boolean {
+    // Native SegWit (bech32) - bc1q... or bc1p...
+    if (/^bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,87}$/.test(address)) {
+        return true;
+    }
+    // SegWit (P2SH) - 3...
+    if (/^3[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
+        return true;
+    }
+    // Legacy (P2PKH) - 1...
+    if (/^1[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
+        return true;
+    }
+    // Testnet addresses - tb1..., 2..., m..., n...
+    if (/^tb1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,87}$/.test(address)) {
+        return true;
+    }
+    if (/^[2mn][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Get BTC private key from mnemonic
+ */
+export function getBtcPrivateKey(mnemonic: string, isTestnet: boolean = false): Buffer {
+    const seed = mnemonicToSeedSync(mnemonic);
+    const hdKey = HDKey.fromMasterSeed(seed);
+    const path = isTestnet ? "m/44'/1'/0'/0/0" : BTC_PATH;
+    const derived = hdKey.derive(path);
+
+    if (!derived.privateKey) {
+        throw new Error("Failed to derive private key");
+    }
+
+    return Buffer.from(derived.privateKey);
+}
+
+/**
+ * Get BTC public key from mnemonic
+ */
+export function getBtcPublicKey(mnemonic: string, isTestnet: boolean = false): Buffer {
+    const seed = mnemonicToSeedSync(mnemonic);
+    const hdKey = HDKey.fromMasterSeed(seed);
+    const path = isTestnet ? "m/44'/1'/0'/0/0" : BTC_PATH;
+    const derived = hdKey.derive(path);
+
+    if (!derived.publicKey) {
+        throw new Error("Failed to derive public key");
+    }
+
+    return Buffer.from(derived.publicKey);
+}
+
+interface UTXO {
+    txid: string;
+    vout: number;
+    value: number; // in satoshis
+    status: {
+        confirmed: boolean;
+    };
+}
+
+/**
+ * Fetch UTXOs for a BTC address using Blockstream API
+ */
+async function fetchBtcUtxos(address: string, isTestnet: boolean = false): Promise<UTXO[]> {
+    const baseUrl = isTestnet
+        ? "https://blockstream.info/testnet/api"
+        : "https://blockstream.info/api";
+    
+    try {
+        const response = await fetch(`${baseUrl}/address/${address}/utxo`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch UTXOs: ${response.status}`);
+        }
+        const utxos: UTXO[] = await response.json();
+        // Only return confirmed UTXOs
+        return utxos.filter(u => u.status.confirmed);
+    } catch (error) {
+        console.error("Failed to fetch BTC UTXOs:", error);
+        return [];
+    }
+}
+
+/**
+ * Estimate BTC transaction fee
+ * Returns fee in BTC
+ */
+export async function estimateBtcFee(isTestnet: boolean = false): Promise<string> {
+    const baseUrl = isTestnet
+        ? "https://blockstream.info/testnet/api"
+        : "https://blockstream.info/api";
+    
+    try {
+        const response = await fetch(`${baseUrl}/fee-estimates`);
+        if (response.ok) {
+            const fees = await response.json();
+            // Use 6-block target (about 1 hour) - moderate speed
+            const satPerVbyte = fees["6"] || 10;
+            // Typical P2WPKH transaction is about 140 vbytes
+            const estimatedVbytes = 140;
+            const feeSatoshis = satPerVbyte * estimatedVbytes;
+            return (feeSatoshis / 1e8).toFixed(8);
+        }
+    } catch (error) {
+        console.error("BTC fee estimation error:", error);
+    }
+    // Fallback: 10 sat/vbyte * 140 vbytes = 1400 sats
+    return "0.000014";
+}
+
+/**
+ * Send BTC transaction
+ * Note: This is a simplified implementation. For production, use a proper Bitcoin library.
+ */
+export async function sendBtcTransaction(
+    mnemonic: string,
+    to: string,
+    amountBtc: string,
+    isTestnet: boolean = false
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    try {
+        // For BTC transactions, we need to use a proper Bitcoin library
+        // This requires bitcoinjs-lib which handles the complex UTXO model
+        
+        // Import bitcoinjs-lib dynamically
+        const bitcoin = await import('bitcoinjs-lib');
+        const ecc = await import('@bitcoinerlab/secp256k1');
+        
+        // Initialize the ECC library
+        bitcoin.initEccLib(ecc);
+        
+        const network = isTestnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin;
+        
+        // Get keys
+        const privateKey = getBtcPrivateKey(mnemonic, isTestnet);
+        const fromAddress = deriveBtcAddress(mnemonic, isTestnet);
+        
+        // Fetch UTXOs
+        const utxos = await fetchBtcUtxos(fromAddress, isTestnet);
+        if (utxos.length === 0) {
+            return { success: false, error: "No confirmed UTXOs available" };
+        }
+        
+        // Calculate amounts
+        const amountSatoshis = Math.floor(parseFloat(amountBtc) * 1e8);
+        const feeEstimate = await estimateBtcFee(isTestnet);
+        const feeSatoshis = Math.floor(parseFloat(feeEstimate) * 1e8);
+        const totalNeeded = amountSatoshis + feeSatoshis;
+        
+        // Select UTXOs (simple greedy algorithm)
+        const selectedUtxos: UTXO[] = [];
+        let totalInput = 0;
+        
+        for (const utxo of utxos) {
+            selectedUtxos.push(utxo);
+            totalInput += utxo.value;
+            if (totalInput >= totalNeeded) break;
+        }
+        
+        if (totalInput < totalNeeded) {
+            return { 
+                success: false, 
+                error: `Insufficient balance. Need ${(totalNeeded / 1e8).toFixed(8)} BTC, have ${(totalInput / 1e8).toFixed(8)} BTC` 
+            };
+        }
+        
+        // Create transaction using Psbt (Partially Signed Bitcoin Transaction)
+        const psbt = new bitcoin.Psbt({ network });
+        
+        // Create key pair for signing
+        const keyPair = {
+            publicKey: getBtcPublicKey(mnemonic, isTestnet),
+            privateKey: privateKey,
+            sign: (hash: Buffer) => {
+                return Buffer.from(ecc.sign(hash, privateKey));
+            },
+        };
+        
+        const baseUrl = isTestnet
+            ? "https://blockstream.info/testnet/api"
+            : "https://blockstream.info/api";
+        
+        // Add inputs
+        for (const utxo of selectedUtxos) {
+            // Fetch the raw transaction to get the scriptPubKey
+            const txResponse = await fetch(`${baseUrl}/tx/${utxo.txid}/hex`);
+            if (!txResponse.ok) {
+                throw new Error(`Failed to fetch transaction ${utxo.txid}`);
+            }
+            const txHex = await txResponse.text();
+            
+            psbt.addInput({
+                hash: utxo.txid,
+                index: utxo.vout,
+                nonWitnessUtxo: Buffer.from(txHex, 'hex'),
+            });
+        }
+        
+        // Add output to recipient
+        psbt.addOutput({
+            address: to,
+            value: BigInt(amountSatoshis),
+        });
+        
+        // Add change output if there's change
+        const change = totalInput - totalNeeded;
+        if (change > 546) { // Dust limit
+            psbt.addOutput({
+                address: fromAddress,
+                value: BigInt(change),
+            });
+        }
+        
+        // Sign all inputs
+        for (let i = 0; i < selectedUtxos.length; i++) {
+            psbt.signInput(i, keyPair);
+        }
+        
+        // Finalize and extract transaction
+        psbt.finalizeAllInputs();
+        const tx = psbt.extractTransaction();
+        const txHex = tx.toHex();
+        
+        // Broadcast transaction
+        const broadcastResponse = await fetch(`${baseUrl}/tx`, {
+            method: 'POST',
+            body: txHex,
+        });
+        
+        if (!broadcastResponse.ok) {
+            const errorText = await broadcastResponse.text();
+            return { success: false, error: `Broadcast failed: ${errorText}` };
+        }
+        
+        const txid = await broadcastResponse.text();
+        return { success: true, txHash: txid };
+        
+    } catch (error) {
+        console.error("BTC transaction error:", error);
         return { 
             success: false, 
             error: error instanceof Error ? error.message : "Transaction failed" 

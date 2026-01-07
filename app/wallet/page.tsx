@@ -889,12 +889,7 @@ export default function WalletPage() {
                       <Image src={BTC_ICON} alt="BTC" width={40} height={40} className="w-full h-full" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="font-bold text-white">BTC</h4>
-                        <Badge variant="secondary" className="bg-muted text-muted-foreground text-[8px] font-medium px-1.5 py-0">
-                          Receive Only
-                        </Badge>
-                      </div>
+                      <h4 className="font-bold text-white">BTC</h4>
                       <p className="text-xs text-gray-500">Bitcoin</p>
                     </div>
                   </div>
