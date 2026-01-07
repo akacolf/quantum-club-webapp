@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { firestore as db } from "@/app/(firebase)/server";
 
 // Telegram Bot API Configuration
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 const CRON_SECRET = process.env.CRON_SECRET;
 
 interface PriceData {
@@ -44,7 +44,7 @@ async function sendTelegramNotification(
   message: string
 ): Promise<boolean> {
   if (!BOT_TOKEN) {
-    console.error("TELEGRAM_BOT_TOKEN not configured");
+    console.error("BOT_TOKEN not configured");
     return false;
   }
 
