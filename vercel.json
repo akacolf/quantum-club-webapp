@@ -8,10 +8,6 @@
     {
       "path": "/api/sync-quantum-club-team/OI4JNMMO67BJRV",
       "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/price-alerts/check",
-      "schedule": "* * * * *"
     }
   ]
 }
