@@ -37,16 +37,19 @@ import {
   isValidEthAddress,
   isValidSolAddress,
   isValidTrxAddress,
+  isValidBtcAddress,
   estimateEthGas,
   estimateSolFee,
   estimateTrxFee,
+  estimateBtcFee,
   sendEthTransaction,
   sendSolTransaction,
   sendTrxTransaction,
+  sendBtcTransaction,
 } from "../utils/multichain";
 
 type NetworkMode = "ton" | "multichain";
-type MultiChainType = "eth" | "sol" | "trx";
+type MultiChainType = "eth" | "sol" | "trx" | "btc";
 
 interface SendableAsset {
   type: "ton" | "jetton";
@@ -93,6 +96,9 @@ export default function SendPage() {
     ethBalance,
     ethUsdValue,
     ethPrice,
+    btcBalance,
+    btcUsdValue,
+    btcPrice,
     solBalance,
     solUsdValue,
     solPrice,
@@ -149,6 +155,17 @@ export default function SendPage() {
       explorerUrl: "https://etherscan.io/tx/",
     },
     {
+      id: "btc" as MultiChainType,
+      name: "Bitcoin",
+      symbol: "BTC",
+      balance: btcBalance,
+      usdValue: btcUsdValue,
+      price: btcPrice,
+      image: "/svg/btc-logo.svg",
+      color: "#F7931A",
+      explorerUrl: isTestnet ? "https://blockstream.info/testnet/tx/" : "https://blockstream.info/tx/",
+    },
+    {
       id: "sol" as MultiChainType,
       name: "Solana",
       symbol: "SOL",
@@ -170,7 +187,7 @@ export default function SendPage() {
       color: "#FF0013",
       explorerUrl: "https://tronscan.org/#/transaction/",
     },
-  ], [ethBalance, ethUsdValue, ethPrice, solBalance, solUsdValue, solPrice, trxBalance, trxUsdValue, trxPrice]);
+  ], [ethBalance, ethUsdValue, ethPrice, btcBalance, btcUsdValue, btcPrice, solBalance, solUsdValue, solPrice, trxBalance, trxUsdValue, trxPrice, isTestnet]);
 
   const currentChain = multiChainOptions.find(c => c.id === selectedChain) || multiChainOptions[0];
 
@@ -193,6 +210,9 @@ export default function SendPage() {
         case "trx":
           isValid = isValidTrxAddress(multiChainRecipient);
           break;
+        case "btc":
+          isValid = isValidBtcAddress(multiChainRecipient);
+          break;
       }
       setMultiChainAddressError(isValid ? "" : `Invalid ${currentChain.symbol} address`);
     }, 300);
@@ -212,10 +232,13 @@ export default function SendPage() {
       } else if (selectedChain === "trx") {
         const fee = await estimateTrxFee();
         setMultiChainEstimatedFee(fee);
+      } else if (selectedChain === "btc") {
+        const fee = await estimateBtcFee(isTestnet);
+        setMultiChainEstimatedFee(fee);
       }
     };
     estimateFee();
-  }, [selectedChain]);
+  }, [selectedChain, isTestnet]);
 
   // Minimum TON required for jetton transfers (gas fees)
   const MIN_TON_FOR_JETTON = 0.1;
@@ -896,6 +919,9 @@ export default function SendPage() {
           break;
         case "trx":
           result = await sendTrxTransaction(mnemonic, multiChainRecipient, multiChainAmount);
+          break;
+        case "btc":
+          result = await sendBtcTransaction(mnemonic, multiChainRecipient, multiChainAmount, isTestnet);
           break;
         default:
           throw new Error("Unsupported chain");
