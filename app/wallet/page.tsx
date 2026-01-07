@@ -385,7 +385,6 @@ export default function WalletPage() {
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
       router.prefetch("/wallet/analytics");
-      router.prefetch("/wallet/send-multichain");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -864,11 +863,7 @@ export default function WalletPage() {
                   <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px] font-bold px-2 py-0.5">
                     MULTI-CHAIN
                   </Badge>
-
                 </div>
-                <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px] font-medium">
-                  Receive Only
-                </Badge>
               </div>
             )}
 
@@ -894,7 +889,12 @@ export default function WalletPage() {
                       <Image src={BTC_ICON} alt="BTC" width={40} height={40} className="w-full h-full" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white">BTC</h4>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-bold text-white">BTC</h4>
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground text-[8px] font-medium px-1.5 py-0">
+                          Receive Only
+                        </Badge>
+                      </div>
                       <p className="text-xs text-gray-500">Bitcoin</p>
                     </div>
                   </div>

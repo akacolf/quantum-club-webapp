@@ -199,7 +199,7 @@ export default function WalletSettingsPage() {
                       <FileText className="w-5 h-5 text-green-400" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-foreground">Backup Recovery Phrase</p>
+                      <p className="text-sm font-medium text-foreground">Backup Recovery Phrase</p>
                       <p className="text-xs text-muted-foreground">View your 24-word seed phrase</p>
                     </div>
                   </div>
@@ -218,7 +218,7 @@ export default function WalletSettingsPage() {
                       <Wallet className="w-5 h-5 text-blue-400" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-foreground">Manage Wallets</p>
+                      <p className="text-sm font-medium text-foreground">Manage Wallets</p>
                       <p className="text-xs text-muted-foreground">Add, switch, or remove wallets</p>
                     </div>
                   </div>
@@ -281,7 +281,7 @@ export default function WalletSettingsPage() {
                       </svg>
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-foreground">Auto-Refresh Balances</p>
+                      <p className="text-sm font-medium text-foreground">Auto-Refresh Balances</p>
                       <p className="text-xs text-muted-foreground">Automatically update your balances</p>
                     </div>
                   </div>
@@ -296,7 +296,7 @@ export default function WalletSettingsPage() {
                       <FlaskConical className="w-5 h-5 text-orange-400" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-foreground">TON Testnet Mode</p>
+                      <p className="text-sm font-medium text-foreground">TON Testnet Mode</p>
                       <p className="text-xs text-muted-foreground">Use TON testnet for testing</p>
                     </div>
                   </div>
