@@ -78,9 +78,16 @@ async function sendTelegramNotification(
 // GET endpoint for cron job
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret (for security)
+    // SECURITY: Always require CRON_SECRET authentication
+    if (!CRON_SECRET) {
+      console.error("CRON_SECRET environment variable not configured");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+    
     const authHeader = request.headers.get("authorization");
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+      // Log unauthorized attempts for monitoring
+      console.warn("Unauthorized price-alerts/check attempt from:", request.headers.get("x-forwarded-for") || "unknown");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
