@@ -18,6 +18,7 @@ import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 // Lazy load Lottie (large library)
 const Lottie = dynamic(() => import("lottie-react"), {
@@ -566,8 +567,8 @@ export default function TradePage() {
                                                         >
                                                             {deployingTokenId === token.id ? (
                                                                 <>
-                                                                    <Icon icon="solar:refresh-bold" className="w-4 h-4 mr-1 animate-spin" />
-                                                                    Deploying...
+                                                                    <ButtonLoader />
+                                                                    <span className="ml-1">Deploying...</span>
                                                                 </>
                                                             ) : (
                                                                 <>

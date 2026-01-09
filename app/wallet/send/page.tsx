@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, Loader2, ScanLine } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1272,7 +1272,11 @@ export default function SendPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center py-16 space-y-6"
               >
-                <Loader2 className="w-16 h-16 animate-spin text-primary" />
+                <div className="relative flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full border-2 border-primary/20 border-t-primary animate-spin shadow-[0_0_15px] shadow-primary/30" />
+                  <div className="absolute w-10 h-10 rounded-full border-2 border-primary/20 border-b-primary animate-[spin_1.5s_linear_infinite_reverse]" />
+                  <div className="absolute w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px] shadow-primary/80" />
+                </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold">Processing Transaction</p>
                   <p className="text-muted-foreground text-sm mt-1">Please wait while we send your {currentChain.symbol}...</p>

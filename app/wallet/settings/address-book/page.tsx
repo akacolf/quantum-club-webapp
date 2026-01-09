@@ -235,36 +235,36 @@ export default function AddressBookPage() {
                                             </Button>
                                         </div>
                                     ) : (
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0 flex-1">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
                                                 <div className="font-medium text-foreground">{entry.name}</div>
-                                                <Button
-                                                    variant="ghost"
-                                                    onClick={() => copyAddress(entry.address)}
-                                                    className="h-auto p-0 text-xs text-muted-foreground font-mono break-all text-left hover:text-foreground hover:bg-transparent flex items-center gap-1 mt-1"
-                                                >
-                                                    {entry.address.slice(0, 12)}...{entry.address.slice(-8)}
-                                                    <Copy className="w-3 h-3 shrink-0" />
-                                                </Button>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        onClick={() => handleEdit(entry.address)}
+                                                        className="text-muted-foreground hover:text-foreground h-8 w-8"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        onClick={() => handleDelete(entry.address)}
+                                                        className="text-destructive hover:text-destructive/80 h-8 w-8"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    onClick={() => handleEdit(entry.address)}
-                                                    className="text-muted-foreground hover:text-foreground h-8 w-8"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </Button>
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    onClick={() => handleDelete(entry.address)}
-                                                    className="text-destructive hover:text-destructive/80 h-8 w-8"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => copyAddress(entry.address)}
+                                                className="h-auto p-0 text-xs text-muted-foreground font-mono break-all text-left hover:text-foreground hover:bg-transparent flex items-center gap-1 w-full justify-start"
+                                            >
+                                                {entry.address}
+                                                <Copy className="w-3 h-3 shrink-0 ml-1" />
+                                            </Button>
                                         </div>
                                     )}
                                 </CardContent>

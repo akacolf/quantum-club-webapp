@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { dbfs } from "@/app/(firebase)/client";
 import {
     collection,
@@ -238,7 +239,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
                                         className="bg-primary hover:bg-primary/90 text-black"
                                     >
                                         {isSending ? (
-                                            <Icon icon="solar:spinner-bold" className="w-5 h-5 animate-spin" />
+                                            <ButtonLoader />
                                         ) : (
                                             <Icon icon="solar:plain-bold" className="w-5 h-5" />
                                         )}

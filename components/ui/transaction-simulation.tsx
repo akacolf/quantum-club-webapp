@@ -1,9 +1,10 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, AlertTriangle, CheckCircle, Info, Loader2, Shield } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, AlertTriangle, CheckCircle, Info, Shield } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 interface BalanceChange {
   symbol: string;
@@ -50,7 +51,7 @@ export function TransactionSimulation({
       <Card className="bg-card border-border overflow-hidden">
         <CardContent className="p-4">
           <div className="flex items-center justify-center py-8 gap-3">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <ButtonLoader />
             <span className="text-sm text-muted-foreground">Simulating transaction...</span>
           </div>
         </CardContent>

@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 interface EmptyStateProps {
     icon?: string;
@@ -67,7 +68,7 @@ export function LoadingState({ message = "Loading..." }: LoadingStateProps) {
     return (
         <div className="py-12 text-center">
             <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Icon icon="solar:spinner-bold" className="w-6 h-6 text-primary animate-spin" />
+                <ButtonLoader />
             </div>
             <p className="text-sm text-muted-foreground">{message}</p>
         </div>

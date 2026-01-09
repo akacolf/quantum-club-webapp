@@ -23,6 +23,7 @@ import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function CreateTokenPage() {
     const router = useRouter();
@@ -379,7 +380,7 @@ export default function CreateTokenPage() {
                                                     </button>
                                                 </>
                                             ) : isUploading ? (
-                                                <Icon icon="solar:spinner-bold" className="w-6 h-6 text-muted-foreground animate-spin" />
+                                                <ButtonLoader />
                                             ) : (
                                                 <Icon icon="solar:camera-add-bold" className="w-6 h-6 text-muted-foreground" />
                                             )}
@@ -621,8 +622,8 @@ export default function CreateTokenPage() {
                         >
                             {isLoading ? (
                                 <>
-                                    <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                    Creating token...
+                                    <ButtonLoader />
+                                    <span className="ml-2">Creating token...</span>
                                 </>
                             ) : !effectiveWalletAddress ? (
                                 <>
@@ -632,7 +633,7 @@ export default function CreateTokenPage() {
                             ) : (
                                 <>
                                     <Icon icon="solar:rocket-bold" className="w-5 h-5 mr-2" />
-                                    Launch Token
+                                    Launch token
                                 </>
                             )}
                         </Button>
