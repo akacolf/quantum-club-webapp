@@ -31,6 +31,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function TokenDetailPage() {
     const params = useParams();
@@ -421,7 +422,7 @@ export default function TokenDetailPage() {
                                     >
                                         {isLoading ? (
                                             <div className="flex items-center gap-2">
-                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <ButtonLoader />
                                                 <span>Confirming...</span>
                                             </div>
                                         ) : (
@@ -495,8 +496,8 @@ export default function TokenDetailPage() {
                                     >
                                         {isLoading ? (
                                             <div className="flex items-center gap-2">
-                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                <span>Process...</span>
+                                                <ButtonLoader />
+                                                <span>Processing...</span>
                                             </div>
                                         ) : (
                                             `Sell ${selectedToken.symbol}`
