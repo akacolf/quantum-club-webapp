@@ -85,7 +85,7 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
 ;; ----- Emit External Log -----
 ;; Emits an external message for indexers to track events
 () emit_log(int log_op, slice user, int amount, int price) impure inline {
-    ;; External message (destined for nowhere, just for indexing)
+    ;; Build log data
     cell log = begin_cell()
         .store_uint(log_op, 32)
         .store_uint(now(), 64)
@@ -94,10 +94,17 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         .store_coins(price)
         .end_cell();
     
-    ;; Send as external out message
-    send_raw_message(begin_cell()
-        .store_uint(0xC4, 9)  ;; ext_out_msg_info$11 + src:MsgAddressInt
-        .store_uint(0, 64 + 32 + 1 + 1)  ;; created_lt, created_at, init, body
+    ;; Send as external out message with proper format
+    ;; ext_out_msg_info$11 src:MsgAddressInt dest:MsgAddressExt created_lt:uint64 created_at:uint32
+    cell msg = begin_cell()
+        .store_uint(3, 2)          ;; ext_out_msg_info tag (11 in binary = 3)
+        .store_slice(my_address()) ;; src: contract address
+        .store_uint(0, 2)          ;; dest: addr_none (00 in binary)
+        .store_uint(0, 64 + 32)    ;; created_lt, created_at (filled by validator)
+        .store_uint(0, 1)          ;; no init
+        .store_uint(1, 1)          ;; body in ref
         .store_ref(log)
-        .end_cell(), 0);
+        .end_cell();
+    
+    send_raw_message(msg, 0);
 }
