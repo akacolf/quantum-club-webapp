@@ -50,6 +50,8 @@ interface TradingContextType {
     graduatedTokens: Token[];
     searchResults: Token[];
     isLoading: boolean;
+    isBuying: boolean;
+    isSelling: boolean;
 
     // User's created tokens (including pending deployments)
     myTokens: Token[];
@@ -113,6 +115,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     const [myTokens, setMyTokens] = useState<Token[]>([]);
     const [searchResults, setSearchResults] = useState<Token[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isBuying, setIsBuying] = useState(false);
+    const [isSelling, setIsSelling] = useState(false);
     const [positions, setPositions] = useState<HolderPosition[]>([]);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
@@ -622,6 +626,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             return { success: false, error: "Wallet not connected" };
         }
 
+        setIsBuying(true);
         try {
             // CRITICAL: Check balance before proceeding
             const tonAmountNum = parseFloat(tonAmount);
@@ -715,8 +720,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
             // NOTE: Trade is NOT logged to Firebase here
             // All trade data should come from on-chain transactions only
-            // This is intentional - logging before confirmation causes fake data
-
             // Refresh positions after a delay
             setTimeout(() => refreshPositions(), 5000);
 
@@ -727,6 +730,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("Buy error:", error);
             return { success: false, error: "Transaction failed" };
+        } finally {
+            setIsBuying(false);
         }
     }, [walletAddress, telegramId, docToToken, sendTransaction, refreshPositions, previewBuy]);
 
@@ -741,6 +746,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             return { success: false, error: "Wallet not connected" };
         }
 
+        setIsSelling(true);
         try {
             // CRITICAL: Validate amount
             const tokenAmountNum = parseFloat(tokenAmount);
@@ -857,6 +863,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("Sell error:", error);
             return { success: false, error: "Transaction failed" };
+        } finally {
+            setIsSelling(false);
         }
     }, [walletAddress, telegramId, docToToken, tonClient, sendTransaction, refreshPositions, previewSell]);
 
@@ -1079,6 +1087,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         graduatedTokens,
         searchResults,
         isLoading,
+        isBuying,
+        isSelling,
         myTokens,
         fetchMyTokens,
         retryDeployToken,
