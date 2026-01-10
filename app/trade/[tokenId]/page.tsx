@@ -68,6 +68,13 @@ export default function TokenDetailPage() {
         newPrice: string;
     } | null>(null);
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
+    
+    // On-chain stats from TONAPI
+    const [onChainStats, setOnChainStats] = useState<{
+        holders: number;
+        trades: number;
+        volume24h: number;
+    }>({ holders: 0, trades: 0, volume24h: 0 });
 
     // Load token and refresh balance
     useEffect(() => {
@@ -79,6 +86,59 @@ export default function TokenDetailPage() {
             fetchWalletAssets();
         }
     }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
+    
+    // Fetch on-chain stats from TONAPI
+    useEffect(() => {
+        const fetchOnChainStats = async () => {
+            if (!selectedToken?.jettonMasterAddress) return;
+            
+            const baseUrl = isTestnet 
+                ? "https://testnet.tonapi.io" 
+                : "https://tonapi.io";
+            
+            try {
+                // Fetch holders count
+                const holdersRes = await fetch(
+                    `${baseUrl}/v2/jettons/${selectedToken.jettonMasterAddress}/holders?limit=1`
+                );
+                const holdersData = await holdersRes.json();
+                const holdersCount = holdersData.total || 0;
+                
+                // Fetch recent transactions to count trades and volume
+                const txRes = await fetch(
+                    `${baseUrl}/v2/blockchain/accounts/${selectedToken.jettonMasterAddress}/transactions?limit=50`
+                );
+                const txData = await txRes.json();
+                
+                let tradesCount = 0;
+                let volume24h = 0;
+                const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+                
+                for (const tx of txData.transactions || []) {
+                    if (!tx.success) continue;
+                    const opCode = tx.in_msg?.op_code;
+                    // Buy or Sell
+                    if (opCode === "0xaf750d34" || opCode === "0x7bdd97de") {
+                        tradesCount++;
+                        const txTime = tx.utime * 1000;
+                        if (txTime > oneDayAgo) {
+                            const tonValue = (tx.in_msg?.value || 0) / 1e9;
+                            volume24h += tonValue;
+                        }
+                    }
+                }
+                
+                setOnChainStats({ holders: holdersCount, trades: tradesCount, volume24h });
+            } catch (error) {
+                console.warn("Failed to fetch on-chain stats:", error);
+            }
+        };
+        
+        fetchOnChainStats();
+        // Refresh every 30 seconds
+        const interval = setInterval(fetchOnChainStats, 30000);
+        return () => clearInterval(interval);
+    }, [selectedToken?.jettonMasterAddress, isTestnet]);
 
     // Get user position
     const position = getPosition(tokenId);
@@ -180,9 +240,6 @@ export default function TokenDetailPage() {
         );
     }
 
-    const priceChange = selectedToken.priceChange24h || 0;
-    const isPositive = priceChange >= 0;
-
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
             {/* Header - Premium Glassmorphism */}
@@ -264,17 +321,15 @@ export default function TokenDetailPage() {
                     <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
                 )}
 
-                {/* Price Card - Sleek Glow */}
+                {/* Price Card - On-Chain Data */}
                 <Card className="bg-white/5 backdrop-blur-md border border-white/5 relative overflow-hidden group">
                      {/* Ambient Glow */}
-                     <div className={`absolute -right-10 -top-10 w-40 h-40 blur-[80px] rounded-full transition-opacity opacity-50 ${isPositive ? "bg-green-500/20" : "bg-red-500/20"}`} />
+                     <div className="absolute -right-10 -top-10 w-40 h-40 blur-[80px] rounded-full transition-opacity opacity-50 bg-green-500/20" />
                     
                     <CardContent className="p-4 relative z-10">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center border border-white/5 ${
-                                    isPositive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-                                }`}>
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center border border-white/5 bg-green-500/10 text-green-400">
                                     <Icon icon="solar:tag-price-bold" className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -285,14 +340,14 @@ export default function TokenDetailPage() {
                                     </p>
                                 </div>
                             </div>
-                            <div className={`flex flex-col items-end ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
-                                    isPositive ? "bg-green-500/10" : "bg-red-500/10"
-                                }`}>
-                                    <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-3 h-3" />
-                                    {Math.abs(priceChange).toFixed(2)}%
-                                </div>
-                                <span className="text-[10px] text-muted-foreground mt-1">24h Change</span>
+                            <div className="flex flex-col items-end gap-1">
+                                <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
+                                    ON-CHAIN
+                                </Badge>
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    Live
+                                </span>
                             </div>
                         </div>
                     </CardContent>
@@ -511,63 +566,68 @@ export default function TokenDetailPage() {
                     </Card>
                 )}
 
-                {/* Stats Card - Cleaner Grid */}
+                {/* Stats Card - Now 100% On-Chain */}
                 <Card className="bg-white/5 border border-white/5 overflow-hidden">
                     <CardContent className="p-4">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Icon icon="solar:chart-square-bold" className="w-4 h-4 text-primary" />
-                            <p className="text-xs text-white/70 font-bold uppercase tracking-wide">Market Statistics</p>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:chart-square-bold" className="w-4 h-4 text-primary" />
+                                <p className="text-xs text-white/70 font-bold uppercase tracking-wide">Market Statistics</p>
+                            </div>
+                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
+                                ON-CHAIN
+                            </Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                             {/* Market Cap */}
+                             {/* Market Cap - uses tonReserve (on-chain) */}
                             <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
                                 <div className="flex items-center gap-2 mb-1.5 opacity-60">
                                      <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 text-blue-400" />
-                                     <span className="text-[10px] uppercase font-bold tracking-wider">Market Cap</span>
+                                     <span className="text-[10px] uppercase font-bold tracking-wider">TON Reserve</span>
                                 </div>
                                 <p className="text-lg font-bold text-white leading-tight">
-                                    ${formatCompactNumber((Number(selectedToken.marketCap || "0") / 1e9) * (tonPrice || 5), 2)}
+                                    ${formatCompactNumber((Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9) * (tonPrice || 5), 2)}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                                    {formatMarketCap(selectedToken.marketCap || "0")}
+                                    {formatMarketCap(selectedToken.tonReserve || selectedToken.marketCap || "0")}
                                 </p>
                             </div>
 
-                             {/* Volume */}
+                             {/* Volume - on-chain from TONAPI */}
                              <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
                                 <div className="flex items-center gap-2 mb-1.5 opacity-60">
                                      <Icon icon="solar:graph-new-bold" className="w-3.5 h-3.5 text-orange-400" />
                                      <span className="text-[10px] uppercase font-bold tracking-wider">Volume (24h)</span>
                                 </div>
                                 <p className="text-lg font-bold text-white leading-tight">
-                                    {formatCompactNumber(selectedToken.volume24h || 0, 1)} <span className="text-sm font-normal text-muted-foreground">TON</span>
+                                    {formatCompactNumber(onChainStats.volume24h, 1)} <span className="text-sm font-normal text-muted-foreground">TON</span>
                                 </p>
                             </div>
 
-                             {/* Holders */}
+                             {/* Holders - on-chain from TONAPI */}
                              <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
                                 <div className="flex items-center gap-2 mb-1.5 opacity-60">
                                      <Icon icon="solar:users-group-two-rounded-bold" className="w-3.5 h-3.5 text-purple-400" />
                                      <span className="text-[10px] uppercase font-bold tracking-wider">Holders</span>
                                 </div>
                                 <p className="text-lg font-bold text-white leading-tight">
-                                    {formatCompactNumber(selectedToken.holders, 0)}
+                                    {formatCompactNumber(onChainStats.holders, 0)}
                                 </p>
                             </div>
 
-                             {/* Trades */}
+                             {/* Trades - on-chain from TONAPI */}
                              <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
                                 <div className="flex items-center gap-2 mb-1.5 opacity-60">
                                      <Icon icon="solar:transfer-horizontal-bold" className="w-3.5 h-3.5 text-cyan-400" />
                                      <span className="text-[10px] uppercase font-bold tracking-wider">Transactions</span>
                                 </div>
                                 <p className="text-lg font-bold text-white leading-tight">
-                                    {formatCompactNumber(selectedToken.trades || 0, 0)}
+                                    {formatCompactNumber(onChainStats.trades, 0)}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Graduation Progress Strip */}
+                        {/* Graduation Progress Strip - uses tonReserve (on-chain) */}
                         <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-blue-500" />
@@ -582,8 +642,8 @@ export default function TokenDetailPage() {
                                         const rawThreshold = parseFloat(selectedToken.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
                                         let thresholdTon = rawThreshold > 1e9 ? rawThreshold / 1e9 : rawThreshold;
                                         if (thresholdTon === 100) thresholdTon = 2000;
-                                        const marketCapTon = Number(selectedToken.marketCap || "0") / 1e9;
-                                        return formatCompactNumber(Math.max(0, thresholdTon - marketCapTon), 0);
+                                        const tonReserveTon = Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9;
+                                        return formatCompactNumber(Math.max(0, thresholdTon - tonReserveTon), 0);
                                     })()} <span className="text-xs font-normal text-muted-foreground">TON remaining</span>
                                 </p>
                             </div>
