@@ -149,9 +149,9 @@ export default function TokenDetailPage() {
         }
     };
 
-    // Quick amount buttons
+    // Quick amount buttons - minimum buy is 0.15 TON, so start at 1 TON
     const quickAmounts = activeTab === "buy"
-        ? ["0.1", "0.5", "1", "5"]
+        ? ["1", "5", "7", "10"]
         : ["25%", "50%", "75%", "MAX"];
 
     const handleQuickAmount = (value: string) => {
@@ -165,8 +165,10 @@ export default function TokenDetailPage() {
             else if (value === "50%") percentage = 0.5;
             else if (value === "75%") percentage = 0.75;
 
-            const tokenAmount = (available * BigInt(Math.floor(percentage * 100))) / BigInt(100);
-            setAmount(tokenAmount.toString());
+            const tokenAmountNano = (available * BigInt(Math.floor(percentage * 100))) / BigInt(100);
+            // Convert from nano (1e9) to human-readable token amount
+            const tokenAmountHuman = Number(tokenAmountNano) / 1e9;
+            setAmount(tokenAmountHuman.toString());
         }
     };
 

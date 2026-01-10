@@ -279,6 +279,67 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
   }, [docToToken]);
 
   // =====================================================
+  // Refresh tokens with on-chain data (price, supply, etc.)
+  // =====================================================
+  const refreshTokensOnChain = useCallback(async () => {
+    // Get all tokens that have jetton addresses
+    const allTokens = [...trendingTokens, ...newTokens].filter(
+      (t, i, arr) => t.jettonMasterAddress && arr.findIndex(x => x.id === t.id) === i
+    );
+
+    // Only refresh up to 5 tokens at a time to avoid rate limits
+    const tokensToRefresh = allTokens.slice(0, 5);
+    
+    const enrichedUpdates: { id: string; data: Partial<Token> }[] = [];
+
+    await Promise.all(
+      tokensToRefresh.map(async (token) => {
+        try {
+          if (!token.jettonMasterAddress) return;
+          
+          const curveData = await getBondingCurveData(
+            token.jettonMasterAddress,
+            tonClient
+          );
+
+          if (curveData) {
+            enrichedUpdates.push({
+              id: token.id,
+              data: {
+                totalSupply: curveData.totalSupply.toString(),
+                currentPrice: curveData.currentPrice.toString(),
+                tonReserve: curveData.tonReserve.toString(),
+                marketCap: curveData.tonReserve.toString(),
+                graduationThreshold: curveData.graduationTarget.toString(),
+                isGraduated: curveData.graduated,
+              },
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch on-chain data for ${token.symbol}:`, error);
+        }
+      })
+    );
+
+    // Update trending tokens with on-chain data
+    if (enrichedUpdates.length > 0) {
+      setTrendingTokens((prev) =>
+        prev.map((token) => {
+          const update = enrichedUpdates.find((u) => u.id === token.id);
+          return update ? { ...token, ...update.data } : token;
+        })
+      );
+
+      setNewTokens((prev) =>
+        prev.map((token) => {
+          const update = enrichedUpdates.find((u) => u.id === token.id);
+          return update ? { ...token, ...update.data } : token;
+        })
+      );
+    }
+  }, [trendingTokens, newTokens, tonClient]);
+
+  // =====================================================
   // Fetch MY tokens (created by current user, including pending)
   // =====================================================
   const fetchMyTokens = useCallback(async () => {
@@ -1346,6 +1407,21 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
       fetchMyTokens();
     }
   }, [telegramId, walletAddress, fetchMyTokens]);
+
+  // Refresh on-chain data for displayed tokens periodically
+  useEffect(() => {
+    // Initial on-chain refresh after tokens load
+    if (trendingTokens.length > 0 || newTokens.length > 0) {
+      refreshTokensOnChain();
+    }
+
+    // Refresh every 30 seconds
+    const interval = setInterval(() => {
+      refreshTokensOnChain();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [trendingTokens.length, newTokens.length, refreshTokensOnChain]);
 
   // =====================================================
   // Context Value
