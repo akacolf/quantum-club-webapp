@@ -593,7 +593,7 @@ export default function TokenDetailPage() {
                 <SupplyInfo token={selectedToken} />
 
                 {/* Live Trades */}
-                <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} />
+                <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} jettonAddress={selectedToken.jettonMasterAddress} />
 
                 {/* User Position (if exists) */}
                 {position && BigInt(position.balance) > BigInt(0) && (
