@@ -13,8 +13,9 @@ interface GraduationProgressProps {
 }
 
 export default function GraduationProgress({ token, tonPriceUsd }: GraduationProgressProps) {
-    // Calculate market cap in TON (graduation is now TON-based)
-    const marketCapTon = Number(token.marketCap || "0") / 1e9;
+    // Use tonReserve for accurate on-chain progress (tonReserve IS the curve reserve in nanoTON)
+    // Fall back to marketCap for backwards compatibility with cached data
+    const tonReserveTon = Number(token.tonReserve || token.marketCap || "0") / 1e9;
 
     // Graduation threshold is stored in nanoTON, convert to TON
     // If value is very large (> 1e9), it's in nanoTON format - divide by 1e9
@@ -29,8 +30,8 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
         thresholdTon = 2000;
     }
 
-    const progress = Math.min(100, (marketCapTon / thresholdTon) * 100);
-    const remainingTon = Math.max(0, thresholdTon - marketCapTon);
+    const progress = Math.min(100, (tonReserveTon / thresholdTon) * 100);
+    const remainingTon = Math.max(0, thresholdTon - tonReserveTon);
 
     // Status check
     if (token.isGraduated) {
@@ -89,11 +90,11 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
                     <div>
                         <span className="text-muted-foreground">Current: </span>
                         <span className="text-white font-medium">
-                            {marketCapTon.toLocaleString(undefined, { maximumFractionDigits: 0 })} TON
+                            {tonReserveTon.toLocaleString(undefined, { maximumFractionDigits: 0 })} TON
                         </span>
                         {tonPriceUsd && tonPriceUsd > 0 && (
                             <span className="text-muted-foreground ml-1">
-                                (~${(marketCapTon * tonPriceUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })})
+                                (~${(tonReserveTon * tonPriceUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })})
                             </span>
                         )}
                     </div>

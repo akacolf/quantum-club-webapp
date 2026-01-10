@@ -592,6 +592,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
               token.totalSupply = curveData.totalSupply.toString();
               token.currentPrice = curveData.currentPrice.toString();
               token.isGraduated = curveData.graduated;
+              // Set on-chain reserve data for accurate UI display
+              token.tonReserve = curveData.tonReserve.toString();
+              token.marketCap = curveData.tonReserve.toString(); // marketCap = TON reserve in bonding curve
+              token.graduationThreshold = curveData.graduationTarget.toString();
             }
           } catch (error) {
             // Contract may not be fully deployed yet or may not have get_curve_data method
@@ -881,7 +885,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
         // NOTE: Trade is NOT logged to Firebase here
         // All trade data should come from on-chain transactions only
-        // Refresh positions after a delay
+        
+        // Refresh positions immediately and again after propagation delay
+        refreshPositions();
         setTimeout(() => refreshPositions(), 5000);
 
         return {
@@ -1042,7 +1048,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         // All trade data should come from on-chain transactions only
         // This is intentional - logging before confirmation causes fake data
 
-        // Refresh positions after a delay
+        // Refresh positions immediately and again after propagation delay
+        refreshPositions();
         setTimeout(() => refreshPositions(), 5000);
 
         return {
