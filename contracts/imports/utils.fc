@@ -63,7 +63,9 @@ slice get_jetton_wallet_address(slice owner_address, slice jetton_master_address
         .store_uint(query_id, 64)
         .end_cell();
     
-    send_raw_message(message, 64 + 128);
+    ;; Mode 64: Carry all remaining gas to this message
+    ;; Don't use mode 128 (send all balance) as it conflicts with other outbound messages  
+    send_raw_message(message, 64);
 }
 
 ;; ----- Send Fee Payment -----

@@ -180,35 +180,36 @@
     
     ;; Send transfer notification if requested
     if (forward_ton_amount > 0) {
-        cell notify_body = begin_cell()
+        ;; Check for forward payload
+        int has_forward_payload = in_msg_body~load_uint(1);
+        cell forward_payload = null();
+        if (has_forward_payload) {
+            forward_payload = in_msg_body~load_ref();
+        }
+        
+        ;; Build notification body
+        builder notify_body = begin_cell()
             .store_uint(op::transfer_notification, 32)
             .store_uint(query_id, 64)
             .store_coins(jetton_amount)
-            .store_slice(from_address)
-            .end_cell();
+            .store_slice(from_address);
         
-        ;; Check for forward payload
-        if (in_msg_body~load_uint(1)) {
-            cell forward_payload = in_msg_body~load_ref();
-            notify_body = begin_cell()
-                .store_uint(op::transfer_notification, 32)
-                .store_uint(query_id, 64)
-                .store_coins(jetton_amount)
-                .store_slice(from_address)
-                .store_uint(1, 1)
-                .store_ref(forward_payload)
-                .end_cell();
+        if (has_forward_payload) {
+            notify_body = notify_body.store_uint(1, 1).store_ref(forward_payload);
+        } else {
+            notify_body = notify_body.store_uint(0, 1);
         }
         
+        ;; Build message to owner
         cell message = begin_cell()
-            .store_uint(0x10, 6)
-            .store_slice(owner_address)
-            .store_coins(forward_ton_amount)
-            .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-            .store_ref(notify_body)
+            .store_uint(0x10, 6)           ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool = 0b010000
+            .store_slice(owner_address)    ;; dest
+            .store_coins(forward_ton_amount)  ;; value
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)  ;; Empty fields
+            .store_builder(notify_body)    ;; body inline
             .end_cell();
         
-        send_raw_message(message, 1);
+        send_raw_message(message, 1);  ;; Pay fees from message value
     }
     
     ;; Send excesses back
