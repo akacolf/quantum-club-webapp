@@ -255,22 +255,43 @@ import { getHttpEndpoint } from "@orbs-network/ton-access";
 let cachedMainnetEndpoint: string | null = null;
 let cachedTestnetEndpoint: string | null = null;
 
+// Fallback endpoints when Orbs fails
+const FALLBACK_ENDPOINTS = {
+    mainnet: "https://toncenter.com/api/v2/jsonRPC",
+    testnet: "https://testnet.toncenter.com/api/v2/jsonRPC",
+};
+
 /**
  * Get TON Access endpoint (decentralized, no rate limits)
+ * Falls back to toncenter if Orbs is unavailable
  */
 async function getTonAccessEndpoint(testnet: boolean): Promise<string> {
     if (testnet && cachedTestnetEndpoint) return cachedTestnetEndpoint;
     if (!testnet && cachedMainnetEndpoint) return cachedMainnetEndpoint;
     
-    const endpoint = await getHttpEndpoint({ network: testnet ? "testnet" : "mainnet" });
-    
-    if (testnet) {
-        cachedTestnetEndpoint = endpoint;
-    } else {
-        cachedMainnetEndpoint = endpoint;
+    try {
+        const endpoint = await getHttpEndpoint({ network: testnet ? "testnet" : "mainnet" });
+        
+        if (testnet) {
+            cachedTestnetEndpoint = endpoint;
+        } else {
+            cachedMainnetEndpoint = endpoint;
+        }
+        
+        return endpoint;
+    } catch (error) {
+        // Orbs is down, use toncenter fallback
+        console.warn("[TON Access] Orbs unavailable, using toncenter fallback:", error);
+        const fallback = testnet ? FALLBACK_ENDPOINTS.testnet : FALLBACK_ENDPOINTS.mainnet;
+        
+        if (testnet) {
+            cachedTestnetEndpoint = fallback;
+        } else {
+            cachedMainnetEndpoint = fallback;
+        }
+        
+        return fallback;
     }
-    
-    return endpoint;
 }
 
 /**
@@ -284,18 +305,19 @@ export function createTonClient(testnet: boolean = false): TonClient {
     // Use toncenter as synchronous fallback, will be upgraded to Orbs in async init
     return new TonClient({
         endpoint: testnet
-            ? "https://testnet.toncenter.com/api/v2/jsonRPC"
-            : "https://toncenter.com/api/v2/jsonRPC",
+            ? FALLBACK_ENDPOINTS.testnet
+            : FALLBACK_ENDPOINTS.mainnet,
     });
 }
 
 /**
  * Create TonClient with TON Access endpoint (async)
  * This is the preferred method - uses Orbs decentralized nodes with NO RATE LIMITS!
+ * Falls back to toncenter if Orbs is unavailable.
  */
 export async function createTonClientAsync(testnet: boolean = false): Promise<TonClient> {
     const endpoint = await getTonAccessEndpoint(testnet);
-    console.log(`[Orbs] Using TON Access endpoint: ${endpoint}`);
+    console.log(`[TON Client] Using endpoint: ${endpoint}`);
     return new TonClient({ endpoint });
 }
 
