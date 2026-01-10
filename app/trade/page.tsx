@@ -72,8 +72,9 @@ const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
 function TokenCard({ token, index, showRank = true }: { token: Token; index: number; showRank?: boolean }) {
     const priceChange = token.priceChange24h || 0;
     const isPositive = priceChange >= 0;
+    // Use tonReserve (on-chain) or fall back to marketCap for progress
     const progress = calculateProgress(
-        token.marketCap,
+        token.tonReserve || token.marketCap,
         token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON
     );
 
@@ -182,7 +183,7 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
                          <div className="flex items-center gap-1.5">
                             <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-[10px] text-muted-foreground font-medium">MCap:</span>
-                            <span className="text-[10px] font-bold text-white tracking-wide">{formatMarketCap(token.marketCap || "0")}</span>
+                            <span className="text-[10px] font-bold text-white tracking-wide">{formatMarketCap(token.tonReserve || token.marketCap || "0")}</span>
                          </div>
                          <div className="w-px h-3 bg-white/10" />
                          <div className="flex items-center gap-1.5">
