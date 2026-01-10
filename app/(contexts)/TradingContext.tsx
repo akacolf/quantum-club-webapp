@@ -91,7 +91,8 @@ interface TradingContextType {
   buyTokens: (
     tokenId: string,
     tonAmount: string,
-    slippageTolerance?: number
+    slippageTolerance?: number,
+    isInitialBuy?: boolean
   ) => Promise<TradeResult>;
   sellTokens: (tokenId: string, tokenAmount: string) => Promise<TradeResult>;
 
@@ -743,7 +744,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     async (
       tokenId: string,
       tonAmount: string,
-      slippageTolerance: number = 0.05 // Default 5% slippage
+      slippageTolerance: number = 0.05, // Default 5% slippage
+      isInitialBuy: boolean = false // Skip some checks for initial buys after token creation
     ): Promise<TradeResult> => {
       if (!walletAddress) {
         return { success: false, error: "Wallet not connected" };
@@ -767,30 +769,35 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        // Fetch current TON balance using Orbs TonClient (no rate limits!)
-        try {
-          const address = Address.parse(walletAddress);
-          const balanceInNano = await tonClient.getBalance(address);
-          const balanceInTon = Number(balanceInNano) / 1e9;
+        // Skip balance check for initial buy - already accounted for in token creation
+        if (!isInitialBuy) {
+          // Fetch current TON balance using Orbs TonClient (no rate limits!)
+          try {
+            const address = Address.parse(walletAddress);
+            const balanceInNano = await tonClient.getBalance(address);
+            const balanceInTon = Number(balanceInNano) / 1e9;
 
-          // Require extra 0.1 TON for gas fees
-          const requiredTon = tonAmountNum + 0.1;
-          if (balanceInTon < requiredTon) {
-            return {
-              success: false,
-              error: `Insufficient balance. You need ${requiredTon.toFixed(
-                2
-              )} TON (${tonAmountNum} + 0.1 gas) but have ${balanceInTon.toFixed(
-                4
-              )} TON`,
-            };
+            // Require extra 0.1 TON for gas fees
+            const requiredTon = tonAmountNum + 0.1;
+            if (balanceInTon < requiredTon) {
+              return {
+                success: false,
+                error: `Insufficient balance. You need ${requiredTon.toFixed(
+                  2
+                )} TON (${tonAmountNum} + 0.1 gas) but have ${balanceInTon.toFixed(
+                  4
+                )} TON`,
+              };
+            }
+          } catch (balanceError) {
+            // Log but don't block - let the on-chain transaction handle it
+            console.warn(
+              "Balance check failed, proceeding anyway:",
+              balanceError
+            );
           }
-        } catch (balanceError) {
-          // Log but don't block - let the on-chain transaction handle it
-          console.warn(
-            "Balance check failed, proceeding anyway:",
-            balanceError
-          );
+        } else {
+          console.log("Initial buy - skipping balance check (already validated during token creation)");
         }
 
         // Get token data
@@ -805,29 +812,34 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           return { success: false, error: "Token not deployed on-chain" };
         }
 
-        // CRITICAL: Verify contract is active on blockchain using Orbs TonClient (no rate limits!)
-        try {
-          const contractAddress = Address.parse(token.jettonMasterAddress);
-          const contractState = await tonClient.getContractState(
-            contractAddress
-          );
+        // Skip contract verification for initial buy - already verified in createToken
+        if (!isInitialBuy) {
+          // CRITICAL: Verify contract is active on blockchain using Orbs TonClient (no rate limits!)
+          try {
+            const contractAddress = Address.parse(token.jettonMasterAddress);
+            const contractState = await tonClient.getContractState(
+              contractAddress
+            );
 
-          if (contractState.state !== "active") {
-            return {
-              success: false,
-              error:
-                "Contract not active on blockchain. Deployment may have failed.",
-            };
+            if (contractState.state !== "active") {
+              return {
+                success: false,
+                error:
+                  "Contract not active on blockchain. Deployment may have failed.",
+              };
+            }
+            console.log(
+              "Contract verified active on-chain:",
+              token.jettonMasterAddress
+            );
+          } catch (verifyError) {
+            console.warn(
+              "Contract verification error, proceeding anyway:",
+              verifyError
+            );
           }
-          console.log(
-            "Contract verified active on-chain:",
-            token.jettonMasterAddress
-          );
-        } catch (verifyError) {
-          console.warn(
-            "Contract verification error, proceeding anyway:",
-            verifyError
-          );
+        } else {
+          console.log("Initial buy - skipping contract verification (already verified during token creation)");
         }
 
         if (token.isGraduated) {
@@ -1239,10 +1251,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 // Extra wait for contract indexing
                 await new Promise((resolve) => setTimeout(resolve, 2000));
 
-                // Execute initial buy
+                // Execute initial buy with isInitialBuy flag to skip redundant checks
                 const buyResult = await buyTokens(
                   tokenId,
-                  params.initialBuyAmount
+                  params.initialBuyAmount,
+                  0.05, // default slippage
+                  true // isInitialBuy - skip balance/contract checks already done
                 );
                 if (buyResult.success) {
                   console.log("Initial buy successful:", buyResult.txHash);

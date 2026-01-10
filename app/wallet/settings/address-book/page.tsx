@@ -41,6 +41,12 @@ export default function AddressBookPage() {
         }
     }, [isTestnet]);
 
+    // Slice address for compact display (e.g., "UQBx...abc1")
+    const sliceAddress = (address: string): string => {
+        if (address.length <= 16) return address;
+        return `${address.slice(0, 8)}...${address.slice(-8)}`;
+    };
+
     // Load from localStorage
     useEffect(() => {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -235,36 +241,35 @@ export default function AddressBookPage() {
                                             </Button>
                                         </div>
                                     ) : (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="font-medium text-foreground">{entry.name}</div>
-                                                <div className="flex items-center gap-1 shrink-0">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        onClick={() => handleEdit(entry.address)}
-                                                        className="text-muted-foreground hover:text-foreground h-8 w-8"
-                                                    >
-                                                        <Edit2 className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        onClick={() => handleDelete(entry.address)}
-                                                        className="text-destructive hover:text-destructive/80 h-8 w-8"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex flex-col gap-1.5 min-w-0">
+                                                <div className="font-semibold text-foreground text-base leading-none truncate">{entry.name}</div>
+                                                <button
+                                                    onClick={() => copyAddress(entry.address)}
+                                                    className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono hover:text-foreground transition-colors text-left w-fit"
+                                                >
+                                                    {sliceAddress(entry.address)}
+                                                    <Copy className="w-3 h-3 opacity-70" />
+                                                </button>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => copyAddress(entry.address)}
-                                                className="h-auto p-0 text-xs text-muted-foreground font-mono break-all text-left hover:text-foreground hover:bg-transparent flex items-center gap-1 w-full justify-start"
-                                            >
-                                                {entry.address}
-                                                <Copy className="w-3 h-3 shrink-0 ml-1" />
-                                            </Button>
+                                            <div className="flex items-center gap-0.5 shrink-0">
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => handleEdit(entry.address)}
+                                                    className="text-muted-foreground hover:text-foreground h-8 w-8"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => handleDelete(entry.address)}
+                                                    className="text-destructive hover:text-destructive/80 h-8 w-8"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     )}
                                 </CardContent>
