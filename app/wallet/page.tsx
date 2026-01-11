@@ -76,6 +76,20 @@ const BTC_ICON = "/svg/btc-logo.svg";
 const SOL_ICON = "/svg/sol-logo.svg";
 const TRX_ICON = "/svg/trx-logo.svg";
 
+// Format amount to 2 decimal places for display
+const formatAmount = (value: number | string, decimals: number = 2): string => {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "0.00";
+  return num.toFixed(decimals);
+};
+
+// Format USD value
+const formatUsd = (value: number | string): string => {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num) || num === 0) return "$0.00";
+  return `$${num.toFixed(2)}`;
+};
+
 export default function WalletPage() {
   const router = useRouter();
   const { MainQuantAmount } = useGameContext();
@@ -597,7 +611,7 @@ export default function WalletPage() {
                     <Skeleton className="h-10 w-32 bg-[#222]" />
                   ) : (
                     <h2 className="text-4xl font-bold text-white tracking-tight">
-                      {hideBalance ? "••••••" : `$${totalUsdBalance}`}
+                      {hideBalance ? "••••••" : formatUsd(totalUsdBalance)}
                     </h2>
                   )}
                 </div>
@@ -769,8 +783,8 @@ export default function WalletPage() {
                       </div>
                     ) : (
                       <>
-                        <h4 className="font-bold text-white">{hideBalance ? "••••" : tonBalance}</h4>
-                        <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${tonUsdValue}`}</p>
+                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(tonBalance)}</h4>
+                        <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(tonUsdValue)}</p>
                       </>
                     )}
                   </div>
@@ -846,7 +860,7 @@ export default function WalletPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="text-right min-w-[80px]">
-                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formattedBalance}</h4>
+                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
                         <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-500" />
@@ -902,8 +916,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : btcBalance.toFixed(6)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${btcUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(btcBalance, 6)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(btcUsdValue)}</p>
                         </>
                       )}
                     </div>
@@ -948,8 +962,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : ethBalance.toFixed(4)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${ethUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(ethBalance)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(ethUsdValue)}</p>
                         </>
                       )}
                     </div>
@@ -994,8 +1008,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : solBalance.toFixed(2)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${solUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(solBalance)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(solUsdValue)}</p>
                         </>
                       )}
                     </div>
@@ -1040,8 +1054,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : trxBalance.toFixed(2)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${trxUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(trxBalance)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(trxUsdValue)}</p>
                         </>
                       )}
                     </div>

@@ -545,7 +545,7 @@ export default function TradePage() {
                                             <Card key={token.id} className="bg-orange-500/5 border-orange-500/20 mb-2">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
+                                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 relative">
                                                             {token.image ? (
                                                                 <TokenImageFill src={token.image} alt={token.name} />
                                                             ) : (
