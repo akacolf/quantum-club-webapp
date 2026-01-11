@@ -38,6 +38,7 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
+import { AnimatedPrice, AnimatedBalance } from "@/components/ui/animated-price";
 import {
   LineChart,
   Line,
@@ -359,12 +360,53 @@ export default function WalletPage() {
     }
   }, [selectedAsset, chartPeriod, fetchPriceHistory]);
 
+  // Live price updates for selected asset (every 10 seconds)
+  useEffect(() => {
+    if (!selectedAsset) return;
+
+    const updateLivePrice = async () => {
+      try {
+        // Fetch latest price from DeFiLlama
+        const coinId = (() => {
+          switch (selectedAsset.symbol) {
+            case 'TON': return 'coingecko:the-open-network';
+            case 'ETH': return 'coingecko:ethereum';
+            case 'BTC': return 'coingecko:bitcoin';
+            case 'SOL': return 'coingecko:solana';
+            case 'TRX': return 'coingecko:tron';
+            default: return null;
+          }
+        })();
+
+        if (!coinId) return;
+
+        const response = await fetch(`https://coins.llama.fi/prices/current/${coinId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const newPrice = data.coins?.[coinId]?.price;
+          if (newPrice && newPrice !== selectedAsset.priceUsd) {
+            setSelectedAsset(prev => prev ? { ...prev, priceUsd: newPrice } : null);
+          }
+        }
+      } catch {
+        // Silently fail - price will update on next interval
+      }
+    };
+
+    // Initial fetch
+    updateLivePrice();
+
+    // Update every 10 seconds
+    const interval = setInterval(updateLivePrice, 10000);
+    return () => clearInterval(interval);
+  }, [selectedAsset?.symbol]);
+
   // Price chart tooltip
   const PriceTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-white font-bold">${payload[0].value.toFixed(4)}</p>
+          <p className="text-white font-bold">${payload[0].value.toFixed(2)}</p>
         </div>
       );
     }
@@ -916,7 +958,7 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(btcBalance, 6)}</h4>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(btcBalance, 2)}</h4>
                           <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(btcUsdValue)}</p>
                         </>
                       )}
@@ -1186,7 +1228,12 @@ export default function WalletPage() {
                 <div className="mb-6">
                   <p className="text-gray-400 text-sm mb-1">Current Price</p>
                   <h2 className="text-3xl font-bold text-white">
-                    ${selectedAsset.priceUsd?.toFixed(4) || "0.0000"}
+                    <AnimatedPrice 
+                      value={selectedAsset.priceUsd || 0} 
+                      decimals={2}
+                      showDirection={true}
+                      className=""
+                    />
                   </h2>
                 </div>
 
