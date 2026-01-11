@@ -59,7 +59,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
 
       userData.rank = rank;
       if (typeof window !== "undefined") {
-        localStorage.setItem("rank", rank)
+        localStorage.setItem(`rank_${telegramIdEncrypted}`, rank)
       }
       let newUser;
 
@@ -124,7 +124,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
           { merge: true }
         );
         sessionStorage.setItem("firstQuant", formattedQuant);
-        localStorage.setItem("QAmount", String(quantValue));
+        localStorage.setItem(`QAmount_${telegramIdEncrypted}`, String(quantValue));
         if (referrerID) {
           if (referrerID != telegramIdEncrypted) {
             const userReference = doc(
@@ -297,7 +297,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
           });
           userData.MainQuantAmount = formattedAmount;
           sessionStorage.setItem("firstQuant", formattedfirstQuant);
-          localStorage.setItem("QAmount", formattedAmount);
+          localStorage.setItem(`QAmount_${telegramIdEncrypted}`, formattedAmount);
 
 
 
@@ -353,12 +353,12 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
                   { merge: true }
                 );
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("daily", "1");
+                  localStorage.setItem(`daily_${telegramIdEncrypted}`, "1");
                 }
                 userData.daily = 1;
               } else {
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("daily", daily);
+                  localStorage.setItem(`daily_${telegramIdEncrypted}`, daily);
                 }
                 userData.daily = daily
               }
@@ -373,7 +373,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
             );
             userData.daily = 1;
             if (typeof window !== "undefined") {
-              localStorage.setItem("daily", "1");
+              localStorage.setItem(`daily_${telegramIdEncrypted}`, "1");
             }
           }
         } else {
@@ -382,7 +382,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
           });
           userData.daily = 1;
           if (typeof window !== "undefined") {
-            localStorage.setItem("daily", "1");
+            localStorage.setItem(`daily_${telegramIdEncrypted}`, "1");
           }
         }
         //CHECK WALLET
@@ -394,7 +394,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
 
         // Check for wallet from localStorage (QC Wallet)
         const savedWalletAddress = typeof window !== "undefined"
-          ? localStorage.getItem("walletAddress")
+          ? localStorage.getItem(`walletAddress_${telegramIdEncrypted}`)
           : null;
 
         if (savedWalletAddress) {

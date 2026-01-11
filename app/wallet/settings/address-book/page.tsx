@@ -10,6 +10,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { Address } from "@ton/core";
 import { useWallet } from "../../WalletContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 interface SavedAddress {
     address: string;
@@ -30,7 +31,7 @@ export default function AddressBookPage() {
     const [newAddress, setNewAddress] = useState("");
     const [editName, setEditName] = useState("");
     const [addressError, setAddressError] = useState("");
-
+    const { telegramId } = useGameContext();
     // Format address for display
     const formatAddress = useCallback((address: string): string => {
         try {
@@ -49,7 +50,7 @@ export default function AddressBookPage() {
 
     // Load from localStorage
     useEffect(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEY+`_${telegramId}`);
         if (stored) {
             setAddresses(JSON.parse(stored));
         }
@@ -58,7 +59,7 @@ export default function AddressBookPage() {
     // Save to localStorage
     const saveAddresses = (newAddresses: SavedAddress[]) => {
         setAddresses(newAddresses);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newAddresses));
+        localStorage.setItem(STORAGE_KEY+`_${telegramId}`, JSON.stringify(newAddresses));
     };
 
     const validateAddress = (addr: string): boolean => {

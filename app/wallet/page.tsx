@@ -154,7 +154,7 @@ export default function WalletPage() {
     // Load existing history
     let history: Array<{ timestamp: number; value: number }> = [];
     try {
-      const stored = localStorage.getItem(storageKey);
+      const stored = localStorage.getItem(storageKey+`_${telegramId}`);
       if (stored) {
         history = JSON.parse(stored);
       }
@@ -173,7 +173,7 @@ export default function WalletPage() {
 
     // Save updated history
     try {
-      localStorage.setItem(storageKey, JSON.stringify(history));
+      localStorage.setItem(storageKey+`_${telegramId}`, JSON.stringify(history));
     } catch {
       // Storage full, clear old entries
     }
@@ -358,7 +358,7 @@ export default function WalletPage() {
   };
 
   useEffect(() => {
-    const storedWallet = localStorage.getItem("quantum_wallet_address");
+    const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
 
     if (storedWallet) {
       setContextWalletAddress(storedWallet);

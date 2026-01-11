@@ -22,6 +22,7 @@ import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 interface NftDetails {
     address: string;
@@ -34,7 +35,7 @@ export default function SendNftPage() {
     const params = useParams();
     const router = useRouter();
     const nftAddress = decodeURIComponent(params.address as string);
-
+    const {telegramId}  = useGameContext();
     useTelegramBackButton(`/wallet/nft/${encodeURIComponent(nftAddress)}`);
 
     const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
@@ -161,7 +162,7 @@ export default function SendNftPage() {
     };
 
     const executeNftTransfer = async () => {
-        const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+        const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
         if (!storedMnemonic) {
             toast.error("Wallet credentials not found");
             return;

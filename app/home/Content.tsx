@@ -320,7 +320,7 @@ const HomeContent = () => {
                 { merge: true }
               );
               setDaily(1);
-              localStorage.setItem("daily", "1");
+              localStorage.setItem(`daily_${telegramId}`, "1");
               setIsclaimDay(false);
             } else if (diffInDays >= 1 && diffInDays < 2) {
               setIsclaimDay(false);
@@ -337,7 +337,7 @@ const HomeContent = () => {
           });
           setDaily(1);
           setIsclaimDay(false);
-          localStorage.setItem("daily", "1");
+          localStorage.setItem(`daily_${telegramId}`, "1");
         }
       } catch (error) {
         console.error(error);
@@ -523,10 +523,10 @@ const HomeContent = () => {
 
 
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", `${rewardDay}`);
+              localStorage.setItem(`QAmount_${telegramId}`, `${rewardDay}`);
             }
             if (typeof window !== "undefined") {
-              localStorage.setItem("daily", "1");
+              localStorage.setItem(`daily_${telegramId}`, "1");
             }
           } else {
             try {
@@ -574,14 +574,14 @@ const HomeContent = () => {
 
                 SetMainQuantAmount(formattedAmount);
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("QAmount", rewardDay);
+                  localStorage.setItem(`QAmount_${telegramId}`, rewardDay);
                 }
                 setDaily(dailyDay + 1);
                 setTimeout(() => {
                   addToQueue(`You've got +${quantReward} QNTM`);
                 }, 3000);
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("daily", dailyDay + 1);
+                  localStorage.setItem(`daily_${telegramId}`, dailyDay + 1);
                 }
                 console.error("Claimed");
               } else if (diffInDays >= 2) {
@@ -611,11 +611,11 @@ const HomeContent = () => {
 
                 SetMainQuantAmount(formattedAmount);
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("QAmount", rewardDay);
+                  localStorage.setItem(`QAmount_${telegramId}`, rewardDay);
                 }
                 setDaily(1);
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("daily", "1");
+                  localStorage.setItem(`daily_${telegramId}`, "1");
                 }
                 setTimeout(() => {
                   addToQueue(`You've got +${50} QNTM`);
@@ -682,11 +682,11 @@ const HomeContent = () => {
 
           SetMainQuantAmount(formattedAmount);
           if (typeof window !== "undefined") {
-            localStorage.setItem("QAmount", formattedAmount);
+            localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
           }
           setDaily(1);
           if (typeof window !== "undefined") {
-            localStorage.setItem("daily", "1");
+            localStorage.setItem(`daily_${telegramId}`, "1");
           }
           setTimeout(() => {
             addToQueue(`You've got +${50} QNTM`);
@@ -765,7 +765,7 @@ const HomeContent = () => {
             maximumFractionDigits: 0,
           });
           SetMainQuantAmount(formattedAmount);
-          localStorage.setItem("QAmount", formattedAmount);
+          localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
 
           // Also refresh solve to earn
           const remainingSTE = snapshotValue.data().remainingSolveToEarn;

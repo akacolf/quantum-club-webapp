@@ -51,9 +51,11 @@ import {
 } from "@/lib/stonfi";
 import { dexFactory } from "@ston-fi/sdk";
 import { TonClient } from "@ton/ton";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 export default function SwapPage() {
     useTelegramBackButton("/wallet");
+    const { telegramId } = useGameContext();
     const router = useRouter();
 
     const {
@@ -102,7 +104,7 @@ export default function SwapPage() {
 
     // Redirect if no wallet
     useEffect(() => {
-        const storedWallet = localStorage.getItem("quantum_wallet_address");
+        const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
         if (!storedWallet) {
             router.push("/wallet");
         } else {
@@ -386,7 +388,7 @@ export default function SwapPage() {
 
     // Execute swap
     const executeSwap = async () => {
-        const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+        const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
         if (!storedMnemonic || !simulation || !fromAsset || !toAsset) {
             toast.error("Wallet credentials not found");
             return;

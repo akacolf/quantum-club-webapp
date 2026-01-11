@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 // Protocol versions with professional descriptions
 const WALLET_VERSIONS = [
@@ -46,6 +47,7 @@ const WALLET_VERSIONS = [
 
 export default function ImportWalletPage() {
   const router = useRouter();
+  const { telegramId } = useGameContext();
   useTelegramBackButton("/wallet");
 
   const { setWalletAddress, addWallet, switchWallet, storedWallets, isTestnet } = useWallet();
@@ -170,9 +172,9 @@ export default function ImportWalletPage() {
       }
 
       const address = wallet.address.toString({ bounceable: false, testOnly: isTestnet });
-      localStorage.setItem("quantum_wallet_address", address);
-      localStorage.setItem("quantum_wallet_mnemonic", cleanedPhrase.join(" "));
-      localStorage.setItem("quantum_wallet_version", walletVersion);
+      localStorage.setItem(`quantum_wallet_address_${telegramId}`, address);
+      localStorage.setItem(`quantum_wallet_mnemonic_${telegramId}`, cleanedPhrase.join(" "));
+      localStorage.setItem(`quantum_wallet_version_${telegramId}`, walletVersion);
       setWalletAddress(address);
 
       const walletName = `Wallet ${storedWallets.length + 1} (${versionLabel})`;

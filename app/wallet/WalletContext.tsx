@@ -7,6 +7,7 @@ import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
+import { useGameContext } from "../(contexts)/MiningContext";
 
 // Default testnet mode - can be overridden by user preference in localStorage
 const DEFAULT_TESTNET = false;
@@ -108,8 +109,9 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
+  const {telegramId} = useGameContext();
   const [walletAddress, setWalletAddress] = useState(() => {
-    const wallet = typeof window !== "undefined" ? localStorage.getItem("quantum_wallet_address") : "";
+    const wallet = typeof window !== "undefined" ? localStorage.getItem(`quantum_wallet_address_${telegramId}`) : "";
     return wallet || ""; // Default to empty string if null
   });
   const [tonBalance, setTonBalance] = useState("0");
@@ -122,7 +124,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [walletStatus, setWalletStatus] = useState("nonexist");
-
   // TON Testnet mode
   const [isTestnet, setIsTestnet] = useState(() => {
     if (typeof window !== "undefined") {
@@ -130,11 +131,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return DEFAULT_TESTNET;
   });
-
+      
   // Re-derive TON address when network changes
   const rederiveTonAddress = useCallback(async (testnet: boolean) => {
-    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
-    const storedVersion = localStorage.getItem("quantum_wallet_version") || "v5r1";
+    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+    const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
 
     if (!storedMnemonic) return;
 
@@ -161,7 +162,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       const newAddress = wallet.address.toString({ bounceable: false, testOnly: testnet });
       setWalletAddress(newAddress);
-      localStorage.setItem("quantum_wallet_address", newAddress);
+      localStorage.setItem(`quantum_wallet_address_${telegramId}`, newAddress);
     } catch (error) {
       console.error("Failed to re-derive address:", error);
     }
@@ -235,7 +236,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Multi-wallet support
   const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("quantum_wallets");
+      const stored = localStorage.getItem(`quantum_wallets_${telegramId}`);
       return stored ? JSON.parse(stored) : [];
     }
     return [];
@@ -243,7 +244,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const [activeWalletIndex, setActiveWalletIndex] = useState(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("quantum_active_wallet_index");
+      const stored = localStorage.getItem(`quantum_active_wallet_index_${telegramId}`);
       return stored ? parseInt(stored) : 0;
     }
     return 0;
@@ -251,7 +252,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const [hiddenAssets, setHiddenAssets] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("quantum_hidden_assets");
+      const stored = localStorage.getItem(`quantum_hidden_assets_${telegramId}`);
       return stored ? JSON.parse(stored) : [];
     }
     return [];
@@ -309,7 +310,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         isActive: prev.length === 0, // First wallet is active
       };
       const updated = [...prev.map(w => ({ ...w, isActive: false })), newWallet];
-      localStorage.setItem("quantum_wallets", JSON.stringify(updated));
+      localStorage.setItem(`quantum_wallets_${telegramId}`, JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -321,10 +322,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (prev.find(w => w.address === address)?.isActive && updated.length > 0) {
         updated[0].isActive = true;
         setWalletAddress(updated[0].address);
-        localStorage.setItem("quantum_wallet_address", updated[0].address);
+        localStorage.setItem(`quantum_wallet_address_${telegramId}`, updated[0].address);
         setHasFetched(false);
       }
-      localStorage.setItem("quantum_wallets", JSON.stringify(updated));
+      localStorage.setItem(`quantum_wallets_${telegramId}`, JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -335,14 +336,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         ...w,
         isActive: w.address === address
       }));
-      localStorage.setItem("quantum_wallets", JSON.stringify(updated));
+      localStorage.setItem(`quantum_wallets_${telegramId}`, JSON.stringify(updated));
       const newIndex = updated.findIndex(w => w.address === address);
       setActiveWalletIndex(newIndex);
-      localStorage.setItem("quantum_active_wallet_index", String(newIndex));
+      localStorage.setItem(`quantum_active_wallet_index_${telegramId}`, String(newIndex));
       return updated;
     });
     setWalletAddress(address);
-    localStorage.setItem("quantum_wallet_address", address);
+    localStorage.setItem(`quantum_wallet_address_${telegramId}`, address);
     setHasFetched(false);
     toast.success("Wallet switched!");
   }, []);
@@ -352,7 +353,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const updated = prev.map(w =>
         w.address === address ? { ...w, name: newName } : w
       );
-      localStorage.setItem("quantum_wallets", JSON.stringify(updated));
+      localStorage.setItem(`quantum_wallets_${telegramId}`, JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -378,13 +379,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Clear all wallet state on logout
   const clearWallet = useCallback(() => {
     // Clear localStorage
-    localStorage.removeItem("quantum_wallet_address");
-    localStorage.removeItem("quantum_wallet_mnemonic");
-    localStorage.removeItem("quantum_wallet_pin_hash");
-    localStorage.removeItem("quantum_wallet_credential_id");
-    localStorage.removeItem("quantum_wallet_version");
-    localStorage.removeItem("quantum_wallets");
-    localStorage.removeItem("quantum_active_wallet_index");
+    localStorage.removeItem(`quantum_wallet_address_${telegramId}`);
+    localStorage.removeItem(`quantum_wallet_mnemonic_${telegramId}`);
+    localStorage.removeItem(`quantum_wallet_pin_hash_${telegramId}`);
+    localStorage.removeItem(`quantum_wallet_credential_id_${telegramId}`);
+    localStorage.removeItem(`quantum_wallet_version_${telegramId}`);
+    localStorage.removeItem(`quantum_wallets_${telegramId}`);
+    localStorage.removeItem(`quantum_active_wallet_index_${telegramId}`);
     
     // Reset all state
     setWalletAddress("");
@@ -590,7 +591,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Derive multi-chain addresses from mnemonic (always mainnet)
   // Re-derive when wallet address changes (e.g., after import or wallet switch)
   useEffect(() => {
-    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
     if (storedMnemonic && walletAddress) {
       try {
         // Always re-derive to ensure addresses match current mnemonic
@@ -663,7 +664,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Sync wallet address from localStorage on mount (for SSR hydration)
   useEffect(() => {
-    const storedWallet = localStorage.getItem("quantum_wallet_address");
+    const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
     if (storedWallet && storedWallet !== walletAddress) {
       setWalletAddress(storedWallet);
     }
@@ -711,8 +712,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       hasStateInit: !!params.stateInit,
     });
 
-    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
-    const storedVersion = localStorage.getItem("quantum_wallet_version") || "v5r1";
+    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+    const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
 
     if (!storedMnemonic) {
       return { success: false, error: "Wallet not found" };

@@ -24,13 +24,14 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 export default function CreateTokenPage() {
     const router = useRouter();
     const { createToken, refreshTokens } = useTrading();
     const { walletAddress, setWalletAddress } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
-
+    const { telegramId } = useGameContext();
     // Telegram back button
     useTelegramBackButton("/trade");
 
@@ -39,7 +40,7 @@ export default function CreateTokenPage() {
     
     useEffect(() => {
         // First check localStorage directly (handles SSR hydration timing)
-        const storedWallet = localStorage.getItem("quantum_wallet_address");
+        const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
         if (storedWallet && storedWallet !== "") {
             setEffectiveWalletAddress(storedWallet);
             // Also update context if needed

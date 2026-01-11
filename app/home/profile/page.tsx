@@ -107,7 +107,7 @@ export default function ProfilePage() {
                     const totalQntm = valuesSnapshot.exists() ? valuesSnapshot.data()?.QuantAmount || 0 : 0;
 
                     // Check wallet
-                    const walletCreated = typeof window !== "undefined" && !!localStorage.getItem("walletAddress");
+                    const walletCreated = typeof window !== "undefined" && !!localStorage.getItem(`walletAddress_${telegramId}`);
 
                     setStats({
                         totalQntm,

@@ -31,6 +31,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import Loader from "@/app/(components)/Loader";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 const COLORS = [
   "#3B82F6", // Blue (TON)
@@ -77,7 +78,7 @@ export default function AnalyticsPage() {
     solUsdValue,
     trxUsdValue,
   } = useWallet();
-
+  const { telegramId } = useGameContext();
   const [change24h, setChange24h] = useState<number | null>(null);
   const [change7d, setChange7d] = useState<number | null>(null);
 
@@ -87,7 +88,7 @@ export default function AnalyticsPage() {
 
     const storageKey = `wallet_balance_history_${walletAddress}`;
     try {
-      const stored = localStorage.getItem(storageKey);
+      const stored = localStorage.getItem(storageKey+`_${telegramId}`);
       if (stored) {
         const history = JSON.parse(stored) as BalanceHistoryEntry[];
 

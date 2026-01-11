@@ -47,6 +47,7 @@ import {
   sendTrxTransaction,
   sendBtcTransaction,
 } from "../utils/multichain";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 type NetworkMode = "ton" | "multichain";
 type MultiChainType = "eth" | "sol" | "trx" | "btc";
@@ -78,7 +79,7 @@ interface MultiChainOption {
 export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-
+  const {telegramId} = useGameContext()
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
   const { isOpen: isQROpen, openScanner: openQRScanner, closeScanner: closeQRScanner } = useQRScanner();
 
@@ -302,12 +303,12 @@ export default function SendPage() {
 
   // Redirect if no wallet
   useEffect(() => {
-    const storedWallet = localStorage.getItem("quantum_wallet_address");
+    const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
     if (!storedWallet) {
       router.push("/wallet");
     }
     // Load saved addresses
-    const storedAddresses = localStorage.getItem("quantum_address_book");
+    const storedAddresses = localStorage.getItem(`quantum_address_book_${telegramId}`);
     if (storedAddresses) {
       setSavedAddresses(JSON.parse(storedAddresses));
     }
@@ -470,7 +471,7 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+      const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
       if (!storedMnemonic) {
         throw new Error("Wallet not found");
       }
@@ -653,7 +654,7 @@ export default function SendPage() {
   };
 
   const executeSend = async () => {
-    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
     if (!storedMnemonic) {
       toast.error("Wallet credentials not found");
       analyticsEvents.transactionSigningFailed("Wallet credentials not found");
@@ -903,7 +904,7 @@ export default function SendPage() {
     setMultiChainStep("processing");
 
     try {
-      const mnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+      const mnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
       if (!mnemonic) {
         throw new Error("Wallet not found");
       }

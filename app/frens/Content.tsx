@@ -264,8 +264,8 @@ const FrensContent = () => {
         toast.success(`Claimed ${data.claimedAmount.toFixed(0)} QNTM!`);
         setPendingRewards(0);
         // Update local storage balance
-        const currentBalance = Number(localStorage.getItem("QAmount") || "0");
-        localStorage.setItem("QAmount", String(currentBalance + data.claimedAmount));
+        const currentBalance = Number(localStorage.getItem(`QAmount_${telegramId}`) || "0");
+        localStorage.setItem(`QAmount_${telegramId}`, String(currentBalance + data.claimedAmount));
       } else if (data.claimedAmount === 0) {
         toast.info("No pending rewards to claim");
       } else {

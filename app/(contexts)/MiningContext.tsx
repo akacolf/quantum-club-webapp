@@ -57,7 +57,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const [MainQuantAmount, SetMainQuantAmount] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      const amount = localStorage.getItem("QAmount");
+      const amount = localStorage.getItem(`QAmount`+`_${telegramId}`);
       return amount ? `${amount}` : "0";
     }
     return "0";
@@ -65,7 +65,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const [rank, setRank] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("rank");
+      return localStorage.getItem(`rank_${telegramId}`);
     }
     return null;
   });
@@ -79,7 +79,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const [daily, setDaily] = useState<number>(() => {
     if (typeof window !== "undefined") {
-      const dailyValue = localStorage.getItem("daily");
+      const dailyValue = localStorage.getItem(`daily_${telegramId}`);
       return dailyValue ? parseFloat(dailyValue) : 0;
     }
     return 0;
@@ -94,7 +94,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const [walletAddress, setWalletAddress] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("walletAddress");
+      return localStorage.getItem(`walletAddress_${telegramId}`);
     }
     return null;
   });

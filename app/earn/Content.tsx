@@ -106,7 +106,7 @@ const EarnContent = () => {
                 buttontitle,
                 buttonText: completed
                   ? "Joined"
-                  : (whichPlatform === "connectwallet" && typeof window !== "undefined" && localStorage.getItem("walletAddress"))
+                  : (whichPlatform === "connectwallet" && typeof window !== "undefined" && localStorage.getItem("walletAddress_"+telegramId))
                     ? "Claim"
                     : buttontitle,
                 url,
@@ -358,7 +358,7 @@ const EarnContent = () => {
                   }
                 );
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("QAmount", formattedAmount);
+                  localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
                 }
                 SetMainQuantAmount(formattedAmount);
                 setTasks((items) =>
@@ -518,7 +518,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -607,7 +607,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -706,7 +706,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -776,7 +776,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -853,7 +853,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -970,7 +970,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -1016,7 +1016,7 @@ const EarnContent = () => {
           );
 
           // Check for wallet from localStorage (QC Wallet)
-             const storedWallet = localStorage.getItem("quantum_wallet_address");
+             const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
           if (storedWallet && storedWallet !== "") {
             // User has a wallet - show claim button
             setTasks((items) =>
@@ -1076,7 +1076,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -1180,7 +1180,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>

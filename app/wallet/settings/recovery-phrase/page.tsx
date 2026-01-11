@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 export default function ViewRecoveryPhrasePage() {
   useTelegramBackButton("/wallet/settings");
@@ -17,14 +18,14 @@ export default function ViewRecoveryPhrasePage() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-
+  const {telegramId}  = useGameContext();
   // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
   useEffect(() => {
     // Only load mnemonic after authorization
     if (isAuthorized) {
-      const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+      const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
       if (!storedMnemonic) {
         toast.error("No wallet found");
         router.push("/wallet/settings");
