@@ -453,11 +453,19 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           stateInitCell = Cell.fromBoc(stateInitBuffer)[0];
         }
 
+        // Parse body
+        let bodyCell: Cell | undefined;
+        if (deployTx.body) {
+          const bodyBuffer = Buffer.from(deployTx.body, "base64");
+          bodyCell = Cell.fromBoc(bodyBuffer)[0];
+        }
+
         // Send deployment transaction
         const txResult = await sendTransaction({
           to: deployTx.to,
           value: deployTx.value,
           stateInit: stateInitCell,
+          body: bodyCell,
         });
 
         if (!txResult.success) {
@@ -1195,11 +1203,19 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             stateInitCell = Cell.fromBoc(stateInitBuffer)[0];
           }
 
+          // Parse the body if provided
+          let bodyCell: Cell | undefined;
+          if (deployTx.body) {
+            const bodyBuffer = Buffer.from(deployTx.body, "base64");
+            bodyCell = Cell.fromBoc(bodyBuffer)[0];
+          }
+
           // Send deployment transaction
           const txResult = await sendTransaction({
             to: deployTx.to,
             value: deployTx.value,
             stateInit: stateInitCell,
+            body: bodyCell,
           });
 
           if (txResult.success) {
