@@ -11,26 +11,18 @@ interface PriceData {
   };
 }
 
-// Fetch prices from CoinGecko
+// Fetch prices from DeFiLlama (free, no rate limits)
 async function fetchPrices(): Promise<PriceData> {
   try {
-    const response = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum,solana,tron&vs_currencies=usd",
-      { next: { revalidate: 0 } }
-    );
-
-    if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const { fetchAllPrices } = await import("@/lib/price-api");
+    const prices = await fetchAllPrices();
 
     return {
-      TON: { usd: data["the-open-network"]?.usd || 0 },
-      BTC: { usd: data["bitcoin"]?.usd || 0 },
-      ETH: { usd: data["ethereum"]?.usd || 0 },
-      SOL: { usd: data["solana"]?.usd || 0 },
-      TRX: { usd: data["tron"]?.usd || 0 },
+      TON: { usd: prices.ton || 0 },
+      BTC: { usd: prices.btc || 0 },
+      ETH: { usd: prices.eth || 0 },
+      SOL: { usd: prices.sol || 0 },
+      TRX: { usd: prices.trx || 0 },
     };
   } catch (error) {
     console.error("Failed to fetch prices:", error);

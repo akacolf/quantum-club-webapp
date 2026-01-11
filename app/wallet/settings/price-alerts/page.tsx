@@ -77,22 +77,18 @@ export default function PriceAlertsPage() {
         }
     }, [telegramId]);
 
-    // Fetch current prices
+    // Fetch current prices using DeFiLlama (free, no rate limits)
     const fetchPrices = useCallback(async () => {
         try {
-            const response = await fetch(
-                "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum,solana,tron&vs_currencies=usd"
-            );
-            if (response.ok) {
-                const data = await response.json();
-                setCurrentPrices({
-                    TON: data["the-open-network"]?.usd || 0,
-                    BTC: data["bitcoin"]?.usd || 0,
-                    ETH: data["ethereum"]?.usd || 0,
-                    SOL: data["solana"]?.usd || 0,
-                    TRX: data["tron"]?.usd || 0,
-                });
-            }
+            const { fetchAllPrices } = await import("@/lib/price-api");
+            const prices = await fetchAllPrices();
+            setCurrentPrices({
+                TON: prices.ton || 0,
+                BTC: prices.btc || 0,
+                ETH: prices.eth || 0,
+                SOL: prices.sol || 0,
+                TRX: prices.trx || 0,
+            });
         } catch (error) {
             console.error("Failed to fetch prices:", error);
         }

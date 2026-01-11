@@ -422,14 +422,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Use CoinGecko for price data (generous free tier, no API key needed)
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
-        { next: { revalidate: 60 } } // Cache for 60 seconds
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const price = data["the-open-network"]?.usd || 0;
+      // Use DeFiLlama for price data (free, no rate limits)
+      const { fetchTonPrice: getTonPrice } = await import("@/lib/price-api");
+      const price = await getTonPrice();
+      if (price > 0) {
         setTonPrice(price);
         return price;
       }

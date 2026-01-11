@@ -809,7 +809,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     async (
       tokenId: string,
       tonAmount: string,
-      slippageTolerance: number = 0.05, // Default 5% slippage
+      slippageTolerance: number = 0.15, // Default 15% slippage (new tokens are volatile!)
       isInitialBuy: boolean = false // Skip some checks for initial buys after token creation
     ): Promise<TradeResult> => {
       if (!walletAddress) {
