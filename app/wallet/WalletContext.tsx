@@ -5,7 +5,7 @@ import { Address, fromNano, internal, SendMode, Cell, loadStateInit } from "@ton
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, TonClient } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
-import { getSafeHttpEndpoint } from "@/lib/ton-api";
+import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
 
 // Default testnet mode - can be overridden by user preference in localStorage
@@ -450,7 +450,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Use Orbs Network for TON balance (rate-limit free!)
       let tonUsd = 0;
       try {
-        const orbsEndpoint = await getSafeHttpEndpoint(isTestnet ? "testnet" : "mainnet");
+        const orbsEndpoint = await getHttpEndpoint({ 
+          network: isTestnet ? "testnet" : "mainnet" 
+        });
         const orbsClient = new TonClient({ endpoint: orbsEndpoint });
         const address = Address.parse(walletAddress);
         
@@ -738,7 +740,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Use TON Access for decentralized, rate-limit-free access
       let tonClient: TonClient;
       try {
-        const endpoint = await getSafeHttpEndpoint(isTestnet ? "testnet" : "mainnet");
+        const endpoint = await getHttpEndpoint({ network: isTestnet ? "testnet" : "mainnet" });
         tonClient = new TonClient({ endpoint });
         console.log("Using TON Access endpoint:", endpoint);
       } catch (accessError) {
@@ -865,7 +867,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
         try {
           // Get Orbs endpoint for current network
-          const orbsEndpoint = await getSafeHttpEndpoint(isTestnet ? "testnet" : "mainnet");
+          const orbsEndpoint = await getHttpEndpoint({ 
+            network: isTestnet ? "testnet" : "mainnet" 
+          });
           const orbsClient = new TonClient({ endpoint: orbsEndpoint });
           
           console.log("Sending via Orbs Network...", orbsEndpoint);

@@ -427,8 +427,8 @@ export default function SwapPage() {
             // Build swap transaction using STON.fi SDK with TON Access
             let tonClient: TonClient;
             try {
-                const { getSafeHttpEndpoint } = await import("@/lib/ton-api");
-                const endpoint = await getSafeHttpEndpoint("mainnet");
+                const { getHttpEndpoint } = await import("@orbs-network/ton-access");
+                const endpoint = await getHttpEndpoint({ network: "mainnet" });
                 tonClient = new TonClient({ endpoint });
             } catch {
                 // Fallback to TonCenter

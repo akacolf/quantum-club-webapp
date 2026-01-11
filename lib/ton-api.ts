@@ -1,8 +1,8 @@
 /**
- * Unified TON API utilities with fallback support
+ * Unified TON API utilities using Orbs Network
  * 
  * Orbs Network provides decentralized, rate-limit-free access to TON.
- * Falls back to TonCenter if Orbs is unavailable.
+ * This module centralizes all TON API calls to avoid hitting rate limits.
  * 
  * @see https://www.orbs.com/ton-access
  */
@@ -17,51 +17,29 @@ import { getHttpEndpoint } from "@orbs-network/ton-access";
 const NETWORK = (process.env.NEXT_PUBLIC_TON_NETWORK || "mainnet") as "mainnet" | "testnet";
 const IS_TESTNET = NETWORK === "testnet";
 
-// Fallback endpoints when Orbs is unavailable
-const FALLBACK_ENDPOINTS = {
-    mainnet: "https://toncenter.com/api/v2/jsonRPC",
-    testnet: "https://testnet.toncenter.com/api/v2/jsonRPC",
-};
-
-// Cache for endpoints
+// Cache for Orbs endpoints
 let cachedEndpoint: string | null = null;
 let cachedClient: TonClient | null = null;
 let initPromise: Promise<TonClient> | null = null;
 
 // =====================================================
-// Safe HTTP Endpoint (with fallback)
+// Core Client Management
 // =====================================================
 
 /**
- * Get TON RPC endpoint with fallback.
- * Tries Orbs first, falls back to TonCenter if unavailable.
- * This function should be used instead of direct getHttpEndpoint calls.
- */
-export async function getSafeHttpEndpoint(network: "mainnet" | "testnet" = NETWORK): Promise<string> {
-    try {
-        const endpoint = await getHttpEndpoint({ network });
-        return endpoint;
-    } catch {
-        // Orbs is down, use toncenter fallback
-        console.warn("[TON-API] Orbs unavailable, using toncenter fallback");
-        return network === "testnet" ? FALLBACK_ENDPOINTS.testnet : FALLBACK_ENDPOINTS.mainnet;
-    }
-}
-
-/**
- * Get the Orbs Network endpoint (cached, with fallback)
+ * Get the Orbs Network endpoint (cached)
  */
 export async function getOrbsEndpoint(): Promise<string> {
     if (cachedEndpoint) return cachedEndpoint;
     
-    cachedEndpoint = await getSafeHttpEndpoint(NETWORK);
-    console.log(`[TON-API] Using endpoint: ${cachedEndpoint}`);
+    cachedEndpoint = await getHttpEndpoint({ network: NETWORK });
+    console.log(`[TON-API] Using Orbs endpoint: ${cachedEndpoint}`);
     return cachedEndpoint;
 }
 
 /**
- * Get or create a TonClient with fallback support
- * This is rate-limit-free when using Orbs, falls back to TonCenter
+ * Get or create a TonClient using Orbs Network
+ * This is rate-limit-free and decentralized
  */
 export async function getTonClient(): Promise<TonClient> {
     if (cachedClient) return cachedClient;
@@ -84,7 +62,9 @@ export async function getTonClient(): Promise<TonClient> {
  */
 export function createTonClientSync(): TonClient {
     return new TonClient({
-        endpoint: IS_TESTNET ? FALLBACK_ENDPOINTS.testnet : FALLBACK_ENDPOINTS.mainnet,
+        endpoint: IS_TESTNET
+            ? "https://testnet.toncenter.com/api/v2/jsonRPC"
+            : "https://toncenter.com/api/v2/jsonRPC",
     });
 }
 
