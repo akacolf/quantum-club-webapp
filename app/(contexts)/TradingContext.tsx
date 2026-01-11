@@ -510,6 +510,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             }),
           }).catch(console.error);
 
+          // Small delay to ensure Firestore write propagates
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
           // Refresh my tokens list
           await fetchMyTokens();
           await fetchTokens();
@@ -1297,6 +1300,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
         // Refresh token lists so the new token appears immediately
         await fetchTokens();
+        await fetchMyTokens();
 
         // Return the created token
         const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
@@ -1317,6 +1321,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
       sendTransaction,
       buyTokens,
       fetchTokens,
+      fetchMyTokens,
     ]
   );
 
