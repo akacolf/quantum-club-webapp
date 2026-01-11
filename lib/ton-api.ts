@@ -4,9 +4,6 @@
  * Orbs Network provides decentralized, rate-limit-free access to TON.
  * This module centralizes all TON API calls to avoid hitting rate limits.
  * 
- * IMPORTANT: We use pre-cached Orbs node endpoints to avoid hitting the 
- * discovery API (ton.access.orbs.network) which has CDN rate limits.
- * 
  * @see https://www.orbs.com/ton-access
  */
 
@@ -20,30 +17,7 @@ import { getHttpEndpoint } from "@orbs-network/ton-access";
 const NETWORK = (process.env.NEXT_PUBLIC_TON_NETWORK || "mainnet") as "mainnet" | "testnet";
 const IS_TESTNET = NETWORK === "testnet";
 
-// Pre-cached Orbs node endpoints (mainnet) - Avoids discovery API rate limits!
-// Format: https://ton.access.orbs.network/{NodeId}/1/{network}/toncenter-api-v2/jsonRPC
-// NodeIds from verified Orbs nodes. Update periodically if nodes change.
-const ORBS_MAINNET_ENDPOINTS = [
-    "https://ton.access.orbs.network/4410c0ff5Bd3F8B62C092Ab4D238bEE463E64410/1/mainnet/toncenter-api-v2/jsonRPC",
-    "https://ton.access.orbs.network/4411c0ff5Bd3F8B62C092Ab4D238bEE463E64411/1/mainnet/toncenter-api-v2/jsonRPC",
-    "https://ton.access.orbs.network/4412c0ff5Bd3F8B62C092Ab4D238bEE463E64412/1/mainnet/toncenter-api-v2/jsonRPC",
-    "https://ton.access.orbs.network/55013c0ff5Bd3F8B62C092Ab4D238bEE463E5501/1/mainnet/toncenter-api-v2/jsonRPC",
-    "https://ton.access.orbs.network/55023c0ff5Bd3F8B62C092Ab4D238bEE463E5502/1/mainnet/toncenter-api-v2/jsonRPC",
-    "https://ton.access.orbs.network/55033c0ff5Bd3F8B62C092Ab4D238bEE463E5503/1/mainnet/toncenter-api-v2/jsonRPC",
-];
-
-const ORBS_TESTNET_ENDPOINTS = [
-    "https://ton.access.orbs.network/4410c0ff5Bd3F8B62C092Ab4D238bEE463E64410/1/testnet/toncenter-api-v2/jsonRPC",
-    "https://ton.access.orbs.network/4411c0ff5Bd3F8B62C092Ab4D238bEE463E64411/1/testnet/toncenter-api-v2/jsonRPC",
-    "https://ton.access.orbs.network/55013c0ff5Bd3F8B62C092Ab4D238bEE463E5501/1/testnet/toncenter-api-v2/jsonRPC",
-];
-
-// Rotation state
-let currentEndpointIndex = 0;
-let lastDiscoveryAttempt = 0;
-const DISCOVERY_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour cooldown for discovery API
-
-// Cache for endpoints
+// Cache for Orbs endpoints
 let cachedEndpoint: string | null = null;
 let cachedClient: TonClient | null = null;
 let initPromise: Promise<TonClient> | null = null;
@@ -53,40 +27,13 @@ let initPromise: Promise<TonClient> | null = null;
 // =====================================================
 
 /**
- * Get an Orbs endpoint from pre-cached list (NO rate limits!)
- * Rotates between endpoints for load balancing.
- */
-function getNextOrbsEndpoint(): string {
-    const endpoints = IS_TESTNET ? ORBS_TESTNET_ENDPOINTS : ORBS_MAINNET_ENDPOINTS;
-    const endpoint = endpoints[currentEndpointIndex % endpoints.length];
-    currentEndpointIndex++;
-    return endpoint;
-}
-
-/**
- * Get the Orbs Network endpoint (uses pre-cached endpoints)
- * Only calls the discovery API once per hour as fallback.
+ * Get the Orbs Network endpoint (cached)
  */
 export async function getOrbsEndpoint(): Promise<string> {
-    // Use cached endpoint if available
     if (cachedEndpoint) return cachedEndpoint;
     
-    // Try discovery API only if cooldown has passed (to get fresh nodes)
-    const now = Date.now();
-    if (now - lastDiscoveryAttempt > DISCOVERY_COOLDOWN_MS) {
-        lastDiscoveryAttempt = now;
-        try {
-            cachedEndpoint = await getHttpEndpoint({ network: NETWORK });
-            console.log(`[TON-API] Got fresh Orbs endpoint: ${cachedEndpoint}`);
-            return cachedEndpoint;
-        } catch {
-            console.warn("[TON-API] Discovery API unavailable, using pre-cached endpoints");
-        }
-    }
-    
-    // Use pre-cached endpoint
-    cachedEndpoint = getNextOrbsEndpoint();
-    console.log(`[TON-API] Using pre-cached Orbs endpoint: ${cachedEndpoint}`);
+    cachedEndpoint = await getHttpEndpoint({ network: NETWORK });
+    console.log(`[TON-API] Using Orbs endpoint: ${cachedEndpoint}`);
     return cachedEndpoint;
 }
 
@@ -110,23 +57,14 @@ export async function getTonClient(): Promise<TonClient> {
 }
 
 /**
- * Force get a new TonClient with a different endpoint (for retry scenarios)
- */
-export async function getNewTonClient(): Promise<TonClient> {
-    const endpoint = getNextOrbsEndpoint();
-    console.log(`[TON-API] Creating new client with endpoint: ${endpoint}`);
-    return new TonClient({ endpoint });
-}
-
-/**
  * Create a new TonClient synchronously with fallback
  * Used for initial render before async client is ready
  */
 export function createTonClientSync(): TonClient {
     return new TonClient({
-        endpoint: IS_TESTNET 
-            ? ORBS_TESTNET_ENDPOINTS[0]
-            : ORBS_MAINNET_ENDPOINTS[0],
+        endpoint: IS_TESTNET
+            ? "https://testnet.toncenter.com/api/v2/jsonRPC"
+            : "https://toncenter.com/api/v2/jsonRPC",
     });
 }
 
