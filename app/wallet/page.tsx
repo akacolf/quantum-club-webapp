@@ -38,7 +38,7 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
-import { AnimatedPrice, AnimatedBalance } from "@/components/ui/animated-price";
+import { AnimatedPrice } from "@/components/ui/animated-price";
 import {
   LineChart,
   Line,
