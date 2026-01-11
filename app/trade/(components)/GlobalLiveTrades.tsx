@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCompactNumber } from "@/lib/jetton-operations";
+import { Address } from "@ton/core";
 
 interface GlobalTrade {
     id: string;
@@ -196,9 +197,23 @@ export default function GlobalLiveTrades() {
         return `${Math.floor(seconds / 86400)}d ago`;
     };
 
-    const truncateAddress = (address: string) => {
+    // Convert raw address (0:...) to friendly format (UQ.../EQ...)
+    const toFriendlyAddress = (address: string): string => {
         if (!address) return "...";
-        return `${address.slice(0, 4)}...${address.slice(-3)}`;
+        try {
+            if (address.startsWith("UQ") || address.startsWith("EQ") || address.startsWith("kQ")) {
+                return address;
+            }
+            const parsedAddress = Address.parse(address);
+            return parsedAddress.toString({ bounceable: false });
+        } catch {
+            return address;
+        }
+    };
+
+    const truncateAddress = (address: string) => {
+        const friendly = toFriendlyAddress(address);
+        return `${friendly.slice(0, 4)}...${friendly.slice(-3)}`;
     };
 
     if (isLoading) {

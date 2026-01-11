@@ -187,6 +187,9 @@ export default function TokenDetailPage() {
                         duration: 5000,
                     });
                     setAmount("");
+                    // Refresh token data from on-chain after trade
+                    setTimeout(() => selectToken(tokenId), 2000);
+                    setTimeout(() => selectToken(tokenId), 5000);
                 } else {
                     toast.error(result.error || "Transaction failed");
                 }
@@ -198,6 +201,9 @@ export default function TokenDetailPage() {
                         duration: 5000,
                     });
                     setAmount("");
+                    // Refresh token data from on-chain after trade
+                    setTimeout(() => selectToken(tokenId), 2000);
+                    setTimeout(() => selectToken(tokenId), 5000);
                 } else {
                     toast.error(result.error || "Transaction failed");
                 }

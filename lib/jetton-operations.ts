@@ -270,7 +270,32 @@ async function getTonAccessEndpoint(testnet: boolean): Promise<string> {
     if (!testnet && cachedMainnetEndpoint) return cachedMainnetEndpoint;
     
     try {
-        const endpoint = await getHttpEndpoint({ network: testnet ? "testnet" : "mainnet" });
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error("Orbs timeout")), 5000)
+        );
+        
+        const endpointPromise = getHttpEndpoint({ network: testnet ? "testnet" : "mainnet" });
+        const endpoint = await Promise.race([endpointPromise, timeoutPromise]);
+        
+        // Verify the endpoint is actually working by making a quick test
+        // This catches cases where Orbs returns an endpoint but it's returning HTML/errors
+        try {
+            const testResponse = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: 1, jsonrpc: "2.0", method: "getAddressInformation", params: { address: "EQDCa9qJu0Vm9Q2AxM9RtwLqhXq-yPuJLv-fNX2zhMg8NBUM" } }),
+                signal: AbortSignal.timeout(3000),
+            });
+            
+            const contentType = testResponse.headers.get("content-type") || "";
+            if (!contentType.includes("application/json")) {
+                throw new Error("Orbs returned non-JSON response");
+            }
+        } catch (testError) {
+            console.warn("[TON Access] Endpoint test failed, using fallback");
+            throw testError;
+        }
         
         if (testnet) {
             cachedTestnetEndpoint = endpoint;
@@ -279,9 +304,9 @@ async function getTonAccessEndpoint(testnet: boolean): Promise<string> {
         }
         
         return endpoint;
-    } catch (error) {
-        // Orbs is down, use toncenter fallback
-        console.warn("[TON Access] Orbs unavailable, using toncenter fallback:", error);
+    } catch {
+        // Orbs is down or returning errors, use toncenter fallback
+        console.warn("[TON Access] Orbs unavailable, using toncenter fallback");
         const fallback = testnet ? FALLBACK_ENDPOINTS.testnet : FALLBACK_ENDPOINTS.mainnet;
         
         if (testnet) {
@@ -361,12 +386,14 @@ export async function getJettonData(
 
 /**
  * Get Jetton wallet address from master (TEP-74: get_wallet_address)
+ * Falls back to TONAPI if TonClient fails.
  */
 export async function getJettonWalletAddress(
     jettonMasterAddress: string,
     ownerAddress: string,
     tonClient: TonClient
 ): Promise<string | null> {
+    // Try TonClient first
     try {
         const master = Address.parse(jettonMasterAddress);
         const owner = Address.parse(ownerAddress);
@@ -379,19 +406,41 @@ export async function getJettonWalletAddress(
         const result = await tonClient.runMethod(master, "get_wallet_address", [ownerSlice]);
         const walletAddress = result.stack.readAddress();
 
-        return walletAddress?.toString() ?? null;
-    } catch (error) {
-        // Silently handle expected errors:
-        // - exit_code: -13 = contract doesn't exist  
-        // - 429 = rate limit (expected without API key)
-        const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13") && 
-            !errorMessage.includes("429") && 
-            !errorMessage.includes("rate")) {
-            console.error("Failed to get wallet address:", error);
+        if (walletAddress) {
+            return walletAddress.toString();
         }
-        return null;
+    } catch (error) {
+        // TonClient failed, try TONAPI fallback
+        const errorMessage = error instanceof Error ? error.message : "";
+        if (!errorMessage.includes("exit_code: -13")) {
+            console.warn("[getJettonWalletAddress] TonClient failed, trying TONAPI fallback");
+        }
     }
+    
+    // Fallback: Use TONAPI
+    try {
+        const response = await fetch(
+            `https://tonapi.io/v2/accounts/${ownerAddress}/jettons/${jettonMasterAddress}`,
+            { signal: AbortSignal.timeout(5000) }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.wallet_address?.address) {
+                // TONAPI returns raw address, convert to friendly
+                const rawAddress = data.wallet_address.address;
+                try {
+                    return Address.parse(rawAddress).toString();
+                } catch {
+                    return rawAddress;
+                }
+            }
+        }
+    } catch (tonapiError) {
+        console.warn("[getJettonWalletAddress] TONAPI fallback also failed:", tonapiError);
+    }
+    
+    return null;
 }
 
 /**

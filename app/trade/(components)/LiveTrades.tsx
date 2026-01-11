@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Icon } from "@iconify/react";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { formatCompactNumber } from "@/lib/jetton-operations";
+import { Address } from "@ton/core";
 
 interface Trade {
     id: string;
@@ -165,13 +166,28 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
         return `${Math.floor(seconds / 86400)}d ago`;
     };
 
-    const truncateAddress = (address: string) => {
+    // Convert raw address (0:...) to friendly format (UQ.../EQ...)
+    const toFriendlyAddress = (address: string): string => {
         if (!address) return "Unknown";
-        // Handle both raw and user-friendly address formats
-        if (address.length > 20) {
-            return `${address.slice(0, 4)}...${address.slice(-4)}`;
+        try {
+            // If already friendly format, return as is
+            if (address.startsWith("UQ") || address.startsWith("EQ") || address.startsWith("kQ")) {
+                return address;
+            }
+            // Convert raw address to friendly
+            const parsedAddress = Address.parse(address);
+            return parsedAddress.toString({ bounceable: false });
+        } catch {
+            return address;
         }
-        return address;
+    };
+
+    const truncateAddress = (address: string) => {
+        const friendly = toFriendlyAddress(address);
+        if (friendly.length > 20) {
+            return `${friendly.slice(0, 4)}...${friendly.slice(-4)}`;
+        }
+        return friendly;
     };
 
     const openTonviewer = (hash: string) => {
