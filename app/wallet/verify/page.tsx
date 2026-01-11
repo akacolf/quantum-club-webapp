@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { useWallet } from "../WalletContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 export default function VerifyPhrasePage() {
   useTelegramBackButton("/wallet/backup");
+  const { telegramId } = useGameContext();
   const router = useRouter();
   const { addWallet, switchWallet, storedWallets } = useWallet();
   const [mnemonic, setMnemonic] = useState<string[]>([]);
@@ -54,8 +56,8 @@ export default function VerifyPhrasePage() {
 
     // Save to local storage ONLY after user confirms they have saved the phrase
     if (walletAddress && mnemonic.length > 0) {
-      localStorage.setItem("quantum_wallet_address", walletAddress);
-      localStorage.setItem("quantum_wallet_mnemonic", mnemonic.join(" "));
+      localStorage.setItem(`quantum_wallet_address_${telegramId}`, walletAddress);
+      localStorage.setItem(`quantum_wallet_mnemonic_${telegramId}`, mnemonic.join(" "));
 
       // Add to multi-wallet storage
       const walletName = `Wallet ${storedWallets.length + 1}`;

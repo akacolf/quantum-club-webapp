@@ -18,6 +18,8 @@ import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { useGameContext } from "../(contexts)/MiningContext";
 
 // Lazy load Lottie (large library)
 const Lottie = dynamic(() => import("lottie-react"), {
@@ -71,8 +73,9 @@ const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
 function TokenCard({ token, index, showRank = true }: { token: Token; index: number; showRank?: boolean }) {
     const priceChange = token.priceChange24h || 0;
     const isPositive = priceChange >= 0;
+    // Use tonReserve (on-chain) or fall back to marketCap for progress
     const progress = calculateProgress(
-        token.marketCap,
+        token.tonReserve || token.marketCap,
         token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON
     );
 
@@ -181,7 +184,7 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
                          <div className="flex items-center gap-1.5">
                             <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-[10px] text-muted-foreground font-medium">MCap:</span>
-                            <span className="text-[10px] font-bold text-white tracking-wide">{formatMarketCap(token.marketCap || "0")}</span>
+                            <span className="text-[10px] font-bold text-white tracking-wide">{formatMarketCap(token.tonReserve || token.marketCap || "0")}</span>
                          </div>
                          <div className="w-px h-3 bg-white/10" />
                          <div className="flex items-center gap-1.5">
@@ -247,7 +250,7 @@ export default function TradePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
     const [deployingTokenId, setDeployingTokenId] = useState<string | null>(null);
-
+    const {telegramId} = useGameContext()
     // Check if wallet exists - prioritize context state, fallback to localStorage for SSR
     const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
 
@@ -260,7 +263,7 @@ export default function TradePage() {
         
         // If context is empty, check localStorage (for SSR hydration)
         // This will be empty after logout due to clearWallet()
-        const mnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+        const mnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
         setHasWallet(!!mnemonic);
     }, [walletAddress]);
 
@@ -370,7 +373,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.fire}
                                                 loop={true}
-                                                autoplay={activeTab === "trending"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -388,7 +391,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.sparkles}
                                                 loop={true}
-                                                autoplay={activeTab === "new"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -406,7 +409,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.diamond}
                                                 loop={true}
-                                                autoplay={activeTab === "holdings"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -424,7 +427,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.rocket}
                                                 loop={true}
-                                                autoplay={activeTab === "created"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -539,10 +542,10 @@ export default function TradePage() {
                                             </Badge>
                                         </div>
                                         {myTokens.filter(t => !t.isDeployed).map((token) => (
-                                            <Card key={token.id} className="bg-orange-500/5 border-orange-500/20 mb-2">
+                                            <Card key={token.id} className="bg-[#111] border-[#333] mb-2">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
+                                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 relative">
                                                             {token.image ? (
                                                                 <TokenImageFill src={token.image} alt={token.name} />
                                                             ) : (
@@ -555,19 +558,19 @@ export default function TradePage() {
                                                             <h4 className="font-bold text-white truncate">{token.name}</h4>
                                                             <p className="text-xs text-orange-400">${token.symbol}</p>
                                                             <p className="text-xs text-muted-foreground mt-1">
-                                                                Contract not deployed - TON may be stuck
+                                                                Token not deployed
                                                             </p>
                                                         </div>
                                                         <Button
                                                             onClick={() => handleRetryDeploy(token.id)}
                                                             disabled={deployingTokenId === token.id}
-                                                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-full px-4"
+                                                            className="bg-white hover:bg-white/90 text-black font-bold rounded-full px-4"
                                                             size="sm"
                                                         >
                                                             {deployingTokenId === token.id ? (
                                                                 <>
-                                                                    <Icon icon="solar:refresh-bold" className="w-4 h-4 mr-1 animate-spin" />
-                                                                    Deploying...
+                                                                    <ButtonLoader />
+                                                                    <span className="ml-1">Deploying...</span>
                                                                 </>
                                                             ) : (
                                                                 <>

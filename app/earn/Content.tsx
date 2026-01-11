@@ -29,7 +29,6 @@ const EarnContent = () => {
   const ingameTXT = "In-app";
   const ParnersTXT = "Partners";
   const [completedTasks, setCompletedTasks] = useState(0);
-  //const [limitedTimestamp, setLimitedstamp] = useState(0)
   const claimTEXT = "Claim";
   const {
     telegramId,
@@ -106,7 +105,7 @@ const EarnContent = () => {
                 buttontitle,
                 buttonText: completed
                   ? "Joined"
-                  : (whichPlatform === "connectwallet" && typeof window !== "undefined" && localStorage.getItem("walletAddress"))
+                  : (whichPlatform === "connectwallet" && typeof window !== "undefined" && localStorage.getItem("walletAddress_"+telegramId))
                     ? "Claim"
                     : buttontitle,
                 url,
@@ -135,28 +134,6 @@ const EarnContent = () => {
 
     fetchTasks();
   }, [telegramId, totalUsers]);
-  //const TaskTimer: React.FC<{ timestamp: number }> = ({ timestamp }) => {
-  //const [remainingTime, setRemainingTime] = useState(calculateRemainingTime(timestamp));
-
-  /*useEffect(() => {
-      const interval = setInterval(() => {
-        setRemainingTime(calculateRemainingTime(timestamp));
-      }, 1000); // Her saniyede bir güncelle
-
-      return () => clearInterval(interval);
-    }, [timestamp]);
-    return <div>{remainingTime ? remainingTime : "00:00:00"}</div>;
-  };*/
-  // Tab değiştiğinde, sadece o tab'a ait görevleri göster
-  /*useEffect(() => {
-    if (activeTab === limitedTXT) {
-      setTasks(limitedTasks);
-    } else if (activeTab === ingameTXT) {
-      setTasks(ingameTasks);
-    } else if (activeTab === ParnersTXT) {
-      setTasks(partnersTasks);
-    }
-  }, [activeTab, limitedTasks, ingameTasks, partnersTasks]);*/
 
   // Helper function to render task list
   const renderTaskList = (tasks: EarnTask[]) => (
@@ -358,7 +335,7 @@ const EarnContent = () => {
                   }
                 );
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("QAmount", formattedAmount);
+                  localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
                 }
                 SetMainQuantAmount(formattedAmount);
                 setTasks((items) =>
@@ -518,7 +495,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -607,7 +584,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -706,7 +683,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -776,7 +753,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -853,7 +830,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -970,7 +947,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -1016,7 +993,7 @@ const EarnContent = () => {
           );
 
           // Check for wallet from localStorage (QC Wallet)
-             const storedWallet = localStorage.getItem("quantum_wallet_address");
+             const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
           if (storedWallet && storedWallet !== "") {
             // User has a wallet - show claim button
             setTasks((items) =>
@@ -1076,7 +1053,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>
@@ -1180,7 +1157,7 @@ const EarnContent = () => {
               maximumFractionDigits: 0,
             });
             if (typeof window !== "undefined") {
-              localStorage.setItem("QAmount", formattedAmount);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             SetMainQuantAmount(formattedAmount);
             setTasks((items) =>

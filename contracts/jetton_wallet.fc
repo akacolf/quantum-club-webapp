@@ -156,10 +156,14 @@
 
 () handle_internal_transfer(
     slice sender_address,
+    int my_balance,
     int msg_value,
+    int fwd_fee,
     int query_id,
     slice in_msg_body
 ) impure inline {
+    ;; NOTE: we can not allow fails in action phase since in that case there will be
+    ;; no bounce. Thus check and throw in computation phase.
     (int balance, slice owner_address, slice jetton_master_address, cell jetton_wallet_code) = load_data();
     
     int jetton_amount = in_msg_body~load_coins();
@@ -174,47 +178,55 @@
         throw_unless(error::not_valid_wallet, equal_slices(sender_address, expected_wallet));
     }
     
-    ;; Credit tokens
+    ;; Credit tokens first
     balance += jetton_amount;
-    save_data(balance, owner_address, jetton_master_address, jetton_wallet_code);
+    
+    ;; Calculate available TON after storage and gas
+    int ton_balance_before_msg = my_balance - msg_value;
+    int storage_fee = MIN_TON_WALLET_STORAGE - min(ton_balance_before_msg, MIN_TON_WALLET_STORAGE);
+    msg_value -= (storage_fee + GAS_CONSUMPTION);
     
     ;; Send transfer notification if requested
     if (forward_ton_amount > 0) {
-        cell notify_body = begin_cell()
+        msg_value -= (forward_ton_amount + fwd_fee);
+        slice either_forward_payload = in_msg_body;
+        
+        ;; Build notification body
+        cell msg_body = begin_cell()
             .store_uint(op::transfer_notification, 32)
             .store_uint(query_id, 64)
             .store_coins(jetton_amount)
             .store_slice(from_address)
+            .store_slice(either_forward_payload)
             .end_cell();
         
-        ;; Check for forward payload
-        if (in_msg_body~load_uint(1)) {
-            cell forward_payload = in_msg_body~load_ref();
-            notify_body = begin_cell()
-                .store_uint(op::transfer_notification, 32)
-                .store_uint(query_id, 64)
-                .store_coins(jetton_amount)
-                .store_slice(from_address)
-                .store_uint(1, 1)
-                .store_ref(forward_payload)
-                .end_cell();
-        }
-        
+        ;; Build message to owner (non-bounceable)
         cell message = begin_cell()
-            .store_uint(0x10, 6)
-            .store_slice(owner_address)
-            .store_coins(forward_ton_amount)
-            .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-            .store_ref(notify_body)
+            .store_uint(0x10, 6)           ;; nobounce - int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 010000
+            .store_slice(owner_address)    ;; dest
+            .store_coins(forward_ton_amount)  ;; value
+            .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)  ;; body in ref
+            .store_ref(msg_body)
             .end_cell();
         
-        send_raw_message(message, 1);
+        send_raw_message(message, 1);  ;; mode 1: pay fees from contract balance
     }
     
-    ;; Send excesses back
-    if ((response_address.preload_uint(2) != 0) & (msg_value > forward_ton_amount + GAS_CONSUMPTION)) {
-        send_excesses(response_address, query_id);
+    ;; Send excesses back if there's remaining value and valid response address
+    if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
+        cell message = begin_cell()
+            .store_uint(0x10, 6)           ;; nobounce
+            .store_slice(response_address)
+            .store_coins(msg_value)        ;; send remaining value
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(op::excesses, 32)
+            .store_uint(query_id, 64)
+            .end_cell();
+        
+        send_raw_message(message, 2);  ;; mode 2: ignore errors (ok if this fails)
     }
+    
+    save_data(balance, owner_address, jetton_master_address, jetton_wallet_code);
 }
 
 ;; ================================================================
@@ -280,6 +292,12 @@
     }
     
     slice sender_address = cs~load_msg_addr();
+    cs~load_msg_addr();   ;; skip dst
+    cs~load_coins();      ;; skip value
+    cs~skip_bits(1);      ;; skip extracurrency collection
+    cs~load_coins();      ;; skip ihr_fee
+    ;; We use message fwd_fee for estimation of forward_payload costs
+    int fwd_fee = muldiv(cs~load_coins(), 3, 2);
     
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
@@ -292,7 +310,7 @@
     
     ;; ----- INTERNAL TRANSFER (Receive) -----
     if (op == op::internal_transfer) {
-        handle_internal_transfer(sender_address, msg_value, query_id, in_msg_body);
+        handle_internal_transfer(sender_address, my_balance, msg_value, fwd_fee, query_id, in_msg_body);
         return ();
     }
     

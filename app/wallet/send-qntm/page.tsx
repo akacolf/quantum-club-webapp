@@ -145,7 +145,7 @@ export default function SendQNTMPage() {
         maximumFractionDigits: 0,
       });
       SetMainQuantAmount(formattedBalance);
-      localStorage.setItem("QAmount", formattedBalance);
+      localStorage.setItem(`QAmount_${telegramId}`, formattedBalance);
 
       setStep("success");
       toast.success("QNTM transferred successfully!");

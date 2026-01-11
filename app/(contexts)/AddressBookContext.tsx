@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { useGameContext } from "./MiningContext";
 
 export interface SavedAddress {
     address: string;
@@ -21,9 +22,10 @@ const AddressBookContext = createContext<AddressBookContextType | null>(null);
 const STORAGE_KEY = "quantum_address_book";
 
 export function AddressBookProvider({ children }: { children: ReactNode }) {
+    const { telegramId } = useGameContext();
     const [addresses, setAddresses] = useState<SavedAddress[]>(() => {
         if (typeof window !== "undefined") {
-            const stored = localStorage.getItem(STORAGE_KEY);
+            const stored = localStorage.getItem(STORAGE_KEY+`_${telegramId}`);
             return stored ? JSON.parse(stored) : [];
         }
         return [];
@@ -32,7 +34,7 @@ export function AddressBookProvider({ children }: { children: ReactNode }) {
     // Persist to localStorage
     useEffect(() => {
         if (typeof window !== "undefined") {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(addresses));
+            localStorage.setItem(STORAGE_KEY+`_${telegramId}`, JSON.stringify(addresses));
         }
     }, [addresses]);
 

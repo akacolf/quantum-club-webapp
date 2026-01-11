@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -126,8 +127,8 @@ export function TradeConfirmation({
                     >
                         {isLoading ? (
                             <>
-                                <Icon icon="solar:spinner-bold" className="w-4 h-4 mr-2 animate-spin" />
-                                Processing...
+                                <ButtonLoader />
+                                <span className="ml-2">Processing...</span>
                             </>
                         ) : (
                             `Confirm ${isBuy ? "Buy" : "Sell"}`

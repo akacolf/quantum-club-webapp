@@ -67,12 +67,12 @@ export function BiometricAuth({
       return null;
     }
     const pinRef = doc(dbfs, "wallet", telegramId);
-    const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
+    const storedHash = localStorage.getItem(`quantum_wallet_pin_hash_${telegramId}`);
     if (!storedHash) {
       const getPinDoc = await getDoc(pinRef);
       const pinData = getPinDoc.data()?.pinHash;
       if (pinData) {
-        localStorage.setItem("quantum_wallet_pin_hash", pinData);
+        localStorage.setItem(`quantum_wallet_pin_hash_${telegramId}`, pinData);
         return pinData;
       } else {
         return null;
@@ -114,7 +114,7 @@ export function BiometricAuth({
     }
 
     const pinRef = doc(dbfs, "wallet", telegramId);
-    const storedHash = localStorage.getItem("quantum_wallet_pin_hash");
+    const storedHash = localStorage.getItem(`quantum_wallet_pin_hash_${telegramId}`);
     const hashedPin = await hashPin(pin);
 
     if (!storedHash) {
@@ -124,7 +124,7 @@ export function BiometricAuth({
 
       if (existingHash) {
         // PIN exists in DB, verify against it
-        localStorage.setItem("quantum_wallet_pin_hash", existingHash);
+        localStorage.setItem(`quantum_wallet_pin_hash_${telegramId}`, existingHash);
         if (hashedPin === existingHash) {
           setPinError("");
           onSuccess();
@@ -135,7 +135,7 @@ export function BiometricAuth({
       } else {
         // First time setting PIN - save it
         await setDoc(pinRef, { pinHash: hashedPin });
-        localStorage.setItem("quantum_wallet_pin_hash", hashedPin);
+        localStorage.setItem(`quantum_wallet_pin_hash_${telegramId}`, hashedPin);
         onSuccess();
         return;
       }
@@ -163,7 +163,7 @@ export function BiometricAuth({
 
     try {
       // Check if we have existing credentials
-      const credentialId = localStorage.getItem("quantum_wallet_credential_id");
+      const credentialId = localStorage.getItem(`quantum_wallet_credential_id_${telegramId}`);
 
       if (credentialId) {
         // Use existing credential
@@ -217,7 +217,7 @@ export function BiometricAuth({
           // Store credential ID for future use
           const rawId = new Uint8Array(credential.rawId);
           const credIdBase64 = btoa(String.fromCharCode(...rawId));
-          localStorage.setItem("quantum_wallet_credential_id", credIdBase64);
+          localStorage.setItem(`quantum_wallet_credential_id_${telegramId}`, credIdBase64);
           onSuccess();
         }
       }
@@ -430,7 +430,7 @@ export function DeletePin(telegramId: string) {
     if (!telegramId || telegramId.trim() === "") return;
     try {
       const pinRef = doc(dbfs, "wallet", telegramId);
-      localStorage.removeItem("quantum_wallet_pin_hash");
+      localStorage.removeItem(`quantum_wallet_pin_hash_${telegramId}`);
       await updateDoc(pinRef, {
         pinHash: ""
       });

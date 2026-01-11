@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, Bell, BellOff, TrendingUp, TrendingDown, Loader2, RefreshCw, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Bell, BellOff, TrendingUp, TrendingDown, RefreshCw, ChevronDown, Info } from "lucide-react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,22 +77,18 @@ export default function PriceAlertsPage() {
         }
     }, [telegramId]);
 
-    // Fetch current prices
+    // Fetch current prices using DeFiLlama (free, no rate limits)
     const fetchPrices = useCallback(async () => {
         try {
-            const response = await fetch(
-                "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum,solana,tron&vs_currencies=usd"
-            );
-            if (response.ok) {
-                const data = await response.json();
-                setCurrentPrices({
-                    TON: data["the-open-network"]?.usd || 0,
-                    BTC: data["bitcoin"]?.usd || 0,
-                    ETH: data["ethereum"]?.usd || 0,
-                    SOL: data["solana"]?.usd || 0,
-                    TRX: data["tron"]?.usd || 0,
-                });
-            }
+            const { fetchAllPrices } = await import("@/lib/price-api");
+            const prices = await fetchAllPrices();
+            setCurrentPrices({
+                TON: prices.ton || 0,
+                BTC: prices.btc || 0,
+                ETH: prices.eth || 0,
+                SOL: prices.sol || 0,
+                TRX: prices.trx || 0,
+            });
         } catch (error) {
             console.error("Failed to fetch prices:", error);
         }
@@ -183,13 +181,7 @@ export default function PriceAlertsPage() {
     };
 
     if (isLoading) {
-        return (
-            <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
-                <div className="max-w-md mx-auto flex items-center justify-center py-20">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-            </div>
-        );
+        return <Loader />;
     }
 
     return (
@@ -383,7 +375,7 @@ export default function PriceAlertsPage() {
                                             disabled={isSaving}
                                         >
                                             {isSaving ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <ButtonLoader />
                                             ) : (
                                                 "Create Alert"
                                             )}
@@ -498,10 +490,10 @@ export default function PriceAlertsPage() {
                     </div>
                 )}
 
-                {/* Info Banner */}
                 <div className="mt-6 p-3 bg-primary/10 border border-primary/20 rounded-xl">
-                    <p className="text-xs text-primary/80 text-center">
-                        💡 Alerts are checked every minute. You&apos;ll receive a Telegram notification when your price target is hit.
+                    <p className="text-xs text-primary/80 text-center flex items-center justify-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        Alerts are checked every minute. You&apos;ll receive a Telegram notification when your price target is hit.
                     </p>
                 </div>
             </div>

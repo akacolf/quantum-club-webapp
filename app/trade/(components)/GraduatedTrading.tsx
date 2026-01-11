@@ -11,6 +11,7 @@ import { Token } from "@/types/trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
 import { simulateSwap, toUnits, fromUnits } from "@/lib/stonfi";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 interface GraduatedTradingProps {
     token: Token;
@@ -200,8 +201,8 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                             >
                                 {isLoading ? (
                                     <>
-                                        <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                        Processing...
+                                        <ButtonLoader />
+                                        <span className="ml-2">Processing...</span>
                                     </>
                                 ) : (
                                     <>Buy on STON.fi</>
@@ -260,8 +261,8 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                             >
                                 {isLoading ? (
                                     <>
-                                        <Icon icon="solar:spinner-bold" className="w-5 h-5 mr-2 animate-spin" />
-                                        Processing...
+                                        <ButtonLoader />
+                                        <span className="ml-2">Processing...</span>
                                     </>
                                 ) : (
                                     <>Sell on STON.fi</>

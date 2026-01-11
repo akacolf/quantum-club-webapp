@@ -79,7 +79,7 @@ export default function AnswerPage() {
                                     maximumFractionDigits: 0,
                                 });
                                 if (typeof window !== "undefined") {
-                                    localStorage.setItem("QAmount", formattedAmount);
+                                    localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
                                 }
                                 SetMainQuantAmount(formattedAmount);
                                 router.push("/earn")
@@ -102,7 +102,7 @@ export default function AnswerPage() {
                                 maximumFractionDigits: 0,
                             });
                             if (typeof window !== "undefined") {
-                                localStorage.setItem("QAmount", formattedAmount);
+                                localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
                             }
                             SetMainQuantAmount(formattedAmount);
                             router.push("/earn")

@@ -38,6 +38,7 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
+import { AnimatedPrice } from "@/components/ui/animated-price";
 import {
   LineChart,
   Line,
@@ -75,6 +76,20 @@ const ETH_ICON = "/svg/eth-logo.svg";
 const BTC_ICON = "/svg/btc-logo.svg";
 const SOL_ICON = "/svg/sol-logo.svg";
 const TRX_ICON = "/svg/trx-logo.svg";
+
+// Format amount to 2 decimal places for display
+const formatAmount = (value: number | string, decimals: number = 2): string => {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "0.00";
+  return num.toFixed(decimals);
+};
+
+// Format USD value
+const formatUsd = (value: number | string): string => {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num) || num === 0) return "$0.00";
+  return `$${num.toFixed(2)}`;
+};
 
 export default function WalletPage() {
   const router = useRouter();
@@ -154,7 +169,7 @@ export default function WalletPage() {
     // Load existing history
     let history: Array<{ timestamp: number; value: number }> = [];
     try {
-      const stored = localStorage.getItem(storageKey);
+      const stored = localStorage.getItem(storageKey+`_${telegramId}`);
       if (stored) {
         history = JSON.parse(stored);
       }
@@ -173,7 +188,7 @@ export default function WalletPage() {
 
     // Save updated history
     try {
-      localStorage.setItem(storageKey, JSON.stringify(history));
+      localStorage.setItem(storageKey+`_${telegramId}`, JSON.stringify(history));
     } catch {
       // Storage full, clear old entries
     }
@@ -345,12 +360,53 @@ export default function WalletPage() {
     }
   }, [selectedAsset, chartPeriod, fetchPriceHistory]);
 
+  // Live price updates for selected asset (every 10 seconds)
+  useEffect(() => {
+    if (!selectedAsset) return;
+
+    const updateLivePrice = async () => {
+      try {
+        // Fetch latest price from DeFiLlama
+        const coinId = (() => {
+          switch (selectedAsset.symbol) {
+            case 'TON': return 'coingecko:the-open-network';
+            case 'ETH': return 'coingecko:ethereum';
+            case 'BTC': return 'coingecko:bitcoin';
+            case 'SOL': return 'coingecko:solana';
+            case 'TRX': return 'coingecko:tron';
+            default: return null;
+          }
+        })();
+
+        if (!coinId) return;
+
+        const response = await fetch(`https://coins.llama.fi/prices/current/${coinId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const newPrice = data.coins?.[coinId]?.price;
+          if (newPrice && newPrice !== selectedAsset.priceUsd) {
+            setSelectedAsset(prev => prev ? { ...prev, priceUsd: newPrice } : null);
+          }
+        }
+      } catch {
+        // Silently fail - price will update on next interval
+      }
+    };
+
+    // Initial fetch
+    updateLivePrice();
+
+    // Update every 10 seconds
+    const interval = setInterval(updateLivePrice, 10000);
+    return () => clearInterval(interval);
+  }, [selectedAsset?.symbol]);
+
   // Price chart tooltip
   const PriceTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-white font-bold">${payload[0].value.toFixed(4)}</p>
+          <p className="text-white font-bold">${payload[0].value.toFixed(2)}</p>
         </div>
       );
     }
@@ -358,7 +414,7 @@ export default function WalletPage() {
   };
 
   useEffect(() => {
-    const storedWallet = localStorage.getItem("quantum_wallet_address");
+    const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
 
     if (storedWallet) {
       setContextWalletAddress(storedWallet);
@@ -597,7 +653,7 @@ export default function WalletPage() {
                     <Skeleton className="h-10 w-32 bg-[#222]" />
                   ) : (
                     <h2 className="text-4xl font-bold text-white tracking-tight">
-                      {hideBalance ? "••••••" : `$${totalUsdBalance}`}
+                      {hideBalance ? "••••••" : formatUsd(totalUsdBalance)}
                     </h2>
                   )}
                 </div>
@@ -769,8 +825,8 @@ export default function WalletPage() {
                       </div>
                     ) : (
                       <>
-                        <h4 className="font-bold text-white">{hideBalance ? "••••" : tonBalance}</h4>
-                        <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${tonUsdValue}`}</p>
+                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(tonBalance)}</h4>
+                        <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(tonUsdValue)}</p>
                       </>
                     )}
                   </div>
@@ -846,7 +902,7 @@ export default function WalletPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="text-right min-w-[80px]">
-                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formattedBalance}</h4>
+                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
                         <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-500" />
@@ -902,8 +958,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : btcBalance.toFixed(6)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${btcUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(btcBalance, 2)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(btcUsdValue)}</p>
                         </>
                       )}
                     </div>
@@ -948,8 +1004,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : ethBalance.toFixed(4)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${ethUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(ethBalance)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(ethUsdValue)}</p>
                         </>
                       )}
                     </div>
@@ -994,8 +1050,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : solBalance.toFixed(2)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${solUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(solBalance)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(solUsdValue)}</p>
                         </>
                       )}
                     </div>
@@ -1040,8 +1096,8 @@ export default function WalletPage() {
                         </div>
                       ) : (
                         <>
-                          <h4 className="font-bold text-white">{hideBalance ? "••••" : trxBalance.toFixed(2)}</h4>
-                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : `$${trxUsdValue.toFixed(2)}`}</p>
+                          <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(trxBalance)}</h4>
+                          <p className="text-xs text-gray-500">{hideBalance ? "••••" : formatUsd(trxUsdValue)}</p>
                         </>
                       )}
                     </div>
@@ -1172,7 +1228,12 @@ export default function WalletPage() {
                 <div className="mb-6">
                   <p className="text-gray-400 text-sm mb-1">Current Price</p>
                   <h2 className="text-3xl font-bold text-white">
-                    ${selectedAsset.priceUsd?.toFixed(4) || "0.0000"}
+                    <AnimatedPrice 
+                      value={selectedAsset.priceUsd || 0} 
+                      decimals={2}
+                      showDirection={true}
+                      className=""
+                    />
                   </h2>
                 </div>
 

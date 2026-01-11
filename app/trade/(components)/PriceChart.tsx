@@ -71,7 +71,6 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                 );
 
                 if (!response.ok) {
-                    console.log("Failed to fetch on-chain transactions");
                     setIsLoading(false);
                     return;
                 }

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, Loader2, ScanLine } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +47,7 @@ import {
   sendTrxTransaction,
   sendBtcTransaction,
 } from "../utils/multichain";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 type NetworkMode = "ton" | "multichain";
 type MultiChainType = "eth" | "sol" | "trx" | "btc";
@@ -78,7 +79,7 @@ interface MultiChainOption {
 export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-
+  const {telegramId} = useGameContext()
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
   const { isOpen: isQROpen, openScanner: openQRScanner, closeScanner: closeQRScanner } = useQRScanner();
 
@@ -302,12 +303,12 @@ export default function SendPage() {
 
   // Redirect if no wallet
   useEffect(() => {
-    const storedWallet = localStorage.getItem("quantum_wallet_address");
+    const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
     if (!storedWallet) {
       router.push("/wallet");
     }
     // Load saved addresses
-    const storedAddresses = localStorage.getItem("quantum_address_book");
+    const storedAddresses = localStorage.getItem(`quantum_address_book_${telegramId}`);
     if (storedAddresses) {
       setSavedAddresses(JSON.parse(storedAddresses));
     }
@@ -470,7 +471,7 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+      const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
       if (!storedMnemonic) {
         throw new Error("Wallet not found");
       }
@@ -653,7 +654,7 @@ export default function SendPage() {
   };
 
   const executeSend = async () => {
-    const storedMnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
     if (!storedMnemonic) {
       toast.error("Wallet credentials not found");
       analyticsEvents.transactionSigningFailed("Wallet credentials not found");
@@ -903,7 +904,7 @@ export default function SendPage() {
     setMultiChainStep("processing");
 
     try {
-      const mnemonic = localStorage.getItem("quantum_wallet_mnemonic");
+      const mnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
       if (!mnemonic) {
         throw new Error("Wallet not found");
       }
@@ -1272,7 +1273,11 @@ export default function SendPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center py-16 space-y-6"
               >
-                <Loader2 className="w-16 h-16 animate-spin text-primary" />
+                <div className="relative flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full border-2 border-primary/20 border-t-primary animate-spin shadow-[0_0_15px] shadow-primary/30" />
+                  <div className="absolute w-10 h-10 rounded-full border-2 border-primary/20 border-b-primary animate-[spin_1.5s_linear_infinite_reverse]" />
+                  <div className="absolute w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px] shadow-primary/80" />
+                </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold">Processing Transaction</p>
                   <p className="text-muted-foreground text-sm mt-1">Please wait while we send your {currentChain.symbol}...</p>

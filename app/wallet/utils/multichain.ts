@@ -355,17 +355,12 @@ export async function fetchBtcBalance(address: string, isTestnet: boolean = fals
 }
 
 /**
- * Fetch ETH price in USD using CoinGecko (free, no API key needed)
+ * Fetch ETH price in USD using DeFiLlama (free, no rate limits)
  */
 export async function fetchEthPrice(): Promise<number> {
     try {
-        const response = await fetch(
-            "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-        );
-        if (response.ok) {
-            const data = await response.json();
-            return data.ethereum?.usd || 0;
-        }
+        const { fetchEthPrice: getEthPrice } = await import("@/lib/price-api");
+        return await getEthPrice();
     } catch (error) {
         console.error("ETH price fetch error:", error);
     }
@@ -373,17 +368,12 @@ export async function fetchEthPrice(): Promise<number> {
 }
 
 /**
- * Fetch BTC price in USD using CoinGecko (free, no API key needed)
+ * Fetch BTC price in USD using DeFiLlama (free, no rate limits)
  */
 export async function fetchBtcPrice(): Promise<number> {
     try {
-        const response = await fetch(
-            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
-        );
-        if (response.ok) {
-            const data = await response.json();
-            return data.bitcoin?.usd || 0;
-        }
+        const { fetchBtcPrice: getBtcPrice } = await import("@/lib/price-api");
+        return await getBtcPrice();
     } catch (error) {
         console.error("BTC price fetch error:", error);
     }
@@ -432,17 +422,12 @@ export async function fetchSolBalance(address: string): Promise<number> {
 }
 
 /**
- * Fetch SOL price in USD using CoinGecko
+ * Fetch SOL price in USD using DeFiLlama (free, no rate limits)
  */
 export async function fetchSolPrice(): Promise<number> {
     try {
-        const response = await fetch(
-            "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
-        );
-        if (response.ok) {
-            const data = await response.json();
-            return data.solana?.usd || 0;
-        }
+        const { fetchSolPrice: getSolPrice } = await import("@/lib/price-api");
+        return await getSolPrice();
     } catch (error) {
         console.error("SOL price fetch error:", error);
     }
@@ -475,17 +460,12 @@ export async function fetchTrxBalance(address: string): Promise<number> {
 }
 
 /**
- * Fetch TRX price in USD using CoinGecko
+ * Fetch TRX price in USD using DeFiLlama (free, no rate limits)
  */
 export async function fetchTrxPrice(): Promise<number> {
     try {
-        const response = await fetch(
-            "https://api.coingecko.com/api/v3/simple/price?ids=tron&vs_currencies=usd"
-        );
-        if (response.ok) {
-            const data = await response.json();
-            return data.tron?.usd || 0;
-        }
+        const { fetchTrxPrice: getTrxPrice } = await import("@/lib/price-api");
+        return await getTrxPrice();
     } catch (error) {
         console.error("TRX price fetch error:", error);
     }

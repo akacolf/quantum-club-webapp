@@ -10,6 +10,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { Address } from "@ton/core";
 import { useWallet } from "../../WalletContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 interface SavedAddress {
     address: string;
@@ -30,7 +31,7 @@ export default function AddressBookPage() {
     const [newAddress, setNewAddress] = useState("");
     const [editName, setEditName] = useState("");
     const [addressError, setAddressError] = useState("");
-
+    const { telegramId } = useGameContext();
     // Format address for display
     const formatAddress = useCallback((address: string): string => {
         try {
@@ -41,9 +42,15 @@ export default function AddressBookPage() {
         }
     }, [isTestnet]);
 
+    // Slice address for compact display (e.g., "UQBx...abc1")
+    const sliceAddress = (address: string): string => {
+        if (address.length <= 16) return address;
+        return `${address.slice(0, 8)}...${address.slice(-8)}`;
+    };
+
     // Load from localStorage
     useEffect(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEY+`_${telegramId}`);
         if (stored) {
             setAddresses(JSON.parse(stored));
         }
@@ -52,7 +59,7 @@ export default function AddressBookPage() {
     // Save to localStorage
     const saveAddresses = (newAddresses: SavedAddress[]) => {
         setAddresses(newAddresses);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newAddresses));
+        localStorage.setItem(STORAGE_KEY+`_${telegramId}`, JSON.stringify(newAddresses));
     };
 
     const validateAddress = (addr: string): boolean => {
@@ -235,19 +242,18 @@ export default function AddressBookPage() {
                                             </Button>
                                         </div>
                                     ) : (
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="font-medium text-foreground">{entry.name}</div>
-                                                <Button
-                                                    variant="ghost"
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex flex-col gap-1.5 min-w-0">
+                                                <div className="font-semibold text-foreground text-base leading-none truncate">{entry.name}</div>
+                                                <button
                                                     onClick={() => copyAddress(entry.address)}
-                                                    className="h-auto p-0 text-xs text-muted-foreground font-mono break-all text-left hover:text-foreground hover:bg-transparent flex items-center gap-1 mt-1"
+                                                    className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono hover:text-foreground transition-colors text-left w-fit"
                                                 >
-                                                    {entry.address.slice(0, 12)}...{entry.address.slice(-8)}
-                                                    <Copy className="w-3 h-3 shrink-0" />
-                                                </Button>
+                                                    {sliceAddress(entry.address)}
+                                                    <Copy className="w-3 h-3 opacity-70" />
+                                                </button>
                                             </div>
-                                            <div className="flex items-center gap-1 shrink-0">
+                                            <div className="flex items-center gap-0.5 shrink-0">
                                                 <Button
                                                     size="icon"
                                                     variant="ghost"

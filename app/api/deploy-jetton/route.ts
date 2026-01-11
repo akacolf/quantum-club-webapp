@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
         const userId = String(session.user?.telegramId || "");
         const body = await request.json();
-        const { name, symbol, description, image, creatorAddress } = body;
+        const { name, symbol, description, image, creatorAddress, tokenId: existingTokenId } = body;
 
         // Validate required fields
         if (!name || !symbol) {
@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check for duplicate symbol (case-insensitive)
+        // Skip check if this is a retry for an existing token (tokenId provided)
         const symbolLower = symbol.toLowerCase();
         const duplicateCheck = await adminDb.collection("tokens")
             .where("symbolLower", "==", symbolLower)
@@ -124,10 +125,15 @@ export async function POST(request: NextRequest) {
             .get();
 
         if (!duplicateCheck.empty) {
-            return NextResponse.json(
-                { error: `Token with symbol ${symbol.toUpperCase()} already exists` },
-                { status: 409 }
-            );
+            // If existingTokenId is provided, check if the duplicate is the same token (retry scenario)
+            const existingToken = duplicateCheck.docs[0];
+            if (!existingTokenId || existingToken.id !== existingTokenId) {
+                return NextResponse.json(
+                    { error: `Token with symbol ${symbol.toUpperCase()} already exists` },
+                    { status: 409 }
+                );
+            }
+            // If it's the same token, allow retry
         }
 
         console.log("Building Jetton deployment for:", { name, symbol, creatorAddress });
@@ -157,54 +163,99 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create token document in Firestore FIRST (faster than on-chain)
-        const tokenRef = adminDb.collection("tokens").doc();
-        const tokenId = tokenRef.id;
+        // For retry: reuse existing token, otherwise create new
+        let tokenId: string;
+        let tokenRef: FirebaseFirestore.DocumentReference;
+
+        if (existingTokenId) {
+            // Retry scenario - verify token exists and belongs to this user
+            tokenRef = adminDb.collection("tokens").doc(existingTokenId);
+            const existingDoc = await tokenRef.get();
+            
+            if (!existingDoc.exists) {
+                return NextResponse.json(
+                    { error: "Token not found" },
+                    { status: 404 }
+                );
+            }
+            
+            const existingData = existingDoc.data();
+            if (existingData?.creatorUserId !== userId) {
+                return NextResponse.json(
+                    { error: "Not authorized to deploy this token" },
+                    { status: 403 }
+                );
+            }
+            
+            // Already deployed?
+            if (existingData?.isDeployed) {
+                return NextResponse.json({
+                    success: true,
+                    tokenId: existingTokenId,
+                    jettonAddress: existingData.jettonMasterAddress,
+                    message: "Token already deployed",
+                });
+            }
+            
+            tokenId = existingTokenId;
+        } else {
+            // New token - create document
+            tokenRef = adminDb.collection("tokens").doc();
+            tokenId = tokenRef.id;
+        }
 
         try {
-            await tokenRef.set({
-                // Basic info
-                name,
-                nameLower: name.toLowerCase(),
-                symbol: symbol.toUpperCase(),
-                symbolLower: symbol.toLowerCase(),
-                description: description || "",
-                image: image || "",
+            // For retry: only update jetton address (may have changed)
+            // For new: set full document
+            if (existingTokenId) {
+                await tokenRef.update({
+                    jettonMasterAddress: deployResult.jettonMasterAddress,
+                });
+            } else {
+                await tokenRef.set({
+                    // Basic info
+                    name,
+                    nameLower: name.toLowerCase(),
+                    symbol: symbol.toUpperCase(),
+                    symbolLower: symbol.toLowerCase(),
+                    description: description || "",
+                    image: image || "",
 
-                // Creator info
-                creatorUserId: userId,
-                creatorAddress,
-                creatorUsername: "",
+                    // Creator info
+                    creatorUserId: userId,
+                    creatorAddress,
+                    creatorUsername: "",
 
-                // On-chain data
-                jettonMasterAddress: deployResult.jettonMasterAddress,
-                isOnChain: true,
-                isDeployed: false, // Will be set true after verification
+                    // On-chain data
+                    jettonMasterAddress: deployResult.jettonMasterAddress,
+                    isOnChain: true,
+                    isDeployed: false, // Will be set true after verification
 
-                // Trading state
-                totalSupply: "0",
-                circulatingSupply: "0",
-                currentPrice: "1000", // 0.000001 TON initial price
-                tonReserve: "0",
-                marketCap: "0",
-                mintable: true, // Can mint via bonding curve until graduated
+                    // Trading state
+                    totalSupply: "0",
+                    circulatingSupply: "0",
+                    currentPrice: "1000", // 0.000001 TON initial price
+                    tonReserve: "0",
+                    marketCap: "0",
+                    mintable: true, // Can mint via bonding curve until graduated
 
-                // Configuration - matches smart contract constants
-                bondingCurve: {
-                    basePrice: "1000", // 0.000001 TON
-                    slope: "100000",
-                },
-                graduationThreshold: "2000000000000", // 2000 TON
-                isGraduated: false,
+                    // Configuration - matches smart contract constants
+                    bondingCurve: {
+                        basePrice: "1000", // 0.000001 TON
+                        slope: "100000",
+                    },
+                    graduationThreshold: "2000000000000", // 2000 TON
+                    isGraduated: false,
 
-                // Platform config
-                platformWallet: PLATFORM_WALLET_ADDRESS,
-                serviceFeePercent: FEE_CONFIG.serviceFeePercent,
-                referralFeePercent: FEE_CONFIG.referralFeePercent,
+                    // Platform config
+                    platformWallet: PLATFORM_WALLET_ADDRESS,
+                    serviceFeePercent: FEE_CONFIG.serviceFeePercent,
+                    referralFeePercent: FEE_CONFIG.referralFeePercent,
 
-                // Timestamps
-                createdAt: FieldValue.serverTimestamp(),
-            });
+                    // Timestamps
+                    createdAt: FieldValue.serverTimestamp(),
+                });
+            }
         } catch (firestoreError) {
             console.error("Firestore write error:", firestoreError);
             // Continue anyway - we'll still try to deploy

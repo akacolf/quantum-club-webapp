@@ -34,6 +34,7 @@ export function TokenImage({ src, alt, width, height, className, fallback }: Tok
 
 /**
  * Token image that fills its container
+ * IMPORTANT: Parent must have `position: relative` and defined dimensions!
  */
 export function TokenImageFill({ src, alt, className, fallback }: Omit<TokenImageProps, "width" | "height">) {
     if (!src) {
@@ -45,8 +46,9 @@ export function TokenImageFill({ src, alt, className, fallback }: Omit<TokenImag
             src={src}
             alt={alt}
             fill
-            className={className}
+            className={`object-cover ${className || ""}`}
             unoptimized
+            style={{ position: "absolute" }}
         />
     );
 }

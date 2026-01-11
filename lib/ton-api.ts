@@ -323,24 +323,12 @@ export async function previewSell(
 // =====================================================
 
 /**
- * Get TON price in USD
- * Note: We still need an external source for fiat prices.
- * Using CoinGecko as they have generous free tier.
+ * Get TON price in USD using DeFiLlama (free, no rate limits)
  */
 export async function getTonPriceUsd(): Promise<number> {
     try {
-        const response = await fetch(
-            "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
-            { next: { revalidate: 60 } } // Cache for 60 seconds
-        );
-        
-        if (!response.ok) {
-            console.warn("[TON-API] Failed to fetch TON price from CoinGecko");
-            return 0;
-        }
-        
-        const data = await response.json();
-        return data["the-open-network"]?.usd ?? 0;
+        const { fetchTonPrice } = await import("@/lib/price-api");
+        return await fetchTonPrice();
     } catch (error) {
         console.error("[TON-API] Error fetching TON price:", error);
         return 0;
