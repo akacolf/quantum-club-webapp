@@ -12,7 +12,7 @@
 import { Address, internal, SendMode, Cell, beginCell } from "@ton/core";
 import { WalletContractV5R1, WalletContractV4, TonClient } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { getSafeHttpEndpoint } from "@/lib/ton-api";
 import { PLATFORM_WALLET_ADDRESS } from "./platform-config";
 
 // Platform wallet configuration
@@ -30,12 +30,12 @@ export function isPlatformWalletConfigured(): boolean {
 }
 
 /**
- * Get TonClient instance using Orbs Network (rate-limit free!)
+ * Get TonClient instance (rate-limit free with fallback!)
  */
 async function getTonClient(): Promise<TonClient> {
     if (!cachedOrbsEndpoint) {
-        cachedOrbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
-        console.log("[platform-wallet] Using Orbs endpoint:", cachedOrbsEndpoint);
+        cachedOrbsEndpoint = await getSafeHttpEndpoint("mainnet");
+        console.log("[platform-wallet] Using endpoint:", cachedOrbsEndpoint);
     }
     return new TonClient({ endpoint: cachedOrbsEndpoint });
 }

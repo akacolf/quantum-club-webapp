@@ -40,10 +40,18 @@ interface GraduationResult {
 // Cache for Orbs endpoint
 let cachedOrbsEndpoint: string | null = null;
 
+// Fallback endpoint when Orbs is down
+const FALLBACK_ENDPOINT = "https://toncenter.com/api/v2/jsonRPC";
+
 async function getOrbsEndpoint(): Promise<string> {
-    if (!cachedOrbsEndpoint) {
+    if (cachedOrbsEndpoint) return cachedOrbsEndpoint;
+    
+    try {
         cachedOrbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
         console.log("[functions] Using Orbs endpoint:", cachedOrbsEndpoint);
+    } catch (error) {
+        console.warn("[functions] Orbs unavailable, using toncenter fallback:", error);
+        cachedOrbsEndpoint = FALLBACK_ENDPOINT;
     }
     return cachedOrbsEndpoint;
 }

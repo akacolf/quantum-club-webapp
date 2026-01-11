@@ -5,7 +5,7 @@ import { StonApiClient } from "@ston-fi/api";
 import { dexFactory } from "@ston-fi/sdk";
 import { TonClient } from "@ton/ton";
 import { Address } from "@ton/core";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { getSafeHttpEndpoint } from "@/lib/ton-api";
 
 export interface GraduationConfig {
     // Amount of TON to seed the liquidity pool (from collected bonding curve funds)
@@ -81,8 +81,8 @@ export async function buildProvideLiquidityTx(
     body: Buffer | null;
 } | null> {
     try {
-        // Use Orbs Network for rate-limit-free access
-        const orbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
+        // Use Orbs Network for rate-limit-free access (with fallback)
+        const orbsEndpoint = await getSafeHttpEndpoint("mainnet");
         const tonClient = new TonClient({ endpoint: orbsEndpoint });
 
         // First simulate to get router info
