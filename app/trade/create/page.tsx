@@ -68,6 +68,8 @@ export default function CreateTokenPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [initialBuyAmount, setInitialBuyAmount] = useState("");
+    const [isCheckingSymbol, setIsCheckingSymbol] = useState(false);
+    const [symbolAvailable, setSymbolAvailable] = useState<boolean | null>(null);
     const [formData, setFormData] = useState({
         name: "",
         symbol: "",
@@ -75,6 +77,54 @@ export default function CreateTokenPage() {
         image: "",
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    // Check symbol availability with debounce
+    useEffect(() => {
+        const symbol = formData.symbol.trim();
+        
+        // Reset if symbol is empty or too short
+        if (!symbol || symbol.length < 2) {
+            setSymbolAvailable(null);
+            setIsCheckingSymbol(false);
+            return;
+        }
+
+        // Validate format first
+        if (!/^[A-Za-z0-9]+$/.test(symbol)) {
+            setSymbolAvailable(null);
+            return;
+        }
+
+        setIsCheckingSymbol(true);
+
+        const debounce = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/check-symbol?symbol=${encodeURIComponent(symbol)}`);
+                const data = await response.json();
+                
+                // Only update if the symbol hasn't changed during the request
+                if (formData.symbol.trim().toUpperCase() === symbol.toUpperCase()) {
+                    setSymbolAvailable(data.available === true);
+                    if (!data.available && data.reason) {
+                        setErrors(prev => ({ ...prev, symbol: data.reason }));
+                    } else if (data.available) {
+                        // Clear any previous symbol error if now available
+                        setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.symbol;
+                            return newErrors;
+                        });
+                    }
+                }
+            } catch {
+                // Silently fail - will be caught at submission time
+            } finally {
+                setIsCheckingSymbol(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(debounce);
+    }, [formData.symbol]);
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -91,6 +141,10 @@ export default function CreateTokenPage() {
             newErrors.symbol = "Token symbol must be 10 characters or less";
         } else if (!/^[A-Za-z0-9]+$/.test(formData.symbol)) {
             newErrors.symbol = "Token symbol can only contain letters and numbers";
+        } else if (symbolAvailable === false) {
+            newErrors.symbol = "This symbol is already taken";
+        } else if (isCheckingSymbol) {
+            newErrors.symbol = "Please wait while we check symbol availability";
         }
 
         if (formData.description && formData.description.length > 500) {
@@ -428,25 +482,51 @@ export default function CreateTokenPage() {
                                 {/* Token Symbol */}
                                 <div className="space-y-2">
                                     <Label htmlFor="symbol" className="text-white">Token Symbol *</Label>
-                                    <Input
-                                        id="symbol"
-                                        type="text"
-                                        placeholder="e.g., QNTM"
-                                        value={formData.symbol}
-                                        onChange={(e) => {
-                                            setFormData({ ...formData, symbol: e.target.value.toUpperCase() });
-                                            if (errors.symbol) {
-                                                const newErrors = { ...errors };
-                                                delete newErrors.symbol;
-                                                setErrors(newErrors);
-                                            }
-                                        }}
-                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase ${errors.symbol ? "border-red-500" : ""
+                                    <div className="relative">
+                                        <Input
+                                            id="symbol"
+                                            type="text"
+                                            placeholder="e.g., QNTM"
+                                            value={formData.symbol}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, symbol: e.target.value.toUpperCase() });
+                                                if (errors.symbol) {
+                                                    const newErrors = { ...errors };
+                                                    delete newErrors.symbol;
+                                                    setErrors(newErrors);
+                                                }
+                                            }}
+                                            className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase pr-10 ${
+                                                errors.symbol ? "border-red-500" : 
+                                                symbolAvailable === true ? "border-green-500" : ""
                                             }`}
-                                        maxLength={10}
-                                    />
+                                            maxLength={10}
+                                        />
+                                        {/* Status indicator */}
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            {isCheckingSymbol && (
+                                                <svg className="animate-spin h-4 w-4 text-white/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {!isCheckingSymbol && symbolAvailable === true && (
+                                                <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                            {!isCheckingSymbol && symbolAvailable === false && (
+                                                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                    </div>
                                     {errors.symbol && (
                                         <p className="text-xs text-red-400">{errors.symbol}</p>
+                                    )}
+                                    {!errors.symbol && symbolAvailable === true && formData.symbol.length >= 2 && (
+                                        <p className="text-xs text-green-400">Symbol is available!</p>
                                     )}
                                 </div>
 

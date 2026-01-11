@@ -10,8 +10,7 @@ export async function POST(request:NextRequest) {
     }
     const validationResult = validateTelegramWebAppData(initData)
     if(validationResult.validatedData) {
-        const user = {telegramId: (validationResult.user as { id: string }).id} // id should be explicitly defined cuz it returns an empty object //
-        //const user = {telegramId:validationResult.user.id}//
+        const user = {telegramId: (validationResult.user as { id: string }).id}
         const expires = new Date(Date.now() + SESSION_DURATION)
         const session = await encrypt({ user, expires })
 

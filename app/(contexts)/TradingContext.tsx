@@ -453,11 +453,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           stateInitCell = Cell.fromBoc(stateInitBuffer)[0];
         }
 
-        console.log("Sending retry deployment:", {
-          to: jettonAddress,
-          value: deployTx.value,
-        });
-
         // Send deployment transaction
         const txResult = await sendTransaction({
           to: deployTx.to,
@@ -472,17 +467,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        console.log("Retry deployment transaction sent:", txResult.txHash);
-
         // Wait for on-chain confirmation using Orbs TonClient (no rate limits!)
         let isDeployedOnChain = false;
         const maxRetries = 10;
         const retryDelay = 3000;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          console.log(
-            `Checking deployment status (attempt ${attempt}/${maxRetries})...`
-          );
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
           try {
@@ -492,12 +482,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
             );
 
             if (contractState.state === "active") {
-              console.log("Contract is now ACTIVE on-chain!");
               isDeployedOnChain = true;
               break;
             }
-          } catch (checkError) {
-            console.log("Status check failed, will retry...", checkError);
+          } catch {
+            // Status check failed, will retry
           }
         }
 
@@ -861,8 +850,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
               balanceError
             );
           }
-        } else {
-          console.log("Initial buy - skipping balance check (already validated during token creation)");
         }
 
         // Get token data
@@ -893,18 +880,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                   "Contract not active on blockchain. Deployment may have failed.",
               };
             }
-            console.log(
-              "Contract verified active on-chain:",
-              token.jettonMasterAddress
-            );
-          } catch (verifyError) {
-            console.warn(
-              "Contract verification error, proceeding anyway:",
-              verifyError
-            );
+          } catch {
+            // Contract verification error, proceeding anyway
           }
-        } else {
-          console.log("Initial buy - skipping contract verification (already verified during token creation)");
         }
 
         if (token.isGraduated) {
@@ -1037,15 +1015,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
               error: "Contract not active on blockchain",
             };
           }
-          console.log(
-            "Contract verified active on-chain:",
-            token.jettonMasterAddress
-          );
-        } catch (verifyError) {
-          console.warn(
-            "Contract verification error, proceeding anyway:",
-            verifyError
-          );
+        } catch {
+          // Contract verification error, proceeding anyway
         }
 
         if (token.isGraduated) {
@@ -1150,10 +1121,8 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
         // Upload base64 image to R2 if provided
         if (params.image?.startsWith("data:")) {
-          console.log("Uploading token image to R2...");
           const uploaded = await uploadTokenImage(tempId, params.image);
           if (uploaded) {
-            console.log("Image uploaded successfully:", uploaded);
             imageUrl = uploaded;
           } else {
             console.warn(
@@ -1213,13 +1182,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         const { tokenId, jettonAddress, deployTx, success } =
           await response.json();
 
-        console.log("Token prepared:", {
-          tokenId,
-          jettonAddress,
-          success,
-          hasDeployTx: !!deployTx,
-        });
-
         if (!success || !deployTx) {
           return null;
         }
@@ -1227,29 +1189,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         // Send deployment transaction from user's wallet (client-side)
         // This ensures the token is actually deployed on-chain
         try {
-          console.log("Parsing stateInit...", {
-            stateInitLength: deployTx.stateInit?.length,
-          });
-
           let stateInitCell: Cell | undefined;
           if (deployTx.stateInit) {
             const stateInitBuffer = Buffer.from(deployTx.stateInit, "base64");
-            console.log(
-              "stateInit buffer size:",
-              stateInitBuffer.length,
-              "bytes"
-            );
             stateInitCell = Cell.fromBoc(stateInitBuffer)[0];
-            console.log("stateInit parsed:", {
-              bits: stateInitCell.bits.length,
-              refs: stateInitCell.refs.length,
-            });
           }
-
-          console.log("Sending deployment:", {
-            to: deployTx.to,
-            value: deployTx.value,
-          });
 
           // Send deployment transaction
           const txResult = await sendTransaction({
@@ -1259,20 +1203,12 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (txResult.success) {
-            console.log(
-              "Deployment transaction sent successfully:",
-              txResult.txHash
-            );
-
             // CRITICAL: Wait for on-chain confirmation using Orbs TonClient (no rate limits!)
             let isDeployedOnChain = false;
             const maxRetries = 10;
             const retryDelay = 3000; // 3 seconds between retries
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
-              console.log(
-                `Checking deployment status (attempt ${attempt}/${maxRetries})...`
-              );
               await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
               try {
@@ -1282,14 +1218,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 );
 
                 if (contractState.state === "active") {
-                  console.log("Contract is now ACTIVE on-chain!");
                   isDeployedOnChain = true;
                   break;
-                } else {
-                  console.log(`Contract state: ${contractState.state}`);
                 }
-              } catch (checkError) {
-                console.log("Status check failed, will retry...", checkError);
+              } catch {
+                // Status check failed, will retry
               }
             }
 
@@ -1310,12 +1243,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                 params.initialBuyAmount &&
                 parseFloat(params.initialBuyAmount) > 0
               ) {
-                console.log(
-                  "Executing initial buy:",
-                  params.initialBuyAmount,
-                  "TON"
-                );
-
                 // Extra wait for contract indexing
                 await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -1326,9 +1253,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
                   0.05, // default slippage
                   true // isInitialBuy - skip balance/contract checks already done
                 );
-                if (buyResult.success) {
-                  console.log("Initial buy successful:", buyResult.txHash);
-                } else {
+                if (!buyResult.success) {
                   console.warn(
                     "Initial buy failed (token still created):",
                     buyResult.error

@@ -38,6 +38,6 @@ token,refreshToken
         secure:process.env.NODE_ENV ==="production",
     });
     }catch(e) {
-        console.log(e)
+        console.error("Failed to set auth cookies:", e);
     }
 }

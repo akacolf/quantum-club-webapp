@@ -373,7 +373,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.fire}
                                                 loop={true}
-                                                autoplay={activeTab === "trending"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -391,7 +391,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.sparkles}
                                                 loop={true}
-                                                autoplay={activeTab === "new"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -409,7 +409,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.diamond}
                                                 loop={true}
-                                                autoplay={activeTab === "holdings"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -427,7 +427,7 @@ export default function TradePage() {
                                             <Lottie
                                                 animationData={lottieData.rocket}
                                                 loop={true}
-                                                autoplay={activeTab === "created"}
+                                                autoplay={true}
                                                 className="w-4 h-4"
                                             />
                                         ) : (
@@ -542,7 +542,7 @@ export default function TradePage() {
                                             </Badge>
                                         </div>
                                         {myTokens.filter(t => !t.isDeployed).map((token) => (
-                                            <Card key={token.id} className="bg-orange-500/5 border-orange-500/20 mb-2">
+                                            <Card key={token.id} className="bg-[#111] border-[#333] mb-2">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 relative">
@@ -558,13 +558,13 @@ export default function TradePage() {
                                                             <h4 className="font-bold text-white truncate">{token.name}</h4>
                                                             <p className="text-xs text-orange-400">${token.symbol}</p>
                                                             <p className="text-xs text-muted-foreground mt-1">
-                                                                Contract not deployed - TON may be stuck
+                                                                Token not deployed
                                                             </p>
                                                         </div>
                                                         <Button
                                                             onClick={() => handleRetryDeploy(token.id)}
                                                             disabled={deployingTokenId === token.id}
-                                                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-full px-4"
+                                                            className="bg-white hover:bg-white/90 text-black font-bold rounded-full px-4"
                                                             size="sm"
                                                         >
                                                             {deployingTokenId === token.id ? (

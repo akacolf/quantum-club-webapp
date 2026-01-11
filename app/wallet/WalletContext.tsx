@@ -701,13 +701,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     body?: Cell;
     stateInit?: Cell;
   }): Promise<{ success: boolean; txHash?: string; error?: string }> => {
-    console.log("=== sendTransaction called ===", {
-      to: params.to,
-      value: params.value,
-      hasBody: !!params.body,
-      hasStateInit: !!params.stateInit,
-    });
-
     const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
     const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
 
@@ -739,7 +732,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       try {
         const endpoint = await getHttpEndpoint({ network: isTestnet ? "testnet" : "mainnet" });
         tonClient = new TonClient({ endpoint });
-        console.log("Using TON Access endpoint:", endpoint);
       } catch (accessError) {
         // Fallback to TonCenter if TON Access fails
         console.warn("TON Access failed, falling back to TonCenter:", accessError);
@@ -779,22 +771,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Create and send transfer with retry logic
       retries = 3;
 
-      const senderAddress = wallet.address.toString({ bounceable: false, testOnly: isTestnet });
-      console.log("Sending transaction:", {
-        from: senderAddress,
-        to: params.to,
-        value: params.value,
-        hasBody: !!params.body,
-        hasStateInit: !!params.stateInit,
-        seqno,
-        isTestnet,
-      });
-
       // Parse stateInit if provided
       let init: { code: import("@ton/core").Cell; data: import("@ton/core").Cell } | undefined;
       if (params.stateInit) {
         try {
-          console.log("Attempting to parse stateInit, cell bits:", params.stateInit.bits.length);
           const parsedInit = loadStateInit(params.stateInit.beginParse());
           // Ensure code and data are defined
           if (!parsedInit.code || !parsedInit.data) {
@@ -802,12 +782,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             return { success: false, error: "stateInit missing required code or data" };
           }
           init = { code: parsedInit.code, data: parsedInit.data };
-          console.log("Parsed stateInit successfully:", {
-            hasCode: !!init.code,
-            hasData: !!init.data,
-            codeHash: init.code.hash().toString("hex").slice(0, 16) + "...",
-            dataHash: init.data.hash().toString("hex").slice(0, 16) + "...",
-          });
         } catch (parseError) {
           console.error("Failed to parse stateInit:", parseError);
           return { success: false, error: "Failed to parse stateInit: " + (parseError instanceof Error ? parseError.message : String(parseError)) };
@@ -846,19 +820,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const bocCell = beginCell().store(storeMessage(externalMsg)).endCell();
       const bocBase64 = bocCell.toBoc().toString("base64");
 
-      console.log("External message BOC created:", {
-        bocLength: bocBase64.length,
-        seqno,
-        walletDeployNeeded: seqno === 0,
-      });
-
       let success = false;
       let lastError = "";
 
       // Use Orbs Network for transaction broadcasting (rate-limit free!)
       for (let attempt = 1; attempt <= 3; attempt++) {
         if (attempt > 1) {
-          console.log(`Retry attempt ${attempt}, waiting 2s...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
@@ -869,13 +836,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           });
           const orbsClient = new TonClient({ endpoint: orbsEndpoint });
           
-          console.log("Sending via Orbs Network...", orbsEndpoint);
-          
           // Send the BOC via Orbs (TonClient.sendFile expects a Buffer)
           const bocBuffer = Buffer.from(bocBase64, "base64");
           await orbsClient.sendFile(bocBuffer);
           
-          console.log("Transaction sent via Orbs Network!");
           success = true;
           break;
         } catch (err) {

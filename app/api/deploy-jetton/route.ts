@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
         const userId = String(session.user?.telegramId || "");
         const body = await request.json();
-        const { name, symbol, description, image, creatorAddress } = body;
+        const { name, symbol, description, image, creatorAddress, tokenId: existingTokenId } = body;
 
         // Validate required fields
         if (!name || !symbol) {
@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check for duplicate symbol (case-insensitive)
+        // Skip check if this is a retry for an existing token (tokenId provided)
         const symbolLower = symbol.toLowerCase();
         const duplicateCheck = await adminDb.collection("tokens")
             .where("symbolLower", "==", symbolLower)
@@ -124,10 +125,15 @@ export async function POST(request: NextRequest) {
             .get();
 
         if (!duplicateCheck.empty) {
-            return NextResponse.json(
-                { error: `Token with symbol ${symbol.toUpperCase()} already exists` },
-                { status: 409 }
-            );
+            // If existingTokenId is provided, check if the duplicate is the same token (retry scenario)
+            const existingToken = duplicateCheck.docs[0];
+            if (!existingTokenId || existingToken.id !== existingTokenId) {
+                return NextResponse.json(
+                    { error: `Token with symbol ${symbol.toUpperCase()} already exists` },
+                    { status: 409 }
+                );
+            }
+            // If it's the same token, allow retry
         }
 
         console.log("Building Jetton deployment for:", { name, symbol, creatorAddress });

@@ -53,7 +53,6 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                 );
 
                 if (!response.ok) {
-                    console.log("Failed to fetch on-chain transactions");
                     setIsLoading(false);
                     return;
                 }
