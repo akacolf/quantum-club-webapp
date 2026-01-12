@@ -564,11 +564,11 @@ export default function SwapPage() {
                             Powered by
                             <span className="flex items-center gap-1 font-semibold text-foreground">
                                 <Image
-                                    src="https://ston.fi/images/tild3236-3266-4139-a562-376139323438__ston_logo_light.svg"
+                                    src="/svg/stonfi-logo.svg"
                                     alt="STON.fi"
                                     width={18}
                                     height={18}
-                                    className="invert dark:invert"
+                                    className=""
                                 />
                                 STON.fi
                             </span>
@@ -606,11 +606,11 @@ export default function SwapPage() {
                         Powered by
                         <span className="flex items-center gap-1 font-semibold text-foreground">
                             <Image
-                                src="https://ston.fi/images/tild3236-3266-4139-a562-376139323438__ston_logo_light.svg"
+                                src="/svg/stonfi-logo.svg"
                                 alt="STON.fi"
                                 width={18}
                                 height={18}
-                                className="invert dark:invert"
+                                className=""
                             />
                             STON.fi
                         </span>
@@ -1049,7 +1049,7 @@ export default function SwapPage() {
                                                     {fromAsset?.symbol?.slice(0, 2)}
                                                 </div>
                                             )}
-                                            <p className="text-xl font-bold">{amount}</p>
+                                            <p className="text-xl font-bold">{formatDisplayNumber(parseFloat(amount))}</p>
                                             <p className="text-gray-400">{fromAsset?.symbol}</p>
                                         </div>
 
@@ -1071,7 +1071,7 @@ export default function SwapPage() {
                                                 </div>
                                             )}
                                             <p className="text-xl font-bold">
-                                                {parseFloat(expectedOutput).toFixed(4)}
+                                                {formatDisplayNumber(parseFloat(expectedOutput))}
                                             </p>
                                             <p className="text-muted-foreground">{toAsset?.symbol}</p>
                                         </div>
@@ -1081,13 +1081,13 @@ export default function SwapPage() {
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Rate</span>
                                             <span>
-                                                1 {fromAsset?.symbol} = {(parseFloat(confirmedQuote.askUnits) / parseFloat(confirmedQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9))).toFixed(6)} {toAsset?.symbol}
+                                                1 {fromAsset?.symbol} = {formatDisplayNumber(parseFloat(confirmedQuote.askUnits) / parseFloat(confirmedQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9)), 6)} {toAsset?.symbol}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Minimum received</span>
                                             <span>
-                                                {parseFloat(minimumReceived).toFixed(4)}{" "}
+                                                {formatDisplayNumber(parseFloat(minimumReceived))}{" "}
                                                 {toAsset?.symbol}
                                             </span>
                                         </div>
