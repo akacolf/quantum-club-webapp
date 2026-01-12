@@ -12,6 +12,7 @@ const FrensProvider = dynamic(() => import("../(contexts)/FrensContext").then(m 
 const ChatProvider = dynamic(() => import("../(contexts)/ChatContext").then(m => ({ default: m.ChatProvider })));
 const GroupsProvider = dynamic(() => import("../(contexts)/GroupsContext").then(m => ({ default: m.GroupsProvider })));
 const TradingProvider = dynamic(() => import("../(contexts)/TradingContext").then(m => ({ default: m.TradingProvider })));
+const OmnistonClientProvider = dynamic(() => import("./OmnistonProvider").then(m => ({ default: m.OmnistonClientProvider })), { ssr: false });
 
 // Lazy load AI Chat Drawer - it's hidden by default and not needed for initial render
 const AIChatDrawer = dynamic(() => import("../(components)/AIChatDrawer"), {
@@ -39,8 +40,10 @@ export default function ClientProviders({ children }: { children: React.ReactNod
               <ChatProvider>
                 <GroupsProvider>
                   <TradingProvider>
-                    {children}
-                    <AIChatDrawer />
+                    <OmnistonClientProvider>
+                      {children}
+                      <AIChatDrawer />
+                    </OmnistonClientProvider>
                   </TradingProvider>
                 </GroupsProvider>
               </ChatProvider>
