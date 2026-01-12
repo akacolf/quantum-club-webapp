@@ -46,8 +46,20 @@ import {
     fromUnits,
     type SwapAsset,
 } from "@/lib/stonfi";
-import { useOmnistonSwap } from "./hooks/useOmnistonSwap";
+import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
+
+// Custom hook for debouncing values
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedValue(value), delay);
+        return () => clearTimeout(timer);
+    }, [value, delay]);
+    
+    return debouncedValue;
+}
 
 export default function SwapPage() {
     useTelegramBackButton("/wallet");
@@ -86,6 +98,41 @@ export default function SwapPage() {
     const [lastTxHash, setLastTxHash] = useState<string | null>(null);
     const [slippage, setSlippage] = useState("1"); // 1% default
 
+    // Debounce the amount for quote requests (500ms)
+    const debouncedAmount = useDebounce(amount, 500);
+
+    // Build quote params based on current form state
+    const quoteParams = useMemo((): QuoteParams | null => {
+        if (!fromAsset || !toAsset || !debouncedAmount || parseFloat(debouncedAmount) <= 0) {
+            return null;
+        }
+
+        const offerUnits = toUnits(debouncedAmount, fromAsset.decimals);
+        
+        return {
+            fromAsset: {
+                address: fromAsset.contractAddress,
+                blockchain: 607,
+                kind: fromAsset.kind,
+                symbol: fromAsset.symbol,
+                displayName: fromAsset.displayName,
+                imageUrl: fromAsset.imageUrl,
+                decimals: fromAsset.decimals,
+            },
+            toAsset: {
+                address: toAsset.contractAddress,
+                blockchain: 607,
+                kind: toAsset.kind,
+                symbol: toAsset.symbol,
+                displayName: toAsset.displayName,
+                imageUrl: toAsset.imageUrl,
+                decimals: toAsset.decimals,
+            },
+            amount: offerUnits,
+            slippageBps: Math.round(parseFloat(slippage) * 100), // Convert % to basis points
+        };
+    }, [fromAsset, toAsset, debouncedAmount, slippage]);
+
     // Omniston hook for quotes and execution
     const {
         quote: omnistonQuote,
@@ -93,10 +140,12 @@ export default function SwapPage() {
         quoteError,
         resolverName,
         isConnected,
-        requestQuote,
-        cancelQuote,
         buildAndExecute,
-    } = useOmnistonSwap();
+        unsubscribe: cancelQuote,
+    } = useOmnistonSwap({ 
+        params: quoteParams,
+        enabled: step === "input", // Only fetch quotes on input step
+    });
 
     // Gas reserve constants
     const MIN_TON_BALANCE = 0.35; // Minimum 0.35 TON required in wallet for swaps
@@ -189,54 +238,12 @@ export default function SwapPage() {
         [tonBalance, jettons]
     );
 
-    // Request Omniston quote when amount changes or connection is restored
-    useEffect(() => {
-        if (!fromAsset || !toAsset || !amount || parseFloat(amount) <= 0) {
-            cancelQuote();
-            return;
-        }
-
-        // Don't request if not connected
-        if (!isConnected) {
-            return;
-        }
-
-        // Debounce the quote request
-        const timer = setTimeout(() => {
-            const offerUnits = toUnits(amount, fromAsset.decimals);
-            requestQuote({
-                fromAsset: {
-                    address: fromAsset.contractAddress,
-                    blockchain: 607,
-                    kind: fromAsset.kind,
-                    symbol: fromAsset.symbol,
-                    displayName: fromAsset.displayName,
-                    imageUrl: fromAsset.imageUrl,
-                    decimals: fromAsset.decimals,
-                },
-                toAsset: {
-                    address: toAsset.contractAddress,
-                    blockchain: 607,
-                    kind: toAsset.kind,
-                    symbol: toAsset.symbol,
-                    displayName: toAsset.displayName,
-                    imageUrl: toAsset.imageUrl,
-                    decimals: toAsset.decimals,
-                },
-                amount: offerUnits,
-            });
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [fromAsset, toAsset, amount, requestQuote, cancelQuote, isConnected]);
-
     // Handle swap direction toggle
     const handleToggleDirection = () => {
         const temp = fromAsset;
         setFromAsset(toAsset);
         setToAsset(temp);
         setAmount("");
-        cancelQuote();
     };
 
     // Handle max amount - show full balance, gas will be deducted during execution if needed
@@ -528,11 +535,11 @@ export default function SwapPage() {
                             Powered by
                             <span className="flex items-center gap-1 font-semibold text-foreground">
                                 <Image
-                                    src="https://avatars.githubusercontent.com/u/105225974?s=200&v=4"
+                                    src="https://ston.fi/images/tild3236-3266-4139-a562-376139323438__ston_logo_light.svg"
                                     alt="STON.fi"
-                                    width={16}
-                                    height={16}
-                                    className="rounded-full"
+                                    width={18}
+                                    height={18}
+                                    className="dark:invert"
                                 />
                                 STON.fi
                             </span>
@@ -570,11 +577,11 @@ export default function SwapPage() {
                         Powered by
                         <span className="flex items-center gap-1 font-semibold text-foreground">
                             <Image
-                                src="https://avatars.githubusercontent.com/u/105225974?s=200&v=4"
+                                src="https://ston.fi/images/tild3236-3266-4139-a562-376139323438__ston_logo_light.svg"
                                 alt="STON.fi"
-                                width={16}
-                                height={16}
-                                className="rounded-full"
+                                width={18}
+                                height={18}
+                                className="dark:invert"
                             />
                             STON.fi
                         </span>

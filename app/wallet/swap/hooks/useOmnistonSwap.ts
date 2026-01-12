@@ -1,17 +1,17 @@
 "use client";
 
-import { useCallback, useState, useRef, useEffect } from "react";
-import { useOmniston, useConnectionStatus } from "@ston-fi/omniston-sdk-react";
+import { useCallback, useState, useMemo } from "react";
 import { 
+    useOmniston, 
+    useConnectionStatus,
+    useRfq,
+    Blockchain,
     SettlementMethod,
     GaslessSettlement,
+    type QuoteRequest,
     type Quote,
-    type QuoteResponseEvent,
-} from "@ston-fi/omniston-sdk";
+} from "@ston-fi/omniston-sdk-react";
 import { Address as TonAddress } from "@ton/core";
-
-// TON blockchain ID in Omniston
-const TON_BLOCKCHAIN_ID = 607;
 
 export interface OmnistonAsset {
     address: string;
@@ -27,6 +27,12 @@ export interface QuoteParams {
     fromAsset: OmnistonAsset;
     toAsset: OmnistonAsset;
     amount: string; // In base units (nanotons for TON)
+    slippageBps?: number; // Slippage in basis points (e.g., 100 = 1%)
+}
+
+export interface UseOmnistonSwapProps {
+    params: QuoteParams | null;
+    enabled?: boolean;
 }
 
 export interface UseOmnistonSwapReturn {
@@ -35,148 +41,91 @@ export interface UseOmnistonSwapReturn {
     quoteError: string | null;
     resolverName: string | null;
     isConnected: boolean;
-    requestQuote: (params: QuoteParams) => void;
-    cancelQuote: () => void;
+    connectionStatus: string;
     buildAndExecute: (
         quote: Quote,
         walletAddress: string,
         sendTransaction: (params: { to: string; value: bigint; body: string }) => Promise<void>
     ) => Promise<string | null>;
     isBuilding: boolean;
+    unsubscribe: () => void;
 }
 
 /**
  * Custom hook for Omniston swap functionality
- * Handles quote streaming via WebSocket
+ * Uses the official useRfq hook from the SDK
  */
-export function useOmnistonSwap(): UseOmnistonSwapReturn {
+export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps): UseOmnistonSwapReturn {
     const omniston = useOmniston();
     const connectionStatus = useConnectionStatus();
-
-    const [quote, setQuote] = useState<Quote | null>(null);
-    const [isQuoting, setIsQuoting] = useState(false);
-    const [quoteError, setQuoteError] = useState<string | null>(null);
-    const [resolverName, setResolverName] = useState<string | null>(null);
     const [isBuilding, setIsBuilding] = useState(false);
 
-    const quoteSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
-    const lastQuoteParamsRef = useRef<QuoteParams | null>(null);
+    // Build the quote request from params
+    const quoteRequest = useMemo((): QuoteRequest => {
+        if (!params) {
+            return {
+                settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
+                amount: {},
+            };
+        }
 
-    // Check if connection is usable (ready or connected - SDK connects lazily)
-    // Only block when explicitly closed or errored
+        return {
+            settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
+            bidAssetAddress: {
+                blockchain: Blockchain.TON,
+                address: params.fromAsset.address,
+            },
+            askAssetAddress: {
+                blockchain: Blockchain.TON,
+                address: params.toAsset.address,
+            },
+            amount: {
+                bidUnits: params.amount,
+            },
+            settlementParams: {
+                maxPriceSlippageBps: params.slippageBps ?? 100, // Default 1%
+                gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
+            },
+        };
+    }, [params]);
+
+    // Check if we have valid params to enable the query
+    const isFormValid = Boolean(
+        params &&
+        params.fromAsset?.address &&
+        params.toAsset?.address &&
+        params.amount &&
+        BigInt(params.amount) > BigInt(0)
+    );
+
+    // Use the official useRfq hook from the SDK
+    const rfqResult = useRfq(quoteRequest, {
+        enabled: enabled && isFormValid,
+    });
+
+    // Check if connection is usable
     const isConnected = connectionStatus !== "closed" && connectionStatus !== "error" && connectionStatus !== "closing";
 
-    // Cleanup subscription on unmount
-    useEffect(() => {
-        return () => {
-            quoteSubscriptionRef.current?.unsubscribe();
-        };
-    }, []);
+    // Extract quote from the result
+    const quoteEvent = rfqResult.data;
+    const quote = quoteEvent?.type === "quoteUpdated" ? quoteEvent.quote : null;
+    const resolverName = quote?.resolverName ?? null;
 
-    // Reset error when connection status changes
-    useEffect(() => {
-        if (connectionStatus === "closed" || connectionStatus === "error") {
-            setQuoteError("Connection lost. Reconnecting...");
-        } else if (connectionStatus === "connected" && quoteError === "Connection lost. Reconnecting...") {
-            setQuoteError(null);
-            // Retry last quote request if we had one
-            if (lastQuoteParamsRef.current && !quoteSubscriptionRef.current) {
-                // Will be handled by the component re-requesting
-            }
-        }
-    }, [connectionStatus, quoteError]);
+    // Determine error state
+    let quoteError: string | null = null;
+    if (rfqResult.error) {
+        quoteError = rfqResult.error.message || "Failed to get quote";
+    } else if (quoteEvent?.type === "noQuote") {
+        quoteError = "No quote available for this pair";
+    } else if (quoteEvent?.type === "unsubscribed") {
+        quoteError = "Quote request timed out";
+    } else if (!isConnected) {
+        quoteError = "Connection lost. Please try again.";
+    }
 
-    const cancelQuote = useCallback((clearQuote = true) => {
-        quoteSubscriptionRef.current?.unsubscribe();
-        quoteSubscriptionRef.current = null;
-        setIsQuoting(false);
-        if (clearQuote) {
-            setQuote(null);
-            setResolverName(null);
-        }
-    }, []);
-
-    const requestQuote = useCallback((params: QuoteParams) => {
-        // Only block if connection is specifically closed/errored
-        if (connectionStatus === "closed" || connectionStatus === "error") {
-            setQuoteError("Connection lost. Please try again.");
-            setIsQuoting(false);
-            return;
-        }
-
-        // Cancel any existing quote subscription without clearing quote
-        // This prevents flickering - old quote stays visible while fetching new one
-        cancelQuote(false);
-        setQuoteError(null);
-        setIsQuoting(true);
-        lastQuoteParamsRef.current = params;
-
-        try {
-            const quoteRequest = {
-                settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
-                bidAssetAddress: {
-                    blockchain: TON_BLOCKCHAIN_ID,
-                    address: params.fromAsset.address,
-                },
-                askAssetAddress: {
-                    blockchain: TON_BLOCKCHAIN_ID,
-                    address: params.toAsset.address,
-                },
-                amount: {
-                    bidUnits: params.amount,
-                },
-                // Enable gasless settlement when possible
-                settlementParams: {
-                    gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
-                    maxPriceSlippageBps: 100, // 1% slippage
-                },
-            };
-
-            const observable = omniston.requestForQuote(quoteRequest);
-            const subscription = observable.subscribe({
-                next: (event: QuoteResponseEvent) => {
-                    if (event.type === "quoteUpdated" && event.quote) {
-                        setQuote(event.quote);
-                        setResolverName(event.quote.resolverName || null);
-                        setQuoteError(null);
-                        // Keep isQuoting true as quotes stream continuously
-                    } else if (event.type === "noQuote") {
-                        setQuote(null);
-                        setResolverName(null);
-                        setQuoteError("No quote available for this pair");
-                        setIsQuoting(false);
-                    } else if (event.type === "unsubscribed") {
-                        // Quote stream ended normally
-                        setIsQuoting(false);
-                    }
-                },
-                error: (error: Error) => {
-                    console.error("Quote error:", error);
-                    const errorMsg = error?.message || "Failed to get quote";
-                    // Handle connection closed error specifically
-                    if (errorMsg.toLowerCase().includes("closed") || errorMsg.toLowerCase().includes("connection")) {
-                        setQuoteError("Connection lost. Please try again.");
-                    } else {
-                        setQuoteError(errorMsg);
-                    }
-                    setIsQuoting(false);
-                    quoteSubscriptionRef.current = null;
-                },
-                complete: () => {
-                    // Stream completed - don't set isQuoting false here as we may have a valid quote
-                    if (!quote) {
-                        setIsQuoting(false);
-                    }
-                },
-            });
-
-            quoteSubscriptionRef.current = subscription;
-        } catch (error) {
-            console.error("Failed to request quote:", error);
-            setQuoteError("Failed to connect to swap service");
-            setIsQuoting(false);
-        }
-    }, [omniston, cancelQuote, isConnected, quote]);
+    // Determine loading state - only show loading when we're actually fetching a quote
+    // and we don't already have a valid quote
+    const isQuoting = rfqResult.isFetching && !quote;
 
     const buildAndExecute = useCallback(async (
         quoteToExecute: Quote,
@@ -194,11 +143,15 @@ export function useOmnistonSwap(): UseOmnistonSwapReturn {
             const transaction = await omniston.buildTransfer({
                 quote: quoteToExecute,
                 sourceAddress: {
-                    blockchain: TON_BLOCKCHAIN_ID,
+                    blockchain: Blockchain.TON,
                     address: walletAddress,
                 },
                 destinationAddress: {
-                    blockchain: TON_BLOCKCHAIN_ID,
+                    blockchain: Blockchain.TON,
+                    address: walletAddress,
+                },
+                gasExcessAddress: {
+                    blockchain: Blockchain.TON,
                     address: walletAddress,
                 },
                 useRecommendedSlippage: true,
@@ -238,9 +191,9 @@ export function useOmnistonSwap(): UseOmnistonSwapReturn {
         quoteError,
         resolverName,
         isConnected,
-        requestQuote,
-        cancelQuote,
+        connectionStatus,
         buildAndExecute,
         isBuilding,
+        unsubscribe: rfqResult.unsubscribe,
     };
 }
