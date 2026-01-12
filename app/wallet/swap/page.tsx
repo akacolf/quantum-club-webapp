@@ -36,7 +36,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { beginCell, Address } from "@ton/core";
+import { beginCell, Address, Cell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
@@ -457,11 +457,30 @@ export default function SwapPage() {
             const sendTransaction = async (params: { to: string; value: bigint; body: string }) => {
                 const toAddress = Address.parse(params.to);
                 
-                // Create internal message
+                // Parse the body from base64 BOC to Cell
+                // The payload from Omniston is base64-encoded BOC, not a text comment
+                let bodyCell: Cell | undefined;
+                if (params.body) {
+                    try {
+                        const bodyBuffer = Buffer.from(params.body, 'base64');
+                        bodyCell = Cell.fromBoc(bodyBuffer)[0];
+                    } catch (e) {
+                        console.error('Failed to parse body as Cell:', e);
+                        // If parsing fails, it might be a hex string
+                        try {
+                            const bodyBuffer = Buffer.from(params.body, 'hex');
+                            bodyCell = Cell.fromBoc(bodyBuffer)[0];
+                        } catch {
+                            console.error('Failed to parse body as hex Cell, using undefined');
+                        }
+                    }
+                }
+                
+                // Create internal message with proper Cell body
                 const internalMsg = internal({
                     to: toAddress,
                     value: params.value,
-                    body: params.body || undefined,
+                    body: bodyCell,
                 });
 
                 if (!isWalletDeployed && seqno === 0) {
