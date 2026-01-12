@@ -562,14 +562,7 @@ export default function SwapPage() {
                         <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
                         <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
                             Powered by
-                            <span className="flex items-center gap-1 font-semibold text-foreground">
-                                <Image
-                                    src="/svg/stonfi-logo.svg"
-                                    alt="STON.fi"
-                                    width={18}
-                                    height={18}
-                                    className=""
-                                />
+                            <span className="font-semibold text-foreground">
                                 STON.fi
                             </span>
                         </p>
@@ -604,14 +597,7 @@ export default function SwapPage() {
                     <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
                     <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
                         Powered by
-                        <span className="flex items-center gap-1 font-semibold text-foreground">
-                            <Image
-                                src="/svg/stonfi-logo.svg"
-                                alt="STON.fi"
-                                width={18}
-                                height={18}
-                                className=""
-                            />
+                        <span className="font-semibold text-foreground">
                             STON.fi
                         </span>
                     </p>
