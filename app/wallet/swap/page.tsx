@@ -528,11 +528,11 @@ export default function SwapPage() {
                             Powered by
                             <span className="flex items-center gap-1 font-semibold text-foreground">
                                 <Image
-                                    src="https://app.ston.fi/static/icons/favicons/favicon-32x32.png"
+                                    src="https://avatars.githubusercontent.com/u/105225974?s=200&v=4"
                                     alt="STON.fi"
                                     width={16}
                                     height={16}
-                                    className="rounded-sm"
+                                    className="rounded-full"
                                 />
                                 STON.fi
                             </span>
@@ -570,11 +570,11 @@ export default function SwapPage() {
                         Powered by
                         <span className="flex items-center gap-1 font-semibold text-foreground">
                             <Image
-                                src="https://app.ston.fi/static/icons/favicons/favicon-32x32.png"
+                                src="https://avatars.githubusercontent.com/u/105225974?s=200&v=4"
                                 alt="STON.fi"
                                 width={16}
                                 height={16}
-                                className="rounded-sm"
+                                className="rounded-full"
                             />
                             STON.fi
                         </span>

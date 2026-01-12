@@ -86,10 +86,14 @@ export function useOmnistonSwap(): UseOmnistonSwapReturn {
         }
     }, [connectionStatus, quoteError]);
 
-    const cancelQuote = useCallback(() => {
+    const cancelQuote = useCallback((clearQuote = true) => {
         quoteSubscriptionRef.current?.unsubscribe();
         quoteSubscriptionRef.current = null;
         setIsQuoting(false);
+        if (clearQuote) {
+            setQuote(null);
+            setResolverName(null);
+        }
     }, []);
 
     const requestQuote = useCallback((params: QuoteParams) => {
@@ -100,11 +104,10 @@ export function useOmnistonSwap(): UseOmnistonSwapReturn {
             return;
         }
 
-        // Cancel any existing quote subscription
-        cancelQuote();
-        setQuote(null);
+        // Cancel any existing quote subscription without clearing quote
+        // This prevents flickering - old quote stays visible while fetching new one
+        cancelQuote(false);
         setQuoteError(null);
-        setResolverName(null);
         setIsQuoting(true);
         lastQuoteParamsRef.current = params;
 
