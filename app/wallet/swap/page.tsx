@@ -61,6 +61,30 @@ function useDebounce<T>(value: T, delay: number): T {
     return debouncedValue;
 }
 
+// Format large numbers to prevent layout issues
+function formatDisplayNumber(value: string | number, maxDecimals: number = 4): string {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num) || num === 0) return "0.0";
+    
+    // For very large numbers, use compact notation
+    if (Math.abs(num) >= 1_000_000_000) {
+        return (num / 1_000_000_000).toFixed(2) + "B";
+    }
+    if (Math.abs(num) >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2) + "M";
+    }
+    if (Math.abs(num) >= 1_000) {
+        return (num / 1_000).toFixed(2) + "K";
+    }
+    
+    // For small numbers, show appropriate precision
+    if (Math.abs(num) < 0.0001 && num !== 0) {
+        return num.toExponential(2);
+    }
+    
+    return num.toFixed(maxDecimals);
+}
+
 export default function SwapPage() {
     useTelegramBackButton("/wallet");
     const { telegramId } = useGameContext();
@@ -97,6 +121,7 @@ export default function SwapPage() {
     const [isSwapping, setIsSwapping] = useState(false);
     const [lastTxHash, setLastTxHash] = useState<string | null>(null);
     const [slippage, setSlippage] = useState("1"); // 1% default
+    const [confirmedQuote, setConfirmedQuote] = useState<typeof omnistonQuote>(null); // Store quote for confirm step
 
     // Debounce the amount for quote requests (500ms)
     const debouncedAmount = useDebounce(amount, 500);
@@ -371,7 +396,8 @@ export default function SwapPage() {
 
     // Handle continue to confirm
     const handleContinue = () => {
-        if (canProceed) {
+        if (canProceed && omnistonQuote) {
+            setConfirmedQuote(omnistonQuote); // Store quote before changing step
             setStep("confirm");
         }
     };
@@ -390,7 +416,7 @@ export default function SwapPage() {
     // Execute swap using Omniston
     const executeSwap = async () => {
         const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-        if (!storedMnemonic || !omnistonQuote || !fromAsset || !toAsset) {
+        if (!storedMnemonic || !confirmedQuote || !fromAsset || !toAsset) {
             toast.error("Wallet credentials or quote not found");
             return;
         }
@@ -486,7 +512,7 @@ export default function SwapPage() {
             };
 
             // Execute via Omniston
-            await buildAndExecute(omnistonQuote, walletAddress, sendTransaction);
+            await buildAndExecute(confirmedQuote, walletAddress, sendTransaction);
 
             setLastTxHash(walletAddress || "");
             setStep("success");
@@ -507,17 +533,20 @@ export default function SwapPage() {
         }
     };
 
+    // Use the appropriate quote based on step
+    const activeQuote = step === "input" ? omnistonQuote : confirmedQuote;
+
     // Get expected output amount for display
     const expectedOutput = useMemo(() => {
-        if (!omnistonQuote || !toAsset) return "0.0";
-        return parseFloat(fromUnits(omnistonQuote.askUnits, toAsset.decimals)).toFixed(4);
-    }, [omnistonQuote, toAsset]);
+        if (!activeQuote || !toAsset) return "0.0";
+        return parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
+    }, [activeQuote, toAsset]);
 
     const minimumReceived = useMemo(() => {
-        if (!omnistonQuote || !toAsset) return "0.0";
+        if (!activeQuote || !toAsset) return "0.0";
         // Omniston includes slippage in the quote, askUnits is already the minimum
-        return parseFloat(fromUnits(omnistonQuote.askUnits, toAsset.decimals)).toFixed(4);
-    }, [omnistonQuote, toAsset]);
+        return parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
+    }, [activeQuote, toAsset]);
 
     // Loading state
     if (isLoadingAssets || (isContextLoading && !hasFetched)) {
@@ -539,7 +568,7 @@ export default function SwapPage() {
                                     alt="STON.fi"
                                     width={18}
                                     height={18}
-                                    className="dark:invert"
+                                    className="invert dark:invert"
                                 />
                                 STON.fi
                             </span>
@@ -581,7 +610,7 @@ export default function SwapPage() {
                                 alt="STON.fi"
                                 width={18}
                                 height={18}
-                                className="dark:invert"
+                                className="invert dark:invert"
                             />
                             STON.fi
                         </span>
@@ -807,13 +836,13 @@ export default function SwapPage() {
                                             </DropdownMenuContent>
                                         </DropdownMenu>
 
-                                        <div className="flex-1 text-right">
+                                        <div className="flex-1 min-w-0 text-right overflow-hidden">
                                             {isQuoting ? (
-                                                <div className="ml-auto"><ButtonLoader /></div>
+                                                <div className="flex justify-end"><ButtonLoader /></div>
                                             ) : (
-                                                <span className={`text-3xl font-bold ${expectedOutput ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                                <span className={`text-3xl font-bold truncate block ${expectedOutput ? 'text-foreground' : 'text-muted-foreground'}`}>
                                                     {expectedOutput
-                                                        ? parseFloat(expectedOutput).toFixed(4)
+                                                        ? formatDisplayNumber(expectedOutput)
                                                         : "0.0"}
                                                 </span>
                                             )}
@@ -824,42 +853,42 @@ export default function SwapPage() {
 
                             {/* Swap Details */}
                             {omnistonQuote && (
-                                <Card className="bg-muted/50 border-border rounded-xl">
+                                <Card className="bg-muted/50 border-border rounded-xl overflow-hidden">
                                     <CardContent className="p-4 space-y-3">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Rate</span>
-                                            <span className="text-foreground">
-                                                1 {fromAsset?.symbol} = {(parseFloat(omnistonQuote.askUnits) / parseFloat(omnistonQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9))).toFixed(6)} {toAsset?.symbol}
+                                        <div className="flex items-center justify-between text-sm gap-2">
+                                            <span className="text-muted-foreground shrink-0">Rate</span>
+                                            <span className="text-foreground text-right truncate min-w-0">
+                                                1 {fromAsset?.symbol} = {formatDisplayNumber(parseFloat(omnistonQuote.askUnits) / parseFloat(omnistonQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9)), 6)} {toAsset?.symbol}
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground flex items-center gap-1">
+                                        <div className="flex items-center justify-between text-sm gap-2">
+                                            <span className="text-muted-foreground flex items-center gap-1 shrink-0">
                                                 Minimum received
                                                 <Info className="w-3 h-3 text-muted-foreground" />
                                             </span>
-                                            <span className="text-foreground">
-                                                {parseFloat(minimumReceived).toFixed(4)}{" "}
+                                            <span className="text-foreground text-right truncate min-w-0">
+                                                {formatDisplayNumber(minimumReceived)}{" "}
                                                 {toAsset?.symbol}
                                             </span>
                                         </div>
 
                                         {/* Show resolver name for Omniston */}
                                         {resolverName && (
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground flex items-center gap-1">
+                                            <div className="flex items-center justify-between text-sm gap-2">
+                                                <span className="text-muted-foreground flex items-center gap-1 shrink-0">
                                                     <Zap className="w-3 h-3" />
                                                     Best rate via
                                                 </span>
-                                                <span className="text-primary font-medium">
+                                                <span className="text-primary font-medium text-right truncate min-w-0">
                                                     {resolverName}
                                                 </span>
                                             </div>
                                         )}
 
                                         <div className="border-t border-border pt-3 mt-2 space-y-2">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground flex items-center gap-1">
+                                            <div className="flex items-center justify-between text-sm gap-2">
+                                                <span className="text-muted-foreground flex items-center gap-1 shrink-0">
                                                     Network fee
                                                     <Popover>
                                                         <PopoverTrigger asChild>
@@ -873,21 +902,21 @@ export default function SwapPage() {
                                                         </PopoverContent>
                                                     </Popover>
                                                 </span>
-                                                <span className="text-foreground font-medium">
+                                                <span className="text-foreground font-medium text-right truncate min-w-0">
                                                     ~{swapDetails.estimatedGas.toFixed(4)} TON
                                                 </span>
                                             </div>
                                             {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && omnistonQuote && (
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-muted-foreground">Actual swap amount</span>
-                                                    <span className="text-primary font-medium">
-                                                        {swapDetails.actualSwapAmount.toFixed(4)} TON
+                                                <div className="flex items-center justify-between text-sm gap-2">
+                                                    <span className="text-muted-foreground shrink-0">Actual swap amount</span>
+                                                    <span className="text-primary font-medium text-right truncate min-w-0">
+                                                        {formatDisplayNumber(swapDetails.actualSwapAmount)} TON
                                                     </span>
                                                 </div>
                                             )}
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground">Slippage tolerance</span>
-                                                <div className="flex items-center gap-2">
+                                            <div className="flex items-center justify-between text-sm gap-2">
+                                                <span className="text-muted-foreground shrink-0">Slippage tolerance</span>
+                                                <div className="flex items-center gap-1 shrink-0">
                                                     {["0.5", "1", "3"].map((s) => (
                                                         <Button
                                                             key={s}
@@ -921,7 +950,7 @@ export default function SwapPage() {
 
                             {/* Quote error message */}
                             {quoteError && !isQuoting && (
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center justify-center gap-2 text-center">
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
                                     <p className="text-xs text-destructive/90">
                                         {quoteError}
@@ -992,7 +1021,7 @@ export default function SwapPage() {
                         </motion.div>
                     )}
 
-                    {step === "confirm" && omnistonQuote && (
+                    {step === "confirm" && confirmedQuote && (
                         <motion.div
                             key="confirm"
                             initial={{ opacity: 0, x: 20 }}
@@ -1052,7 +1081,7 @@ export default function SwapPage() {
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Rate</span>
                                             <span>
-                                                1 {fromAsset?.symbol} = {(parseFloat(omnistonQuote.askUnits) / parseFloat(omnistonQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9))).toFixed(6)} {toAsset?.symbol}
+                                                1 {fromAsset?.symbol} = {(parseFloat(confirmedQuote.askUnits) / parseFloat(confirmedQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9))).toFixed(6)} {toAsset?.symbol}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
