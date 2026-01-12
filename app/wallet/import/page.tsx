@@ -382,10 +382,10 @@ export default function ImportWalletPage() {
               )}
             </AnimatePresence>
 
-            {/* Smart Security Banner - Monochrome */}
-            <div className="bg-muted rounded-3xl p-5 border border-border space-y-4">
+            {/* Smart Security Banner - Primary Accent */}
+            <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20 space-y-4">
               <div className="flex gap-4">
-                <div className="w-10 h-10 bg-card rounded-2xl flex items-center justify-center border border-border shrink-0">
+                <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shrink-0">
                   <ShieldCheck className="w-6 h-6 text-primary" />
                 </div>
                 <div className="space-y-1.5">
@@ -397,9 +397,9 @@ export default function ImportWalletPage() {
               </div>
 
               {!isValidPhrase && (
-                <div className="pt-2 flex items-start gap-3 border-t border-border mt-2">
-                  <Info className="w-4 h-4 text-muted-foreground/30 mt-0.5 shrink-0" />
-                  <p className="text-[11px] text-muted-foreground/50 italic leading-relaxed">
+                <div className="pt-2 flex items-start gap-3 border-t border-primary/10 mt-2">
+                  <Info className="w-4 h-4 text-primary/50 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-muted-foreground/70 italic leading-relaxed">
                     If your assets do not appear, try re-importing with a different wallet version above.
                   </p>
                 </div>

@@ -579,11 +579,8 @@ export default function SwapPage() {
                 <div className="max-w-md mx-auto">
                     <div className="mb-8 text-center">
                         <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
-                        <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
-                            Powered by
-                            <span className="font-semibold text-foreground">
-                                STON.fi
-                            </span>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Powered by <span className="font-semibold text-foreground">STON.fi</span>
                         </p>
                     </div>
 
@@ -614,11 +611,8 @@ export default function SwapPage() {
             <div className="max-w-md mx-auto">
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
-                        Powered by
-                        <span className="font-semibold text-foreground">
-                            STON.fi
-                        </span>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Powered by <span className="font-semibold text-foreground">STON.fi</span>
                     </p>
                 </div>
 
@@ -1131,9 +1125,7 @@ export default function SwapPage() {
                             className="flex flex-col items-center justify-center py-20"
                         >
                             <div className="relative flex items-center justify-center mb-6">
-                                <div className="w-16 h-16 rounded-full border-2 border-primary/20 border-t-primary animate-spin shadow-[0_0_15px] shadow-primary/30" />
-                                <div className="absolute w-10 h-10 rounded-full border-2 border-primary/20 border-b-primary animate-[spin_1.5s_linear_infinite_reverse]" />
-                                <div className="absolute w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px] shadow-primary/80" />
+                                <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
                             </div>
                             <h2 className="text-xl font-bold mb-2">Processing Swap</h2>
                             <p className="text-muted-foreground text-center">
@@ -1159,11 +1151,18 @@ export default function SwapPage() {
                                 </p>
                             </div>
 
+                            <Button
+                                onClick={() => router.push("/wallet")}
+                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold"
+                            >
+                                Back to Wallet
+                            </Button>
+
                             {lastTxHash && (
                                 <Button
                                     variant="ghost"
                                     asChild
-                                    className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 hover:bg-transparent text-sm h-auto p-0"
+                                    className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 hover:bg-transparent text-sm h-auto p-0 mt-3"
                                 >
                                     <a
                                         href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
@@ -1175,13 +1174,6 @@ export default function SwapPage() {
                                     </a>
                                 </Button>
                             )}
-
-                            <Button
-                                onClick={() => router.push("/wallet")}
-                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold mt-4"
-                            >
-                                Back to Wallet
-                            </Button>
                         </motion.div>
                     )}
                 </AnimatePresence>
