@@ -189,10 +189,13 @@ export default function BrowserPage() {
     useTelegramBackButton("/wallet");
 
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const browserInputRef = useRef<HTMLInputElement>(null);
 
     const [currentUrl, setCurrentUrl] = useState<string | null>(null);
     const [displaySearchQuery, setDisplaySearchQuery] = useState<string>("");
     const [inputUrl, setInputUrl] = useState("");
+    const [browserInputValue, setBrowserInputValue] = useState("");
+    const [isEditingBrowserUrl, setIsEditingBrowserUrl] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [iframeError, setIframeError] = useState(false);
@@ -293,16 +296,16 @@ export default function BrowserPage() {
         }
     }, [currentUrl]);
 
-    // Timeout for iframe loading (some sites may silently fail)
+    // Timeout for iframe loading - sites blocking iframes often fail silently
     useEffect(() => {
         if (isLoading && currentUrl) {
             const timeout = setTimeout(() => {
-                // If still loading after 15 seconds, show error state
+                // If still loading after 8 seconds, likely blocked - show error
                 if (isLoading) {
                     setIsLoading(false);
-                    // Don't auto-set error, let user see if it loaded
+                    setIframeError(true);
                 }
-            }, 15000);
+            }, 8000);
             return () => clearTimeout(timeout);
         }
     }, [isLoading, currentUrl]);
@@ -334,12 +337,12 @@ export default function BrowserPage() {
     if (currentUrl) {
         return (
             <div className="fixed inset-0 flex flex-col bg-black z-50">
-                {/* Browser Header - properly spaced below Telegram header */}
+                {/* Browser Header - significantly lowered below Telegram header */}
                 <div 
                     className="flex items-center gap-3 px-4 pb-3 bg-black"
                     style={{
-                        // Use Telegram's content safe area which accounts for header
-                        paddingTop: "calc(var(--tg-content-safe-area-inset-top, 56px) + 8px)",
+                        // Use larger top padding to clear Telegram's header buttons
+                        paddingTop: "max(calc(var(--tg-content-safe-area-inset-top, 0px) + 16px), 72px)",
                     }}
                 >
                     <button
@@ -349,18 +352,56 @@ export default function BrowserPage() {
                         <X className="w-5 h-5 text-white" />
                     </button>
 
-                    <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-full px-4 py-2.5 border border-white/10 min-w-0">
-                        {isLoading ? (
-                            <ButtonLoader size="sm" />
-                        ) : displaySearchQuery ? (
-                            <Search className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        ) : (
-                            <Lock className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        )}
-                        <span className="text-sm truncate flex-1 text-white font-medium">
-                            {urlDisplay}
-                        </span>
-                    </div>
+                    {/* Editable URL/Search Bar */}
+                    {isEditingBrowserUrl ? (
+                        <form 
+                            className="flex-1 min-w-0"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (browserInputValue.trim()) {
+                                    navigateTo(browserInputValue);
+                                    setIsEditingBrowserUrl(false);
+                                }
+                            }}
+                        >
+                            <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2.5 border border-white/30">
+                                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <input
+                                    ref={browserInputRef}
+                                    type="text"
+                                    value={browserInputValue}
+                                    onChange={(e) => setBrowserInputValue(e.target.value)}
+                                    placeholder="Search or enter URL..."
+                                    className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-500 outline-none min-w-0"
+                                    autoFocus
+                                    onBlur={() => {
+                                        // Delay to allow form submission
+                                        setTimeout(() => setIsEditingBrowserUrl(false), 150);
+                                    }}
+                                />
+                            </div>
+                        </form>
+                    ) : (
+                        <button
+                            onClick={() => {
+                                setIsEditingBrowserUrl(true);
+                                setBrowserInputValue(displaySearchQuery || "");
+                                setTimeout(() => browserInputRef.current?.focus(), 100);
+                            }}
+                            className="flex-1 flex items-center gap-2 bg-white/5 rounded-full px-4 py-2.5 border border-white/10 min-w-0 active:bg-white/10 transition-colors"
+                        >
+                            {isLoading ? (
+                                <ButtonLoader size="sm" />
+                            ) : displaySearchQuery ? (
+                                <Search className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            ) : (
+                                <Lock className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            )}
+                            <span className="text-sm truncate flex-1 text-white font-medium text-left">
+                                {urlDisplay}
+                            </span>
+                        </button>
+                    )}
 
                     <button
                         onClick={handleRefresh}
@@ -379,9 +420,9 @@ export default function BrowserPage() {
                                 <div className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center">
                                     <AlertTriangle className="w-8 h-8 text-yellow-500" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-white">Can&apos;t Load This Page</h3>
+                                <h3 className="text-lg font-semibold text-white">Can&apos;t Load In App</h3>
                                 <p className="text-sm text-gray-400 max-w-[280px]">
-                                    This website doesn&apos;t allow embedding. You can open it in an external browser.
+                                    This website blocks in-app viewing for security. Tap below to open it in your browser.
                                 </p>
                                 <button
                                     onClick={openExternal}
