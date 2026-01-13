@@ -410,7 +410,7 @@ export default function LiquidityPage() {
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Liquidity Pools</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Earn fees by providing liquidity
+                        Powered by <span className="font-semibold text-foreground">STON.fi</span>
                     </p>
                 </div>
 

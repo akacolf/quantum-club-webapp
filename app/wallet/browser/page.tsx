@@ -94,22 +94,6 @@ const POPULAR_DAPPS: DApp[] = [
         icon: "/png/fragment-logo.jpeg",
         category: "nft",
     },
-    {
-        id: "toncenter",
-        name: "TON Center",
-        description: "API & Explorer",
-        url: "https://toncenter.com",
-        icon: "/svg/ton-logo.svg",
-        category: "tools",
-    },
-    {
-        id: "tonkeeper",
-        name: "Tonkeeper",
-        description: "TON Wallet",
-        url: "https://tonkeeper.com",
-        icon: "/svg/ton-logo.svg",
-        category: "tools",
-    },
 ];
 
 const CATEGORIES = [
@@ -311,12 +295,7 @@ export default function ExplorePage() {
                     </div>
                 </div>
 
-                {/* Info Note */}
-                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                    <p className="text-xs text-blue-400/90 text-center">
-                        Apps open in Telegram&apos;s browser for the best experience
-                    </p>
-                </div>
+
             </div>
         </div>
     );

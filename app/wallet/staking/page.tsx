@@ -164,22 +164,22 @@ export default function StakingPage() {
 
                 {/* Stats Overview */}
                 <div className="grid grid-cols-3 gap-2">
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
+                    <div className="p-3 rounded-xl bg-[#111] border border-[#222] text-center">
                         <p className="text-xs text-gray-500 mb-1">Avg APY</p>
-                        <p className="text-lg font-bold text-green-500">{avgApy.toFixed(1)}%</p>
+                        <p className="text-lg font-bold text-white">{avgApy.toFixed(1)}%</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
+                    <div className="p-3 rounded-xl bg-[#111] border border-[#222] text-center">
                         <p className="text-xs text-gray-500 mb-1">Total Staked</p>
                         <p className="text-lg font-bold text-white">{totalStakedTon.toFixed(0)}M</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
+                    <div className="p-3 rounded-xl bg-[#111] border border-[#222] text-center">
                         <p className="text-xs text-gray-500 mb-1">Providers</p>
                         <p className="text-lg font-bold text-white">{providers.length}</p>
                     </div>
                 </div>
 
                 {/* Your Balance */}
-                <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10">
+                <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <Image
@@ -190,18 +190,18 @@ export default function StakingPage() {
                                 className="w-8 h-8"
                             />
                             <div>
-                                <p className="text-sm text-gray-400">Available to Stake</p>
+                                <p className="text-sm text-gray-500">Available to Stake</p>
                                 <p className="text-xl font-bold text-white">{tonBalanceNum.toFixed(4)} TON</p>
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm text-gray-400">${tonValueUsd.toFixed(2)}</p>
+                            <p className="text-sm text-gray-500">${tonValueUsd.toFixed(2)}</p>
                         </div>
                     </div>
                     {tonBalanceNum > 1 && avgApy > 0 && (
-                        <div className="pt-3 border-t border-white/10">
+                        <div className="pt-3 border-t border-[#222]">
                             <p className="text-xs text-gray-500">
-                                If you stake all: <span className="text-green-500 font-medium">
+                                If you stake all: <span className="text-white font-medium">
                                     +{(tonBalanceNum * avgApy / 100).toFixed(2)} TON/year
                                 </span> (~${((tonBalanceNum * avgApy / 100) * tonPrice).toFixed(2)})
                             </p>
@@ -226,14 +226,14 @@ export default function StakingPage() {
                                     <motion.div
                                         key={provider.id}
                                         whileTap={{ scale: 0.98 }}
-                                        className="rounded-xl bg-white/5 border border-white/10 overflow-hidden"
+                                        className="rounded-xl bg-[#111] border border-[#222] overflow-hidden"
                                     >
                                         <button
                                             onClick={() => openProvider(provider.url)}
-                                            className="w-full p-4 text-left active:bg-white/5"
+                                            className="w-full p-4 text-left active:bg-[#161616]"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-12 h-12 rounded-xl bg-white/10 overflow-hidden flex-shrink-0">
+                                                <div className="w-12 h-12 rounded-xl bg-[#222] overflow-hidden flex-shrink-0">
                                                     <Image
                                                         src={provider.icon}
                                                         alt={provider.name}
@@ -243,10 +243,10 @@ export default function StakingPage() {
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-1">
+                                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                         <h3 className="font-semibold text-white">{provider.name}</h3>
                                                         {provider.isRecommended && (
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
+                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#222] text-gray-400">
                                                                 Recommended
                                                             </span>
                                                         )}
@@ -255,7 +255,7 @@ export default function StakingPage() {
                                                     {/* Features */}
                                                     <div className="flex flex-wrap gap-1 mb-2">
                                                         {provider.features.slice(0, 3).map((feature, i) => (
-                                                            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-gray-400">
+                                                            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1a] text-gray-500">
                                                                 {feature}
                                                             </span>
                                                         ))}
@@ -286,7 +286,7 @@ export default function StakingPage() {
 
                                             {/* Potential Rewards */}
                                             {tonBalanceNum >= provider.minStake && (
-                                                <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-3 gap-2 text-center">
+                                                <div className="mt-3 pt-3 border-t border-[#222] grid grid-cols-3 gap-2 text-center">
                                                     <div>
                                                         <p className="text-xs text-gray-500">Daily</p>
                                                         <p className="text-sm font-medium text-white">
@@ -301,14 +301,14 @@ export default function StakingPage() {
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-gray-500">Yearly</p>
-                                                        <p className="text-sm font-medium text-green-500">
+                                                        <p className="text-sm font-medium text-white">
                                                             +{rewards.yearly.toFixed(2)} TON
                                                         </p>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-primary">
+                                            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-400">
                                                 <span>Stake on {provider.name}</span>
                                                 <ExternalLink className="w-4 h-4" />
                                             </div>
@@ -321,27 +321,27 @@ export default function StakingPage() {
                 </div>
 
                 {/* What is Liquid Staking */}
-                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                     <div className="flex gap-3">
-                        <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <Info className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-blue-400">
+                            <p className="text-sm font-medium text-gray-400">
                                 What is Liquid Staking?
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Liquid staking lets you stake TON while receiving a liquid token (like tsTON or stTON) that you can use in DeFi while still earning staking rewards. Your staked TON automatically compounds.
                             </p>
                             <div className="flex flex-wrap gap-2 mt-3">
-                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <CheckCircle className="w-3 h-3 text-gray-400" />
                                     Earn ~5% APY
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <CheckCircle className="w-3 h-3 text-gray-400" />
                                     Stay liquid
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <CheckCircle className="w-3 h-3 text-gray-400" />
                                     Auto-compound
                                 </div>
                             </div>
