@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Search,
@@ -16,11 +16,11 @@ import {
     Gamepad2,
     LayoutGrid,
     Lock,
+    AlertTriangle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
-import WalletNavigation from "../(navigation)/WalletNavigation";
 import Image from "next/image";
 
 interface DApp {
@@ -33,14 +33,14 @@ interface DApp {
     featured?: boolean;
 }
 
-// App icons CDN URLs (using official logos from CDNs)
+// App icons using local PNG files added by user
 const POPULAR_DAPPS: DApp[] = [
     {
         id: "stonfi",
         name: "STON.fi",
         description: "Leading DEX on TON",
         url: "https://app.ston.fi",
-        icon: "/svg/stonfi-logo.svg",
+        icon: "/png/stonfi-logo.png",
         category: "exchange",
         featured: true,
     },
@@ -49,7 +49,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "DeDust",
         description: "AMM & DEX Protocol",
         url: "https://dedust.io",
-        icon: "https://dedust.io/favicon.svg",
+        icon: "/png/dedust-logo.png",
         category: "exchange",
         featured: true,
     },
@@ -58,7 +58,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "Getgems",
         description: "NFT Marketplace",
         url: "https://getgems.io",
-        icon: "https://getgems.io/favicon.svg",
+        icon: "/png/getgems-logo.png",
         category: "nft",
         featured: true,
     },
@@ -67,7 +67,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "TON Viewer",
         description: "Blockchain Explorer",
         url: "https://tonviewer.com",
-        icon: "https://tonviewer.com/favicon.svg",
+        icon: "/png/tonviewer-logo.jpg",
         category: "tools",
     },
     {
@@ -75,7 +75,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "TON Stakers",
         description: "Liquid Staking",
         url: "https://tonstakers.com",
-        icon: "https://tonstakers.com/favicon.svg",
+        icon: "/png/tonstakers-logo.jpg",
         category: "defi",
     },
     {
@@ -83,7 +83,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "EVAA",
         description: "Lending Protocol",
         url: "https://evaa.finance",
-        icon: "https://evaa.finance/favicon.svg",
+        icon: "/png/evaa-logo.png",
         category: "defi",
     },
     {
@@ -91,7 +91,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "TON Raffles",
         description: "Raffle Platform",
         url: "https://tonraffles.app",
-        icon: "/svg/ton-logo.svg",
+        icon: "/png/tonraffles-logo.png",
         category: "gaming",
     },
     {
@@ -99,7 +99,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "Fragment",
         description: "Telegram Usernames",
         url: "https://fragment.com",
-        icon: "https://fragment.com/favicon.ico",
+        icon: "/png/fragment-logo.jpeg",
         category: "nft",
     },
 ];
@@ -148,26 +148,13 @@ function AppIcon({ app }: { app: DApp }) {
         );
     }
 
-    // Use Next.js Image for local SVGs, regular img for external URLs
-    if (app.icon.startsWith("/")) {
-        return (
-            <Image
-                src={app.icon}
-                alt={app.name}
-                width={40}
-                height={40}
-                className="w-full h-full object-contain p-1"
-                onError={() => setHasError(true)}
-            />
-        );
-    }
-
     return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
             src={app.icon}
             alt={app.name}
-            className="w-full h-full object-contain p-1"
+            width={44}
+            height={44}
+            className="w-full h-full object-cover rounded-lg"
             onError={() => setHasError(true)}
         />
     );
@@ -190,15 +177,8 @@ function getDisplayUrl(url: string): string {
             }
         }
         
-        // For other URLs, show hostname + path (truncated)
-        let display = urlObj.hostname.replace("www.", "");
-        if (urlObj.pathname && urlObj.pathname !== "/") {
-            const path = urlObj.pathname.length > 15 
-                ? urlObj.pathname.substring(0, 15) + "..." 
-                : urlObj.pathname;
-            display += path;
-        }
-        return display;
+        // For other URLs, show hostname only
+        return urlObj.hostname.replace("www.", "");
     } catch {
         // Fallback: truncate the raw URL
         return url.length > 30 ? url.substring(0, 30) + "..." : url;
@@ -215,6 +195,7 @@ export default function BrowserPage() {
     const [inputUrl, setInputUrl] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState("all");
+    const [iframeError, setIframeError] = useState(false);
 
     // Filter dApps by category
     const filteredDApps = selectedCategory === "all"
@@ -233,7 +214,7 @@ export default function BrowserPage() {
         // If it looks like a domain (contains . and no spaces), treat as URL
         if (trimmed.includes(".") && !trimmed.includes(" ")) {
             // Additional check: common TLDs
-            const commonTlds = [".com", ".org", ".net", ".io", ".app", ".fi", ".ton", ".co", ".gg", ".xyz"];
+            const commonTlds = [".com", ".org", ".net", ".io", ".app", ".fi", ".ton", ".co", ".gg", ".xyz", ".me", ".dev"];
             if (commonTlds.some(tld => trimmed.toLowerCase().includes(tld))) {
                 return false;
             }
@@ -245,6 +226,7 @@ export default function BrowserPage() {
 
     const navigateTo = useCallback((url: string) => {
         let finalUrl = url.trim();
+        setIframeError(false);
 
         if (isSearchQuery(finalUrl)) {
             // Store the search query for display
@@ -274,6 +256,7 @@ export default function BrowserPage() {
     const handleRefresh = useCallback(() => {
         if (iframeRef.current && currentUrl) {
             setIsLoading(true);
+            setIframeError(false);
             iframeRef.current.src = currentUrl;
         }
     }, [currentUrl]);
@@ -283,11 +266,46 @@ export default function BrowserPage() {
         setInputUrl("");
         setDisplaySearchQuery("");
         setIsLoading(false);
+        setIframeError(false);
     }, []);
 
     const handleIframeLoad = useCallback(() => {
         setIsLoading(false);
     }, []);
+
+    // Handle iframe errors (e.g., X-Frame-Options)
+    const handleIframeError = useCallback(() => {
+        setIsLoading(false);
+        setIframeError(true);
+    }, []);
+
+    // Open in external browser for unsupported sites
+    const openExternal = useCallback(() => {
+        if (currentUrl) {
+            // Use Telegram's openLink if available (cast to any since types don't include it)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const tgWebApp = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
+            if (tgWebApp?.openLink) {
+                tgWebApp.openLink(currentUrl);
+            } else {
+                window.open(currentUrl, "_blank");
+            }
+        }
+    }, [currentUrl]);
+
+    // Timeout for iframe loading (some sites may silently fail)
+    useEffect(() => {
+        if (isLoading && currentUrl) {
+            const timeout = setTimeout(() => {
+                // If still loading after 15 seconds, show error state
+                if (isLoading) {
+                    setIsLoading(false);
+                    // Don't auto-set error, let user see if it loaded
+                }
+            }, 15000);
+            return () => clearTimeout(timeout);
+        }
+    }, [isLoading, currentUrl]);
 
     const getCategoryBadgeColor = (category: string) => {
         switch (category) {
@@ -304,8 +322,8 @@ export default function BrowserPage() {
     const urlDisplay = useMemo(() => {
         if (!currentUrl) return "";
         if (displaySearchQuery) {
-            const truncated = displaySearchQuery.length > 25
-                ? displaySearchQuery.substring(0, 25) + "..."
+            const truncated = displaySearchQuery.length > 20
+                ? displaySearchQuery.substring(0, 20) + "..."
                 : displaySearchQuery;
             return truncated;
         }
@@ -316,16 +334,17 @@ export default function BrowserPage() {
     if (currentUrl) {
         return (
             <div className="fixed inset-0 flex flex-col bg-black z-50">
-                {/* Browser Header - respects safe area */}
+                {/* Browser Header - properly spaced below Telegram header */}
                 <div 
-                    className="flex items-center gap-2 px-3 pb-3 bg-black"
+                    className="flex items-center gap-3 px-4 pb-3 bg-black"
                     style={{
-                        paddingTop: "calc(var(--tg-safe-area-inset-top, 12px) + 12px)",
+                        // Use Telegram's content safe area which accounts for header
+                        paddingTop: "calc(var(--tg-content-safe-area-inset-top, 56px) + 8px)",
                     }}
                 >
                     <button
                         onClick={handleClose}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors flex-shrink-0"
                     >
                         <X className="w-5 h-5 text-white" />
                     </button>
@@ -338,7 +357,7 @@ export default function BrowserPage() {
                         ) : (
                             <Lock className="w-4 h-4 text-green-500 flex-shrink-0" />
                         )}
-                        <span className="text-sm truncate flex-1 text-white">
+                        <span className="text-sm truncate flex-1 text-white font-medium">
                             {urlDisplay}
                         </span>
                     </div>
@@ -346,28 +365,59 @@ export default function BrowserPage() {
                     <button
                         onClick={handleRefresh}
                         disabled={isLoading}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors disabled:opacity-50"
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors disabled:opacity-50 flex-shrink-0"
                     >
                         <RefreshCw className={`w-5 h-5 text-white ${isLoading ? "animate-spin" : ""}`} />
                     </button>
                 </div>
 
-                {/* Browser Content - Full width, no borders */}
-                <div className="flex-1 relative overflow-hidden">
-                    <iframe
-                        ref={iframeRef}
-                        src={currentUrl}
-                        className="absolute inset-0 w-full h-full border-0"
-                        style={{ 
-                            backgroundColor: "#000",
-                            colorScheme: "dark",
-                        }}
-                        onLoad={handleIframeLoad}
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-top-navigation"
-                        allow="clipboard-read; clipboard-write; web-share"
-                    />
+                {/* Browser Content - Full screen without borders */}
+                <div className="flex-1 relative">
+                    {iframeError ? (
+                        <div className="absolute inset-0 bg-black flex flex-col items-center justify-center p-6">
+                            <div className="flex flex-col items-center gap-4 text-center">
+                                <div className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                                    <AlertTriangle className="w-8 h-8 text-yellow-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-white">Can&apos;t Load This Page</h3>
+                                <p className="text-sm text-gray-400 max-w-[280px]">
+                                    This website doesn&apos;t allow embedding. You can open it in an external browser.
+                                </p>
+                                <button
+                                    onClick={openExternal}
+                                    className="mt-2 px-6 py-3 bg-white text-black font-medium rounded-full active:bg-gray-200 transition-colors"
+                                >
+                                    Open in Browser
+                                </button>
+                                <button
+                                    onClick={handleClose}
+                                    className="mt-1 px-6 py-2 text-gray-400 text-sm"
+                                >
+                                    Go Back
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <iframe
+                            ref={iframeRef}
+                            src={currentUrl}
+                            className="absolute inset-0 w-full h-full border-0"
+                            style={{ 
+                                backgroundColor: "#000",
+                                colorScheme: "dark",
+                            }}
+                            onLoad={handleIframeLoad}
+                            onError={handleIframeError}
+                            // Permissive sandbox for maximum compatibility
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-top-navigation allow-top-navigation-by-user-activation allow-presentation"
+                            // Feature policy for mobile compatibility
+                            allow="accelerometer; autoplay; clipboard-read; clipboard-write; encrypted-media; fullscreen; gyroscope; payment; picture-in-picture; web-share"
+                            // Mobile viewport
+                            referrerPolicy="no-referrer-when-downgrade"
+                        />
+                    )}
 
-                    {isLoading && (
+                    {isLoading && !iframeError && (
                         <div className="absolute inset-0 bg-black flex items-center justify-center">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="w-10 h-10 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -512,8 +562,6 @@ export default function BrowserPage() {
                     </div>
                 </div>
             </div>
-
-            <WalletNavigation />
         </div>
     );
 }
