@@ -17,14 +17,12 @@ import {
   EyeOff,
   Send,
   ArrowDownLeft,
-  ArrowLeftRight,
-  History,
   Plus,
   Download,
   Image as ImageIcon,
   X,
   ChevronRight,
-  Droplets,
+  PieChart,
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -680,13 +678,11 @@ export default function WalletPage() {
               </div>
 
               {/* Action Grid */}
-              <div className="grid grid-cols-5 gap-2 mt-8">
+              <div className="grid grid-cols-3 gap-4 mt-8">
                 {[
                   { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
                   { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
-                  { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", path: "/wallet/swap", disabled: false },
-                  { icon: <Droplets className="w-5 h-5" />, label: "Liquidity", path: "/wallet/liquidity", disabled: false },
-                  { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
+                  { icon: <PieChart className="w-5 h-5" />, label: "Portfolio", path: "/wallet/analytics", disabled: false },
                 ].map((action, i) => (
                   <Button
                     key={i}

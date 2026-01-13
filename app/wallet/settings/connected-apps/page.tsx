@@ -198,7 +198,7 @@ export default function ConnectedAppsPage() {
             {/* Scan to Connect Button */}
             <Button
                 onClick={openQRScanner}
-                disabled={isProcessing || !walletKit.isReady}
+                disabled={isProcessing}
                 className="w-full h-14 mb-6 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold"
             >
                 {isProcessing ? (

@@ -84,7 +84,9 @@ const WalletNavigation = () => {
                     : "text-muted-foreground group-hover:text-foreground"
                 }`}
               >
-                <Icon className="w-6 h-6" />
+                <div className="scale-100">
+                  <Icon style={{ width: '1.5em', height: '1.5em' }} />
+                </div>
               </div>
               <span
                 className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${
