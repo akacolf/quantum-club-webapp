@@ -172,16 +172,44 @@ export default function BrowserPage() {
         ? POPULAR_DAPPS 
         : POPULAR_DAPPS.filter(app => app.category === selectedCategory);
 
+    // Check if input is a search query or a URL
+    const isSearchQuery = useCallback((input: string): boolean => {
+        const trimmed = input.trim();
+        
+        // If it starts with http:// or https://, it's a URL
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            return false;
+        }
+        
+        // If it looks like a domain (contains . and no spaces), treat as URL
+        if (trimmed.includes(".") && !trimmed.includes(" ")) {
+            // Additional check: common TLDs
+            const commonTlds = [".com", ".org", ".net", ".io", ".app", ".fi", ".ton", ".co", ".gg", ".xyz"];
+            if (commonTlds.some(tld => trimmed.toLowerCase().includes(tld))) {
+                return false;
+            }
+        }
+        
+        // Otherwise, it's a search query
+        return true;
+    }, []);
+
     const navigateTo = useCallback((url: string) => {
         let finalUrl = url.trim();
-        if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
+        
+        if (isSearchQuery(finalUrl)) {
+            // Use DuckDuckGo with dark mode for searches
+            // kae=d enables dark mode theme
+            const encodedQuery = encodeURIComponent(finalUrl);
+            finalUrl = `https://duckduckgo.com/?q=${encodedQuery}&kae=d&k7=1a1a2e&kj=1a1a2e&kx=00d4aa&k9=00d4aa&kaa=00d4aa&k8=ffffff&kt=p`;
+        } else if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
             finalUrl = "https://" + finalUrl;
         }
         
         setCurrentUrl(finalUrl);
         setInputUrl(finalUrl);
         setIsLoading(true);
-    }, []);
+    }, [isSearchQuery]);
 
     const handleUrlSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -296,9 +324,13 @@ export default function BrowserPage() {
                                 type="text"
                                 value={inputUrl}
                                 onChange={(e) => setInputUrl(e.target.value)}
-                                placeholder="Enter URL or search..."
+                                placeholder="Search with DuckDuckGo or enter URL..."
                                 className="pl-12 pr-4 h-12 bg-white/5 border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:border-white/20 focus:ring-0"
                             />
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-2 px-1">
+                            <Shield className="w-3.5 h-3.5 text-green-500" />
+                            <span className="text-xs text-gray-500">Private search powered by DuckDuckGo</span>
                         </div>
                     </form>
 
