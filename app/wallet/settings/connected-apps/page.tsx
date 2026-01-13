@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
     Link2,
@@ -16,6 +17,7 @@ import {
     Check,
     Loader2,
     AlertTriangle,
+    ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,12 +34,11 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWalletKitOptional } from "@/lib/walletkit-provider";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 export default function ConnectedAppsPage() {
-    useTelegramBackButton("/wallet/settings");
+    const router = useRouter();
     
     // Use WalletKit if available (returns null if provider not mounted)
     const walletKit = useWalletKitOptional();
@@ -46,30 +47,61 @@ export default function ConnectedAppsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // Track initialization to prevent multiple calls
+    const initRef = useRef(false);
 
-    // Register wallet and load sessions
+    // Handle back button - use both Telegram back button and in-app button
     useEffect(() => {
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        
+        const handleBack = () => {
+            router.push("/wallet/settings");
+        };
+        
+        tg?.BackButton.show();
+        tg?.BackButton.onClick(handleBack);
+        
+        return () => {
+            tg?.BackButton.offClick(handleBack);
+            tg?.BackButton.hide();
+        };
+    }, [router]);
+
+    // Register wallet and load sessions - separate from back button
+    useEffect(() => {
+        // Prevent multiple initializations
+        if (initRef.current) return;
+        
         const initWallet = async () => {
             if (!walletKit?.isReady || !telegramId) {
                 setIsLoading(false);
                 return;
             }
             
-            // Register wallet if not already registered
-            if (!walletKit.isWalletRegistered) {
-                const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-                if (storedMnemonic) {
-                    const mnemonic = storedMnemonic.split(" ");
-                    await walletKit.registerWallet(mnemonic);
-                }
-            }
+            initRef.current = true;
             
-            await walletKit.refreshSessions();
-            setIsLoading(false);
+            try {
+                // Register wallet if not already registered
+                if (!walletKit.isWalletRegistered) {
+                    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+                    if (storedMnemonic) {
+                        const mnemonic = storedMnemonic.split(" ");
+                        await walletKit.registerWallet(mnemonic);
+                    }
+                }
+                
+                await walletKit.refreshSessions();
+            } catch (err) {
+                console.error("[ConnectedApps] Init error:", err);
+            } finally {
+                setIsLoading(false);
+            }
         };
         
         initWallet();
-    }, [walletKit?.isReady, walletKit?.isWalletRegistered, telegramId, walletKit]);
+    }, [walletKit?.isReady, walletKit?.isWalletRegistered, telegramId]);
 
     // Handle QR code scan result
     const handleScanResult = useCallback(async (result: string) => {
@@ -164,11 +196,19 @@ export default function ConnectedAppsPage() {
     // Get sessions from WalletKit
     const sessions = walletKit?.sessions || [];
 
-    // If WalletKit is not ready, show a message
+    // If WalletKit is not ready, show a message with back button
     if (!walletKit) {
         return (
             <div className="flex flex-col w-full max-w-md mx-auto p-4 min-h-screen bg-background text-foreground">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => router.push("/wallet/settings")}
+                        className="h-10 w-10"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">Connected Apps</h1>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -447,8 +487,19 @@ export default function ConnectedAppsPage() {
 
             {/* Connection Request Dialog - handled by WalletKit provider */}
             {walletKit?.pendingConnection && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
-                    <div className="w-[92vw] max-w-lg border bg-background p-6 shadow-lg rounded-2xl">
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
+                    onClick={(e) => {
+                        // Close when clicking backdrop
+                        if (e.target === e.currentTarget) {
+                            walletKit.rejectConnection();
+                        }
+                    }}
+                >
+                    <div 
+                        className="w-[92vw] max-w-lg border bg-background p-6 shadow-lg rounded-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex flex-col space-y-2 text-center sm:text-left">
                             <div className="flex items-center gap-4 mb-2">
                                 {walletKit.pendingConnection.dAppInfo?.iconUrl ? (
@@ -492,9 +543,11 @@ export default function ConnectedAppsPage() {
                                 </ul>
                             </div>
                         </div>
-                        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4">
+                        <div className="flex gap-3 mt-6">
                             <Button
+                                type="button"
                                 variant="outline"
+                                className="flex-1 h-12"
                                 onClick={() => {
                                     console.log("[UI] Cancel clicked");
                                     walletKit.rejectConnection();
@@ -503,11 +556,12 @@ export default function ConnectedAppsPage() {
                                 Cancel
                             </Button>
                             <Button
+                                type="button"
+                                className="flex-1 h-12 bg-primary hover:bg-primary/90"
                                 onClick={() => {
                                     console.log("[UI] Connect clicked");
                                     walletKit.approveConnection();
                                 }}
-                                className="bg-primary hover:bg-primary/90"
                             >
                                 Connect
                             </Button>

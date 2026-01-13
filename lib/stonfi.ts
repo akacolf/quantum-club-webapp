@@ -268,3 +268,141 @@ export function formatSwapRate(
     if (rate === 0) return "";
     return `1 ${fromSymbol} = ${rate.toFixed(6)} ${toSymbol}`;
 }
+
+// TON native address constant
+export const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
+
+// Liquidity provision simulation result type
+export interface LiquidityProvisionResult {
+    provisionType: "Initial" | "Balanced" | "Arbitrary";
+    router: {
+        address: string;
+        ptonMasterAddress: string;
+        ptonVersion: string;
+        majorVersion: number;
+        minorVersion: number;
+    };
+    poolAddress: string;
+    tokenA: string;
+    tokenB: string;
+    tokenAUnits: string;
+    tokenBUnits: string;
+    estimatedLpUnits: string;
+    minLpUnits: string;
+    minTokenAUnits: string;
+    minTokenBUnits: string;
+    priceImpact: string;
+}
+
+// Build liquidity provision transaction parameters
+export async function buildLiquidityTxParams(
+    simulation: LiquidityProvisionResult,
+    userWalletAddress: string
+): Promise<Array<{ to: Address; value: bigint; body: Buffer | null }>> {
+    try {
+        const orbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
+        const tonClient = new TonClient({ endpoint: orbsEndpoint });
+
+        const dexContracts = dexFactory(simulation.router);
+        const router = tonClient.open(
+            dexContracts.Router.create(simulation.router.address)
+        );
+        const proxyTon = dexContracts.pTON.create(simulation.router.ptonMasterAddress);
+
+        const isSingleSide =
+            simulation.provisionType === "Arbitrary" &&
+            (simulation.tokenAUnits === "0" || simulation.tokenBUnits === "0");
+
+        const results: Array<{ to: Address; value: bigint; body: Buffer | null }> = [];
+
+        // Build transaction for Token A if amount > 0
+        if (simulation.tokenAUnits !== "0" && BigInt(simulation.tokenAUnits) > BigInt(0)) {
+            const txParams = await buildSingleLpTx(
+                router,
+                proxyTon,
+                userWalletAddress,
+                simulation.tokenA,
+                simulation.tokenB,
+                simulation.tokenAUnits,
+                simulation.minLpUnits,
+                isSingleSide
+            );
+            results.push({
+                to: txParams.to,
+                value: txParams.value,
+                body: txParams.body ? txParams.body.toBoc() : null,
+            });
+        }
+
+        // Build transaction for Token B if amount > 0
+        if (simulation.tokenBUnits !== "0" && BigInt(simulation.tokenBUnits) > BigInt(0)) {
+            const txParams = await buildSingleLpTx(
+                router,
+                proxyTon,
+                userWalletAddress,
+                simulation.tokenB,
+                simulation.tokenA,
+                simulation.tokenBUnits,
+                simulation.minLpUnits,
+                isSingleSide
+            );
+            results.push({
+                to: txParams.to,
+                value: txParams.value,
+                body: txParams.body ? txParams.body.toBoc() : null,
+            });
+        }
+
+        return results;
+    } catch (error) {
+        console.error("Failed to build liquidity transaction:", error);
+        return [];
+    }
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+async function buildSingleLpTx(
+    router: any,
+    proxyTon: any,
+    userWalletAddress: string,
+    sendToken: string,
+    otherToken: string,
+    sendAmount: string,
+    minLpOut: string,
+    isSingleSide: boolean
+) {
+/* eslint-enable @typescript-eslint/no-explicit-any */
+    const baseArgs = {
+        userWalletAddress,
+        sendAmount,
+        minLpOut,
+    };
+
+    if (sendToken === TON_ADDRESS) {
+        const args = {
+            ...baseArgs,
+            proxyTon,
+            otherTokenAddress: otherToken === TON_ADDRESS
+                ? proxyTon.address.toString()
+                : otherToken,
+        };
+
+        if (isSingleSide && "getSingleSideProvideLiquidityTonTxParams" in router) {
+            return router.getSingleSideProvideLiquidityTonTxParams(args);
+        }
+        return router.getProvideLiquidityTonTxParams(args);
+    }
+
+    const args = {
+        ...baseArgs,
+        sendTokenAddress: sendToken,
+        otherTokenAddress: otherToken === TON_ADDRESS
+            ? proxyTon.address.toString()
+            : otherToken,
+    };
+
+    if (isSingleSide && "getSingleSideProvideLiquidityJettonTxParams" in router) {
+        return router.getSingleSideProvideLiquidityJettonTxParams(args);
+    }
+    return router.getProvideLiquidityJettonTxParams(args);
+}
