@@ -2,7 +2,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Wallet, ArrowLeftRight, History, Droplets, Settings } from "lucide-react";
+import { Wallet, ArrowLeftRight, Globe, Droplets, Settings } from "lucide-react";
 
 const navTabs = [
   { 
@@ -19,10 +19,10 @@ const navTabs = [
     icon: ArrowLeftRight 
   },
   { 
-    id: "history", 
-    href: "/wallet/history", 
-    label: "History", 
-    icon: History 
+    id: "browser", 
+    href: "/wallet/browser", 
+    label: "Browser", 
+    icon: Globe 
   },
   { 
     id: "liquidity", 

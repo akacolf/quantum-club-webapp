@@ -446,8 +446,8 @@ export default function ConnectedAppsPage() {
             </ScrollArea>
 
             {/* Connection Request Dialog - handled by WalletKit provider */}
-            {walletKit.pendingConnection && (
-                <AlertDialog open={!!walletKit.pendingConnection} onOpenChange={() => walletKit.rejectConnection()}>
+            {walletKit?.pendingConnection && (
+                <AlertDialog open={!!walletKit.pendingConnection}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <div className="flex items-center gap-4 mb-2">
@@ -495,15 +495,22 @@ export default function ConnectedAppsPage() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="mt-4">
-                            <AlertDialogCancel onClick={walletKit.rejectConnection}>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    walletKit.rejectConnection();
+                                }}
+                            >
                                 Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={walletKit.approveConnection}
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    walletKit.approveConnection();
+                                }}
                                 className="bg-primary hover:bg-primary/90"
                             >
                                 Connect
-                            </AlertDialogAction>
+                            </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
