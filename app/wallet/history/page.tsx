@@ -8,13 +8,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon, Search, X, Filter } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon, Search, X, Filter, Tag, Pencil } from "lucide-react";
 import { fromNano, Address } from "@ton/core";
+import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import {
+  saveTransactionLabel,
+  deleteTransactionLabel,
+  SUGGESTED_TAGS,
+  formatTag,
+  type TransactionLabel,
+} from "@/lib/transaction-labels";
 
 interface HistoryEvent {
   event_id: string;
@@ -79,6 +94,13 @@ export default function HistoryPage() {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  
+  // Transaction labeling state
+  const [labelSheetOpen, setLabelSheetOpen] = useState(false);
+  const [selectedTxHash, setSelectedTxHash] = useState<string | null>(null);
+  const [labelInput, setLabelInput] = useState("");
+  const [tagsInput, setTagsInput] = useState<string[]>([]);
+  const [txLabels, setTxLabels] = useState<Record<string, TransactionLabel>>({});
   const [showFilters, setShowFilters] = useState(false);
 
   // Explorer URL based on network
@@ -157,6 +179,70 @@ export default function HistoryPage() {
       setIsLoadingQntm(false);
     }
   }, [telegramId, fetchQntmHistory]);
+
+  // Load transaction labels
+  useEffect(() => {
+    if (telegramId) {
+      const labels: Record<string, TransactionLabel> = {};
+      const stored = localStorage.getItem(`quantum_transaction_labels_${telegramId}`);
+      if (stored) {
+        try {
+          Object.assign(labels, JSON.parse(stored));
+        } catch {
+          // Ignore parse errors
+        }
+      }
+      setTxLabels(labels);
+    }
+  }, [telegramId]);
+
+  // Handle opening the label editor
+  const handleOpenLabelSheet = useCallback((txHash: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedTxHash(txHash);
+    const existingLabel = txLabels[txHash];
+    if (existingLabel) {
+      setLabelInput(existingLabel.label);
+      setTagsInput(existingLabel.tags);
+    } else {
+      setLabelInput("");
+      setTagsInput([]);
+    }
+    setLabelSheetOpen(true);
+  }, [txLabels]);
+
+  // Handle saving a label
+  const handleSaveLabel = useCallback(() => {
+    if (!selectedTxHash || !telegramId) return;
+    
+    const newLabel = saveTransactionLabel(selectedTxHash, labelInput, tagsInput, telegramId);
+    setTxLabels(prev => ({ ...prev, [selectedTxHash]: newLabel }));
+    setLabelSheetOpen(false);
+    toast.success(labelInput ? "Label saved" : "Tags saved");
+  }, [selectedTxHash, labelInput, tagsInput, telegramId]);
+
+  // Handle deleting a label
+  const handleDeleteLabel = useCallback(() => {
+    if (!selectedTxHash || !telegramId) return;
+    
+    deleteTransactionLabel(selectedTxHash, telegramId);
+    setTxLabels(prev => {
+      const updated = { ...prev };
+      delete updated[selectedTxHash];
+      return updated;
+    });
+    setLabelSheetOpen(false);
+    toast.success("Label removed");
+  }, [selectedTxHash, telegramId]);
+
+  // Toggle a tag
+  const handleToggleTag = useCallback((tag: string) => {
+    setTagsInput(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  }, []);
 
   const formatAddress = (address: string) => {
     if (!address) return "Unknown";
@@ -555,61 +641,108 @@ export default function HistoryPage() {
                     className="bg-card border-border shadow-none hover:border-muted-foreground/20 transition-all active:scale-[0.99] cursor-pointer"
                     onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${tx.event_id}`, "_blank")}
                   >
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${tx.type === 'Deploy' ? 'bg-primary/10 text-primary' :
-                          tx.isSwap ? 'bg-purple-500/10 text-purple-400' :
-                            tx.symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
-                              tx.isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                          }`}>
-                          {tx.type === 'Deploy' ? (
-                            <Layers className="w-5 h-5" />
-                          ) : tx.isSwap ? (
-                            <ArrowLeftRight className="w-5 h-5" />
-                          ) : tx.symbol === 'NFT' ? (
-                            <ImageIcon className="w-5 h-5" />
-                          ) : tx.isIncoming ? (
-                            <ArrowDownLeft className="w-5 h-5" />
-                          ) : (
-                            <ArrowUpRight className="w-5 h-5" />
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-foreground text-base">{tx.type}</h4>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {tx.isSwap ? (
-                              <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400">
-                                {tx.fromSymbol} → {tx.toSymbol}
-                              </span>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${tx.type === 'Deploy' ? 'bg-primary/10 text-primary' :
+                            tx.isSwap ? 'bg-purple-500/10 text-purple-400' :
+                              tx.symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
+                                tx.isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                            }`}>
+                            {tx.type === 'Deploy' ? (
+                              <Layers className="w-5 h-5" />
+                            ) : tx.isSwap ? (
+                              <ArrowLeftRight className="w-5 h-5" />
+                            ) : tx.symbol === 'NFT' ? (
+                              <ImageIcon className="w-5 h-5" />
+                            ) : tx.isIncoming ? (
+                              <ArrowDownLeft className="w-5 h-5" />
                             ) : (
-                              <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                                {formatAddress(tx.address)}
-                              </span>
+                              <ArrowUpRight className="w-5 h-5" />
                             )}
                           </div>
+                          <div>
+                            <h4 className="font-bold text-foreground text-base">{tx.type}</h4>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {tx.isSwap ? (
+                                <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400">
+                                  {tx.fromSymbol} → {tx.toSymbol}
+                                </span>
+                              ) : (
+                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                                  {formatAddress(tx.address)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          {tx.isSwap ? (
-                            <>
-                              <div className="text-xs text-muted-foreground">-{(parseFloat(tx.fromAmount) || 0).toFixed(4)} {tx.fromSymbol}</div>
-                              <h4 className="font-bold text-base text-green-500">
-                                +{(parseFloat(tx.toAmount) || 0).toFixed(4)} {tx.toSymbol}
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            {tx.isSwap ? (
+                              <>
+                                <div className="text-xs text-muted-foreground">-{(parseFloat(tx.fromAmount) || 0).toFixed(4)} {tx.fromSymbol}</div>
+                                <h4 className="font-bold text-base text-green-500">
+                                  +{(parseFloat(tx.toAmount) || 0).toFixed(4)} {tx.toSymbol}
+                                </h4>
+                              </>
+                            ) : (
+                              <h4 className={`font-bold text-base ${tx.status === 'scam' ? 'text-orange-500' :
+                                tx.status === 'pending' ? 'text-yellow-500' :
+                                  tx.isIncoming ? 'text-green-500' : 'text-foreground'
+                                }`}>
+                                {tx.type === 'Deploy' || tx.type === 'Unknown' ? '' : (tx.isIncoming ? '+' : '-')}{tx.type !== 'Deploy' && tx.type !== 'Unknown' ? `${parseFloat(tx.amount).toFixed(4)} ${tx.symbol}` : ''}
                               </h4>
-                            </>
-                          ) : (
-                            <h4 className={`font-bold text-base ${tx.status === 'scam' ? 'text-orange-500' :
-                              tx.status === 'pending' ? 'text-yellow-500' :
-                                tx.isIncoming ? 'text-green-500' : 'text-foreground'
-                              }`}>
-                              {tx.type === 'Deploy' || tx.type === 'Unknown' ? '' : (tx.isIncoming ? '+' : '-')}{tx.type !== 'Deploy' && tx.type !== 'Unknown' ? `${parseFloat(tx.amount).toFixed(4)} ${tx.symbol}` : ''}
-                            </h4>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-1">{tx.formattedDate} • {tx.formattedTime}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">{tx.formattedDate} • {tx.formattedTime}</p>
+                          </div>
+                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
                       </div>
+                      
+                      {/* Label and Tags Display */}
+                      {txLabels[tx.event_id] && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              {txLabels[tx.event_id].label && (
+                                <p className="text-sm text-foreground truncate mb-1.5">
+                                  {txLabels[tx.event_id].label}
+                                </p>
+                              )}
+                              {txLabels[tx.event_id].tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {txLabels[tx.event_id].tags.map(tag => (
+                                    <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                      {formatTag(tag)}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              onClick={(e) => handleOpenLabelSheet(tx.event_id, e)}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Add Label Button (when no label exists) */}
+                      {!txLabels[tx.event_id] && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={(e) => handleOpenLabelSheet(tx.event_id, e)}
+                        >
+                          <Tag className="w-3 h-3 mr-1" />
+                          Add label
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))
@@ -735,6 +868,77 @@ export default function HistoryPage() {
           </ScrollArea>
         </TabsContent>
       </Tabs>
+
+      {/* Label Editing Sheet */}
+      <Sheet open={labelSheetOpen} onOpenChange={setLabelSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Add Label</SheetTitle>
+            <SheetDescription>
+              Add a note or tags to help you identify this transaction
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="space-y-4">
+            {/* Label Input */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Note
+              </label>
+              <Input
+                value={labelInput}
+                onChange={(e) => setLabelInput(e.target.value)}
+                placeholder="e.g., Payment for services"
+                className="h-11 bg-secondary border-border rounded-xl"
+              />
+            </div>
+            
+            {/* Tags */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_TAGS.map(tag => (
+                  <Button
+                    key={tag}
+                    variant={tagsInput.includes(tag) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleToggleTag(tag)}
+                    className={`h-8 rounded-full text-xs ${
+                      tagsInput.includes(tag) 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-background hover:bg-muted"
+                    }`}
+                  >
+                    {formatTag(tag)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              {txLabels[selectedTxHash || ""] && (
+                <Button
+                  variant="outline"
+                  className="flex-1 h-12 rounded-xl text-destructive hover:bg-destructive/10"
+                  onClick={handleDeleteLabel}
+                >
+                  Remove
+                </Button>
+              )}
+              <Button
+                className="flex-1 h-12 rounded-xl"
+                onClick={handleSaveLabel}
+                disabled={!labelInput.trim() && tagsInput.length === 0}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -1,0 +1,914 @@
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { toast } from "sonner";
+import {
+    Plus,
+    Minus,
+    ChevronDown,
+    AlertTriangle,
+    Info,
+    Droplets,
+    ArrowRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import Loader from "@/app/(components)/Loader";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
+import { Address } from "@ton/core";
+import { useWallet } from "../WalletContext";
+import {
+    fetchSwappableAssets,
+    toUnits,
+    fromUnits,
+    type SwapAsset,
+} from "@/lib/stonfi";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { StonApiClient } from "@ston-fi/api";
+
+// Pool info from STON.fi
+interface PoolInfo {
+    address: string;
+    reserve0: string;
+    reserve1: string;
+    token0Address: string;
+    token1Address: string;
+    lpTotalSupply: string;
+    lpFee: string;
+    protocolFee: string;
+    apy?: number;
+    tvl?: string;
+}
+
+// LP Position
+interface LPPosition {
+    poolAddress: string;
+    lpBalance: string;
+    token0: SwapAsset | null;
+    token1: SwapAsset | null;
+    token0Amount: string;
+    token1Amount: string;
+    sharePercent: string;
+    poolInfo: PoolInfo | null;
+}
+
+// Provision type
+type ProvisionType = "Balanced" | "Arbitrary" | "Initial";
+
+export default function LiquidityPage() {
+    useTelegramBackButton("/wallet");
+    const { telegramId } = useGameContext();
+    const router = useRouter();
+
+    const {
+        isOpen: isAuthOpen,
+        requestAuth,
+        handleSuccess: handleAuthSuccess,
+        handleCancel: handleAuthCancel,
+    } = useBiometricAuth();
+
+    const {
+        walletAddress,
+        tonBalance,
+        jettons,
+        isLoadingAssets: isContextLoading,
+        hasFetched,
+        isTestnet
+    } = useWallet();
+
+    // State
+    const [tab, setTab] = useState<"add" | "remove" | "positions">("positions");
+    const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
+    const [swapAssets, setSwapAssets] = useState<SwapAsset[]>([]);
+    const [isLoadingAssets, setIsLoadingAssets] = useState(true);
+    const [isLoadingPositions, setIsLoadingPositions] = useState(true);
+    const [positions, setPositions] = useState<LPPosition[]>([]);
+
+    // Add liquidity state
+    const [tokenA, setTokenA] = useState<SwapAsset | null>(null);
+    const [tokenB, setTokenB] = useState<SwapAsset | null>(null);
+    const [amountA, setAmountA] = useState("");
+    const [amountB, setAmountB] = useState("");
+    const [isSingleSided, setIsSingleSided] = useState(false);
+    const [isSimulating, setIsSimulating] = useState(false);
+    const [simulationResult, setSimulationResult] = useState<{
+        minLpUnits: string;
+        tokenAUnits: string;
+        tokenBUnits: string;
+        provisionType: ProvisionType;
+        poolAddress?: string;
+    } | null>(null);
+
+    // Remove liquidity state
+    const [selectedPosition, setSelectedPosition] = useState<LPPosition | null>(null);
+    const [removePercent, setRemovePercent] = useState("50");
+
+    // Processing state
+    const [, setIsProcessing] = useState(false);
+
+    // Redirect if no wallet
+    useEffect(() => {
+        const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
+        if (!storedWallet) {
+            router.push("/wallet");
+        }
+    }, [router, telegramId]);
+
+    // Load assets and pools
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoadingAssets(true);
+            try {
+                const assets = await fetchSwappableAssets();
+                setSwapAssets(assets);
+
+                // Set default tokens (TON and first jetton)
+                const tonAsset = assets.find((a) => a.kind === "Ton");
+                const firstJetton = assets.find((a) => a.kind === "Jetton");
+
+                if (tonAsset) setTokenA(tonAsset);
+                if (firstJetton) setTokenB(firstJetton);
+            } catch (error) {
+                console.error("Failed to load assets:", error);
+                toast.error("Failed to load assets");
+            } finally {
+                setIsLoadingAssets(false);
+            }
+        };
+
+        loadData();
+    }, []);
+
+    // Load LP positions
+    useEffect(() => {
+        const loadPositions = async () => {
+            if (!walletAddress) return;
+            
+            setIsLoadingPositions(true);
+            try {
+                // In production, fetch from STON.fi API
+                // For now, we'll show a placeholder
+                // const client = new StonApiClient();
+                // const lpPositions = await client.getWalletLpPositions({ walletAddress });
+                
+                setPositions([]);
+            } catch (error) {
+                console.error("Failed to load LP positions:", error);
+            } finally {
+                setIsLoadingPositions(false);
+            }
+        };
+
+        loadPositions();
+    }, [walletAddress]);
+
+    // Get balance for asset
+    const getAssetBalance = useCallback(
+        (asset: SwapAsset | null): string => {
+            if (!asset) return "0";
+
+            if (asset.kind === "Ton") {
+                return tonBalance;
+            }
+
+            const jetton = jettons.find((j) => {
+                if (!j.jettonAddress) return false;
+                try {
+                    const assetAddr = Address.parse(asset.contractAddress).toRawString().toLowerCase();
+                    const jettonAddr = Address.parse(j.jettonAddress).toRawString().toLowerCase();
+                    return assetAddr === jettonAddr;
+                } catch {
+                    return false;
+                }
+            });
+
+            if (jetton) {
+                return (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
+            }
+
+            return "0";
+        },
+        [tonBalance, jettons]
+    );
+
+    // Simulate liquidity provision
+    const simulateProvision = useCallback(async () => {
+        if (!tokenA || !tokenB || !amountA || parseFloat(amountA) <= 0) {
+            return;
+        }
+
+        setIsSimulating(true);
+        try {
+            const client = new StonApiClient();
+
+            // Check for existing pool
+            const pools = await client.getPoolsByAssetPair({
+                asset0Address: tokenA.contractAddress,
+                asset1Address: tokenB.contractAddress,
+            });
+
+            const pool = pools?.[0];
+            const provisionType: ProvisionType = pool ? (isSingleSided ? "Arbitrary" : "Balanced") : "Initial";
+
+            // Build simulation input based on provision type
+            let result;
+            
+            if (provisionType === "Initial") {
+                result = await client.simulateLiquidityProvision({
+                    tokenA: tokenA.contractAddress,
+                    tokenB: tokenB.contractAddress,
+                    provisionType: "Initial",
+                    slippageTolerance: "0.01",
+                    walletAddress: walletAddress || undefined,
+                    tokenAUnits: toUnits(amountA, tokenA.decimals),
+                    tokenBUnits: amountB ? toUnits(amountB, tokenB.decimals) : toUnits(amountA, tokenA.decimals),
+                });
+            } else if (provisionType === "Balanced") {
+                result = await client.simulateLiquidityProvision({
+                    tokenA: tokenA.contractAddress,
+                    tokenB: tokenB.contractAddress,
+                    provisionType: "Balanced",
+                    slippageTolerance: "0.01",
+                    walletAddress: walletAddress || undefined,
+                    poolAddress: pool?.address || "",
+                    tokenAUnits: toUnits(amountA, tokenA.decimals),
+                });
+            } else {
+                // Arbitrary
+                result = await client.simulateLiquidityProvision({
+                    tokenA: tokenA.contractAddress,
+                    tokenB: tokenB.contractAddress,
+                    provisionType: "Arbitrary",
+                    slippageTolerance: "0.01",
+                    walletAddress: walletAddress || undefined,
+                    poolAddress: pool?.address || "",
+                    tokenAUnits: toUnits(amountA, tokenA.decimals),
+                    tokenBUnits: isSingleSided ? "0" : (amountB ? toUnits(amountB, tokenB.decimals) : "0"),
+                });
+            }
+
+            setSimulationResult({
+                minLpUnits: result.minLpUnits,
+                tokenAUnits: result.tokenAUnits,
+                tokenBUnits: result.tokenBUnits,
+                provisionType: result.provisionType as ProvisionType,
+                poolAddress: pool?.address,
+            });
+
+            // If balanced, update tokenB amount
+            if (provisionType === "Balanced" && result.tokenBUnits) {
+                setAmountB(fromUnits(result.tokenBUnits, tokenB.decimals));
+            }
+        } catch (error) {
+            console.error("Failed to simulate provision:", error);
+            toast.error("Failed to simulate liquidity provision");
+            setSimulationResult(null);
+        } finally {
+            setIsSimulating(false);
+        }
+    }, [tokenA, tokenB, amountA, amountB, isSingleSided, walletAddress]);
+
+    // Debounce simulation
+    useEffect(() => {
+        if (!tokenA || !tokenB || !amountA || parseFloat(amountA) <= 0) {
+            setSimulationResult(null);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            simulateProvision();
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [tokenA, tokenB, amountA, isSingleSided, simulateProvision]);
+
+    // Validation
+    const canAddLiquidity = useMemo(() => {
+        if (!tokenA || !tokenB || !amountA || parseFloat(amountA) <= 0) return false;
+        if (!simulationResult) return false;
+
+        const balanceA = parseFloat(getAssetBalance(tokenA));
+        if (parseFloat(amountA) > balanceA) return false;
+
+        if (!isSingleSided && amountB && parseFloat(amountB) > 0) {
+            const balanceB = parseFloat(getAssetBalance(tokenB));
+            if (parseFloat(amountB) > balanceB) return false;
+        }
+
+        // Check TON for gas
+        if (parseFloat(tonBalance) < 0.5) return false;
+
+        return true;
+    }, [tokenA, tokenB, amountA, amountB, isSingleSided, simulationResult, getAssetBalance, tonBalance]);
+
+    // Handle add liquidity
+    const handleAddLiquidity = async () => {
+        const authenticated = await requestAuth();
+        if (!authenticated) {
+            toast.error("Authentication required");
+            return;
+        }
+
+        await executeAddLiquidity();
+    };
+
+    // Execute add liquidity
+    const executeAddLiquidity = async () => {
+        const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+        if (!storedMnemonic || !simulationResult || !tokenA || !tokenB) {
+            toast.error("Missing data for transaction");
+            return;
+        }
+
+        setIsProcessing(true);
+        setStep("processing");
+
+        try {
+            // This is a simplified implementation
+            // Full implementation would use STON.fi SDK to build the transaction
+            toast.info("Liquidity provision feature coming soon", {
+                description: "Full DEX v2 integration is in progress",
+            });
+
+            // For now, redirect back to positions
+            setStep("input");
+            setTab("positions");
+        } catch (error) {
+            console.error("Add liquidity failed:", error);
+            toast.error("Failed to add liquidity");
+            setStep("input");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Loading state
+    if (isLoadingAssets || (isContextLoading && !hasFetched)) {
+        return <Loader />;
+    }
+
+    // Testnet warning
+    if (isTestnet) {
+        return (
+            <div className="min-h-screen bg-background text-foreground p-4 pt-6">
+                <div className="max-w-md mx-auto">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-2xl font-bold text-foreground">Liquidity Pools</h1>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Powered by <span className="font-semibold text-foreground">STON.fi</span>
+                        </p>
+                    </div>
+
+                    <div className="text-center py-16 space-y-6">
+                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                            <AlertTriangle className="w-10 h-10 text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                            <h2 className="text-xl font-bold text-foreground">Not Available in Testnet</h2>
+                            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                                Liquidity pools are only available on mainnet.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => router.push("/wallet")}
+                            className="bg-card border border-border text-foreground hover:bg-accent h-12 px-8 rounded-xl"
+                        >
+                            Back to Wallet
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
+            <div className="max-w-md mx-auto">
+                <div className="mb-6 text-center">
+                    <h1 className="text-2xl font-bold text-foreground">Liquidity Pools</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Earn fees by providing liquidity
+                    </p>
+                </div>
+
+                <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-6 bg-card border border-border rounded-xl p-1">
+                        <TabsTrigger
+                            value="positions"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                        >
+                            <Droplets className="w-4 h-4 mr-2" />
+                            Positions
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="add"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="remove"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                        >
+                            <Minus className="w-4 h-4 mr-2" />
+                            Remove
+                        </TabsTrigger>
+                    </TabsList>
+
+                    {/* Positions Tab */}
+                    <TabsContent value="positions" className="space-y-4">
+                        {isLoadingPositions ? (
+                            <div className="flex justify-center py-12">
+                                <ButtonLoader />
+                            </div>
+                        ) : positions.length === 0 ? (
+                            <Card className="bg-card/80 border-border rounded-2xl">
+                                <CardContent className="p-8 text-center space-y-4">
+                                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+                                        <Droplets className="w-8 h-8 text-muted-foreground" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg">No LP Positions</h3>
+                                        <p className="text-muted-foreground text-sm mt-1">
+                                            Add liquidity to start earning fees
+                                        </p>
+                                    </div>
+                                    <Button
+                                        onClick={() => setTab("add")}
+                                        className="bg-primary text-primary-foreground"
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Add Liquidity
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="space-y-3">
+                                {positions.map((position, idx) => (
+                                    <Card key={idx} className="bg-card/80 border-border rounded-2xl">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex -space-x-2">
+                                                        {position.token0?.imageUrl && (
+                                                            <Image
+                                                                src={position.token0.imageUrl}
+                                                                alt={position.token0.symbol}
+                                                                width={32}
+                                                                height={32}
+                                                                className="w-8 h-8 rounded-full border-2 border-card"
+                                                                unoptimized
+                                                            />
+                                                        )}
+                                                        {position.token1?.imageUrl && (
+                                                            <Image
+                                                                src={position.token1.imageUrl}
+                                                                alt={position.token1.symbol}
+                                                                width={32}
+                                                                height={32}
+                                                                className="w-8 h-8 rounded-full border-2 border-card"
+                                                                unoptimized
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold">
+                                                            {position.token0?.symbol}/{position.token1?.symbol}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {position.sharePercent}% share
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedPosition(position);
+                                                        setTab("remove");
+                                                    }}
+                                                >
+                                                    Manage
+                                                    <ArrowRight className="w-4 h-4 ml-1" />
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* Add Liquidity Tab */}
+                    <TabsContent value="add" className="space-y-4">
+                        <AnimatePresence mode="wait">
+                            {step === "input" && (
+                                <motion.div
+                                    key="input"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="space-y-4"
+                                >
+                                    {/* Token A */}
+                                    <Card className="bg-card/80 border-border rounded-2xl">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm text-muted-foreground">Token A</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Balance: {tokenA ? getAssetBalance(tokenA) : "0"}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="bg-accent/50 border border-border h-11 rounded-xl px-3 gap-2"
+                                                        >
+                                                            {tokenA?.imageUrl ? (
+                                                                <Image
+                                                                    src={tokenA.imageUrl}
+                                                                    alt={tokenA.symbol}
+                                                                    width={24}
+                                                                    height={24}
+                                                                    className="w-6 h-6 rounded-full"
+                                                                    unoptimized
+                                                                />
+                                                            ) : (
+                                                                <div className="w-6 h-6 bg-primary rounded-full" />
+                                                            )}
+                                                            <span className="font-bold">{tokenA?.symbol || "Select"}</span>
+                                                            <ChevronDown className="w-4 h-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto">
+                                                        <DropdownMenuLabel>Select token</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        {swapAssets.map((asset) => (
+                                                            <DropdownMenuItem
+                                                                key={asset.contractAddress}
+                                                                onClick={() => {
+                                                                    if (asset.contractAddress !== tokenB?.contractAddress) {
+                                                                        setTokenA(asset);
+                                                                    }
+                                                                }}
+                                                                className="flex items-center gap-3 p-3"
+                                                            >
+                                                                {asset.imageUrl ? (
+                                                                    <Image
+                                                                        src={asset.imageUrl}
+                                                                        alt={asset.symbol}
+                                                                        width={32}
+                                                                        height={32}
+                                                                        className="w-8 h-8 rounded-full"
+                                                                        unoptimized
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 bg-primary rounded-full" />
+                                                                )}
+                                                                <div className="flex-1">
+                                                                    <div className="font-bold">{asset.symbol}</div>
+                                                                    <div className="text-xs text-muted-foreground">
+                                                                        {asset.displayName}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground">
+                                                                    {getAssetBalance(asset)}
+                                                                </div>
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <Input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    placeholder="0.0"
+                                                    value={amountA}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value.replace(",", ".");
+                                                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                                            setAmountA(value);
+                                                        }
+                                                    }}
+                                                    className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-11 focus-visible:ring-0 p-0"
+                                                />
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Plus Icon */}
+                                    <div className="flex justify-center -my-2 relative z-10">
+                                        <div className="w-10 h-10 bg-card border-4 border-background rounded-xl flex items-center justify-center">
+                                            <Plus className="w-5 h-5 text-muted-foreground" />
+                                        </div>
+                                    </div>
+
+                                    {/* Token B */}
+                                    <Card className="bg-card/80 border-border rounded-2xl">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm text-muted-foreground">Token B</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Balance: {tokenB ? getAssetBalance(tokenB) : "0"}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="bg-accent/50 border border-border h-11 rounded-xl px-3 gap-2"
+                                                        >
+                                                            {tokenB?.imageUrl ? (
+                                                                <Image
+                                                                    src={tokenB.imageUrl}
+                                                                    alt={tokenB.symbol}
+                                                                    width={24}
+                                                                    height={24}
+                                                                    className="w-6 h-6 rounded-full"
+                                                                    unoptimized
+                                                                />
+                                                            ) : (
+                                                                <div className="w-6 h-6 bg-primary rounded-full" />
+                                                            )}
+                                                            <span className="font-bold">{tokenB?.symbol || "Select"}</span>
+                                                            <ChevronDown className="w-4 h-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto">
+                                                        <DropdownMenuLabel>Select token</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        {swapAssets.map((asset) => (
+                                                            <DropdownMenuItem
+                                                                key={asset.contractAddress}
+                                                                onClick={() => {
+                                                                    if (asset.contractAddress !== tokenA?.contractAddress) {
+                                                                        setTokenB(asset);
+                                                                    }
+                                                                }}
+                                                                className="flex items-center gap-3 p-3"
+                                                            >
+                                                                {asset.imageUrl ? (
+                                                                    <Image
+                                                                        src={asset.imageUrl}
+                                                                        alt={asset.symbol}
+                                                                        width={32}
+                                                                        height={32}
+                                                                        className="w-8 h-8 rounded-full"
+                                                                        unoptimized
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 bg-primary rounded-full" />
+                                                                )}
+                                                                <div className="flex-1">
+                                                                    <div className="font-bold">{asset.symbol}</div>
+                                                                    <div className="text-xs text-muted-foreground">
+                                                                        {asset.displayName}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground">
+                                                                    {getAssetBalance(asset)}
+                                                                </div>
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <Input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    placeholder="0.0"
+                                                    value={amountB}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value.replace(",", ".");
+                                                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                                            setAmountB(value);
+                                                        }
+                                                    }}
+                                                    disabled={!isSingleSided && !!simulationResult}
+                                                    className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-11 focus-visible:ring-0 p-0 disabled:opacity-50"
+                                                />
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Single-sided toggle */}
+                                    <Card className="bg-muted/50 border-border rounded-xl">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Label htmlFor="single-sided" className="text-sm">
+                                                        Single-sided deposit
+                                                    </Label>
+                                                    <Info className="w-3 h-3 text-muted-foreground" />
+                                                </div>
+                                                <Switch
+                                                    id="single-sided"
+                                                    checked={isSingleSided}
+                                                    onCheckedChange={setIsSingleSided}
+                                                />
+                                            </div>
+                                            {isSingleSided && (
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                    Deposit only one token. The protocol will handle the conversion automatically.
+                                                </p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Simulation result */}
+                                    {isSimulating ? (
+                                        <div className="flex justify-center py-4">
+                                            <ButtonLoader />
+                                        </div>
+                                    ) : simulationResult && (
+                                        <Card className="bg-muted/50 border-border rounded-xl">
+                                            <CardContent className="p-4 space-y-2">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Provision type</span>
+                                                    <Badge variant="secondary">{simulationResult.provisionType}</Badge>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Min LP tokens</span>
+                                                    <span className="font-medium">
+                                                        {parseFloat(simulationResult.minLpUnits) / 1e9} LP
+                                                    </span>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+
+                                    {/* Add button */}
+                                    <Button
+                                        onClick={handleAddLiquidity}
+                                        disabled={!canAddLiquidity || isSimulating}
+                                        className="w-full bg-primary text-primary-foreground h-14 rounded-xl font-bold text-lg"
+                                    >
+                                        {isSimulating ? (
+                                            <ButtonLoader />
+                                        ) : !tokenA || !tokenB ? (
+                                            "Select tokens"
+                                        ) : !amountA || parseFloat(amountA) <= 0 ? (
+                                            "Enter amount"
+                                        ) : parseFloat(tonBalance) < 0.5 ? (
+                                            "Insufficient TON for gas"
+                                        ) : !simulationResult ? (
+                                            "Calculating..."
+                                        ) : (
+                                            "Add Liquidity"
+                                        )}
+                                    </Button>
+                                </motion.div>
+                            )}
+
+                            {step === "processing" && (
+                                <motion.div
+                                    key="processing"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-center py-16 space-y-4"
+                                >
+                                    <div className="relative mx-auto w-20 h-20">
+                                        <Loader />
+                                    </div>
+                                    <h2 className="text-xl font-bold">Adding Liquidity...</h2>
+                                    <p className="text-muted-foreground text-sm">
+                                        Please wait while your transaction is processed
+                                    </p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </TabsContent>
+
+                    {/* Remove Liquidity Tab */}
+                    <TabsContent value="remove" className="space-y-4">
+                        {positions.length === 0 ? (
+                            <Card className="bg-card/80 border-border rounded-2xl">
+                                <CardContent className="p-8 text-center space-y-4">
+                                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+                                        <Minus className="w-8 h-8 text-muted-foreground" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg">No Positions to Remove</h3>
+                                        <p className="text-muted-foreground text-sm mt-1">
+                                            You need to add liquidity first
+                                        </p>
+                                    </div>
+                                    <Button
+                                        onClick={() => setTab("add")}
+                                        variant="outline"
+                                    >
+                                        Add Liquidity
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* Position selector */}
+                                <Card className="bg-card/80 border-border rounded-2xl">
+                                    <CardContent className="p-4">
+                                        <Label className="text-sm text-muted-foreground mb-2 block">
+                                            Select Position
+                                        </Label>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full justify-between h-12"
+                                                >
+                                                    {selectedPosition ? (
+                                                        <span>
+                                                            {selectedPosition.token0?.symbol}/{selectedPosition.token1?.symbol}
+                                                        </span>
+                                                    ) : (
+                                                        "Select a position"
+                                                    )}
+                                                    <ChevronDown className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="w-full">
+                                                {positions.map((pos, idx) => (
+                                                    <DropdownMenuItem
+                                                        key={idx}
+                                                        onClick={() => setSelectedPosition(pos)}
+                                                    >
+                                                        {pos.token0?.symbol}/{pos.token1?.symbol}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </CardContent>
+                                </Card>
+
+                                {selectedPosition && (
+                                    <>
+                                        {/* Amount slider */}
+                                        <Card className="bg-card/80 border-border rounded-2xl">
+                                            <CardContent className="p-4 space-y-4">
+                                                <Label className="text-sm text-muted-foreground">
+                                                    Amount to Remove
+                                                </Label>
+                                                <div className="flex gap-2">
+                                                    {["25", "50", "75", "100"].map((pct) => (
+                                                        <Button
+                                                            key={pct}
+                                                            variant={removePercent === pct ? "default" : "outline"}
+                                                            size="sm"
+                                                            onClick={() => setRemovePercent(pct)}
+                                                            className="flex-1"
+                                                        >
+                                                            {pct}%
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        <Button
+                                            className="w-full bg-destructive text-destructive-foreground h-14 rounded-xl font-bold text-lg"
+                                        >
+                                            Remove Liquidity
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </TabsContent>
+                </Tabs>
+            </div>
+
+            {/* Biometric Auth */}
+            <BiometricAuth
+                isOpen={isAuthOpen}
+                onSuccess={handleAuthSuccess}
+                onCancel={handleAuthCancel}
+                title="Confirm Liquidity"
+                description="Authenticate to add liquidity"
+            />
+        </div>
+    );
+}

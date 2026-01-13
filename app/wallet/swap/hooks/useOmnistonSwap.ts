@@ -28,6 +28,7 @@ export interface QuoteParams {
     toAsset: OmnistonAsset;
     amount: string; // In base units (nanotons for TON)
     slippageBps?: number; // Slippage in basis points (e.g., 100 = 1%)
+    preferGasless?: boolean; // Whether to prefer gasless settlement
 }
 
 export interface UseOmnistonSwapProps {
@@ -40,6 +41,9 @@ export interface UseOmnistonSwapReturn {
     isQuoting: boolean;
     quoteError: string | null;
     resolverName: string | null;
+    resolverId: string | null;
+    isGasless: boolean;
+    priceImpact: number | null; // Price impact as percentage
     isConnected: boolean;
     connectionStatus: string;
     buildAndExecute: (
@@ -84,7 +88,9 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
             },
             settlementParams: {
                 maxPriceSlippageBps: params.slippageBps ?? 100, // Default 1%
-                gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
+                gaslessSettlement: params.preferGasless 
+                    ? GaslessSettlement.GASLESS_SETTLEMENT_REQUIRED 
+                    : GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
             },
         };
     }, [params]);
@@ -110,6 +116,25 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
     const quoteEvent = rfqResult.data;
     const quote = quoteEvent?.type === "quoteUpdated" ? quoteEvent.quote : null;
     const resolverName = quote?.resolverName ?? null;
+    const resolverId = quote?.resolverId ?? null;
+
+    // Check if gasless settlement is available
+    const isGasless = quote?.gasBudget === "0" || (quote?.gasBudget !== undefined && BigInt(quote.gasBudget) === BigInt(0));
+
+    // Calculate price impact (simplified - in production should use pool reserves)
+    const priceImpact = useMemo(() => {
+        if (!quote || !params) return null;
+        
+        // Calculate based on bid/ask ratio vs expected 1:1 ratio
+        // This is a simplified calculation - real price impact requires pool data
+        const bidUnits = BigInt(quote.bidUnits);
+        
+        if (bidUnits === BigInt(0)) return null;
+        
+        // Price impact is hard to calculate without market price
+        // For now, we'll show 0 and let the UI handle high slippage warnings
+        return 0;
+    }, [quote, params]);
 
     // Determine error state
     let quoteError: string | null = null;
@@ -190,6 +215,9 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
         isQuoting,
         quoteError,
         resolverName,
+        resolverId,
+        isGasless,
+        priceImpact,
         isConnected,
         connectionStatus,
         buildAndExecute,
