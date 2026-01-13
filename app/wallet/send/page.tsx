@@ -79,7 +79,6 @@ export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
   const {telegramId} = useGameContext()
-  const { notifyTransactionSuccess, notifyTransactionFailed } = useNotifications();
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
   // Telegram native QR scanner handler
