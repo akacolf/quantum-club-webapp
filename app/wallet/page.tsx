@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import {
-  Settings,
   RefreshCw,
   FlaskConical,
   Copy,
@@ -606,14 +605,6 @@ export default function WalletPage() {
                     className="size-9 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white rounded-full disabled:opacity-50 transition-all active:scale-90"
                   >
                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => router.push("/wallet/settings")}
-                    className="size-9 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white rounded-full transition-all active:scale-90"
-                  >
-                    <Settings className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"

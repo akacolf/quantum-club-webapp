@@ -97,13 +97,13 @@ export function WalletKitProvider({
                         aboutUrl: "https://quantumclub.space",
                         platforms: ["chrome", "firefox", "safari"],
                         universalLink: "https://quantumclub.space/tonconnect",
-                        bridgeUrl: "https://connect.ton.org/bridge",
+                        bridgeUrl: "https://bridge.tonapi.io/bridge",
                         jsBridgeKey: "qcwallet",
                     }),
                     bridge: {
-                        bridgeUrl: "https://connect.ton.org/bridge",
-                        enableJsBridge: true,
-                        jsBridgeKey: "qcwallet",
+                        bridgeUrl: "https://bridge.tonapi.io/bridge",
+                        enableJsBridge: false, // We're not injecting into pages
+                        disableHttpConnection: false, // Enable HTTP bridge for QR code connections
                     },
                     storage: {
                         allowMemory: true,
