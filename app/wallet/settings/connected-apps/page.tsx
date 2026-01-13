@@ -447,9 +447,9 @@ export default function ConnectedAppsPage() {
 
             {/* Connection Request Dialog - handled by WalletKit provider */}
             {walletKit?.pendingConnection && (
-                <AlertDialog open={!!walletKit.pendingConnection}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
+                    <div className="w-[92vw] max-w-lg border bg-background p-6 shadow-lg rounded-2xl">
+                        <div className="flex flex-col space-y-2 text-center sm:text-left">
                             <div className="flex items-center gap-4 mb-2">
                                 {walletKit.pendingConnection.dAppInfo?.iconUrl ? (
                                     <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
@@ -468,36 +468,35 @@ export default function ConnectedAppsPage() {
                                     </div>
                                 )}
                                 <div>
-                                    <AlertDialogTitle className="text-lg">
+                                    <h2 className="text-lg font-semibold">
                                         Connect to {walletKit.pendingConnection.dAppInfo?.name || "dApp"}?
-                                    </AlertDialogTitle>
+                                    </h2>
                                     <p className="text-xs text-muted-foreground mt-0.5">
                                         {walletKit.pendingConnection.dAppInfo?.url}
                                     </p>
                                 </div>
                             </div>
-                            <AlertDialogDescription asChild>
-                                <div className="space-y-3 pt-2">
-                                    <p className="text-sm text-muted-foreground">
-                                        This app wants to connect to your wallet. It will be able to:
-                                    </p>
-                                    <ul className="space-y-2">
-                                        <li className="flex items-center gap-2 text-sm text-foreground">
-                                            <Check className="w-4 h-4 text-green-500" />
-                                            View your wallet address
-                                        </li>
-                                        <li className="flex items-center gap-2 text-sm text-foreground">
-                                            <Check className="w-4 h-4 text-green-500" />
-                                            Request transaction approvals
-                                        </li>
-                                    </ul>
-                                </div>
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="mt-4">
+                            <div className="space-y-3 pt-2">
+                                <p className="text-sm text-muted-foreground">
+                                    This app wants to connect to your wallet. It will be able to:
+                                </p>
+                                <ul className="space-y-2">
+                                    <li className="flex items-center gap-2 text-sm text-foreground">
+                                        <Check className="w-4 h-4 text-green-500" />
+                                        View your wallet address
+                                    </li>
+                                    <li className="flex items-center gap-2 text-sm text-foreground">
+                                        <Check className="w-4 h-4 text-green-500" />
+                                        Request transaction approvals
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4">
                             <Button
                                 variant="outline"
                                 onClick={() => {
+                                    console.log("[UI] Cancel clicked");
                                     walletKit.rejectConnection();
                                 }}
                             >
@@ -505,15 +504,16 @@ export default function ConnectedAppsPage() {
                             </Button>
                             <Button
                                 onClick={() => {
+                                    console.log("[UI] Connect clicked");
                                     walletKit.approveConnection();
                                 }}
                                 className="bg-primary hover:bg-primary/90"
                             >
                                 Connect
                             </Button>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
