@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
     Search,
@@ -15,12 +15,13 @@ import {
     Droplets,
     Gamepad2,
     LayoutGrid,
+    Lock,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import WalletNavigation from "../(navigation)/WalletNavigation";
+import Image from "next/image";
 
 interface DApp {
     id: string;
@@ -32,6 +33,7 @@ interface DApp {
     featured?: boolean;
 }
 
+// App icons CDN URLs (using official logos from CDNs)
 const POPULAR_DAPPS: DApp[] = [
     {
         id: "stonfi",
@@ -47,7 +49,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "DeDust",
         description: "AMM & DEX Protocol",
         url: "https://dedust.io",
-        icon: "",
+        icon: "https://dedust.io/favicon.svg",
         category: "exchange",
         featured: true,
     },
@@ -56,7 +58,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "Getgems",
         description: "NFT Marketplace",
         url: "https://getgems.io",
-        icon: "",
+        icon: "https://getgems.io/favicon.svg",
         category: "nft",
         featured: true,
     },
@@ -65,7 +67,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "TON Viewer",
         description: "Blockchain Explorer",
         url: "https://tonviewer.com",
-        icon: "/svg/ton-logo.svg",
+        icon: "https://tonviewer.com/favicon.svg",
         category: "tools",
     },
     {
@@ -73,7 +75,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "TON Stakers",
         description: "Liquid Staking",
         url: "https://tonstakers.com",
-        icon: "/svg/ton-logo.svg",
+        icon: "https://tonstakers.com/favicon.svg",
         category: "defi",
     },
     {
@@ -81,7 +83,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "EVAA",
         description: "Lending Protocol",
         url: "https://evaa.finance",
-        icon: "",
+        icon: "https://evaa.finance/favicon.svg",
         category: "defi",
     },
     {
@@ -97,7 +99,7 @@ const POPULAR_DAPPS: DApp[] = [
         name: "Fragment",
         description: "Telegram Usernames",
         url: "https://fragment.com",
-        icon: "",
+        icon: "https://fragment.com/favicon.ico",
         category: "nft",
     },
 ];
@@ -114,7 +116,7 @@ const CATEGORIES = [
 // Fallback icon component
 function AppIcon({ app }: { app: DApp }) {
     const [hasError, setHasError] = useState(false);
-    
+
     const getCategoryColor = (category: string) => {
         switch (category) {
             case "exchange": return "bg-blue-500/20 text-blue-400";
@@ -146,6 +148,20 @@ function AppIcon({ app }: { app: DApp }) {
         );
     }
 
+    // Use Next.js Image for local SVGs, regular img for external URLs
+    if (app.icon.startsWith("/")) {
+        return (
+            <Image
+                src={app.icon}
+                alt={app.name}
+                width={40}
+                height={40}
+                className="w-full h-full object-contain p-1"
+                onError={() => setHasError(true)}
+            />
+        );
+    }
+
     return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -157,30 +173,63 @@ function AppIcon({ app }: { app: DApp }) {
     );
 }
 
+// Parse URL to show a friendly display
+function getDisplayUrl(url: string): string {
+    try {
+        const urlObj = new URL(url);
+        
+        // Check if it's a DuckDuckGo search
+        if (urlObj.hostname === "duckduckgo.com") {
+            const searchQuery = urlObj.searchParams.get("q");
+            if (searchQuery) {
+                // Truncate long search queries
+                const truncated = searchQuery.length > 25 
+                    ? searchQuery.substring(0, 25) + "..." 
+                    : searchQuery;
+                return `🔍 ${truncated}`;
+            }
+        }
+        
+        // For other URLs, show hostname + path (truncated)
+        let display = urlObj.hostname.replace("www.", "");
+        if (urlObj.pathname && urlObj.pathname !== "/") {
+            const path = urlObj.pathname.length > 15 
+                ? urlObj.pathname.substring(0, 15) + "..." 
+                : urlObj.pathname;
+            display += path;
+        }
+        return display;
+    } catch {
+        // Fallback: truncate the raw URL
+        return url.length > 30 ? url.substring(0, 30) + "..." : url;
+    }
+}
+
 export default function BrowserPage() {
     useTelegramBackButton("/wallet");
-    
+
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    
+
     const [currentUrl, setCurrentUrl] = useState<string | null>(null);
+    const [displaySearchQuery, setDisplaySearchQuery] = useState<string>("");
     const [inputUrl, setInputUrl] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState("all");
 
     // Filter dApps by category
-    const filteredDApps = selectedCategory === "all" 
-        ? POPULAR_DAPPS 
+    const filteredDApps = selectedCategory === "all"
+        ? POPULAR_DAPPS
         : POPULAR_DAPPS.filter(app => app.category === selectedCategory);
 
     // Check if input is a search query or a URL
     const isSearchQuery = useCallback((input: string): boolean => {
         const trimmed = input.trim();
-        
+
         // If it starts with http:// or https://, it's a URL
         if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
             return false;
         }
-        
+
         // If it looks like a domain (contains . and no spaces), treat as URL
         if (trimmed.includes(".") && !trimmed.includes(" ")) {
             // Additional check: common TLDs
@@ -189,25 +238,29 @@ export default function BrowserPage() {
                 return false;
             }
         }
-        
+
         // Otherwise, it's a search query
         return true;
     }, []);
 
     const navigateTo = useCallback((url: string) => {
         let finalUrl = url.trim();
-        
+
         if (isSearchQuery(finalUrl)) {
+            // Store the search query for display
+            setDisplaySearchQuery(finalUrl);
             // Use DuckDuckGo with dark mode for searches
-            // kae=d enables dark mode theme
             const encodedQuery = encodeURIComponent(finalUrl);
-            finalUrl = `https://duckduckgo.com/?q=${encodedQuery}&kae=d&k7=1a1a2e&kj=1a1a2e&kx=00d4aa&k9=00d4aa&kaa=00d4aa&k8=ffffff&kt=p`;
-        } else if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
-            finalUrl = "https://" + finalUrl;
+            finalUrl = `https://duckduckgo.com/?q=${encodedQuery}&kae=d&k7=000000&kj=000000&kx=00d4aa&k9=00d4aa&kaa=00d4aa&k8=ffffff&kt=p&ko=1`;
+        } else {
+            setDisplaySearchQuery("");
+            if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
+                finalUrl = "https://" + finalUrl;
+            }
         }
-        
+
         setCurrentUrl(finalUrl);
-        setInputUrl(finalUrl);
+        setInputUrl("");
         setIsLoading(true);
     }, [isSearchQuery]);
 
@@ -228,6 +281,7 @@ export default function BrowserPage() {
     const handleClose = useCallback(() => {
         setCurrentUrl(null);
         setInputUrl("");
+        setDisplaySearchQuery("");
         setIsLoading(false);
     }, []);
 
@@ -246,50 +300,73 @@ export default function BrowserPage() {
         }
     };
 
+    // Memoize the display URL
+    const urlDisplay = useMemo(() => {
+        if (!currentUrl) return "";
+        if (displaySearchQuery) {
+            const truncated = displaySearchQuery.length > 25
+                ? displaySearchQuery.substring(0, 25) + "..."
+                : displaySearchQuery;
+            return truncated;
+        }
+        return getDisplayUrl(currentUrl);
+    }, [currentUrl, displaySearchQuery]);
+
     // If a URL is open, show the browser view
     if (currentUrl) {
         return (
-            <div className="flex flex-col h-screen bg-black">
-                {/* Browser Header */}
-                <div className="flex items-center gap-2 p-3 border-b border-white/10 bg-black">
+            <div className="fixed inset-0 flex flex-col bg-black z-50">
+                {/* Browser Header - respects safe area */}
+                <div 
+                    className="flex items-center gap-2 px-3 pb-3 bg-black"
+                    style={{
+                        paddingTop: "calc(var(--tg-safe-area-inset-top, 12px) + 12px)",
+                    }}
+                >
                     <button
                         onClick={handleClose}
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors"
                     >
                         <X className="w-5 h-5 text-white" />
                     </button>
-                    
-                    <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-full px-4 py-2 border border-white/10">
+
+                    <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-full px-4 py-2.5 border border-white/10 min-w-0">
                         {isLoading ? (
                             <ButtonLoader size="sm" />
+                        ) : displaySearchQuery ? (
+                            <Search className="w-4 h-4 text-green-500 flex-shrink-0" />
                         ) : (
-                            <Globe className="w-4 h-4 text-gray-400" />
+                            <Lock className="w-4 h-4 text-green-500 flex-shrink-0" />
                         )}
                         <span className="text-sm truncate flex-1 text-white">
-                            {currentUrl}
+                            {urlDisplay}
                         </span>
                     </div>
-                    
+
                     <button
                         onClick={handleRefresh}
                         disabled={isLoading}
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-50"
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors disabled:opacity-50"
                     >
                         <RefreshCw className={`w-5 h-5 text-white ${isLoading ? "animate-spin" : ""}`} />
                     </button>
                 </div>
-                
-                {/* Browser Content */}
-                <div className="flex-1 relative">
+
+                {/* Browser Content - Full width, no borders */}
+                <div className="flex-1 relative overflow-hidden">
                     <iframe
                         ref={iframeRef}
                         src={currentUrl}
-                        className="w-full h-full border-0 bg-white"
+                        className="absolute inset-0 w-full h-full border-0"
+                        style={{ 
+                            backgroundColor: "#000",
+                            colorScheme: "dark",
+                        }}
                         onLoad={handleIframeLoad}
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-                        allow="clipboard-read; clipboard-write"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-top-navigation"
+                        allow="clipboard-read; clipboard-write; web-share"
                     />
-                    
+
                     {isLoading && (
                         <div className="absolute inset-0 bg-black flex items-center justify-center">
                             <div className="flex flex-col items-center gap-4">
@@ -306,7 +383,7 @@ export default function BrowserPage() {
     // Default view - dApp browser home
     return (
         <div className="flex flex-col min-h-screen bg-black">
-            <div className="flex-1 overflow-y-auto pb-28">
+            <div className="flex-1 overflow-y-auto pb-28 overscroll-contain">
                 <div className="px-4 pt-2 pb-4 space-y-5">
                     {/* Header */}
                     <div className="space-y-0.5">
@@ -324,13 +401,13 @@ export default function BrowserPage() {
                                 type="text"
                                 value={inputUrl}
                                 onChange={(e) => setInputUrl(e.target.value)}
-                                placeholder="Search with DuckDuckGo or enter URL..."
+                                placeholder="Search or enter URL..."
                                 className="pl-12 pr-4 h-12 bg-white/5 border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:border-white/20 focus:ring-0"
                             />
                         </div>
                         <div className="flex items-center gap-1.5 mt-2 px-1">
-                            <Shield className="w-3.5 h-3.5 text-green-500" />
-                            <span className="text-xs text-gray-500">Private search powered by DuckDuckGo</span>
+                            <Lock className="w-3.5 h-3.5 text-green-500" />
+                            <span className="text-xs text-gray-500">Powered by DuckDuckGo</span>
                         </div>
                     </form>
 
@@ -340,56 +417,50 @@ export default function BrowserPage() {
                             <Zap className="w-4 h-4 text-primary" />
                             Featured
                         </h2>
-                        <ScrollArea className="w-full whitespace-nowrap">
-                            <div className="flex gap-3 pb-2">
-                                {POPULAR_DAPPS.filter(app => app.featured).map((app) => (
-                                    <motion.button
-                                        key={app.id}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={() => navigateTo(app.url)}
-                                        className="flex-shrink-0 w-[140px] p-3 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors text-left"
-                                    >
-                                        <div className="w-11 h-11 rounded-xl bg-white/10 overflow-hidden mb-2">
-                                            <AppIcon app={app} />
-                                        </div>
-                                        <h3 className="font-medium text-white text-sm truncate">{app.name}</h3>
-                                        <p className="text-xs text-gray-500 truncate">
-                                            {app.description}
-                                        </p>
-                                    </motion.button>
-                                ))}
-                            </div>
-                            <ScrollBar orientation="horizontal" className="invisible" />
-                        </ScrollArea>
+                        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                            {POPULAR_DAPPS.filter(app => app.featured).map((app) => (
+                                <motion.button
+                                    key={app.id}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => navigateTo(app.url)}
+                                    className="flex-shrink-0 w-[140px] p-3 rounded-xl bg-white/5 border border-white/10 active:bg-white/10 transition-colors text-left"
+                                >
+                                    <div className="w-11 h-11 rounded-xl bg-white/10 overflow-hidden mb-2">
+                                        <AppIcon app={app} />
+                                    </div>
+                                    <h3 className="font-medium text-white text-sm truncate">{app.name}</h3>
+                                    <p className="text-xs text-gray-500 truncate">
+                                        {app.description}
+                                    </p>
+                                </motion.button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Categories - Horizontal Scroll */}
                     <div className="space-y-3">
                         <h2 className="text-base font-semibold text-white">Categories</h2>
-                        <ScrollArea className="w-full whitespace-nowrap">
-                            <div className="flex gap-2 pb-2">
-                                {CATEGORIES.map((cat) => {
-                                    const Icon = cat.icon;
-                                    const isActive = selectedCategory === cat.id;
-                                    return (
-                                        <motion.button
-                                            key={cat.id}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => setSelectedCategory(cat.id)}
-                                            className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
-                                                isActive 
-                                                    ? "bg-white text-black" 
-                                                    : "bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10"
-                                            }`}
-                                        >
-                                            <Icon className="w-4 h-4" />
-                                            {cat.name}
-                                        </motion.button>
-                                    );
-                                })}
-                            </div>
-                            <ScrollBar orientation="horizontal" className="invisible" />
-                        </ScrollArea>
+                        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                            {CATEGORIES.map((cat) => {
+                                const Icon = cat.icon;
+                                const isActive = selectedCategory === cat.id;
+                                return (
+                                    <motion.button
+                                        key={cat.id}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setSelectedCategory(cat.id)}
+                                        className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
+                                            isActive
+                                                ? "bg-white text-black"
+                                                : "bg-white/5 text-gray-400 active:bg-white/10 border border-white/10"
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                        {cat.name}
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     {/* All Apps */}
@@ -403,7 +474,7 @@ export default function BrowserPage() {
                                     key={app.id}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={() => navigateTo(app.url)}
-                                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors text-left"
+                                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 active:bg-white/10 transition-colors text-left"
                                 >
                                     <div className="w-10 h-10 rounded-lg bg-white/10 overflow-hidden flex-shrink-0">
                                         <AppIcon app={app} />
@@ -441,7 +512,7 @@ export default function BrowserPage() {
                     </div>
                 </div>
             </div>
-            
+
             <WalletNavigation />
         </div>
     );
