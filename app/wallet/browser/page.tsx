@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import {
     Search,
@@ -9,14 +9,11 @@ import {
     RefreshCw,
     X,
     ExternalLink,
-    ChevronLeft,
-    ChevronRight,
     Star,
     Zap,
     Shield,
     TrendingUp,
     Droplets,
-    Coins,
     Gamepad2,
     LayoutGrid,
 } from "lucide-react";
@@ -26,7 +23,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useWalletKitOptional } from "@/lib/walletkit-provider";
 import WalletNavigation from "../(navigation)/WalletNavigation";
 
 interface DApp {
@@ -121,28 +117,13 @@ const CATEGORIES = [
 export default function BrowserPage() {
     useTelegramBackButton("/wallet");
     
-    const walletKit = useWalletKitOptional();
     const iframeRef = useRef<HTMLIFrameElement>(null);
     
     const [currentUrl, setCurrentUrl] = useState<string | null>(null);
     const [inputUrl, setInputUrl] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState("all");
-    const [canGoBack, setCanGoBack] = useState(false);
-    const [canGoForward, setCanGoForward] = useState(false);
-    const [favorites, setFavorites] = useState<string[]>([]);
 
-    // Load favorites from localStorage
-    useEffect(() => {
-        const saved = localStorage.getItem("qc_browser_favorites");
-        if (saved) {
-            try {
-                setFavorites(JSON.parse(saved));
-            } catch {
-                // Ignore parse errors
-            }
-        }
-    }, []);
 
     // Filter dApps by category
     const filteredDApps = selectedCategory === "all" 
@@ -183,16 +164,6 @@ export default function BrowserPage() {
 
     const handleIframeLoad = useCallback(() => {
         setIsLoading(false);
-    }, []);
-
-    const toggleFavorite = useCallback((appId: string) => {
-        setFavorites(prev => {
-            const newFavorites = prev.includes(appId)
-                ? prev.filter(id => id !== appId)
-                : [...prev, appId];
-            localStorage.setItem("qc_browser_favorites", JSON.stringify(newFavorites));
-            return newFavorites;
-        });
     }, []);
 
     const getCategoryIcon = (category: string) => {
