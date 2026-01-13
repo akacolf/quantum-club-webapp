@@ -342,7 +342,7 @@ export default function BrowserPage() {
                     className="flex items-center gap-3 px-4 pb-3 bg-black"
                     style={{
                         // Use larger top padding to clear Telegram's header buttons
-                        paddingTop: "max(calc(var(--tg-content-safe-area-inset-top, 0px) + 16px), 72px)",
+                        paddingTop: "max(calc(var(--tg-content-safe-area-inset-top, 0px) + 24px), 80px)",
                     }}
                 >
                     <button

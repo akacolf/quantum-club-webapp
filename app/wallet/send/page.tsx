@@ -1661,7 +1661,12 @@ export default function SendPage() {
                           <span className="text-xs text-yellow-500 ml-1">(incl. wallet activation)</span>
                         )}
                       </span>
-                      <span className="text-sm text-foreground">≈ {estimatedFee} TON</span>
+                      <div className="text-right">
+                        <span className="text-sm text-foreground">≈ {estimatedFee} TON</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (${(parseFloat(estimatedFee) * tonPrice).toFixed(2)})
+                        </span>
+                      </div>
                     </div>
 
                     {isFirstTransaction && (

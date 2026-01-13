@@ -23,6 +23,7 @@ import {
   ChevronRight,
   PieChart,
   History,
+  TrendingUp,
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -441,6 +442,9 @@ export default function WalletPage() {
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
       router.prefetch("/wallet/analytics");
+      router.prefetch("/wallet/earn");
+      router.prefetch("/wallet/staking");
+      router.prefetch("/wallet/browser");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -738,6 +742,25 @@ export default function WalletPage() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Earn & Stake Section */}
+        <div className="w-full">
+          <button
+            onClick={() => router.push("/wallet/earn")}
+            className="w-full p-4 rounded-2xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 flex items-center justify-between active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="text-left">
+                <h4 className="font-semibold text-white text-sm">Earn & Stake</h4>
+                <p className="text-xs text-gray-500">Up to 28% APY on TON DeFi</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
 
         {isTestnet ? (
