@@ -32,7 +32,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { QRScanner } from "@/components/ui/qr-scanner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWalletKitOptional } from "@/lib/walletkit-provider";
 
@@ -43,7 +42,6 @@ export default function ConnectedAppsPage() {
     const walletKit = useWalletKitOptional();
     
     const [isLoading, setIsLoading] = useState(true);
-    const [scannerOpen, setScannerOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +59,6 @@ export default function ConnectedAppsPage() {
 
     // Handle QR code scan result
     const handleScanResult = useCallback(async (result: string) => {
-        setScannerOpen(false);
         setIsProcessing(true);
         setError(null);
 
@@ -85,6 +82,34 @@ export default function ConnectedAppsPage() {
             setIsProcessing(false);
         }
     }, [walletKit]);
+
+    // Open Telegram's native QR scanner
+    const openQRScanner = useCallback(() => {
+        const WebApp = window?.Telegram?.WebApp;
+        
+        if (WebApp?.showScanQrPopup) {
+            // Use Telegram's native QR scanner
+            WebApp.showScanQrPopup(
+                { text: "Scan the QR code on any TON dApp" },
+                (result: string) => {
+                    // Check if it's a TON Connect URL
+                    if (result.startsWith("tc://") || result.includes("tonconnect") || result.includes("v2/")) {
+                        handleScanResult(result);
+                        WebApp.closeScanQrPopup();
+                        return true; // Close the scanner
+                    }
+                    // Keep scanning if not a valid URL
+                    toast.error("Invalid QR code", { description: "Please scan a TON Connect QR code" });
+                    return false;
+                }
+            );
+        } else {
+            // Fallback for web/desktop - show error since we're a mini app
+            toast.error("QR Scanner not available", {
+                description: "Please use the Telegram mobile app to scan QR codes",
+            });
+        }
+    }, [handleScanResult]);
 
     // Handle disconnect
     const handleDisconnect = useCallback(async (sessionId: string, appName: string) => {
@@ -172,7 +197,7 @@ export default function ConnectedAppsPage() {
 
             {/* Scan to Connect Button */}
             <Button
-                onClick={() => setScannerOpen(true)}
+                onClick={openQRScanner}
                 disabled={isProcessing || !walletKit.isReady}
                 className="w-full h-14 mb-6 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold"
             >
@@ -405,15 +430,6 @@ export default function ConnectedAppsPage() {
                     )}
                 </div>
             </ScrollArea>
-
-            {/* QR Scanner */}
-            <QRScanner
-                isOpen={scannerOpen}
-                onClose={() => setScannerOpen(false)}
-                onScan={handleScanResult}
-                title="Scan dApp QR Code"
-                description="Point your camera at the dApp's TON Connect QR code"
-            />
 
             {/* Connection Request Dialog - handled by WalletKit provider */}
             {walletKit.pendingConnection && (

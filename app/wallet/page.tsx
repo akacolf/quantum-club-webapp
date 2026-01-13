@@ -39,6 +39,7 @@ import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
 import { AnimatedPrice } from "@/components/ui/animated-price";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
   LineChart,
   Line,
@@ -133,6 +134,9 @@ export default function WalletPage() {
   } = useWallet();
 
   const { telegramId } = useGameContext();
+  
+  // Back button to return to main app
+  useTelegramBackButton("/home");
 
   const [hasWallet, setHasWallet] = useState(false);
   const [isChecking, setIsChecking] = useState(true);

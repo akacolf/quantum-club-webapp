@@ -949,7 +949,7 @@ export default function SwapPage() {
                                             <div className="flex items-center justify-between text-sm gap-2 pt-2 border-t border-border/50">
                                                 <div className="flex items-center gap-1.5 shrink-0">
                                                     <Fuel className="w-3 h-3 text-muted-foreground" />
-                                                    <Label htmlFor="gasless" className="text-muted-foreground text-sm cursor-pointer">
+                                                    <Label htmlFor="gasless" className={`text-sm cursor-pointer ${isGasless ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
                                                         Gasless swap
                                                     </Label>
                                                     <Popover>
@@ -965,13 +965,17 @@ export default function SwapPage() {
                                                     </Popover>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {isGasless && (
+                                                    {!isGasless && (
+                                                        <span className="text-xs text-muted-foreground/50 font-medium">Not available</span>
+                                                    )}
+                                                    {isGasless && preferGasless && (
                                                         <span className="text-xs text-green-500 font-medium">Active</span>
                                                     )}
                                                     <Switch
                                                         id="gasless"
                                                         checked={preferGasless}
                                                         onCheckedChange={setPreferGasless}
+                                                        disabled={!isGasless}
                                                         className="scale-75"
                                                     />
                                                 </div>

@@ -2,6 +2,7 @@
 
 import { WalletProvider } from "./WalletContext";
 import { WalletKitProvider } from "@/lib/walletkit-provider";
+import WalletNavigation from "./(navigation)/WalletNavigation";
 
 export default function WalletLayout({
   children,
@@ -14,7 +15,10 @@ export default function WalletLayout({
   return (
     <WalletProvider>
       <WalletKitProvider isTestnet={isTestnet}>
-        {children}
+        <div className="wallet-app">
+          {children}
+          <WalletNavigation />
+        </div>
       </WalletKitProvider>
     </WalletProvider>
   );
