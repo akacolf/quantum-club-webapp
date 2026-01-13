@@ -198,9 +198,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
   }, [rederiveTonAddress]);
 
-  // API URLs based on network
-  const getApiBaseUrl = useCallback(() => isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io", [isTestnet]);
-
   // Selected network for display
   const [selectedNetwork, setSelectedNetworkState] = useState<ChainType>(() => {
     if (typeof window !== "undefined") {
@@ -467,17 +464,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setTonUsdValue(tonUsd.toFixed(2));
       } catch (err) {
         console.error("Failed to fetch balance via Orbs:", err);
-        // Fallback to TONAPI if Orbs fails
-        const apiBase = getApiBaseUrl();
-        const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          const balanceInNano = balanceData.balance || "0";
-          const balanceInTon = fromNano(balanceInNano);
+        // Fallback to TONAPI via authenticated proxy if Orbs fails
+        try {
+          const { getAccount } = await import("@/lib/tonapi-client");
+          const balanceData = await getAccount(walletAddress, isTestnet);
+          const balanceInTon = fromNano(balanceData.balance || "0");
           setTonBalance(parseFloat(balanceInTon).toFixed(4));
           setWalletStatus(balanceData.status);
           tonUsd = parseFloat(balanceInTon) * price;
           setTonUsdValue(tonUsd.toFixed(2));
+        } catch (apiErr) {
+          console.error("TonAPI fallback also failed:", apiErr);
         }
       }
 
@@ -519,7 +516,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setIsLoadingAssets(false);
       setHasFetched(true);
     }
-  }, [walletAddress, fetchTonPrice, getApiBaseUrl]);
+  }, [walletAddress, fetchTonPrice, isTestnet]);
 
   // Fetch NFTs from TonAPI via authenticated proxy
   const fetchNfts = useCallback(async () => {

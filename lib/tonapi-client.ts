@@ -141,3 +141,50 @@ export async function resolveDns(domain: string) {
         wallet?: { address: string };
     }>(`/v2/dns/${encodeURIComponent(domain)}/resolve`);
 }
+
+/**
+ * Send a blockchain message (BOC)
+ */
+export async function sendBlockchainMessage(boc: string, testnet = false) {
+    return tonApiPost<{ hash?: string }>(
+        `/v2/blockchain/message`,
+        { boc },
+        { testnet }
+    );
+}
+
+/**
+ * Emulate a message to trace (for fee estimation)
+ */
+export async function emulateMessage(boc: string, testnet = false) {
+    return tonApiPost<{
+        transactions: Array<{
+            compute_phase?: { gas_fees?: number };
+            storage_phase?: { storage_fees_collected?: number };
+            action_phase?: { total_action_fees?: number };
+        }>;
+    }>(
+        `/v2/emulation/emulateMessageToTrace`,
+        { boc, ignore_signature_check: true },
+        { testnet }
+    );
+}
+
+/**
+ * Get NFT details
+ */
+export async function getNft(nftAddress: string, testnet = false) {
+    return tonApiGet<{
+        address: string;
+        metadata?: {
+            name?: string;
+            description?: string;
+            image?: string;
+        };
+        collection?: {
+            address?: string;
+            name?: string;
+        };
+        previews?: Array<{ resolution: string; url: string }>;
+    }>(`/v2/nfts/${encodeURIComponent(nftAddress)}`, { testnet });
+}
