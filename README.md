@@ -1,4 +1,4 @@
-# 🔮 Quantum Club
+## 🔮 Quantum Club
 
 <div align="center">
 
