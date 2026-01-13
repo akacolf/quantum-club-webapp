@@ -52,17 +52,29 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
 
         const fetchOnChainTrades = async () => {
             try {
-                // Fetch recent transactions from TONAPI
-                const response = await fetch(
-                    `https://tonapi.io/v2/blockchain/accounts/${jettonAddress}/transactions?limit=100`
+                // Fetch recent transactions from TONAPI via authenticated proxy
+                const { tonApiGet } = await import("@/lib/tonapi-client");
+                
+                const data = await tonApiGet<{ transactions?: Array<{
+                    success?: boolean;
+                    hash?: string;
+                    utime?: number;
+                    in_msg?: {
+                        op_code?: string;
+                        value?: number;
+                        raw_body?: string;
+                        decoded_body?: { amount?: string };
+                    };
+                    out_msgs?: Array<{
+                        op_code?: string;
+                        value?: number;
+                        decoded_body?: { amount?: string };
+                    }>;
+                }> }>(
+                    `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=100`,
+                    { testnet: false }
                 );
 
-                if (!response.ok) {
-                    setIsLoading(false);
-                    return;
-                }
-
-                const data = await response.json();
                 const tradeEvents: TradeEvent[] = [];
 
                 // Parse transactions for buy/sell events
@@ -74,8 +86,8 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                     const inMsg = tx.in_msg;
                     if (!inMsg?.op_code) continue;
 
-                    const timestamp = tx.utime * 1000;
-                    const hash = tx.hash;
+                    const timestamp = (tx.utime || 0) * 1000;
+                    const hash = tx.hash || "";
 
                     // BUY transaction
                     if (inMsg.op_code === "0xaf750d34") {

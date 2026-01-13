@@ -87,28 +87,30 @@ export default function TokenDetailPage() {
         }
     }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
     
-    // Fetch on-chain stats from TONAPI
+    // Fetch on-chain stats from TONAPI via authenticated proxy
     useEffect(() => {
         const fetchOnChainStats = async () => {
             if (!selectedToken?.jettonMasterAddress) return;
             
-            const baseUrl = isTestnet 
-                ? "https://testnet.tonapi.io" 
-                : "https://tonapi.io";
-            
             try {
+                const { tonApiGet } = await import("@/lib/tonapi-client");
+                
                 // Fetch holders count
-                const holdersRes = await fetch(
-                    `${baseUrl}/v2/jettons/${selectedToken.jettonMasterAddress}/holders?limit=1`
+                const holdersData = await tonApiGet<{ total?: number }>(
+                    `/v2/jettons/${selectedToken.jettonMasterAddress}/holders?limit=1`,
+                    { testnet: isTestnet }
                 );
-                const holdersData = await holdersRes.json();
                 const holdersCount = holdersData.total || 0;
                 
                 // Fetch recent transactions to count trades and volume
-                const txRes = await fetch(
-                    `${baseUrl}/v2/blockchain/accounts/${selectedToken.jettonMasterAddress}/transactions?limit=50`
+                const txData = await tonApiGet<{ transactions?: Array<{
+                    success?: boolean;
+                    in_msg?: { op_code?: string; value?: number };
+                    utime?: number;
+                }> }>(
+                    `/v2/blockchain/accounts/${selectedToken.jettonMasterAddress}/transactions?limit=50`,
+                    { testnet: isTestnet }
                 );
-                const txData = await txRes.json();
                 
                 let tradesCount = 0;
                 let volume24h = 0;
@@ -120,7 +122,7 @@ export default function TokenDetailPage() {
                     // Buy or Sell
                     if (opCode === "0xaf750d34" || opCode === "0x7bdd97de") {
                         tradesCount++;
-                        const txTime = tx.utime * 1000;
+                        const txTime = (tx.utime || 0) * 1000;
                         if (txTime > oneDayAgo) {
                             const tonValue = (tx.in_msg?.value || 0) / 1e9;
                             volume24h += tonValue;
