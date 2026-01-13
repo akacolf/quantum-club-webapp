@@ -21,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useNotifications } from "@/app/(hooks)/useNotifications";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
@@ -901,18 +900,6 @@ export default function SendPage() {
 
       setStep("success");
       toast.success("Transaction sent!");
-      
-      // Send push notification for transaction confirmation
-      const usdValue = selectedAsset?.priceUsd 
-        ? (parseFloat(amount) * selectedAsset.priceUsd).toFixed(2)
-        : undefined;
-      notifyTransactionSuccess({
-        txType: "send",
-        amount: amount,
-        symbol: selectedAsset?.symbol || "TON",
-        toAddress: recipient,
-        usdValue: usdValue,
-      });
 
       // Refresh assets after delay
       setTimeout(() => {
@@ -928,14 +915,6 @@ export default function SendPage() {
 
       // Show detailed error to user
       toast.error(`Transaction failed: ${errorMessage}`);
-      
-      // Send push notification for failed transaction
-      notifyTransactionFailed({
-        txType: "send",
-        amount: amount,
-        symbol: selectedAsset?.symbol || "TON",
-        toAddress: recipient,
-      });
       
       setStep("input");
     } finally {
