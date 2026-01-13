@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
 import { useGameContext } from "../(contexts)/MiningContext";
+import { getAccountJettons } from "@/lib/tonapi-client";
 
 // Default testnet mode - can be overridden by user preference in localStorage
 const DEFAULT_TESTNET = false;
@@ -196,9 +197,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       return newValue;
     });
   }, [rederiveTonAddress]);
-
-  // API URLs based on network
-  const getApiBaseUrl = useCallback(() => isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io", [isTestnet]);
 
   // Selected network for display
   const [selectedNetwork, setSelectedNetworkState] = useState<ChainType>(() => {
@@ -434,7 +432,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     return tonPrice || 0;
   }, [isTestnet, tonPrice]);
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
   // Fetch wallet assets (TON balance + Jettons)
   const fetchWalletAssets = useCallback(async () => {
     if (!walletAddress) return;
@@ -466,45 +464,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setTonUsdValue(tonUsd.toFixed(2));
       } catch (err) {
         console.error("Failed to fetch balance via Orbs:", err);
-        // Fallback to TONAPI if Orbs fails
-        const apiBase = getApiBaseUrl();
-        const balanceResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}`);
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          const balanceInNano = balanceData.balance || "0";
-          const balanceInTon = fromNano(balanceInNano);
+        // Fallback to TONAPI via authenticated proxy if Orbs fails
+        try {
+          const { getAccount } = await import("@/lib/tonapi-client");
+          const balanceData = await getAccount(walletAddress, isTestnet);
+          const balanceInTon = fromNano(balanceData.balance || "0");
           setTonBalance(parseFloat(balanceInTon).toFixed(4));
           setWalletStatus(balanceData.status);
           tonUsd = parseFloat(balanceInTon) * price;
           setTonUsdValue(tonUsd.toFixed(2));
+        } catch (apiErr) {
+          console.error("TonAPI fallback also failed:", apiErr);
         }
       }
 
-      // Fetch Jettons (tokens) balance with USD prices
-      // Note: Jetton indexed data still requires TONAPI as Orbs doesn't index jettons
+      // Fetch Jettons (tokens) balance with USD prices via authenticated proxy
       let jettonsUsdTotal = 0;
-      const apiBase = getApiBaseUrl();
-      const jettonsResponse = await fetch(`${apiBase}/v2/accounts/${walletAddress}/jettons?currencies=usd`);
-      if (jettonsResponse.status !== 200) {
-        sleep(300)
-        return fetchWalletAssets()
-      }
-      if (jettonsResponse.ok) {
-        const jettonsData = await jettonsResponse.json();
-        const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton: {
-          balance: string;
-          wallet_address?: { address?: string };
-          price?: {
-            prices?: { USD?: number };
-          };
-          jetton: {
-            address?: string;
-            symbol?: string;
-            name?: string;
-            decimals?: number;
-            image?: string;
-          }
-        }) => {
+      try {
+        const jettonsData = await getAccountJettons(walletAddress, isTestnet);
+        const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton) => {
           const decimals = jetton.jetton?.decimals || 9;
           const rawBalance = parseFloat(jetton.balance || "0");
           const actualBalance = rawBalance / Math.pow(10, decimals);
@@ -525,7 +503,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           };
         });
         setJettons(jettonBalances);
+      } catch (jettonError) {
+        console.error("Failed to fetch jettons:", jettonError);
       }
+
 
       // Set total USD balance (TON + all Jettons)
       setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
@@ -535,54 +516,39 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setIsLoadingAssets(false);
       setHasFetched(true);
     }
-  }, [walletAddress, fetchTonPrice, getApiBaseUrl]);
+  }, [walletAddress, fetchTonPrice, isTestnet]);
 
-  // Fetch NFTs from TonAPI
+  // Fetch NFTs from TonAPI via authenticated proxy
   const fetchNfts = useCallback(async () => {
     if (!walletAddress) return;
 
     setIsLoadingNfts(true);
     try {
-      const apiBase = getApiBaseUrl();
-      const response = await fetch(`${apiBase}/v2/accounts/${walletAddress}/nfts?limit=100`);
+      const { getAccountNfts } = await import("@/lib/tonapi-client");
+      const data = await getAccountNfts(walletAddress, isTestnet);
+      
+      const nftItems: NftItem[] = (data.nft_items || []).map((nft) => {
+        // Get the best preview image (prefer 500x500)
+        const preview = nft.previews?.find(p => p.resolution === '500x500')
+          || nft.previews?.find(p => p.resolution === '100x100')
+          || nft.previews?.[0];
 
-      if (response.ok) {
-        const data = await response.json();
-        const nftItems: NftItem[] = (data.nft_items || []).map((nft: {
-          address: string;
-          metadata?: {
-            name?: string;
-            description?: string;
-            image?: string;
-          };
-          collection?: {
-            address?: string;
-            name?: string;
-          };
-          previews?: Array<{ resolution: string; url: string }>;
-        }) => {
-          // Get the best preview image (prefer 500x500)
-          const preview = nft.previews?.find(p => p.resolution === '500x500')
-            || nft.previews?.find(p => p.resolution === '100x100')
-            || nft.previews?.[0];
-
-          return {
-            address: nft.address,
-            name: nft.metadata?.name || 'Unnamed NFT',
-            description: nft.metadata?.description,
-            image: preview?.url || nft.metadata?.image,
-            collectionName: nft.collection?.name,
-            collectionAddress: nft.collection?.address,
-          };
-        });
-        setNfts(nftItems);
-      }
+        return {
+          address: nft.address,
+          name: nft.metadata?.name || 'Unnamed NFT',
+          description: nft.metadata?.description,
+          image: preview?.url || nft.metadata?.image,
+          collectionName: nft.collection?.name,
+          collectionAddress: nft.collection?.address,
+        };
+      });
+      setNfts(nftItems);
     } catch (error) {
       console.error("Failed to fetch NFTs:", error);
     } finally {
       setIsLoadingNfts(false);
     }
-  }, [walletAddress, getApiBaseUrl]);
+  }, [walletAddress, isTestnet]);
 
   // Derive multi-chain addresses from mnemonic (always mainnet)
   // Re-derive when wallet address changes (e.g., after import or wallet switch)

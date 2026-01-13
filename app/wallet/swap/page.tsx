@@ -12,6 +12,7 @@ import {
     AlertTriangle,
     Info,
     Check,
+    Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,23 +36,54 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { beginCell, Address } from "@ton/core";
+import { beginCell, Address, Cell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
 import {
     fetchSwappableAssets,
-    simulateSwap,
     toUnits,
     fromUnits,
-    formatSwapRate,
-    SwapError,
     type SwapAsset,
-    type SwapSimulation,
 } from "@/lib/stonfi";
-import { dexFactory } from "@ston-fi/sdk";
-import { TonClient } from "@ton/ton";
+import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
+
+// Custom hook for debouncing values
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedValue(value), delay);
+        return () => clearTimeout(timer);
+    }, [value, delay]);
+    
+    return debouncedValue;
+}
+
+// Format large numbers to prevent layout issues
+function formatDisplayNumber(value: string | number, maxDecimals: number = 4): string {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num) || num === 0) return "0.0";
+    
+    // For very large numbers, use compact notation
+    if (Math.abs(num) >= 1_000_000_000) {
+        return (num / 1_000_000_000).toFixed(2) + "B";
+    }
+    if (Math.abs(num) >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2) + "M";
+    }
+    if (Math.abs(num) >= 1_000) {
+        return (num / 1_000).toFixed(2) + "K";
+    }
+    
+    // For small numbers, show appropriate precision
+    if (Math.abs(num) < 0.0001 && num !== 0) {
+        return num.toExponential(2);
+    }
+    
+    return num.toFixed(maxDecimals);
+}
 
 export default function SwapPage() {
     useTelegramBackButton("/wallet");
@@ -86,12 +118,59 @@ export default function SwapPage() {
     const [fromAsset, setFromAsset] = useState<SwapAsset | null>(null);
     const [toAsset, setToAsset] = useState<SwapAsset | null>(null);
     const [amount, setAmount] = useState("");
-    const [simulation, setSimulation] = useState<SwapSimulation | null>(null);
-    const [isSimulating, setIsSimulating] = useState(false);
     const [isSwapping, setIsSwapping] = useState(false);
     const [lastTxHash, setLastTxHash] = useState<string | null>(null);
     const [slippage, setSlippage] = useState("1"); // 1% default
-    const [simulationError, setSimulationError] = useState<string | null>(null);
+    const [confirmedQuote, setConfirmedQuote] = useState<typeof omnistonQuote>(null); // Store quote for confirm step
+
+    // Debounce the amount for quote requests (500ms)
+    const debouncedAmount = useDebounce(amount, 500);
+
+    // Build quote params based on current form state
+    const quoteParams = useMemo((): QuoteParams | null => {
+        if (!fromAsset || !toAsset || !debouncedAmount || parseFloat(debouncedAmount) <= 0) {
+            return null;
+        }
+
+        const offerUnits = toUnits(debouncedAmount, fromAsset.decimals);
+        
+        return {
+            fromAsset: {
+                address: fromAsset.contractAddress,
+                blockchain: 607,
+                kind: fromAsset.kind,
+                symbol: fromAsset.symbol,
+                displayName: fromAsset.displayName,
+                imageUrl: fromAsset.imageUrl,
+                decimals: fromAsset.decimals,
+            },
+            toAsset: {
+                address: toAsset.contractAddress,
+                blockchain: 607,
+                kind: toAsset.kind,
+                symbol: toAsset.symbol,
+                displayName: toAsset.displayName,
+                imageUrl: toAsset.imageUrl,
+                decimals: toAsset.decimals,
+            },
+            amount: offerUnits,
+            slippageBps: Math.round(parseFloat(slippage) * 100), // Convert % to basis points
+        };
+    }, [fromAsset, toAsset, debouncedAmount, slippage]);
+
+    // Omniston hook for quotes and execution
+    const {
+        quote: omnistonQuote,
+        isQuoting,
+        quoteError,
+        resolverName,
+        isConnected,
+        buildAndExecute,
+        unsubscribe: cancelQuote,
+    } = useOmnistonSwap({ 
+        params: quoteParams,
+        enabled: step === "input", // Only fetch quotes on input step
+    });
 
     // Gas reserve constants
     const MIN_TON_BALANCE = 0.35; // Minimum 0.35 TON required in wallet for swaps
@@ -184,55 +263,12 @@ export default function SwapPage() {
         [tonBalance, jettons]
     );
 
-    // Debounced simulation
-    useEffect(() => {
-        if (!fromAsset || !toAsset || !amount || parseFloat(amount) <= 0) {
-            setSimulation(null);
-            setSimulationError(null);
-            return;
-        }
-
-        const timer = setTimeout(async () => {
-            setIsSimulating(true);
-            setSimulationError(null);
-            try {
-                const offerUnits = toUnits(amount, fromAsset.decimals);
-                const slippageTolerance = (parseFloat(slippage) / 100).toString();
-
-                const result = await simulateSwap(
-                    fromAsset.contractAddress,
-                    toAsset.contractAddress,
-                    offerUnits,
-                    slippageTolerance
-                );
-
-                setSimulation(result);
-                setSimulationError(null);
-            } catch (error) {
-                console.error("Simulation failed:", error);
-                setSimulation(null);
-
-                // Set user-friendly error message
-                if (error instanceof SwapError) {
-                    setSimulationError(error.message);
-                } else {
-                    setSimulationError("Unable to get swap quote. Please try again.");
-                }
-            } finally {
-                setIsSimulating(false);
-            }
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [fromAsset, toAsset, amount, slippage]);
-
     // Handle swap direction toggle
     const handleToggleDirection = () => {
         const temp = fromAsset;
         setFromAsset(toAsset);
         setToAsset(temp);
         setAmount("");
-        setSimulation(null);
     };
 
     // Handle max amount - show full balance, gas will be deducted during execution if needed
@@ -257,25 +293,15 @@ export default function SwapPage() {
         }
     };
 
-    // Calculate required gas based on simulation - use total gas (consumption + forward) for safety
+    // Calculate required gas based on Omniston quote
     const requiredGas = useMemo(() => {
-        if (simulation && simulation.gasParams) {
-            const estimatedGas = parseFloat(simulation.gasParams.estimatedGasConsumption || "0") / 1e9;
-            const forwardGas = parseFloat(simulation.gasParams.forwardGas || "0") / 1e9;
-
-            // Total gas = estimated consumption + forward gas (for DEX routing)
-            const totalGas = estimatedGas + forwardGas;
-
-            // Apply safety multiplier and ensure minimum
-            // The multiplier covers: network variance, wallet deployment if needed, timing gaps
-            return Math.max(totalGas * GAS_SAFETY_MULTIPLIER, MIN_GAS_RESERVE_TON);
+        if (omnistonQuote && omnistonQuote.gasBudget) {
+            const gasBudget = parseFloat(omnistonQuote.gasBudget) / 1e9;
+            // Apply safety multiplier
+            return Math.max(gasBudget * GAS_SAFETY_MULTIPLIER, MIN_GAS_RESERVE_TON);
         }
         return MIN_GAS_RESERVE_TON;
-    }, [simulation]);
-
-    const requiredGasNano = useMemo(() => {
-        return BigInt(Math.floor(requiredGas * 1e9));
-    }, [requiredGas]);
+    }, [omnistonQuote]);
 
     // Calculate swap details including gas handling
     const swapDetails = useMemo(() => {
@@ -345,7 +371,7 @@ export default function SwapPage() {
     const canProceed = useMemo(() => {
         if (!fromAsset || !toAsset || !amount || parseFloat(amount) <= 0)
             return false;
-        if (!simulation) return false;
+        if (!omnistonQuote) return false;
 
         const balance = parseFloat(getAssetBalance(fromAsset));
         const sendAmount = parseFloat(amount);
@@ -366,11 +392,12 @@ export default function SwapPage() {
             return false;
 
         return true;
-    }, [fromAsset, toAsset, amount, simulation, getAssetBalance, tonBalance, swapDetails]);
+    }, [fromAsset, toAsset, amount, omnistonQuote, getAssetBalance, tonBalance, swapDetails]);
 
     // Handle continue to confirm
     const handleContinue = () => {
-        if (canProceed) {
+        if (canProceed && omnistonQuote) {
+            setConfirmedQuote(omnistonQuote); // Store quote before changing step
             setStep("confirm");
         }
     };
@@ -386,11 +413,11 @@ export default function SwapPage() {
         }
     };
 
-    // Execute swap
+    // Execute swap using Omniston
     const executeSwap = async () => {
         const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-        if (!storedMnemonic || !simulation || !fromAsset || !toAsset) {
-            toast.error("Wallet credentials not found");
+        if (!storedMnemonic || !confirmedQuote || !fromAsset || !toAsset) {
+            toast.error("Wallet credentials or quote not found");
             return;
         }
 
@@ -426,135 +453,85 @@ export default function SwapPage() {
                 seqno = 0;
             }
 
-            // Build swap transaction using STON.fi SDK with TON Access
-            let tonClient: TonClient;
-            try {
-                const { getHttpEndpoint } = await import("@orbs-network/ton-access");
-                const endpoint = await getHttpEndpoint({ network: "mainnet" });
-                tonClient = new TonClient({ endpoint });
-            } catch {
-                // Fallback to TonCenter
-                tonClient = new TonClient({
-                    endpoint: "https://toncenter.com/api/v2/jsonRPC",
-                });
-            }
-
-            const dexContracts = dexFactory(simulation.router);
-            const router = tonClient.open(
-                dexContracts.Router.create(simulation.router.address)
-            );
-            const proxyTon = dexContracts.pTON.create(
-                simulation.router.ptonMasterAddress
-            );
-
-            let txParams;
-            let actualOfferUnits = simulation.offerUnits;
-            let actualMinAskUnits = simulation.minAskUnits;
-
-            if (fromAsset.kind === "Ton") {
-                // TON -> Jetton: Safety check - ensure we have enough for gas
-                // This should already be handled by the UI, but double-check here
-                const userBalance = BigInt(Math.floor(parseFloat(tonBalance) * 1e9));
-                const offerAmount = BigInt(simulation.offerUnits);
-
-                // If user somehow bypassed UI validation, check and fail gracefully
-                if (offerAmount + requiredGasNano > userBalance) {
-                    const adjustedOffer = userBalance - requiredGasNano;
-
-                    if (adjustedOffer <= BigInt(0)) {
-                        toast.error("Insufficient balance for gas fees");
-                        setStep("input");
-                        setIsSwapping(false);
-                        return;
+            // Use Omniston to build and send the transaction
+            const sendTransaction = async (params: { to: string; value: bigint; body: string }) => {
+                const toAddress = Address.parse(params.to);
+                
+                // Parse the body from base64 BOC to Cell
+                // The payload from Omniston is base64-encoded BOC, not a text comment
+                let bodyCell: Cell | undefined;
+                if (params.body) {
+                    try {
+                        const bodyBuffer = Buffer.from(params.body, 'base64');
+                        bodyCell = Cell.fromBoc(bodyBuffer)[0];
+                    } catch (e) {
+                        console.error('Failed to parse body as Cell:', e);
+                        // If parsing fails, it might be a hex string
+                        try {
+                            const bodyBuffer = Buffer.from(params.body, 'hex');
+                            bodyCell = Cell.fromBoc(bodyBuffer)[0];
+                        } catch {
+                            console.error('Failed to parse body as hex Cell, using undefined');
+                        }
                     }
-
-                    actualOfferUnits = adjustedOffer.toString();
-
-                    // Re-calculate minimum ask amount proportionally
-                    const ratio = Number(adjustedOffer) / Number(offerAmount);
-                    actualMinAskUnits = Math.floor(Number(simulation.minAskUnits) * ratio).toString();
-
-                    // Show user that amount was adjusted
-                    const adjustedTon = (Number(adjustedOffer) / 1e9).toFixed(4);
-                    toast.info(`Adjusted swap to ${adjustedTon} TON to cover gas fees`);
                 }
-
-                // Use the original toAsset.contractAddress to ensure correct direction
-                txParams = await router.getSwapTonToJettonTxParams({
-                    userWalletAddress: walletAddress,
-                    offerAmount: actualOfferUnits,
-                    minAskAmount: actualMinAskUnits,
-                    askJettonAddress: toAsset.contractAddress,
-                    proxyTon,
-                });
-            } else if (toAsset.kind === "Ton") {
-                // Jetton -> TON
-                // Use the original fromAsset.contractAddress to ensure correct direction
-                txParams = await router.getSwapJettonToTonTxParams({
-                    userWalletAddress: walletAddress,
-                    offerJettonAddress: fromAsset.contractAddress,
-                    offerAmount: simulation.offerUnits,
-                    minAskAmount: simulation.minAskUnits,
-                    proxyTon,
-                });
-            } else {
-                // Jetton -> Jetton
-                // Use the original asset addresses to ensure correct direction
-                txParams = await router.getSwapJettonToJettonTxParams({
-                    userWalletAddress: walletAddress,
-                    offerJettonAddress: fromAsset.contractAddress,
-                    askJettonAddress: toAsset.contractAddress,
-                    offerAmount: simulation.offerUnits,
-                    minAskAmount: simulation.minAskUnits,
-                });
-            }
-
-            // Send the transaction
-            if (!isWalletDeployed && seqno === 0) {
-                // First transaction with wallet deployment
-                const transfer = wallet.createTransfer({
-                    seqno: 0,
-                    secretKey: keyPair.secretKey,
-                    sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-                    messages: [internal(txParams)],
+                
+                // Create internal message with proper Cell body
+                const internalMsg = internal({
+                    to: toAddress,
+                    value: params.value,
+                    body: bodyCell,
                 });
 
-                const externalMessage = beginCell()
-                    .storeWritable((builder) => {
-                        builder.storeUint(0b10, 2);
-                        builder.storeUint(0, 2);
-                        builder.storeAddress(wallet.address);
-                        builder.storeCoins(0);
-                    })
-                    .storeBit(true)
-                    .storeBit(true)
-                    .storeRef(
-                        beginCell()
-                            .storeUint(0, 2)
-                            .storeMaybeRef(wallet.init.code)
-                            .storeMaybeRef(wallet.init.data)
-                            .storeUint(0, 1)
-                            .endCell()
-                    )
-                    .storeBit(true)
-                    .storeRef(transfer)
-                    .endCell();
+                if (!isWalletDeployed && seqno === 0) {
+                    // First transaction with wallet deployment
+                    const transfer = wallet.createTransfer({
+                        seqno: 0,
+                        secretKey: keyPair.secretKey,
+                        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+                        messages: [internalMsg],
+                    });
 
-                const boc = externalMessage.toBoc().toString("base64");
-                await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ boc }),
-                });
-            } else {
-                // Normal transfer
-                await contract.sendTransfer({
-                    seqno,
-                    secretKey: keyPair.secretKey,
-                    sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-                    messages: [internal(txParams)],
-                });
-            }
+                    const externalMessage = beginCell()
+                        .storeWritable((builder) => {
+                            builder.storeUint(0b10, 2);
+                            builder.storeUint(0, 2);
+                            builder.storeAddress(wallet.address);
+                            builder.storeCoins(0);
+                        })
+                        .storeBit(true)
+                        .storeBit(true)
+                        .storeRef(
+                            beginCell()
+                                .storeUint(0, 2)
+                                .storeMaybeRef(wallet.init.code)
+                                .storeMaybeRef(wallet.init.data)
+                                .storeUint(0, 1)
+                                .endCell()
+                        )
+                        .storeBit(true)
+                        .storeRef(transfer)
+                        .endCell();
+
+                    const boc = externalMessage.toBoc().toString("base64");
+                    await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ boc }),
+                    });
+                } else {
+                    // Normal transfer
+                    await contract.sendTransfer({
+                        seqno,
+                        secretKey: keyPair.secretKey,
+                        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+                        messages: [internalMsg],
+                    });
+                }
+            };
+
+            // Execute via Omniston
+            await buildAndExecute(confirmedQuote, walletAddress, sendTransaction);
 
             setLastTxHash(walletAddress || "");
             setStep("success");
@@ -575,16 +552,20 @@ export default function SwapPage() {
         }
     };
 
+    // Use the appropriate quote based on step
+    const activeQuote = step === "input" ? omnistonQuote : confirmedQuote;
+
     // Get expected output amount for display
     const expectedOutput = useMemo(() => {
-        if (!simulation || !toAsset) return "0.0";
-        return parseFloat(fromUnits(simulation.askUnits, toAsset.decimals)).toFixed(4);
-    }, [simulation, toAsset]);
+        if (!activeQuote || !toAsset) return "0.0";
+        return parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
+    }, [activeQuote, toAsset]);
 
     const minimumReceived = useMemo(() => {
-        if (!simulation || !toAsset) return "0.0";
-        return parseFloat(fromUnits(simulation.minAskUnits, toAsset.decimals)).toFixed(4);
-    }, [simulation, toAsset]);
+        if (!activeQuote || !toAsset) return "0.0";
+        // Omniston includes slippage in the quote, askUnits is already the minimum
+        return parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
+    }, [activeQuote, toAsset]);
 
     // Loading state
     if (isLoadingAssets || (isContextLoading && !hasFetched)) {
@@ -630,7 +611,7 @@ export default function SwapPage() {
             <div className="max-w-md mx-auto">
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
+                    <p className="text-sm text-muted-foreground mt-1">
                         Powered by <span className="font-semibold text-foreground">STON.fi</span>
                     </p>
                 </div>
@@ -706,8 +687,8 @@ export default function SwapPage() {
                                                                 if (
                                                                     asset.contractAddress !== toAsset?.contractAddress
                                                                 ) {
-                                                                    setFromAsset(asset);
-                                                                    setSimulation(null);
+                                                                setFromAsset(asset);
+                                                                    cancelQuote();
                                                                 }
                                                             }}
                                                             className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
@@ -821,7 +802,7 @@ export default function SwapPage() {
                                                                 fromAsset?.contractAddress
                                                             ) {
                                                                 setToAsset(asset);
-                                                                setSimulation(null);
+                                                                cancelQuote();
                                                             }
                                                         }}
                                                         className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
@@ -854,13 +835,13 @@ export default function SwapPage() {
                                             </DropdownMenuContent>
                                         </DropdownMenu>
 
-                                        <div className="flex-1 text-right">
-                                            {isSimulating ? (
-                                                <div className="ml-auto"><ButtonLoader /></div>
+                                        <div className="flex-1 min-w-0 text-right overflow-hidden">
+                                            {isQuoting ? (
+                                                <div className="flex justify-end"><ButtonLoader /></div>
                                             ) : (
-                                                <span className={`text-3xl font-bold ${expectedOutput ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                                <span className={`text-3xl font-bold truncate block ${expectedOutput ? 'text-foreground' : 'text-muted-foreground'}`}>
                                                     {expectedOutput
-                                                        ? parseFloat(expectedOutput).toFixed(4)
+                                                        ? formatDisplayNumber(expectedOutput)
                                                         : "0.0"}
                                                 </span>
                                             )}
@@ -870,47 +851,43 @@ export default function SwapPage() {
                             </Card>
 
                             {/* Swap Details */}
-                            {simulation && (
-                                <Card className="bg-muted/50 border-border rounded-xl">
+                            {omnistonQuote && (
+                                <Card className="bg-muted/50 border-border rounded-xl overflow-hidden">
                                     <CardContent className="p-4 space-y-3">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Rate</span>
-                                            <span className="text-foreground">
-                                                {formatSwapRate(
-                                                    fromAsset?.symbol || "",
-                                                    toAsset?.symbol || "",
-                                                    simulation.swapRate
-                                                )}
+                                        <div className="flex items-center justify-between text-sm gap-2">
+                                            <span className="text-muted-foreground shrink-0">Rate</span>
+                                            <span className="text-foreground text-right truncate min-w-0">
+                                                1 {fromAsset?.symbol} = {formatDisplayNumber(parseFloat(omnistonQuote.askUnits) / parseFloat(omnistonQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9)), 6)} {toAsset?.symbol}
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground flex items-center gap-1">
+                                        <div className="flex items-center justify-between text-sm gap-2">
+                                            <span className="text-muted-foreground flex items-center gap-1 shrink-0">
                                                 Minimum received
                                                 <Info className="w-3 h-3 text-muted-foreground" />
                                             </span>
-                                            <span className="text-foreground">
-                                                {parseFloat(minimumReceived).toFixed(4)}{" "}
+                                            <span className="text-foreground text-right truncate min-w-0">
+                                                {formatDisplayNumber(minimumReceived)}{" "}
                                                 {toAsset?.symbol}
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Price impact</span>
-                                            <span
-                                                className={
-                                                    parseFloat(simulation.priceImpact) > 5
-                                                        ? "text-destructive"
-                                                        : "text-foreground"
-                                                }
-                                            >
-                                                {parseFloat(simulation.priceImpact).toFixed(2)}%
-                                            </span>
-                                        </div>
+                                        {/* Show resolver name for Omniston */}
+                                        {resolverName && (
+                                            <div className="flex items-center justify-between text-sm gap-2">
+                                                <span className="text-muted-foreground flex items-center gap-1 shrink-0">
+                                                    <Zap className="w-3 h-3" />
+                                                    Best rate via
+                                                </span>
+                                                <span className="text-primary font-medium text-right truncate min-w-0">
+                                                    {resolverName}
+                                                </span>
+                                            </div>
+                                        )}
 
                                         <div className="border-t border-border pt-3 mt-2 space-y-2">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground flex items-center gap-1">
+                                            <div className="flex items-center justify-between text-sm gap-2">
+                                                <span className="text-muted-foreground flex items-center gap-1 shrink-0">
                                                     Network fee
                                                     <Popover>
                                                         <PopoverTrigger asChild>
@@ -924,21 +901,21 @@ export default function SwapPage() {
                                                         </PopoverContent>
                                                     </Popover>
                                                 </span>
-                                                <span className="text-foreground font-medium">
+                                                <span className="text-foreground font-medium text-right truncate min-w-0">
                                                     ~{swapDetails.estimatedGas.toFixed(4)} TON
                                                 </span>
                                             </div>
-                                            {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && simulation && (
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-muted-foreground">Actual swap amount</span>
-                                                    <span className="text-primary font-medium">
-                                                        {swapDetails.actualSwapAmount.toFixed(4)} TON
+                                            {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && omnistonQuote && (
+                                                <div className="flex items-center justify-between text-sm gap-2">
+                                                    <span className="text-muted-foreground shrink-0">Actual swap amount</span>
+                                                    <span className="text-primary font-medium text-right truncate min-w-0">
+                                                        {formatDisplayNumber(swapDetails.actualSwapAmount)} TON
                                                     </span>
                                                 </div>
                                             )}
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground">Slippage tolerance</span>
-                                                <div className="flex items-center gap-2">
+                                            <div className="flex items-center justify-between text-sm gap-2">
+                                                <span className="text-muted-foreground shrink-0">Slippage tolerance</span>
+                                                <div className="flex items-center gap-1 shrink-0">
                                                     {["0.5", "1", "3"].map((s) => (
                                                         <Button
                                                             key={s}
@@ -961,7 +938,7 @@ export default function SwapPage() {
                             )}
 
                             {/* Info: Fee deduction explanation for MAX swaps */}
-                            {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && simulation && swapDetails.hasEnoughForGas && (
+                            {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && omnistonQuote && swapDetails.hasEnoughForGas && (
                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
                                     <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                                     <p className="text-xs text-primary/90">
@@ -970,12 +947,12 @@ export default function SwapPage() {
                                 </div>
                             )}
 
-                            {/* Simulation error message */}
-                            {simulationError && !isSimulating && (
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                            {/* Quote error message */}
+                            {quoteError && !isQuoting && (
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
                                     <p className="text-xs text-destructive/90">
-                                        {simulationError}
+                                        {quoteError}
                                     </p>
                                 </div>
                             )}
@@ -1013,10 +990,12 @@ export default function SwapPage() {
                             {/* Swap Button */}
                             <Button
                                 onClick={handleContinue}
-                                disabled={!canProceed || isSimulating || !!simulationError}
+                                disabled={!canProceed || isQuoting || !!quoteError || !isConnected}
                                 className="w-full bg-primary text-primary-foreground h-14 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 hover:bg-primary/90"
                             >
-                                {isSimulating ? (
+                                {!isConnected ? (
+                                    "Connecting..."
+                                ) : isQuoting ? (
                                     <ButtonLoader />
                                 ) : !fromAsset || !toAsset ? (
                                     "Select tokens"
@@ -1030,9 +1009,9 @@ export default function SwapPage() {
                                     "Insufficient balance for gas"
                                 ) : fromAsset.kind === "Jetton" && parseFloat(tonBalance) < MIN_GAS_RESERVE_TON ? (
                                     "Insufficient TON for gas"
-                                ) : simulationError ? (
+                                ) : quoteError ? (
                                     "Swap unavailable"
-                                ) : !simulation ? (
+                                ) : !omnistonQuote ? (
                                     "Getting quote..."
                                 ) : (
                                     "Continue"
@@ -1041,7 +1020,7 @@ export default function SwapPage() {
                         </motion.div>
                     )}
 
-                    {step === "confirm" && simulation && (
+                    {step === "confirm" && confirmedQuote && (
                         <motion.div
                             key="confirm"
                             initial={{ opacity: 0, x: 20 }}
@@ -1069,7 +1048,7 @@ export default function SwapPage() {
                                                     {fromAsset?.symbol?.slice(0, 2)}
                                                 </div>
                                             )}
-                                            <p className="text-xl font-bold">{amount}</p>
+                                            <p className="text-xl font-bold">{formatDisplayNumber(parseFloat(amount))}</p>
                                             <p className="text-gray-400">{fromAsset?.symbol}</p>
                                         </div>
 
@@ -1091,7 +1070,7 @@ export default function SwapPage() {
                                                 </div>
                                             )}
                                             <p className="text-xl font-bold">
-                                                {parseFloat(expectedOutput).toFixed(4)}
+                                                {formatDisplayNumber(parseFloat(expectedOutput))}
                                             </p>
                                             <p className="text-muted-foreground">{toAsset?.symbol}</p>
                                         </div>
@@ -1101,17 +1080,13 @@ export default function SwapPage() {
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Rate</span>
                                             <span>
-                                                {formatSwapRate(
-                                                    fromAsset?.symbol || "",
-                                                    toAsset?.symbol || "",
-                                                    simulation.swapRate
-                                                )}
+                                                1 {fromAsset?.symbol} = {formatDisplayNumber(parseFloat(confirmedQuote.askUnits) / parseFloat(confirmedQuote.bidUnits) * Math.pow(10, (fromAsset?.decimals || 9) - (toAsset?.decimals || 9)), 6)} {toAsset?.symbol}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Minimum received</span>
                                             <span>
-                                                {parseFloat(minimumReceived).toFixed(4)}{" "}
+                                                {formatDisplayNumber(parseFloat(minimumReceived))}{" "}
                                                 {toAsset?.symbol}
                                             </span>
                                         </div>
@@ -1150,9 +1125,7 @@ export default function SwapPage() {
                             className="flex flex-col items-center justify-center py-20"
                         >
                             <div className="relative flex items-center justify-center mb-6">
-                                <div className="w-16 h-16 rounded-full border-2 border-primary/20 border-t-primary animate-spin shadow-[0_0_15px] shadow-primary/30" />
-                                <div className="absolute w-10 h-10 rounded-full border-2 border-primary/20 border-b-primary animate-[spin_1.5s_linear_infinite_reverse]" />
-                                <div className="absolute w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px] shadow-primary/80" />
+                                <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
                             </div>
                             <h2 className="text-xl font-bold mb-2">Processing Swap</h2>
                             <p className="text-muted-foreground text-center">
@@ -1178,11 +1151,18 @@ export default function SwapPage() {
                                 </p>
                             </div>
 
+                            <Button
+                                onClick={() => router.push("/wallet")}
+                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold"
+                            >
+                                Back to Wallet
+                            </Button>
+
                             {lastTxHash && (
                                 <Button
                                     variant="ghost"
                                     asChild
-                                    className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 hover:bg-transparent text-sm h-auto p-0"
+                                    className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 hover:bg-transparent text-sm h-auto p-0 mt-3"
                                 >
                                     <a
                                         href={`${EXPLORER_BASE_URL}/${lastTxHash}`}
@@ -1194,13 +1174,6 @@ export default function SwapPage() {
                                     </a>
                                 </Button>
                             )}
-
-                            <Button
-                                onClick={() => router.push("/wallet")}
-                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold mt-4"
-                            >
-                                Back to Wallet
-                            </Button>
                         </motion.div>
                     )}
                 </AnimatePresence>

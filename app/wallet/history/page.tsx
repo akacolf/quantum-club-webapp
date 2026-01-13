@@ -83,7 +83,6 @@ export default function HistoryPage() {
 
   // Explorer URL based on network
   const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
-  const TON_API_BASE_URL = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
   // Fetch QNTM transfer history from Firebase
   const fetchQntmHistory = useCallback(async () => {
@@ -124,41 +123,21 @@ export default function HistoryPage() {
     setError(null);
 
     try {
-      // Use AbortController to handle timeouts
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const response = await fetch(
-        `${TON_API_BASE_URL}/v2/accounts/${encodeURIComponent(address)}/events?limit=50`,
-        {
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-          },
-        }
+      const { tonApiGet } = await import("@/lib/tonapi-client");
+      const data = await tonApiGet<{ events: HistoryEvent[] }>(
+        `/v2/accounts/${encodeURIComponent(address)}/events?limit=50&subject_only=true`,
+        { testnet: isTestnet }
       );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-
-      const data = await response.json();
       setHistory(data.events || []);
     } catch (err) {
       if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          setError('Request timed out. Please try again.');
-        } else {
-          setError('Failed to load transaction history.');
-        }
+        setError('Failed to load transaction history.');
         console.error("Failed to fetch history:", err.message);
       }
     } finally {
       setIsLoadingHistory(false);
     }
-  }, [TON_API_BASE_URL]);
+  }, [isTestnet]);
 
   // Fetch history when wallet address is available or network changes
   useEffect(() => {

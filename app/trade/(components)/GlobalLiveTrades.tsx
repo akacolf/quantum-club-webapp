@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCompactNumber } from "@/lib/jetton-operations";
+import { Address } from "@ton/core";
 
 interface GlobalTrade {
     id: string;
@@ -53,9 +54,7 @@ export default function GlobalLiveTrades() {
                     return;
                 }
 
-                const baseUrl = isTestnet 
-                    ? "https://testnet.tonapi.io" 
-                    : "https://tonapi.io";
+                const { tonApiGet } = await import("@/lib/tonapi-client");
 
                 const allTrades: GlobalTrade[] = [];
 
@@ -63,13 +62,26 @@ export default function GlobalLiveTrades() {
                 await Promise.all(
                     allTokens.map(async (token) => {
                         try {
-                            const response = await fetch(
-                                `${baseUrl}/v2/blockchain/accounts/${token.jettonMasterAddress}/transactions?limit=10`
+                            const data = await tonApiGet<{ transactions?: Array<{
+                                success?: boolean;
+                                hash?: string;
+                                utime?: number;
+                                in_msg?: {
+                                    op_code?: string;
+                                    value?: number;
+                                    source?: { address?: string };
+                                    decoded_body?: { amount?: string; sender?: string; from_address?: string };
+                                };
+                                out_msgs?: Array<{
+                                    op_code?: string;
+                                    value?: number;
+                                    destination?: { address?: string };
+                                    decoded_body?: { amount?: string };
+                                }>;
+                            }> }>(
+                                `/v2/blockchain/accounts/${token.jettonMasterAddress}/transactions?limit=10`,
+                                { testnet: isTestnet }
                             );
-
-                            if (!response.ok) return;
-
-                            const data = await response.json();
 
                             // Parse transactions for buy/sell events
                             for (const tx of data.transactions || []) {
@@ -78,8 +90,8 @@ export default function GlobalLiveTrades() {
                                 const inMsg = tx.in_msg;
                                 if (!inMsg?.op_code) continue;
 
-                                const timestamp = new Date(tx.utime * 1000);
-                                const hash = tx.hash;
+                                const timestamp = new Date((tx.utime || 0) * 1000);
+                                const hash = tx.hash || "";
 
                                 // BUY transaction (op::buy = 0xaf750d34)
                                 if (inMsg.op_code === "0xaf750d34") {
@@ -196,9 +208,23 @@ export default function GlobalLiveTrades() {
         return `${Math.floor(seconds / 86400)}d ago`;
     };
 
-    const truncateAddress = (address: string) => {
+    // Convert raw address (0:...) to friendly format (UQ.../EQ...)
+    const toFriendlyAddress = (address: string): string => {
         if (!address) return "...";
-        return `${address.slice(0, 4)}...${address.slice(-3)}`;
+        try {
+            if (address.startsWith("UQ") || address.startsWith("EQ") || address.startsWith("kQ")) {
+                return address;
+            }
+            const parsedAddress = Address.parse(address);
+            return parsedAddress.toString({ bounceable: false });
+        } catch {
+            return address;
+        }
+    };
+
+    const truncateAddress = (address: string) => {
+        const friendly = toFriendlyAddress(address);
+        return `${friendly.slice(0, 4)}...${friendly.slice(-3)}`;
     };
 
     if (isLoading) {

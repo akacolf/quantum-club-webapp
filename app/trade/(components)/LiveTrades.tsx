@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Icon } from "@iconify/react";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { formatCompactNumber } from "@/lib/jetton-operations";
+import { Address } from "@ton/core";
 
 interface Trade {
     id: string;
@@ -43,21 +44,30 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
 
         const fetchOnChainTrades = async () => {
             try {
-                // Fetch recent transactions from TONAPI
-                const baseUrl = isTestnet 
-                    ? "https://testnet.tonapi.io" 
-                    : "https://tonapi.io";
+                // Fetch recent transactions from TONAPI via authenticated proxy
+                const { tonApiGet } = await import("@/lib/tonapi-client");
                     
-                const response = await fetch(
-                    `${baseUrl}/v2/blockchain/accounts/${jettonAddress}/transactions?limit=50`
+                const data = await tonApiGet<{ transactions?: Array<{
+                    success?: boolean;
+                    hash?: string;
+                    utime?: number;
+                    in_msg?: {
+                        op_code?: string;
+                        value?: number;
+                        source?: { address?: string };
+                        decoded_body?: { amount?: string; sender?: string; from_address?: string };
+                    };
+                    out_msgs?: Array<{
+                        op_code?: string;
+                        value?: number;
+                        destination?: { address?: string };
+                        decoded_body?: { amount?: string };
+                    }>;
+                }> }>(
+                    `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=50`,
+                    { testnet: isTestnet }
                 );
 
-                if (!response.ok) {
-                    setIsLoading(false);
-                    return;
-                }
-
-                const data = await response.json();
                 const tradeEvents: Trade[] = [];
 
                 // Parse transactions for buy/sell events
@@ -69,8 +79,8 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                     const inMsg = tx.in_msg;
                     if (!inMsg?.op_code) continue;
 
-                    const timestamp = new Date(tx.utime * 1000);
-                    const hash = tx.hash;
+                    const timestamp = new Date((tx.utime || 0) * 1000);
+                    const hash = tx.hash || "";
 
                     // BUY transaction (op::buy = 0xaf750d34)
                     if (inMsg.op_code === "0xaf750d34") {
@@ -165,13 +175,28 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
         return `${Math.floor(seconds / 86400)}d ago`;
     };
 
-    const truncateAddress = (address: string) => {
+    // Convert raw address (0:...) to friendly format (UQ.../EQ...)
+    const toFriendlyAddress = (address: string): string => {
         if (!address) return "Unknown";
-        // Handle both raw and user-friendly address formats
-        if (address.length > 20) {
-            return `${address.slice(0, 4)}...${address.slice(-4)}`;
+        try {
+            // If already friendly format, return as is
+            if (address.startsWith("UQ") || address.startsWith("EQ") || address.startsWith("kQ")) {
+                return address;
+            }
+            // Convert raw address to friendly
+            const parsedAddress = Address.parse(address);
+            return parsedAddress.toString({ bounceable: false });
+        } catch {
+            return address;
         }
-        return address;
+    };
+
+    const truncateAddress = (address: string) => {
+        const friendly = toFriendlyAddress(address);
+        if (friendly.length > 20) {
+            return `${friendly.slice(0, 4)}...${friendly.slice(-4)}`;
+        }
+        return friendly;
     };
 
     const openTonviewer = (hash: string) => {

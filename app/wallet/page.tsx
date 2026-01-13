@@ -278,8 +278,8 @@ export default function WalletPage() {
         return;
       }
 
-      // For TON and other tokens, use TonAPI
-      const API_BASE = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+      // For TON and other tokens, use TonAPI via authenticated proxy
+      const { tonApiGet } = await import("@/lib/tonapi-client");
 
       // Determine the token for the API call
       const tokenId = asset.symbol === "TON" ? "ton" : asset.jettonAddress;
@@ -301,47 +301,45 @@ export default function WalletPage() {
         case '1Y': startTime = now - 365 * 24 * 60 * 60; break;
       }
 
-      // Fetch chart data from TonAPI
-      const response = await fetch(
-        `${API_BASE}/v2/rates/chart?token=${tokenId}&currency=usd&start_date=${startTime}&end_date=${now}`
+      // Fetch chart data from TonAPI via proxy
+      const data = await tonApiGet<{ points: [number, number][] }>(
+        `/v2/rates/chart?token=${tokenId}&currency=usd&start_date=${startTime}&end_date=${now}`,
+        { testnet: isTestnet }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        const points: [number, number][] = data.points || [];
+      const points: [number, number][] = data.points || [];
 
-        if (points.length > 0) {
-          const history: PricePoint[] = points.map((point: [number, number]) => {
-            const date = new Date(point[0] * 1000);
-            let timeLabel = "";
+      if (points.length > 0) {
+        const history: PricePoint[] = points.map((point: [number, number]) => {
+          const date = new Date(point[0] * 1000);
+          let timeLabel = "";
 
-            // Format label based on period
-            if (period === '1H' || period === '1D') {
-              timeLabel = date.toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              });
-            } else if (period === '1W' || period === '1M') {
-              timeLabel = date.toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric'
-              });
-            } else {
-              timeLabel = date.toLocaleDateString(undefined, {
-                month: 'short',
-                year: '2-digit'
-              });
-            }
+          // Format label based on period
+          if (period === '1H' || period === '1D') {
+            timeLabel = date.toLocaleTimeString(undefined, {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            });
+          } else if (period === '1W' || period === '1M') {
+            timeLabel = date.toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric'
+            });
+          } else {
+            timeLabel = date.toLocaleDateString(undefined, {
+              month: 'short',
+              year: '2-digit'
+            });
+          }
 
-            return {
-              time: timeLabel,
-              price: point[1],
-            };
-          });
-          setPriceHistory(history);
-          return;
-        }
+          return {
+            time: timeLabel,
+            price: point[1],
+          };
+        });
+        setPriceHistory(history);
+        return;
       }
 
       // Fallback empty if no data
