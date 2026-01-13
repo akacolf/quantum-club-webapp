@@ -21,7 +21,7 @@ const navTabs = [
   { 
     id: "browser", 
     href: "/wallet/browser", 
-    label: "Browser", 
+    label: "Explore", 
     icon: Globe 
   },
   { 
