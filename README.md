@@ -1,36 +1,336 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔮 Quantum Club
 
-# Getting Started
+<div align="center">
 
-First, run the development server:
-  
-```bash   
-npm run dev  
-# or 
-yarn dev  
-# or 
-pnpm dev
-# or
-bun dev
+**The Super Ecosystem built on Telegram and TON**
+
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![TON](https://img.shields.io/badge/TON-Blockchain-0098EA?style=for-the-badge&logo=ton)](https://ton.org/)
+[![Telegram](https://img.shields.io/badge/Telegram-Mini%20App-26A5E4?style=for-the-badge&logo=telegram)](https://telegram.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+
+</div>
+
+---
+
+## 📖 Overview
+
+Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, integrating a multi-chain crypto wallet, token trading platform, dApp browser, social features, and gamified earning mechanisms—all powered by the TON blockchain.
+
+## ✨ Key Features
+
+### 💳 Multi-Chain Wallet
+
+- **Native TON Support**: Full TON blockchain integration with real-time balance tracking
+- **Multi-Chain Assets**: Support for Bitcoin (BTC), Ethereum (ETH), Solana (SOL), and TRON
+- **Jetton Management**: View, send, and receive TON-based tokens (Jettons)
+- **NFT Gallery**: Browse and manage your NFT collection
+- **Transaction History**: Comprehensive history with search and filtering
+- **QR Code Scanning**: Scan TON Connect QR codes for seamless dApp connections
+- **Price Alerts**: Set custom price alerts with Telegram notifications
+
+### 📈 Token Trading Platform
+
+- **Token Creation**: Deploy your own Jettons on TON blockchain
+- **Bonding Curve Trading**: Buy and sell tokens with automated market making
+- **Real-Time Charts**: Live price charts with candlestick data
+- **Market Cap Tracking**: Monitor token progress and graduation thresholds
+- **Live Trades Feed**: Real-time global trade activity
+- **Token Chat**: Engage with token communities
+
+### 🌐 dApp Browser
+
+- **Integrated Browser**: Browse TON dApps directly within the wallet
+- **Privacy-First Search**: DuckDuckGo integration for private web searches (dark mode by default)
+- **Popular dApps**: Quick access to STON.fi, DeDust, Getgems, and more
+- **TON Connect**: Seamless wallet connections to Web3 applications
+- **Category Filtering**: Browse by DEX, DeFi, NFT, Gaming, and Tools
+
+### 💱 Token Swaps
+
+- **STON.fi Integration**: Swap tokens via STON.fi DEX
+- **Omniston SDK**: Advanced swap routing for optimal rates
+- **Slippage Protection**: Configurable slippage tolerance
+- **Gas Estimation**: Transparent fee calculations
+
+### 👥 Social Features
+
+- **Groups**: Create and join community groups
+- **Group Chat**: Real-time messaging with group members
+- **Referral System**: Earn rewards through friend referrals
+- **Leaderboards**: Compete on global rankings
+
+### 🎮 Gamification
+
+- **Mining/Earning**: Participate in mining activities
+- **Solve-to-Earn**: Complete tasks to earn rewards
+- **Achievements**: Unlock achievements for platform engagement
+- **Quest Tasks**: Complete quests for bonus rewards
+
+### 🤖 AI Assistant
+
+- **Gemini Integration**: AI-powered chat assistant
+- **Rate Limiting**: Fair usage with server-side rate limiting
+- **Contextual Help**: Get help with wallet and trading features
+
+## 🛠 Tech Stack
+
+### Frontend
+
+- **Framework**: Next.js 15.5 with App Router
+- **Language**: TypeScript 5.9
+- **Styling**: Tailwind CSS 4.0
+- **Animations**: Framer Motion, GSAP
+- **UI Components**: Radix UI primitives
+- **State Management**: React Context API
+- **Data Fetching**: TanStack Query
+
+### Blockchain
+
+- **Primary Chain**: TON (The Open Network)
+- **TON SDK**: @ton/ton, @ton/core, @ton/crypto
+- **TON Connect**: WalletKit integration
+- **Smart Contracts**: FunC (Jetton Master & Wallet)
+- **DEX Integration**: STON.fi SDK, Omniston SDK
+
+### Backend & Infrastructure
+
+- **Authentication**: Telegram Mini App authentication
+- **Database**: Firebase Firestore
+- **Storage**: Firebase Storage, AWS S3
+- **Hosting**: Vercel
+- **Analytics**: Vercel Analytics, Telegram Analytics
+- **APIs**: TON API, STON.fi API
+
+### Multi-Chain Support
+
+- **Bitcoin**: bitcoinjs-lib
+- **Ethereum**: viem
+- **Solana**: @solana/kit
+- **TRON**: tronweb
+
+## 📁 Project Structure
+
+```
+quantum-club/
+├── app/                    # Next.js App Router
+│   ├── (components)/       # Shared UI components
+│   ├── (contexts)/         # React Context providers
+│   ├── (firebase)/         # Firebase configuration
+│   ├── (hooks)/            # Custom React hooks
+│   ├── (login)/            # Authentication flows
+│   ├── (navigation)/       # Navigation components
+│   ├── (providers)/        # App-wide providers
+│   ├── api/                # API routes
+│   │   ├── ai/             # AI chat endpoint
+│   │   ├── auth/           # Authentication endpoints
+│   │   ├── deploy-jetton/  # Token deployment
+│   │   ├── graduate/       # Token graduation
+│   │   ├── price-alerts/   # Price alert management
+│   │   ├── tonapi/         # TON API proxy
+│   │   └── ...
+│   ├── chat/               # Chat features
+│   ├── earn/               # Earning/mining features
+│   ├── frens/              # Referral system
+│   ├── groups/             # Group management
+│   ├── home/               # Home dashboard
+│   ├── leaderboard/        # Rankings
+│   ├── trade/              # Trading platform
+│   └── wallet/             # Wallet features
+│       ├── browser/        # dApp browser
+│       ├── history/        # Transaction history
+│       ├── nft/            # NFT gallery
+│       ├── send/           # Send assets
+│       ├── receive/        # Receive assets
+│       ├── settings/       # Wallet settings
+│       ├── swap/           # Token swaps
+│       └── ...
+├── components/             # Shared UI components
+│   └── ui/                 # Base UI primitives
+├── contracts/              # Smart contracts (FunC)
+│   ├── jetton_master.fc    # Jetton master contract
+│   ├── jetton_wallet.fc    # Jetton wallet contract
+│   ├── imports/            # Contract imports
+│   └── build/              # Compiled contracts
+├── lib/                    # Utility libraries
+│   ├── ai/                 # AI integration
+│   ├── jetton-*.ts         # Jetton operations
+│   ├── stonfi.ts           # STON.fi integration
+│   ├── ton-api.ts          # TON API client
+│   ├── walletkit-*.ts      # WalletKit provider
+│   └── ...
+├── public/                 # Static assets
+│   ├── lottie/             # Lottie animations
+│   └── svg/                # SVG icons
+├── types/                  # TypeScript definitions
+└── utils/                  # Utility functions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Getting Started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 18.x or later
+- npm, yarn, pnpm, or bun
 
-## Learn More
+### Installation
 
-To learn more about Next.js, take a look at the following resources:
+1. **Clone the repository**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   git clone https://github.com/your-org/quantum-club.git
+   cd quantum-club
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Install dependencies**
 
-## Deploy on Vercel
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Configure environment variables**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   Create a `.env` file with the following variables:
+
+   ```env
+   # Firebase Configuration
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+   # Firebase Admin (Server-side)
+   FIREBASE_ADMIN_PRIVATE_KEY=your_private_key
+   FIREBASE_ADMIN_CLIENT_EMAIL=your_client_email
+
+   # TON API
+   TONAPI_KEY=your_tonapi_key
+   TONCENTER_API_KEY=your_toncenter_key
+
+   # Platform Configuration
+   PLATFORM_WALLET_MNEMONIC=your_platform_wallet_mnemonic
+   NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS=your_platform_address
+
+   # AWS S3 (for image uploads)
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   AWS_REGION=your_region
+   AWS_S3_BUCKET_NAME=your_bucket_name
+
+   # Telegram Bot
+   TELEGRAM_BOT_TOKEN=your_bot_token
+
+   # AI
+   GOOGLE_AI_API_KEY=your_gemini_api_key
+   ```
+
+4. **Run the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Open in browser**
+
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Telegram Mini App Development
+
+For testing as a Telegram Mini App:
+
+1. Create a bot via [@BotFather](https://t.me/botfather)
+2. Use [ngrok](https://ngrok.com/) or similar to expose your local server
+3. Set the Mini App URL in BotFather to your ngrok URL
+
+## 📜 Smart Contracts
+
+The project includes custom Jetton (token) smart contracts written in FunC:
+
+### Compiling Contracts
+
+```bash
+npm run compile:contracts
+```
+
+### Contract Architecture
+
+- **Jetton Master**: TEP-74 compliant fungible token master contract
+- **Jetton Wallet**: Individual wallet contract for each holder
+
+See [`contracts/README.md`](./contracts/README.md) for detailed contract documentation.
+
+## 🔐 Security
+
+### Authentication
+
+- Telegram Mini App authentication with JWT tokens
+- Server-side session validation
+- Firebase Authentication integration
+
+### Wallet Security
+
+- Mnemonic phrases stored securely on device
+- No private keys transmitted to servers
+- Transaction signing happens client-side
+
+### API Security
+
+- Rate limiting on sensitive endpoints
+- CORS protection
+- Input validation and sanitization
+
+## 🌍 Deployment
+
+### Vercel (Recommended)
+
+1. Connect your repository to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy
+
+### Firebase
+
+The project uses Firebase for:
+
+- **Firestore**: Document database
+- **Storage**: File uploads
+- **Hosting**: (Optional) Static hosting
+
+Deploy Firebase rules:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+## 📊 Analytics
+
+- **Vercel Analytics**: Page views and web vitals
+- **Vercel Speed Insights**: Performance monitoring
+- **Telegram Analytics**: Mini App engagement metrics
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is proprietary software. All rights reserved.
+
+## 🔗 Links
+
+- **Documentation**: Coming soon
+- **Telegram Community**: Coming soon
+- **Support**: Coming soon
+
+---
+
+<div align="center">
+
+**Built with ❤️ by the Quantum Club Team**
+
+</div>
