@@ -11,12 +11,16 @@ import {
     CHAIN,
     createDeviceInfo,
     createWalletManifest,
+    Signer,
+    WalletV5R1Adapter,
     type EventConnectRequest,
     type EventTransactionRequest,
     type EventSignDataRequest,
     type EventDisconnect,
     type SessionInfo,
+    type IWallet,
 } from "@ton/walletkit";
+import { toast } from "sonner";
 
 interface WalletKitContextType {
     isReady: boolean;
@@ -24,13 +28,13 @@ interface WalletKitContextType {
     
     // Connection requests
     pendingConnection: EventConnectRequest | null;
-    approveConnection: () => void;
-    rejectConnection: () => void;
+    approveConnection: () => Promise<void>;
+    rejectConnection: () => Promise<void>;
     
     // Transaction requests
     pendingTransaction: EventTransactionRequest | null;
-    approveTransaction: (signedBoc: string) => void;
-    rejectTransaction: () => void;
+    approveTransaction: () => Promise<void>;
+    rejectTransaction: () => Promise<void>;
     
     // Sign data requests
     pendingSignData: EventSignDataRequest | null;
@@ -42,6 +46,10 @@ interface WalletKitContextType {
     
     // Connect from QR code
     handleTonConnectUrl: (url: string) => Promise<void>;
+    
+    // Wallet registration
+    registerWallet: (mnemonic: string[]) => Promise<void>;
+    isWalletRegistered: boolean;
 }
 
 const WalletKitContext = createContext<WalletKitContextType | null>(null);
@@ -51,12 +59,17 @@ interface WalletKitProviderProps {
     isTestnet: boolean;
 }
 
+// Bridge URL
+const BRIDGE_URL = "https://bridge.tonapi.io/bridge";
+
 export function WalletKitProvider({
     children,
     isTestnet,
 }: WalletKitProviderProps) {
     const kitRef = useRef<TonWalletKit | null>(null);
+    const walletRef = useRef<IWallet | null>(null);
     const [isReady, setIsReady] = useState(false);
+    const [isWalletRegistered, setIsWalletRegistered] = useState(false);
     
     // Pending requests
     const [pendingConnection, setPendingConnection] = useState<EventConnectRequest | null>(null);
@@ -74,9 +87,17 @@ export function WalletKitProvider({
             try {
                 console.log("[WalletKit] Initializing...");
                 
+                const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
+                
                 const kit = new TonWalletKit({
                     networks: {
-                        [isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET]: {},
+                        [network]: {
+                            apiClient: {
+                                url: isTestnet 
+                                    ? "https://testnet.toncenter.com/api/v3"
+                                    : "https://toncenter.com/api/v3",
+                            },
+                        },
                     },
                     deviceInfo: createDeviceInfo({
                         appName: "qc-wallet",
@@ -97,13 +118,13 @@ export function WalletKitProvider({
                         aboutUrl: "https://quantumclub.space",
                         platforms: ["chrome", "firefox", "safari"],
                         universalLink: "https://quantumclub.space/tonconnect",
-                        bridgeUrl: "https://bridge.tonapi.io/bridge",
+                        bridgeUrl: BRIDGE_URL,
                         jsBridgeKey: "qcwallet",
                     }),
                     bridge: {
-                        bridgeUrl: "https://bridge.tonapi.io/bridge",
-                        enableJsBridge: false, // We're not injecting into pages
-                        disableHttpConnection: false, // Enable HTTP bridge for QR code connections
+                        bridgeUrl: BRIDGE_URL,
+                        enableJsBridge: false,
+                        disableHttpConnection: false,
                     },
                     storage: {
                         allowMemory: true,
@@ -112,7 +133,7 @@ export function WalletKitProvider({
 
                 // Handle connection requests
                 kit.onConnectRequest((event: EventConnectRequest) => {
-                    console.log("[WalletKit] Connection request:", event);
+                    console.log("[WalletKit] Connection request received:", event);
                     if (mounted) {
                         setPendingConnection(event);
                     }
@@ -120,7 +141,7 @@ export function WalletKitProvider({
 
                 // Handle transaction requests
                 kit.onTransactionRequest((event: EventTransactionRequest) => {
-                    console.log("[WalletKit] Transaction request:", event);
+                    console.log("[WalletKit] Transaction request received:", event);
                     if (mounted) {
                         setPendingTransaction(event);
                     }
@@ -128,7 +149,7 @@ export function WalletKitProvider({
 
                 // Handle sign data requests
                 kit.onSignDataRequest((event: EventSignDataRequest) => {
-                    console.log("[WalletKit] Sign data request:", event);
+                    console.log("[WalletKit] Sign data request received:", event);
                     if (mounted) {
                         setPendingSignData(event);
                     }
@@ -136,15 +157,20 @@ export function WalletKitProvider({
 
                 // Handle disconnections
                 kit.onDisconnect((event: EventDisconnect) => {
-                    console.log("[WalletKit] Disconnect:", event);
-                    // Refresh sessions list
+                    console.log("[WalletKit] Disconnect event:", event);
                     kit.listSessions().then(s => {
                         if (mounted) setSessions(s);
                     });
                 });
 
-                // Wait for ready
-                // Note: TonWalletKit auto-initializes, we just need to store the reference
+                // Handle errors
+                kit.onRequestError((error) => {
+                    console.error("[WalletKit] Request error:", error);
+                    toast.error("Connection error", {
+                        description: String(error) || "Failed to process request",
+                    });
+                });
+
                 kitRef.current = kit;
                 
                 // Load initial sessions
@@ -152,9 +178,8 @@ export function WalletKitProvider({
                 if (mounted) {
                     setSessions(initialSessions);
                     setIsReady(true);
+                    console.log("[WalletKit] Initialized successfully, sessions:", initialSessions.length);
                 }
-
-                console.log("[WalletKit] Initialized successfully");
             } catch (error) {
                 console.error("[WalletKit] Initialization failed:", error);
             }
@@ -164,33 +189,127 @@ export function WalletKitProvider({
 
         return () => {
             mounted = false;
-            kitRef.current = null;
         };
     }, [isTestnet]);
 
-    // Approve connection
-    const approveConnection = useCallback(() => {
-        // The approval is handled through the event system
-        // We just clear the pending state - the kit handles the rest
-        setPendingConnection(null);
-    }, []);
+    // Register wallet with WalletKit
+    const registerWallet = useCallback(async (mnemonic: string[]) => {
+        if (!kitRef.current) {
+            console.error("[WalletKit] Kit not initialized");
+            return;
+        }
+        
+        try {
+            console.log("[WalletKit] Registering wallet...");
+            const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
+            
+            // Create signer from mnemonic
+            const signer = await Signer.fromMnemonic(mnemonic);
+            
+            // Get API client from kit
+            const client = kitRef.current.getApiClient(network);
+            
+            // Create wallet adapter
+            const wallet = await WalletV5R1Adapter.create(signer, {
+                client,
+                network,
+            });
+            
+            // Register with WalletKit
+            const registeredWallet = await kitRef.current.addWallet(wallet);
+            
+            if (registeredWallet) {
+                walletRef.current = registeredWallet;
+                setIsWalletRegistered(true);
+                console.log("[WalletKit] Wallet registered:", registeredWallet.getAddress());
+            }
+        } catch (error) {
+            console.error("[WalletKit] Failed to register wallet:", error);
+        }
+    }, [isTestnet]);
 
-    // Reject connection
-    const rejectConnection = useCallback(() => {
-        setPendingConnection(null);
-    }, []);
+    // Approve connection request
+    const approveConnection = useCallback(async () => {
+        if (!kitRef.current || !pendingConnection) {
+            console.error("[WalletKit] Cannot approve: kit or pending connection missing");
+            return;
+        }
+        
+        try {
+            console.log("[WalletKit] Approving connection...");
+            await kitRef.current.approveConnectRequest(pendingConnection);
+            console.log("[WalletKit] Connection approved");
+            
+            // Refresh sessions
+            const newSessions = await kitRef.current.listSessions();
+            setSessions(newSessions);
+            
+            toast.success("Connected successfully");
+        } catch (error) {
+            console.error("[WalletKit] Failed to approve connection:", error);
+            toast.error("Connection failed", {
+                description: error instanceof Error ? error.message : "Failed to connect",
+            });
+        } finally {
+            setPendingConnection(null);
+        }
+    }, [pendingConnection]);
 
-    // Approve transaction
-    const approveTransaction = useCallback((signedBoc: string) => {
-        // Transaction approval with the signed BOC
-        console.log("[WalletKit] Transaction approved with BOC:", signedBoc.slice(0, 50) + "...");
-        setPendingTransaction(null);
-    }, []);
+    // Reject connection request
+    const rejectConnection = useCallback(async () => {
+        if (!kitRef.current || !pendingConnection) {
+            setPendingConnection(null);
+            return;
+        }
+        
+        try {
+            console.log("[WalletKit] Rejecting connection...");
+            await kitRef.current.rejectConnectRequest(pendingConnection, "User rejected");
+        } catch (error) {
+            console.error("[WalletKit] Failed to reject connection:", error);
+        } finally {
+            setPendingConnection(null);
+        }
+    }, [pendingConnection]);
 
-    // Reject transaction
-    const rejectTransaction = useCallback(() => {
-        setPendingTransaction(null);
-    }, []);
+    // Approve transaction request
+    const approveTransaction = useCallback(async () => {
+        if (!kitRef.current || !pendingTransaction) {
+            console.error("[WalletKit] Cannot approve: kit or pending transaction missing");
+            return;
+        }
+        
+        try {
+            console.log("[WalletKit] Approving transaction...");
+            const response = await kitRef.current.approveTransactionRequest(pendingTransaction);
+            console.log("[WalletKit] Transaction approved:", response);
+            toast.success("Transaction sent");
+        } catch (error) {
+            console.error("[WalletKit] Failed to approve transaction:", error);
+            toast.error("Transaction failed", {
+                description: error instanceof Error ? error.message : "Failed to send transaction",
+            });
+        } finally {
+            setPendingTransaction(null);
+        }
+    }, [pendingTransaction]);
+
+    // Reject transaction request
+    const rejectTransaction = useCallback(async () => {
+        if (!kitRef.current || !pendingTransaction) {
+            setPendingTransaction(null);
+            return;
+        }
+        
+        try {
+            console.log("[WalletKit] Rejecting transaction...");
+            await kitRef.current.rejectTransactionRequest(pendingTransaction, "User rejected");
+        } catch (error) {
+            console.error("[WalletKit] Failed to reject transaction:", error);
+        } finally {
+            setPendingTransaction(null);
+        }
+    }, [pendingTransaction]);
 
     // Refresh sessions
     const refreshSessions = useCallback(async () => {
@@ -231,6 +350,8 @@ export function WalletKitProvider({
                 refreshSessions,
                 disconnect,
                 handleTonConnectUrl,
+                registerWallet,
+                isWalletRegistered,
             }}
         >
             {children}

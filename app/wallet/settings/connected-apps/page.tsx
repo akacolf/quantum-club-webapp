@@ -34,28 +34,42 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWalletKitOptional } from "@/lib/walletkit-provider";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 
 export default function ConnectedAppsPage() {
     useTelegramBackButton("/wallet/settings");
     
     // Use WalletKit if available (returns null if provider not mounted)
     const walletKit = useWalletKitOptional();
+    const { telegramId } = useGameContext();
     
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Load sessions
+    // Register wallet and load sessions
     useEffect(() => {
-        const loadSessions = async () => {
-            if (walletKit?.isReady) {
-                await walletKit.refreshSessions();
+        const initWallet = async () => {
+            if (!walletKit?.isReady || !telegramId) {
+                setIsLoading(false);
+                return;
             }
+            
+            // Register wallet if not already registered
+            if (!walletKit.isWalletRegistered) {
+                const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+                if (storedMnemonic) {
+                    const mnemonic = storedMnemonic.split(" ");
+                    await walletKit.registerWallet(mnemonic);
+                }
+            }
+            
+            await walletKit.refreshSessions();
             setIsLoading(false);
         };
         
-        loadSessions();
-    }, [walletKit?.isReady]);
+        initWallet();
+    }, [walletKit?.isReady, walletKit?.isWalletRegistered, telegramId, walletKit]);
 
     // Handle QR code scan result
     const handleScanResult = useCallback(async (result: string) => {
