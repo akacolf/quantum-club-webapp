@@ -2,10 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import {
-  updateDoc,
   doc,
   getDoc,
-  setDoc,
   getDocs,
   collection,
 } from "firebase/firestore";
@@ -21,6 +19,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "../(contexts)/auth";
+import { toast } from "sonner";
+import { confirmTask } from "./actions";
 
 const EarnContent = () => {
   const [tasks, setTasks] = useState<EarnTask[]>([]);
@@ -36,6 +37,7 @@ const EarnContent = () => {
   } = useGameContext();
   const { totalUsers } = useLeaderboardContext();
   const [activeTaskId, setActiveTaskId] = useState(null);
+  const auth = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -237,6 +239,9 @@ const EarnContent = () => {
 
   const completeTask = async (task: EarnTask) => {
     try {
+      if(!telegramId){
+        return router.push("/");
+      }
       const taskId = task.id;
       const taskRef = doc(dbfs, `user/${telegramId}/tasks/${taskId}`);
       const taskSnapshot = await getDoc(taskRef);
@@ -247,7 +252,10 @@ const EarnContent = () => {
       if (typeof window !== "undefined") {
         tgIdNumerical = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
       }
-
+      const token = await auth?.currentUser?.getIdToken();
+        if(!token){
+            return toast.error("User not authenticated");
+        }
       if (task.whichPlatform === "telegram") {
         if (task.buttonText === "Join" && task.url) {
           window.Telegram?.WebApp?.openTelegramLink(task.url);
@@ -301,20 +309,8 @@ const EarnContent = () => {
             }
             const data = await response.json();
             if (data.isMember) {
-              const date = new Date(Date.now());
-              const formattedDate = `${date
-                .getDate()
-                .toString()
-                .padStart(2, "0")}/${(date.getMonth() + 1)
-                  .toString()
-                  .padStart(2, "0")}/${date.getFullYear()}`;
               if (!taskSnapshot.exists()) {
-                await setDoc(taskRef, {
-                  quant: task.quant,
-                  completed: true,
-                  Date: formattedDate,
-                  platform: task.whichPlatform,
-                });
+                
                 const miningSnapshot = await getDoc(miningData);
                 const currentQuantAmount = miningSnapshot.exists()
                   ? miningSnapshot.data().QuantAmount
@@ -324,9 +320,15 @@ const EarnContent = () => {
                 const quantVal = quantSnapshot.data()?.quantReward;
                 const updatedQuantAmount =
                   Number(currentQuantAmount) + Number(quantVal);
-                await updateDoc(miningData, {
-                  QuantAmount: updatedQuantAmount,
-                });
+                const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
                 const formattedAmount = updatedQuantAmount.toLocaleString(
                   "en-US",
                   {
@@ -351,7 +353,6 @@ const EarnContent = () => {
                   );
 
                   setActiveTaskId(null);
-                  console.error("Task completed");
                   sessionStorage.setItem("tasks", JSON.stringify(updatedTasks));
                   setCompletedTasks(completedTasks + 1);
                   return updatedTasks;
@@ -466,20 +467,7 @@ const EarnContent = () => {
                 : item
             )
           );
-          const date = new Date(Date.now());
-          const formattedDate = `${date
-            .getDate()
-            .toString()
-            .padStart(2, "0")}/${(date.getMonth() + 1)
-              .toString()
-              .padStart(2, "0")}/${date.getFullYear()}`;
           if (!taskSnapshot.exists()) {
-            await setDoc(taskRef, {
-              quant: task.quant,
-              completed: true,
-              Date: formattedDate,
-              platform: task.whichPlatform,
-            });
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -489,7 +477,15 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -555,20 +551,7 @@ const EarnContent = () => {
             )
           );
           if (!taskSnapshot.exists()) {
-            const date = new Date(Date.now());
-            const formattedDate = `${date
-              .getDate()
-              .toString()
-              .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
             console.error(task.platform);
-            await setDoc(taskRef, {
-              quant: task.quant,
-              completed: true,
-              Date: formattedDate,
-              platform: task.whichPlatform,
-            });
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -578,7 +561,15 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -655,19 +646,6 @@ const EarnContent = () => {
             )
           );
           if (!taskSnapshot.exists()) {
-            const date = new Date(Date.now());
-            const formattedDate = `${date
-              .getDate()
-              .toString()
-              .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
-            await setDoc(taskRef, {
-              quant: task.quant,
-              completed: true,
-              Date: formattedDate,
-              platform: task.whichPlatform,
-            });
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -677,7 +655,15 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -721,23 +707,6 @@ const EarnContent = () => {
         if (snapshotNeedRefValue.exists() && !snapshotReferrals.empty) {
           const needRef = snapshotNeedRefValue.data().referralValue;
           if (snapshotReferrals.size >= needRef) {
-            const date = new Date(Date.now());
-            const formattedDate = `${date
-              .getDate()
-              .toString()
-              .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
-            await setDoc(
-              taskRef,
-              {
-                quant: task.quant,
-                completed: true,
-                Date: formattedDate,
-                platform: task.whichPlatform,
-              },
-              { merge: true }
-            );
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -747,7 +716,15 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -798,23 +775,6 @@ const EarnContent = () => {
         if (snapshotNeedRefValue.exists() && !snapshotReferrals.empty) {
           const needRef = snapshotNeedRefValue.data().referralValue;
           if (snapshotReferrals.size >= needRef) {
-            const date = new Date(Date.now());
-            const formattedDate = `${date
-              .getDate()
-              .toString()
-              .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
-            await setDoc(
-              taskRef,
-              {
-                quant: task.quant,
-                completed: true,
-                Date: formattedDate,
-                platform: task.whichPlatform,
-              },
-              { merge: true }
-            );
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -824,7 +784,17 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!",{
+                        description:response.error,
+                    });
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -919,19 +889,6 @@ const EarnContent = () => {
             )
           );
           if (!taskSnapshot.exists()) {
-            const date = new Date(Date.now());
-            const formattedDate = `${date
-              .getDate()
-              .toString()
-              .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
-            await setDoc(taskRef, {
-              quant: task.quant,
-              completed: true,
-              Date: formattedDate,
-              platform: task.whichPlatform,
-            });
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -941,7 +898,15 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -1025,19 +990,6 @@ const EarnContent = () => {
             )
           );
           if (!taskSnapshot.exists()) {
-            const date = new Date(Date.now());
-            const formattedDate = `${date
-              .getDate()
-              .toString()
-              .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
-            await setDoc(taskRef, {
-              quant: task.quant,
-              completed: true,
-              Date: formattedDate,
-              platform: task.whichPlatform,
-            });
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -1047,7 +999,15 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+            const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
@@ -1129,19 +1089,6 @@ const EarnContent = () => {
             )
           );
           if (!taskSnapshot.exists()) {
-            const date = new Date(Date.now());
-            const formattedDate = `${date
-              .getDate()
-              .toString()
-              .padStart(2, "0")}/${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${date.getFullYear()}`;
-            await setDoc(taskRef, {
-              quant: task.quant,
-              completed: true,
-              Date: formattedDate,
-              platform: task.whichPlatform,
-            });
             const miningSnapshot = await getDoc(miningData);
             const currentQuantAmount = miningSnapshot.exists()
               ? miningSnapshot.data().QuantAmount
@@ -1151,7 +1098,15 @@ const EarnContent = () => {
             const quantVal = quantSnapshot.data()?.quantReward;
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
-            await updateDoc(miningData, { QuantAmount: updatedQuantAmount });
+              const response = await confirmTask({
+                  id:task.id,
+                  completed:task.completed,
+                  platform:task.whichPlatform,
+                  quant:task.quant}, telegramId, token);
+                if(!!response.error){
+                    toast.error("Error!");
+                    return;
+                }
             const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,

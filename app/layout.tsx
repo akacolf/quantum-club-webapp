@@ -8,6 +8,7 @@ import ClientProviders from "./(providers)/ClientProviders";
 import type { Metadata } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "./(contexts)/auth";
 
 
 const onest = Onest({
@@ -35,6 +36,7 @@ export default function RootLayout({
       </head>
       <body className={`${onest.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
+        <AuthProvider>
         <ClientProviders>
           <div className="flex justify-center min-h-screen bg-neutral-100 dark:bg-neutral-900">
             <div className="main-content w-full max-w-md bg-background min-h-screen shadow-2xl relative">
@@ -48,6 +50,7 @@ export default function RootLayout({
           </div>
           <Toaster />
         </ClientProviders>
+        </AuthProvider>
       </body>
     </html>
   );

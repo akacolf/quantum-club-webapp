@@ -23,10 +23,8 @@ token,refreshToken
     }
 
     const userRecord = await auth.getUser(verifiedToken.uid)
-    if(process.env.ADMIN_EMAIL ===userRecord.email && !userRecord.customClaims?.admin) {
-        auth.setCustomUserClaims(verifiedToken.uid,{
-            admin:true
-        })
+    if(!userRecord.uid){
+        return;
     }
     const cookieStore = await cookies();
     cookieStore.set("firebaseAuthToken",token,{

@@ -1,6 +1,3 @@
-import { signInWithCustomToken, User } from "firebase/auth";
-import { auth } from "../(firebase)/client";
-
  export async function encryptData(telegramId: string): Promise<string> {
     const response = await fetch("/api/encryptID", {
       method: "POST",
@@ -35,16 +32,11 @@ import { auth } from "../(firebase)/client";
 
     const { customToken } = await responseAuth.json();
     if (!customToken) throw new Error("Invalid token");
-    const authTg = auth;
     if (authTg.currentUser) {
       return authTg.currentUser.uid;
     }
     try {
-      await signInWithCustomToken(authTg, customToken);
-      if (authTg.currentUser) {
-        const currentUser = authTg.currentUser as User;
-        return currentUser.uid;
-      }
+      auth?.loginWithToken(customToken);
     } catch (error) {
       throw error;
     }

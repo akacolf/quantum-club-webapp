@@ -1,12 +1,13 @@
 "use client"
 
 import { auth } from "@/app/(firebase)/client";
-import { ParsedToken, User } from "firebase/auth";
+import { ParsedToken, signInWithCustomToken, User } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react"
 import { removeToken, setToken } from "./actions";
 type AuthContextType = {
     currentUser: User | null;
     logout: () => Promise<void>
+    loginWithToken: (customToken:string) => Promise<void>;
     customClaims: ParsedToken|null;
 }
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -39,12 +40,16 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const logout = async () =>{
         await auth.signOut();
     }
+    const loginWithToken = async(customToken:string) =>{
+      await signInWithCustomToken(auth, customToken);
+    }
    return ( 
     <AuthContext.Provider 
         value={{
             currentUser,
             logout,
             customClaims,
+            loginWithToken
         }}>
         {children}
         </AuthContext.Provider>
