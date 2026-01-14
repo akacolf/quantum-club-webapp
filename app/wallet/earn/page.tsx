@@ -139,22 +139,6 @@ const RISK_COLORS = {
     high: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/20" },
 };
 
-// Type icons
-const TYPE_ICONS = {
-    staking: Shield,
-    lending: Coins,
-    lp: Droplets,
-    farming: Sparkles,
-};
-
-// Type colors
-const TYPE_COLORS = {
-    staking: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    lending: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    lp: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-    farming: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-};
-
 export default function EarnPage() {
     useTelegramBackButton("/wallet");
     const { tonBalance, tonPrice } = useWallet();
@@ -240,19 +224,19 @@ export default function EarnPage() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20">
+                    <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                         <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-4 h-4 text-green-500" />
-                            <span className="text-xs text-gray-400">Best APY</span>
+                            <TrendingUp className="w-4 h-4 text-gray-400" />
+                            <span className="text-xs text-gray-500">Best APY</span>
                         </div>
-                        <p className="text-2xl font-bold text-green-500">
+                        <p className="text-2xl font-bold text-white">
                             {bestApy.toFixed(1)}%
                         </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                         <div className="flex items-center gap-2 mb-2">
                             <Coins className="w-4 h-4 text-gray-400" />
-                            <span className="text-xs text-gray-400">Your Balance</span>
+                            <span className="text-xs text-gray-500">Your Balance</span>
                         </div>
                         <p className="text-2xl font-bold text-white">
                             {tonBalanceNum.toFixed(2)} TON
@@ -263,12 +247,12 @@ export default function EarnPage() {
 
                 {/* Potential Earnings Calculator */}
                 {tonBalanceNum > 0 && bestApy > 0 && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 border border-white/10">
+                    <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                         <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-4 h-4 text-purple-400" />
+                            <Sparkles className="w-4 h-4 text-gray-400" />
                             <span className="text-sm font-medium text-white">Potential Earnings</span>
                         </div>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-gray-500">
                             At {bestApy.toFixed(1)}% APY, your {tonBalanceNum.toFixed(2)} TON could earn:
                         </p>
                         <div className="flex items-center gap-4 mt-2">
@@ -278,7 +262,7 @@ export default function EarnPage() {
                                 </p>
                                 <p className="text-xs text-gray-500">per month</p>
                             </div>
-                            <div className="text-gray-600">|</div>
+                            <div className="text-gray-700">|</div>
                             <div>
                                 <p className="text-lg font-semibold text-white">
                                     ~{(tonBalanceNum * bestApy / 100).toFixed(3)} TON
@@ -332,16 +316,14 @@ export default function EarnPage() {
                     ) : (
                         <div className="space-y-2">
                             {sortedProtocols.map((protocol) => {
-                                const TypeIcon = TYPE_ICONS[protocol.type];
                                 const riskColors = RISK_COLORS[protocol.riskLevel];
-                                const typeColors = TYPE_COLORS[protocol.type];
                                 
                                 return (
                                     <motion.button
                                         key={protocol.id}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => openProtocol(protocol.url)}
-                                        className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:bg-white/10 transition-colors text-left"
+                                        className="w-full p-4 rounded-xl bg-[#111] border border-[#222] active:bg-[#161616] transition-colors text-left"
                                     >
                                         <div className="flex items-start gap-3">
                                             <div className="w-12 h-12 rounded-xl bg-white/10 overflow-hidden flex-shrink-0">
@@ -354,10 +336,9 @@ export default function EarnPage() {
                                                 />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                     <h3 className="font-medium text-white">{protocol.name}</h3>
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${typeColors}`}>
-                                                        <TypeIcon className="w-3 h-3 inline mr-0.5" />
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#222] text-gray-400 whitespace-nowrap">
                                                         {protocol.type}
                                                     </span>
                                                 </div>
@@ -385,14 +366,14 @@ export default function EarnPage() {
                 </div>
 
                 {/* Info Card */}
-                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                     <div className="flex gap-3">
-                        <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <Info className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-blue-400">
+                            <p className="text-sm font-medium text-gray-400">
                                 Understanding DeFi Yields
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                                 APY (Annual Percentage Yield) is the estimated yearly return. Actual returns may vary based on market conditions. Always DYOR before investing.
                             </p>
                         </div>

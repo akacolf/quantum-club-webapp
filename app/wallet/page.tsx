@@ -748,11 +748,11 @@ export default function WalletPage() {
         <div className="w-full">
           <button
             onClick={() => router.push("/wallet/earn")}
-            className="w-full p-4 rounded-2xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 flex items-center justify-between active:scale-[0.99] transition-transform"
+            className="w-full p-4 rounded-2xl bg-[#111] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-transform hover:bg-[#161616]"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-500" />
+              <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-gray-400" />
               </div>
               <div className="text-left">
                 <h4 className="font-semibold text-white text-sm">Earn & Stake</h4>

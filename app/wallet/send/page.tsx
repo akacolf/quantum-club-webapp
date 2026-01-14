@@ -914,6 +914,7 @@ export default function SendPage() {
 
       // Show detailed error to user
       toast.error(`Transaction failed: ${errorMessage}`);
+      
       setStep("input");
     } finally {
       setIsSending(false);

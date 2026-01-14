@@ -13,6 +13,7 @@ import {
     Info,
     Droplets,
     ArrowRight,
+    Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,13 +39,19 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
-import { Address } from "@ton/core";
+import { Address, internal, SendMode, Cell } from "@ton/core";
+import { WalletContractV5R1 } from "@ton/ton";
+import { mnemonicToPrivateKey } from "@ton/crypto";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
 import {
     fetchSwappableAssets,
     toUnits,
     fromUnits,
+    buildLiquidityTxParams,
     type SwapAsset,
+    type LiquidityProvisionResult,
 } from "@/lib/stonfi";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { StonApiClient } from "@ston-fi/api";
@@ -338,7 +345,7 @@ export default function LiquidityPage() {
     // Execute add liquidity
     const executeAddLiquidity = async () => {
         const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-        if (!storedMnemonic || !simulationResult || !tokenA || !tokenB) {
+        if (!storedMnemonic || !simulationResult || !tokenA || !tokenB || !walletAddress) {
             toast.error("Missing data for transaction");
             return;
         }
@@ -347,18 +354,89 @@ export default function LiquidityPage() {
         setStep("processing");
 
         try {
-            // This is a simplified implementation
-            // Full implementation would use STON.fi SDK to build the transaction
-            toast.info("Liquidity provision feature coming soon", {
-                description: "Full DEX v2 integration is in progress",
+            // Build the simulation result for the LP helper
+            const lpSimulation: LiquidityProvisionResult = {
+                provisionType: simulationResult.provisionType,
+                router: {
+                    address: simulationResult.poolAddress || "",
+                    ptonMasterAddress: "EQBnGWMCf3-FZZq1W4IWcWiGAc3PHuZ0_H-7sad2oY00o83S", // Default pTON v2
+                    ptonVersion: "v2",
+                    majorVersion: 2,
+                    minorVersion: 1,
+                },
+                poolAddress: simulationResult.poolAddress || "",
+                tokenA: tokenA.contractAddress,
+                tokenB: tokenB.contractAddress,
+                tokenAUnits: simulationResult.tokenAUnits,
+                tokenBUnits: simulationResult.tokenBUnits,
+                estimatedLpUnits: simulationResult.minLpUnits,
+                minLpUnits: simulationResult.minLpUnits,
+                minTokenAUnits: simulationResult.tokenAUnits,
+                minTokenBUnits: simulationResult.tokenBUnits,
+                priceImpact: "0",
+            };
+
+            // Build the transaction parameters
+            const txParamsList = await buildLiquidityTxParams(lpSimulation, walletAddress);
+
+            if (txParamsList.length === 0) {
+                throw new Error("Failed to build liquidity transactions");
+            }
+
+            // Initialize TonAPI client
+            const tonApiClient = new TonApiClient({
+                baseUrl: "https://tonapi.io",
+            });
+            const contractAdapter = new ContractAdapter(tonApiClient);
+
+            // Create wallet from mnemonic
+            const mnemonic = storedMnemonic.split(" ");
+            const keyPair = await mnemonicToPrivateKey(mnemonic);
+            const wallet = WalletContractV5R1.create({
+                workchain: 0,
+                publicKey: keyPair.publicKey,
+            });
+            const contract = contractAdapter.open(wallet);
+
+            // Get current seqno
+            const seqno = await contract.getSeqno();
+
+            // Build and send messages for each transaction
+            const messages = txParamsList.map((txParams) =>
+                internal({
+                    to: txParams.to,
+                    value: txParams.value,
+                    body: txParams.body ? Cell.fromBoc(txParams.body)[0] : undefined,
+                })
+            );
+
+            // Send the transaction
+            await contract.sendTransfer({
+                seqno,
+                secretKey: keyPair.secretKey,
+                sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+                messages,
             });
 
-            // For now, redirect back to positions
-            setStep("input");
-            setTab("positions");
+            toast.success("Liquidity added successfully!", {
+                description: `Added liquidity to ${tokenA.symbol}/${tokenB.symbol} pool`,
+            });
+
+            setStep("success");
+            
+            // Refresh positions after a delay
+            setTimeout(() => {
+                setStep("input");
+                setTab("positions");
+                setAmountA("");
+                setAmountB("");
+                setSimulationResult(null);
+            }, 3000);
         } catch (error) {
             console.error("Add liquidity failed:", error);
-            toast.error("Failed to add liquidity");
+            toast.error("Failed to add liquidity", {
+                description: error instanceof Error ? error.message : "Transaction failed",
+            });
             setStep("input");
         } finally {
             setIsProcessing(false);
@@ -410,7 +488,7 @@ export default function LiquidityPage() {
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Liquidity Pools</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Earn fees by providing liquidity
+                        Powered by <span className="font-semibold text-foreground">STON.fi</span>
                     </p>
                 </div>
 
@@ -799,6 +877,28 @@ export default function LiquidityPage() {
                                     <p className="text-muted-foreground text-sm">
                                         Please wait while your transaction is processed
                                     </p>
+                                </motion.div>
+                            )}
+
+                            {step === "success" && (
+                                <motion.div
+                                    key="success"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-center py-16 space-y-4"
+                                >
+                                    <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
+                                        <Check className="w-10 h-10 text-green-500" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-green-500">Liquidity Added!</h2>
+                                    <p className="text-muted-foreground text-sm">
+                                        Your tokens have been added to the pool
+                                    </p>
+                                    {tokenA && tokenB && (
+                                        <p className="text-sm font-medium">
+                                            {amountA} {tokenA.symbol} + {amountB || "auto"} {tokenB.symbol}
+                                        </p>
+                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>
