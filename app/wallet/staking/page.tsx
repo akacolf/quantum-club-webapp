@@ -293,19 +293,22 @@ export default function StakingPage() {
                                                                 />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                                <div className="flex items-center gap-2 mb-1">
                                                                     <h3 className="font-semibold text-white">{pool.name}</h3>
                                                                     {pool.isInstantUnstake && (
-                                                                        <Badge variant="secondary" className="text-[10px] h-5">
+                                                                        <Badge variant="secondary" className="text-[10px] h-5 whitespace-nowrap">
                                                                             Instant Unstake
                                                                         </Badge>
                                                                     )}
                                                                 </div>
                                                                 
-                                                                {/* Features */}
+                                                                {/* Features - filter out "Instant unstake" if already showing badge */}
                                                                 <div className="flex flex-wrap gap-1 mb-2">
-                                                                    {pool.features.slice(0, 3).map((feature, i) => (
-                                                                        <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1a] text-gray-500">
+                                                                    {pool.features
+                                                                        .filter(f => !pool.isInstantUnstake || !f.toLowerCase().includes("instant"))
+                                                                        .slice(0, 3)
+                                                                        .map((feature, i) => (
+                                                                        <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1a] text-gray-500 whitespace-nowrap">
                                                                             {feature}
                                                                         </span>
                                                                     ))}

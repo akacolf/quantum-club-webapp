@@ -13,6 +13,7 @@ import {
     ArrowRight,
     ExternalLink,
     CheckCircle,
+    CircleDollarSign,
 } from "lucide-react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -228,9 +229,6 @@ export default function EarnPage() {
         ? Math.max(...protocols.map(p => p.apy)) 
         : 0;
 
-    // Native protocol count
-    const nativeCount = protocols.filter(p => p.isNative).length;
-
     const handleProtocolClick = (protocol: YieldProtocol) => {
         if (protocol.internalRoute) {
             router.push(protocol.internalRoute);
@@ -316,14 +314,9 @@ export default function EarnPage() {
                     </div>
                 )}
 
-                {/* Native Actions - Quick Access */}
+                {/* Quick Access Cards */}
                 <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-base font-semibold text-white">Quick Actions</h2>
-                        <Badge variant="secondary" className="text-[10px]">
-                            {nativeCount} In-App
-                        </Badge>
-                    </div>
+                    <h2 className="text-base font-semibold text-white">Quick Actions</h2>
                     <div className="grid grid-cols-2 gap-3">
                         <motion.button
                             whileTap={{ scale: 0.98 }}
@@ -331,10 +324,10 @@ export default function EarnPage() {
                             className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-primary/10 border border-primary/20 text-left"
                         >
                             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-3">
-                                <Shield className="w-5 h-5 text-primary" />
+                                <CircleDollarSign className="w-5 h-5 text-primary" />
                             </div>
                             <h3 className="font-semibold text-white mb-1">Stake TON</h3>
-                            <p className="text-xs text-gray-500">~5% APY, Low Risk</p>
+                            <p className="text-xs text-gray-500">~5% APY · Low Risk</p>
                             <div className="flex items-center gap-1 text-xs text-primary mt-2">
                                 <span>Stake Now</span>
                                 <ArrowRight className="w-3 h-3" />
@@ -350,7 +343,7 @@ export default function EarnPage() {
                                 <Droplets className="w-5 h-5 text-blue-500" />
                             </div>
                             <h3 className="font-semibold text-white mb-1">Add Liquidity</h3>
-                            <p className="text-xs text-gray-500">~12% APY, Med Risk</p>
+                            <p className="text-xs text-gray-500">~12% APY · Med Risk</p>
                             <div className="flex items-center gap-1 text-xs text-blue-500 mt-2">
                                 <span>Start</span>
                                 <ArrowRight className="w-3 h-3" />
@@ -423,26 +416,21 @@ export default function EarnPage() {
                                                 />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="font-medium text-white">{protocol.name}</h3>
-                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#222] text-gray-400 whitespace-nowrap flex items-center gap-1">
-                                                        <TypeIcon className="w-3 h-3" />
+                                                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5 whitespace-nowrap">
+                                                        <TypeIcon className="w-3 h-3 mr-0.5" />
                                                         {protocol.type}
-                                                    </span>
-                                                    {protocol.isNative && (
-                                                        <Badge variant="default" className="text-[10px] h-4 bg-primary/20 text-primary border-primary/30">
-                                                            In-App
-                                                        </Badge>
-                                                    )}
+                                                    </Badge>
                                                 </div>
-                                                <p className="text-sm text-gray-500 mb-2">{protocol.description}</p>
-                                                <div className="flex items-center gap-3 text-xs">
-                                                    <span className={`px-2 py-0.5 rounded-full ${riskColors.bg} ${riskColors.text} border ${riskColors.border}`}>
+                                                <p className="text-sm text-gray-500 mb-2 line-clamp-1">{protocol.description}</p>
+                                                <div className="flex items-center gap-2 text-xs flex-wrap">
+                                                    <span className={`px-2 py-0.5 rounded-full ${riskColors.bg} ${riskColors.text} border ${riskColors.border} whitespace-nowrap`}>
                                                         {protocol.riskLevel} risk
                                                     </span>
-                                                    <span className="text-gray-500">TVL: {protocol.tvl}</span>
+                                                    <span className="text-gray-500 whitespace-nowrap">TVL: {protocol.tvl}</span>
                                                     {protocol.minAmount && (
-                                                        <span className="text-gray-500">Min: {protocol.minAmount}</span>
+                                                        <span className="text-gray-500 whitespace-nowrap">Min: {protocol.minAmount}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -472,18 +460,18 @@ export default function EarnPage() {
                                 Understanding DeFi Yields
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                                APY (Annual Percentage Yield) is the estimated yearly return. Actual returns may vary based on market conditions. Protocols marked &quot;In-App&quot; can be accessed directly from this wallet.
+                                APY (Annual Percentage Yield) is the estimated yearly return. Actual returns may vary based on market conditions.
                             </p>
                             <div className="flex flex-wrap gap-2 mt-3">
-                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500 whitespace-nowrap">
                                     <CheckCircle className="w-3 h-3 text-green-500" />
                                     Low Risk = Staking
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500 whitespace-nowrap">
                                     <CheckCircle className="w-3 h-3 text-yellow-500" />
                                     Med Risk = Lending/LP
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500 whitespace-nowrap">
                                     <CheckCircle className="w-3 h-3 text-red-500" />
                                     High Risk = Farming
                                 </div>

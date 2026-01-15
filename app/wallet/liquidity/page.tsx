@@ -56,6 +56,16 @@ import {
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { StonApiClient } from "@ston-fi/api";
 
+// Format large numbers with K, M, B suffixes
+const formatCompactNumber = (num: number): string => {
+    if (num === 0) return "0";
+    if (Math.abs(num) < 0.0001) return num.toExponential(2);
+    if (Math.abs(num) < 1000) return num.toFixed(4).replace(/\.?0+$/, "");
+    if (Math.abs(num) < 1000000) return (num / 1000).toFixed(2).replace(/\.?0+$/, "") + "K";
+    if (Math.abs(num) < 1000000000) return (num / 1000000).toFixed(2).replace(/\.?0+$/, "") + "M";
+    return (num / 1000000000).toFixed(2).replace(/\.?0+$/, "") + "B";
+};
+
 // Pool info from STON.fi
 interface PoolInfo {
     address: string;
@@ -881,7 +891,7 @@ export default function LiquidityPage() {
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-muted-foreground">Min LP tokens</span>
                                                     <span className="font-medium">
-                                                        {parseFloat(simulationResult.minLpUnits) / 1e9} LP
+                                                        {formatCompactNumber(parseFloat(simulationResult.minLpUnits) / 1e9)} LP
                                                     </span>
                                                 </div>
                                             </CardContent>

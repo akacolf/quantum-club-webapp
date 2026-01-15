@@ -238,18 +238,44 @@ export function WalletKitProvider({
             return;
         }
         
-        // Check if wallet is registered
+        // Check if wallet is registered, if not try to register it
         if (!walletRef.current) {
-            console.error("[WalletKit] Cannot approve: wallet not registered");
-            toast.error("Connection failed", {
-                description: "Wallet is required for connect request approval. Please wait for initialization.",
-            });
-            setPendingConnection(null);
-            return;
+            console.log("[WalletKit] Wallet not registered, attempting to register...");
+            
+            // Try to get mnemonic from localStorage and register
+            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${localStorage.getItem("telegramId") || ""}`);
+            
+            if (storedMnemonic) {
+                try {
+                    const mnemonic = storedMnemonic.split(" ");
+                    await registerWallet(mnemonic);
+                    
+                    // Wait a bit for registration to complete
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    if (!walletRef.current) {
+                        throw new Error("Wallet registration failed");
+                    }
+                } catch (regError) {
+                    console.error("[WalletKit] Auto-registration failed:", regError);
+                    toast.error("Connection failed", {
+                        description: "Could not register wallet. Please reload the page and try again.",
+                    });
+                    setPendingConnection(null);
+                    return;
+                }
+            } else {
+                console.error("[WalletKit] Cannot approve: no mnemonic found");
+                toast.error("Connection failed", {
+                    description: "No wallet found. Please create or import a wallet first.",
+                });
+                setPendingConnection(null);
+                return;
+            }
         }
         
         try {
-            console.log("[WalletKit] Approving connection with wallet:", walletRef.current.getAddress());
+            console.log("[WalletKit] Approving connection with wallet:", walletRef.current?.getAddress());
             await kitRef.current.approveConnectRequest(pendingConnection);
             console.log("[WalletKit] Connection approved");
             
@@ -275,7 +301,7 @@ export function WalletKitProvider({
         } finally {
             setPendingConnection(null);
         }
-    }, [pendingConnection]);
+    }, [pendingConnection, registerWallet]);
 
     // Reject connection request
     const rejectConnection = useCallback(async () => {
