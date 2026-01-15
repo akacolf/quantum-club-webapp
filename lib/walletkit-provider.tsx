@@ -232,11 +232,24 @@ export function WalletKitProvider({
     const approveConnection = useCallback(async () => {
         if (!kitRef.current || !pendingConnection) {
             console.error("[WalletKit] Cannot approve: kit or pending connection missing");
+            toast.error("Connection failed", {
+                description: "WalletKit not initialized. Please try again.",
+            });
+            return;
+        }
+        
+        // Check if wallet is registered
+        if (!walletRef.current) {
+            console.error("[WalletKit] Cannot approve: wallet not registered");
+            toast.error("Connection failed", {
+                description: "Wallet is required for connect request approval. Please wait for initialization.",
+            });
+            setPendingConnection(null);
             return;
         }
         
         try {
-            console.log("[WalletKit] Approving connection...");
+            console.log("[WalletKit] Approving connection with wallet:", walletRef.current.getAddress());
             await kitRef.current.approveConnectRequest(pendingConnection);
             console.log("[WalletKit] Connection approved");
             
@@ -247,9 +260,18 @@ export function WalletKitProvider({
             toast.success("Connected successfully");
         } catch (error) {
             console.error("[WalletKit] Failed to approve connection:", error);
-            toast.error("Connection failed", {
-                description: error instanceof Error ? error.message : "Failed to connect",
-            });
+            const errorMessage = error instanceof Error ? error.message : "Failed to connect";
+            
+            // Check for specific error about wallet requirement
+            if (errorMessage.toLowerCase().includes("wallet") && errorMessage.toLowerCase().includes("required")) {
+                toast.error("Connection failed", {
+                    description: "Wallet registration is incomplete. Please reload the page and try again.",
+                });
+            } else {
+                toast.error("Connection failed", {
+                    description: errorMessage,
+                });
+            }
         } finally {
             setPendingConnection(null);
         }

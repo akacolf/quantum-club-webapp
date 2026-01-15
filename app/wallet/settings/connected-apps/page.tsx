@@ -76,6 +76,10 @@ export default function ConnectedAppsPage() {
         
         const initWallet = async () => {
             if (!walletKit?.isReady || !telegramId) {
+                // Keep loading if WalletKit is not ready yet
+                if (!walletKit?.isReady && telegramId) {
+                    return; // Wait for WalletKit to be ready
+                }
                 setIsLoading(false);
                 return;
             }
@@ -87,21 +91,29 @@ export default function ConnectedAppsPage() {
                 if (!walletKit.isWalletRegistered) {
                     const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
                     if (storedMnemonic) {
+                        console.log("[ConnectedApps] Registering wallet...");
                         const mnemonic = storedMnemonic.split(" ");
                         await walletKit.registerWallet(mnemonic);
+                        console.log("[ConnectedApps] Wallet registered successfully");
+                    } else {
+                        console.warn("[ConnectedApps] No mnemonic found in storage");
+                        setError("Wallet not found. Please import or create a wallet first.");
                     }
+                } else {
+                    console.log("[ConnectedApps] Wallet already registered");
                 }
                 
                 await walletKit.refreshSessions();
             } catch (err) {
                 console.error("[ConnectedApps] Init error:", err);
+                setError("Failed to initialize wallet connection. Please try again.");
             } finally {
                 setIsLoading(false);
             }
         };
         
         initWallet();
-    }, [walletKit?.isReady, walletKit?.isWalletRegistered, telegramId]);
+    }, [walletKit?.isReady, walletKit?.isWalletRegistered, telegramId, walletKit]);
 
     // Handle QR code scan result
     const handleScanResult = useCallback(async (result: string) => {
@@ -113,7 +125,22 @@ export default function ConnectedAppsPage() {
                 throw new Error("WalletKit not initialized");
             }
 
+            // Ensure wallet is registered before processing
+            if (!walletKit.isWalletRegistered) {
+                const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+                if (storedMnemonic) {
+                    console.log("[ConnectedApps] Registering wallet before connection...");
+                    const mnemonic = storedMnemonic.split(" ");
+                    await walletKit.registerWallet(mnemonic);
+                    // Give a moment for registration to complete
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } else {
+                    throw new Error("Wallet not found. Please import or create a wallet first.");
+                }
+            }
+
             // Use WalletKit to handle the TON Connect URL
+            console.log("[ConnectedApps] Processing TON Connect URL:", result.substring(0, 50) + "...");
             await walletKit.handleTonConnectUrl(result);
             
             toast.success("Connection request received", {
@@ -127,7 +154,7 @@ export default function ConnectedAppsPage() {
         } finally {
             setIsProcessing(false);
         }
-    }, [walletKit]);
+    }, [walletKit, telegramId]);
 
     // Open Telegram's native QR scanner
     const openQRScanner = useCallback(() => {

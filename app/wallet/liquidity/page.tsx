@@ -232,18 +232,38 @@ export default function LiquidityPage() {
             const client = new StonApiClient();
 
             // Check for existing pool
-            const pools = await client.getPoolsByAssetPair({
-                asset0Address: tokenA.contractAddress,
-                asset1Address: tokenB.contractAddress,
-            });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let pools: any[] = [];
+            try {
+                pools = await client.getPoolsByAssetPair({
+                    asset0Address: tokenA.contractAddress,
+                    asset1Address: tokenB.contractAddress,
+                });
+            } catch (poolError) {
+                console.warn("Failed to fetch pools:", poolError);
+                pools = [];
+            }
 
             const pool = pools?.[0];
+            
+            // Determine provision type:
+            // - Initial: No pool exists, creating new pool
+            // - Balanced: Pool exists, adding liquidity in balanced ratio
+            // - Arbitrary: Pool exists but single-sided deposit (only one token)
             const provisionType: ProvisionType = pool ? (isSingleSided ? "Arbitrary" : "Balanced") : "Initial";
+
+            if (!pool && provisionType !== "Initial") {
+                throw new Error("No liquidity pool found for this token pair. Initial liquidity provision is required.");
+            }
 
             // Build simulation input based on provision type
             let result;
             
             if (provisionType === "Initial") {
+                // Initial provision requires both tokens
+                if (!amountB || parseFloat(amountB) <= 0) {
+                    throw new Error("Initial liquidity provision requires amounts for both tokens.");
+                }
                 result = await client.simulateLiquidityProvision({
                     tokenA: tokenA.contractAddress,
                     tokenB: tokenB.contractAddress,
@@ -251,9 +271,10 @@ export default function LiquidityPage() {
                     slippageTolerance: "0.01",
                     walletAddress: walletAddress || undefined,
                     tokenAUnits: toUnits(amountA, tokenA.decimals),
-                    tokenBUnits: amountB ? toUnits(amountB, tokenB.decimals) : toUnits(amountA, tokenA.decimals),
+                    tokenBUnits: toUnits(amountB, tokenB.decimals),
                 });
             } else if (provisionType === "Balanced") {
+                // Balanced provision - only provide tokenA, tokenB is calculated
                 result = await client.simulateLiquidityProvision({
                     tokenA: tokenA.contractAddress,
                     tokenB: tokenB.contractAddress,
@@ -264,17 +285,29 @@ export default function LiquidityPage() {
                     tokenAUnits: toUnits(amountA, tokenA.decimals),
                 });
             } else {
-                // Arbitrary
-                result = await client.simulateLiquidityProvision({
-                    tokenA: tokenA.contractAddress,
-                    tokenB: tokenB.contractAddress,
-                    provisionType: "Arbitrary",
-                    slippageTolerance: "0.01",
-                    walletAddress: walletAddress || undefined,
-                    poolAddress: pool?.address || "",
-                    tokenAUnits: toUnits(amountA, tokenA.decimals),
-                    tokenBUnits: isSingleSided ? "0" : (amountB ? toUnits(amountB, tokenB.decimals) : "0"),
-                });
+                // Arbitrary (single-sided) - provide only one token
+                // Note: Single-sided liquidity provision may not be supported by all pools
+                // The SDK will handle the conversion internally
+                try {
+                    // For single-sided, we only provide tokenA
+                    result = await client.simulateLiquidityProvision({
+                        tokenA: tokenA.contractAddress,
+                        tokenB: tokenB.contractAddress,
+                        provisionType: "Arbitrary",
+                        slippageTolerance: "0.05", // Higher slippage for single-sided
+                        walletAddress: walletAddress || undefined,
+                        poolAddress: pool?.address || "",
+                        tokenAUnits: toUnits(amountA, tokenA.decimals),
+                        tokenBUnits: "0", // Explicitly zero for single-sided
+                    });
+                } catch (singleSidedError) {
+                    // Single-sided might not be supported, try balanced approach
+                    console.warn("Single-sided provision failed, trying balanced approach:", singleSidedError);
+                    toast.error("Single-sided deposit not supported for this pool", {
+                        description: "Please use balanced deposit or try a different pool.",
+                    });
+                    throw singleSidedError;
+                }
             }
 
             setSimulationResult({
@@ -291,7 +324,22 @@ export default function LiquidityPage() {
             }
         } catch (error) {
             console.error("Failed to simulate provision:", error);
-            toast.error("Failed to simulate liquidity provision");
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
+            
+            // Provide more specific error messages
+            if (errorMessage.includes("pool") || errorMessage.includes("Pool")) {
+                toast.error("Pool not found", {
+                    description: "This token pair may not have a liquidity pool yet.",
+                });
+            } else if (errorMessage.includes("single-sided") || errorMessage.includes("Single")) {
+                toast.error("Single-sided deposit failed", {
+                    description: "Try using balanced deposit mode instead.",
+                });
+            } else {
+                toast.error("Failed to simulate liquidity provision", {
+                    description: errorMessage.substring(0, 100),
+                });
+            }
             setSimulationResult(null);
         } finally {
             setIsSimulating(false);

@@ -10,11 +10,16 @@ import {
     Shield,
     Coins,
     Droplets,
+    ArrowRight,
+    ExternalLink,
+    CheckCircle,
 } from "lucide-react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 // Yield protocol data
 interface YieldProtocol {
@@ -27,7 +32,8 @@ interface YieldProtocol {
     asset: string;
     assetIcon: string;
     description: string;
-    url: string;
+    url?: string;
+    internalRoute?: string;
     minAmount?: string;
     riskLevel: "low" | "medium" | "high";
     isNative?: boolean;
@@ -35,6 +41,38 @@ interface YieldProtocol {
 
 // TON DeFi protocols with yield opportunities
 const YIELD_PROTOCOLS: YieldProtocol[] = [
+    // Native staking - routes to our staking page
+    {
+        id: "native-staking",
+        name: "TON Liquid Staking",
+        icon: "/svg/ton-logo.svg",
+        type: "staking",
+        apy: 5.0,
+        tvl: "Varies",
+        asset: "TON",
+        assetIcon: "/svg/ton-logo.svg",
+        description: "Stake TON directly in-app with liquid staking pools",
+        internalRoute: "/wallet/staking",
+        minAmount: "0.5 TON",
+        riskLevel: "low",
+        isNative: true,
+    },
+    // Native liquidity - routes to our liquidity page
+    {
+        id: "native-liquidity",
+        name: "Provide Liquidity",
+        icon: "/png/stonfi-logo.png",
+        type: "lp",
+        apy: 12.0,
+        tvl: "Varies",
+        asset: "TON/USDT",
+        assetIcon: "/svg/ton-logo.svg",
+        description: "Add liquidity to DEX pools and earn fees",
+        internalRoute: "/wallet/liquidity",
+        riskLevel: "medium",
+        isNative: true,
+    },
+    // External protocols
     {
         id: "tonstakers",
         name: "TON Stakers",
@@ -45,23 +83,8 @@ const YIELD_PROTOCOLS: YieldProtocol[] = [
         asset: "TON",
         assetIcon: "/svg/ton-logo.svg",
         description: "Liquid staking - get tsTON while earning",
-        url: "https://tonstakers.com",
+        internalRoute: "/wallet/staking",
         minAmount: "1 TON",
-        riskLevel: "low",
-        isNative: true,
-    },
-    {
-        id: "bemo",
-        name: "Bemo",
-        icon: "/svg/ton-logo.svg",
-        type: "staking",
-        apy: 5.1,
-        tvl: "$89M",
-        asset: "TON",
-        assetIcon: "/svg/ton-logo.svg",
-        description: "Liquid staking with stTON token",
-        url: "https://bemo.finance",
-        minAmount: "0.5 TON",
         riskLevel: "low",
         isNative: true,
     },
@@ -101,8 +124,9 @@ const YIELD_PROTOCOLS: YieldProtocol[] = [
         asset: "TON/USDT",
         assetIcon: "/svg/ton-logo.svg",
         description: "Provide liquidity, earn trading fees",
-        url: "https://app.ston.fi/pools",
+        internalRoute: "/wallet/liquidity",
         riskLevel: "medium",
+        isNative: true,
     },
     {
         id: "dedust-ton-usdt",
@@ -139,8 +163,16 @@ const RISK_COLORS = {
     high: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/20" },
 };
 
+const TYPE_ICONS = {
+    staking: Shield,
+    lending: Coins,
+    lp: Droplets,
+    farming: Sparkles,
+};
+
 export default function EarnPage() {
     useTelegramBackButton("/wallet");
+    const router = useRouter();
     const { tonBalance, tonPrice } = useWallet();
     
     const [isLoading, setIsLoading] = useState(true);
@@ -175,8 +207,12 @@ export default function EarnPage() {
         ? protocols 
         : protocols.filter(p => p.type === selectedType);
 
-    // Sort by APY (highest first)
-    const sortedProtocols = [...filteredProtocols].sort((a, b) => b.apy - a.apy);
+    // Sort by APY (highest first), but native protocols first
+    const sortedProtocols = [...filteredProtocols].sort((a, b) => {
+        if (a.isNative && !b.isNative) return -1;
+        if (!a.isNative && b.isNative) return 1;
+        return b.apy - a.apy;
+    });
 
     // Calculate potential earnings
     const calculateMonthlyEarnings = (apy: number, amount: number) => {
@@ -192,13 +228,20 @@ export default function EarnPage() {
         ? Math.max(...protocols.map(p => p.apy)) 
         : 0;
 
-    const openProtocol = (url: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tgWebApp = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
-        if (tgWebApp?.openLink) {
-            tgWebApp.openLink(url);
-        } else {
-            window.open(url, "_blank");
+    // Native protocol count
+    const nativeCount = protocols.filter(p => p.isNative).length;
+
+    const handleProtocolClick = (protocol: YieldProtocol) => {
+        if (protocol.internalRoute) {
+            router.push(protocol.internalRoute);
+        } else if (protocol.url) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const tgWebApp = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
+            if (tgWebApp?.openLink) {
+                tgWebApp.openLink(protocol.url);
+            } else {
+                window.open(protocol.url, "_blank");
+            }
         }
     };
 
@@ -210,7 +253,7 @@ export default function EarnPage() {
                     <div className="space-y-0.5">
                         <h1 className="text-2xl font-bold text-white">Earn</h1>
                         <p className="text-sm text-gray-500">
-                            Find the best yields on TON
+                            Grow your TON with DeFi
                         </p>
                     </div>
                     <button
@@ -226,10 +269,10 @@ export default function EarnPage() {
                 <div className="grid grid-cols-2 gap-3">
                     <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                         <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-4 h-4 text-gray-400" />
+                            <TrendingUp className="w-4 h-4 text-green-500" />
                             <span className="text-xs text-gray-500">Best APY</span>
                         </div>
-                        <p className="text-2xl font-bold text-white">
+                        <p className="text-2xl font-bold text-green-500">
                             {bestApy.toFixed(1)}%
                         </p>
                     </div>
@@ -247,12 +290,12 @@ export default function EarnPage() {
 
                 {/* Potential Earnings Calculator */}
                 {tonBalanceNum > 0 && bestApy > 0 && (
-                    <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-green-500/10 border border-primary/20">
                         <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-4 h-4 text-gray-400" />
+                            <Sparkles className="w-4 h-4 text-primary" />
                             <span className="text-sm font-medium text-white">Potential Earnings</span>
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-400">
                             At {bestApy.toFixed(1)}% APY, your {tonBalanceNum.toFixed(2)} TON could earn:
                         </p>
                         <div className="flex items-center gap-4 mt-2">
@@ -272,6 +315,49 @@ export default function EarnPage() {
                         </div>
                     </div>
                 )}
+
+                {/* Native Actions - Quick Access */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-base font-semibold text-white">Quick Actions</h2>
+                        <Badge variant="secondary" className="text-[10px]">
+                            {nativeCount} In-App
+                        </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <motion.button
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => router.push("/wallet/staking")}
+                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-primary/10 border border-primary/20 text-left"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-3">
+                                <Shield className="w-5 h-5 text-primary" />
+                            </div>
+                            <h3 className="font-semibold text-white mb-1">Stake TON</h3>
+                            <p className="text-xs text-gray-500">~5% APY, Low Risk</p>
+                            <div className="flex items-center gap-1 text-xs text-primary mt-2">
+                                <span>Stake Now</span>
+                                <ArrowRight className="w-3 h-3" />
+                            </div>
+                        </motion.button>
+
+                        <motion.button
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => router.push("/wallet/liquidity")}
+                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-blue-500/10 border border-blue-500/20 text-left"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
+                                <Droplets className="w-5 h-5 text-blue-500" />
+                            </div>
+                            <h3 className="font-semibold text-white mb-1">Add Liquidity</h3>
+                            <p className="text-xs text-gray-500">~12% APY, Med Risk</p>
+                            <div className="flex items-center gap-1 text-xs text-blue-500 mt-2">
+                                <span>Start</span>
+                                <ArrowRight className="w-3 h-3" />
+                            </div>
+                        </motion.button>
+                    </div>
+                </div>
 
                 {/* Type Filter */}
                 <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
@@ -317,12 +403,13 @@ export default function EarnPage() {
                         <div className="space-y-2">
                             {sortedProtocols.map((protocol) => {
                                 const riskColors = RISK_COLORS[protocol.riskLevel];
+                                const TypeIcon = TYPE_ICONS[protocol.type];
                                 
                                 return (
                                     <motion.button
                                         key={protocol.id}
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={() => openProtocol(protocol.url)}
+                                        onClick={() => handleProtocolClick(protocol)}
                                         className="w-full p-4 rounded-xl bg-[#111] border border-[#222] active:bg-[#161616] transition-colors text-left"
                                     >
                                         <div className="flex items-start gap-3">
@@ -338,9 +425,15 @@ export default function EarnPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                     <h3 className="font-medium text-white">{protocol.name}</h3>
-                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#222] text-gray-400 whitespace-nowrap">
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#222] text-gray-400 whitespace-nowrap flex items-center gap-1">
+                                                        <TypeIcon className="w-3 h-3" />
                                                         {protocol.type}
                                                     </span>
+                                                    {protocol.isNative && (
+                                                        <Badge variant="default" className="text-[10px] h-4 bg-primary/20 text-primary border-primary/30">
+                                                            In-App
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm text-gray-500 mb-2">{protocol.description}</p>
                                                 <div className="flex items-center gap-3 text-xs">
@@ -356,6 +449,11 @@ export default function EarnPage() {
                                             <div className="text-right flex-shrink-0">
                                                 <p className="text-xl font-bold text-green-500">{protocol.apy.toFixed(1)}%</p>
                                                 <p className="text-xs text-gray-500">APY</p>
+                                                {protocol.internalRoute ? (
+                                                    <ArrowRight className="w-4 h-4 text-primary mt-2 ml-auto" />
+                                                ) : (
+                                                    <ExternalLink className="w-4 h-4 text-gray-500 mt-2 ml-auto" />
+                                                )}
                                             </div>
                                         </div>
                                     </motion.button>
@@ -374,8 +472,22 @@ export default function EarnPage() {
                                 Understanding DeFi Yields
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                                APY (Annual Percentage Yield) is the estimated yearly return. Actual returns may vary based on market conditions. Always DYOR before investing.
+                                APY (Annual Percentage Yield) is the estimated yearly return. Actual returns may vary based on market conditions. Protocols marked &quot;In-App&quot; can be accessed directly from this wallet.
                             </p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                    Low Risk = Staking
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <CheckCircle className="w-3 h-3 text-yellow-500" />
+                                    Med Risk = Lending/LP
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                    High Risk = Farming
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
