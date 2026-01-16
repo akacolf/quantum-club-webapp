@@ -64,6 +64,19 @@ const YIELD_PROTOCOLS: YieldProtocol[] = [
         minAmount: "1 TON",
         riskLevel: "medium",
     },
+    {
+        id: "lp-farming",
+        name: "LP Farming",
+        icon: "/png/stonfi-logo.png",
+        type: "lp",
+        apy: 25.0,
+        tvl: "$20M+",
+        asset: "LP Tokens",
+        description: "Stake LP tokens in farms to earn additional STON rewards",
+        route: "/wallet/farming",
+        minAmount: "Any LP",
+        riskLevel: "medium",
+    },
 ];
 
 // Risk level colors

@@ -13,7 +13,9 @@ import {
     AlertTriangle,
     Gift,
     ArrowLeft,
+    ArrowUpRight,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -39,6 +41,7 @@ type ViewMode = "list" | "stake";
 
 export default function StakingPage() {
     useTelegramBackButton("/wallet");
+    const router = useRouter();
     const { tonBalance, tonPrice, fetchWalletAssets } = useWallet();
     const { telegramId } = useGameContext();
     
@@ -258,6 +261,23 @@ export default function StakingPage() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Unstake Button */}
+                            <button
+                                onClick={() => router.push("/wallet/unstake")}
+                                className="w-full p-4 rounded-xl bg-[#111] border border-[#222] flex items-center justify-between hover:bg-[#161616] transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
+                                        <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-white text-sm">Unstake tsTON</p>
+                                        <p className="text-xs text-gray-500">Convert tsTON back to TON</p>
+                                    </div>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-500" />
+                            </button>
 
                             {/* Staking Pools */}
                             <div className="space-y-3">
