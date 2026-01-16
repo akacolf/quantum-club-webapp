@@ -66,6 +66,12 @@ const formatCompactNumber = (num: number): string => {
     return (num / 1000000000).toFixed(2).replace(/\.?0+$/, "") + "B";
 };
 
+// Format balance string with compact notation
+const formatBalance = (balance: string): string => {
+    const num = parseFloat(balance) || 0;
+    return formatCompactNumber(num);
+};
+
 // Pool info from STON.fi
 interface PoolInfo {
     address: string;
@@ -676,7 +682,7 @@ export default function LiquidityPage() {
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-sm text-muted-foreground">Token A</span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    Balance: {tokenA ? getAssetBalance(tokenA) : "0"}
+                                                    Balance: {tokenA ? formatBalance(getAssetBalance(tokenA)) : "0"}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -734,7 +740,7 @@ export default function LiquidityPage() {
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-sm text-muted-foreground">
-                                                                    {getAssetBalance(asset)}
+                                                                    {formatBalance(getAssetBalance(asset))}
                                                                 </div>
                                                             </DropdownMenuItem>
                                                         ))}
@@ -770,7 +776,7 @@ export default function LiquidityPage() {
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-sm text-muted-foreground">Token B</span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    Balance: {tokenB ? getAssetBalance(tokenB) : "0"}
+                                                    Balance: {tokenB ? formatBalance(getAssetBalance(tokenB)) : "0"}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -828,7 +834,7 @@ export default function LiquidityPage() {
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-sm text-muted-foreground">
-                                                                    {getAssetBalance(asset)}
+                                                                    {formatBalance(getAssetBalance(asset))}
                                                                 </div>
                                                             </DropdownMenuItem>
                                                         ))}
