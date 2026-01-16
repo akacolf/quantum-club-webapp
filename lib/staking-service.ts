@@ -172,6 +172,7 @@ export async function buildStakeTransaction(
 
 /**
  * Execute stake transaction
+ * Uses tonstakers-sdk for TON Stakers pool, manual transaction for others
  */
 export async function executeStake(
     pool: StakingPool,
@@ -179,7 +180,41 @@ export async function executeStake(
     mnemonic: string[]
 ): Promise<StakingResult> {
     try {
-        // Build transaction
+        // For TON Stakers, use the official SDK
+        if (pool.id === "tonstakers") {
+            const { stakeTon, getTonStakersInfo } = await import("./tonstakers-integration");
+            
+            // Get wallet address from mnemonic
+            const keyPair = await mnemonicToPrivateKey(mnemonic);
+            const wallet = WalletContractV5R1.create({
+                workchain: 0,
+                publicKey: keyPair.publicKey,
+            });
+            const walletAddress = wallet.address.toString();
+            
+            // Get current rates to calculate liquid tokens
+            const info = await getTonStakersInfo(walletAddress, mnemonic);
+            const exchangeRate = info.rates?.tsTONTON || 1;
+            const estimatedLiquidTokens = (parseFloat(amountTon) / exchangeRate).toFixed(4);
+            
+            // Execute stake via SDK
+            const result = await stakeTon(amountTon, walletAddress, mnemonic, false);
+            
+            if (result.success) {
+                return {
+                    success: true,
+                    txHash: result.txHash,
+                    estimatedLiquidTokens,
+                };
+            } else {
+                return {
+                    success: false,
+                    error: result.error || "Staking failed",
+                };
+            }
+        }
+        
+        // For other pools, use manual transaction building
         const txParams = await buildStakeTransaction(pool, amountTon);
         if (!txParams) {
             return { success: false, error: "Failed to build stake transaction" };
@@ -273,21 +308,44 @@ export async function buildUnstakeTransaction(
 
 /**
  * Fetch live APY data from staking pools
- * In production, this would query on-chain or API data
+ * Uses tonstakers-sdk for real data when available
  */
 export async function fetchLiveApyData(): Promise<Map<string, number>> {
     const apyData = new Map<string, number>();
     
     try {
-        // For now, return static APY with small variations
-        // In production, query from:
-        // - TON Stakers API
-        // - Bemo smart contract
-        // - Hipo smart contract
+        // Try to get real APY from TON Stakers
+        try {
+            const { Tonstakers } = await import("tonstakers-sdk");
+            
+            // Create a minimal connector just for APY query (no wallet needed)
+            const minimalConnector = {
+                wallet: { account: undefined },
+                sendTransaction: async () => ({ boc: "" }),
+                onStatusChange: () => {},
+            };
+            
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const sdk = new Tonstakers({ connector: minimalConnector as any });
+            
+            // Wait for SDK to be ready
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const realApy = await sdk.getCurrentApy();
+            if (realApy && realApy > 0) {
+                apyData.set("tonstakers", realApy);
+            }
+        } catch (e) {
+            console.warn("Could not fetch live APY from TON Stakers:", e);
+        }
+        
+        // For other pools, use static APY with small variations
         for (const pool of STAKING_POOLS) {
-            // Simulate APY variation
-            const variation = (Math.random() - 0.5) * 0.4; // ±0.2%
-            apyData.set(pool.id, pool.apy + variation);
+            if (!apyData.has(pool.id)) {
+                // Simulate APY variation for pools without real data
+                const variation = (Math.random() - 0.5) * 0.4; // ±0.2%
+                apyData.set(pool.id, pool.apy + variation);
+            }
         }
     } catch (error) {
         console.error("Failed to fetch live APY:", error);

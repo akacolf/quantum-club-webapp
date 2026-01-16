@@ -24,6 +24,8 @@ import {
   PieChart,
   History,
   TrendingUp,
+  Users,
+  ArrowLeftRight,
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -445,6 +447,7 @@ export default function WalletPage() {
       router.prefetch("/wallet/earn");
       router.prefetch("/wallet/staking");
       router.prefetch("/wallet/browser");
+      router.prefetch("/wallet/send-multiple");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -760,6 +763,35 @@ export default function WalletPage() {
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Quick Actions Row */}
+        <div className="w-full grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push("/wallet/send-multiple")}
+            className="p-4 rounded-2xl bg-[#111] border border-[#222] flex items-center gap-3 active:scale-[0.99] transition-transform hover:bg-[#161616]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
+              <Users className="w-5 h-5 text-gray-400" />
+            </div>
+            <div className="text-left">
+              <h4 className="font-semibold text-white text-sm">Batch Send</h4>
+              <p className="text-xs text-gray-500">Multi-recipient</p>
+            </div>
+          </button>
+          
+          <button
+            onClick={() => router.push("/wallet/swap")}
+            className="p-4 rounded-2xl bg-[#111] border border-[#222] flex items-center gap-3 active:scale-[0.99] transition-transform hover:bg-[#161616]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
+              <ArrowLeftRight className="w-5 h-5 text-gray-400" />
+            </div>
+            <div className="text-left">
+              <h4 className="font-semibold text-white text-sm">Swap</h4>
+              <p className="text-xs text-gray-500">Exchange tokens</p>
+            </div>
           </button>
         </div>
 
