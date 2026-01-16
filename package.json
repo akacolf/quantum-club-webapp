@@ -14,6 +14,7 @@
     "@aws-sdk/s3-request-presigner": "^3.958.0",
     "@bitcoinerlab/secp256k1": "^1.2.0",
     "@google/genai": "^1.33.0",
+    "@hipo-finance/sdk": "^2.0.1",
     "@iconify/react": "^6.0.2",
     "@noble/ed25519": "^3.0.0",
     "@orbs-network/ton-access": "^2.3.3",
