@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Sprout,
-    ArrowLeft,
     RefreshCw,
     Loader2,
     CheckCircle,
@@ -13,7 +12,6 @@ import {
     Gift,
     Info,
 } from "lucide-react";
-import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { Button } from "@/components/ui/button";
@@ -36,7 +34,6 @@ import {
 type ViewMode = "list" | "stake" | "positions" | "details";
 
 export default function FarmingPage() {
-    useTelegramBackButton("/wallet/earn");
     const router = useRouter();
     const { fetchWalletAssets, jettons } = useWallet();
     const { telegramId } = useGameContext();
@@ -56,6 +53,30 @@ export default function FarmingPage() {
     const [selectedFarm, setSelectedFarm] = useState<FarmPool | null>(null);
     const [stakeAmount, setStakeAmount] = useState("");
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
+
+    // Custom Telegram back button that handles internal navigation
+    useEffect(() => {
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        
+        const handleBackButtonClick = () => {
+            if (viewMode === "stake" || viewMode === "details") {
+                setViewMode("list");
+                setSelectedFarm(null);
+            } else if (viewMode === "positions") {
+                setViewMode("list");
+            } else {
+                router.push("/wallet/earn");
+            }
+        };
+        
+        tg?.BackButton.show();
+        tg?.BackButton.onClick(handleBackButtonClick);
+        
+        return () => {
+            tg?.BackButton.offClick(handleBackButtonClick);
+        };
+    }, [router, viewMode]);
 
     // Fetch farming data
     const fetchData = useCallback(async () => {
@@ -95,16 +116,6 @@ export default function FarmingPage() {
         setViewMode("stake");
         setStep("input");
         setStakeAmount("");
-    };
-
-    // Handle back
-    const handleBack = () => {
-        if (viewMode === "stake" || viewMode === "details") {
-            setViewMode("list");
-            setSelectedFarm(null);
-        } else if (viewMode === "positions") {
-            setViewMode("list");
-        }
     };
 
     // Handle max
@@ -410,14 +421,9 @@ export default function FarmingPage() {
                             className="space-y-5"
                         >
                             {/* Header */}
-                            <div className="flex items-center gap-3">
-                                <button onClick={handleBack} className="p-2 -ml-2">
-                                    <ArrowLeft className="w-5 h-5 text-gray-400" />
-                                </button>
-                                <div>
-                                    <h1 className="text-xl font-bold text-white">Stake LP Tokens</h1>
-                                    <p className="text-sm text-gray-500">{selectedFarm.poolName}</p>
-                                </div>
+                            <div>
+                                <h1 className="text-xl font-bold text-white">Stake LP Tokens</h1>
+                                <p className="text-sm text-gray-500">{selectedFarm.poolName}</p>
                             </div>
 
                             {step === "input" && (

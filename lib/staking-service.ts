@@ -3,6 +3,11 @@
 /**
  * TON Staking Service
  * Integrates with liquid staking protocols (TON Stakers, Bemo, Hipo)
+ * 
+ * Provider SDKs:
+ * - TON Stakers: tonstakers-sdk
+ * - Hipo Finance: @hipo-finance/sdk (integrated via lib/hipo-integration.ts)
+ * - Bemo Finance: Manual integration (no official SDK)
  */
 
 import { Address, toNano, Cell, internal, SendMode, beginCell } from "@ton/core";
@@ -51,7 +56,7 @@ export const STAKING_POOLS: StakingPool[] = [
     {
         id: "bemo",
         name: "Bemo Finance",
-        icon: "/svg/ton-logo.svg",
+        icon: "/png/bemofinance-logo.jpg",
         description: "Decentralized liquid staking protocol",
         liquidToken: "stTON",
         liquidTokenIcon: "/svg/ton-logo.svg",
@@ -68,18 +73,18 @@ export const STAKING_POOLS: StakingPool[] = [
     {
         id: "hipo",
         name: "Hipo Finance",
-        icon: "/svg/ton-logo.svg",
+        icon: "/svg/hipofinance-logo.svg",
         description: "Decentralized staking with hTON",
         liquidToken: "hTON",
         liquidTokenIcon: "/svg/ton-logo.svg",
         apy: 4.6,
         minStake: 10,
-        // Hipo treasury (mainnet)
-        poolAddress: "EQBNo5qAG8I8J6IxGaz15SfQVB-kX98YhKV_mT36Xo5vYxUa",
-        jettonMasterAddress: "EQBNo5qAG8I8J6IxGaz15SfQVB-kX98YhKV_mT36Xo5vYxUa",
+        // Hipo treasury (mainnet) - from @hipo-finance/sdk
+        poolAddress: "EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ",
+        jettonMasterAddress: "EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ",
         unstakeTime: "~36 hours",
         isInstantUnstake: false,
-        features: ["Decentralized", "Community governed", "Open source"],
+        features: ["Decentralized", "Community governed", "Open source", "SDK integrated"],
         riskLevel: "low",
     },
 ];
@@ -172,7 +177,10 @@ export async function buildStakeTransaction(
 
 /**
  * Execute stake transaction
- * Uses tonstakers-sdk for TON Stakers pool, manual transaction for others
+ * Uses provider SDKs when available:
+ * - TON Stakers: tonstakers-sdk
+ * - Hipo Finance: lib/hipo-integration.ts
+ * - Bemo: Manual transaction
  */
 export async function executeStake(
     pool: StakingPool,
@@ -214,7 +222,34 @@ export async function executeStake(
             }
         }
         
-        // For other pools, use manual transaction building
+        // For Hipo Finance, use our integration module
+        if (pool.id === "hipo") {
+            const { stakeWithHipo, getHipoTreasuryState } = await import("./hipo-integration");
+            
+            // Get exchange rate for estimated hTON
+            const state = await getHipoTreasuryState(false);
+            const estimatedLiquidTokens = state
+                ? (parseFloat(amountTon) / state.exchangeRate).toFixed(4)
+                : amountTon;
+            
+            // Execute stake via Hipo
+            const result = await stakeWithHipo(amountTon, mnemonic, false);
+            
+            if (result.success) {
+                return {
+                    success: true,
+                    txHash: result.txHash,
+                    estimatedLiquidTokens,
+                };
+            } else {
+                return {
+                    success: false,
+                    error: result.error || "Hipo staking failed",
+                };
+            }
+        }
+        
+        // For other pools (Bemo), use manual transaction building
         const txParams = await buildStakeTransaction(pool, amountTon);
         if (!txParams) {
             return { success: false, error: "Failed to build stake transaction" };
@@ -308,7 +343,7 @@ export async function buildUnstakeTransaction(
 
 /**
  * Fetch live APY data from staking pools
- * Uses tonstakers-sdk for real data when available
+ * Uses provider SDKs when available for real data
  */
 export async function fetchLiveApyData(): Promise<Map<string, number>> {
     const apyData = new Map<string, number>();
@@ -337,6 +372,17 @@ export async function fetchLiveApyData(): Promise<Map<string, number>> {
             }
         } catch (e) {
             console.warn("Could not fetch live APY from TON Stakers:", e);
+        }
+        
+        // Try to get real APY from Hipo Finance
+        try {
+            const { getHipoLiveApy } = await import("./hipo-integration");
+            const hipoApy = await getHipoLiveApy(false);
+            if (hipoApy > 0) {
+                apyData.set("hipo", hipoApy);
+            }
+        } catch (e) {
+            console.warn("Could not fetch live APY from Hipo:", e);
         }
         
         // For other pools, use static APY with small variations

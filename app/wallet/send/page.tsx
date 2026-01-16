@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1377,6 +1377,23 @@ export default function SendPage() {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-6"
             >
+              {/* Batch Send Feature Link */}
+              <button
+                onClick={() => router.push("/wallet/send-multiple")}
+                className="w-full p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between hover:bg-primary/10 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">Send to Multiple</p>
+                    <p className="text-xs text-muted-foreground">Send TON to multiple recipients at once</p>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-primary rotate-[-90deg]" />
+              </button>
+
               {/* Asset Selection */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground ml-1">Asset</Label>

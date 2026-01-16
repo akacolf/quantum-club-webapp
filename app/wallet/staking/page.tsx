@@ -12,11 +12,9 @@ import {
     Loader2,
     AlertTriangle,
     Gift,
-    ArrowLeft,
     ArrowUpRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -40,7 +38,6 @@ import {
 type ViewMode = "list" | "stake";
 
 export default function StakingPage() {
-    useTelegramBackButton("/wallet");
     const router = useRouter();
     const { tonBalance, tonPrice, fetchWalletAssets } = useWallet();
     const { telegramId } = useGameContext();
@@ -59,6 +56,32 @@ export default function StakingPage() {
     const [selectedPool, setSelectedPool] = useState<StakingPool | null>(null);
     const [stakeAmount, setStakeAmount] = useState("");
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
+
+    // Custom Telegram back button that handles internal navigation
+    useEffect(() => {
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        
+        const handleBackButtonClick = () => {
+            if (viewMode === "stake") {
+                // Go back to pool list
+                setViewMode("list");
+                setSelectedPool(null);
+                setStakeAmount("");
+                setStep("input");
+            } else {
+                // Go back to wallet
+                router.push("/wallet");
+            }
+        };
+        
+        tg?.BackButton.show();
+        tg?.BackButton.onClick(handleBackButtonClick);
+        
+        return () => {
+            tg?.BackButton.offClick(handleBackButtonClick);
+        };
+    }, [router, viewMode]);
 
     // Fetch staking data with live APY
     const fetchStakingData = useCallback(async () => {
@@ -101,14 +124,6 @@ export default function StakingPage() {
         setViewMode("stake");
         setStep("input");
         setStakeAmount("");
-    };
-
-    // Handle back from stake view
-    const handleBack = () => {
-        setViewMode("list");
-        setSelectedPool(null);
-        setStakeAmount("");
-        setStep("input");
     };
 
     // Handle max amount
@@ -428,20 +443,12 @@ export default function StakingPage() {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-5"
                         >
-                            {/* Header with back button */}
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={handleBack}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5"
-                                >
-                                    <ArrowLeft className="w-5 h-5 text-gray-400" />
-                                </button>
-                                <div>
-                                    <h1 className="text-xl font-bold text-white">Stake with {selectedPool?.name}</h1>
-                                    <p className="text-sm text-gray-500">
-                                        You&apos;ll receive {selectedPool?.liquidToken} tokens
-                                    </p>
-                                </div>
+                            {/* Header */}
+                            <div>
+                                <h1 className="text-xl font-bold text-white">Stake with {selectedPool?.name}</h1>
+                                <p className="text-sm text-gray-500">
+                                    You&apos;ll receive {selectedPool?.liquidToken} tokens
+                                </p>
                             </div>
 
                             <AnimatePresence mode="wait">
@@ -648,7 +655,12 @@ export default function StakingPage() {
                                             You&apos;ll receive ~{stakeAmountNum.toFixed(4)} {selectedPool?.liquidToken}
                                         </p>
                                         <Button
-                                            onClick={handleBack}
+                                            onClick={() => {
+                                                setViewMode("list");
+                                                setSelectedPool(null);
+                                                setStakeAmount("");
+                                                setStep("input");
+                                            }}
                                             variant="outline"
                                             className="mt-4"
                                         >
