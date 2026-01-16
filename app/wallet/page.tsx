@@ -448,6 +448,8 @@ export default function WalletPage() {
       router.prefetch("/wallet/staking");
       router.prefetch("/wallet/browser");
       router.prefetch("/wallet/send-multiple");
+      router.prefetch("/wallet/farming");
+      router.prefetch("/wallet/unstake");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
