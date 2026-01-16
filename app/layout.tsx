@@ -22,11 +22,6 @@ const onest = Onest({
 export const metadata: Metadata = {
   title: "Quantum Club",
   description: "The Super Ecosystem built on Telegram and TON",
-  icons: {
-    icon: "/png/favicon.png",
-    shortcut: "/png/favicon.png",
-    apple: "/png/favicon.png",
-  },
 }
 
 export default function RootLayout({
