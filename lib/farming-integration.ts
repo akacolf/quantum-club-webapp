@@ -19,10 +19,14 @@ export interface FarmPool {
     address: string;
     lpAddress: string;
     rewardTokenAddress: string;
+    rewardTokenSymbol: string;
     poolName: string;
     apr?: number;
     tvl?: number;
+    tvlLp?: string;
     minStake?: string;
+    status: string;
+    rewardRate24h?: string;
 }
 
 // User's farming position
@@ -68,6 +72,7 @@ async function getWallet(mnemonic: string[], tonClient: TonClient) {
 
 /**
  * Fetch available farming pools from STON.fi API
+ * Only returns active farms with valid APY and rewards
  */
 export async function fetchFarmingPools(): Promise<FarmPool[]> {
     try {
@@ -75,25 +80,57 @@ export async function fetchFarmingPools(): Promise<FarmPool[]> {
         const farms = await stonApi.getFarms({});
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return farms.map((farm: any) => {
-            // STON.fi API returns APY as a decimal (e.g., 0.25 = 25%)
-            let apr = farm.apy ? parseFloat(farm.apy) * 100 : undefined;
+        const activeFarms = farms.filter((farm: any) => {
+            // Filter out inactive farms
+            if (farm.status !== "active" && farm.status !== "operational") return false;
             
-            // Cap unrealistic APR values at 1000% (some pools have extreme values)
-            if (apr !== undefined && apr > 1000) {
-                apr = undefined; // Hide pools with unrealistic APR
-            }
+            // Filter out farms where all rewards have been distributed
+            if (farm.allRewardsDistributed === true) return false;
+            
+            // Only include farms with APY
+            if (!farm.apy || parseFloat(farm.apy) <= 0) return false;
+            
+            // Check if farm has active rewards
+            const hasActiveRewards = farm.rewards?.some(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (r: any) => r.status === "active" || r.status === "operational"
+            );
+            if (!hasActiveRewards) return false;
+            
+            return true;
+        });
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return activeFarms.map((farm: any) => {
+            // STON.fi API returns APY as a decimal (e.g., 0.25 = 25%)
+            const apr = farm.apy ? parseFloat(farm.apy) * 100 : undefined;
+            
+            // Get USD TVL from the API (lockedTotalLpUsd)
+            const tvl = farm.lockedTotalLpUsd ? parseFloat(farm.lockedTotalLpUsd) : undefined;
+            
+            // Get the first active reward token
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const activeReward = farm.rewards?.find((r: any) => 
+                r.status === "active" || r.status === "operational"
+            );
+            
+            // Get farm name from meta or generate from address
+            const farmName = farm.meta?.name || `Farm ${farm.minterAddress?.slice(0, 8) || "Unknown"}`;
             
             return {
                 address: farm.minterAddress || "",
-                lpAddress: farm.lpTokenMinter || "",
-                rewardTokenAddress: farm.rewards?.[0]?.address || "",
-                poolName: `Farm ${farm.minterAddress?.slice(0, 8) || "Unknown"}`,
-                apr,
-                tvl: farm.tvl ? parseFloat(farm.tvl) : undefined,
+                lpAddress: farm.poolAddress || "",
+                rewardTokenAddress: activeReward?.address || "",
+                rewardTokenSymbol: "STON", // Most STON.fi farms reward STON
+                poolName: farmName,
+                apr: apr && apr <= 500 ? apr : undefined, // Cap at 500% APR
+                tvl,
+                tvlLp: farm.lockedTotalLp || "0",
                 minStake: farm.minStakeDurationS || "0",
+                status: farm.status || "unknown",
+                rewardRate24h: activeReward?.rewardRate24H || "0",
             };
-        }).filter(f => f.apr === undefined || f.apr <= 1000); // Filter out extreme APRs
+        }).filter(f => f.apr !== undefined && f.apr > 0); // Only show farms with valid APR
     } catch (error) {
         console.error("[Farming] Failed to fetch farms:", error);
         return [];

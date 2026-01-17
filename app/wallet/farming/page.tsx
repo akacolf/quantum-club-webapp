@@ -359,19 +359,22 @@ export default function FarmingPage() {
                                                             <Sprout className="w-5 h-5 text-green-500" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium text-white">{farm.poolName}</p>
-                                                            <div className="flex items-center gap-2">
+                                                            <p className="font-medium text-white text-sm">{farm.poolName}</p>
+                                                            <div className="flex items-center gap-2 mt-1">
                                                                 {farm.apr && (
                                                                     <Badge variant="secondary" className="bg-green-500/10 text-green-400 text-xs">
                                                                         {farm.apr.toFixed(1)}% APR
                                                                     </Badge>
                                                                 )}
-                                                                {farm.tvl && (
-                                                                    <span className="text-xs text-gray-500">
-                                                                        ${formatNumber(farm.tvl)} TVL
-                                                                    </span>
-                                                                )}
+                                                                <span className="text-xs text-gray-500">
+                                                                    → {farm.rewardTokenSymbol}
+                                                                </span>
                                                             </div>
+                                                            {farm.tvl && farm.tvl > 0 && (
+                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                    ${formatNumber(farm.tvl)} TVL
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <ArrowRight className="w-4 h-4 text-gray-500" />
@@ -392,8 +395,8 @@ export default function FarmingPage() {
                                             <p className="text-xs text-gray-400">
                                                 1. Add liquidity to a DEX pool to receive LP tokens<br/>
                                                 2. Stake your LP tokens in a farm<br/>
-                                                3. Earn reward tokens over time<br/>
-                                                4. Unstake anytime to claim your rewards
+                                                3. Earn <strong className="text-primary">STON tokens</strong> as rewards over time<br/>
+                                                4. Unstake anytime to claim your LP + rewards
                                             </p>
                                         </div>
                                     </div>
