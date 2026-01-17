@@ -2,7 +2,7 @@
 
 <div align="center">
 
-##**The Super Ecosystem built on Telegram and TON**
+#**The Super Ecosystem built on Telegram and TON**
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TON](https://img.shields.io/badge/TON-Blockchain-0098EA?style=for-the-badge&logo=ton)](https://ton.org/)
@@ -13,7 +13,7 @@
 
 ---
 
-## 📖 Overview
+##  Overview
 
 Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, integrating a multi-chain crypto wallet, token trading platform, dApp browser, social features, and gamified earning mechanisms—all powered by the TON blockchain.
 
