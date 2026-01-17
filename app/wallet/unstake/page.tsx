@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    ArrowLeft,
     RefreshCw,
     Loader2,
     AlertTriangle,
@@ -202,11 +201,8 @@ export default function UnstakePage() {
         <div className="flex flex-col min-h-screen bg-black pb-28">
             <div className="px-4 pt-2 pb-4 space-y-5">
                 {/* Header */}
-                <div className="flex items-center gap-3">
-                    <button onClick={() => router.back()} className="p-2 -ml-2">
-                        <ArrowLeft className="w-5 h-5 text-gray-400" />
-                    </button>
-                    <div className="flex-1">
+                <div className="flex items-center justify-between">
+                    <div>
                         <h1 className="text-xl font-bold text-white">Unstake tsTON</h1>
                         <p className="text-sm text-gray-500">Convert back to TON</p>
                     </div>

@@ -374,8 +374,8 @@ export default function SendMultiplePage() {
                             {/* Validation Errors */}
                             {!validationResult.valid && validationResult.errors.length > 0 && (
                                 <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                                    <div className="flex items-start gap-2">
-                                        <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
                                         <div className="space-y-1">
                                             {validationResult.errors.map((error, i) => (
                                                 <p key={i} className="text-xs text-yellow-400">{error}</p>

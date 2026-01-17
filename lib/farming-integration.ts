@@ -75,15 +75,25 @@ export async function fetchFarmingPools(): Promise<FarmPool[]> {
         const farms = await stonApi.getFarms({});
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return farms.map((farm: any) => ({
-            address: farm.minterAddress || "",
-            lpAddress: farm.lpTokenMinter || "",
-            rewardTokenAddress: farm.rewards?.[0]?.address || "",
-            poolName: `Farm ${farm.minterAddress?.slice(0, 8) || "Unknown"}`,
-            apr: farm.apy ? parseFloat(farm.apy) * 100 : undefined,
-            tvl: farm.tvl ? parseFloat(farm.tvl) : undefined,
-            minStake: farm.minStakeDurationS || "0",
-        }));
+        return farms.map((farm: any) => {
+            // STON.fi API returns APY as a decimal (e.g., 0.25 = 25%)
+            let apr = farm.apy ? parseFloat(farm.apy) * 100 : undefined;
+            
+            // Cap unrealistic APR values at 1000% (some pools have extreme values)
+            if (apr !== undefined && apr > 1000) {
+                apr = undefined; // Hide pools with unrealistic APR
+            }
+            
+            return {
+                address: farm.minterAddress || "",
+                lpAddress: farm.lpTokenMinter || "",
+                rewardTokenAddress: farm.rewards?.[0]?.address || "",
+                poolName: `Farm ${farm.minterAddress?.slice(0, 8) || "Unknown"}`,
+                apr,
+                tvl: farm.tvl ? parseFloat(farm.tvl) : undefined,
+                minStake: farm.minStakeDurationS || "0",
+            };
+        }).filter(f => f.apr === undefined || f.apr <= 1000); // Filter out extreme APRs
     } catch (error) {
         console.error("[Farming] Failed to fetch farms:", error);
         return [];

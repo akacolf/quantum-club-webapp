@@ -135,13 +135,14 @@ export default function WalletPage() {
   const { telegramId } = useGameContext();
   
   // Back button to return to main app
-  useTelegramBackButton("/home");
+  useTelegramBackButton("/trade");
 
   const [hasWallet, setHasWallet] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [bestApy, setBestApy] = useState<number>(5.0); // Dynamic best APY
 
   // Scroll to top on navigation
   useEffect(() => {
@@ -461,6 +462,28 @@ export default function WalletPage() {
     }
   }, [hasWallet, walletAddress, router]);
 
+  // Fetch best APY for Earn & Stake card
+  useEffect(() => {
+    const fetchBestApy = async () => {
+      try {
+        const { fetchLiveApyData } = await import("@/lib/staking-service");
+        const apyData = await fetchLiveApyData();
+        // Get the best APY from all pools
+        const apyValues = Array.from(apyData.values());
+        if (apyValues.length > 0) {
+          const best = Math.max(...apyValues);
+          setBestApy(best > 0 ? best : 5.0);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch live APY:", error);
+      }
+    };
+    
+    if (hasWallet) {
+      fetchBestApy();
+    }
+  }, [hasWallet]);
+
   const createWallet = async () => {
     setIsLoading(true);
     try {
@@ -759,7 +782,7 @@ export default function WalletPage() {
               </div>
               <div className="text-left">
                 <h4 className="font-semibold text-white text-sm">Earn & Stake</h4>
-                <p className="text-xs text-gray-500">Up to 28% APY on TON DeFi</p>
+                <p className="text-xs text-gray-500">Up to {bestApy.toFixed(1)}% APY on TON staking</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-500" />
