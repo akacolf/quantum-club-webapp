@@ -583,10 +583,10 @@ export default function SendMultiplePage() {
               {txHash && (
                 <button
                   onClick={() => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const tgWebApp =
                       typeof window !== "undefined"
-                        ? (window as any).Telegram?.WebApp
+                        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          (window as any).Telegram?.WebApp
                         : null;
                     const url = `https://tonviewer.com/transaction/${txHash}`;
                     if (tgWebApp?.openLink) {
