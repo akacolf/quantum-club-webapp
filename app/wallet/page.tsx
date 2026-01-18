@@ -48,6 +48,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
+import { PortfolioHealthCard } from "@/components/ai";
 
 // Asset detail types
 interface PricePoint {
@@ -788,6 +789,26 @@ export default function WalletPage() {
             <ChevronRight className="w-5 h-5 text-gray-500" />
           </button>
         </div>
+
+        {/* AI Portfolio Health Card */}
+        {hasFetched && !isLoadingAssets && (
+          <div className="w-full">
+            <PortfolioHealthCard
+              assets={[
+                { symbol: "TON", value: parseFloat(tonUsdValue) || 0, percentage: ((parseFloat(tonUsdValue) || 0) / (parseFloat(totalUsdBalance) || 1)) * 100 },
+                ...jettons.map(j => ({
+                  symbol: j.symbol || "Unknown",
+                  value: j.usdValue || 0,
+                  percentage: ((j.usdValue || 0) / (parseFloat(totalUsdBalance) || 1)) * 100,
+                })),
+                ...(ethUsdValue > 0 ? [{ symbol: "ETH", value: ethUsdValue, percentage: (ethUsdValue / (parseFloat(totalUsdBalance) || 1)) * 100 }] : []),
+                ...(btcUsdValue > 0 ? [{ symbol: "BTC", value: btcUsdValue, percentage: (btcUsdValue / (parseFloat(totalUsdBalance) || 1)) * 100 }] : []),
+              ].filter(a => a.value > 0)}
+              totalValue={parseFloat(totalUsdBalance) || 0}
+              stakedAmount={0}
+            />
+          </div>
+        )}
 
         {isTestnet ? (
           <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
