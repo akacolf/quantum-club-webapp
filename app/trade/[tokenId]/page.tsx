@@ -32,6 +32,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { TokenAnalysisCard } from "@/components/ai";
 
 export default function TokenDetailPage() {
     const params = useParams();
@@ -365,6 +366,20 @@ export default function TokenDetailPage() {
                 <PriceChart 
                     currentPrice={selectedToken.currentPrice} 
                     jettonAddress={selectedToken.jettonMasterAddress}
+                />
+
+                {/* AI Token Analysis */}
+                <TokenAnalysisCard
+                    tokenAddress={selectedToken.jettonMasterAddress || tokenId}
+                    tokenData={{
+                        name: selectedToken.name,
+                        symbol: selectedToken.symbol,
+                        price: Number(selectedToken.currentPrice || "0") / 1e9,
+                        marketCap: Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9,
+                        volume24h: onChainStats.volume24h,
+                        holders: onChainStats.holders,
+                        createdAt: selectedToken.createdAt ? new Date(selectedToken.createdAt).toISOString() : undefined,
+                    }}
                 />
 
                 {/* Trading Panel - Show different UI based on graduation status (moved up, under graduation progress) */}
