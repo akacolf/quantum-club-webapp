@@ -451,7 +451,7 @@ export function validateStakeAmount(
     // Reserve 0.1 TON for gas
     const maxAvailable = availableBalance - 0.1;
     if (amountTon > maxAvailable) {
-        return { valid: false, error: "Insufficient balance (keeping 0.1 TON for gas)" };
+        return { valid: false, error: "Insufficient balance" };
     }
     
     return { valid: true };
