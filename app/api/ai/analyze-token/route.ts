@@ -75,7 +75,7 @@ Provide your analysis in the JSON format specified.`;
         // Try to parse JSON from response - handle markdown code blocks
         try {
             // Remove markdown code blocks if present
-            let cleanText = text
+            const cleanText = text
                 .replace(/```json\s*/gi, '')
                 .replace(/```\s*/g, '')
                 .trim();
