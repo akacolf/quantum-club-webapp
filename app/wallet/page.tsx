@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import {
-  Settings,
   RefreshCw,
   FlaskConical,
   Copy,
@@ -17,14 +16,14 @@ import {
   EyeOff,
   Send,
   ArrowDownLeft,
-  ArrowLeftRight,
-  History,
   Plus,
   Download,
   Image as ImageIcon,
   X,
   ChevronRight,
-  PieChart
+  PieChart,
+  History,
+  TrendingUp,
 } from "lucide-react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -39,6 +38,7 @@ import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
 import { AnimatedPrice } from "@/components/ui/animated-price";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
   LineChart,
   Line,
@@ -133,12 +133,16 @@ export default function WalletPage() {
   } = useWallet();
 
   const { telegramId } = useGameContext();
+  
+  // Back button to return to main app
+  useTelegramBackButton("/trade");
 
   const [hasWallet, setHasWallet] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [bestApy, setBestApy] = useState<number>(5.0); // Dynamic best APY
 
   // Scroll to top on navigation
   useEffect(() => {
@@ -439,6 +443,12 @@ export default function WalletPage() {
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
       router.prefetch("/wallet/analytics");
+      router.prefetch("/wallet/earn");
+      router.prefetch("/wallet/staking");
+      router.prefetch("/wallet/browser");
+      router.prefetch("/wallet/send-multiple");
+      router.prefetch("/wallet/farming");
+      router.prefetch("/wallet/unstake");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -451,6 +461,28 @@ export default function WalletPage() {
       router.prefetch("/wallet/import");
     }
   }, [hasWallet, walletAddress, router]);
+
+  // Fetch best APY for Earn & Stake card
+  useEffect(() => {
+    const fetchBestApy = async () => {
+      try {
+        const { fetchLiveApyData } = await import("@/lib/staking-service");
+        const apyData = await fetchLiveApyData();
+        // Get the best APY from all pools
+        const apyValues = Array.from(apyData.values());
+        if (apyValues.length > 0) {
+          const best = Math.max(...apyValues);
+          setBestApy(best > 0 ? best : 5.0);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch live APY:", error);
+      }
+    };
+    
+    if (hasWallet) {
+      fetchBestApy();
+    }
+  }, [hasWallet]);
 
   const createWallet = async () => {
     setIsLoading(true);
@@ -608,14 +640,6 @@ export default function WalletPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => router.push("/wallet/settings")}
-                    className="size-9 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white rounded-full transition-all active:scale-90"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
                     onClick={() => walletExit()}
                     className="size-9 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-full transition-all active:scale-90"
                   >
@@ -676,11 +700,10 @@ export default function WalletPage() {
               </div>
 
               {/* Action Grid */}
-              <div className="grid grid-cols-5 gap-2 mt-8">
+              <div className="grid grid-cols-4 gap-3 mt-8">
                 {[
                   { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
                   { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
-                  { icon: <ArrowLeftRight className="w-5 h-5" />, label: "Swap", path: "/wallet/swap", disabled: false },
                   { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
                   { icon: <PieChart className="w-5 h-5" />, label: "Portfolio", path: "/wallet/analytics", disabled: false },
                 ].map((action, i) => (
@@ -745,6 +768,25 @@ export default function WalletPage() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Earn & Stake Section */}
+        <div className="w-full">
+          <button
+            onClick={() => router.push("/wallet/earn")}
+            className="w-full p-4 rounded-2xl bg-[#111] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-transform hover:bg-[#161616]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-gray-400" />
+              </div>
+              <div className="text-left">
+                <h4 className="font-semibold text-white text-sm">Earn & Stake</h4>
+                <p className="text-xs text-gray-500">Up to {bestApy.toFixed(1)}% APY on TON staking</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
 
         {isTestnet ? (

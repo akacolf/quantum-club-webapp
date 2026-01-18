@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as db } from "@/app/(firebase)/server";
+import { sendPriceAlertNotification } from "@/lib/notifications";
 
-// Telegram Bot API Configuration
-const BOT_TOKEN = process.env.BOT_TOKEN;
+// CRON secret for Vercel cron jobs
 const CRON_SECRET = process.env.CRON_SECRET;
 
 interface PriceData {
@@ -27,43 +27,6 @@ async function fetchPrices(): Promise<PriceData> {
   } catch (error) {
     console.error("Failed to fetch prices:", error);
     return {};
-  }
-}
-
-// Send Telegram notification
-async function sendTelegramNotification(
-  telegramId: string,
-  message: string
-): Promise<boolean> {
-  if (!BOT_TOKEN) {
-    console.error("BOT_TOKEN not configured");
-    return false;
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: telegramId,
-          text: message,
-          parse_mode: "HTML",
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Telegram API error:", errorData);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Failed to send Telegram notification:", error);
-    return false;
   }
 }
 
@@ -127,17 +90,15 @@ export async function GET(request: NextRequest) {
           triggeredPrice: currentPrice,
         });
 
-        // Send Telegram notification
-        const emoji = alert.direction === "above" ? "📈" : "📉";
-        const message =
-          `${emoji} <b>Price Alert Triggered!</b>\n\n` +
-          `<b>${alert.symbol}</b> is now ${alert.direction === "above" ? "above" : "below"} your target.\n\n` +
-          `🎯 Target: $${alert.targetPrice.toFixed(2)}\n` +
-          `💵 Current: $${currentPrice.toFixed(2)}\n\n` +
-          `<i>Open Quantum Club wallet to manage your alerts.</i>`;
-
-        const sent = await sendTelegramNotification(alert.telegramId, message);
-        if (sent) {
+        // Send Telegram notification using centralized notification service
+        const result = await sendPriceAlertNotification(alert.telegramId, {
+          symbol: alert.symbol,
+          direction: alert.direction,
+          targetPrice: alert.targetPrice,
+          currentPrice: currentPrice,
+        });
+        
+        if (result.success) {
           notifiedCount++;
           batch.update(doc.ref, { notified: true });
         }

@@ -13,10 +13,13 @@ import {
     Info,
     Check,
     Zap,
+    Fuel,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -121,6 +124,7 @@ export default function SwapPage() {
     const [isSwapping, setIsSwapping] = useState(false);
     const [lastTxHash, setLastTxHash] = useState<string | null>(null);
     const [slippage, setSlippage] = useState("1"); // 1% default
+    const [preferGasless, setPreferGasless] = useState(false); // Gasless swap toggle
     const [confirmedQuote, setConfirmedQuote] = useState<typeof omnistonQuote>(null); // Store quote for confirm step
 
     // Debounce the amount for quote requests (500ms)
@@ -155,8 +159,9 @@ export default function SwapPage() {
             },
             amount: offerUnits,
             slippageBps: Math.round(parseFloat(slippage) * 100), // Convert % to basis points
+            preferGasless, // Pass gasless preference
         };
-    }, [fromAsset, toAsset, debouncedAmount, slippage]);
+    }, [fromAsset, toAsset, debouncedAmount, slippage, preferGasless]);
 
     // Omniston hook for quotes and execution
     const {
@@ -164,6 +169,9 @@ export default function SwapPage() {
         isQuoting,
         quoteError,
         resolverName,
+        resolverId: _resolverId, // Reserved for future RFQ analytics
+        isGasless,
+        priceImpact: _priceImpact, // Reserved for future price impact display
         isConnected,
         buildAndExecute,
         unsubscribe: cancelQuote,
@@ -171,6 +179,10 @@ export default function SwapPage() {
         params: quoteParams,
         enabled: step === "input", // Only fetch quotes on input step
     });
+
+    // Suppress unused variable warnings for reserved fields
+    void _resolverId;
+    void _priceImpact;
 
     // Gas reserve constants
     const MIN_TON_BALANCE = 0.35; // Minimum 0.35 TON required in wallet for swaps
@@ -930,6 +942,42 @@ export default function SwapPage() {
                                                             {s}%
                                                         </Button>
                                                     ))}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Gasless swap toggle */}
+                                            <div className="flex items-center justify-between text-sm gap-2 pt-2 border-t border-border/50">
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <Fuel className="w-3 h-3 text-muted-foreground" />
+                                                    <Label htmlFor="gasless" className={`text-sm cursor-pointer ${isGasless ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
+                                                        Gasless swap
+                                                    </Label>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="icon" type="button" className="h-auto w-auto p-0 hover:bg-transparent inline-flex">
+                                                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent side="top" className="w-56 bg-popover border-border text-popover-foreground p-3">
+                                                            <p className="font-medium text-foreground mb-1 text-xs">Pay gas with swap token</p>
+                                                            <p className="text-[11px] leading-relaxed">Gas fees are deducted from the token you&apos;re swapping. Not available for all pairs.</p>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {!isGasless && (
+                                                        <span className="text-xs text-muted-foreground/50 font-medium">Not available</span>
+                                                    )}
+                                                    {isGasless && preferGasless && (
+                                                        <span className="text-xs text-green-500 font-medium">Active</span>
+                                                    )}
+                                                    <Switch
+                                                        id="gasless"
+                                                        checked={preferGasless}
+                                                        onCheckedChange={setPreferGasless}
+                                                        disabled={!isGasless}
+                                                        className="scale-75"
+                                                    />
                                                 </div>
                                             </div>
                                         </div>

@@ -5,11 +5,13 @@ import { useSafeArea } from "./safeArea";
 import Loader from "../(components)/Loader";
 import { useEffect } from "react";
 import { authenticateUser } from "@/lib/telegramAuth";
-import { encryptData, userAuth } from "@/app/actions/actions";
+import { encryptData } from "@/app/actions/actions";
 import { useRouter } from "next/navigation";
 import { useGameContext } from "../(contexts)/MiningContext";
 import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
+import { useAuth } from "../(contexts)/auth";
 export default function Login() {
+  const auth = useAuth();
   const router = useRouter();
   const {
     setTelegramId,
@@ -40,11 +42,20 @@ export default function Login() {
         const telegramIdEncrypted = cleanData
           .replace(/['"]+/g, "")
           .replace(/[^a-zA-Z0-9]/g, "");
-        const userId = await userAuth(telegramIdEncrypted)
-        if(!userId) {
-            setTimeout(getData, 100);
-            return;
-          }
+        const uid = String(telegramIdEncrypted);
+        const responseAuth = await fetch("/api/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId: uid }),
+        });
+
+        if (!responseAuth.ok) {
+          const errorData = await responseAuth.text();
+          throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
+        }
+
+        const { customToken } = await responseAuth.json();
+        await auth?.loginWithToken(customToken)
         const data =  await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});
          if(data.status ==="maintenance"){
           router.replace('/maintenance');

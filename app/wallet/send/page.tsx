@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo, ChangeEvent } from "react";
+import { useState, useEffect, useMemo, useCallback, ChangeEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,6 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
-import { QRScanner, useQRScanner } from "@/components/ui/qr-scanner";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell } from "@ton/core";
@@ -81,7 +80,41 @@ export default function SendPage() {
   const router = useRouter();
   const {telegramId} = useGameContext()
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
-  const { isOpen: isQROpen, openScanner: openQRScanner, closeScanner: closeQRScanner } = useQRScanner();
+
+  // Telegram native QR scanner handler
+  const openQRScanner = useCallback(() => {
+    const WebApp = window?.Telegram?.WebApp;
+    
+    if (WebApp?.showScanQrPopup) {
+      WebApp.showScanQrPopup(
+        { text: "Scan wallet address QR code" },
+        (result: string) => {
+          // Parse the scanned result
+          let address = result;
+          
+          // Handle ton:// deep links
+          if (result.startsWith("ton://transfer/")) {
+            const url = new URL(result);
+            address = url.pathname.replace("/transfer/", "");
+          } else if (result.startsWith("tonkeeper://")) {
+            address = result.replace("tonkeeper://transfer/", "").split("?")[0];
+          } else if (result.includes("?")) {
+            address = result.split("?")[0];
+          }
+          
+          // Set address and close scanner
+          setRecipient(address);
+          toast.success("Address scanned!");
+          WebApp.closeScanQrPopup();
+          return true;
+        }
+      );
+    } else {
+      toast.error("QR Scanner not available", {
+        description: "Please use the Telegram mobile app to scan QR codes",
+      });
+    }
+  }, []);
 
   const {
     walletAddress,
@@ -881,6 +914,7 @@ export default function SendPage() {
 
       // Show detailed error to user
       toast.error(`Transaction failed: ${errorMessage}`);
+      
       setStep("input");
     } finally {
       setIsSending(false);
@@ -1343,6 +1377,23 @@ export default function SendPage() {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-6"
             >
+              {/* Batch Send Feature Link */}
+              <button
+                onClick={() => router.push("/wallet/send-multiple")}
+                className="w-full p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between hover:bg-primary/10 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">Send to Multiple</p>
+                    <p className="text-xs text-muted-foreground">Send TON to multiple recipients at once</p>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-primary rotate-[-90deg]" />
+              </button>
+
               {/* Asset Selection */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground ml-1">Asset</Label>
@@ -1628,7 +1679,12 @@ export default function SendPage() {
                           <span className="text-xs text-yellow-500 ml-1">(incl. wallet activation)</span>
                         )}
                       </span>
-                      <span className="text-sm text-foreground">≈ {estimatedFee} TON</span>
+                      <div className="text-right">
+                        <span className="text-sm text-foreground">≈ {estimatedFee} TON</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (${(parseFloat(estimatedFee) * tonPrice).toFixed(2)})
+                        </span>
+                      </div>
                     </div>
 
                     {isFirstTransaction && (
@@ -1753,39 +1809,6 @@ export default function SendPage() {
         onCancel={handleAuthCancel}
         title="Confirm Transaction"
         description={`Authenticate to send ${networkMode === "multichain" ? multiChainAmount + " " + currentChain.symbol : amount + " " + (selectedAsset?.symbol || '')} to ${networkMode === "multichain" ? (multiChainRecipient ? multiChainRecipient.slice(0, 8) + '...' : 'recipient') : (recipient ? recipient.slice(0, 8) + '...' : 'recipient')}`}
-      />
-
-      {/* QR Code Scanner */}
-      <QRScanner
-        isOpen={isQROpen}
-        onClose={closeQRScanner}
-        onScan={(result) => {
-          // Handle various QR code formats
-          let address = result;
-          
-          // Handle ton:// deep links (tonkeeper, tonhub, etc.)
-          if (result.startsWith("ton://transfer/")) {
-            const url = new URL(result);
-            address = url.pathname.replace("/transfer/", "");
-          } else if (result.startsWith("tonkeeper://")) {
-            // tonkeeper://transfer/UQ...
-            address = result.replace("tonkeeper://transfer/", "").split("?")[0];
-          } else if (result.includes("?")) {
-            // Remove query params
-            address = result.split("?")[0];
-          }
-          
-          // Set the address based on current network mode
-          if (networkMode === "ton") {
-            setRecipient(address);
-            toast.success("Address scanned!");
-          } else {
-            setMultiChainRecipient(address);
-            toast.success("Address scanned!");
-          }
-        }}
-        title="Scan Wallet Address"
-        description="Point your camera at a wallet QR code"
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { firestore as adminDb } from "@/app/(firebase)/server";
 import { ADMIN_API_KEY } from "@/lib/platform-config";
 import { getTonClient } from "@/lib/ton-api";
 import { Address } from "@ton/core";
+import { sendTradeNotification } from "@/lib/notifications";
 
 /**
  * GET /api/cron/verify-pending-trades
@@ -28,6 +29,8 @@ interface TradeDoc {
     amount: string;
     status: string;
     timestamp: Date;
+    telegramId?: string;
+    tokenSymbol?: string;
 }
 
 interface VerifyResult {
@@ -124,6 +127,19 @@ export async function GET(request: NextRequest) {
                             actualTokenAmount: txStatus.tokenValue?.toString(),
                         });
                         tradesVerified++;
+                        
+                        // Send push notification
+                        if (trade.telegramId) {
+                            await sendTradeNotification(trade.telegramId, {
+                                type: trade.type,
+                                tokenSymbol: trade.tokenSymbol || tokenId.toUpperCase(),
+                                tokenAmount: trade.amount,
+                                tonAmount: trade.tonAmount,
+                                success: true,
+                                txHash: trade.txHash,
+                            });
+                        }
+                        
                         results.push({
                             tradeId: trade.id,
                             tokenId,
@@ -138,6 +154,19 @@ export async function GET(request: NextRequest) {
                             verifiedAt: new Date(),
                         });
                         tradesFailed++;
+                        
+                        // Send failure notification
+                        if (trade.telegramId) {
+                            await sendTradeNotification(trade.telegramId, {
+                                type: trade.type,
+                                tokenSymbol: trade.tokenSymbol || tokenId.toUpperCase(),
+                                tokenAmount: trade.amount,
+                                tonAmount: trade.tonAmount,
+                                success: false,
+                                txHash: trade.txHash,
+                            });
+                        }
+                        
                         results.push({
                             tradeId: trade.id,
                             tokenId,

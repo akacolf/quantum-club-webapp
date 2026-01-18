@@ -71,6 +71,10 @@ declare global {
         };
         onEvent: (eventType: string, callback: () => void) => void;
         offEvent: (eventType: string, callback: () => void) => void;
+        
+        // QR Scanner
+        showScanQrPopup: (params?: { text?: string }, callback?: (result: string) => boolean | void) => void;
+        closeScanQrPopup: () => void;
       };
     };
   }
