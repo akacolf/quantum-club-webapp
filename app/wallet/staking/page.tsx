@@ -10,7 +10,6 @@ import {
     Coins,
     ArrowRight,
     Loader2,
-    AlertTriangle,
     Gift,
     ArrowUpRight,
 } from "lucide-react";
@@ -588,14 +587,6 @@ export default function StakingPage() {
                                                     </div>
                                                 </CardContent>
                                             </Card>
-                                        )}
-
-                                        {/* Validation Error */}
-                                        {!validation.valid && stakeAmount && (
-                                            <div className="flex items-center gap-2 text-red-500 text-sm">
-                                                <AlertTriangle className="w-4 h-4" />
-                                                <span>{validation.error}</span>
-                                            </div>
                                         )}
 
                                         {/* Stake Button */}

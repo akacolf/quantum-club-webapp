@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 
 interface PortfolioAnalysis {
     healthScore: number;
@@ -91,12 +90,6 @@ export function PortfolioHealthCard({
         if (score >= 70) return "text-green-400";
         if (score >= 40) return "text-yellow-400";
         return "text-red-400";
-    };
-
-    const getHealthBg = (score: number) => {
-        if (score >= 70) return "bg-green-500";
-        if (score >= 40) return "bg-yellow-500";
-        return "bg-red-500";
     };
 
     const getDiversificationBadge = (level: string) => {
@@ -189,18 +182,36 @@ export function PortfolioHealthCard({
                 {/* Header with Score */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <div className="w-14 h-14 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                                <span className={`text-xl font-bold ${getHealthColor(analysis.healthScore)}`}>
+                        {/* Circular Score Display */}
+                        <div className="relative w-14 h-14">
+                            <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+                                {/* Background circle */}
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r="24"
+                                    fill="none"
+                                    stroke="#1a1a1a"
+                                    strokeWidth="4"
+                                />
+                                {/* Progress circle */}
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r="24"
+                                    fill="none"
+                                    stroke={analysis.healthScore >= 70 ? "#22c55e" : analysis.healthScore >= 40 ? "#eab308" : "#ef4444"}
+                                    strokeWidth="4"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${(analysis.healthScore / 100) * 150.8} 150.8`}
+                                />
+                            </svg>
+                            {/* Score number in center */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className={`text-lg font-bold ${getHealthColor(analysis.healthScore)}`}>
                                     {analysis.healthScore}
                                 </span>
                             </div>
-                            <Progress
-                                value={analysis.healthScore}
-                                className="absolute inset-0 rounded-full"
-                                // @ts-expect-error - custom indicator class
-                                indicatorClassName={getHealthBg(analysis.healthScore)}
-                            />
                         </div>
                         <div>
                             <p className="font-medium text-white">Portfolio Health</p>

@@ -743,20 +743,22 @@ export default function HistoryPage() {
                       </div>
                       
                       {/* AI Transaction Explainer */}
-                      <TransactionExplainer
-                        txHash={tx.event_id}
-                        txData={{
-                          type: tx.type,
-                          from: tx.isIncoming ? tx.address : walletAddress,
-                          to: tx.isIncoming ? walletAddress : tx.address,
-                          amount: tx.amount,
-                          symbol: tx.symbol,
-                          timestamp: tx.formattedDate,
-                          status: tx.status,
-                        }}
-                        walletAddress={walletAddress}
-                        compact
-                      />
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <TransactionExplainer
+                          txHash={tx.event_id}
+                          txData={{
+                            type: tx.type,
+                            from: tx.isIncoming ? tx.address : walletAddress,
+                            to: tx.isIncoming ? walletAddress : tx.address,
+                            amount: tx.amount,
+                            symbol: tx.symbol,
+                            timestamp: tx.formattedDate,
+                            status: tx.status,
+                          }}
+                          walletAddress={walletAddress}
+                          compact
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 ))
