@@ -72,27 +72,45 @@ Explain what happened in this transaction.`;
         const text = response.text || "";
         
         try {
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            // Remove markdown code blocks if present
+            const cleanText = text
+                .replace(/```json\s*/gi, '')
+                .replace(/```\s*/g, '')
+                .trim();
+            
+            const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const explanation = JSON.parse(jsonMatch[0]);
                 return NextResponse.json({
                     success: true,
                     explanation: {
-                        ...explanation,
+                        type: typeof explanation.type === 'string' ? explanation.type : txData.type || "transaction",
+                        summary: typeof explanation.summary === 'string' ? explanation.summary : "Transaction completed",
+                        participants: explanation.participants || {},
+                        amount: typeof explanation.amount === 'string' ? explanation.amount : txData.amount,
+                        fee: typeof explanation.fee === 'string' ? explanation.fee : "",
                         txHash,
                         explainedAt: new Date().toISOString(),
                     },
                 });
             }
         } catch {
-            // Fallback to text
+            // Fallback to cleaned text
         }
+
+        // Fallback: Clean up text for summary
+        const cleanSummary = text
+            .replace(/```json\s*/gi, '')
+            .replace(/```\s*/g, '')
+            .replace(/\{[\s\S]*\}/g, '')
+            .trim()
+            .slice(0, 200);
 
         return NextResponse.json({
             success: true,
             explanation: {
                 type: txData.type || "transaction",
-                summary: text.slice(0, 200),
+                summary: cleanSummary || `This was a ${txData.type || "transaction"} of ${txData.amount || "some"} ${txData.symbol || "TON"}.`,
                 txHash,
                 explainedAt: new Date().toISOString(),
             },

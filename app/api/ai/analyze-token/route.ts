@@ -72,34 +72,48 @@ Provide your analysis in the JSON format specified.`;
 
         const text = response.text || "";
         
-        // Try to parse JSON from response
+        // Try to parse JSON from response - handle markdown code blocks
         try {
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            // Remove markdown code blocks if present
+            let cleanText = text
+                .replace(/```json\s*/gi, '')
+                .replace(/```\s*/g, '')
+                .trim();
+            
+            const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const analysis = JSON.parse(jsonMatch[0]);
                 return NextResponse.json({
                     success: true,
                     analysis: {
-                        riskScore: analysis.riskScore || 5,
-                        sentiment: analysis.sentiment || "NEUTRAL",
-                        summary: analysis.summary || "Unable to generate summary",
-                        warnings: analysis.warnings || [],
-                        recommendation: analysis.recommendation || "",
+                        riskScore: typeof analysis.riskScore === 'number' ? analysis.riskScore : 5,
+                        sentiment: ['BULLISH', 'BEARISH', 'NEUTRAL'].includes(analysis.sentiment) ? analysis.sentiment : 'NEUTRAL',
+                        summary: typeof analysis.summary === 'string' ? analysis.summary : "Analysis completed",
+                        warnings: Array.isArray(analysis.warnings) ? analysis.warnings.filter((w: unknown) => typeof w === 'string') : [],
+                        recommendation: typeof analysis.recommendation === 'string' ? analysis.recommendation : "",
                         tokenAddress,
                         analyzedAt: new Date().toISOString(),
                     },
                 });
             }
         } catch {
-            // If JSON parsing fails, return raw text
+            // If JSON parsing fails, extract text meaningfully
         }
+
+        // Fallback: Clean up and use as summary if no valid JSON
+        const cleanSummary = text
+            .replace(/```json\s*/gi, '')
+            .replace(/```\s*/g, '')
+            .replace(/\{[\s\S]*\}/g, '')
+            .trim()
+            .slice(0, 300);
 
         return NextResponse.json({
             success: true,
             analysis: {
                 riskScore: 5,
                 sentiment: "NEUTRAL",
-                summary: text.slice(0, 300),
+                summary: cleanSummary || "Unable to generate analysis for this token.",
                 warnings: [],
                 tokenAddress,
                 analyzedAt: new Date().toISOString(),

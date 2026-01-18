@@ -77,25 +77,39 @@ Provide your portfolio health analysis.`;
         const text = response.text || "";
         
         try {
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            // Remove markdown code blocks if present
+            const cleanText = text
+                .replace(/```json\s*/gi, '')
+                .replace(/```\s*/g, '')
+                .trim();
+            
+            const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const analysis = JSON.parse(jsonMatch[0]);
                 return NextResponse.json({
                     success: true,
                     analysis: {
-                        healthScore: analysis.healthScore || 50,
-                        diversification: analysis.diversification || "MODERATE",
-                        risks: analysis.risks || [],
-                        opportunities: analysis.opportunities || [],
-                        summary: analysis.summary || "Unable to generate summary",
-                        recommendation: analysis.recommendation || "",
+                        healthScore: typeof analysis.healthScore === 'number' ? Math.min(100, Math.max(0, analysis.healthScore)) : 50,
+                        diversification: ['GOOD', 'MODERATE', 'POOR'].includes(analysis.diversification) ? analysis.diversification : 'MODERATE',
+                        risks: Array.isArray(analysis.risks) ? analysis.risks.filter((r: unknown) => typeof r === 'string') : [],
+                        opportunities: Array.isArray(analysis.opportunities) ? analysis.opportunities.filter((o: unknown) => typeof o === 'string') : [],
+                        summary: typeof analysis.summary === 'string' ? analysis.summary : "Portfolio analysis completed",
+                        recommendation: typeof analysis.recommendation === 'string' ? analysis.recommendation : "",
                         analyzedAt: new Date().toISOString(),
                     },
                 });
             }
         } catch {
-            // Fallback
+            // Fallback on parse error
         }
+
+        // Fallback: Clean up text for summary
+        const cleanSummary = text
+            .replace(/```json\s*/gi, '')
+            .replace(/```\s*/g, '')
+            .replace(/\{[\s\S]*\}/g, '')
+            .trim()
+            .slice(0, 300);
 
         return NextResponse.json({
             success: true,
@@ -104,7 +118,7 @@ Provide your portfolio health analysis.`;
                 diversification: "MODERATE",
                 risks: [],
                 opportunities: [],
-                summary: text.slice(0, 300),
+                summary: cleanSummary || "Your portfolio has been analyzed. Consider diversifying across different asset classes.",
                 analyzedAt: new Date().toISOString(),
             },
         });
