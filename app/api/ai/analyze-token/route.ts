@@ -5,22 +5,22 @@ import { AI_MODEL } from "@/lib/ai/system-prompt";
 
 const ANALYSIS_SYSTEM_PROMPT = `You are a crypto token analyst AI for Quantum Club. Analyze the provided token data and give a concise, helpful assessment.
 
-Your response should include:
-1. **Risk Score** (1-10, where 1 is safest): Based on liquidity, holder concentration, contract verification, and trading patterns
-2. **Sentiment**: BULLISH, BEARISH, or NEUTRAL with brief reasoning
-3. **Summary**: 2-3 sentence overview of the token
-4. **Warnings**: Any red flags users should know about
+Respond with a JSON object containing:
+- riskScore: number from 1-10 (1 = safest, 10 = riskiest)
+- sentiment: "BULLISH", "BEARISH", or "NEUTRAL"
+- summary: 2-3 sentences describing the token and its current state
+- warnings: array of 1-3 short warning strings (potential red flags)
+- recommendation: one short actionable recommendation
 
-Format your response as JSON:
-{
-  "riskScore": number,
-  "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL",
-  "summary": "string",
-  "warnings": ["string"],
-  "recommendation": "string"
+Be concise but thorough. Consider liquidity, holder concentration, and trading patterns. Always remind users this is not financial advice.`;
+
+interface TokenAnalysisResponse {
+    riskScore?: number;
+    sentiment?: string;
+    summary?: string;
+    warnings?: string[];
+    recommendation?: string;
 }
-
-Be concise but thorough. Always include disclaimers about crypto volatility.`;
 
 export async function POST(req: NextRequest) {
     try {
@@ -43,20 +43,15 @@ export async function POST(req: NextRequest) {
         }
 
         // Build token context for AI
-        const tokenContext = `
-Analyze this TON token:
+        const tokenContext = `Analyze this TON token:
 - Address: ${tokenAddress}
 - Name: ${tokenData?.name || "Unknown"}
 - Symbol: ${tokenData?.symbol || "Unknown"}
-- Price: ${tokenData?.price || "Unknown"}
-- Market Cap: ${tokenData?.marketCap || "Unknown"}
-- 24h Volume: ${tokenData?.volume24h || "Unknown"}
-- 24h Change: ${tokenData?.priceChange24h || "Unknown"}%
+- Price: ${tokenData?.price || "Unknown"} TON
+- Market Cap: ${tokenData?.marketCap || "Unknown"} TON
+- 24h Volume: ${tokenData?.volume24h || "Unknown"} TON
 - Holders: ${tokenData?.holders || "Unknown"}
-- Liquidity: ${tokenData?.liquidity || "Unknown"}
-- Created: ${tokenData?.createdAt || "Unknown"}
-
-Provide your analysis in the JSON format specified.`;
+- Created: ${tokenData?.createdAt || "Unknown"}`;
 
         const ai = new GoogleGenAI({ apiKey });
 
@@ -66,61 +61,65 @@ Provide your analysis in the JSON format specified.`;
             config: {
                 systemInstruction: ANALYSIS_SYSTEM_PROMPT,
                 temperature: 0.3,
-                maxOutputTokens: 500,
+                maxOutputTokens: 600,
+                responseMimeType: "application/json",
             },
         });
 
-        const text = response.text || "";
-        
-        // Try to parse JSON from response - handle markdown code blocks
-        try {
-            // Remove markdown code blocks if present
-            const cleanText = text
-                .replace(/```json\s*/gi, '')
-                .replace(/```\s*/g, '')
-                .trim();
-            
-            const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const analysis = JSON.parse(jsonMatch[0]);
-                return NextResponse.json({
-                    success: true,
-                    analysis: {
-                        riskScore: typeof analysis.riskScore === 'number' ? analysis.riskScore : 5,
-                        sentiment: ['BULLISH', 'BEARISH', 'NEUTRAL'].includes(analysis.sentiment) ? analysis.sentiment : 'NEUTRAL',
-                        summary: typeof analysis.summary === 'string' ? analysis.summary : "Analysis completed",
-                        warnings: Array.isArray(analysis.warnings) ? analysis.warnings.filter((w: unknown) => typeof w === 'string') : [],
-                        recommendation: typeof analysis.recommendation === 'string' ? analysis.recommendation : "",
-                        tokenAddress,
-                        analyzedAt: new Date().toISOString(),
-                    },
-                });
+        // Get text from response
+        let responseText = "";
+        if (response.candidates && response.candidates[0]?.content?.parts) {
+            for (const part of response.candidates[0].content.parts) {
+                if (part.text) {
+                    responseText += part.text;
+                }
             }
-        } catch {
-            // If JSON parsing fails, extract text meaningfully
+        }
+        
+        // Fallback to response.text if available
+        if (!responseText && response.text) {
+            responseText = response.text;
         }
 
-        // Fallback: Clean up and use as summary if no valid JSON
-        const cleanSummary = text
-            .replace(/```json\s*/gi, '')
-            .replace(/```\s*/g, '')
-            .replace(/\{[\s\S]*\}/g, '')
-            .trim()
-            .slice(0, 300);
+        if (!responseText) {
+            throw new Error("No response text from AI");
+        }
 
-        return NextResponse.json({
-            success: true,
-            analysis: {
-                riskScore: 5,
-                sentiment: "NEUTRAL",
-                summary: cleanSummary || "Unable to generate analysis for this token.",
-                warnings: [],
-                tokenAddress,
-                analyzedAt: new Date().toISOString(),
-            },
-        });
+        // Parse the JSON response
+        try {
+            const analysis: TokenAnalysisResponse = JSON.parse(responseText);
+            
+            return NextResponse.json({
+                success: true,
+                analysis: {
+                    riskScore: typeof analysis.riskScore === 'number' ? Math.min(10, Math.max(1, analysis.riskScore)) : 5,
+                    sentiment: ['BULLISH', 'BEARISH', 'NEUTRAL'].includes(analysis.sentiment || '') ? analysis.sentiment : 'NEUTRAL',
+                    summary: typeof analysis.summary === 'string' ? analysis.summary : "Token analysis completed.",
+                    warnings: Array.isArray(analysis.warnings) ? analysis.warnings.filter((w): w is string => typeof w === 'string').slice(0, 5) : [],
+                    recommendation: typeof analysis.recommendation === 'string' ? analysis.recommendation : "",
+                    tokenAddress,
+                    analyzedAt: new Date().toISOString(),
+                },
+            });
+        } catch (parseError) {
+            console.error("JSON parse error:", parseError, "Response:", responseText);
+            
+            // Return a default analysis if parsing fails
+            return NextResponse.json({
+                success: true,
+                analysis: {
+                    riskScore: 5,
+                    sentiment: "NEUTRAL",
+                    summary: "This token appears to be a standard TON-based asset. Always do your own research before investing.",
+                    warnings: ["Unable to fully analyze token. Please verify on-chain data."],
+                    recommendation: "Review liquidity and holder distribution before trading.",
+                    tokenAddress,
+                    analyzedAt: new Date().toISOString(),
+                },
+            });
+        }
     } catch (error) {
         console.error("Token analysis error:", error);
-        return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
+        return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 });
     }
 }
