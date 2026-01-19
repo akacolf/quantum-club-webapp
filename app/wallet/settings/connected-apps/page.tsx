@@ -17,7 +17,6 @@ import {
     Check,
     Loader2,
     AlertTriangle,
-    ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -227,21 +226,11 @@ export default function ConnectedAppsPage() {
     if (!walletKit) {
         return (
             <div className="flex flex-col w-full max-w-md mx-auto p-4 min-h-screen bg-background text-foreground">
-                <div className="flex items-center gap-3 mb-6">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => router.push("/wallet/settings")}
-                        className="h-10 w-10"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Connected Apps</h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Manage dApp connections via TON Connect
-                        </p>
-                    </div>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-foreground">Connected Apps</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Manage dApp connections via TON Connect
+                    </p>
                 </div>
 
                 <Card className="bg-yellow-500/10 border-yellow-500/20 mb-6">

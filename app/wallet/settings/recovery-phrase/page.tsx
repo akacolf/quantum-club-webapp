@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Check, Eye, EyeOff, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Copy, Check, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -162,15 +162,6 @@ export default function ViewRecoveryPhrasePage() {
             >
               {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
               {copied ? "Copied to Clipboard" : "Copy to Clipboard"}
-            </Button>
-
-            <Button
-              onClick={() => router.push("/wallet/settings")}
-              variant="ghost"
-              className="w-full text-muted-foreground hover:text-foreground h-12"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Settings
             </Button>
           </div>
         </motion.div>
