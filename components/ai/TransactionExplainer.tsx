@@ -9,6 +9,7 @@ import {
     ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AIGlowBorder } from "./AIGlow";
 
 interface TransactionExplanation {
     type: string;
@@ -52,6 +53,7 @@ export function TransactionExplainer({
         if (!txData) return;
 
         setIsLoading(true);
+        setIsExpanded(true);
         setError(null);
 
         try {
@@ -68,7 +70,6 @@ export function TransactionExplainer({
             const data = await response.json();
             if (data.success && data.explanation) {
                 setExplanation(data.explanation);
-                setIsExpanded(true);
             } else {
                 throw new Error(data.error || "Explanation failed");
             }
@@ -124,7 +125,7 @@ export function TransactionExplainer({
 
             {/* Explanation Content */}
             <AnimatePresence>
-                {isExpanded && (explanation || error) && (
+                {isExpanded && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -132,20 +133,40 @@ export function TransactionExplainer({
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                     >
-                        {error ? (
-                            <div className="mt-2 p-2 bg-red-500/10 rounded-lg text-xs text-red-400">
-                                {error}
-                            </div>
-                        ) : explanation ? (
-                            <div className="mt-2 p-3 bg-primary/5 border border-primary/10 rounded-lg">
-                                <p className="text-sm text-gray-300 leading-relaxed">
-                                    {explanation.summary}
-                                </p>
-                                <p className="text-[10px] text-gray-600 mt-2 italic">
-                                    AI-generated explanation
-                                </p>
-                            </div>
-                        ) : null}
+                        <div className="pt-2 pb-1 px-1">
+                            {isLoading ? (
+                                <AIGlowBorder isLoading={true}>
+                                    <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg min-h-[60px] flex items-center justify-center relative z-10">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <span className="text-xs text-primary animate-pulse">Analyzing blockchain data...</span>
+                                        </div>
+                                    </div>
+                                </AIGlowBorder>
+                            ) : error ? (
+                                <div className="p-2 bg-red-500/10 rounded-lg text-xs text-red-400">
+                                    {error}
+                                </div>
+                            ) : explanation ? (
+                                <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                            {explanation.type}
+                                        </span>
+                                        {explanation.fee && (
+                                            <span className="text-[10px] text-gray-500">
+                                                Fee: {explanation.fee}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-gray-300 leading-relaxed">
+                                        {explanation.summary}
+                                    </p>
+                                    <p className="text-[10px] text-gray-600 mt-2 italic">
+                                        AI-generated explanation
+                                    </p>
+                                </div>
+                            ) : null}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
