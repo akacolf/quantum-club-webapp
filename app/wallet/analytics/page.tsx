@@ -32,6 +32,7 @@ import {
 } from "recharts";
 import Loader from "@/app/(components)/Loader";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { PortfolioHealthCard } from "@/components/ai";
 
 const COLORS = [
   "#3B82F6", // Blue (TON)
@@ -325,6 +326,24 @@ export default function AnalyticsPage() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* AI Portfolio Health */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          className="w-full"
+        >
+          <PortfolioHealthCard
+            assets={portfolioAllocation.map(a => ({
+              symbol: a.symbol,
+              value: a.value,
+              percentage: a.percentage,
+            }))}
+            totalValue={parseFloat(totalUsdBalance) || 0}
+            stakedAmount={0}
+          />
         </motion.div>
 
         {/* Stats Cards */}

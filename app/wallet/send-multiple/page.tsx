@@ -102,43 +102,36 @@ export default function SendMultiplePage() {
           if (r.id !== id) return r;
 
           const updated = { ...r, [field]: value };
+          let addressValid = false;
+          let amountValid = false;
 
-          // Validate address
-          if (field === "address") {
+          // Check address validity
+          const addressToCheck = field === "address" ? value : r.address;
+          if (addressToCheck.trim()) {
             try {
-              if (value.trim()) {
-                Address.parse(value);
-                updated.isValid = true;
-                updated.error = undefined;
-              } else {
-                updated.isValid = false;
-              }
+              Address.parse(addressToCheck);
+              addressValid = true;
             } catch {
-              updated.isValid = false;
-              updated.error = "Invalid address format";
+              addressValid = false;
             }
           }
 
-          // Validate amount
-          if (field === "amount") {
-            const num = parseFloat(value);
-            if (isNaN(num) || num <= 0) {
-              updated.isValid = false;
-              updated.error = "Invalid amount";
-            } else {
-              updated.isValid = true;
-              updated.error = undefined;
-            }
+          // Check amount validity
+          const amountToCheck = field === "amount" ? value : r.amount;
+          const amountNum = parseFloat(amountToCheck);
+          amountValid = !isNaN(amountNum) && amountNum > 0;
+
+          // Set error message for current field
+          if (field === "address" && value.trim() && !addressValid) {
+            updated.error = "Invalid address format";
+          } else if (field === "amount" && value.trim() && !amountValid) {
+            updated.error = "Invalid amount";
+          } else {
+            updated.error = undefined;
           }
 
-          // Both must be valid
-          const addrValid =
-            field === "address"
-              ? updated.isValid
-              : r.address.trim() !== "" && !r.error;
-          const amtValid =
-            field === "amount" ? updated.isValid : parseFloat(r.amount) > 0;
-          updated.isValid = addrValid && amtValid;
+          // Both must be valid for the recipient to be valid
+          updated.isValid = addressValid && amountValid;
 
           return updated;
         }),
