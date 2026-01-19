@@ -6,7 +6,6 @@ import {
     Sparkles,
     Heart,
     AlertTriangle,
-    TrendingUp,
     Lightbulb,
     Loader2,
     RefreshCw,
@@ -263,11 +262,11 @@ export function PortfolioHealthCard({
                                             <AlertTriangle className="w-3 h-3" />
                                             Risks
                                         </p>
-                                        <ul className="space-y-1">
+                                        <ul className="space-y-1.5 pl-1">
                                             {analysis.risks.map((risk, i) => (
-                                                <li key={i} className="text-xs text-yellow-400 flex items-start gap-2">
-                                                    <span className="mt-0.5 w-1 h-1 rounded-full bg-yellow-400 shrink-0" />
-                                                    {risk}
+                                                <li key={i} className="text-xs text-yellow-400 flex items-baseline gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0 translate-y-[-1px]" />
+                                                    <span>{risk}</span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -281,11 +280,11 @@ export function PortfolioHealthCard({
                                             <Lightbulb className="w-3 h-3" />
                                             Opportunities
                                         </p>
-                                        <ul className="space-y-1">
+                                        <ul className="space-y-1.5 pl-1">
                                             {analysis.opportunities.map((opp, i) => (
-                                                <li key={i} className="text-xs text-green-400 flex items-start gap-2">
-                                                    <TrendingUp className="w-3 h-3 shrink-0 mt-0.5" />
-                                                    {opp}
+                                                <li key={i} className="text-xs text-green-400 flex items-baseline gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0 translate-y-[-1px]" />
+                                                    <span>{opp}</span>
                                                 </li>
                                             ))}
                                         </ul>
