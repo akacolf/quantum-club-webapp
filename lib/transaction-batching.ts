@@ -1,9 +1,9 @@
 "use client";
 
 import { Cell, internal, Address, SendMode, beginCell, storeMessage, external } from "@ton/core";
-import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, TonClient } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { sendBlockchainMessage } from "./tonapi-client";
 
 /**
  * Transaction to be batched
@@ -55,6 +55,34 @@ function buildInternalMessages(transactions: BatchTransaction[]): ReturnType<typ
             bounce: tx.bounce ?? false,
         });
     });
+}
+
+/**
+ * Get seqno from TONAPI
+ */
+async function getSeqnoViaTonApi(walletAddress: string, isTestnet: boolean): Promise<number> {
+    try {
+        const baseUrl = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+        const response = await fetch(
+            `${baseUrl}/v2/wallet/${walletAddress}/seqno`,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+        
+        if (!response.ok) {
+            // Wallet might be new/uninitialized
+            return 0;
+        }
+        
+        const data = await response.json();
+        return data.seqno ?? 0;
+    } catch {
+        // New wallet or error, default to 0
+        return 0;
+    }
 }
 
 /**
@@ -111,19 +139,8 @@ export async function sendBatchTransaction(
                 break;
         }
 
-        // Get TON client via Orbs Network (rate-limit free)
-        const endpoint = await getHttpEndpoint({ network: isTestnet ? "testnet" : "mainnet" });
-        const tonClient = new TonClient({ endpoint });
-        const contract = tonClient.open(wallet);
-
-        // Get seqno
-        let seqno = 0;
-        try {
-            seqno = await contract.getSeqno();
-        } catch {
-            // New wallet, seqno is 0
-            seqno = 0;
-        }
+        // Get seqno via TONAPI
+        const seqno = await getSeqnoViaTonApi(wallet.address.toString(), isTestnet);
 
         // Build internal messages
         const internalMessages = buildInternalMessages(transactions);
@@ -146,13 +163,17 @@ export async function sendBatchTransaction(
 
         // Serialize to BOC
         const bocCell = beginCell().store(storeMessage(externalMsg)).endCell();
+        const bocBase64 = bocCell.toBoc().toString("base64");
 
-        // Send via Orbs endpoint
-        const orbsClient = new TonClient({ endpoint });
-        await orbsClient.sendFile(bocCell.toBoc());
+        // Send via TONAPI
+        const result = await sendBlockchainMessage(bocBase64, isTestnet);
+        
+        if (!result) {
+            throw new Error("Failed to send transaction - no response from TONAPI");
+        }
 
         // Generate tx hash from BOC
-        const txHash = bocCell.hash().toString("hex");
+        const txHash = result.hash || bocCell.hash().toString("hex");
 
         return {
             success: true,

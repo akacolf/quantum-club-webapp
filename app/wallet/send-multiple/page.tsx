@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
-  ArrowLeft,
   Send,
 } from "lucide-react";
 import Image from "next/image";
@@ -255,13 +254,6 @@ export default function SendMultiplePage() {
     }
   };
 
-  // Handle back
-  const handleBack = () => {
-    if (viewMode === "confirm") {
-      setViewMode("input");
-    }
-  };
-
   // Reset form
   const handleReset = () => {
     setViewMode("input");
@@ -277,11 +269,6 @@ export default function SendMultiplePage() {
       <div className="px-4 pt-2 pb-4 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3">
-          {viewMode === "confirm" && (
-            <button onClick={handleBack} className="p-2 -ml-2">
-              <ArrowLeft className="w-5 h-5 text-gray-400" />
-            </button>
-          )}
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-white">Send to Multiple</h1>
             <p className="text-sm text-gray-500">
