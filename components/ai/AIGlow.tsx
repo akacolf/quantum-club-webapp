@@ -5,12 +5,12 @@ import { cn } from "@/lib/utils";
 
 export function AILoadingGlow() {
     return (
-        <div className="absolute inset-0 -z-10 overflow-hidden rounded-xl">
+        <div className="absolute inset-0 -z-10 overflow-hidden rounded-lg">
             <motion.div
                 className="absolute inset-[-50%] w-[200%] h-[200%]"
                 style={{
-                    background: "conic-gradient(from 0deg, transparent 0deg, #ff0080 60deg, #7928ca 120deg, #4f46e5 180deg, #0ea5e9 240deg, #ff0080 300deg, transparent 360deg)",
-                    opacity: 0.2,
+                    background: "conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.3) 60deg, rgba(255,255,255,0.5) 120deg, rgba(255,255,255,0.3) 180deg, transparent 240deg, transparent 360deg)",
+                    opacity: 0.3,
                 }}
                 animate={{
                     rotate: 360,
@@ -21,42 +21,45 @@ export function AILoadingGlow() {
                     ease: "linear",
                 }}
             />
-            <div className="absolute inset-[1px] bg-[#111] rounded-xl" />
+            <div className="absolute inset-[1px] bg-[#111] rounded-lg" />
         </div>
     );
+}
+
+interface AIGlowBorderProps {
+    children: React.ReactNode;
+    isLoading: boolean;
+    className?: string;
 }
 
 export function AIGlowBorder({ 
     children, 
     isLoading,
     className,
-}: { 
-    children: React.ReactNode; 
-    isLoading: boolean; 
-    className?: string;
-}) {
+}: AIGlowBorderProps) {
     return (
-        <div className={cn("relative rounded-xl", className)}>
+        <div className={cn("relative", className)}>
             {isLoading && (
                 <motion.div
-                    className="absolute -inset-[2px] rounded-xl z-0"
+                    className="absolute -inset-[1px] rounded-lg z-0"
                     style={{
-                        background: "linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7, #d946ef, #ec4899, #f43f5e)",
-                        backgroundSize: "400% 400%",
+                        background: "linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.4), rgba(200,220,255,0.5), rgba(255,255,255,0.4), rgba(255,255,255,0.1))",
+                        backgroundSize: "200% 100%",
                     }}
                     animate={{
-                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                        backgroundPosition: ["0% 0%", "200% 0%"],
                     }}
                     transition={{
-                        duration: 2.5,
+                        duration: 2,
                         repeat: Infinity,
-                        ease: "easeInOut",
+                        ease: "linear",
                     }}
                 />
             )}
-            <div className={cn("relative z-10 rounded-xl overflow-hidden", className)}>
+            <div className={cn("relative z-10 rounded-lg", className)}>
                 {children}
             </div>
         </div>
     );
 }
+
