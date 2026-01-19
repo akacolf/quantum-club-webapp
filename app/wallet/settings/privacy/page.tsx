@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
               <Shield className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Privacy Policy</h1>
-            <p className="text-muted-foreground text-sm">Last updated: January 2, 2026</p>
+            <p className="text-muted-foreground text-sm">Last updated: January 19, 2026</p>
           </div>
 
           <ScrollArea className="h-[calc(100vh-280px)] rounded-xl border border-border bg-card p-4">
@@ -58,15 +58,16 @@ export default function PrivacyPolicyPage() {
                   <li>Your PIN or biometric data</li>
                 </ul>
 
-                <h3 className="text-md font-medium text-muted-foreground mt-3 mb-2">2.3 Transaction Data</h3>
+                <h3 className="text-md font-medium text-muted-foreground mt-3 mb-2">2.3 Transaction and Activity Data</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  We collect limited transaction data for platform functionality:
+                  We collect limited data for platform functionality:
                 </p>
                 <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
                   <li>Your public wallet address</li>
                   <li>QNTM balance and transfer history within the platform</li>
                   <li>Task completion and referral data</li>
                   <li>Token creation and trading activity on RocketStart</li>
+                  <li>Staking and liquidity provision activity</li>
                   <li>Chat messages in token communities</li>
                 </ul>
               </section>
@@ -79,13 +80,15 @@ export default function PrivacyPolicyPage() {
                   <li>Process QNTM transfers between users</li>
                   <li>Track task completion and distribute rewards</li>
                   <li>Maintain leaderboards and referral systems</li>
+                  <li>Display portfolio analytics and performance data</li>
+                  <li>Provide AI-powered assistance features</li>
                   <li>Prevent fraud and ensure platform security</li>
                   <li>Comply with legal obligations</li>
                 </ul>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">4. Data Storage & Security</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">4. Data Storage &amp; Security</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   Your sensitive wallet data (private keys, recovery phrase, PIN) is encrypted and stored locally on your device only. We implement industry-standard security measures to protect platform data stored on our servers. Your Telegram ID is encrypted before being used as an identifier.
                 </p>
@@ -98,6 +101,7 @@ export default function PrivacyPolicyPage() {
                 </p>
                 <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
                   <li>Service providers necessary for platform operation</li>
+                  <li>Third-party staking and liquidity protocols (public wallet address only)</li>
                   <li>Law enforcement when legally required</li>
                   <li>Blockchain networks (public transaction data only)</li>
                 </ul>
@@ -106,12 +110,19 @@ export default function PrivacyPolicyPage() {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-2">6. Blockchain Transactions</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Transactions on the TON blockchain are public and immutable. Your wallet address and transaction details are visible on the public blockchain. This is inherent to blockchain technology and cannot be changed.
+                  Transactions on supported blockchain networks are public and immutable. Your wallet address and transaction details are visible on the public blockchain. This is inherent to blockchain technology and cannot be changed.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">7. Your Rights</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">7. Third-Party Services</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  We integrate with third-party services including staking providers, decentralized exchanges, and liquidity protocols. These services have their own privacy policies and data practices. We encourage you to review those policies when using third-party services through our App.
+                </p>
+              </section>
+
+              <section>
+                <h2 className="text-lg font-semibold text-foreground mb-2">8. Your Rights</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">Depending on your jurisdiction, you may have the right to:</p>
                 <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
                   <li>Access your personal data</li>
@@ -123,28 +134,28 @@ export default function PrivacyPolicyPage() {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">8. Children&apos;s Privacy</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">9. Children&apos;s Privacy</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   Our services are not intended for users under 18 years of age. We do not knowingly collect personal information from children.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">9. International Transfers</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">10. International Transfers</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   Your information may be transferred to and processed in countries other than your country of residence. We ensure appropriate safeguards are in place for such transfers.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">10. Changes to This Policy</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">11. Changes to This Policy</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   We may update this Privacy Policy from time to time. We will notify you of any material changes through the App or other means. Continued use of the App after changes constitutes acceptance of the updated policy.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold text-foreground mb-2">11. Contact Us</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">12. Contact Us</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   For questions about this Privacy Policy or to exercise your rights, please contact us through our Telegram channel: @quantumclubinc
                 </p>

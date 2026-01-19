@@ -20,6 +20,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { achievements, getUnlockedAchievements, getLockedAchievements, type UserStats, type Achievement } from "@/lib/achievements";
+import { APP_VERSION } from "@/lib/version";
 
 export default function ProfilePage() {
     useTelegramBackButton("/home");
@@ -336,6 +337,13 @@ export default function ProfilePage() {
                             </button>
                         </CardContent>
                     </Card>
+
+                    {/* App Version */}
+                    <div className="text-center pt-2">
+                        <p className="text-xs text-muted-foreground/60">
+                            Quantum Club v{APP_VERSION}
+                        </p>
+                    </div>
                 </motion.div>
             </div>
 
