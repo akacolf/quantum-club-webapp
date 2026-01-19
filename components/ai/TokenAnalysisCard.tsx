@@ -16,6 +16,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AIGlowBorder } from "./AIGlow";
 
 interface TokenAnalysis {
     riskScore: number;
@@ -139,125 +140,127 @@ export function TokenAnalysisCard({
     }
 
     return (
-        <Card className="bg-[#111] border-[#222] overflow-hidden">
-            <CardContent className="p-0">
-                {/* Header - Always visible */}
-                <button
-                    onClick={() => analysis ? setIsExpanded(!isExpanded) : analyzeToken()}
-                    className="w-full p-4 flex items-center justify-between hover:bg-[#161616] transition-colors"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Sparkles className="w-4 h-4 text-primary" />
-                        </div>
-                        <div className="text-left">
-                            <p className="text-sm font-medium text-white">AI Analysis</p>
-                            <p className="text-xs text-gray-500">
-                                {analysis
-                                    ? `Updated ${new Date(analysis.analyzedAt).toLocaleTimeString()}`
-                                    : "Tap to analyze this token"}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {isLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        ) : analysis ? (
-                            <>
-                                <Badge className={getRiskBadge(analysis.riskScore).className}>
-                                    {getRiskBadge(analysis.riskScore).label}
-                                </Badge>
-                                {isExpanded ? (
-                                    <ChevronUp className="w-4 h-4 text-gray-500" />
-                                ) : (
-                                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                                )}
-                            </>
-                        ) : null}
-                    </div>
-                </button>
-
-                {/* Expanded Content */}
-                <AnimatePresence>
-                    {isExpanded && analysis && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            <div className="px-4 pb-4 space-y-4 border-t border-[#222]">
-                                {/* Risk & Sentiment */}
-                                <div className="flex items-center justify-between pt-4">
-                                    <div className="flex items-center gap-4">
-                                        <div>
-                                            <p className="text-xs text-gray-500">Risk Score</p>
-                                            <p className={`text-lg font-bold ${getRiskColor(analysis.riskScore)}`}>
-                                                {analysis.riskScore}/10
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500">Sentiment</p>
-                                            <div className="flex items-center gap-1">
-                                                {getSentimentIcon(analysis.sentiment)}
-                                                <span className="text-sm font-medium text-white">
-                                                    {analysis.sentiment}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            analyzeToken();
-                                        }}
-                                        className="h-8"
-                                    >
-                                        <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
-                                    </Button>
-                                </div>
-
-                                {/* Summary */}
-                                <div>
-                                    <p className="text-xs text-gray-500 mb-1">Summary</p>
-                                    <p className="text-sm text-gray-300">{analysis.summary}</p>
-                                </div>
-
-                                {/* Warnings */}
-                                {analysis.warnings && analysis.warnings.length > 0 && (
-                                    <div className="space-y-2">
-                                        <p className="text-xs text-gray-500">Warnings</p>
-                                        {analysis.warnings.map((warning, i) => (
-                                            <div
-                                                key={i}
-                                                className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-500/10 rounded-lg p-2"
-                                            >
-                                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                <span>{warning}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Recommendation */}
-                                {analysis.recommendation && (
-                                    <div className="bg-primary/10 rounded-lg p-3">
-                                        <p className="text-xs text-primary mb-1">Recommendation</p>
-                                        <p className="text-sm text-white">{analysis.recommendation}</p>
-                                    </div>
-                                )}
-
-                                {/* Disclaimer */}
-                                <p className="text-[10px] text-gray-600 italic">
-                                    This analysis is AI-generated and not financial advice. DYOR.
+        <AIGlowBorder isLoading={isLoading}>
+            <Card className="bg-[#111] border-[#222] overflow-hidden relative z-10">
+                <CardContent className="p-0">
+                    {/* Header - Always visible */}
+                    <button
+                        onClick={() => analysis ? setIsExpanded(!isExpanded) : analyzeToken()}
+                        className="w-full p-4 flex items-center justify-between hover:bg-[#161616] transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                <Sparkles className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-medium text-white">AI Analysis</p>
+                                <p className="text-xs text-gray-500">
+                                    {analysis
+                                        ? `Updated ${new Date(analysis.analyzedAt).toLocaleTimeString()}`
+                                        : "Tap to analyze this token"}
                                 </p>
                             </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </CardContent>
-        </Card>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {isLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            ) : analysis ? (
+                                <>
+                                    <Badge className={getRiskBadge(analysis.riskScore).className}>
+                                        {getRiskBadge(analysis.riskScore).label}
+                                    </Badge>
+                                    {isExpanded ? (
+                                        <ChevronUp className="w-4 h-4 text-gray-500" />
+                                    ) : (
+                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                    )}
+                                </>
+                            ) : null}
+                        </div>
+                    </button>
+
+                    {/* Expanded Content */}
+                    <AnimatePresence>
+                        {isExpanded && analysis && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <div className="px-4 pb-4 space-y-4 border-t border-[#222]">
+                                    {/* Risk & Sentiment */}
+                                    <div className="flex items-center justify-between pt-4">
+                                        <div className="flex items-center gap-4">
+                                            <div>
+                                                <p className="text-xs text-gray-500">Risk Score</p>
+                                                <p className={`text-lg font-bold ${getRiskColor(analysis.riskScore)}`}>
+                                                    {analysis.riskScore}/10
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500">Sentiment</p>
+                                                <div className="flex items-center gap-1">
+                                                    {getSentimentIcon(analysis.sentiment)}
+                                                    <span className="text-sm font-medium text-white">
+                                                        {analysis.sentiment}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                analyzeToken();
+                                            }}
+                                            className="h-8"
+                                        >
+                                            <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
+                                        </Button>
+                                    </div>
+
+                                    {/* Summary */}
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">Summary</p>
+                                        <p className="text-sm text-gray-300">{analysis.summary}</p>
+                                    </div>
+
+                                    {/* Warnings */}
+                                    {analysis.warnings && analysis.warnings.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs text-gray-500">Warnings</p>
+                                            {analysis.warnings.map((warning, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-500/10 rounded-lg p-2"
+                                                >
+                                                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                                                    <span>{warning}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Recommendation */}
+                                    {analysis.recommendation && (
+                                        <div className="bg-primary/10 rounded-lg p-3">
+                                            <p className="text-xs text-primary mb-1">Recommendation</p>
+                                            <p className="text-sm text-white">{analysis.recommendation}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Disclaimer */}
+                                    <p className="text-[10px] text-gray-600 italic">
+                                        This analysis is AI-generated and not financial advice. DYOR.
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </CardContent>
+            </Card>
+        </AIGlowBorder>
     );
 }

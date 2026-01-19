@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AIGlowBorder } from "./AIGlow";
 
 interface PortfolioAnalysis {
     healthScore: number;
@@ -143,160 +144,164 @@ export function PortfolioHealthCard({
 
     if (!analysis) {
         return (
-            <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20">
-                <CardContent className="p-4">
-                    <button
-                        onClick={analyzePortfolio}
-                        disabled={isLoading || assets.length === 0}
-                        className="w-full flex items-center justify-between"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                <Heart className="w-5 h-5 text-primary" />
+            <AIGlowBorder isLoading={isLoading}>
+                <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20 relative z-10">
+                    <CardContent className="p-4">
+                        <button
+                            onClick={analyzePortfolio}
+                            disabled={isLoading || assets.length === 0}
+                            className="w-full flex items-center justify-between"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <Heart className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-medium text-white">Portfolio Health</p>
+                                    <p className="text-xs text-gray-400">
+                                        {assets.length === 0
+                                            ? "Add assets to analyze"
+                                            : "Tap for AI analysis"}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="text-left">
-                                <p className="font-medium text-white">Portfolio Health</p>
-                                <p className="text-xs text-gray-400">
-                                    {assets.length === 0
-                                        ? "Add assets to analyze"
-                                        : "Tap for AI analysis"}
-                                </p>
-                            </div>
-                        </div>
-                        {isLoading ? (
-                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                        ) : (
-                            <ChevronRight className="w-5 h-5 text-gray-500" />
-                        )}
-                    </button>
-                </CardContent>
-            </Card>
+                            {isLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                            ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-500" />
+                            )}
+                        </button>
+                    </CardContent>
+                </Card>
+            </AIGlowBorder>
         );
     }
 
     const divBadge = getDiversificationBadge(analysis.diversification);
 
     return (
-        <Card className="bg-[#111] border-[#222] overflow-hidden">
-            <CardContent className="p-4 space-y-4">
-                {/* Header with Score */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        {/* Circular Score Display */}
-                        <div className="relative w-14 h-14">
-                            <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
-                                {/* Background circle */}
-                                <circle
-                                    cx="28"
-                                    cy="28"
-                                    r="24"
-                                    fill="none"
-                                    stroke="#1a1a1a"
-                                    strokeWidth="4"
-                                />
-                                {/* Progress circle */}
-                                <circle
-                                    cx="28"
-                                    cy="28"
-                                    r="24"
-                                    fill="none"
-                                    stroke={analysis.healthScore >= 70 ? "#22c55e" : analysis.healthScore >= 40 ? "#eab308" : "#ef4444"}
-                                    strokeWidth="4"
-                                    strokeLinecap="round"
-                                    strokeDasharray={`${(analysis.healthScore / 100) * 150.8} 150.8`}
-                                />
-                            </svg>
-                            {/* Score number in center */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <span className={`text-lg font-bold ${getHealthColor(analysis.healthScore)}`}>
-                                    {analysis.healthScore}
-                                </span>
+        <AIGlowBorder isLoading={isLoading}>
+            <Card className="bg-[#111] border-[#222] overflow-hidden relative z-10">
+                <CardContent className="p-4 space-y-4">
+                    {/* Header with Score */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {/* Circular Score Display */}
+                            <div className="relative w-14 h-14">
+                                <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+                                    {/* Background circle */}
+                                    <circle
+                                        cx="28"
+                                        cy="28"
+                                        r="24"
+                                        fill="none"
+                                        stroke="#1a1a1a"
+                                        strokeWidth="4"
+                                    />
+                                    {/* Progress circle */}
+                                    <circle
+                                        cx="28"
+                                        cy="28"
+                                        r="24"
+                                        fill="none"
+                                        stroke={analysis.healthScore >= 70 ? "#22c55e" : analysis.healthScore >= 40 ? "#eab308" : "#ef4444"}
+                                        strokeWidth="4"
+                                        strokeLinecap="round"
+                                        strokeDasharray={`${(analysis.healthScore / 100) * 150.8} 150.8`}
+                                    />
+                                </svg>
+                                {/* Score number in center */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className={`text-lg font-bold ${getHealthColor(analysis.healthScore)}`}>
+                                        {analysis.healthScore}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="font-medium text-white">Portfolio Health</p>
+                                <div className={`text-xs px-2 py-0.5 rounded-full ${divBadge.bg} ${divBadge.color} inline-block`}>
+                                    {analysis.diversification} Diversification
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <p className="font-medium text-white">Portfolio Health</p>
-                            <div className={`text-xs px-2 py-0.5 rounded-full ${divBadge.bg} ${divBadge.color} inline-block`}>
-                                {analysis.diversification} Diversification
-                            </div>
-                        </div>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={analyzePortfolio}
-                        disabled={isLoading}
-                    >
-                        <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-                    </Button>
-                </div>
-
-                {/* Summary */}
-                <p className="text-sm text-gray-300">{analysis.summary}</p>
-
-                {/* Toggle Details */}
-                <button
-                    onClick={() => setShowDetails(!showDetails)}
-                    className="text-xs text-primary flex items-center gap-1"
-                >
-                    {showDetails ? "Hide details" : "Show details"}
-                    <ChevronRight className={`w-3 h-3 transition-transform ${showDetails ? "rotate-90" : ""}`} />
-                </button>
-
-                {/* Expanded Details */}
-                <AnimatePresence>
-                    {showDetails && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="space-y-3 overflow-hidden"
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={analyzePortfolio}
+                            disabled={isLoading}
                         >
-                            {/* Risks */}
-                            {analysis.risks.length > 0 && (
-                                <div>
-                                    <p className="text-xs text-gray-500 mb-2">⚠️ Risks</p>
-                                    <ul className="space-y-1">
-                                        {analysis.risks.map((risk, i) => (
-                                            <li key={i} className="text-xs text-yellow-400 flex items-start gap-2">
-                                                <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
-                                                {risk}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                        </Button>
+                    </div>
 
-                            {/* Opportunities */}
-                            {analysis.opportunities.length > 0 && (
-                                <div>
-                                    <p className="text-xs text-gray-500 mb-2">💡 Opportunities</p>
-                                    <ul className="space-y-1">
-                                        {analysis.opportunities.map((opp, i) => (
-                                            <li key={i} className="text-xs text-green-400 flex items-start gap-2">
-                                                <TrendingUp className="w-3 h-3 shrink-0 mt-0.5" />
-                                                {opp}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                    {/* Summary */}
+                    <p className="text-sm text-gray-300">{analysis.summary}</p>
 
-                            {/* Recommendation */}
-                            {analysis.recommendation && (
-                                <div className="bg-primary/10 rounded-lg p-3">
-                                    <p className="text-xs text-primary mb-1">Recommendation</p>
-                                    <p className="text-sm text-white">{analysis.recommendation}</p>
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                    {/* Toggle Details */}
+                    <button
+                        onClick={() => setShowDetails(!showDetails)}
+                        className="text-xs text-primary flex items-center gap-1"
+                    >
+                        {showDetails ? "Hide details" : "Show details"}
+                        <ChevronRight className={`w-3 h-3 transition-transform ${showDetails ? "rotate-90" : ""}`} />
+                    </button>
 
-                {/* Disclaimer */}
-                <p className="text-[10px] text-gray-600 italic">
-                    AI-generated analysis. Not financial advice.
-                </p>
-            </CardContent>
-        </Card>
+                    {/* Expanded Details */}
+                    <AnimatePresence>
+                        {showDetails && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="space-y-3 overflow-hidden"
+                            >
+                                {/* Risks */}
+                                {analysis.risks.length > 0 && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-2">⚠️ Risks</p>
+                                        <ul className="space-y-1">
+                                            {analysis.risks.map((risk, i) => (
+                                                <li key={i} className="text-xs text-yellow-400 flex items-start gap-2">
+                                                    <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+                                                    {risk}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* Opportunities */}
+                                {analysis.opportunities.length > 0 && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-2">💡 Opportunities</p>
+                                        <ul className="space-y-1">
+                                            {analysis.opportunities.map((opp, i) => (
+                                                <li key={i} className="text-xs text-green-400 flex items-start gap-2">
+                                                    <TrendingUp className="w-3 h-3 shrink-0 mt-0.5" />
+                                                    {opp}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* Recommendation */}
+                                {analysis.recommendation && (
+                                    <div className="bg-primary/10 rounded-lg p-3">
+                                        <p className="text-xs text-primary mb-1">Recommendation</p>
+                                        <p className="text-sm text-white">{analysis.recommendation}</p>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Disclaimer */}
+                    <p className="text-[10px] text-gray-600 italic">
+                        AI-generated analysis. Not financial advice.
+                    </p>
+                </CardContent>
+            </Card>
+        </AIGlowBorder>
     );
 }
