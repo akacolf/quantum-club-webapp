@@ -5,24 +5,24 @@ import { AI_MODEL } from "@/lib/ai/system-prompt";
 
 const PORTFOLIO_PROMPT = `You are a crypto portfolio analyst AI for Quantum Club. Analyze the user's portfolio and provide actionable insights.
 
-Your response should include:
-1. **Health Score** (1-100): Overall portfolio health considering diversification, risk, and potential
-2. **Diversification**: How well-diversified is the portfolio
-3. **Risks**: Key risks to be aware of
-4. **Opportunities**: Potential improvements or opportunities
-5. **Summary**: Brief 2-sentence portfolio overview
+Respond with a JSON object containing:
+- healthScore: number from 1-100 (overall portfolio health)
+- diversification: "GOOD", "MODERATE", or "POOR"
+- risks: array of 2-3 short risk warnings (strings)
+- opportunities: array of 2-3 improvement suggestions (strings)
+- summary: a 2-sentence plain text overview of the portfolio
+- recommendation: one actionable recommendation (string)
 
-Format as JSON:
-{
-  "healthScore": number,
-  "diversification": "GOOD" | "MODERATE" | "POOR",
-  "risks": ["string"],
-  "opportunities": ["string"],
-  "summary": "string",
-  "recommendation": "string"
+Be helpful and educational. Do not provide financial advice.`;
+
+interface PortfolioAnalysisResponse {
+    healthScore?: number;
+    diversification?: string;
+    risks?: string[];
+    opportunities?: string[];
+    summary?: string;
+    recommendation?: string;
 }
-
-Be helpful but include disclaimers. Focus on education over financial advice.`;
 
 export async function POST(req: NextRequest) {
     try {
@@ -49,8 +49,7 @@ export async function POST(req: NextRequest) {
             `- ${a.symbol}: $${a.value?.toFixed(2) || "0"} (${a.percentage?.toFixed(1) || "0"}%)`
         ).join("\n");
 
-        const portfolioContext = `
-Analyze this crypto portfolio:
+        const portfolioContext = `Analyze this crypto portfolio:
 
 Total Value: $${totalValue?.toFixed(2) || "0"}
 Staked Amount: $${stakedAmount?.toFixed(2) || "0"}
@@ -58,9 +57,7 @@ Staked Amount: $${stakedAmount?.toFixed(2) || "0"}
 Assets:
 ${assetList || "No assets"}
 
-Number of different assets: ${assets.length}
-
-Provide your portfolio health analysis.`;
+Number of different assets: ${assets.length}`;
 
         const ai = new GoogleGenAI({ apiKey });
 
@@ -70,60 +67,65 @@ Provide your portfolio health analysis.`;
             config: {
                 systemInstruction: PORTFOLIO_PROMPT,
                 temperature: 0.3,
-                maxOutputTokens: 500,
+                maxOutputTokens: 800,
+                responseMimeType: "application/json",
             },
         });
 
-        const text = response.text || "";
-        
-        try {
-            // Remove markdown code blocks if present
-            const cleanText = text
-                .replace(/```json\s*/gi, '')
-                .replace(/```\s*/g, '')
-                .trim();
-            
-            const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const analysis = JSON.parse(jsonMatch[0]);
-                return NextResponse.json({
-                    success: true,
-                    analysis: {
-                        healthScore: typeof analysis.healthScore === 'number' ? Math.min(100, Math.max(0, analysis.healthScore)) : 50,
-                        diversification: ['GOOD', 'MODERATE', 'POOR'].includes(analysis.diversification) ? analysis.diversification : 'MODERATE',
-                        risks: Array.isArray(analysis.risks) ? analysis.risks.filter((r: unknown) => typeof r === 'string') : [],
-                        opportunities: Array.isArray(analysis.opportunities) ? analysis.opportunities.filter((o: unknown) => typeof o === 'string') : [],
-                        summary: typeof analysis.summary === 'string' ? analysis.summary : "Portfolio analysis completed",
-                        recommendation: typeof analysis.recommendation === 'string' ? analysis.recommendation : "",
-                        analyzedAt: new Date().toISOString(),
-                    },
-                });
+        // Get text from response
+        let responseText = "";
+        if (response.candidates && response.candidates[0]?.content?.parts) {
+            for (const part of response.candidates[0].content.parts) {
+                if (part.text) {
+                    responseText += part.text;
+                }
             }
-        } catch {
-            // Fallback on parse error
+        }
+        
+        // Fallback to response.text if available
+        if (!responseText && response.text) {
+            responseText = response.text;
         }
 
-        // Fallback: Clean up text for summary
-        const cleanSummary = text
-            .replace(/```json\s*/gi, '')
-            .replace(/```\s*/g, '')
-            .replace(/\{[\s\S]*\}/g, '')
-            .trim()
-            .slice(0, 300);
+        if (!responseText) {
+            throw new Error("No response text from AI");
+        }
 
-        return NextResponse.json({
-            success: true,
-            analysis: {
-                healthScore: 50,
-                diversification: "MODERATE",
-                risks: [],
-                opportunities: [],
-                summary: cleanSummary || "Your portfolio has been analyzed. Consider diversifying across different asset classes.",
-                analyzedAt: new Date().toISOString(),
-            },
-        });
+        // Parse the JSON response
+        try {
+            const analysis: PortfolioAnalysisResponse = JSON.parse(responseText);
+            
+            return NextResponse.json({
+                success: true,
+                analysis: {
+                    healthScore: typeof analysis.healthScore === 'number' ? Math.min(100, Math.max(0, analysis.healthScore)) : 50,
+                    diversification: ['GOOD', 'MODERATE', 'POOR'].includes(analysis.diversification || '') ? analysis.diversification : 'MODERATE',
+                    risks: Array.isArray(analysis.risks) ? analysis.risks.filter((r): r is string => typeof r === 'string').slice(0, 5) : [],
+                    opportunities: Array.isArray(analysis.opportunities) ? analysis.opportunities.filter((o): o is string => typeof o === 'string').slice(0, 5) : [],
+                    summary: typeof analysis.summary === 'string' ? analysis.summary : "Portfolio analysis completed.",
+                    recommendation: typeof analysis.recommendation === 'string' ? analysis.recommendation : "",
+                    analyzedAt: new Date().toISOString(),
+                },
+            });
+        } catch (parseError) {
+            console.error("JSON parse error:", parseError, "Response:", responseText);
+            
+            // Return a default analysis if parsing fails
+            return NextResponse.json({
+                success: true,
+                analysis: {
+                    healthScore: 50,
+                    diversification: "MODERATE",
+                    risks: ["Unable to fully analyze portfolio at this time"],
+                    opportunities: ["Consider reviewing your asset allocation"],
+                    summary: "Your portfolio has been reviewed. Consider diversifying across different asset classes for better risk management.",
+                    recommendation: "Review your portfolio allocation periodically.",
+                    analyzedAt: new Date().toISOString(),
+                },
+            });
+        }
     } catch (error) {
         console.error("Portfolio health error:", error);
-        return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
+        return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 });
     }
 }
