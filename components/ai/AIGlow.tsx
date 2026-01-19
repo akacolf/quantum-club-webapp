@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export function AILoadingGlow() {
     return (
@@ -9,7 +10,7 @@ export function AILoadingGlow() {
                 className="absolute inset-[-50%] w-[200%] h-[200%]"
                 style={{
                     background: "conic-gradient(from 0deg, transparent 0deg, #ff0080 60deg, #7928ca 120deg, #4f46e5 180deg, #0ea5e9 240deg, #ff0080 300deg, transparent 360deg)",
-                    opacity: 0.2, // increased opacity for visibility
+                    opacity: 0.2,
                 }}
                 animate={{
                     rotate: 360,
@@ -25,38 +26,35 @@ export function AILoadingGlow() {
     );
 }
 
-import { cn } from "@/lib/utils";
-
 export function AIGlowBorder({ 
     children, 
-    isLoading, 
-    className = "rounded-xl" 
+    isLoading,
+    className,
 }: { 
     children: React.ReactNode; 
     isLoading: boolean; 
     className?: string;
 }) {
     return (
-        <div className={cn("relative", className)}>
+        <div className={cn("relative rounded-xl", className)}>
             {isLoading && (
                 <motion.div
-                    className={cn("absolute -inset-[2px] z-0", className)}
+                    className="absolute -inset-[2px] rounded-xl z-0"
                     style={{
-                        background: "linear-gradient(45deg, #ff0080, #7928ca, #4f46e5, #0ea5e9)",
-                        backgroundSize: "300% 300%",
-                        filter: "blur(8px)",
+                        background: "linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7, #d946ef, #ec4899, #f43f5e)",
+                        backgroundSize: "400% 400%",
                     }}
                     animate={{
                         backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                     }}
                     transition={{
-                        duration: 3,
+                        duration: 2.5,
                         repeat: Infinity,
-                        ease: "linear",
+                        ease: "easeInOut",
                     }}
                 />
             )}
-            <div className={cn("relative z-10 bg-[#111] overflow-hidden", className)}>
+            <div className={cn("relative z-10 rounded-xl overflow-hidden", className)}>
                 {children}
             </div>
         </div>

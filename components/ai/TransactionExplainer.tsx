@@ -85,7 +85,11 @@ export function TransactionExplainer({
             <Button
                 variant="ghost"
                 size="sm"
-                onClick={explainTransaction}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    explainTransaction();
+                }}
                 disabled={isLoading}
                 className="text-xs gap-1 h-7 px-2 text-primary hover:text-primary"
             >
@@ -103,7 +107,9 @@ export function TransactionExplainer({
         <div className="mt-2">
             {/* Toggle Button */}
             <button
-                onClick={() => {
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
                     if (!explanation && !isExpanded) {
                         explainTransaction();
                     } else {
