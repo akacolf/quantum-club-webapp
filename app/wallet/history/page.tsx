@@ -30,7 +30,6 @@ import {
   formatTag,
   type TransactionLabel,
 } from "@/lib/transaction-labels";
-import { TransactionExplainer } from "@/components/ai";
 
 interface HistoryEvent {
   event_id: string;
@@ -740,24 +739,6 @@ export default function HistoryPage() {
                           </div>
                           <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
                         </div>
-                      </div>
-                      
-                      {/* AI Transaction Explainer */}
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <TransactionExplainer
-                          txHash={tx.event_id}
-                          txData={{
-                            type: tx.type,
-                            from: tx.isIncoming ? tx.address : walletAddress,
-                            to: tx.isIncoming ? walletAddress : tx.address,
-                            amount: tx.amount,
-                            symbol: tx.symbol,
-                            timestamp: tx.formattedDate,
-                            status: tx.status,
-                          }}
-                          walletAddress={walletAddress}
-                          compact
-                        />
                       </div>
                     </CardContent>
                   </Card>
