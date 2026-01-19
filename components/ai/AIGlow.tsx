@@ -25,16 +25,26 @@ export function AILoadingGlow() {
     );
 }
 
-export function AIGlowBorder({ children, isLoading }: { children: React.ReactNode; isLoading: boolean }) {
+import { cn } from "@/lib/utils";
+
+export function AIGlowBorder({ 
+    children, 
+    isLoading, 
+    className = "rounded-xl" 
+}: { 
+    children: React.ReactNode; 
+    isLoading: boolean; 
+    className?: string;
+}) {
     return (
-        <div className="relative rounded-xl">
+        <div className={cn("relative", className)}>
             {isLoading && (
                 <motion.div
-                    className="absolute -inset-[2px] rounded-xl z-0"
+                    className={cn("absolute -inset-[2px] z-0", className)}
                     style={{
-                        background: "linear-gradient(45deg, #ff0080, #7928ca, #4f46e5, #0ea5e9)", // Updated gradient colors
+                        background: "linear-gradient(45deg, #ff0080, #7928ca, #4f46e5, #0ea5e9)",
                         backgroundSize: "300% 300%",
-                        filter: "blur(8px)", // Increased blur
+                        filter: "blur(8px)",
                     }}
                     animate={{
                         backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
@@ -46,7 +56,7 @@ export function AIGlowBorder({ children, isLoading }: { children: React.ReactNod
                     }}
                 />
             )}
-            <div className="relative z-10 bg-[#111] rounded-xl overflow-hidden">
+            <div className={cn("relative z-10 bg-[#111] overflow-hidden", className)}>
                 {children}
             </div>
         </div>

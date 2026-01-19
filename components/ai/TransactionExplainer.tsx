@@ -136,18 +136,18 @@ export function TransactionExplainer({
                         <div className="pt-2 pb-1 px-1">
                             {isLoading ? (
                                 <AIGlowBorder isLoading={true}>
-                                    <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg min-h-[60px] flex items-center justify-center relative z-10">
+                                    <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl min-h-[60px] flex items-center justify-center relative z-10">
                                         <div className="flex flex-col items-center gap-2">
                                             <span className="text-xs text-primary animate-pulse">Analyzing blockchain data...</span>
                                         </div>
                                     </div>
                                 </AIGlowBorder>
                             ) : error ? (
-                                <div className="p-2 bg-red-500/10 rounded-lg text-xs text-red-400">
+                                <div className="p-2 bg-red-500/10 rounded-xl text-xs text-red-400">
                                     {error}
                                 </div>
                             ) : explanation ? (
-                                <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
+                                <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl">
                                     <div className="mb-2 flex items-center justify-between">
                                         <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                                             {explanation.type}
