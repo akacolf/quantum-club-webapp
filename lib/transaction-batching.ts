@@ -166,18 +166,46 @@ export async function sendBatchTransaction(
         const bocBase64 = bocCell.toBoc().toString("base64");
 
         // Send via TONAPI
-        const result = await sendBlockchainMessage(bocBase64, isTestnet);
+        let result;
+        let sendError = null;
         
-        if (!result) {
-            throw new Error("Failed to send transaction - no response from TONAPI");
+        try {
+            result = await sendBlockchainMessage(bocBase64, isTestnet);
+        } catch (err) {
+            // Store error but don't fail immediately - tx might have succeeded
+            sendError = err;
+            console.warn("Warning during tx send (tx may have still succeeded):", err);
+        }
+        
+        // Generate tx hash from BOC (this is always valid if we got here)
+        const txHash = result?.hash || bocCell.hash().toString("hex");
+
+        // If we got a result object (even empty), it's a success
+        // TonAPI returns empty or minimal response on success
+        if (result || !sendError) {
+            return {
+                success: true,
+                txHash,
+                messageCount: transactions.length,
+            };
+        }
+        
+        // If there was an error but no result, still check if it might have worked
+        // Network errors after sending don't necessarily mean failure
+        const errorMsg = sendError instanceof Error ? sendError.message : String(sendError);
+        if (errorMsg.includes("409") || errorMsg.includes("already")) {
+            // Already sent = success
+            return {
+                success: true,
+                txHash,
+                messageCount: transactions.length,
+            };
         }
 
-        // Generate tx hash from BOC
-        const txHash = result.hash || bocCell.hash().toString("hex");
-
+        // Real failure
         return {
-            success: true,
-            txHash,
+            success: false,
+            error: `Transaction may have failed: ${errorMsg}`,
             messageCount: transactions.length,
         };
     } catch (error) {

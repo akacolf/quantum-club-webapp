@@ -83,6 +83,26 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify(body),
         });
 
+        // For blockchain/message endpoint, success may return empty or non-200 that still worked
+        if (path.includes("/blockchain/message")) {
+            // 200 is success, but response might be empty
+            if (response.ok) {
+                const text = await response.text();
+                try {
+                    const data = text ? JSON.parse(text) : { success: true };
+                    return NextResponse.json(data);
+                } catch {
+                    // Non-JSON response, but still success
+                    return NextResponse.json({ success: true });
+                }
+            }
+            
+            // Some errors still mean the tx was sent (409 = already exists)
+            if (response.status === 409) {
+                return NextResponse.json({ success: true, alreadySent: true });
+            }
+        }
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`TonAPI error: ${response.status} - ${errorText}`);
@@ -92,8 +112,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        const text = await response.text();
+        try {
+            const data = text ? JSON.parse(text) : {};
+            return NextResponse.json(data);
+        } catch {
+            return NextResponse.json({});
+        }
     } catch (error) {
         console.error("TonAPI proxy error:", error);
         return NextResponse.json(
