@@ -7,6 +7,7 @@ import {
     Heart,
     AlertTriangle,
     TrendingUp,
+    Lightbulb,
     Loader2,
     RefreshCw,
     ChevronRight,
@@ -258,11 +259,14 @@ export function PortfolioHealthCard({
                                 {/* Risks */}
                                 {analysis.risks.length > 0 && (
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-2">⚠️ Risks</p>
+                                        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                            <AlertTriangle className="w-3 h-3" />
+                                            Risks
+                                        </p>
                                         <ul className="space-y-1">
                                             {analysis.risks.map((risk, i) => (
                                                 <li key={i} className="text-xs text-yellow-400 flex items-start gap-2">
-                                                    <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+                                                    <span className="mt-0.5 w-1 h-1 rounded-full bg-yellow-400 shrink-0" />
                                                     {risk}
                                                 </li>
                                             ))}
@@ -273,7 +277,10 @@ export function PortfolioHealthCard({
                                 {/* Opportunities */}
                                 {analysis.opportunities.length > 0 && (
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-2">💡 Opportunities</p>
+                                        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                            <Lightbulb className="w-3 h-3" />
+                                            Opportunities
+                                        </p>
                                         <ul className="space-y-1">
                                             {analysis.opportunities.map((opp, i) => (
                                                 <li key={i} className="text-xs text-green-400 flex items-start gap-2">
