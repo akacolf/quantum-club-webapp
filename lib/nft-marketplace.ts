@@ -128,6 +128,12 @@ function formatTon(nanoTon: bigint | number): string {
     return (value / 1e9).toFixed(2);
 }
 
+// Helper to sanitize items count (-1 or undefined means unlimited/unknown)
+function sanitizeItemsCount(count?: number): number {
+    if (count === undefined || count === null || count < 0) return 0;
+    return count;
+}
+
 // =====================================================
 // Collection API
 // =====================================================
@@ -164,7 +170,7 @@ export async function getPopularCollections(
                     || c.previews?.find(p => p.resolution === "1500x1500")?.url 
                     || c.metadata?.image,
                 coverImage: c.metadata?.cover_image,
-                itemsCount: c.next_item_index || 0,
+                itemsCount: sanitizeItemsCount(c.next_item_index),
                 verified: true, // Only showing verified collections
             }));
 
@@ -218,7 +224,7 @@ async function fetchVerifiedCollectionsDirectly(
                         || data.previews?.find(p => p.resolution === "1500x1500")?.url 
                         || data.metadata?.image,
                     coverImage: data.metadata?.cover_image,
-                    itemsCount: data.next_item_index || 0,
+                    itemsCount: sanitizeItemsCount(data.next_item_index),
                     verified: true,
                 };
             } catch (error) {
@@ -252,7 +258,7 @@ export async function getCollectionDetails(
             description: data.metadata?.description,
             image: data.previews?.find(p => p.resolution === "500x500")?.url || data.metadata?.image,
             coverImage: data.metadata?.cover_image,
-            itemsCount: data.next_item_index || 0,
+            itemsCount: sanitizeItemsCount(data.next_item_index),
         };
     } catch (error) {
         console.error("[NFT Marketplace] Error fetching collection:", error);

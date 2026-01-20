@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
     Search,
     TrendingUp,
@@ -24,12 +24,12 @@ import { useWallet } from "../WalletContext";
 
 export default function MarketplacePage() {
     useTelegramBackButton("/wallet");
-    const router = useRouter();
     const { isTestnet } = useWallet();
 
     const [collections, setCollections] = useState<NftCollection[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
     // Fetch collections
     const fetchCollections = useCallback(async () => {
@@ -48,6 +48,11 @@ export default function MarketplacePage() {
         fetchCollections();
     }, [fetchCollections]);
 
+    // Handle image error
+    const handleImageError = (address: string) => {
+        setImageErrors(prev => new Set(prev).add(address));
+    };
+
     // Filter collections by search
     const filteredCollections = searchQuery
         ? collections.filter((c) =>
@@ -59,6 +64,12 @@ export default function MarketplacePage() {
     const featuredCollections = filteredCollections.slice(0, 5);
     // All collections
     const allCollections = filteredCollections;
+
+    // Format items count - handle -1 or negative values
+    const formatItemsCount = (count: number) => {
+        if (count < 0) return "∞";
+        return count.toLocaleString();
+    };
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-28">
@@ -130,43 +141,42 @@ export default function MarketplacePage() {
                                             transition={{ delay: index * 0.05 }}
                                             className="flex-shrink-0"
                                         >
-                                            <Card
-                                                className="w-[200px] bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
-                                                onClick={() =>
-                                                    router.push(
-                                                        `/wallet/marketplace/collection/${encodeURIComponent(collection.address)}`
-                                                    )
-                                                }
+                                            <Link
+                                                href={`/wallet/marketplace/collection/${encodeURIComponent(collection.address)}`}
+                                                prefetch={true}
                                             >
-                                                <div className="relative h-24 bg-muted">
-                                                    {collection.image ? (
-                                                        <Image
-                                                            src={collection.image}
-                                                            alt={collection.name}
-                                                            fill
-                                                            className="object-cover"
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center">
-                                                            <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <CardContent className="p-3">
-                                                    <div className="flex items-center gap-1">
-                                                        <p className="font-semibold text-sm truncate">
-                                                            {collection.name}
-                                                        </p>
-                                                        {collection.verified && (
-                                                            <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                                                <Card className="w-[200px] bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-colors">
+                                                    <div className="relative h-24 bg-muted overflow-hidden">
+                                                        {collection.image && !imageErrors.has(collection.address) ? (
+                                                            <Image
+                                                                src={collection.image}
+                                                                alt={collection.name}
+                                                                fill
+                                                                className="object-cover"
+                                                                unoptimized
+                                                                onError={() => handleImageError(collection.address)}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                                                                <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                                                            </div>
                                                         )}
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {collection.itemsCount.toLocaleString()} items
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
+                                                    <CardContent className="p-3">
+                                                        <div className="flex items-center gap-1">
+                                                            <p className="font-semibold text-sm truncate">
+                                                                {collection.name}
+                                                            </p>
+                                                            {collection.verified && (
+                                                                <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {formatItemsCount(collection.itemsCount)} items
+                                                        </p>
+                                                    </CardContent>
+                                                </Card>
+                                            </Link>
                                         </motion.div>
                                     ))}
                                 <div className="min-w-[1px] flex-shrink-0" />
@@ -218,61 +228,55 @@ export default function MarketplacePage() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.02 }}
                                 >
-                                    <Card
-                                        className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg"
-                                        onClick={() =>
-                                            router.push(
-                                                `/wallet/marketplace/collection/${encodeURIComponent(collection.address)}`
-                                            )
-                                        }
+                                    <Link
+                                        href={`/wallet/marketplace/collection/${encodeURIComponent(collection.address)}`}
+                                        prefetch={true}
                                     >
-                                        <div className="relative aspect-square bg-muted">
-                                            {collection.image ? (
-                                                <Image
-                                                    src={collection.image}
-                                                    alt={collection.name}
-                                                    fill
-                                                    className="object-cover"
-                                                    unoptimized
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <ImageIcon className="w-10 h-10 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                            {collection.verified && (
-                                                <div className="absolute top-2 right-2 bg-blue-500 rounded-full p-0.5">
-                                                    <BadgeCheck className="w-4 h-4 text-white" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <CardContent className="p-3">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex items-center gap-1">
-                                                        <p className="font-semibold text-sm truncate">
-                                                            {collection.name}
-                                                        </p>
-                                                        {collection.verified && (
-                                                            <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
-                                                        )}
+                                        <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg">
+                                            <div className="relative aspect-square bg-muted overflow-hidden">
+                                                {collection.image && !imageErrors.has(collection.address) ? (
+                                                    <Image
+                                                        src={collection.image}
+                                                        alt={collection.name}
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
+                                                        onError={() => handleImageError(collection.address)}
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                                                        <ImageIcon className="w-10 h-10 text-muted-foreground" />
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {collection.itemsCount.toLocaleString()} items
-                                                    </p>
-                                                </div>
-                                                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                )}
                                             </div>
-                                            {collection.floorPrice && (
-                                                <div className="mt-2 pt-2 border-t border-border">
-                                                    <p className="text-xs text-muted-foreground">Floor</p>
-                                                    <p className="text-sm font-semibold text-primary">
-                                                        {(collection.floorPrice / 1e9).toFixed(2)} TON
-                                                    </p>
+                                            <CardContent className="p-3">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-1">
+                                                            <p className="font-semibold text-sm truncate">
+                                                                {collection.name}
+                                                            </p>
+                                                            {collection.verified && (
+                                                                <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {formatItemsCount(collection.itemsCount)} items
+                                                        </p>
+                                                    </div>
+                                                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                                                 </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                                {collection.floorPrice && (
+                                                    <div className="mt-2 pt-2 border-t border-border">
+                                                        <p className="text-xs text-muted-foreground">Floor</p>
+                                                        <p className="text-sm font-semibold text-primary">
+                                                            {(collection.floorPrice / 1e9).toFixed(2)} TON
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </Link>
                                 </motion.div>
                             ))}
                         </div>

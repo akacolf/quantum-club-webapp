@@ -828,9 +828,9 @@ export default function WalletPage() {
                   className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-[#2a2a4a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-primary/30 relative overflow-hidden"
                 >
                   {/* Left side - Text and CTA */}
-                  <div className="flex flex-col items-start gap-2 z-10">
-                    <div>
-                      <h4 className="font-bold text-white text-lg">Earn & Stake</h4>
+                  <div className="flex flex-col items-start justify-between h-full z-10">
+                    <div className="text-left">
+                      <h4 className="font-bold text-white text-lg leading-tight">Earn & Stake</h4>
                       <p className="text-sm text-gray-400">Up to {bestApy.toFixed(1)}% APY</p>
                     </div>
                     <div className="flex items-center gap-1 text-sm text-primary font-medium">
@@ -839,7 +839,7 @@ export default function WalletPage() {
                     </div>
                   </div>
                   {/* Right side - Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center shrink-0">
                     <TrendingUp className="w-8 h-8 text-green-400" />
                   </div>
                   {/* Decorative blur */}
@@ -854,9 +854,9 @@ export default function WalletPage() {
                   className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#2d1f3d] to-[#1a1625] border border-[#3d2a5a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-purple-500/30 relative overflow-hidden"
                 >
                   {/* Left side - Text and CTA */}
-                  <div className="flex flex-col items-start gap-2 z-10">
-                    <div>
-                      <h4 className="font-bold text-white text-lg">NFT Marketplace</h4>
+                  <div className="flex flex-col items-start justify-between h-full z-10">
+                    <div className="text-left">
+                      <h4 className="font-bold text-white text-lg leading-tight">NFT Marketplace</h4>
                       <p className="text-sm text-gray-400">Discover & collect unique NFTs</p>
                     </div>
                     <div className="flex items-center gap-1 text-sm text-purple-400 font-medium">
@@ -865,7 +865,7 @@ export default function WalletPage() {
                     </div>
                   </div>
                   {/* Right side - Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0">
                     <ImageIcon className="w-8 h-8 text-purple-400" />
                   </div>
                   {/* Decorative blur */}
@@ -876,7 +876,7 @@ export default function WalletPage() {
           </Carousel>
 
           {/* Dots Navigation with Progress */}
-          <div className="flex justify-center gap-1.5">
+          <div className="flex justify-center gap-1.5 mb-4">
             {Array.from({ length: carouselCount }).map((_, index) => (
               <button
                 key={index}
@@ -898,7 +898,7 @@ export default function WalletPage() {
             ))}
           </div>
         </div>
-        <div className="flex flex-col items-center w-full max-w-md mx-auto px-4 space-y-6">
+        <div className="flex flex-col items-center w-full max-w-md mx-auto px-4 pt-4 space-y-6">
 
         {isTestnet ? (
           <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">

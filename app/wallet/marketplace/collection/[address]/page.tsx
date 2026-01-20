@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
     Image as ImageIcon,
@@ -12,6 +13,7 @@ import {
     Tag,
     Users,
     ChevronRight,
+    BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +31,6 @@ import { useWallet } from "@/app/wallet/WalletContext";
 export default function CollectionDetailPage() {
     useTelegramBackButton("/wallet/marketplace");
     const params = useParams();
-    const router = useRouter();
     const { isTestnet } = useWallet();
 
     const collectionAddress = decodeURIComponent(params.address as string);
@@ -38,8 +39,20 @@ export default function CollectionDetailPage() {
     const [items, setItems] = useState<NftItem[]>([]);
     const [isLoadingCollection, setIsLoadingCollection] = useState(true);
     const [isLoadingItems, setIsLoadingItems] = useState(true);
+    const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
+
+    // Handle image error
+    const handleImageError = (address: string) => {
+        setImageErrors(prev => new Set(prev).add(address));
+    };
+
+    // Format items count
+    const formatItemsCount = (count: number) => {
+        if (count <= 0) return "∞";
+        return count.toLocaleString();
+    };
 
     // Fetch collection details
     const fetchCollection = useCallback(async () => {
@@ -72,11 +85,6 @@ export default function CollectionDetailPage() {
         fetchItems();
     }, [fetchCollection, fetchItems]);
 
-    // Handle NFT click
-    const handleNftClick = (nftAddress: string) => {
-        router.push(`/wallet/nft/${encodeURIComponent(nftAddress)}`);
-    };
-
     if (isLoadingCollection) {
         return (
             <div className="min-h-screen bg-background text-foreground p-4">
@@ -103,13 +111,11 @@ export default function CollectionDetailPage() {
                     <p className="text-sm text-muted-foreground mt-1">
                         This collection may not exist or is unavailable
                     </p>
-                    <Button
-                        onClick={() => router.push("/wallet/marketplace")}
-                        className="mt-4"
-                        variant="outline"
-                    >
-                        Back to Marketplace
-                    </Button>
+                    <Link href="/wallet/marketplace">
+                        <Button className="mt-4" variant="outline">
+                            Back to Marketplace
+                        </Button>
+                    </Link>
                 </Card>
             </div>
         );
@@ -163,7 +169,7 @@ export default function CollectionDetailPage() {
                         <div className="flex items-center gap-2">
                             <h1 className="text-2xl font-bold">{collection.name}</h1>
                             {collection.verified && (
-                                <Badge className="bg-primary">Verified</Badge>
+                                <BadgeCheck className="w-6 h-6 text-blue-500 shrink-0" />
                             )}
                         </div>
                         {collection.description && (
@@ -178,7 +184,7 @@ export default function CollectionDetailPage() {
                         <Card className="bg-card border-border">
                             <CardContent className="p-3 text-center">
                                 <Grid3X3 className="w-4 h-4 text-primary mx-auto mb-1" />
-                                <p className="text-lg font-bold">{collection.itemsCount.toLocaleString()}</p>
+                                <p className="text-lg font-bold">{formatItemsCount(collection.itemsCount)}</p>
                                 <p className="text-xs text-muted-foreground">Items</p>
                             </CardContent>
                         </Card>
@@ -247,44 +253,47 @@ export default function CollectionDetailPage() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.02 }}
                                 >
-                                    <Card
-                                        className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
-                                        onClick={() => handleNftClick(item.address)}
+                                    <Link
+                                        href={`/wallet/nft/${encodeURIComponent(item.address)}`}
+                                        prefetch={true}
                                     >
-                                        <div className="relative aspect-square bg-muted">
-                                            {item.image ? (
-                                                <Image
-                                                    src={item.image}
-                                                    alt={item.name}
-                                                    fill
-                                                    className="object-cover"
-                                                    unoptimized
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <ImageIcon className="w-10 h-10 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                            {item.sale && (
-                                                <Badge className="absolute top-2 right-2 bg-green-600 text-xs">
-                                                    For Sale
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <CardContent className="p-3">
-                                            <p className="font-semibold text-sm truncate">{item.name}</p>
-                                            {item.sale ? (
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <p className="text-sm font-bold text-primary">
-                                                        {item.sale.priceFormatted} TON
-                                                    </p>
-                                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                                </div>
-                                            ) : (
-                                                <p className="text-xs text-muted-foreground mt-1">Not listed</p>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                        <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all">
+                                            <div className="relative aspect-square bg-muted overflow-hidden">
+                                                {item.image && !imageErrors.has(item.address) ? (
+                                                    <Image
+                                                        src={item.image}
+                                                        alt={item.name}
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
+                                                        onError={() => handleImageError(item.address)}
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                                                        <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                                {item.sale && (
+                                                    <Badge className="absolute top-2 right-2 bg-green-600 text-xs">
+                                                        For Sale
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <CardContent className="p-3">
+                                                <p className="font-semibold text-sm truncate">{item.name}</p>
+                                                {item.sale ? (
+                                                    <div className="flex items-center justify-between mt-1">
+                                                        <p className="text-sm font-bold text-primary">
+                                                            {item.sale.priceFormatted} TON
+                                                        </p>
+                                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground mt-1">Not listed</p>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </Link>
                                 </motion.div>
                             ))}
                         </div>
