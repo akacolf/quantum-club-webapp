@@ -31,6 +31,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 import Loader from "@/app/(components)/Loader";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
@@ -144,10 +150,38 @@ export default function WalletPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [bestApy, setBestApy] = useState<number>(5.0); // Dynamic best APY
 
+  // Features Carousel state (timed with dots)
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [carouselCurrent, setCarouselCurrent] = useState(0);
+  const [carouselCount, setCarouselCount] = useState(0);
+
   // Scroll to top on navigation
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Features Carousel - track current slide
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    setCarouselCount(carouselApi.scrollSnapList().length);
+    setCarouselCurrent(carouselApi.selectedScrollSnap());
+
+    carouselApi.on("select", () => {
+      setCarouselCurrent(carouselApi.selectedScrollSnap());
+    });
+  }, [carouselApi]);
+
+  // Features Carousel - auto-play timer (7 seconds like home page)
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    const timer = setInterval(() => {
+      carouselApi.scrollNext();
+    }, 7000);
+
+    return () => clearInterval(timer);
+  }, [carouselApi, carouselCurrent]);
 
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
@@ -772,45 +806,96 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        {/* Features Carousel - Full width edge-to-edge scroll */}
+        {/* Features Carousel - Timed with dots navigation */}
         </div>
-        <div className="w-full overflow-hidden">
-          <div className="flex gap-3 px-4 pb-2 overflow-x-auto scrollbar-hide">
-            {/* Earn & Stake Card */}
-            <button
-              onClick={() => router.push("/wallet/earn")}
-              className="min-w-[180px] flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-[#2a2a4a] flex flex-col items-start gap-2 active:scale-[0.99] transition-all hover:border-primary/30"
-            >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-400" />
-              </div>
-              <div className="text-left">
-                <h4 className="font-semibold text-white text-sm">Earn & Stake</h4>
-                <p className="text-xs text-gray-400">Up to {bestApy.toFixed(1)}% APY</p>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-primary mt-1">
-                <span>Start earning</span>
-                <ChevronRight className="w-3 h-3" />
-              </div>
-            </button>
+        <div className="flex flex-col gap-4 w-full max-w-md mx-auto px-4">
+          <style>{`
+            @keyframes carouselProgress {
+              from { width: 0%; }
+              to { width: 100%; }
+            }
+          `}</style>
+          <Carousel 
+            setApi={setCarouselApi} 
+            className="w-full" 
+            opts={{ loop: true }}
+          >
+            <CarouselContent>
+              {/* Earn & Stake Card */}
+              <CarouselItem>
+                <button
+                  onClick={() => router.push("/wallet/earn")}
+                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-[#2a2a4a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-primary/30 relative overflow-hidden"
+                >
+                  {/* Left side - Text and CTA */}
+                  <div className="flex flex-col items-start gap-2 z-10">
+                    <div>
+                      <h4 className="font-bold text-white text-lg">Earn & Stake</h4>
+                      <p className="text-sm text-gray-400">Up to {bestApy.toFixed(1)}% APY</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-primary font-medium">
+                      <span>Start earning</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                  {/* Right side - Icon */}
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+                    <TrendingUp className="w-8 h-8 text-green-400" />
+                  </div>
+                  {/* Decorative blur */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                </button>
+              </CarouselItem>
 
-            {/* NFT Marketplace Card */}
-            <button
-              onClick={() => router.push("/wallet/marketplace")}
-              className="min-w-[180px] flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-[#2d1f3d] to-[#1a1625] border border-[#3d2a5a] flex flex-col items-start gap-2 active:scale-[0.99] transition-all hover:border-purple-500/30"
-            >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-purple-400" />
-              </div>
-              <div className="text-left">
-                <h4 className="font-semibold text-white text-sm">NFT Marketplace</h4>
-                <p className="text-xs text-gray-400">Discover & collect</p>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-purple-400 mt-1">
-                <span>Browse NFTs</span>
-                <ChevronRight className="w-3 h-3" />
-              </div>
-            </button>
+              {/* NFT Marketplace Card */}
+              <CarouselItem>
+                <button
+                  onClick={() => router.push("/wallet/marketplace")}
+                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#2d1f3d] to-[#1a1625] border border-[#3d2a5a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-purple-500/30 relative overflow-hidden"
+                >
+                  {/* Left side - Text and CTA */}
+                  <div className="flex flex-col items-start gap-2 z-10">
+                    <div>
+                      <h4 className="font-bold text-white text-lg">NFT Marketplace</h4>
+                      <p className="text-sm text-gray-400">Discover & collect unique NFTs</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-purple-400 font-medium">
+                      <span>Browse NFTs</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                  {/* Right side - Icon */}
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                    <ImageIcon className="w-8 h-8 text-purple-400" />
+                  </div>
+                  {/* Decorative blur */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                </button>
+              </CarouselItem>
+            </CarouselContent>
+          </Carousel>
+
+          {/* Dots Navigation with Progress */}
+          <div className="flex justify-center gap-1.5">
+            {Array.from({ length: carouselCount }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => carouselApi?.scrollTo(index)}
+                className={`h-1.5 rounded-full transition-all duration-300 overflow-hidden relative cursor-pointer ${
+                  index === carouselCurrent ? "w-8 bg-[#333]" : "w-1.5 bg-[#333] hover:bg-[#444]"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              >
+                {index === carouselCurrent && (
+                  <div
+                    className="absolute top-0 left-0 h-full bg-white"
+                    style={{
+                      animation: 'carouselProgress 7s linear forwards'
+                    }}
+                  />
+                )}
+              </button>
+            ))}
           </div>
         </div>
         <div className="flex flex-col items-center w-full max-w-md mx-auto px-4 space-y-6">

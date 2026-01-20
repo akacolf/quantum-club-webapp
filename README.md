@@ -13,13 +13,13 @@
 
 ---
 
-##  Overview
+## Overview
 
 Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, integrating a multi-chain crypto wallet, token trading platform, dApp browser, social features, and gamified earning mechanisms—all powered by the TON blockchain.
 
-##  Key Features
+## Key Features
 
-###  Multi-Chain Wallet
+### Multi-Chain Wallet
 
 - **Native TON Support**: Full TON blockchain integration with real-time balance tracking
 - **Multi-Chain Assets**: Support for Bitcoin (BTC), Ethereum (ETH), Solana (SOL), and TRON
@@ -29,7 +29,7 @@ Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, 
 - **QR Code Scanning**: Scan TON Connect QR codes for seamless dApp connections
 - **Price Alerts**: Set custom price alerts with Telegram notifications
 
-###  Token Trading Platform
+### Token Trading Platform
 
 - **Token Creation**: Deploy your own Jettons on TON blockchain
 - **Bonding Curve Trading**: Buy and sell tokens with automated market making
@@ -38,7 +38,7 @@ Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, 
 - **Live Trades Feed**: Real-time global trade activity
 - **Token Chat**: Engage with token communities
 
-###  dApp Browser
+### dApp Browser
 
 - **Integrated Browser**: Browse TON dApps directly within the wallet
 - **Privacy-First Search**: DuckDuckGo integration for private web searches (dark mode by default)
@@ -46,34 +46,34 @@ Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, 
 - **TON Connect**: Seamless wallet connections to Web3 applications
 - **Category Filtering**: Browse by DEX, DeFi, NFT, Gaming, and Tools
 
-###  Token Swaps
+### Token Swaps
 
 - **STON.fi Integration**: Swap tokens via STON.fi DEX
 - **Omniston SDK**: Advanced swap routing for optimal rates
 - **Slippage Protection**: Configurable slippage tolerance
 - **Gas Estimation**: Transparent fee calculations
 
-###  Social Features
+### Social Features
 
 - **Groups**: Create and join community groups
 - **Group Chat**: Real-time messaging with group members
 - **Referral System**: Earn rewards through friend referrals
 - **Leaderboards**: Compete on global rankings
 
-###  Gamification
+### Gamification
 
 - **Mining/Earning**: Participate in mining activities
 - **Solve-to-Earn**: Complete tasks to earn rewards
 - **Achievements**: Unlock achievements for platform engagement
 - **Quest Tasks**: Complete quests for bonus rewards
 
-###  AI Assistant
+### AI Assistant
 
 - **Gemini Integration**: AI-powered chat assistant
 - **Rate Limiting**: Fair usage with server-side rate limiting
 - **Contextual Help**: Get help with wallet and trading features
 
-##  Tech Stack
+## Tech Stack
 
 ### Frontend
 
@@ -109,7 +109,7 @@ Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, 
 - **Solana**: @solana/kit
 - **TRON**: tronweb
 
-##  Project Structure
+## Project Structure
 
 ```
 quantum-club/
@@ -166,7 +166,7 @@ quantum-club/
 └── utils/                  # Utility functions
 ```
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -244,7 +244,7 @@ For testing as a Telegram Mini App:
 2. Use [ngrok](https://ngrok.com/) or similar to expose your local server
 3. Set the Mini App URL in BotFather to your ngrok URL
 
-##  Smart Contracts
+## Smart Contracts
 
 The project includes custom Jetton (token) smart contracts written in FunC:
 
@@ -261,7 +261,7 @@ npm run compile:contracts
 
 See [`contracts/README.md`](./contracts/README.md) for detailed contract documentation.
 
-##  Security
+## Security
 
 ### Authentication
 
@@ -281,7 +281,7 @@ See [`contracts/README.md`](./contracts/README.md) for detailed contract documen
 - CORS protection
 - Input validation and sanitization
 
-##  Deployment
+## Deployment
 
 ### Vercel (Recommended)
 
@@ -303,13 +303,13 @@ Deploy Firebase rules:
 firebase deploy --only firestore:rules
 ```
 
-##  Analytics
+## Analytics
 
 - **Vercel Analytics**: Page views and web vitals
 - **Vercel Speed Insights**: Performance monitoring
 - **Telegram Analytics**: Mini App engagement metrics
 
-##  Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -317,14 +317,14 @@ firebase deploy --only firestore:rules
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-##  License
+## License
 
 This project is proprietary software. All rights reserved.
 
-##  Links
+## Links
 
+- **Mini App**: [t.me/QuantumClubBot](https://t.me/QuantumClubBot)
 - **Documentation**: Coming soon
-- **Telegram Community**: Coming soon
 - **Support**: Coming soon
 
 ---
