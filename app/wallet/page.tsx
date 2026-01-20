@@ -31,6 +31,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import Loader from "@/app/(components)/Loader";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
@@ -449,6 +450,8 @@ export default function WalletPage() {
       router.prefetch("/wallet/send-multiple");
       router.prefetch("/wallet/farming");
       router.prefetch("/wallet/unstake");
+      router.prefetch("/wallet/marketplace");
+      router.prefetch("/wallet/liquidity");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -770,23 +773,66 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        {/* Earn & Stake Section */}
+        {/* Features Carousel */}
         <div className="w-full">
-          <button
-            onClick={() => router.push("/wallet/earn")}
-            className="w-full p-4 rounded-2xl bg-[#111] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-transform hover:bg-[#161616]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="text-left">
-                <h4 className="font-semibold text-white text-sm">Earn & Stake</h4>
-                <p className="text-xs text-gray-500">Up to {bestApy.toFixed(1)}% APY on TON staking</p>
-              </div>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-3 pb-2">
+              {/* Earn & Stake Card */}
+              <button
+                onClick={() => router.push("/wallet/earn")}
+                className="min-w-[200px] p-4 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-[#2a2a4a] flex flex-col items-start gap-2 active:scale-[0.99] transition-all hover:border-primary/30"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-green-400" />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-semibold text-white text-sm">Earn & Stake</h4>
+                  <p className="text-xs text-gray-400">Up to {bestApy.toFixed(1)}% APY</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-primary mt-1">
+                  <span>Start earning</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </button>
+
+              {/* NFT Marketplace Card */}
+              <button
+                onClick={() => router.push("/wallet/marketplace")}
+                className="min-w-[200px] p-4 rounded-2xl bg-gradient-to-br from-[#2d1f3d] to-[#1a1625] border border-[#3d2a5a] flex flex-col items-start gap-2 active:scale-[0.99] transition-all hover:border-purple-500/30"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <ImageIcon className="w-5 h-5 text-purple-400" />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-semibold text-white text-sm">NFT Marketplace</h4>
+                  <p className="text-xs text-gray-400">Discover & collect</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-purple-400 mt-1">
+                  <span>Browse NFTs</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </button>
+
+              {/* Explore DApps Card */}
+              <button
+                onClick={() => router.push("/wallet/browser")}
+                className="min-w-[200px] p-4 rounded-2xl bg-gradient-to-br from-[#1f2d3d] to-[#162025] border border-[#2a3d5a] flex flex-col items-start gap-2 active:scale-[0.99] transition-all hover:border-blue-500/30"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-blue-400" />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-semibold text-white text-sm">Explore dApps</h4>
+                  <p className="text-xs text-gray-400">DeFi & more</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-blue-400 mt-1">
+                  <span>Discover</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </button>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          </button>
+            <ScrollBar orientation="horizontal" className="invisible" />
+          </ScrollArea>
         </div>
 
         {isTestnet ? (
