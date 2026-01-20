@@ -817,12 +817,12 @@ export default function WalletPage() {
           `}</style>
           <Carousel 
             setApi={setCarouselApi} 
-            className="w-full px-4" 
+            className="w-full" 
             opts={{ loop: true }}
           >
-            <CarouselContent>
+            <CarouselContent className="ml-0">
               {/* Earn & Stake Card */}
-              <CarouselItem>
+              <CarouselItem className="pl-4 pr-4">
                 <button
                   onClick={() => router.push("/wallet/earn")}
                   className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-[#2a2a4a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-primary/30 relative overflow-hidden"
@@ -848,7 +848,7 @@ export default function WalletPage() {
               </CarouselItem>
 
               {/* NFT Marketplace Card */}
-              <CarouselItem>
+              <CarouselItem className="pl-4 pr-4">
                 <button
                   onClick={() => router.push("/wallet/marketplace")}
                   className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#2d1f3d] to-[#1a1625] border border-[#3d2a5a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-purple-500/30 relative overflow-hidden"
