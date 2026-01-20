@@ -32,33 +32,33 @@ export default function Roadmap() {
       status: "completed"
     },
     {
-      title: "The Quantum Club Wallet",
+      title: "QC Wallet (Beta)",
       date: "Q1 2026",
-      description: "A secure and powerful Web3 wallet ecosystem for your needs. This feature is under development.",
-      status: "current"
+      description: "A secure and powerful self-custody Web3 wallet with multi-chain support, staking, swaps, liquidity provision, and batch transactions.",
+      status: "completed"
     },
     {
-      title: "The Quantum Club AI",
-      date: "Q2 2026",
-      description: "This feature is under development.",
-      status: "upcoming"
+      title: "QC AI",
+      date: "Q1 2026",
+      description: "AI-powered assistant for portfolio analysis, token insights, and intelligent transaction support.",
+      status: "completed"
     },
     {
       title: "AI-powered Trading Platform",
-      date: "Q3 2026",
-      description: "A powerful trading platform for seamless crypto trading. This feature is under development.",
-      status: "upcoming"
+      date: "Q2 2026",
+      description: "A powerful trading platform for seamless crypto trading with AI insights. This feature is under development.",
+      status: "current"
     },
     {
       title: "Establishment of Quantum Club Labs",
       date: "Q4 2026",
-      description: "This feature is under development.",
+      description: "Research and development arm for blockchain innovation.",
       status: "upcoming"
     },
     {
       title: "Establishment of the Quantum Club Chain",
       date: "Q1 2027",
-      description: "This feature is under development.",
+      description: "Our own blockchain infrastructure for the Quantum ecosystem.",
       status: "upcoming"
     }
   ];
