@@ -215,7 +215,7 @@ export default function PriceAlertsPage() {
                 </div>
 
                 {/* Current Prices */}
-                <div className="mb-4 flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+                <div className="mb-4 flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
                     {SUPPORTED_TOKENS.map((token) => (
                         <div
                             key={token.symbol}

@@ -708,7 +708,7 @@ export default function LiquidityPage() {
                                                             <ChevronDown className="w-4 h-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto">
+                                                    <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
                                                         <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
                                                         {swapAssets.map((asset) => (
@@ -802,7 +802,7 @@ export default function LiquidityPage() {
                                                             <ChevronDown className="w-4 h-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto">
+                                                    <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
                                                         <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
                                                         {swapAssets.map((asset) => (

@@ -680,7 +680,7 @@ export default function SwapPage() {
                                                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto">
+                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                 <DropdownMenuSeparator className="bg-border" />
                                                 {swapAssets.filter(asset => {
@@ -802,7 +802,7 @@ export default function SwapPage() {
                                                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto">
+                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                 <DropdownMenuSeparator className="bg-border" />
                                                 {swapAssets.map((asset) => (

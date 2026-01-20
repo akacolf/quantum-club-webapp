@@ -94,7 +94,7 @@ export default function Roadmap() {
     {
       title: "Establishment of the Quantum Club Chain",
       date: "Q2 2027",
-      description: "Our own blockchain infrastructure for the Quantum ecosystem.",
+      description: "Our own blockchain infrastructure for the Quantum Club ecosystem.",
       status: "upcoming"
     }
   ];

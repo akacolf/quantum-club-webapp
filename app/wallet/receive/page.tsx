@@ -175,7 +175,7 @@ export default function ReceivePage() {
 
       {/* Receive Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-[32px] bg-[#0c0c0c] border-[#222] pb-8 pt-6 px-6 max-h-[85vh] overflow-y-auto">
+        <SheetContent side="bottom" className="rounded-t-[32px] bg-[#0c0c0c] border-[#222] pb-8 pt-6 px-6 max-h-[85vh] overflow-y-auto scrollbar-hide">
           <SheetHeader className="mb-8 text-center">
             <SheetTitle className="text-2xl font-bold text-white">Receive {selectedChain && (CHAIN_INFO[selectedChain].name === "Tron" ? "TRON" : CHAIN_INFO[selectedChain].name)}</SheetTitle>
             <SheetDescription className="text-gray-400">

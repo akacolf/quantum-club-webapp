@@ -63,6 +63,41 @@ export interface MarketplaceStats {
 export const MARKETPLACE_FEE_PERCENT = 0.5;
 export const MARKETPLACE_FEE_RECIPIENT = "UQC..."; // TODO: Set actual fee recipient address
 
+// Curated list of verified TON collections (from Getgems verified collections)
+// These are popular, authentic collections with blue verification badges
+const VERIFIED_COLLECTION_ADDRESSES = new Set([
+    // TON Diamonds
+    "EQAo92DYMokxghKcq-CkCGSk_MgXY5Fo1SPW20gkvZl75iCN",
+    // TON DNS Domains
+    "EQC3dNlesgVD8YbAazcauIrXBPfiVhMMr5YYk2in0Mtsz0Bz",
+    // Telegram Anonymous Numbers
+    "EQCA14o1-VWhS2efqoh_9M1b_A9DtKTuoqfmkn83AbJzwnPi",
+    // Punks on TON
+    "EQDvRFMYLdxmvY3Tk-cfWMLqDnXF_EclO2Fp4wwj33WhlNFT",
+    // TON Whales Club
+    "EQDDe_Sw5idWVbkxkCsM63W-Bw-95cfrkbQQdxp16XnL5YK_",
+    // Smeshariki
+    "EQDM0TNZRhYj58EJBjQqqnKPgOLMXv0DF-Y0h26kzRwL2RGT",
+    // Lifeblood
+    "EQB_nDZqUb7v0eTm23pP0nQN3G5yHaELZKzDDPM8TQCmPKhG",
+    // Animals Red List
+    "EQBe54_UD8P3Og6LMjPB5z_mJTbxbJKdDH5T-_n_T_3e5wnT",
+    // Rich Cats
+    "EQBzyL6Yz6_e_tzsBqPMOypEW3fCM7jN3cS3G9IPGV5qHkkZ",
+    // Market Makers
+    "EQAS8Xf3FT0M-CPFMQ8y8DgRr9D8kYK8TP2dCY97hnxg1RRv",
+    // The Guys
+    "EQCJ8g2UQFHVLH-OUPgRWJLmBlGJ9g2k8PHhMT2KW0xVPR1i",
+    // Eggs by Notcoin
+    "EQDmkj65vis-HxV11lSaZVlEwBLpGMnmIwB-FkGBSL66hxEw",
+    // SBT Telegram Usernames
+    "EQAvwEBh52NmFjnOzQWJlg4mlh1yqvGiT5LdQojQIc6mTqjp",
+    // NOT Vouchers
+    "EQCyL1SkQXPawiZsLdCSVy_0NJvWzPiWpTdFf4jbFc7ePQxU",
+    // Fanton Fantasy Football
+    "EQCmSKWgd5pL69gNo63_FnKZXOXTpWJFnCbRJRppAGq6Wr2o",
+]);
+
 // Helper to format TON amounts
 function formatTon(nanoTon: bigint | number): string {
     const value = typeof nanoTon === "bigint" ? Number(nanoTon) : nanoTon;
@@ -91,15 +126,21 @@ export async function getPopularCollections(
             }>;
         }>(`/v2/nfts/collections?limit=${limit}`, { testnet });
 
-        return (data.nft_collections || []).map((c) => ({
-            address: c.address,
-            name: c.metadata?.name || "Unknown Collection",
-            description: c.metadata?.description,
-            image: c.previews?.find(p => p.resolution === "100x100")?.url || c.metadata?.image,
-            coverImage: c.metadata?.cover_image,
-            itemsCount: c.next_item_index || 0,
-            verified: false, // TONAPI doesn't provide this, would need Getgems API
-        }));
+        // Filter to only verified collections and map with high-quality images
+        return (data.nft_collections || [])
+            .filter((c) => VERIFIED_COLLECTION_ADDRESSES.has(c.address))
+            .map((c) => ({
+                address: c.address,
+                name: c.metadata?.name || "Unknown Collection",
+                description: c.metadata?.description,
+                // Use 500x500 for high-quality images, fallback to 1500x1500 or original
+                image: c.previews?.find(p => p.resolution === "500x500")?.url 
+                    || c.previews?.find(p => p.resolution === "1500x1500")?.url 
+                    || c.metadata?.image,
+                coverImage: c.metadata?.cover_image,
+                itemsCount: c.next_item_index || 0,
+                verified: true, // Only showing verified collections
+            }));
     } catch (error) {
         console.error("[NFT Marketplace] Error fetching collections:", error);
         return [];

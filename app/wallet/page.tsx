@@ -772,9 +772,10 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        {/* Features Carousel */}
-        <div className="w-full -mx-4 px-4">
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {/* Features Carousel - Full width edge-to-edge scroll */}
+        </div>
+        <div className="w-full overflow-hidden">
+          <div className="flex gap-3 px-4 pb-2 overflow-x-auto scrollbar-hide">
             {/* Earn & Stake Card */}
             <button
               onClick={() => router.push("/wallet/earn")}
@@ -810,28 +811,9 @@ export default function WalletPage() {
                 <ChevronRight className="w-3 h-3" />
               </div>
             </button>
-
-            {/* Explore DApps Card */}
-            <button
-              onClick={() => router.push("/wallet/browser")}
-              className="min-w-[180px] flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-[#1f2d3d] to-[#162025] border border-[#2a3d5a] flex flex-col items-start gap-2 active:scale-[0.99] transition-all hover:border-blue-500/30"
-            >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
-                <Plus className="w-5 h-5 text-blue-400" />
-              </div>
-              <div className="text-left">
-                <h4 className="font-semibold text-white text-sm">Explore dApps</h4>
-                <p className="text-xs text-gray-400">DeFi & more</p>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-blue-400 mt-1">
-                <span>Discover</span>
-                <ChevronRight className="w-3 h-3" />
-              </div>
-            </button>
-            {/* Spacer for last card to not cut off */}
-            <div className="min-w-[1px] flex-shrink-0" />
           </div>
         </div>
+        <div className="flex flex-col items-center w-full max-w-md mx-auto px-4 space-y-6">
 
         {isTestnet ? (
           <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
@@ -1325,7 +1307,7 @@ export default function WalletPage() {
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-gray-400 text-sm">Price Chart</p>
-                    <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                    <div className="flex gap-1 overflow-x-auto scrollbar-hide">
                       {(['1H', '1D', '1W', '1M', '6M', '1Y'] as ChartPeriod[]).map((period) => (
                         <Button
                           key={period}

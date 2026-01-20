@@ -112,8 +112,8 @@ export default function MarketplacePage() {
                             </h2>
                         </div>
 
-                        <div className="-mx-4 px-4">
-                            <div className="flex gap-3 pb-2 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div className="-mx-4">
+                            <div className="flex gap-3 px-4 pb-2 overflow-x-auto scrollbar-hide">
                                 {isLoading
                                     ? Array.from({ length: 3 }).map((_, i) => (
                                         <Skeleton
