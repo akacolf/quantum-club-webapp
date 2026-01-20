@@ -12,6 +12,7 @@ import {
     ChevronRight,
     Loader2,
     Sparkles,
+    BadgeCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -153,9 +154,14 @@ export default function MarketplacePage() {
                                                     )}
                                                 </div>
                                                 <CardContent className="p-3">
-                                                    <p className="font-semibold text-sm truncate">
-                                                        {collection.name}
-                                                    </p>
+                                                    <div className="flex items-center gap-1">
+                                                        <p className="font-semibold text-sm truncate">
+                                                            {collection.name}
+                                                        </p>
+                                                        {collection.verified && (
+                                                            <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                                                        )}
+                                                    </div>
                                                     <p className="text-xs text-muted-foreground">
                                                         {collection.itemsCount.toLocaleString()} items
                                                     </p>
@@ -235,17 +241,22 @@ export default function MarketplacePage() {
                                                 </div>
                                             )}
                                             {collection.verified && (
-                                                <Badge className="absolute top-2 right-2 bg-primary/90 text-xs">
-                                                    Verified
-                                                </Badge>
+                                                <div className="absolute top-2 right-2 bg-blue-500 rounded-full p-0.5">
+                                                    <BadgeCheck className="w-4 h-4 text-white" />
+                                                </div>
                                             )}
                                         </div>
                                         <CardContent className="p-3">
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="font-semibold text-sm truncate">
-                                                        {collection.name}
-                                                    </p>
+                                                    <div className="flex items-center gap-1">
+                                                        <p className="font-semibold text-sm truncate">
+                                                            {collection.name}
+                                                        </p>
+                                                        {collection.verified && (
+                                                            <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                                                        )}
+                                                    </div>
                                                     <p className="text-xs text-muted-foreground">
                                                         {collection.itemsCount.toLocaleString()} items
                                                     </p>

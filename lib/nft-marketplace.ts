@@ -9,7 +9,17 @@
  * Uses TONAPI for all TON NFT data
  */
 
+import { Address } from "@ton/core";
 import { tonApiGet } from "./tonapi-client";
+
+// Helper to normalize addresses to raw format for comparison
+function normalizeToRaw(address: string): string | null {
+    try {
+        return Address.parse(address).toRawString();
+    } catch {
+        return null;
+    }
+}
 
 // =====================================================
 // Types
@@ -65,7 +75,8 @@ export const MARKETPLACE_FEE_RECIPIENT = "UQC..."; // TODO: Set actual fee recip
 
 // Curated list of verified TON collections (from Getgems verified collections)
 // These are popular, authentic collections with blue verification badges
-const VERIFIED_COLLECTION_ADDRESSES = new Set([
+// Stored in bounceable base64 format for reference, converted to raw for comparison
+const VERIFIED_COLLECTION_ADDRESSES_BASE64 = [
     // TON Diamonds
     "EQAo92DYMokxghKcq-CkCGSk_MgXY5Fo1SPW20gkvZl75iCN",
     // TON DNS Domains
@@ -96,7 +107,20 @@ const VERIFIED_COLLECTION_ADDRESSES = new Set([
     "EQCyL1SkQXPawiZsLdCSVy_0NJvWzPiWpTdFf4jbFc7ePQxU",
     // Fanton Fantasy Football
     "EQCmSKWgd5pL69gNo63_FnKZXOXTpWJFnCbRJRppAGq6Wr2o",
-]);
+];
+
+// Build a Set of normalized raw addresses for efficient lookup
+const VERIFIED_COLLECTION_ADDRESSES_RAW = new Set(
+    VERIFIED_COLLECTION_ADDRESSES_BASE64
+        .map(addr => normalizeToRaw(addr))
+        .filter((addr): addr is string => addr !== null)
+);
+
+// Helper function to check if an address is in the verified set
+function isVerifiedCollection(address: string): boolean {
+    const normalized = normalizeToRaw(address);
+    return normalized !== null && VERIFIED_COLLECTION_ADDRESSES_RAW.has(normalized);
+}
 
 // Helper to format TON amounts
 function formatTon(nanoTon: bigint | number): string {
@@ -116,6 +140,7 @@ export async function getPopularCollections(
     testnet = false
 ): Promise<NftCollection[]> {
     try {
+        // Fetch more collections to ensure we find verified ones after filtering
         const data = await tonApiGet<{
             nft_collections: Array<{
                 address: string;
@@ -124,11 +149,12 @@ export async function getPopularCollections(
                 owner?: { address: string };
                 previews?: Array<{ resolution: string; url: string }>;
             }>;
-        }>(`/v2/nfts/collections?limit=${limit}`, { testnet });
+        }>(`/v2/nfts/collections?limit=${Math.max(limit * 5, 100)}`, { testnet });
 
-        // Filter to only verified collections and map with high-quality images
-        return (data.nft_collections || [])
-            .filter((c) => VERIFIED_COLLECTION_ADDRESSES.has(c.address))
+        // Filter to only verified collections using normalized address comparison
+        const verifiedCollections = (data.nft_collections || [])
+            .filter((c) => isVerifiedCollection(c.address))
+            .slice(0, limit)
             .map((c) => ({
                 address: c.address,
                 name: c.metadata?.name || "Unknown Collection",
@@ -141,10 +167,68 @@ export async function getPopularCollections(
                 itemsCount: c.next_item_index || 0,
                 verified: true, // Only showing verified collections
             }));
+
+        // If filtering returned few results, fetch verified collections directly
+        if (verifiedCollections.length < 3 && !testnet) {
+            console.log("[NFT Marketplace] Falling back to direct collection fetch");
+            const directCollections = await fetchVerifiedCollectionsDirectly(limit, testnet);
+            if (directCollections.length > verifiedCollections.length) {
+                return directCollections;
+            }
+        }
+
+        return verifiedCollections;
     } catch (error) {
         console.error("[NFT Marketplace] Error fetching collections:", error);
-        return [];
+        // Try fallback to direct fetch
+        try {
+            return await fetchVerifiedCollectionsDirectly(limit, testnet);
+        } catch (fallbackError) {
+            console.error("[NFT Marketplace] Fallback also failed:", fallbackError);
+            return [];
+        }
     }
+}
+
+/**
+ * Fetch verified collections directly by their addresses
+ * This is a fallback when filtering doesn't work
+ */
+async function fetchVerifiedCollectionsDirectly(
+    limit = 20,
+    testnet = false
+): Promise<NftCollection[]> {
+    const addressesToFetch = VERIFIED_COLLECTION_ADDRESSES_BASE64.slice(0, limit);
+    
+    const collections = await Promise.all(
+        addressesToFetch.map(async (address) => {
+            try {
+                const data = await tonApiGet<{
+                    address: string;
+                    metadata?: { name?: string; description?: string; image?: string; cover_image?: string };
+                    next_item_index?: number;
+                    previews?: Array<{ resolution: string; url: string }>;
+                }>(`/v2/nfts/collections/${encodeURIComponent(address)}`, { testnet });
+
+                return {
+                    address: data.address,
+                    name: data.metadata?.name || "Unknown Collection",
+                    description: data.metadata?.description,
+                    image: data.previews?.find(p => p.resolution === "500x500")?.url 
+                        || data.previews?.find(p => p.resolution === "1500x1500")?.url 
+                        || data.metadata?.image,
+                    coverImage: data.metadata?.cover_image,
+                    itemsCount: data.next_item_index || 0,
+                    verified: true,
+                };
+            } catch (error) {
+                console.error(`[NFT Marketplace] Failed to fetch collection ${address}:`, error);
+                return null;
+            }
+        })
+    );
+
+    return collections.filter((c): c is NftCollection => c !== null);
 }
 
 /**
