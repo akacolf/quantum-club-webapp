@@ -200,8 +200,8 @@ async function fetchVerifiedCollectionsDirectly(
 ): Promise<NftCollection[]> {
     const addressesToFetch = VERIFIED_COLLECTION_ADDRESSES_BASE64.slice(0, limit);
     
-    const collections = await Promise.all(
-        addressesToFetch.map(async (address) => {
+    const results = await Promise.all(
+        addressesToFetch.map(async (address): Promise<NftCollection | null> => {
             try {
                 const data = await tonApiGet<{
                     address: string;
@@ -228,7 +228,7 @@ async function fetchVerifiedCollectionsDirectly(
         })
     );
 
-    return collections.filter((c): c is NftCollection => c !== null);
+    return results.filter((c): c is NftCollection => c !== null);
 }
 
 /**
@@ -347,7 +347,6 @@ export async function getNftDetails(
 }
 
 // Search functionality - placeholder for future Getgems API integration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function searchNfts(
     query: string,
     limit = 20,
