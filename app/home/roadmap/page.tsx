@@ -44,10 +44,40 @@ export default function Roadmap() {
       status: "completed"
     },
     {
+      title: "NFT Marketplace",
+      date: "Q1 2026",
+      description: "Discover, buy, sell, and manage NFTs directly within the wallet. Browse collections, view floor prices, and trade seamlessly.",
+      status: "current"
+    },
+    {
+      title: "QC Pay",
+      date: "Q2 2026",
+      description: "P2P payments with QR codes, payment links, and recurring payments for everyday crypto transactions.",
+      status: "upcoming"
+    },
+    {
       title: "AI-powered Trading Platform",
       date: "Q2 2026",
-      description: "A powerful trading platform for seamless crypto trading with AI insights. This feature is under development.",
-      status: "current"
+      description: "A powerful trading platform for seamless crypto trading with AI insights and smart alerts.",
+      status: "upcoming"
+    },
+    {
+      title: "Copy Trading",
+      date: "Q3 2026",
+      description: "Follow and auto-copy successful traders. Learn while you earn.",
+      status: "upcoming"
+    },
+    {
+      title: "Yield Aggregator",
+      date: "Q3 2026",
+      description: "Auto-compound staking rewards across protocols. Find the best APY automatically.",
+      status: "upcoming"
+    },
+    {
+      title: "QC SDK & API",
+      date: "Q4 2026",
+      description: "Developer tools and APIs to build on the Quantum Club platform.",
+      status: "upcoming"
     },
     {
       title: "Establishment of Quantum Club Labs",
@@ -56,8 +86,14 @@ export default function Roadmap() {
       status: "upcoming"
     },
     {
-      title: "Establishment of the Quantum Club Chain",
+      title: "QC Token",
       date: "Q1 2027",
+      description: "Native utility token with real utility for fees, governance, and staking rewards.",
+      status: "upcoming"
+    },
+    {
+      title: "Establishment of the Quantum Club Chain",
+      date: "Q2 2027",
       description: "Our own blockchain infrastructure for the Quantum ecosystem.",
       status: "upcoming"
     }

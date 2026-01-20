@@ -4,43 +4,38 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Copy, Check, ExternalLink, Image as ImageIcon, Send } from "lucide-react";
+import { Copy, Check, ExternalLink, Image as ImageIcon, Send, ShoppingCart, Tag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
 import { Address } from "@ton/core";
 import { toast } from "sonner";
-
-interface NftDetails {
-    address: string;
-    name: string;
-    description?: string;
-    image?: string;
-    collectionName?: string;
-    collectionAddress?: string;
-    ownerAddress?: string;
-}
+import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, type NftItem } from "@/lib/nft-marketplace";
 
 export default function NftDetailPage() {
     useTelegramBackButton("/wallet");
     const params = useParams();
     const router = useRouter();
-    const { isTestnet } = useWallet();
-    // Decode the URL-encoded address parameter
+    const { isTestnet, walletAddress } = useWallet();
     const nftAddress = decodeURIComponent(params.address as string);
 
-    const [nft, setNft] = useState<NftDetails | null>(null);
+    const [nft, setNft] = useState<NftItem | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isBuying, setIsBuying] = useState(false);
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
-    const API_BASE_URL = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
-    // Helper to format address to EQ format (bounceable - for contracts/NFTs)
+    // Check if current user owns this NFT
+    const isOwner = walletAddress && nft?.ownerAddress && 
+        Address.parse(walletAddress).equals(Address.parse(nft.ownerAddress));
+
+    // Helper to format address
     const formatFriendlyAddress = useCallback((address: string): string => {
         try {
             const addr = Address.parse(address);
@@ -50,7 +45,6 @@ export default function NftDetailPage() {
         }
     }, [isTestnet]);
 
-    // Helper to format address to UQ format (non-bounceable - for wallets)
     const formatWalletAddress = useCallback((address: string): string => {
         try {
             const addr = Address.parse(address);
@@ -67,54 +61,31 @@ export default function NftDetailPage() {
         }
     }, [router, nftAddress]);
 
+    // Fetch NFT details with sale info
     useEffect(() => {
-        const fetchNftDetails = async () => {
+        const fetchNft = async () => {
             if (!nftAddress) return;
-
             setIsLoading(true);
             setError(null);
             try {
-                // TonAPI expects the raw address format
-                const apiUrl = `${API_BASE_URL}/v2/nfts/${encodeURIComponent(nftAddress)}`;
-
-                const response = await fetch(apiUrl);
-
-                if (response.ok) {
-                    const data = await response.json();
-
-                    // Get best preview image
-                    const preview = data.previews?.find((p: { resolution: string }) => p.resolution === '500x500')
-                        || data.previews?.find((p: { resolution: string }) => p.resolution === '100x100')
-                        || data.previews?.[0];
-
-                    setNft({
-                        address: data.address,
-                        name: data.metadata?.name || 'Unnamed NFT',
-                        description: data.metadata?.description,
-                        image: preview?.url || data.metadata?.image,
-                        collectionName: data.collection?.name,
-                        collectionAddress: data.collection?.address,
-                        ownerAddress: data.owner?.address,
-                    });
+                const data = await getNftDetails(nftAddress, isTestnet);
+                if (data) {
+                    setNft(data);
                 } else {
-                    const errorText = await response.text();
-                    console.error("[NFT Detail] API Error:", response.status, errorText);
-                    setError(`API returned ${response.status}`);
+                    setError("NFT not found");
                 }
             } catch (err) {
-                console.error("[NFT Detail] Failed to fetch NFT details:", err);
+                console.error("[NFT Detail] Failed to fetch:", err);
                 setError("Failed to load NFT");
             } finally {
                 setIsLoading(false);
             }
         };
-
-        fetchNftDetails();
-    }, [nftAddress, API_BASE_URL]);
+        fetchNft();
+    }, [nftAddress, isTestnet]);
 
     const copyAddress = () => {
         if (nftAddress) {
-            // Copy the friendly format address
             const friendlyAddress = formatFriendlyAddress(nftAddress);
             navigator.clipboard.writeText(friendlyAddress);
             setCopied(true);
@@ -125,6 +96,22 @@ export default function NftDetailPage() {
 
     const openExplorer = () => {
         window.open(`${EXPLORER_BASE_URL}/${nftAddress}`, "_blank");
+    };
+
+    // Handle Buy NFT
+    const handleBuy = async () => {
+        if (!nft?.sale) return;
+        
+        setIsBuying(true);
+        try {
+            // Navigate to buy confirmation page
+            router.push(`/wallet/marketplace/buy/${encodeURIComponent(nftAddress)}`);
+        } catch (error) {
+            console.error("Buy error:", error);
+            toast.error("Failed to initiate purchase");
+        } finally {
+            setIsBuying(false);
+        }
     };
 
     if (isLoading) {
@@ -155,6 +142,9 @@ export default function NftDetailPage() {
         );
     }
 
+    // Calculate price with fee if for sale
+    const priceInfo = nft.sale ? calculateTotalPrice(nft.sale.price) : null;
+
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pb-24">
             <motion.div
@@ -184,8 +174,61 @@ export default function NftDetailPage() {
                                 <ImageIcon className="w-16 h-16 text-muted-foreground" />
                             </div>
                         )}
+                        {nft.sale && (
+                            <Badge className="absolute top-3 right-3 bg-green-600">
+                                <Tag className="w-3 h-3 mr-1" />
+                                For Sale
+                            </Badge>
+                        )}
                     </div>
                 </Card>
+
+                {/* Sale Info - If Listed */}
+                {nft.sale && priceInfo && (
+                    <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase">Price</p>
+                                    <p className="text-2xl font-bold text-foreground">
+                                        {priceInfo.basePriceFormatted} TON
+                                    </p>
+                                    {nft.sale.market && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Listed on {nft.sale.market}
+                                        </p>
+                                    )}
+                                </div>
+                                {!isOwner && (
+                                    <Button
+                                        onClick={handleBuy}
+                                        disabled={isBuying}
+                                        className="h-12 px-6 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
+                                    >
+                                        {isBuying ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <ShoppingCart className="w-4 h-4 mr-2" />
+                                                Buy Now
+                                            </>
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground">
+                                <div className="flex justify-between">
+                                    <span>Platform fee ({MARKETPLACE_FEE_PERCENT}%)</span>
+                                    <span>{priceInfo.platformFeeFormatted} TON</span>
+                                </div>
+                                <div className="flex justify-between font-semibold text-foreground mt-1">
+                                    <span>Total</span>
+                                    <span>{priceInfo.totalPriceFormatted} TON</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* NFT Info */}
                 <div className="space-y-4">
@@ -195,7 +238,7 @@ export default function NftDetailPage() {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => nft.collectionAddress && window.open(`${EXPLORER_BASE_URL}/${nft.collectionAddress}`, "_blank")}
+                                onClick={() => nft.collectionAddress && router.push(`/wallet/marketplace/collection/${encodeURIComponent(nft.collectionAddress)}`)}
                                 className="h-auto p-0 text-sm text-primary hover:text-primary/80 hover:bg-transparent transition-colors mt-1"
                             >
                                 {nft.collectionName}
@@ -212,12 +255,26 @@ export default function NftDetailPage() {
                         </Card>
                     )}
 
+                    {/* Attributes */}
+                    {nft.attributes && nft.attributes.length > 0 && (
+                        <Card className="bg-card border-border">
+                            <CardContent className="p-4">
+                                <h3 className="text-xs text-muted-foreground uppercase mb-3">Attributes</h3>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {nft.attributes.map((attr, i) => (
+                                        <div key={i} className="bg-muted rounded-lg p-2 text-center">
+                                            <p className="text-xs text-muted-foreground">{attr.trait_type}</p>
+                                            <p className="text-sm font-semibold truncate">{attr.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
-
-                    {/* Details Card - NFT Address & Owner */}
+                    {/* Details Card */}
                     <Card className="bg-card border-border">
                         <CardContent className="p-4 space-y-5">
-                            {/* NFT Address */}
                             <div>
                                 <h3 className="text-xs text-muted-foreground uppercase mb-2">NFT Address</h3>
                                 <div
@@ -233,10 +290,11 @@ export default function NftDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Owner */}
                             {nft.ownerAddress && (
                                 <div>
-                                    <h3 className="text-xs text-muted-foreground uppercase mb-2">Owner</h3>
+                                    <h3 className="text-xs text-muted-foreground uppercase mb-2">
+                                        Owner {isOwner && <Badge variant="secondary" className="ml-2 text-xs">You</Badge>}
+                                    </h3>
                                     <Button
                                         variant="ghost"
                                         onClick={() => window.open(`${EXPLORER_BASE_URL}/${nft.ownerAddress}`, "_blank")}
@@ -244,7 +302,7 @@ export default function NftDetailPage() {
                                     >
                                         <p className="text-xs text-primary font-mono truncate min-w-0">
                                             {(() => {
-                                                const addr = formatWalletAddress(nft.ownerAddress);
+                                                const addr = formatWalletAddress(nft.ownerAddress!);
                                                 return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
                                             })()}
                                         </p>
@@ -258,13 +316,15 @@ export default function NftDetailPage() {
 
                 {/* Actions */}
                 <div className="space-y-3">
-                    <Button
-                        onClick={() => router.push(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`)}
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 rounded-xl font-bold"
-                    >
-                        <Send className="w-4 h-4 mr-2" />
-                        Send NFT
-                    </Button>
+                    {isOwner && (
+                        <Button
+                            onClick={() => router.push(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`)}
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 rounded-xl font-bold"
+                        >
+                            <Send className="w-4 h-4 mr-2" />
+                            Send NFT
+                        </Button>
+                    )}
                     <Button
                         onClick={openExplorer}
                         variant="outline"

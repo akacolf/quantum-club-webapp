@@ -1,0 +1,302 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import {
+    Image as ImageIcon,
+    ExternalLink,
+    Grid3X3,
+    Loader2,
+    Tag,
+    Users,
+    ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import {
+    getCollectionDetails,
+    getCollectionItems,
+    type NftCollection,
+    type NftItem,
+} from "@/lib/nft-marketplace";
+import { useWallet } from "@/app/wallet/WalletContext";
+
+export default function CollectionDetailPage() {
+    useTelegramBackButton("/wallet/marketplace");
+    const params = useParams();
+    const router = useRouter();
+    const { isTestnet } = useWallet();
+
+    const collectionAddress = decodeURIComponent(params.address as string);
+
+    const [collection, setCollection] = useState<NftCollection | null>(null);
+    const [items, setItems] = useState<NftItem[]>([]);
+    const [isLoadingCollection, setIsLoadingCollection] = useState(true);
+    const [isLoadingItems, setIsLoadingItems] = useState(true);
+
+    const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
+
+    // Fetch collection details
+    const fetchCollection = useCallback(async () => {
+        setIsLoadingCollection(true);
+        try {
+            const data = await getCollectionDetails(collectionAddress, isTestnet);
+            setCollection(data);
+        } catch (error) {
+            console.error("Failed to fetch collection:", error);
+        } finally {
+            setIsLoadingCollection(false);
+        }
+    }, [collectionAddress, isTestnet]);
+
+    // Fetch collection items
+    const fetchItems = useCallback(async () => {
+        setIsLoadingItems(true);
+        try {
+            const data = await getCollectionItems(collectionAddress, 50, 0, isTestnet);
+            setItems(data);
+        } catch (error) {
+            console.error("Failed to fetch items:", error);
+        } finally {
+            setIsLoadingItems(false);
+        }
+    }, [collectionAddress, isTestnet]);
+
+    useEffect(() => {
+        fetchCollection();
+        fetchItems();
+    }, [fetchCollection, fetchItems]);
+
+    // Handle NFT click
+    const handleNftClick = (nftAddress: string) => {
+        router.push(`/wallet/nft/${encodeURIComponent(nftAddress)}`);
+    };
+
+    if (isLoadingCollection) {
+        return (
+            <div className="min-h-screen bg-background text-foreground p-4">
+                <div className="space-y-4">
+                    <Skeleton className="w-full h-48 rounded-2xl" />
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-72" />
+                    <div className="grid grid-cols-2 gap-3 mt-6">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <Skeleton key={i} className="aspect-square rounded-xl" />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!collection) {
+        return (
+            <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
+                <Card className="bg-card border-border p-8 text-center">
+                    <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-semibold">Collection not found</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        This collection may not exist or is unavailable
+                    </p>
+                    <Button
+                        onClick={() => router.push("/wallet/marketplace")}
+                        className="mt-4"
+                        variant="outline"
+                    >
+                        Back to Marketplace
+                    </Button>
+                </Card>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-background text-foreground pb-28">
+            {/* Cover Image */}
+            <div className="relative h-48 bg-muted">
+                {collection.coverImage || collection.image ? (
+                    <Image
+                        src={collection.coverImage || collection.image || ""}
+                        alt={collection.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                    />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+            </div>
+
+            <div className="px-4 -mt-16 relative z-10 space-y-6">
+                {/* Collection Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                >
+                    {/* Collection Avatar */}
+                    <div className="w-24 h-24 rounded-2xl border-4 border-background overflow-hidden bg-card">
+                        {collection.image ? (
+                            <Image
+                                src={collection.image}
+                                alt={collection.name}
+                                width={96}
+                                height={96}
+                                className="object-cover w-full h-full"
+                                unoptimized
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-muted">
+                                <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Collection Info */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-bold">{collection.name}</h1>
+                            {collection.verified && (
+                                <Badge className="bg-primary">Verified</Badge>
+                            )}
+                        </div>
+                        {collection.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-3">
+                                {collection.description}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-3">
+                        <Card className="bg-card border-border">
+                            <CardContent className="p-3 text-center">
+                                <Grid3X3 className="w-4 h-4 text-primary mx-auto mb-1" />
+                                <p className="text-lg font-bold">{collection.itemsCount.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">Items</p>
+                            </CardContent>
+                        </Card>
+                        {collection.ownersCount && (
+                            <Card className="bg-card border-border">
+                                <CardContent className="p-3 text-center">
+                                    <Users className="w-4 h-4 text-primary mx-auto mb-1" />
+                                    <p className="text-lg font-bold">{collection.ownersCount.toLocaleString()}</p>
+                                    <p className="text-xs text-muted-foreground">Owners</p>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {collection.floorPrice && (
+                            <Card className="bg-card border-border">
+                                <CardContent className="p-3 text-center">
+                                    <Tag className="w-4 h-4 text-primary mx-auto mb-1" />
+                                    <p className="text-lg font-bold">{(collection.floorPrice / 1e9).toFixed(2)}</p>
+                                    <p className="text-xs text-muted-foreground">Floor (TON)</p>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* View on Explorer */}
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.open(`${EXPLORER_BASE_URL}/${collectionAddress}`, "_blank")}
+                    >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View on Explorer
+                    </Button>
+                </motion.div>
+
+                {/* NFT Grid */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="space-y-3"
+                >
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">Items</h2>
+                        {!isLoadingItems && (
+                            <Badge variant="outline">{items.length} loaded</Badge>
+                        )}
+                    </div>
+
+                    {isLoadingItems ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <Skeleton key={i} className="aspect-square rounded-xl" />
+                            ))}
+                        </div>
+                    ) : items.length === 0 ? (
+                        <Card className="bg-card border-border p-8 text-center">
+                            <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                            <p className="text-muted-foreground">No items found in this collection</p>
+                        </Card>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                            {items.map((item, index) => (
+                                <motion.div
+                                    key={item.address}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: index * 0.02 }}
+                                >
+                                    <Card
+                                        className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
+                                        onClick={() => handleNftClick(item.address)}
+                                    >
+                                        <div className="relative aspect-square bg-muted">
+                                            {item.image ? (
+                                                <Image
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    fill
+                                                    className="object-cover"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                                                </div>
+                                            )}
+                                            {item.sale && (
+                                                <Badge className="absolute top-2 right-2 bg-green-600 text-xs">
+                                                    For Sale
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <CardContent className="p-3">
+                                            <p className="font-semibold text-sm truncate">{item.name}</p>
+                                            {item.sale ? (
+                                                <div className="flex items-center justify-between mt-1">
+                                                    <p className="text-sm font-bold text-primary">
+                                                        {item.sale.priceFormatted} TON
+                                                    </p>
+                                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground mt-1">Not listed</p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
+
+                    {isLoadingItems && (
+                        <div className="flex justify-center py-4">
+                            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                        </div>
+                    )}
+                </motion.div>
+            </div>
+        </div>
+    );
+}
