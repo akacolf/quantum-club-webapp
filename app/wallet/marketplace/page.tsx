@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { getPopularCollections, type NftCollection } from "@/lib/nft-marketplace";
 import { useWallet } from "../WalletContext";
@@ -113,13 +112,13 @@ export default function MarketplacePage() {
                             </h2>
                         </div>
 
-                        <ScrollArea className="w-full whitespace-nowrap">
-                            <div className="flex gap-3 pb-2">
+                        <div className="-mx-4 px-4">
+                            <div className="flex gap-3 pb-2 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                 {isLoading
                                     ? Array.from({ length: 3 }).map((_, i) => (
                                         <Skeleton
                                             key={i}
-                                            className="w-[200px] h-[140px] rounded-xl shrink-0"
+                                            className="w-[200px] h-[140px] rounded-xl flex-shrink-0"
                                         />
                                     ))
                                     : featuredCollections.map((collection, index) => (
@@ -128,9 +127,10 @@ export default function MarketplacePage() {
                                             initial={{ opacity: 0, x: 20 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: index * 0.05 }}
+                                            className="flex-shrink-0"
                                         >
                                             <Card
-                                                className="w-[200px] shrink-0 bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                                                className="w-[200px] bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
                                                 onClick={() =>
                                                     router.push(
                                                         `/wallet/marketplace/collection/${encodeURIComponent(collection.address)}`
@@ -163,9 +163,9 @@ export default function MarketplacePage() {
                                             </Card>
                                         </motion.div>
                                     ))}
+                                <div className="min-w-[1px] flex-shrink-0" />
                             </div>
-                            <ScrollBar orientation="horizontal" />
-                        </ScrollArea>
+                        </div>
                     </motion.div>
                 )}
 
