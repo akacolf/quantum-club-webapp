@@ -71,8 +71,10 @@ export default function CollectionDetailPage() {
     const fetchItems = useCallback(async () => {
         setIsLoadingItems(true);
         try {
-            const data = await getCollectionItems(collectionAddress, 50, 0, isTestnet);
-            setItems(data);
+            const data = await getCollectionItems(collectionAddress, 100, 0, isTestnet);
+            // Only show items that are for sale
+            const forSaleItems = data.filter(item => item.sale !== null);
+            setItems(forSaleItems);
         } catch (error) {
             console.error("Failed to fetch items:", error);
         } finally {
@@ -227,9 +229,9 @@ export default function CollectionDetailPage() {
                     className="space-y-3"
                 >
                     <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold">Items</h2>
+                        <h2 className="text-lg font-semibold">For Sale</h2>
                         {!isLoadingItems && (
-                            <Badge variant="outline">{items.length} loaded</Badge>
+                            <Badge variant="outline">{items.length} available</Badge>
                         )}
                     </div>
 
@@ -242,7 +244,7 @@ export default function CollectionDetailPage() {
                     ) : items.length === 0 ? (
                         <Card className="bg-card border-border p-8 text-center">
                             <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                            <p className="text-muted-foreground">No items found in this collection</p>
+                            <p className="text-muted-foreground">No items currently for sale</p>
                         </Card>
                     ) : (
                         <div className="grid grid-cols-2 gap-3">
@@ -273,24 +275,15 @@ export default function CollectionDetailPage() {
                                                         <ImageIcon className="w-10 h-10 text-muted-foreground" />
                                                     </div>
                                                 )}
-                                                {item.sale && (
-                                                    <Badge className="absolute top-2 right-2 bg-green-600 text-xs">
-                                                        For Sale
-                                                    </Badge>
-                                                )}
                                             </div>
                                             <CardContent className="p-3">
                                                 <p className="font-semibold text-sm truncate">{item.name}</p>
-                                                {item.sale ? (
-                                                    <div className="flex items-center justify-between mt-1">
-                                                        <p className="text-sm font-bold text-primary">
-                                                            {item.sale.priceFormatted} TON
-                                                        </p>
-                                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-xs text-muted-foreground mt-1">Not listed</p>
-                                                )}
+                                                <div className="flex items-center justify-between mt-1">
+                                                    <p className="text-sm font-bold text-primary">
+                                                        {item.sale?.priceFormatted} TON
+                                                    </p>
+                                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     </Link>

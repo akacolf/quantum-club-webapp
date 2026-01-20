@@ -808,7 +808,7 @@ export default function WalletPage() {
 
         {/* Features Carousel - Timed with dots navigation */}
         </div>
-        <div className="flex flex-col gap-4 w-full max-w-md mx-auto px-4">
+        <div className="flex flex-col gap-4 w-full">
           <style>{`
             @keyframes carouselProgress {
               from { width: 0%; }
@@ -817,7 +817,7 @@ export default function WalletPage() {
           `}</style>
           <Carousel 
             setApi={setCarouselApi} 
-            className="w-full" 
+            className="w-full px-4" 
             opts={{ loop: true }}
           >
             <CarouselContent>
