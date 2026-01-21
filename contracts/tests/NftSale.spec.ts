@@ -1,6 +1,6 @@
-import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
+import { Blockchain, SandboxContract, TreasuryContract, printTransactionFees } from '@ton/sandbox';
 import { Cell, toNano, Address, fromNano } from '@ton/core';
-import { NftSale, NftSaleConfig } from '../wrappers/NftSale';
+import { NftSale, NftSaleConfig, OP_TRANSFER_NFT } from '../wrappers/NftSale';
 import '@ton/test-utils';
 
 describe('NftSale', () => {
@@ -416,6 +416,101 @@ describe('NftSale', () => {
 
             const priceFromContract = await saleLargePrice.getFullPrice();
             expect(priceFromContract).toBe(largePrice);
+        });
+    });
+
+    describe('Gas Usage', () => {
+        it('should track gas costs for buy transaction', async () => {
+            // Simulate NFT ownership first
+            await nftSale.sendOwnershipAssigned(
+                nftContract.getSender(),
+                toNano('0.1'),
+                seller.address
+            );
+
+            // Complete purchase
+            const buyAmount = SALE_PRICE + toNano('0.15');
+            const result = await nftSale.sendBuy(buyer.getSender(), buyAmount);
+
+            // Print gas costs for analysis
+            console.log('\n=== NFT Sale Buy Transaction Gas Report ===');
+            printTransactionFees(result.transactions);
+            
+            // Ensure transaction succeeded
+            expect(result.transactions).toHaveTransaction({
+                from: buyer.address,
+                to: nftSale.address,
+                success: true,
+            });
+        });
+
+        it('should have reasonable gas for deployment', async () => {
+            // Create a new NFT contract to get a unique sale contract address
+            const newNft = await blockchain.treasury('new_nft_for_gas_test');
+            
+            const newConfig: NftSaleConfig = {
+                marketplaceAddress: marketplace.address,
+                nftAddress: newNft.address, // Different NFT = different contract address
+                nftOwnerAddress: seller.address,
+                fullPrice: SALE_PRICE,
+                marketplaceFeeAddress: marketplace.address,
+                marketplaceFee: MARKETPLACE_FEE,
+                royaltyAddress: royaltyRecipient.address,
+                royaltyAmount: ROYALTY_AMOUNT,
+            };
+
+            const newSale = blockchain.openContract(
+                NftSale.createFromConfig(newConfig, code)
+            );
+
+            const deployResult = await newSale.sendDeploy(deployer.getSender(), toNano('0.1'));
+
+            console.log('\n=== NFT Sale Deployment Gas Report ===');
+            printTransactionFees(deployResult.transactions);
+
+            // Verify deployment succeeded
+            expect(deployResult.transactions).toHaveTransaction({
+                from: deployer.address,
+                to: newSale.address,
+                deploy: true,
+                success: true,
+            });
+
+            // Check deployment doesn't exceed reasonable gas (10M gas units)
+            const deployTx = deployResult.transactions.find(
+                tx => tx.description.type === 'generic' && 
+                      tx.description.computePhase?.type === 'vm'
+            );
+            
+            if (deployTx?.description.type === 'generic' && 
+                deployTx.description.computePhase?.type === 'vm') {
+                const gasUsed = deployTx.description.computePhase.gasUsed;
+                console.log(`Deployment gas used: ${gasUsed}`);
+                expect(gasUsed).toBeLessThan(10000000n); // 10M gas limit
+            }
+        });
+    });
+
+    describe('Transaction Validation', () => {
+        it('should emit NFT transfer message on buy', async () => {
+            // Simulate NFT ownership first
+            await nftSale.sendOwnershipAssigned(
+                nftContract.getSender(),
+                toNano('0.1'),
+                seller.address
+            );
+
+            // Complete purchase
+            const buyAmount = SALE_PRICE + toNano('0.15');
+            const result = await nftSale.sendBuy(buyer.getSender(), buyAmount);
+
+            // Verify NFT transfer message was sent with correct op-code
+            expect(result.transactions).toHaveTransaction({
+                from: nftSale.address,
+                to: nftContract.address,
+                success: true,
+                op: OP_TRANSFER_NFT, // 0x5fcc3d14
+            });
         });
     });
 });

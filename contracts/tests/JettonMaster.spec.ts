@@ -1,6 +1,6 @@
-import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
+import { Blockchain, SandboxContract, TreasuryContract, printTransactionFees } from '@ton/sandbox';
 import { Cell, toNano, Address, fromNano, beginCell } from '@ton/core';
-import { JettonMaster, JettonMasterConfig, buildJettonContent } from '../wrappers/JettonMaster';
+import { JettonMaster, JettonMasterConfig, buildJettonContent, OP_BUY } from '../wrappers/JettonMaster';
 import '@ton/test-utils';
 
 describe('JettonMaster', () => {
@@ -240,6 +240,102 @@ describe('JettonMaster', () => {
             expect(curveData.tonReserve).toBeGreaterThan(0n);
             // Total supply should be positive
             expect(curveData.totalSupply).toBeGreaterThan(0n);
+        });
+    });
+
+    describe('Gas Usage', () => {
+        it('should track gas costs for buy transaction', async () => {
+            const buyAmount = toNano('10');
+            
+            const result = await jettonMaster.sendBuy(
+                user1.getSender(),
+                buyAmount,
+                0n
+            );
+
+            console.log('\n=== Jetton Buy Transaction Gas Report ===');
+            printTransactionFees(result.transactions);
+
+            expect(result.transactions).toHaveTransaction({
+                from: user1.address,
+                to: jettonMaster.address,
+                success: true,
+                op: OP_BUY, // 0xaf750d34
+            });
+        });
+
+        it('should have reasonable gas for deployment', async () => {
+            const jettonContent = buildJettonContent('Gas Test', 'GAS', '', '');
+            const config: JettonMasterConfig = {
+                totalSupply: 0n,
+                mintable: true,
+                adminAddress: admin.address,
+                creatorAddress: creator.address,
+                jettonContent: jettonContent,
+                jettonWalletCode: walletCode,
+                tonReserve: 0n,
+                graduated: false,
+                graduationTarget: GRADUATION_TARGET,
+            };
+
+            const newJetton = blockchain.openContract(
+                JettonMaster.createFromConfig(config, masterCode)
+            );
+
+            const deployResult = await newJetton.sendDeploy(deployer.getSender(), toNano('0.1'));
+
+            console.log('\n=== Jetton Master Deployment Gas Report ===');
+            printTransactionFees(deployResult.transactions);
+
+            expect(deployResult.transactions).toHaveTransaction({
+                from: deployer.address,
+                to: newJetton.address,
+                deploy: true,
+                success: true,
+            });
+
+            // Check deployment doesn't exceed reasonable gas
+            const deployTx = deployResult.transactions.find(
+                tx => tx.description.type === 'generic' && 
+                      tx.description.computePhase?.type === 'vm'
+            );
+            
+            if (deployTx?.description.type === 'generic' && 
+                deployTx.description.computePhase?.type === 'vm') {
+                const gasUsed = deployTx.description.computePhase.gasUsed;
+                console.log(`Deployment gas used: ${gasUsed}`);
+                expect(gasUsed).toBeLessThan(10000000n); // 10M gas limit
+            }
+        });
+    });
+
+    describe('Transaction Validation', () => {
+        it('should process buy with correct op-code', async () => {
+            const result = await jettonMaster.sendBuy(
+                user1.getSender(),
+                toNano('5'),
+                0n
+            );
+
+            // Verify buy transaction has correct op-code
+            expect(result.transactions).toHaveTransaction({
+                from: user1.address,
+                to: jettonMaster.address,
+                success: true,
+                op: OP_BUY,
+            });
+            
+            // Should have outgoing messages (fee payment, mint)
+            const jettonTx = result.transactions.find(
+                tx => {
+                    const dest = tx.inMessage?.info.dest;
+                    return dest && 'equals' in dest && dest.equals(jettonMaster.address);
+                }
+            );
+            
+            if (jettonTx) {
+                expect(jettonTx.outMessagesCount).toBeGreaterThan(0);
+            }
         });
     });
 });
