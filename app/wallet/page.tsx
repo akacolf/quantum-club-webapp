@@ -396,7 +396,7 @@ export default function WalletPage() {
     }
   }, [selectedAsset, chartPeriod, fetchPriceHistory]);
 
-  // Live price updates for selected asset (every 10 seconds)
+  // Live price updates for selected asset (every 5 seconds)
   useEffect(() => {
     if (!selectedAsset) return;
 
@@ -422,6 +422,18 @@ export default function WalletPage() {
           const newPrice = data.coins?.[coinId]?.price;
           if (newPrice && newPrice !== selectedAsset.priceUsd) {
             setSelectedAsset(prev => prev ? { ...prev, priceUsd: newPrice } : null);
+            
+            // Update chart data with new price point for real-time visualization
+            if (priceHistory.length > 0 && chartPeriod === '1H') {
+              setPriceHistory(prev => {
+                const updated = [...prev];
+                // Update the last point with the new price
+                if (updated.length > 0) {
+                  updated[updated.length - 1] = { ...updated[updated.length - 1], price: newPrice };
+                }
+                return updated;
+              });
+            }
           }
         }
       } catch {
@@ -432,10 +444,19 @@ export default function WalletPage() {
     // Initial fetch
     updateLivePrice();
 
-    // Update every 10 seconds
-    const interval = setInterval(updateLivePrice, 10000);
-    return () => clearInterval(interval);
-  }, [selectedAsset?.symbol]);
+    // Update every 5 seconds for more responsive real-time feel
+    const interval = setInterval(updateLivePrice, 5000);
+    
+    // Also refresh full chart data every 30 seconds when viewing 1H chart
+    const chartRefreshInterval = chartPeriod === '1H' 
+      ? setInterval(() => fetchPriceHistory(selectedAsset, chartPeriod), 30000)
+      : null;
+    
+    return () => {
+      clearInterval(interval);
+      if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+    };
+  }, [selectedAsset?.symbol, chartPeriod, fetchPriceHistory]);
 
   // Price chart tooltip
   const PriceTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) => {
