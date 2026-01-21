@@ -152,7 +152,7 @@ export default function MarketplacePage() {
                                                                 src={collection.image}
                                                                 alt={collection.name}
                                                                 fill
-                                                                className="object-contain p-2"
+                                                                className="object-cover"
                                                                 unoptimized
                                                                 onError={() => handleImageError(collection.address)}
                                                             />

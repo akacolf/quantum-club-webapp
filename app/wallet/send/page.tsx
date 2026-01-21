@@ -5,13 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine, Users } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine, Users, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -165,6 +166,7 @@ export default function SendPage() {
   const [addressError, setAddressError] = useState("");
   const [isDomainAddress, setIsDomainAddress] = useState(false);
   const [comment, setComment] = useState("");
+  const [encryptComment, setEncryptComment] = useState(false);
   const [amount, setAmount] = useState("");
   const [estimatedFee, setEstimatedFee] = useState("0.005");
   const [isEstimating, setIsEstimating] = useState(false);
@@ -1530,7 +1532,35 @@ export default function SendPage() {
                   className="bg-card border-border text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:border-primary/50 transition-all resize-none h-20"
                   maxLength={120}
                 />
-                <p className="text-xs text-muted-foreground text-right">{comment.length}/120</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">{comment.length}/120</p>
+                  
+                  {/* Encrypt toggle - only for TON transfers with comments */}
+                  {selectedAsset?.type === "ton" && comment.trim().length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Lock className={`w-3 h-3 ${encryptComment ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className={`text-xs ${encryptComment ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {encryptComment ? 'Encrypted' : 'Public'}
+                        </span>
+                      </div>
+                      <Switch
+                        checked={encryptComment}
+                        onCheckedChange={setEncryptComment}
+                        className="data-[state=checked]:bg-primary scale-75"
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Encryption info */}
+                {selectedAsset?.type === "ton" && comment.trim().length > 0 && (
+                  <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+                    {encryptComment 
+                      ? "🔒 Only you and the recipient can read this message." 
+                      : "⚠️ This message will be visible publicly on the blockchain."}
+                  </p>
+                )}
               </div>
 
               {/* Amount */}

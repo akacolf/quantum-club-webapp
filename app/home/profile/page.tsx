@@ -338,6 +338,47 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
+                    {/* Support & Community */}
+                    <Card className="bg-card/80 backdrop-blur-xl border-border overflow-hidden">
+                        <CardContent className="p-0">
+                            <a
+                                href="https://t.me/QuantumClubBot"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                        <Icon icon="solar:headphones-round-sound-bold" className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-foreground">Get Support</p>
+                                        <p className="text-xs text-muted-foreground">Contact our support team</p>
+                                    </div>
+                                </div>
+                                <Icon icon="solar:arrow-right-up-linear" className="w-5 h-5 text-muted-foreground" />
+                            </a>
+                            <div className="border-t border-border" />
+                            <a
+                                href="https://t.me/quantumclubinc"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center">
+                                        <Icon icon="solar:users-group-rounded-bold" className="w-5 h-5 text-cyan-400" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-foreground">Community</p>
+                                        <p className="text-xs text-muted-foreground">Join announcements & updates</p>
+                                    </div>
+                                </div>
+                                <Icon icon="solar:arrow-right-up-linear" className="w-5 h-5 text-muted-foreground" />
+                            </a>
+                        </CardContent>
+                    </Card>
+
                     {/* App Version */}
                     <div className="text-center pt-2">
                         <p className="text-xs text-muted-foreground/60">

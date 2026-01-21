@@ -38,6 +38,12 @@ export default function Roadmap() {
       status: "completed"
     },
     {
+      title: "Yield Aggregator",
+      date: "Q1 2026",
+      description: "Multi-protocol yield optimization with staking, liquidity pools, and LP farming. Find the best APY automatically.",
+      status: "completed"
+    },
+    {
       title: "QC AI",
       date: "Q1 2026",
       description: "AI-powered assistant for portfolio analysis, token insights, and intelligent transaction support.",
@@ -66,12 +72,6 @@ export default function Roadmap() {
       date: "Q3 2026",
       description: "Follow and auto-copy successful traders. Learn while you earn.",
       status: "upcoming"
-    },
-    {
-      title: "Yield Aggregator",
-      date: "Q1 2026",
-      description: "Multi-protocol yield optimization with staking, liquidity pools, and LP farming. Find the best APY automatically.",
-      status: "completed"
     },
     {
       title: "QC SDK & API",
