@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
 
+// Rate limiting to prevent symbol scraping
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const MAX_REQUESTS_PER_MINUTE = 30;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+
+function getRateLimitKey(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+  return `check_symbol_${ip}`;
+}
+
 /**
  * Check if a token symbol is available
  * GET /api/check-symbol?symbol=XYZ&excludeTokenId=abc123
@@ -9,6 +20,27 @@ import { firestore } from "@/app/(firebase)/server";
  */
 export async function GET(request: NextRequest) {
     try {
+        // Rate limiting
+        const rateLimitKey = getRateLimitKey(request);
+        const now = Date.now();
+        const rateLimit = rateLimitMap.get(rateLimitKey);
+        
+        if (rateLimit) {
+            if (now < rateLimit.resetTime) {
+                if (rateLimit.count >= MAX_REQUESTS_PER_MINUTE) {
+                    return NextResponse.json(
+                        { error: "Rate limit exceeded. Try again later.", available: false },
+                        { status: 429 }
+                    );
+                }
+                rateLimit.count++;
+            } else {
+                rateLimitMap.set(rateLimitKey, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+            }
+        } else {
+            rateLimitMap.set(rateLimitKey, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+        }
+        
         const { searchParams } = new URL(request.url);
         const symbol = searchParams.get("symbol");
         const excludeTokenId = searchParams.get("excludeTokenId");

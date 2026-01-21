@@ -13,8 +13,41 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Rate limiting to prevent enumeration attacks
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const MAX_REQUESTS_PER_MINUTE = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+
+function getRateLimitKey(request: NextRequest): string {
+  // Use IP or a hash of headers as the rate limit key
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+  return `verify_qcid_${ip}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitKey = getRateLimitKey(request);
+    const now = Date.now();
+    const rateLimit = rateLimitMap.get(rateLimitKey);
+    
+    if (rateLimit) {
+      if (now < rateLimit.resetTime) {
+        if (rateLimit.count >= MAX_REQUESTS_PER_MINUTE) {
+          return NextResponse.json(
+            { error: 'Rate limit exceeded. Try again later.', exists: false },
+            { status: 429 }
+          );
+        }
+        rateLimit.count++;
+      } else {
+        rateLimitMap.set(rateLimitKey, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+      }
+    } else {
+      rateLimitMap.set(rateLimitKey, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    }
+    
     const body = await request.json();
     const { qcId } = body;
 
