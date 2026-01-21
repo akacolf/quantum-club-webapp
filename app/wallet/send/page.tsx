@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine, Users, Lock } from "lucide-react";
+import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine, Users, Lock, LockOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1539,7 +1539,11 @@ export default function SendPage() {
                   {selectedAsset?.type === "ton" && comment.trim().length > 0 && (
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1.5">
-                        <Lock className={`w-3 h-3 ${encryptComment ? 'text-primary' : 'text-muted-foreground'}`} />
+                        {encryptComment ? (
+                          <Lock className="w-3 h-3 text-primary" />
+                        ) : (
+                          <LockOpen className="w-3 h-3 text-muted-foreground" />
+                        )}
                         <span className={`text-xs ${encryptComment ? 'text-primary' : 'text-muted-foreground'}`}>
                           {encryptComment ? 'Encrypted' : 'Public'}
                         </span>
@@ -1555,11 +1559,19 @@ export default function SendPage() {
                 
                 {/* Encryption info */}
                 {selectedAsset?.type === "ton" && comment.trim().length > 0 && (
-                  <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
-                    {encryptComment 
-                      ? "🔒 Only you and the recipient can read this message." 
-                      : "⚠️ This message will be visible publicly on the blockchain."}
-                  </p>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 leading-relaxed">
+                    {encryptComment ? (
+                      <>
+                        <Lock className="w-3 h-3 text-primary shrink-0" />
+                        <span>Only you and the recipient can read this message.</span>
+                      </>
+                    ) : (
+                      <>
+                        <LockOpen className="w-3 h-3 text-yellow-500 shrink-0" />
+                        <span>This message will be visible publicly on the blockchain.</span>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
 
