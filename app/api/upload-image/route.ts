@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { getSession } from "@/utils/session";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -7,6 +8,11 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+// Rate limiting for uploads
+const uploadRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const MAX_UPLOADS_PER_HOUR = 20;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * POST /api/upload-image
@@ -16,6 +22,34 @@ cloudinary.config({
  */
 export async function POST(req: NextRequest) {
     try {
+        // Session authentication
+        const session = await getSession();
+        if (!session || !session.user?.telegramId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        
+        const telegramId = String(session.user.telegramId);
+        
+        // Rate limiting
+        const now = Date.now();
+        const userRateLimit = uploadRateLimitMap.get(telegramId);
+        
+        if (userRateLimit) {
+            if (now < userRateLimit.resetTime) {
+                if (userRateLimit.count >= MAX_UPLOADS_PER_HOUR) {
+                    return NextResponse.json(
+                        { error: "Upload rate limit exceeded. Max 20 uploads per hour." },
+                        { status: 429 }
+                    );
+                }
+                userRateLimit.count++;
+            } else {
+                uploadRateLimitMap.set(telegramId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+            }
+        } else {
+            uploadRateLimitMap.set(telegramId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+        }
+        
         const { tokenId, imageData } = await req.json();
 
         if (!tokenId) {

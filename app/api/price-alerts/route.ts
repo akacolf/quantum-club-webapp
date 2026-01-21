@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as db } from "@/app/(firebase)/server";
+import { getSession } from "@/utils/session";
 
 export interface PriceAlert {
   id: string;
@@ -15,14 +16,22 @@ export interface PriceAlert {
 // GET - Fetch user's alerts
 export async function GET(request: NextRequest) {
   try {
+    // Session authentication
+    const session = await getSession();
+    if (!session || !session.user?.telegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    const authenticatedTelegramId = String(session.user.telegramId);
     const { searchParams } = new URL(request.url);
     const telegramId = searchParams.get("telegramId");
 
-    if (!telegramId) {
-      return NextResponse.json({ error: "telegramId is required" }, { status: 400 });
+    // Verify telegramId matches session
+    if (telegramId && telegramId !== authenticatedTelegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const alertsRef = db.collection("priceAlerts").where("telegramId", "==", telegramId);
+    const alertsRef = db.collection("priceAlerts").where("telegramId", "==", authenticatedTelegramId);
     const snapshot = await alertsRef.get();
 
     const alerts: PriceAlert[] = [];
@@ -43,12 +52,25 @@ export async function GET(request: NextRequest) {
 // POST - Create a new alert
 export async function POST(request: NextRequest) {
   try {
+    // Session authentication
+    const session = await getSession();
+    if (!session || !session.user?.telegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    const authenticatedTelegramId = String(session.user.telegramId);
+    
     const body = await request.json();
     const { telegramId, symbol, targetPrice, direction } = body;
 
-    if (!telegramId || !symbol || !targetPrice || !direction) {
+    // Verify telegramId matches session
+    if (telegramId && String(telegramId) !== authenticatedTelegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    if (!symbol || !targetPrice || !direction) {
       return NextResponse.json(
-        { error: "Missing required fields: telegramId, symbol, targetPrice, direction" },
+        { error: "Missing required fields: symbol, targetPrice, direction" },
         { status: 400 }
       );
     }
@@ -64,7 +86,7 @@ export async function POST(request: NextRequest) {
     // Limit alerts per user (max 10)
     const existingAlerts = await db
       .collection("priceAlerts")
-      .where("telegramId", "==", telegramId)
+      .where("telegramId", "==", authenticatedTelegramId)
       .where("triggered", "==", false)
       .get();
 
@@ -76,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const newAlert: Omit<PriceAlert, "id"> = {
-      telegramId,
+      telegramId: authenticatedTelegramId,
       symbol: symbol.toUpperCase(),
       targetPrice,
       direction,
@@ -100,22 +122,29 @@ export async function POST(request: NextRequest) {
 // DELETE - Delete an alert
 export async function DELETE(request: NextRequest) {
   try {
+    // Session authentication
+    const session = await getSession();
+    if (!session || !session.user?.telegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    const authenticatedTelegramId = String(session.user.telegramId);
+    
     const { searchParams } = new URL(request.url);
     const alertId = searchParams.get("alertId");
-    const telegramId = searchParams.get("telegramId");
 
-    if (!alertId || !telegramId) {
-      return NextResponse.json({ error: "alertId and telegramId are required" }, { status: 400 });
+    if (!alertId) {
+      return NextResponse.json({ error: "alertId is required" }, { status: 400 });
     }
 
-    // Verify ownership
+    // Verify ownership using authenticated user
     const alertDoc = await db.collection("priceAlerts").doc(alertId).get();
     if (!alertDoc.exists) {
       return NextResponse.json({ error: "Alert not found" }, { status: 404 });
     }
 
     const alertData = alertDoc.data();
-    if (alertData?.telegramId !== telegramId) {
+    if (alertData?.telegramId !== authenticatedTelegramId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
