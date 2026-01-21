@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
+import { getSession } from "@/utils/session";
 import { 
   buildListingMessages, 
   buildBuyTransaction,
@@ -9,6 +10,14 @@ import {
   QC_MARKETPLACE_FEE_PERCENT,
 } from "@/lib/nft-sale-contracts";
 import { toNano, fromNano } from "@ton/core";
+
+// Rate limiting: max requests per minute per user
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30;
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+// Maximum listing price (prevent overflow attacks)
+const MAX_LISTING_PRICE = toNano("1000000000"); // 1 billion TON
 
 /**
  * NFT Marketplace API
@@ -26,31 +35,67 @@ import { toNano, fromNano } from "@ton/core";
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check - CRITICAL FIX
+    const session = await getSession();
+    if (!session || !session.user?.telegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    const authenticatedTelegramId = String(session.user.telegramId);
+    
     const body = await request.json();
     const { action, telegramId } = body;
 
-    if (!telegramId) {
-      return NextResponse.json({ error: "telegramId required" }, { status: 400 });
+    // Verify telegramId matches authenticated user
+    if (telegramId && String(telegramId) !== authenticatedTelegramId) {
+      return NextResponse.json(
+        { error: "telegramId mismatch with authenticated user" }, 
+        { status: 403 }
+      );
     }
+    
+    // Rate limiting
+    const now = Date.now();
+    const userRateLimit = rateLimitMap.get(authenticatedTelegramId);
+    
+    if (userRateLimit) {
+      if (now < userRateLimit.resetTime) {
+        if (userRateLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+          return NextResponse.json(
+            { error: "Rate limit exceeded. Please try again later." },
+            { status: 429 }
+          );
+        }
+        userRateLimit.count++;
+      } else {
+        // Reset window
+        rateLimitMap.set(authenticatedTelegramId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+      }
+    } else {
+      rateLimitMap.set(authenticatedTelegramId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    }
+
+    // Use authenticated telegramId for all operations
+    const verifiedTelegramId = authenticatedTelegramId;
 
     switch (action) {
       case "create-listing":
-        return handleCreateListing(body);
+        return handleCreateListing({ ...body, telegramId: verifiedTelegramId });
       
       case "build-buy":
-        return handleBuildBuy(body);
+        return handleBuildBuy({ ...body, telegramId: verifiedTelegramId });
       
       case "cancel-listing":
-        return handleCancelListing(body);
+        return handleCancelListing({ ...body, telegramId: verifiedTelegramId });
       
       case "get-listings":
-        return handleGetListings(body);
+        return handleGetListings({ ...body, telegramId: verifiedTelegramId });
       
       case "confirm-listing":
-        return handleConfirmListing(body);
+        return handleConfirmListing({ ...body, telegramId: verifiedTelegramId });
       
       case "confirm-sale":
-        return handleConfirmSale(body);
+        return handleConfirmSale({ ...body, telegramId: verifiedTelegramId });
       
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -89,6 +134,13 @@ async function handleCreateListing(body: {
   if (priceNano < MIN_LISTING_PRICE) {
     return NextResponse.json(
       { error: `Minimum listing price is ${fromNano(MIN_LISTING_PRICE)} TON` },
+      { status: 400 }
+    );
+  }
+  
+  if (priceNano > MAX_LISTING_PRICE) {
+    return NextResponse.json(
+      { error: `Maximum listing price is ${fromNano(MAX_LISTING_PRICE)} TON` },
       { status: 400 }
     );
   }

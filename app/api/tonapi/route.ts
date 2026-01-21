@@ -1,5 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Allowed API path prefixes to prevent SSRF attacks
+const ALLOWED_PATH_PREFIXES = [
+    "/v2/accounts",
+    "/v2/nfts",
+    "/v2/jettons",
+    "/v2/blockchain",
+    "/v2/events",
+    "/v2/rates",
+    "/v2/traces",
+    "/v2/wallet",
+    "/v2/staking",
+    "/v2/dns",
+];
+
+/**
+ * Validate that the path is an allowed TonAPI endpoint
+ */
+function isValidPath(path: string): boolean {
+    // Path must start with /
+    if (!path.startsWith("/")) {
+        return false;
+    }
+    
+    // Check against allowed prefixes
+    return ALLOWED_PATH_PREFIXES.some(prefix => path.startsWith(prefix));
+}
+
 /**
  * TonAPI Proxy Route
  * Proxies requests to TonAPI with authentication
@@ -12,6 +39,12 @@ export async function GET(request: NextRequest) {
 
     if (!path) {
         return NextResponse.json({ error: "Missing path parameter" }, { status: 400 });
+    }
+    
+    // Security: Validate path to prevent SSRF
+    if (!isValidPath(path)) {
+        console.warn(`[TonAPI Proxy] Blocked invalid path: ${path}`);
+        return NextResponse.json({ error: "Invalid API path" }, { status: 400 });
     }
 
     const TONAPI_KEY = process.env.TONAPI_KEY;
@@ -61,6 +94,12 @@ export async function POST(request: NextRequest) {
 
     if (!path) {
         return NextResponse.json({ error: "Missing path parameter" }, { status: 400 });
+    }
+    
+    // Security: Validate path to prevent SSRF
+    if (!isValidPath(path)) {
+        console.warn(`[TonAPI Proxy] Blocked invalid path: ${path}`);
+        return NextResponse.json({ error: "Invalid API path" }, { status: 400 });
     }
 
     const TONAPI_KEY = process.env.TONAPI_KEY;
