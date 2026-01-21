@@ -35,6 +35,8 @@ export interface NftCollection {
     ownersCount?: number;
     floorPrice?: number; // in nanoTON
     totalVolume?: number;
+    volume24h?: number; // 24h volume in nanoTON
+    volumeChange24h?: number; // % change (-100 to +infinity)
     verified?: boolean;
 }
 

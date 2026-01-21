@@ -29,9 +29,10 @@ import {
     type NftItem,
 } from "@/lib/nft-marketplace";
 import {
-    buyNft,
     getSaleInfo,
     QC_MARKETPLACE_FEE_PERCENT,
+    buildBuyMessage,
+    GAS_BUY,
 } from "@/lib/nft-sale-contracts";
 
 type ViewMode = "preview" | "processing" | "success" | "error";
@@ -103,22 +104,25 @@ export default function BuyNftPage() {
 
         try {
             // Check if listed on QC Marketplace (has sale contract)
-            const saleInfo = await getSaleInfo(nft.sale.contractAddress || nftAddress, isTestnet);
+            const saleInfo = await getSaleInfo(nft.sale.address || nftAddress, isTestnet);
             
             if (saleInfo && saleInfo.isActive) {
                 // Direct purchase through our in-house sale contract
-                const buyMessage = buyNft(
-                    saleInfo.saleContractAddress,
-                    saleInfo.price
-                );
+                // Build buy transaction message
+                const buyBody = buildBuyMessage();
+                const totalAmount = saleInfo.fullPrice + GAS_BUY;
                 
-                // Send the transaction
+                // Send the transaction via API
                 const response = await fetch("/api/wallet/send-transaction", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         telegramId,
-                        messages: [buyMessage],
+                        messages: [{
+                            address: nft.sale.address,
+                            amount: totalAmount.toString(),
+                            payload: buyBody.toBoc().toString("base64"),
+                        }],
                         isTestnet,
                     }),
                 });
@@ -133,9 +137,7 @@ export default function BuyNftPage() {
                 }
             } else {
                 // Fallback: Open marketplace to complete purchase
-                const marketUrl = nft.sale.market === "Getgems" 
-                    ? `https://getgems.io/nft/${nftAddress}`
-                    : `https://getgems.io/nft/${nftAddress}`;
+                const marketUrl = `https://getgems.io/nft/${nftAddress}`;
                 window.open(marketUrl, "_blank");
                 
                 toast.info("Complete purchase on external marketplace", {

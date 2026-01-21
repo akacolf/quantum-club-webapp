@@ -17,15 +17,21 @@ import {
     Users,
     Wallet,
     DollarSign,
+    ArrowUp,
+    ArrowDown,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { getPopularCollections, type NftCollection } from "@/lib/nft-marketplace";
 import { getMarketplaceStats } from "@/lib/nft-sale-contracts";
 import { useWallet } from "../WalletContext";
+
+// Time period options for filtering stats
+type TimePeriod = "1d" | "7d" | "30d" | "all";
 
 export default function MarketplacePage() {
     useTelegramBackButton("/wallet");
@@ -35,8 +41,9 @@ export default function MarketplacePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+    const [timePeriod, setTimePeriod] = useState<TimePeriod>("1d");
     const [stats, setStats] = useState<{
-        totalVolume24h: number;
+        totalVolume24h: bigint;
         totalListings: number;
         avgFloorPrice: number;
         activeCollections: number;
@@ -98,6 +105,28 @@ export default function MarketplacePage() {
         return count.toLocaleString();
     };
 
+    // Format volume change with color
+    const formatVolumeChange = (change?: number) => {
+        if (change === undefined || change === null) return null;
+        const isPositive = change >= 0;
+        const formattedChange = `${isPositive ? "+" : ""}${change.toFixed(0)}%`;
+        return {
+            text: formattedChange,
+            isPositive,
+            color: isPositive ? "text-green-500" : "text-red-500",
+        };
+    };
+
+    // Format volume
+    const formatVolume = (volumeNano?: number) => {
+        if (!volumeNano || volumeNano <= 0) return null;
+        const volumeTon = volumeNano / 1e9;
+        if (volumeTon >= 1000) {
+            return `${(volumeTon / 1000).toFixed(1)}K`;
+        }
+        return volumeTon.toFixed(1);
+    };
+
     return (
         <div className="min-h-screen bg-background text-foreground pb-28">
             <div className="px-4 pt-4 space-y-6">
@@ -138,7 +167,7 @@ export default function MarketplacePage() {
                                             <Skeleton className="h-5 w-16" />
                                         ) : (
                                             <p className="font-bold text-foreground">
-                                                {stats?.totalVolume24h ? `${(stats.totalVolume24h / 1e9).toFixed(0)} TON` : "—"}
+                                                {stats?.totalVolume24h ? `${(Number(stats.totalVolume24h) / 1e9).toFixed(0)} TON` : "—"}
                                             </p>
                                         )}
                                     </CardContent>
@@ -214,6 +243,24 @@ export default function MarketplacePage() {
                     </div>
                 </motion.div>
 
+                {/* Time Period Filter */}
+                {!searchQuery && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.07 }}
+                    >
+                        <Tabs value={timePeriod} onValueChange={(v) => setTimePeriod(v as TimePeriod)}>
+                            <TabsList className="bg-card border border-border w-full grid grid-cols-4">
+                                <TabsTrigger value="1d" className="text-xs">1 Day</TabsTrigger>
+                                <TabsTrigger value="7d" className="text-xs">7 Days</TabsTrigger>
+                                <TabsTrigger value="30d" className="text-xs">30 Days</TabsTrigger>
+                                <TabsTrigger value="all" className="text-xs">All Time</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </motion.div>
+                )}
+
                 {/* Featured Collections Carousel */}
                 {!searchQuery && featuredCollections.length > 0 && (
                     <motion.div
@@ -276,9 +323,19 @@ export default function MarketplacePage() {
                                                                 <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
                                                             )}
                                                         </div>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {formatItemsCount(collection.itemsCount)} items
-                                                        </p>
+                                                        <div className="flex items-center justify-between mt-1">
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {formatItemsCount(collection.itemsCount)} items
+                                                            </p>
+                                                            {formatVolumeChange(collection.volumeChange24h) && (
+                                                                <span className={`text-xs flex items-center ${formatVolumeChange(collection.volumeChange24h)?.color}`}>
+                                                                    {formatVolumeChange(collection.volumeChange24h)?.isPositive 
+                                                                        ? <ArrowUp className="w-3 h-3" /> 
+                                                                        : <ArrowDown className="w-3 h-3" />}
+                                                                    {formatVolumeChange(collection.volumeChange24h)?.text}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </CardContent>
                                                 </Card>
                                             </Link>
@@ -371,14 +428,34 @@ export default function MarketplacePage() {
                                                     </div>
                                                     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                                                 </div>
-                                                {collection.floorPrice && (
-                                                    <div className="mt-2 pt-2 border-t border-border">
+                                                <div className="mt-2 pt-2 border-t border-border grid grid-cols-2 gap-2">
+                                                    <div>
                                                         <p className="text-xs text-muted-foreground">Floor</p>
                                                         <p className="text-sm font-semibold text-primary">
-                                                            {(collection.floorPrice / 1e9).toFixed(2)} TON
+                                                            {collection.floorPrice 
+                                                                ? `${(collection.floorPrice / 1e9).toFixed(2)} TON`
+                                                                : "—"}
                                                         </p>
                                                     </div>
-                                                )}
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground">Vol 24h</p>
+                                                        <div className="flex items-center gap-1">
+                                                            <p className="text-sm font-semibold">
+                                                                {formatVolume(collection.volume24h) 
+                                                                    ? `${formatVolume(collection.volume24h)} TON`
+                                                                    : "—"}
+                                                            </p>
+                                                            {formatVolumeChange(collection.volumeChange24h) && (
+                                                                <span className={`text-xs flex items-center ${formatVolumeChange(collection.volumeChange24h)?.color}`}>
+                                                                    {formatVolumeChange(collection.volumeChange24h)?.isPositive 
+                                                                        ? <ArrowUp className="w-3 h-3" /> 
+                                                                        : <ArrowDown className="w-3 h-3" />}
+                                                                    {formatVolumeChange(collection.volumeChange24h)?.text}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     </Link>

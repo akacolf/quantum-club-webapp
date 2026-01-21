@@ -12,12 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
-import { useBiometricAuth, BiometricAuth } from "@/components/ui/biometric-auth";
 import { Address, toNano } from "@ton/core";
 import { toast } from "sonner";
 import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, type NftItem } from "@/lib/nft-marketplace";
-import { createListing, calculateFees, MIN_LISTING_PRICE, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
+import { calculateFees, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
 
 export default function NftDetailPage() {
     useTelegramBackButton("/wallet");
@@ -37,11 +35,6 @@ export default function NftDetailPage() {
     const [showListingModal, setShowListingModal] = useState(false);
     const [listingPrice, setListingPrice] = useState("");
     const [isListing, setIsListing] = useState(false);
-    const [showBiometricAuth, setShowBiometricAuth] = useState(false);
-    const [pendingListingMessage, setPendingListingMessage] = useState<any>(null);
-    
-    const { user } = useGameContext();
-    const { onConfirm, isLoading: isBiometricLoading } = useBiometricAuth();
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
@@ -133,62 +126,36 @@ export default function NftDetailPage() {
         if (!walletAddress || !nftAddress || !listingPrice) return;
         
         const priceNum = parseFloat(listingPrice);
-        if (isNaN(priceNum) || priceNum < MIN_LISTING_PRICE) {
-            toast.error(`Minimum listing price is ${MIN_LISTING_PRICE} TON`);
+        if (isNaN(priceNum) || priceNum < 0.1) {
+            toast.error("Minimum listing price is 0.1 TON");
             return;
         }
 
         setIsListing(true);
         try {
-            const priceNano = toNano(listingPrice);
-            const message = createListing(
-                nftAddress,
-                walletAddress,
-                priceNano
-            );
+            // For now, redirect to Getgems to list the NFT
+            // In future, we'll use our own sale contracts
+            const getgemsUrl = `https://getgems.io/nft/${nftAddress}`;
+            window.open(getgemsUrl, "_blank");
             
-            // Show biometric auth
-            setPendingListingMessage(message);
-            setShowBiometricAuth(true);
+            toast.info("Complete listing on Getgems", {
+                description: "QC Marketplace coming soon with only 0.5% fees!",
+            });
+            
+            setShowListingModal(false);
+            setListingPrice("");
         } catch (error) {
             console.error("Listing error:", error);
-            toast.error("Failed to create listing");
-            setIsListing(false);
-        }
-    };
-
-    const confirmListing = async () => {
-        if (!pendingListingMessage || !user?.encryptedSeed) return;
-
-        try {
-            const result = await onConfirm(
-                user.encryptedSeed,
-                pendingListingMessage,
-                isTestnet
-            );
-
-            if (result.success) {
-                toast.success("NFT listed for sale!");
-                setShowListingModal(false);
-                setListingPrice("");
-                // Refresh NFT data
-                const data = await getNftDetails(nftAddress, isTestnet);
-                if (data) setNft(data);
-            } else {
-                toast.error(result.error || "Failed to list NFT");
-            }
-        } catch (error) {
-            console.error("Listing confirmation error:", error);
-            toast.error("Failed to confirm listing");
+            toast.error("Failed to open marketplace");
         } finally {
             setIsListing(false);
-            setShowBiometricAuth(false);
-            setPendingListingMessage(null);
         }
     };
 
     // Calculate listing fee preview
-    const listingFeePreview = listingPrice ? calculateFees(toNano(listingPrice || "0")) : null;
+    const listingFeePreview = listingPrice && parseFloat(listingPrice) > 0 
+        ? calculateFees(toNano(listingPrice)) 
+        : null;
 
     if (isLoading) {
         return (
@@ -494,8 +461,8 @@ export default function NftDetailPage() {
                                         <Input
                                             type="number"
                                             step="0.01"
-                                            min={MIN_LISTING_PRICE}
-                                            placeholder={`Min ${MIN_LISTING_PRICE} TON`}
+                                            min={0.1}
+                                            placeholder="Min 0.1 TON"
                                             value={listingPrice}
                                             onChange={(e) => setListingPrice(e.target.value)}
                                             className="h-12 text-lg pr-16"
@@ -507,7 +474,7 @@ export default function NftDetailPage() {
                                 </div>
 
                                 {/* Fee Breakdown */}
-                                {listingPrice && parseFloat(listingPrice) >= MIN_LISTING_PRICE && listingFeePreview && (
+                                {listingPrice && parseFloat(listingPrice) >= 0.1 && listingFeePreview && (
                                     <div className="bg-muted rounded-xl p-3 space-y-2 text-sm">
                                         <div className="flex items-center gap-2 text-muted-foreground mb-2">
                                             <Info className="w-4 h-4" />
@@ -536,13 +503,13 @@ export default function NftDetailPage() {
                                         QC Marketplace
                                     </span>
                                     <span>•</span>
-                                    <span>Only {QC_MARKETPLACE_FEE_PERCENT}% fee</span>
+                                    <span>Only {QC_MARKETPLACE_FEE_PERCENT}% fee (coming soon)</span>
                                 </div>
 
                                 {/* List Button */}
                                 <Button
                                     onClick={handleListForSale}
-                                    disabled={isListing || !listingPrice || parseFloat(listingPrice) < MIN_LISTING_PRICE}
+                                    disabled={isListing || !listingPrice || parseFloat(listingPrice) < 0.1}
                                     className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
                                 >
                                     {isListing ? (
@@ -559,20 +526,6 @@ export default function NftDetailPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Biometric Auth */}
-            <BiometricAuth
-                isOpen={showBiometricAuth}
-                onClose={() => {
-                    setShowBiometricAuth(false);
-                    setIsListing(false);
-                    setPendingListingMessage(null);
-                }}
-                onConfirm={confirmListing}
-                isLoading={isBiometricLoading || isListing}
-                title="Confirm Listing"
-                description={`List ${nft.name} for ${listingPrice} TON`}
-            />
         </div>
     );
 }
