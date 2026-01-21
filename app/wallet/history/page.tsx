@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -589,7 +588,7 @@ export default function HistoryPage() {
             </div>
           )}
 
-          <ScrollArea className="flex-1 -mx-4 px-4 h-[calc(100vh-340px)]">
+          <div className="-mx-4 px-4">
             <div className="space-y-3 pb-20">
               {isLoadingHistory ? (
                 [1, 2, 3, 4, 5].map((i) => (
@@ -745,7 +744,7 @@ export default function HistoryPage() {
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
         </TabsContent>
 
         {/* QNTM History Tab */}
@@ -759,7 +758,7 @@ export default function HistoryPage() {
             </div>
           )}
 
-          <ScrollArea className="flex-1 -mx-4 px-4 h-[calc(100vh-340px)]">
+          <div className="-mx-4 px-4">
             <div className="space-y-3 pb-20">
               {isLoadingQntm ? (
                 [1, 2, 3, 4, 5].map((i) => (
@@ -862,7 +861,7 @@ export default function HistoryPage() {
                 })
               )}
             </div>
-          </ScrollArea>
+          </div>
         </TabsContent>
       </Tabs>
 

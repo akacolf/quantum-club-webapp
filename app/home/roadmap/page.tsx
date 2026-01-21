@@ -69,9 +69,9 @@ export default function Roadmap() {
     },
     {
       title: "Yield Aggregator",
-      date: "Q3 2026",
-      description: "Auto-compound staking rewards across protocols. Find the best APY automatically.",
-      status: "upcoming"
+      date: "Q1 2026",
+      description: "Multi-protocol yield optimization with staking, liquidity pools, and LP farming. Find the best APY automatically.",
+      status: "completed"
     },
     {
       title: "QC SDK & API",

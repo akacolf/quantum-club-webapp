@@ -147,12 +147,24 @@ export default function WalletSettingsPage() {
       answer: "Network fees (gas fees) are small payments made to the TON blockchain to process your transactions. Fees vary based on network congestion and transaction complexity. Simple TON transfers cost ~0.003-0.007 TON, while Jetton transfers cost ~0.03-0.06 TON."
     },
     {
-      question: "What is the wallet activation fee?",
-      answer: "When you send your first transaction from a new wallet, a small one-time activation fee (~0.01 TON) is required to deploy your wallet contract on the blockchain. This is a standard TON network requirement for all new wallets and only happens once."
+      question: "How do I swap tokens?",
+      answer: "Go to the Swap tab in your wallet. Select the tokens you want to swap, enter the amount, and confirm. We integrate with STON.fi DEX to find you the best rates with minimal fees."
     },
     {
-      question: "Are there any service fees?",
-      answer: "No! Quantum Club wallet is completely free to use. You only pay standard TON network fees (gas) which go to the blockchain validators, not to us. QNTM transfers between users are also free."
+      question: "How do I stake TON?",
+      answer: "Go to Wallet > Earn & Stake > TON Staking. You can stake your TON with liquid staking providers and receive tokens like tsTON, stTON, or hTON while earning up to 5% APY."
+    },
+    {
+      question: "What are Liquidity Pools?",
+      answer: "Liquidity pools allow you to provide assets to decentralized exchanges and earn trading fees. Go to Wallet > Earn & Stake > Liquidity Pools to provide liquidity and earn up to 25% APY."
+    },
+    {
+      question: "How do I buy/sell NFTs?",
+      answer: "Go to the NFT Marketplace from your wallet. Browse verified collections, view NFT details, and purchase directly. Your NFTs appear in the NFTs tab of your wallet."
+    },
+    {
+      question: "What is TON Connect?",
+      answer: "TON Connect allows you to securely connect your wallet to decentralized apps (dApps). Go to Wallet > Explore to discover dApps, or scan QR codes to connect. Manage connected apps in Settings > Connected Apps."
     },
     {
       question: "How do I backup my wallet?",
@@ -163,8 +175,8 @@ export default function WalletSettingsPage() {
       answer: "Your wallet is protected by biometric authentication (Face ID/Touch ID) or a PIN code. Your private keys are encrypted and stored locally on your device. We never have access to your funds or recovery phrase."
     },
     {
-      question: "How do I send QNTM to another user?",
-      answer: "Go to Wallet > Send QNTM. Enter the recipient's QC ID (they can find it in their Frens section or wallet) and the amount you want to send. QNTM transfers are instant and free!"
+      question: "How do I get support?",
+      answer: "For help and support, contact us via Telegram at @quantumclubinc. Our team is available to assist with any issues or questions about the platform."
     }
   ];
 
@@ -409,7 +421,7 @@ export default function WalletSettingsPage() {
           </div>
 
           {/* Links */}
-          <div className="flex justify-center pt-4">
+          <div className="flex flex-col items-center gap-2 pt-4">
             <a
               href="https://t.me/quantumclubinc"
               target="_blank"
@@ -417,7 +429,16 @@ export default function WalletSettingsPage() {
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
-              Announcements and community
+              Community & Announcements
+            </a>
+            <a
+              href="https://t.me/QuantumClubBot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+            >
+              <HelpCircle className="w-3 h-3" />
+              Get Support
             </a>
           </div>
         </motion.div>

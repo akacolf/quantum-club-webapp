@@ -825,7 +825,7 @@ export default function WalletPage() {
               <CarouselItem className="pl-4 pr-4">
                 <button
                   onClick={() => router.push("/wallet/earn")}
-                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-[#2a2a4a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-primary/30 relative overflow-hidden"
+                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-all hover:border-primary/30 relative overflow-hidden"
                 >
                   {/* Left side - Text and CTA */}
                   <div className="flex flex-col items-start justify-between h-full z-10">
@@ -839,11 +839,11 @@ export default function WalletPage() {
                     </div>
                   </div>
                   {/* Right side - Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-8 h-8 text-green-400" />
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-8 h-8 text-primary" />
                   </div>
                   {/* Decorative blur */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
                 </button>
               </CarouselItem>
 
@@ -851,7 +851,7 @@ export default function WalletPage() {
               <CarouselItem className="pl-4 pr-4">
                 <button
                   onClick={() => router.push("/wallet/marketplace")}
-                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#2d1f3d] to-[#1a1625] border border-[#3d2a5a] flex items-center justify-between active:scale-[0.99] transition-all hover:border-purple-500/30 relative overflow-hidden"
+                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-all hover:border-white/20 relative overflow-hidden"
                 >
                   {/* Left side - Text and CTA */}
                   <div className="flex flex-col items-start justify-between h-full z-10">
@@ -859,17 +859,17 @@ export default function WalletPage() {
                       <h4 className="font-bold text-white text-lg leading-tight">NFT Marketplace</h4>
                       <p className="text-sm text-gray-400">Discover & collect unique NFTs</p>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-purple-400 font-medium">
+                    <div className="flex items-center gap-1 text-sm text-white/70 font-medium">
                       <span>Browse NFTs</span>
                       <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>
                   {/* Right side - Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0">
-                    <ImageIcon className="w-8 h-8 text-purple-400" />
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                    <ImageIcon className="w-8 h-8 text-white/70" />
                   </div>
                   {/* Decorative blur */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
                 </button>
               </CarouselItem>
             </CarouselContent>
