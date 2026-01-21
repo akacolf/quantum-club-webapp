@@ -28,8 +28,7 @@ const ENCRYPTED_COMMENT_OPCODE = 0x2167da4b;
  */
 export async function encryptComment(
     comment: string,
-    recipientPublicKey: Uint8Array,
-    _senderKeyPair?: KeyPair // Optional, not used with ephemeral keys
+    recipientPublicKey: Uint8Array
 ): Promise<Cell> {
     // Generate ephemeral key pair for this message
     const ephemeralSeed = await getSecureRandomBytes(32);
@@ -103,7 +102,8 @@ export async function decryptComment(
         // Read ephemeral public key
         const ephemeralPubkey = slice.loadBuffer(32);
         
-        // Read XOR'd public key
+        // Read XOR'd public key (used for sender verification, not needed for decryption)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const _xorPubkey = slice.loadBuffer(32);
         
         // Recover the sender's ephemeral public key
