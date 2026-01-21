@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
 import { Address, toNano } from "@ton/core";
 import { toast } from "sonner";
 import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, type NftItem } from "@/lib/nft-marketplace";
@@ -22,6 +23,7 @@ export default function NftDetailPage() {
     const params = useParams();
     const router = useRouter();
     const { isTestnet, walletAddress } = useWallet();
+    const { telegramId } = useGameContext();
     const nftAddress = decodeURIComponent(params.address as string);
 
     const [nft, setNft] = useState<NftItem | null>(null);
@@ -123,7 +125,7 @@ export default function NftDetailPage() {
 
     // Handle List NFT for Sale
     const handleListForSale = async () => {
-        if (!walletAddress || !nftAddress || !listingPrice) return;
+        if (!walletAddress || !nftAddress || !listingPrice || !telegramId) return;
         
         const priceNum = parseFloat(listingPrice);
         if (isNaN(priceNum) || priceNum < 0.1) {
@@ -133,20 +135,75 @@ export default function NftDetailPage() {
 
         setIsListing(true);
         try {
-            // For now, redirect to Getgems to list the NFT
-            // In future, we'll use our own sale contracts
-            const getgemsUrl = `https://getgems.io/nft/${nftAddress}`;
-            window.open(getgemsUrl, "_blank");
+            // Call API to build listing messages
+            const response = await fetch("/api/nft-marketplace", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "create-listing",
+                    telegramId,
+                    nftAddress,
+                    sellerAddress: walletAddress,
+                    price: listingPrice,
+                }),
+            });
+
+            const result = await response.json();
             
-            toast.info("Complete listing on Getgems", {
-                description: "QC Marketplace coming soon with only 0.5% fees!",
+            if (!result.success) {
+                throw new Error(result.error || "Failed to create listing");
+            }
+
+            // Send the transactions via wallet API
+            const txResponse = await fetch("/api/wallet/send-transaction", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    telegramId,
+                    messages: result.messages,
+                    isTestnet,
+                }),
+            });
+
+            const txResult = await txResponse.json();
+            
+            if (!txResult.success) {
+                throw new Error(txResult.error || "Failed to send transaction");
+            }
+
+            // Confirm the listing in Firebase
+            await fetch("/api/nft-marketplace", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "confirm-listing",
+                    telegramId,
+                    nftAddress,
+                    saleContractAddress: result.saleContractAddress,
+                    sellerAddress: walletAddress,
+                    price: listingPrice,
+                    nftName: nft?.name,
+                    nftImage: nft?.image,
+                    collectionAddress: nft?.collectionAddress,
+                    collectionName: nft?.collectionName,
+                    transactionHash: txResult.hash,
+                }),
+            });
+
+            toast.success("NFT listed for sale!", {
+                description: `Listed for ${listingPrice} TON on QC Marketplace`,
             });
             
             setShowListingModal(false);
             setListingPrice("");
+            
+            // Refresh NFT data
+            const updatedNft = await getNftDetails(nftAddress, isTestnet);
+            if (updatedNft) setNft(updatedNft);
+            
         } catch (error) {
             console.error("Listing error:", error);
-            toast.error("Failed to open marketplace");
+            toast.error(error instanceof Error ? error.message : "Failed to list NFT");
         } finally {
             setIsListing(false);
         }

@@ -18,11 +18,12 @@
  * Key Innovation: Lower fees (0.5% vs 5%), instant settlement, Telegram integration
  */
 
-import { beginCell, Cell, Address, toNano, fromNano } from "@ton/core";
+import { beginCell, Cell, Address, toNano, fromNano, contractAddress, storeStateInit } from "@ton/core";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { NFT_SALE_CODE_HEX } from "@/contracts/build/contract-code";
 
 // =====================================================
 // Constants & Configuration
@@ -40,9 +41,20 @@ export const QC_FEE_RECIPIENT = "UQBqSpvo4S87mX9tjHaG4zhYZeORhVhMapBJpnMZ64jhrP-
 export const MIN_LISTING_PRICE = toNano("0.1");
 
 // Gas fees for operations
-export const GAS_LISTING = toNano("0.1");     // Deploy sale contract + NFT transfer
+export const GAS_LISTING = toNano("0.15");    // Deploy sale contract + NFT transfer
+export const GAS_DEPLOY = toNano("0.05");     // Deploy sale contract only
 export const GAS_BUY = toNano("0.15");        // Buy NFT (price + forward fees)
 export const GAS_CANCEL = toNano("0.05");     // Cancel listing
+
+// NFT Sale Contract Code (compiled from contracts/nft_sale.fc)
+let NFT_SALE_CODE: Cell | null = null;
+
+function getNftSaleCode(): Cell {
+  if (!NFT_SALE_CODE) {
+    NFT_SALE_CODE = Cell.fromHex(NFT_SALE_CODE_HEX);
+  }
+  return NFT_SALE_CODE;
+}
 
 // Op-codes for NFT operations (TEP-62)
 export const OP_TRANSFER_NFT = 0x5fcc3d14;
@@ -239,6 +251,168 @@ export function buildCancelMessage(): Cell {
 // =====================================================
 
 /**
+ * Compute the sale contract address deterministically
+ * This allows us to know the address before deployment
+ */
+export function computeSaleContractAddress(
+  nftAddress: Address,
+  sellerAddress: Address,
+  price: bigint,
+  marketplaceAddress: Address = Address.parse(QC_FEE_RECIPIENT)
+): { address: Address; stateInit: { code: Cell; data: Cell } } {
+  const { marketplaceFee, royaltyAmount } = calculateFees(price, 0);
+  
+  const data = buildSaleContractData({
+    marketplaceAddress,
+    nftAddress,
+    nftOwnerAddress: sellerAddress,
+    fullPrice: price,
+    marketplaceFeeAddress: marketplaceAddress,
+    marketplaceFee,
+    royaltyAddress: sellerAddress, // No royalty for now
+    royaltyAmount,
+  });
+  
+  const code = getNftSaleCode();
+  const init = { code, data };
+  const address = contractAddress(0, init);
+  
+  return { address, stateInit: init };
+}
+
+/**
+ * Build messages to create a new NFT listing
+ * 
+ * This returns the messages needed to:
+ * 1. Deploy the sale contract (with stateInit)
+ * 2. Transfer the NFT to the sale contract
+ * 
+ * The caller should send these messages via their wallet
+ */
+export function buildListingMessages(params: {
+  nftAddress: string;
+  sellerAddress: string;
+  price: bigint;
+  royaltyAddress?: string;
+  royaltyPercent?: number;
+}): {
+  saleContractAddress: string;
+  messages: Array<{
+    address: string;
+    amount: string;
+    payload: string;
+    stateInit?: string;
+  }>;
+  fees: {
+    marketplaceFee: bigint;
+    royaltyAmount: bigint;
+    sellerReceives: bigint;
+  };
+} {
+  const nftAddress = Address.parse(params.nftAddress);
+  const sellerAddress = Address.parse(params.sellerAddress);
+  const marketplaceAddress = Address.parse(QC_FEE_RECIPIENT);
+  const royaltyAddress = params.royaltyAddress 
+    ? Address.parse(params.royaltyAddress) 
+    : sellerAddress;
+  
+  // Calculate fees
+  const { marketplaceFee, royaltyAmount, sellerReceives } = calculateFees(
+    params.price,
+    params.royaltyPercent || 0
+  );
+  
+  // Build sale contract data
+  const saleData = buildSaleContractData({
+    marketplaceAddress,
+    nftAddress,
+    nftOwnerAddress: sellerAddress,
+    fullPrice: params.price,
+    marketplaceFeeAddress: marketplaceAddress,
+    marketplaceFee,
+    royaltyAddress,
+    royaltyAmount,
+  });
+  
+  // Get contract code and compute address
+  const code = getNftSaleCode();
+  const init = { code, data: saleData };
+  const saleContractAddr = contractAddress(0, init);
+  
+  // Build stateInit for deployment
+  const stateInitCell = beginCell().store(storeStateInit(init)).endCell();
+  
+  // Message 1: Deploy sale contract (send small amount to initialize)
+  const deployBody = beginCell().storeUint(0, 32).storeStringTail("Deploy QC Sale").endCell();
+  
+  // Message 2: Transfer NFT to sale contract
+  const transferBody = buildNftTransferMessage(
+    saleContractAddr, // New owner (sale contract)
+    sellerAddress,    // Response destination
+    toNano("0.02"),   // Forward amount
+    undefined         // No forward payload
+  );
+  
+  return {
+    saleContractAddress: saleContractAddr.toString(),
+    messages: [
+      {
+        address: saleContractAddr.toString(),
+        amount: GAS_DEPLOY.toString(),
+        payload: deployBody.toBoc().toString("base64"),
+        stateInit: stateInitCell.toBoc().toString("base64"),
+      },
+      {
+        address: params.nftAddress,
+        amount: GAS_LISTING.toString(),
+        payload: transferBody.toBoc().toString("base64"),
+      },
+    ],
+    fees: { marketplaceFee, royaltyAmount, sellerReceives },
+  };
+}
+
+/**
+ * Build a message to buy an NFT from a sale contract
+ */
+export function buildBuyTransaction(
+  saleContractAddress: string,
+  price: bigint
+): {
+  address: string;
+  amount: string;
+  payload: string;
+} {
+  const buyBody = buildBuyMessage();
+  const totalAmount = price + GAS_BUY;
+  
+  return {
+    address: saleContractAddress,
+    amount: totalAmount.toString(),
+    payload: buyBody.toBoc().toString("base64"),
+  };
+}
+
+/**
+ * Build a message to cancel a sale listing
+ */
+export function buildCancelTransaction(
+  saleContractAddress: string
+): {
+  address: string;
+  amount: string;
+  payload: string;
+} {
+  const cancelBody = buildCancelMessage();
+  
+  return {
+    address: saleContractAddress,
+    amount: GAS_CANCEL.toString(),
+    payload: cancelBody.toBoc().toString("base64"),
+  };
+}
+
+/**
  * Create a new NFT listing
  * 
  * This creates a sale contract and transfers the NFT to it
@@ -263,68 +437,53 @@ export async function createListing(
   
   const seqno = await contract.getSeqno();
   
-  // Calculate fees
-  const { marketplaceFee, royaltyAmount, sellerReceives } = calculateFees(
-    params.price,
-    params.royaltyPercent || 0
-  );
-  
-  const nftAddress = Address.parse(params.nftAddress);
-  const sellerAddress = wallet.address;
-  const marketplaceAddress = Address.parse(QC_FEE_RECIPIENT);
-  const royaltyAddress = params.royaltyAddress 
-    ? Address.parse(params.royaltyAddress) 
-    : sellerAddress;
-  
-  // Build sale contract data (will be used when deploying actual sale contracts)
-  // For now, using simplified approach with NFT transfer forward payload
-  void buildSaleContractData({
-    marketplaceAddress,
-    nftAddress,
-    nftOwnerAddress: sellerAddress,
-    fullPrice: params.price,
-    marketplaceFeeAddress: marketplaceAddress,
-    marketplaceFee,
-    royaltyAddress,
-    royaltyAmount,
+  // Build listing messages with proper contract deployment
+  const { saleContractAddress, messages, fees } = buildListingMessages({
+    nftAddress: params.nftAddress,
+    sellerAddress: wallet.address.toString(),
+    price: params.price,
+    royaltyAddress: params.royaltyAddress,
+    royaltyPercent: params.royaltyPercent,
   });
   
-  // For now, we use a simplified approach:
-  // Transfer NFT directly with sale price in forward payload
-  // A full implementation would deploy a sale contract first
+  // Send both messages: deploy + NFT transfer
+  const internalMessages = messages.map(msg => {
+    const baseMsg: {
+      to: Address;
+      value: bigint;
+      body: Cell;
+      init?: { code: Cell; data: Cell };
+    } = {
+      to: Address.parse(msg.address),
+      value: BigInt(msg.amount),
+      body: Cell.fromBase64(msg.payload),
+    };
+    
+    // Add stateInit for the deploy message
+    if (msg.stateInit) {
+      const stateInitCell = Cell.fromBase64(msg.stateInit);
+      const slice = stateInitCell.beginParse();
+      const code = slice.loadRef();
+      const data = slice.loadRef();
+      baseMsg.init = { code, data };
+    }
+    
+    return internal(baseMsg);
+  });
   
-  // Build NFT transfer message to sale contract
-  const transferBody = buildNftTransferMessage(
-    marketplaceAddress, // New owner (marketplace)
-    sellerAddress, // Response destination
-    toNano("0.05"), // Forward amount
-    beginCell()
-      .storeCoins(params.price) // Embed price in forward payload
-      .storeAddress(sellerAddress) // Seller address
-      .endCell()
-  );
-  
-  // Send the transfer
   await contract.sendTransfer({
     seqno,
     secretKey: keyPair.secretKey,
     sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
-    messages: [
-      internal({
-        to: nftAddress,
-        value: GAS_LISTING,
-        body: transferBody,
-        bounce: true,
-      }),
-    ],
+    messages: internalMessages,
   });
   
   return {
-    saleContractAddress: marketplaceAddress.toString(), // Simplified
+    saleContractAddress,
     price: params.price,
     priceFormatted: `${fromNano(params.price)} TON`,
-    marketplaceFee,
-    sellerReceives,
+    marketplaceFee: fees.marketplaceFee,
+    sellerReceives: fees.sellerReceives,
   };
 }
 
@@ -540,46 +699,109 @@ export interface QCMarketplaceStats {
 
 /**
  * Get marketplace-wide statistics
- * This aggregates data to show unique insights
+ * This aggregates data from TONAPI and calculates useful metrics
  */
 export async function getMarketplaceStats(
   isTestnet = false
 ): Promise<QCMarketplaceStats> {
   try {
     const baseUrl = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
+    const now = Math.floor(Date.now() / 1000);
+    const oneDayAgo = now - 86400;
     
-    // Fetch NFT collections data from TONAPI
-    const response = await fetch(
-      `${baseUrl}/v2/nfts/collections?limit=50`,
-      { headers: { "Content-Type": "application/json" } }
-    );
+    // Fetch multiple data sources in parallel
+    const [collectionsRes, eventsRes] = await Promise.all([
+      // Get top collections
+      fetch(`${baseUrl}/v2/nfts/collections?limit=50`, {
+        headers: { "Content-Type": "application/json" },
+      }),
+      // Get recent NFT purchase events (last 24h)
+      fetch(`${baseUrl}/v2/events?limit=100&start_date=${oneDayAgo}&initiator=true&account=&event_type=NftPurchase`, {
+        headers: { "Content-Type": "application/json" },
+      }).catch(() => null), // Events endpoint might not be available
+    ]);
     
-    if (!response.ok) {
+    if (!collectionsRes.ok) {
       throw new Error("Failed to fetch collections");
     }
     
-    const data = await response.json();
-    const collections = data.nft_collections || [];
+    const collectionsData = await collectionsRes.json();
+    const collections = collectionsData.nft_collections || [];
     
-    // Calculate aggregate stats
+    // Parse events for 24h volume
+    let totalVolume24h = BigInt(0);
+    let salesCount24h = 0;
+    const uniqueSellers = new Set<string>();
+    const uniqueBuyers = new Set<string>();
+    
+    if (eventsRes && eventsRes.ok) {
+      try {
+        const eventsData = await eventsRes.json();
+        const events = eventsData.events || [];
+        
+        for (const event of events) {
+          if (event.actions) {
+            for (const action of event.actions) {
+              if (action.type === "NftPurchase" && action.NftPurchase) {
+                const purchase = action.NftPurchase;
+                const amount = BigInt(purchase.amount?.value || "0");
+                totalVolume24h += amount;
+                salesCount24h++;
+                
+                if (purchase.seller?.address) uniqueSellers.add(purchase.seller.address);
+                if (purchase.buyer?.address) uniqueBuyers.add(purchase.buyer.address);
+              }
+            }
+          }
+        }
+      } catch {
+        // Events parsing failed, continue with 0 values
+      }
+    }
+    
+    // Calculate aggregate stats from collections
     let totalListings = 0;
-    const totalVolume = BigInt(0);
+    
+    interface CollectionWithStats {
+      address: string;
+      name: string;
+      volume24h: bigint;
+      salesCount: number;
+      floorPrice: bigint;
+    }
+    
+    const topCollections: CollectionWithStats[] = [];
     
     for (const collection of collections) {
       totalListings += collection.nft_items_count || 0;
+      
+      // Note: TONAPI doesn't provide floor_price directly in collections list
+      // Would need separate calls per collection for floor prices
+      topCollections.push({
+        address: collection.address,
+        name: collection.metadata?.name || "Unknown",
+        volume24h: BigInt(0), // Would need historical data
+        salesCount: 0,
+        floorPrice: BigInt(0),
+      });
     }
+    
+    // Calculate average price
+    const averagePrice = salesCount24h > 0 
+      ? totalVolume24h / BigInt(salesCount24h) 
+      : BigInt(0);
     
     return {
       totalListings,
-      totalVolume24h: totalVolume,
-      totalVolumeAllTime: BigInt(0),
-      averagePrice: BigInt(0),
-      lowestListing: BigInt(0),
-      highestSale: BigInt(0),
-      uniqueSellers: 0,
-      uniqueBuyers: 0,
-      salesCount24h: 0,
-      topCollections: [],
+      totalVolume24h,
+      totalVolumeAllTime: BigInt(0), // Would need historical aggregation
+      averagePrice,
+      lowestListing: BigInt(0), // Would need to query floor prices
+      highestSale: BigInt(0), // Would need to track from events
+      uniqueSellers: uniqueSellers.size,
+      uniqueBuyers: uniqueBuyers.size,
+      salesCount24h,
+      topCollections: topCollections.slice(0, 10),
     };
   } catch (error) {
     console.error("[Marketplace] Error fetching stats:", error);

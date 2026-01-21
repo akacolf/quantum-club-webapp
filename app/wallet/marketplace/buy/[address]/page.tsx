@@ -31,8 +31,6 @@ import {
 import {
     getSaleInfo,
     QC_MARKETPLACE_FEE_PERCENT,
-    buildBuyMessage,
-    GAS_BUY,
 } from "@/lib/nft-sale-contracts";
 
 type ViewMode = "preview" | "processing" | "success" | "error";
@@ -108,21 +106,30 @@ export default function BuyNftPage() {
             
             if (saleInfo && saleInfo.isActive) {
                 // Direct purchase through our in-house sale contract
-                // Build buy transaction message
-                const buyBody = buildBuyMessage();
-                const totalAmount = saleInfo.fullPrice + GAS_BUY;
+                // Build buy transaction via API
+                const buildResponse = await fetch("/api/nft-marketplace", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "build-buy",
+                        telegramId,
+                        saleContractAddress: nft.sale.address,
+                        price: (Number(saleInfo.fullPrice) / 1e9).toString(),
+                    }),
+                });
                 
-                // Send the transaction via API
+                const buildResult = await buildResponse.json();
+                if (!buildResult.success) {
+                    throw new Error(buildResult.error || "Failed to build transaction");
+                }
+                
+                // Send the transaction via wallet API
                 const response = await fetch("/api/wallet/send-transaction", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         telegramId,
-                        messages: [{
-                            address: nft.sale.address,
-                            amount: totalAmount.toString(),
-                            payload: buyBody.toBoc().toString("base64"),
-                        }],
+                        messages: [buildResult.transaction],
                         isTestnet,
                     }),
                 });
@@ -130,6 +137,19 @@ export default function BuyNftPage() {
                 const result = await response.json();
                 
                 if (result.success) {
+                    // Confirm the sale in Firebase
+                    await fetch("/api/nft-marketplace", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            action: "confirm-sale",
+                            telegramId,
+                            saleContractAddress: nft.sale.address,
+                            buyerAddress: walletAddress,
+                            transactionHash: result.hash,
+                        }),
+                    });
+                    
                     toast.success("NFT purchased successfully!");
                     setViewMode("success");
                 } else {

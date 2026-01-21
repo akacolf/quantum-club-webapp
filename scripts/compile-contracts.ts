@@ -32,6 +32,8 @@ const IMPORT_FILES = [
     "imports/constants.fc",
     "imports/bonding_curve.fc",
     "imports/utils.fc",
+    "imports/nft_opcodes.fc",
+    "imports/nft_errors.fc",
 ];
 
 async function compileContract(name: string, mainFile: string): Promise<Buffer> {
@@ -101,9 +103,16 @@ async function main(): Promise<void> {
         fs.writeFileSync(masterBocPath, masterCode);
         console.log(`   Saved: ${masterBocPath}`);
 
+        // Compile NFT Sale Contract
+        const nftSaleCode = await compileContract("NftSale", "nft_sale.fc");
+        const nftSaleBocPath = path.join(OUTPUT_DIR, "nft_sale.boc");
+        fs.writeFileSync(nftSaleBocPath, nftSaleCode);
+        console.log(`   Saved: ${nftSaleBocPath}`);
+
         // Generate hex strings for TypeScript import
         const walletHex = walletCode.toString("hex");
         const masterHex = masterCode.toString("hex");
+        const nftSaleHex = nftSaleCode.toString("hex");
 
         const tsOutput = `/**
  * Compiled Contract Bytecode
@@ -114,6 +123,7 @@ async function main(): Promise<void> {
 
 export const JETTON_MASTER_CODE_HEX = "${masterHex}";
 export const JETTON_WALLET_CODE_HEX = "${walletHex}";
+export const NFT_SALE_CODE_HEX = "${nftSaleHex}";
 `;
 
         const codeTsPath = path.join(OUTPUT_DIR, "contract-code.ts");
@@ -125,6 +135,7 @@ export const JETTON_WALLET_CODE_HEX = "${walletHex}";
         console.log("\n📁 Output files:");
         console.log(`   ${walletBocPath} (${walletCode.length} bytes)`);
         console.log(`   ${masterBocPath} (${masterCode.length} bytes)`);
+        console.log(`   ${nftSaleBocPath} (${nftSaleCode.length} bytes)`);
         console.log(`   ${codeTsPath}`);
         console.log("\n💡 Import bytecode from contracts/build/contract-code.ts");
 
