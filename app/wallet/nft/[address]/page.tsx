@@ -3,17 +3,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Copy, Check, ExternalLink, Image as ImageIcon, Send, ShoppingCart, Tag, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Copy, Check, ExternalLink, Image as ImageIcon, Send, ShoppingCart, Tag, Loader2, DollarSign, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
-import { Address } from "@ton/core";
+import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useBiometricAuth, BiometricAuth } from "@/components/ui/biometric-auth";
+import { Address, toNano } from "@ton/core";
 import { toast } from "sonner";
 import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, type NftItem } from "@/lib/nft-marketplace";
+import { createListing, calculateFees, MIN_LISTING_PRICE, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
 
 export default function NftDetailPage() {
     useTelegramBackButton("/wallet");
@@ -28,6 +32,16 @@ export default function NftDetailPage() {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isBuying, setIsBuying] = useState(false);
+    
+    // Listing state
+    const [showListingModal, setShowListingModal] = useState(false);
+    const [listingPrice, setListingPrice] = useState("");
+    const [isListing, setIsListing] = useState(false);
+    const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+    const [pendingListingMessage, setPendingListingMessage] = useState<any>(null);
+    
+    const { user } = useGameContext();
+    const { onConfirm, isLoading: isBiometricLoading } = useBiometricAuth();
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
@@ -113,6 +127,68 @@ export default function NftDetailPage() {
             setIsBuying(false);
         }
     };
+
+    // Handle List NFT for Sale
+    const handleListForSale = async () => {
+        if (!walletAddress || !nftAddress || !listingPrice) return;
+        
+        const priceNum = parseFloat(listingPrice);
+        if (isNaN(priceNum) || priceNum < MIN_LISTING_PRICE) {
+            toast.error(`Minimum listing price is ${MIN_LISTING_PRICE} TON`);
+            return;
+        }
+
+        setIsListing(true);
+        try {
+            const priceNano = toNano(listingPrice);
+            const message = createListing(
+                nftAddress,
+                walletAddress,
+                priceNano
+            );
+            
+            // Show biometric auth
+            setPendingListingMessage(message);
+            setShowBiometricAuth(true);
+        } catch (error) {
+            console.error("Listing error:", error);
+            toast.error("Failed to create listing");
+            setIsListing(false);
+        }
+    };
+
+    const confirmListing = async () => {
+        if (!pendingListingMessage || !user?.encryptedSeed) return;
+
+        try {
+            const result = await onConfirm(
+                user.encryptedSeed,
+                pendingListingMessage,
+                isTestnet
+            );
+
+            if (result.success) {
+                toast.success("NFT listed for sale!");
+                setShowListingModal(false);
+                setListingPrice("");
+                // Refresh NFT data
+                const data = await getNftDetails(nftAddress, isTestnet);
+                if (data) setNft(data);
+            } else {
+                toast.error(result.error || "Failed to list NFT");
+            }
+        } catch (error) {
+            console.error("Listing confirmation error:", error);
+            toast.error("Failed to confirm listing");
+        } finally {
+            setIsListing(false);
+            setShowBiometricAuth(false);
+            setPendingListingMessage(null);
+        }
+    };
+
+    // Calculate listing fee preview
+    const listingFeePreview = listingPrice ? calculateFees(toNano(listingPrice || "0")) : null;
 
     if (isLoading) {
         return (
@@ -316,6 +392,22 @@ export default function NftDetailPage() {
 
                 {/* Actions */}
                 <div className="space-y-3">
+                    {isOwner && !nft.sale && (
+                        <Button
+                            onClick={() => setShowListingModal(true)}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white h-12 rounded-xl font-bold"
+                        >
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            List for Sale
+                        </Button>
+                    )}
+                    {isOwner && nft.sale && (
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
+                            <p className="text-sm text-amber-600 dark:text-amber-400">
+                                This NFT is currently listed for sale
+                            </p>
+                        </div>
+                    )}
                     {isOwner && (
                         <Button
                             onClick={() => router.push(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`)}
@@ -335,6 +427,152 @@ export default function NftDetailPage() {
                     </Button>
                 </div>
             </motion.div>
+
+            {/* Listing Modal */}
+            <AnimatePresence>
+                {showListingModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+                        onClick={() => !isListing && setShowListingModal(false)}
+                    >
+                        <motion.div
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-md bg-card border border-border rounded-2xl overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-4 border-b border-border">
+                                <h2 className="text-lg font-bold">List for Sale</h2>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => !isListing && setShowListingModal(false)}
+                                    disabled={isListing}
+                                    className="h-8 w-8"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-4 space-y-4">
+                                {/* NFT Preview */}
+                                <div className="flex items-center gap-3 bg-muted rounded-xl p-3">
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
+                                        {nft.image ? (
+                                            <Image
+                                                src={nft.image}
+                                                alt={nft.name}
+                                                width={48}
+                                                height={48}
+                                                className="w-full h-full object-cover"
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-semibold truncate">{nft.name}</p>
+                                        {nft.collectionName && (
+                                            <p className="text-xs text-muted-foreground truncate">{nft.collectionName}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Price Input */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Price (TON)</label>
+                                    <div className="relative">
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            min={MIN_LISTING_PRICE}
+                                            placeholder={`Min ${MIN_LISTING_PRICE} TON`}
+                                            value={listingPrice}
+                                            onChange={(e) => setListingPrice(e.target.value)}
+                                            className="h-12 text-lg pr-16"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                                            TON
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Fee Breakdown */}
+                                {listingPrice && parseFloat(listingPrice) >= MIN_LISTING_PRICE && listingFeePreview && (
+                                    <div className="bg-muted rounded-xl p-3 space-y-2 text-sm">
+                                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                                            <Info className="w-4 h-4" />
+                                            <span>Fee Breakdown</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Listing Price</span>
+                                            <span>{listingPrice} TON</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Platform Fee ({QC_MARKETPLACE_FEE_PERCENT}%)</span>
+                                            <span className="text-muted-foreground">-{(parseFloat(listingPrice) * QC_MARKETPLACE_FEE_PERCENT / 100).toFixed(4)} TON</span>
+                                        </div>
+                                        <div className="flex justify-between font-semibold pt-2 border-t border-border">
+                                            <span>You Receive</span>
+                                            <span className="text-green-500">
+                                                {(parseFloat(listingPrice) * (1 - QC_MARKETPLACE_FEE_PERCENT / 100)).toFixed(4)} TON
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* QC Marketplace Badge */}
+                                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+                                        QC Marketplace
+                                    </span>
+                                    <span>•</span>
+                                    <span>Only {QC_MARKETPLACE_FEE_PERCENT}% fee</span>
+                                </div>
+
+                                {/* List Button */}
+                                <Button
+                                    onClick={handleListForSale}
+                                    disabled={isListing || !listingPrice || parseFloat(listingPrice) < MIN_LISTING_PRICE}
+                                    className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
+                                >
+                                    {isListing ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <>
+                                            <Tag className="w-4 h-4 mr-2" />
+                                            List for {listingPrice || "0"} TON
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Biometric Auth */}
+            <BiometricAuth
+                isOpen={showBiometricAuth}
+                onClose={() => {
+                    setShowBiometricAuth(false);
+                    setIsListing(false);
+                    setPendingListingMessage(null);
+                }}
+                onConfirm={confirmListing}
+                isLoading={isBiometricLoading || isListing}
+                title="Confirm Listing"
+                description={`List ${nft.name} for ${listingPrice} TON`}
+            />
         </div>
     );
 }

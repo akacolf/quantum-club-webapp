@@ -12,6 +12,7 @@ import {
     ShoppingCart,
     ArrowRight,
     Info,
+    Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +28,11 @@ import {
     MARKETPLACE_FEE_PERCENT,
     type NftItem,
 } from "@/lib/nft-marketplace";
+import {
+    buyNft,
+    getSaleInfo,
+    QC_MARKETPLACE_FEE_PERCENT,
+} from "@/lib/nft-sale-contracts";
 
 type ViewMode = "preview" | "processing" | "success" | "error";
 
@@ -96,20 +102,50 @@ export default function BuyNftPage() {
         setViewMode("processing");
 
         try {
-            // For now, open Getgems to complete the purchase
-            // In future, implement direct purchase via sale contract
-            const getgemsUrl = `https://getgems.io/nft/${nftAddress}`;
-            window.open(getgemsUrl, "_blank");
+            // Check if listed on QC Marketplace (has sale contract)
+            const saleInfo = await getSaleInfo(nft.sale.contractAddress || nftAddress, isTestnet);
             
-            // Show info that user needs to complete on Getgems
-            toast.info("Complete purchase on Getgems", {
-                description: "You will be redirected to complete the transaction",
-            });
-            
-            // Simulate success for demo
-            setTimeout(() => {
-                setViewMode("success");
-            }, 2000);
+            if (saleInfo && saleInfo.isActive) {
+                // Direct purchase through our in-house sale contract
+                const buyMessage = buyNft(
+                    saleInfo.saleContractAddress,
+                    saleInfo.price
+                );
+                
+                // Send the transaction
+                const response = await fetch("/api/wallet/send-transaction", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        telegramId,
+                        messages: [buyMessage],
+                        isTestnet,
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    toast.success("NFT purchased successfully!");
+                    setViewMode("success");
+                } else {
+                    throw new Error(result.error || "Transaction failed");
+                }
+            } else {
+                // Fallback: Open marketplace to complete purchase
+                const marketUrl = nft.sale.market === "Getgems" 
+                    ? `https://getgems.io/nft/${nftAddress}`
+                    : `https://getgems.io/nft/${nftAddress}`;
+                window.open(marketUrl, "_blank");
+                
+                toast.info("Complete purchase on external marketplace", {
+                    description: "You will be redirected to complete the transaction",
+                });
+                
+                setTimeout(() => {
+                    setViewMode("success");
+                }, 2000);
+            }
 
         } catch (err) {
             console.error("Purchase error:", err);
@@ -188,9 +224,9 @@ export default function BuyNftPage() {
                         <CheckCircle2 className="w-10 h-10 text-green-500" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold">Purchase Initiated!</h2>
+                        <h2 className="text-xl font-bold">Purchase Complete!</h2>
                         <p className="text-sm text-muted-foreground mt-2">
-                            Complete the transaction on Getgems to finalize your purchase
+                            The NFT is now yours. Check your wallet to view it.
                         </p>
                     </div>
                     {nft.image && (
@@ -207,17 +243,17 @@ export default function BuyNftPage() {
                     )}
                     <div className="space-y-3">
                         <Button
-                            onClick={() => router.push("/wallet/marketplace")}
+                            onClick={() => router.push("/wallet")}
                             className="w-full h-12 rounded-xl"
                         >
-                            Back to Marketplace
+                            View in Wallet
                         </Button>
                         <Button
-                            onClick={() => router.push("/wallet")}
+                            onClick={() => router.push("/wallet/marketplace")}
                             variant="outline"
                             className="w-full h-12 rounded-xl"
                         >
-                            Go to Wallet
+                            Back to Marketplace
                         </Button>
                     </div>
                 </motion.div>
@@ -332,14 +368,23 @@ export default function BuyNftPage() {
                 )}
 
                 {/* Marketplace Info */}
-                {nft.sale.market && (
+                {nft.sale.market === "QC Marketplace" ? (
+                    <Card className="bg-primary/5 border-primary/20">
+                        <CardContent className="p-3 flex items-center gap-2 text-xs">
+                            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                            <span className="text-primary font-medium">
+                                QC Marketplace • Only {QC_MARKETPLACE_FEE_PERCENT}% fee
+                            </span>
+                        </CardContent>
+                    </Card>
+                ) : nft.sale.market ? (
                     <Card className="bg-muted/50 border-border">
                         <CardContent className="p-3 flex items-center gap-2 text-xs text-muted-foreground">
                             <Info className="w-4 h-4 shrink-0" />
-                            <span>This NFT is listed on {nft.sale.market}. You will be redirected to complete the purchase.</span>
+                            <span>Listed on {nft.sale.market}. You may be redirected to complete the purchase.</span>
                         </CardContent>
                     </Card>
-                )}
+                ) : null}
 
                 {/* Purchase Button */}
                 <Button

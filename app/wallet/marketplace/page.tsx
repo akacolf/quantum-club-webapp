@@ -13,6 +13,10 @@ import {
     Loader2,
     Sparkles,
     BadgeCheck,
+    BarChart3,
+    Users,
+    Wallet,
+    DollarSign,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { getPopularCollections, type NftCollection } from "@/lib/nft-marketplace";
+import { getMarketplaceStats } from "@/lib/nft-sale-contracts";
 import { useWallet } from "../WalletContext";
 
 export default function MarketplacePage() {
@@ -30,23 +35,45 @@ export default function MarketplacePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+    const [stats, setStats] = useState<{
+        totalVolume24h: number;
+        totalListings: number;
+        avgFloorPrice: number;
+        activeCollections: number;
+    } | null>(null);
 
-    // Fetch collections
-    const fetchCollections = useCallback(async () => {
+    // Fetch collections and stats
+    const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await getPopularCollections(30, isTestnet);
-            setCollections(data);
+            const [collectionsData, statsData] = await Promise.all([
+                getPopularCollections(30, isTestnet),
+                getMarketplaceStats(isTestnet),
+            ]);
+            setCollections(collectionsData);
+            
+            // Calculate stats from collections
+            const avgFloor = collectionsData
+                .filter(c => c.floorPrice && c.floorPrice > 0)
+                .reduce((sum, c) => sum + (c.floorPrice || 0), 0) / 
+                collectionsData.filter(c => c.floorPrice && c.floorPrice > 0).length;
+            
+            setStats({
+                totalVolume24h: statsData.totalVolume24h,
+                totalListings: statsData.totalListings,
+                avgFloorPrice: avgFloor || 0,
+                activeCollections: collectionsData.length,
+            });
         } catch (error) {
-            console.error("Failed to fetch collections:", error);
+            console.error("Failed to fetch data:", error);
         } finally {
             setIsLoading(false);
         }
     }, [isTestnet]);
 
     useEffect(() => {
-        fetchCollections();
-    }, [fetchCollections]);
+        fetchData();
+    }, [fetchData]);
 
     // Handle image error
     const handleImageError = (address: string) => {
@@ -91,6 +118,84 @@ export default function MarketplacePage() {
                         Discover and collect unique NFTs on TON
                     </p>
                 </motion.div>
+
+                {/* Stats Cards */}
+                {!searchQuery && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.02 }}
+                    >
+                        <div className="-mx-4">
+                            <div className="flex gap-2 px-4 overflow-x-auto scrollbar-hide pb-1">
+                                <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 flex-shrink-0 min-w-[120px]">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 text-primary mb-1">
+                                            <BarChart3 className="w-4 h-4" />
+                                            <span className="text-xs">24h Volume</span>
+                                        </div>
+                                        {isLoading ? (
+                                            <Skeleton className="h-5 w-16" />
+                                        ) : (
+                                            <p className="font-bold text-foreground">
+                                                {stats?.totalVolume24h ? `${(stats.totalVolume24h / 1e9).toFixed(0)} TON` : "—"}
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20 flex-shrink-0 min-w-[120px]">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 text-green-500 mb-1">
+                                            <DollarSign className="w-4 h-4" />
+                                            <span className="text-xs">Avg Floor</span>
+                                        </div>
+                                        {isLoading ? (
+                                            <Skeleton className="h-5 w-16" />
+                                        ) : (
+                                            <p className="font-bold text-foreground">
+                                                {stats?.avgFloorPrice ? `${(stats.avgFloorPrice / 1e9).toFixed(1)} TON` : "—"}
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 flex-shrink-0 min-w-[120px]">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 text-amber-500 mb-1">
+                                            <Wallet className="w-4 h-4" />
+                                            <span className="text-xs">Listings</span>
+                                        </div>
+                                        {isLoading ? (
+                                            <Skeleton className="h-5 w-12" />
+                                        ) : (
+                                            <p className="font-bold text-foreground">
+                                                {stats?.totalListings?.toLocaleString() || "—"}
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 flex-shrink-0 min-w-[120px]">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 text-blue-500 mb-1">
+                                            <Users className="w-4 h-4" />
+                                            <span className="text-xs">Collections</span>
+                                        </div>
+                                        {isLoading ? (
+                                            <Skeleton className="h-5 w-12" />
+                                        ) : (
+                                            <p className="font-bold text-foreground">
+                                                {stats?.activeCollections || "—"}
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                <div className="min-w-[1px] flex-shrink-0" />
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Search */}
                 <motion.div
