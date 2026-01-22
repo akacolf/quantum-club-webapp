@@ -366,8 +366,8 @@ export default function FarmingPage() {
                                                                         {farm.apr.toFixed(1)}% APR
                                                                     </Badge>
                                                                 )}
-                                                                <span className="text-xs text-gray-500">
-                                                                    → {farm.rewardTokenSymbol}
+                                                                <span className="text-xs text-gray-500 flex items-center gap-0.5">
+                                                                    <ArrowRight className="w-3 h-3" /> {farm.rewardTokenSymbol}
                                                                 </span>
                                                             </div>
                                                             {farm.tvl && farm.tvl > 0 && (

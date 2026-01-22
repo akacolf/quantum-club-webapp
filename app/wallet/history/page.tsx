@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Clock, Layers, ExternalLink, Image as ImageIcon, Search, X, Filter, Tag, Pencil } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ArrowRight, Clock, Layers, ExternalLink, Image as ImageIcon, Search, X, Filter, Tag, Pencil } from "lucide-react";
 import { fromNano, Address } from "@ton/core";
 import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -706,8 +706,8 @@ export default function HistoryPage() {
                             <h4 className="font-bold text-foreground text-sm truncate">{tx.type}</h4>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               {tx.isSwap ? (
-                                <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400 truncate">
-                                  {tx.fromSymbol} → {tx.toSymbol}
+                                <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400 truncate flex items-center gap-1">
+                                  {tx.fromSymbol} <ArrowRight className="w-3 h-3" /> {tx.toSymbol}
                                 </span>
                               ) : (
                                 <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground truncate">

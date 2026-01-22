@@ -363,8 +363,8 @@ export default function StakingPage() {
                                                             <div className="text-right flex-shrink-0">
                                                                 <p className="text-xl font-bold text-green-500">{pool.liveApy.toFixed(1)}%</p>
                                                                 <p className="text-xs text-gray-500">APY</p>
-                                                                <p className="text-[10px] text-blue-400 mt-1">
-                                                                    → {pool.liquidToken}
+                                                                <p className="text-[10px] text-blue-400 mt-1 flex items-center gap-0.5">
+                                                                    <ArrowRight className="w-3 h-3" /> {pool.liquidToken}
                                                                 </p>
                                                             </div>
                                                         </div>

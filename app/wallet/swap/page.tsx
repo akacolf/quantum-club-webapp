@@ -7,6 +7,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import {
     ArrowDownUp,
+    ArrowRight,
     ChevronDown,
     ExternalLink,
     AlertTriangle,
@@ -1100,7 +1101,7 @@ export default function SwapPage() {
                                             <p className="text-gray-400">{fromAsset?.symbol}</p>
                                         </div>
 
-                                        <div className="text-2xl text-muted-foreground">→</div>
+                                        <ArrowRight className="w-6 h-6 text-muted-foreground" />
 
                                         <div className="text-center">
                                             {toAsset?.imageUrl ? (

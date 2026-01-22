@@ -575,9 +575,9 @@ export default function SendMultiplePage() {
                       window.open(url, "_blank");
                     }
                   }}
-                  className="text-sm text-primary"
+                  className="text-sm text-primary flex items-center gap-1"
                 >
-                  View on Explorer →
+                  View on Explorer <ArrowRight className="w-4 h-4" />
                 </button>
               )}
 
