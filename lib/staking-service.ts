@@ -43,7 +43,7 @@ export const STAKING_POOLS: StakingPool[] = [
         description: "The largest liquid staking pool on TON",
         liquidToken: "tsTON",
         liquidTokenIcon: "/svg/ton-logo.svg",
-        apy: 4.8,
+        apy: 3.01, // Updated to match tonstakers.com
         minStake: 1,
         // TON Stakers pool contract address (mainnet)
         poolAddress: "EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR",
@@ -58,9 +58,9 @@ export const STAKING_POOLS: StakingPool[] = [
         name: "Bemo Finance",
         icon: "/png/bemofinance-logo.jpg",
         description: "Decentralized liquid staking protocol",
-        liquidToken: "stTON",
+        liquidToken: "bmTON", // Fixed: Bemo uses bmTON, not stTON
         liquidTokenIcon: "/svg/ton-logo.svg",
-        apy: 5.1,
+        apy: 2.39, // Updated to match app.bemo.fi
         minStake: 0.5,
         // Bemo pool contract (mainnet)
         poolAddress: "EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k",
@@ -77,7 +77,7 @@ export const STAKING_POOLS: StakingPool[] = [
         description: "Decentralized staking with hTON",
         liquidToken: "hTON",
         liquidTokenIcon: "/svg/ton-logo.svg",
-        apy: 4.6,
+        apy: 3.0, // Typical Hipo APY - will be updated from live data
         minStake: 10,
         // Hipo treasury (mainnet) - from @hipo-finance/sdk
         poolAddress: "EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ",

@@ -86,9 +86,9 @@ export async function getHipoTreasuryState(
             ? Number(state.totalCoins) / Number(state.totalTokens)
             : 1;
 
-        // Estimate APY (Hipo typically offers 4-5% APY)
+        // Estimate APY (Hipo typically offers ~3% APY - similar to other liquid staking pools)
         // In production, this could be calculated from historical data
-        const apy = 4.6;
+        const apy = 3.0;
 
         return {
             totalCoins: state.totalCoins,
@@ -359,8 +359,8 @@ export async function getHipoLiveApy(isTestnet: boolean = false): Promise<number
         if (state) {
             return state.apy;
         }
-        return 4.6; // Default fallback APY
+        return 3.0; // Default fallback APY
     } catch {
-        return 4.6;
+        return 3.0;
     }
 }
