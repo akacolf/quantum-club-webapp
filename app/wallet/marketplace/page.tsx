@@ -261,7 +261,7 @@ export default function MarketplacePage() {
                     </motion.div>
                 )}
 
-                {/* Featured Collections Carousel */}
+                {/* Featured Collections Carousel - GetGems Inspired */}
                 {!searchQuery && featuredCollections.length > 0 && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -282,7 +282,7 @@ export default function MarketplacePage() {
                                     ? Array.from({ length: 3 }).map((_, i) => (
                                         <Skeleton
                                             key={i}
-                                            className="w-[200px] h-[140px] rounded-xl flex-shrink-0"
+                                            className="w-[220px] h-[160px] rounded-2xl flex-shrink-0"
                                         />
                                     ))
                                     : featuredCollections.map((collection, index) => (
@@ -297,44 +297,93 @@ export default function MarketplacePage() {
                                                 href={`/wallet/marketplace/collection/${encodeURIComponent(collection.address)}`}
                                                 prefetch={true}
                                             >
-                                                <Card className="w-[200px] bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-colors">
-                                                    <div className="relative h-24 bg-muted overflow-hidden">
-                                                        {collection.image && !imageErrors.has(collection.address) ? (
+                                                <Card className="w-[220px] bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-xl rounded-2xl group">
+                                                    {/* Banner with rounded corners */}
+                                                    <div className="relative h-28 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent overflow-hidden">
+                                                        {collection.coverImage && !imageErrors.has(collection.address + '-cover') ? (
                                                             <Image
-                                                                src={collection.image}
+                                                                src={collection.coverImage}
                                                                 alt={collection.name}
                                                                 fill
-                                                                className="object-cover"
+                                                                className="object-cover group-hover:scale-105 transition-transform duration-300"
                                                                 unoptimized
-                                                                onError={() => handleImageError(collection.address)}
+                                                                onError={() => handleImageError(collection.address + '-cover')}
                                                             />
+                                                        ) : collection.image && !imageErrors.has(collection.address) ? (
+                                                            <>
+                                                                {/* Blurred background from collection image */}
+                                                                <Image
+                                                                    src={collection.image}
+                                                                    alt=""
+                                                                    fill
+                                                                    className="object-cover blur-xl scale-110 opacity-60"
+                                                                    unoptimized
+                                                                />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-transparent to-transparent" />
+                                                            </>
                                                         ) : (
-                                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                                                                <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                                                            <div className="w-full h-full bg-gradient-to-br from-primary/30 via-primary/15 to-transparent" />
+                                                        )}
+                                                        
+                                                        {/* Verified badge on banner */}
+                                                        {collection.verified && (
+                                                            <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-full p-1">
+                                                                <BadgeCheck className="w-4 h-4 text-blue-500" />
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <CardContent className="p-3">
-                                                        <div className="flex items-center gap-1">
+                                                    
+                                                    {/* Collection info with avatar overlay */}
+                                                    <CardContent className="p-3 relative">
+                                                        {/* Avatar overlapping banner */}
+                                                        <div className="absolute -top-6 left-3">
+                                                            <div className="w-12 h-12 rounded-xl border-2 border-card bg-card overflow-hidden shadow-lg">
+                                                                {collection.image && !imageErrors.has(collection.address) ? (
+                                                                    <Image
+                                                                        src={collection.image}
+                                                                        alt={collection.name}
+                                                                        width={48}
+                                                                        height={48}
+                                                                        className="w-full h-full object-cover"
+                                                                        unoptimized
+                                                                        onError={() => handleImageError(collection.address)}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-full h-full bg-gradient-to-br from-primary/50 to-primary/20 flex items-center justify-center">
+                                                                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="pt-5">
                                                             <p className="font-semibold text-sm truncate">
                                                                 {collection.name}
                                                             </p>
-                                                            {collection.verified && (
-                                                                <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center justify-between mt-1">
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {formatItemsCount(collection.itemsCount)} items
-                                                            </p>
-                                                            {formatVolumeChange(collection.volumeChange24h) && (
-                                                                <span className={`text-xs flex items-center ${formatVolumeChange(collection.volumeChange24h)?.color}`}>
-                                                                    {formatVolumeChange(collection.volumeChange24h)?.isPositive 
-                                                                        ? <ArrowUp className="w-3 h-3" /> 
-                                                                        : <ArrowDown className="w-3 h-3" />}
-                                                                    {formatVolumeChange(collection.volumeChange24h)?.text}
-                                                                </span>
-                                                            )}
+                                                            <div className="flex items-center justify-between mt-1">
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {formatItemsCount(collection.itemsCount)} items
+                                                                </p>
+                                                                {formatVolumeChange(collection.volumeChange24h) && (
+                                                                    <span className={`text-xs flex items-center gap-0.5 ${formatVolumeChange(collection.volumeChange24h)?.color}`}>
+                                                                        {formatVolumeChange(collection.volumeChange24h)?.isPositive 
+                                                                            ? <ArrowUp className="w-3 h-3" /> 
+                                                                            : <ArrowDown className="w-3 h-3" />}
+                                                                        {formatVolumeChange(collection.volumeChange24h)?.text}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {/* Floor price */}
+                                                            <div className="mt-2 pt-2 border-t border-border">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-xs text-muted-foreground">Floor</span>
+                                                                    <span className="text-sm font-semibold text-primary">
+                                                                        {collection.floorPrice 
+                                                                            ? `${(collection.floorPrice / 1e9).toFixed(2)} TON`
+                                                                            : "—"}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </CardContent>
                                                 </Card>
@@ -347,7 +396,7 @@ export default function MarketplacePage() {
                     </motion.div>
                 )}
 
-                {/* All Collections Grid */}
+                {/* All Collections Grid - GetGems Style */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -369,11 +418,11 @@ export default function MarketplacePage() {
                     {isLoading ? (
                         <div className="grid grid-cols-2 gap-3">
                             {Array.from({ length: 6 }).map((_, i) => (
-                                <Skeleton key={i} className="h-[180px] rounded-xl" />
+                                <Skeleton key={i} className="h-[200px] rounded-2xl" />
                             ))}
                         </div>
                     ) : filteredCollections.length === 0 ? (
-                        <Card className="bg-card border-border p-8 text-center">
+                        <Card className="bg-card border-border p-8 text-center rounded-2xl">
                             <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                             <p className="text-muted-foreground">
                                 {searchQuery
@@ -394,39 +443,46 @@ export default function MarketplacePage() {
                                         href={`/wallet/marketplace/collection/${encodeURIComponent(collection.address)}`}
                                         prefetch={true}
                                     >
-                                        <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-lg">
-                                            <div className="relative aspect-square bg-muted overflow-hidden">
+                                        <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-xl rounded-2xl group">
+                                            {/* Rounded thumbnail container */}
+                                            <div className="relative aspect-square bg-muted overflow-hidden rounded-t-2xl">
                                                 {collection.image && !imageErrors.has(collection.address) ? (
                                                     <Image
                                                         src={collection.image}
                                                         alt={collection.name}
                                                         fill
-                                                        className="object-cover"
+                                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                                                         unoptimized
                                                         onError={() => handleImageError(collection.address)}
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-muted">
                                                         <ImageIcon className="w-10 h-10 text-muted-foreground" />
                                                     </div>
                                                 )}
+                                                
+                                                {/* Verified badge overlay */}
+                                                {collection.verified && (
+                                                    <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg">
+                                                        <BadgeCheck className="w-4 h-4 text-blue-500" />
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Gradient overlay at bottom */}
+                                                <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />
                                             </div>
+                                            
                                             <CardContent className="p-3">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-1">
-                                                            <p className="font-semibold text-sm truncate">
-                                                                {collection.name}
-                                                            </p>
-                                                            {collection.verified && (
-                                                                <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
-                                                            )}
-                                                        </div>
+                                                        <p className="font-semibold text-sm truncate">
+                                                            {collection.name}
+                                                        </p>
                                                         <p className="text-xs text-muted-foreground">
                                                             {formatItemsCount(collection.itemsCount)} items
                                                         </p>
                                                     </div>
-                                                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
                                                 </div>
                                                 <div className="mt-2 pt-2 border-t border-border grid grid-cols-2 gap-2">
                                                     <div>
