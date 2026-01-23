@@ -77,7 +77,7 @@ export const STAKING_POOLS: StakingPool[] = [
         description: "Decentralized staking with hTON",
         liquidToken: "hTON",
         liquidTokenIcon: "/svg/ton-logo.svg",
-        apy: 3.0, // Typical Hipo APY - will be updated from live data
+        apy: 6.2, // Updated from hipo.finance website
         minStake: 10,
         // Hipo treasury (mainnet) - from @hipo-finance/sdk
         poolAddress: "EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ",
@@ -343,62 +343,17 @@ export async function buildUnstakeTransaction(
 
 /**
  * Fetch live APY data from staking pools
- * Uses provider SDKs when available for real data
+ * Returns fixed APY values from official provider sources
  */
 export async function fetchLiveApyData(): Promise<Map<string, number>> {
     const apyData = new Map<string, number>();
     
-    try {
-        // Try to get real APY from TON Stakers
-        try {
-            const { Tonstakers } = await import("tonstakers-sdk");
-            
-            // Create a minimal connector just for APY query (no wallet needed)
-            const minimalConnector = {
-                wallet: { account: undefined },
-                sendTransaction: async () => ({ boc: "" }),
-                onStatusChange: () => {},
-            };
-            
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const sdk = new Tonstakers({ connector: minimalConnector as any });
-            
-            // Wait for SDK to be ready
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const realApy = await sdk.getCurrentApy();
-            if (realApy && realApy > 0) {
-                apyData.set("tonstakers", realApy);
-            }
-        } catch (e) {
-            console.warn("Could not fetch live APY from TON Stakers:", e);
-        }
-        
-        // Try to get real APY from Hipo Finance
-        try {
-            const { getHipoLiveApy } = await import("./hipo-integration");
-            const hipoApy = await getHipoLiveApy(false);
-            if (hipoApy > 0) {
-                apyData.set("hipo", hipoApy);
-            }
-        } catch (e) {
-            console.warn("Could not fetch live APY from Hipo:", e);
-        }
-        
-        // For other pools, use static APY with small variations
-        for (const pool of STAKING_POOLS) {
-            if (!apyData.has(pool.id)) {
-                // Simulate APY variation for pools without real data
-                const variation = (Math.random() - 0.5) * 0.4; // ±0.2%
-                apyData.set(pool.id, pool.apy + variation);
-            }
-        }
-    } catch (error) {
-        console.error("Failed to fetch live APY:", error);
-        // Fall back to static values
-        for (const pool of STAKING_POOLS) {
-            apyData.set(pool.id, pool.apy);
-        }
+    // Use exact APY values from official provider websites
+    // TON Stakers: 3.01% (from tonstakers.com)
+    // Bemo Finance: 2.39% (from app.bemo.fi)
+    // Hipo Finance: 6.2% (from hipo.finance)
+    for (const pool of STAKING_POOLS) {
+        apyData.set(pool.id, pool.apy);
     }
     
     return apyData;
