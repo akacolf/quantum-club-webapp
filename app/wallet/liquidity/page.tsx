@@ -209,10 +209,11 @@ export default function LiquidityPage() {
         const client = new StonApiClient();
         const walletPools = await client.getWalletPools({
           walletAddress,
-          includeV2: true,
+          dexV2: true, // Fixed: correct property name
         });
 
         // Map API response to our LPPosition interface
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mappedPositions: LPPosition[] = walletPools
           .filter((pool) => pool.lpBalance && BigInt(pool.lpBalance) > 0)
           .map((pool) => {
@@ -241,21 +242,25 @@ export default function LiquidityPage() {
               ? ((Number(reserve1) * Number(lpBalance)) / Number(lpSupply) / 1e9).toFixed(4)
               : "0";
 
+            // Get token symbols from assets or use addresses
+            const token0Symbol = token0Asset?.symbol || pool.token0Address.slice(0, 6) + "...";
+            const token1Symbol = token1Asset?.symbol || pool.token1Address.slice(0, 6) + "...";
+
             return {
               poolAddress: pool.address,
-              lpBalance: pool.lpBalance,
+              lpBalance: pool.lpBalance || "0", // Fixed: ensure string
               token0: token0Asset || {
                 contractAddress: pool.token0Address,
                 kind: "Jetton" as const,
-                symbol: pool.token0Symbol || "???",
-                displayName: pool.token0Symbol || "Unknown",
+                symbol: token0Symbol,
+                displayName: token0Symbol,
                 decimals: 9,
               },
               token1: token1Asset || {
                 contractAddress: pool.token1Address,
                 kind: "Jetton" as const,
-                symbol: pool.token1Symbol || "???",
-                displayName: pool.token1Symbol || "Unknown",
+                symbol: token1Symbol,
+                displayName: token1Symbol,
                 decimals: 9,
               },
               token0Amount,
@@ -270,8 +275,8 @@ export default function LiquidityPage() {
                 lpTotalSupply: pool.lpTotalSupply,
                 lpFee: pool.lpFee || "0.3",
                 protocolFee: pool.protocolFee || "0",
-                apy: pool.apy,
-                tvl: pool.tvl,
+                apy: parseFloat(pool.apy7D || pool.apy1D || "0"), // Fixed: use apy7D or apy1D
+                tvl: pool.lpTotalSupplyUsd, // Fixed: use lpTotalSupplyUsd
               },
             };
           });

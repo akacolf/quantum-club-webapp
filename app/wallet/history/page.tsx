@@ -371,7 +371,8 @@ export default function HistoryPage() {
       type = "Unsubscribe";
     } else if (action.type === "DepositStake") {
       type = "Stake";
-      const stake = action.DepositStake;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const stake = (action as any).DepositStake;
       if (stake) {
         amount = stake.amount ? fromNano(stake.amount) : "0";
         symbol = "TON";
@@ -379,7 +380,8 @@ export default function HistoryPage() {
       }
     } else if (action.type === "WithdrawStake") {
       type = "Unstake";
-      const unstake = action.WithdrawStake;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const unstake = (action as any).WithdrawStake;
       if (unstake) {
         amount = unstake.amount ? fromNano(unstake.amount) : "0";
         symbol = "TON";
@@ -388,7 +390,8 @@ export default function HistoryPage() {
       }
     } else if (action.type === "WithdrawStakeRequest") {
       type = "Unstake Request";
-      const unstake = action.WithdrawStakeRequest;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const unstake = (action as any).WithdrawStakeRequest;
       if (unstake) {
         amount = unstake.amount ? fromNano(unstake.amount) : "0";
         symbol = "TON";
@@ -401,7 +404,8 @@ export default function HistoryPage() {
       isIncoming = true;
     } else if (action.type === "JettonMint") {
       type = "Mint";
-      const mint = action.JettonMint;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mint = (action as any).JettonMint;
       if (mint) {
         const decimals = mint.jetton?.decimals || 9;
         amount = mint.amount ? (parseFloat(mint.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
@@ -410,7 +414,8 @@ export default function HistoryPage() {
       }
     } else if (action.type === "JettonBurn") {
       type = "Burn";
-      const burn = action.JettonBurn;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const burn = (action as any).JettonBurn;
       if (burn) {
         const decimals = burn.jetton?.decimals || 9;
         amount = burn.amount ? (parseFloat(burn.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
@@ -420,21 +425,24 @@ export default function HistoryPage() {
       type = "Domain Renewal";
     } else if (action.type === "AuctionBid") {
       type = "Auction Bid";
-      const bid = action.AuctionBid;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bid = (action as any).AuctionBid;
       if (bid) {
         amount = bid.amount?.value ? fromNano(bid.amount.value) : "0";
         symbol = "TON";
       }
     } else if (action.type === "NftPurchase") {
       type = "NFT Purchase";
-      const purchase = action.NftPurchase;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const purchase = (action as any).NftPurchase;
       if (purchase) {
         amount = purchase.amount?.value ? fromNano(purchase.amount.value) : "0";
         symbol = "TON";
       }
     } else if (action.type === "SmartContractExec") {
       // Try to identify DeFi actions by looking at operation name
-      const exec = action.SmartContractExec;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const exec = (action as any).SmartContractExec;
       const operation = exec?.operation || "";
       
       if (operation.toLowerCase().includes("provide_lp") || operation.toLowerCase().includes("add_liquidity")) {
