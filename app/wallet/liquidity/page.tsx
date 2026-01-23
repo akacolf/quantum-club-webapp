@@ -1249,7 +1249,7 @@ export default function LiquidityPage() {
                         <Label className="text-sm text-muted-foreground">
                           Amount to Remove
                         </Label>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-4 gap-2">
                           {["25", "50", "75", "100"].map((pct) => (
                             <Button
                               key={pct}
@@ -1258,7 +1258,7 @@ export default function LiquidityPage() {
                               }
                               size="sm"
                               onClick={() => setRemovePercent(pct)}
-                              className="flex-1"
+                              className="w-full"
                             >
                               {pct}%
                             </Button>
@@ -1267,7 +1267,7 @@ export default function LiquidityPage() {
                       </CardContent>
                     </Card>
 
-                    <Button className="w-full bg-destructive text-destructive-foreground h-14 rounded-xl font-bold text-lg">
+                    <Button className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 h-14 rounded-xl font-bold text-lg">
                       Remove Liquidity
                     </Button>
                   </>
