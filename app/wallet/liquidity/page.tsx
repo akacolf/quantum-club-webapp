@@ -478,17 +478,11 @@ export default function LiquidityPage() {
         router: result.router,
       });
 
-      // If balanced, update tokenB amount with proper formatting
+      // If balanced, update tokenB amount with raw numeric value (not formatted)
+      // The display formatting happens in the Input value prop
       if (provisionType === "Balanced" && result.tokenBUnits) {
         const rawAmount = fromUnits(result.tokenBUnits, tokenB.decimals);
-        const numAmount = parseFloat(rawAmount);
-        // Format to reasonable decimal places (max 6 for readability)
-        const formattedAmount = numAmount >= 1000000 
-          ? formatCompactNumber(numAmount)
-          : numAmount >= 1 
-            ? numAmount.toFixed(4).replace(/\.?0+$/, '')
-            : numAmount.toPrecision(4);
-        setAmountB(formattedAmount);
+        setAmountB(rawAmount);
       }
     } catch (error) {
       console.error("Failed to simulate provision:", error);
@@ -531,6 +525,13 @@ export default function LiquidityPage() {
 
     return () => clearTimeout(timer);
   }, [tokenA, tokenB, amountA, isSingleSided, simulateProvision]);
+
+  // Clear amountB when single-sided mode is enabled (user only provides tokenA)
+  useEffect(() => {
+    if (isSingleSided) {
+      setAmountB("");
+    }
+  }, [isSingleSided]);
 
   // Validation
   const canAddLiquidity = useMemo(() => {
@@ -733,7 +734,6 @@ export default function LiquidityPage() {
       // Build burn LP transaction
       const txParams = await buildBurnLpTxParams({
         poolAddress: selectedPosition.poolAddress,
-        routerAddress: selectedPosition.poolInfo?.address || "",
         lpBalance: burnAmount.toString(),
         userWalletAddress: walletAddress,
       });
@@ -1038,6 +1038,8 @@ export default function LiquidityPage() {
                                     tokenB?.contractAddress
                                   ) {
                                     setTokenA(asset);
+                                    setAmountB("");
+                                    setSimulationResult(null);
                                   }
                                 }}
                                 className="flex items-center gap-3 p-3"
@@ -1144,6 +1146,8 @@ export default function LiquidityPage() {
                                     tokenA?.contractAddress
                                   ) {
                                     setTokenB(asset);
+                                    setAmountB("");
+                                    setSimulationResult(null);
                                   }
                                 }}
                                 className="flex items-center gap-3 p-3"
@@ -1178,28 +1182,33 @@ export default function LiquidityPage() {
                         <Input
                           type="text"
                           inputMode="decimal"
-                          placeholder="0.0"
+                          placeholder={isSingleSided ? "N/A" : "0.0"}
                           value={
-                            // Format display for large calculated amounts
-                            !isSingleSided && simulationResult && amountB
-                              ? (() => {
-                                  const num = parseFloat(amountB);
-                                  if (isNaN(num)) return amountB;
-                                  if (num >= 1000000000) return (num / 1000000000).toFixed(2) + "B";
-                                  if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
-                                  if (num >= 1000) return (num / 1000).toFixed(2) + "K";
-                                  if (num >= 1) return num.toFixed(4).replace(/\.?0+$/, '');
-                                  return num.toPrecision(4);
-                                })()
-                              : amountB
+                            // In single-sided mode, show "Auto" or empty
+                            isSingleSided
+                              ? ""
+                              : // Format display for large calculated amounts
+                                simulationResult && amountB
+                                ? (() => {
+                                    const num = parseFloat(amountB);
+                                    if (isNaN(num)) return amountB;
+                                    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + "B";
+                                    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+                                    if (num >= 1000) return (num / 1000).toFixed(2) + "K";
+                                    if (num >= 1) return num.toFixed(4).replace(/\.?0+$/, '');
+                                    return num.toPrecision(4);
+                                  })()
+                                : amountB
                           }
                           onChange={(e) => {
+                            // Only allow editing in Initial provision mode (no pool exists yet)
+                            if (isSingleSided || simulationResult) return;
                             const value = e.target.value.replace(",", ".");
                             if (value === "" || /^\d*\.?\d*$/.test(value)) {
                               setAmountB(value);
                             }
                           }}
-                          disabled={!isSingleSided && !!simulationResult}
+                          disabled={isSingleSided || !!simulationResult}
                           className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-11 focus-visible:ring-0 p-0 disabled:opacity-50"
                         />
                       </div>
@@ -1511,7 +1520,7 @@ export default function LiquidityPage() {
                               {selectedPosition.token0?.symbol}
                             </span>
                             <span className="font-medium">
-                              {formatCompactNumber(parseFloat(selectedPosition.token0Amount))}
+                              {formatCompactNumber(parseFloat(selectedPosition.token0Amount) || 0)}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">
@@ -1519,7 +1528,7 @@ export default function LiquidityPage() {
                               {selectedPosition.token1?.symbol}
                             </span>
                             <span className="font-medium">
-                              {formatCompactNumber(parseFloat(selectedPosition.token1Amount))}
+                              {formatCompactNumber(parseFloat(selectedPosition.token1Amount) || 0)}
                             </span>
                           </div>
                         </CardContent>
@@ -1553,13 +1562,13 @@ export default function LiquidityPage() {
                             <div className="flex justify-between text-sm">
                               <span>{selectedPosition.token0?.symbol}</span>
                               <span className="font-medium">
-                                {formatCompactNumber(parseFloat(selectedPosition.token0Amount) * parseInt(removePercent) / 100)}
+                                {formatCompactNumber((parseFloat(selectedPosition.token0Amount) || 0) * parseInt(removePercent) / 100)}
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>{selectedPosition.token1?.symbol}</span>
                               <span className="font-medium">
-                                {formatCompactNumber(parseFloat(selectedPosition.token1Amount) * parseInt(removePercent) / 100)}
+                                {formatCompactNumber((parseFloat(selectedPosition.token1Amount) || 0) * parseInt(removePercent) / 100)}
                               </span>
                             </div>
                           </div>

@@ -245,19 +245,31 @@ export async function buildSwapTxParams(
 
 // Convert human-readable amount to blockchain units
 export function toUnits(amount: string, decimals: number): string {
-    const num = parseFloat(amount) || 0;
-    const units = Math.floor(num * Math.pow(10, decimals));
-    return units.toString();
+    const num = parseFloat(amount);
+    if (isNaN(num) || num <= 0) return "0";
+    // Use BigInt math to avoid floating point precision issues
+    const [whole, frac = ""] = amount.split(".");
+    const wholePart = BigInt(whole || "0") * BigInt(10 ** decimals);
+    const fracPadded = (frac + "0".repeat(decimals)).slice(0, decimals);
+    const fracPart = BigInt(fracPadded);
+    return (wholePart + fracPart).toString();
 }
 
 // Convert blockchain units to human-readable amount
 export function fromUnits(units: string, decimals: number): string {
-    const num = BigInt(units);
-    const divisor = BigInt(Math.pow(10, decimals));
-    const whole = num / divisor;
-    const fraction = num % divisor;
-    const fractionStr = fraction.toString().padStart(decimals, "0");
-    return `${whole}.${fractionStr}`;
+    if (!units || units === "0") return "0";
+    try {
+        const num = BigInt(units);
+        if (num < 0n) return "0";
+        const divisor = BigInt(10 ** decimals);
+        const whole = num / divisor;
+        const fraction = num % divisor;
+        const fractionStr = fraction.toString().padStart(decimals, "0");
+        // Trim trailing zeros for cleaner display
+        return `${whole}.${fractionStr}`.replace(/\.?0+$/, "") || "0";
+    } catch {
+        return "0";
+    }
 }
 
 // Format swap rate for display
@@ -415,7 +427,6 @@ async function buildSingleLpTx(
 // Burn LP tokens parameters
 export interface BurnLpParams {
     poolAddress: string;
-    routerAddress: string;
     lpBalance: string;
     userWalletAddress: string;
 }
