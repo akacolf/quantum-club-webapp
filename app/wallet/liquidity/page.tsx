@@ -366,9 +366,17 @@ export default function LiquidityPage() {
         router: result.router,
       });
 
-      // If balanced, update tokenB amount
+      // If balanced, update tokenB amount with proper formatting
       if (provisionType === "Balanced" && result.tokenBUnits) {
-        setAmountB(fromUnits(result.tokenBUnits, tokenB.decimals));
+        const rawAmount = fromUnits(result.tokenBUnits, tokenB.decimals);
+        const numAmount = parseFloat(rawAmount);
+        // Format to reasonable decimal places (max 6 for readability)
+        const formattedAmount = numAmount >= 1000000 
+          ? formatCompactNumber(numAmount)
+          : numAmount >= 1 
+            ? numAmount.toFixed(4).replace(/\.?0+$/, '')
+            : numAmount.toPrecision(4);
+        setAmountB(formattedAmount);
       }
     } catch (error) {
       console.error("Failed to simulate provision:", error);
@@ -948,7 +956,20 @@ export default function LiquidityPage() {
                           type="text"
                           inputMode="decimal"
                           placeholder="0.0"
-                          value={amountB}
+                          value={
+                            // Format display for large calculated amounts
+                            !isSingleSided && simulationResult && amountB
+                              ? (() => {
+                                  const num = parseFloat(amountB);
+                                  if (isNaN(num)) return amountB;
+                                  if (num >= 1000000000) return (num / 1000000000).toFixed(2) + "B";
+                                  if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+                                  if (num >= 1000) return (num / 1000).toFixed(2) + "K";
+                                  if (num >= 1) return num.toFixed(4).replace(/\.?0+$/, '');
+                                  return num.toPrecision(4);
+                                })()
+                              : amountB
+                          }
                           onChange={(e) => {
                             const value = e.target.value.replace(",", ".");
                             if (value === "" || /^\d*\.?\d*$/.test(value)) {
