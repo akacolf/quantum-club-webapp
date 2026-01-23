@@ -205,21 +205,89 @@ export default function LiquidityPage() {
 
       setIsLoadingPositions(true);
       try {
-        // In production, fetch from STON.fi API
-        // For now, we'll show a placeholder
-        // const client = new StonApiClient();
-        // const lpPositions = await client.getWalletLpPositions({ walletAddress });
+        // Fetch LP positions from STON.fi API
+        const client = new StonApiClient();
+        const walletPools = await client.getWalletPools({
+          walletAddress,
+          includeV2: true,
+        });
 
-        setPositions([]);
+        // Map API response to our LPPosition interface
+        const mappedPositions: LPPosition[] = walletPools
+          .filter((pool) => pool.lpBalance && BigInt(pool.lpBalance) > 0)
+          .map((pool) => {
+            // Find token info from swapAssets or use pool data
+            const token0Asset = swapAssets.find(
+              (a) => a.contractAddress === pool.token0Address
+            );
+            const token1Asset = swapAssets.find(
+              (a) => a.contractAddress === pool.token1Address
+            );
+
+            // Calculate share of pool
+            const lpBalance = BigInt(pool.lpBalance || "0");
+            const lpSupply = BigInt(pool.lpTotalSupply || "1");
+            const sharePercent = lpSupply > 0
+              ? ((Number(lpBalance) / Number(lpSupply)) * 100).toFixed(4)
+              : "0";
+
+            // Calculate token amounts based on reserves and share
+            const reserve0 = BigInt(pool.reserve0 || "0");
+            const reserve1 = BigInt(pool.reserve1 || "0");
+            const token0Amount = lpSupply > 0
+              ? ((Number(reserve0) * Number(lpBalance)) / Number(lpSupply) / 1e9).toFixed(4)
+              : "0";
+            const token1Amount = lpSupply > 0
+              ? ((Number(reserve1) * Number(lpBalance)) / Number(lpSupply) / 1e9).toFixed(4)
+              : "0";
+
+            return {
+              poolAddress: pool.address,
+              lpBalance: pool.lpBalance,
+              token0: token0Asset || {
+                contractAddress: pool.token0Address,
+                kind: "Jetton" as const,
+                symbol: pool.token0Symbol || "???",
+                displayName: pool.token0Symbol || "Unknown",
+                decimals: 9,
+              },
+              token1: token1Asset || {
+                contractAddress: pool.token1Address,
+                kind: "Jetton" as const,
+                symbol: pool.token1Symbol || "???",
+                displayName: pool.token1Symbol || "Unknown",
+                decimals: 9,
+              },
+              token0Amount,
+              token1Amount,
+              sharePercent,
+              poolInfo: {
+                address: pool.address,
+                reserve0: pool.reserve0,
+                reserve1: pool.reserve1,
+                token0Address: pool.token0Address,
+                token1Address: pool.token1Address,
+                lpTotalSupply: pool.lpTotalSupply,
+                lpFee: pool.lpFee || "0.3",
+                protocolFee: pool.protocolFee || "0",
+                apy: pool.apy,
+                tvl: pool.tvl,
+              },
+            };
+          });
+
+        setPositions(mappedPositions);
       } catch (error) {
         console.error("Failed to load LP positions:", error);
+        setPositions([]);
       } finally {
         setIsLoadingPositions(false);
       }
     };
 
+
     loadPositions();
-  }, [walletAddress]);
+  }, [walletAddress, swapAssets]);
 
   // Get balance for asset
   const getAssetBalance = useCallback(

@@ -369,6 +369,99 @@ export default function HistoryPage() {
       type = "Subscription";
     } else if (action.type === "UnSubscribe") {
       type = "Unsubscribe";
+    } else if (action.type === "DepositStake") {
+      type = "Stake";
+      const stake = action.DepositStake;
+      if (stake) {
+        amount = stake.amount ? fromNano(stake.amount) : "0";
+        symbol = "TON";
+        address = stake.pool?.address || "";
+      }
+    } else if (action.type === "WithdrawStake") {
+      type = "Unstake";
+      const unstake = action.WithdrawStake;
+      if (unstake) {
+        amount = unstake.amount ? fromNano(unstake.amount) : "0";
+        symbol = "TON";
+        address = unstake.pool?.address || "";
+        isIncoming = true;
+      }
+    } else if (action.type === "WithdrawStakeRequest") {
+      type = "Unstake Request";
+      const unstake = action.WithdrawStakeRequest;
+      if (unstake) {
+        amount = unstake.amount ? fromNano(unstake.amount) : "0";
+        symbol = "TON";
+        address = unstake.pool?.address || "";
+      }
+    } else if (action.type === "ElectionsDepositStake") {
+      type = "Validator Stake";
+    } else if (action.type === "ElectionsRecoverStake") {
+      type = "Validator Unstake";
+      isIncoming = true;
+    } else if (action.type === "JettonMint") {
+      type = "Mint";
+      const mint = action.JettonMint;
+      if (mint) {
+        const decimals = mint.jetton?.decimals || 9;
+        amount = mint.amount ? (parseFloat(mint.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
+        symbol = mint.jetton?.symbol || "TOKEN";
+        isIncoming = true;
+      }
+    } else if (action.type === "JettonBurn") {
+      type = "Burn";
+      const burn = action.JettonBurn;
+      if (burn) {
+        const decimals = burn.jetton?.decimals || 9;
+        amount = burn.amount ? (parseFloat(burn.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
+        symbol = burn.jetton?.symbol || "TOKEN";
+      }
+    } else if (action.type === "DnsItemRenew") {
+      type = "Domain Renewal";
+    } else if (action.type === "AuctionBid") {
+      type = "Auction Bid";
+      const bid = action.AuctionBid;
+      if (bid) {
+        amount = bid.amount?.value ? fromNano(bid.amount.value) : "0";
+        symbol = "TON";
+      }
+    } else if (action.type === "NftPurchase") {
+      type = "NFT Purchase";
+      const purchase = action.NftPurchase;
+      if (purchase) {
+        amount = purchase.amount?.value ? fromNano(purchase.amount.value) : "0";
+        symbol = "TON";
+      }
+    } else if (action.type === "SmartContractExec") {
+      // Try to identify DeFi actions by looking at operation name
+      const exec = action.SmartContractExec;
+      const operation = exec?.operation || "";
+      
+      if (operation.toLowerCase().includes("provide_lp") || operation.toLowerCase().includes("add_liquidity")) {
+        type = "Add Liquidity";
+      } else if (operation.toLowerCase().includes("remove_lp") || operation.toLowerCase().includes("burn_lp")) {
+        type = "Remove Liquidity";
+      } else if (operation.toLowerCase().includes("stake") || operation.toLowerCase().includes("deposit")) {
+        type = "Stake";
+      } else if (operation.toLowerCase().includes("unstake") || operation.toLowerCase().includes("withdraw")) {
+        type = "Unstake";
+        isIncoming = true;
+      } else if (operation.toLowerCase().includes("claim")) {
+        type = "Claim Rewards";
+        isIncoming = true;
+      } else if (operation.toLowerCase().includes("vote")) {
+        type = "Vote";
+      } else if (operation.toLowerCase().includes("swap")) {
+        type = "Swap";
+      } else {
+        type = "Contract Call";
+      }
+      
+      if (exec) {
+        amount = exec.ton_attached ? fromNano(exec.ton_attached.toString()) : "0";
+        symbol = "TON";
+        address = exec.contract?.address || "";
+      }
     }
 
     const date = new Date(event.timestamp * 1000);
