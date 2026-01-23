@@ -8,10 +8,11 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { StonApiClient } from "@ston-fi/api";
 import { dexFactory } from "@ston-fi/sdk";
-import { TonClient, WalletContractV4, internal } from "@ton/ton";
+import { WalletContractV4, internal } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { beginCell, Address, toNano } from "@ton/core";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -37,15 +38,31 @@ interface GraduationResult {
     error?: string;
 }
 
-// Cache for Orbs endpoint
-let cachedOrbsEndpoint: string | null = null;
+// TonAPI client and adapter (cached)
+let cachedTonApiClient: TonApiClient | null = null;
+let cachedContractAdapter: ContractAdapter | null = null;
 
-async function getOrbsEndpoint(): Promise<string> {
-    if (!cachedOrbsEndpoint) {
-        cachedOrbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
-        console.log("[functions] Using Orbs endpoint:", cachedOrbsEndpoint);
+/**
+ * Get TonAPI client (cached)
+ */
+function getTonApiClient(): TonApiClient {
+    if (!cachedTonApiClient) {
+        cachedTonApiClient = new TonApiClient({
+            baseUrl: "https://tonapi.io",
+        });
+        console.log("[functions] Using TonAPI client");
     }
-    return cachedOrbsEndpoint;
+    return cachedTonApiClient;
+}
+
+/**
+ * Get ContractAdapter for blockchain operations (cached)
+ */
+function getContractAdapter(): ContractAdapter {
+    if (!cachedContractAdapter) {
+        cachedContractAdapter = new ContractAdapter(getTonApiClient());
+    }
+    return cachedContractAdapter;
 }
 
 // Configuration
@@ -312,9 +329,8 @@ async function createLiquidityPool(
             return { success: false, error: "Platform mnemonic not configured" };
         }
 
-        // Initialize TON client using Orbs Network (rate-limit free!)
-        const orbsEndpoint = await getOrbsEndpoint();
-        const tonClient = new TonClient({ endpoint: orbsEndpoint });
+        // Get ContractAdapter using TonAPI
+        const contractAdapter = getContractAdapter();
 
         // Derive wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(platformMnemonic.split(" "));
@@ -323,7 +339,7 @@ async function createLiquidityPool(
             publicKey: keyPair.publicKey,
         });
 
-        const walletContract = tonClient.open(wallet);
+        const walletContract = contractAdapter.open(wallet);
         const walletAddress = walletContract.address.toString();
 
         functions.logger.info(`Platform wallet: ${walletAddress}`);
@@ -339,7 +355,7 @@ async function createLiquidityPool(
 
         // Build DEX contracts
         const dexContracts = dexFactory(simulation.router);
-        const router = tonClient.open(
+        const router = contractAdapter.open(
             dexContracts.Router.create(simulation.router.address)
         );
         const proxyTon = dexContracts.pTON.create(simulation.router.ptonMasterAddress);
@@ -410,9 +426,8 @@ async function burnLpTokens(
             return { success: false, error: "Platform mnemonic not configured" };
         }
 
-        // Initialize TON client using Orbs Network (rate-limit free!)
-        const orbsEndpoint = await getOrbsEndpoint();
-        const tonClient = new TonClient({ endpoint: orbsEndpoint });
+        // Get ContractAdapter using TonAPI
+        const contractAdapter = getContractAdapter();
 
         // Derive wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(platformMnemonic.split(" "));
@@ -421,7 +436,7 @@ async function burnLpTokens(
             publicKey: keyPair.publicKey,
         });
 
-        const walletContract = tonClient.open(wallet);
+        const walletContract = contractAdapter.open(wallet);
 
         // Standard burn address (zero address) - LP tokens sent here are permanently locked
         const BURN_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";

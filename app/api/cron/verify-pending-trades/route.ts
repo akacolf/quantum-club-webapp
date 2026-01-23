@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { ADMIN_API_KEY } from "@/lib/platform-config";
-import { getTonClient } from "@/lib/ton-api";
-import { Address } from "@ton/core";
+import { getAccountInfo } from "@/lib/ton-api";
 import { sendTradeNotification } from "@/lib/notifications";
 
 /**
@@ -216,24 +215,19 @@ interface TxVerifyResult {
 }
 
 /**
- * Verify a transaction on the blockchain using Orbs Network
- * Note: Orbs/TonClient doesn't support tx hash lookup directly.
- * We verify by checking if the wallet's balance changed and contract state.
+ * Verify a transaction on the blockchain using TonAPI
+ * Note: TonAPI provides account info but this method doesn't support tx hash lookup directly.
+ * We verify by checking if the wallet is active and has transactions.
  */
 async function verifyTransaction(txHash: string, walletAddress: string): Promise<TxVerifyResult> {
     try {
-        // Get TonClient via Orbs (rate-limit free!)
-        const client = await getTonClient();
+        // Get account info via TonAPI
+        const accountInfo = await getAccountInfo(walletAddress);
         
-        // Check if the wallet has recent transactions
-        // We can't lookup by hash, but we can verify the wallet is active
-        const address = Address.parse(walletAddress);
-        const state = await client.getContractState(address);
-        
-        // If wallet is active and has transactions, assume success
+        // If wallet is active and has recent activity, assume success
         // This is a simplified verification - for production, 
         // you'd want to use an indexer or track transactions more precisely
-        if (state.state === "active" && state.lastTransaction?.lt) {
+        if (accountInfo && accountInfo.status === "active" && accountInfo.lastActivity) {
             // Transaction exists on wallet, consider it potentially successful
             // The actual verification would require comparing timestamps/amounts
             return {

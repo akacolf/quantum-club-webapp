@@ -15,7 +15,8 @@ import {
     StateInit,
     TupleItemSlice
 } from "@ton/core";
-import { TonClient } from "@ton/ton";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 
 // =====================================================
 // Operation Codes (TEP-74 Standard + Blum/BigPump Compatible)
@@ -246,104 +247,46 @@ export function getJettonWalletAddressLocal(
 }
 
 // =====================================================
-// On-Chain Queries (GET Methods)
+// On-Chain Queries (GET Methods) - Using TonAPI
 // =====================================================
 
-import { getHttpEndpoint } from "@orbs-network/ton-access";
-
-// Cache for TON Access endpoints
-let cachedMainnetEndpoint: string | null = null;
-let cachedTestnetEndpoint: string | null = null;
-
-// Fallback endpoints when Orbs fails
-const FALLBACK_ENDPOINTS = {
-    mainnet: "https://toncenter.com/api/v2/jsonRPC",
-    testnet: "https://testnet.toncenter.com/api/v2/jsonRPC",
-};
+// Cached TonAPI adapter
+let cachedContractAdapter: ContractAdapter | null = null;
 
 /**
- * Get TON Access endpoint (decentralized, no rate limits)
- * Falls back to toncenter if Orbs is unavailable
+ * Get or create a ContractAdapter for blockchain queries
+ * Uses TonAPI - reliable, fast, and supports all contract methods
  */
-async function getTonAccessEndpoint(testnet: boolean): Promise<string> {
-    if (testnet && cachedTestnetEndpoint) return cachedTestnetEndpoint;
-    if (!testnet && cachedMainnetEndpoint) return cachedMainnetEndpoint;
+export function getContractAdapter(testnet: boolean = false): ContractAdapter {
+    if (cachedContractAdapter && !testnet) return cachedContractAdapter;
     
-    try {
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error("Orbs timeout")), 5000)
-        );
-        
-        const endpointPromise = getHttpEndpoint({ network: testnet ? "testnet" : "mainnet" });
-        const endpoint = await Promise.race([endpointPromise, timeoutPromise]);
-        
-        // Verify the endpoint is actually working by making a quick test
-        // This catches cases where Orbs returns an endpoint but it's returning HTML/errors
-        try {
-            const testResponse = await fetch(endpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: 1, jsonrpc: "2.0", method: "getAddressInformation", params: { address: "EQDCa9qJu0Vm9Q2AxM9RtwLqhXq-yPuJLv-fNX2zhMg8NBUM" } }),
-                signal: AbortSignal.timeout(3000),
-            });
-            
-            const contentType = testResponse.headers.get("content-type") || "";
-            if (!contentType.includes("application/json")) {
-                throw new Error("Orbs returned non-JSON response");
-            }
-        } catch (testError) {
-            console.warn("[TON Access] Endpoint test failed, using fallback");
-            throw testError;
-        }
-        
-        if (testnet) {
-            cachedTestnetEndpoint = endpoint;
-        } else {
-            cachedMainnetEndpoint = endpoint;
-        }
-        
-        return endpoint;
-    } catch {
-        // Orbs is down or returning errors, use toncenter fallback
-        console.warn("[TON Access] Orbs unavailable, using toncenter fallback");
-        const fallback = testnet ? FALLBACK_ENDPOINTS.testnet : FALLBACK_ENDPOINTS.mainnet;
-        
-        if (testnet) {
-            cachedTestnetEndpoint = fallback;
-        } else {
-            cachedMainnetEndpoint = fallback;
-        }
-        
-        return fallback;
-    }
-}
-
-/**
- * Create TonClient for blockchain queries
- * Uses TON Access by Orbs - decentralized, free, no rate limits!
- * 
- * NOTE: This sync version uses toncenter as fallback.
- * For production use createTonClientAsync() to use Orbs.
- */
-export function createTonClient(testnet: boolean = false): TonClient {
-    // Use toncenter as synchronous fallback, will be upgraded to Orbs in async init
-    return new TonClient({
-        endpoint: testnet
-            ? FALLBACK_ENDPOINTS.testnet
-            : FALLBACK_ENDPOINTS.mainnet,
+    const tonApiClient = new TonApiClient({
+        baseUrl: testnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
     });
+    
+    const adapter = new ContractAdapter(tonApiClient);
+    
+    if (!testnet) {
+        cachedContractAdapter = adapter;
+    }
+    
+    return adapter;
 }
 
 /**
- * Create TonClient with TON Access endpoint (async)
- * This is the preferred method - uses Orbs decentralized nodes with NO RATE LIMITS!
- * Falls back to toncenter if Orbs is unavailable.
+ * Create ContractAdapter for blockchain queries
+ * @deprecated Use getContractAdapter() instead
  */
-export async function createTonClientAsync(testnet: boolean = false): Promise<TonClient> {
-    const endpoint = await getTonAccessEndpoint(testnet);
-    console.log(`[TON Client] Using endpoint: ${endpoint}`);
-    return new TonClient({ endpoint });
+export function createTonClient(testnet: boolean = false): ContractAdapter {
+    return getContractAdapter(testnet);
+}
+
+/**
+ * Create ContractAdapter with async initialization (for compatibility)
+ * @deprecated Use getContractAdapter() instead
+ */
+export async function createTonClientAsync(testnet: boolean = false): Promise<ContractAdapter> {
+    return getContractAdapter(testnet);
 }
 
 /**
@@ -351,11 +294,12 @@ export async function createTonClientAsync(testnet: boolean = false): Promise<To
  */
 export async function getJettonData(
     jettonMasterAddress: string,
-    tonClient: TonClient
+    contractAdapter: ContractAdapter
 ): Promise<JettonMasterData | null> {
     try {
         const address = Address.parse(jettonMasterAddress);
-        const result = await tonClient.runMethod(address, "get_jetton_data");
+        const provider = contractAdapter.provider(address);
+        const result = await provider.get("get_jetton_data", []);
 
         const totalSupply = result.stack.readBigNumber();
         const mintable = result.stack.readNumber() === -1;
@@ -391,9 +335,9 @@ export async function getJettonData(
 export async function getJettonWalletAddress(
     jettonMasterAddress: string,
     ownerAddress: string,
-    tonClient: TonClient
+    contractAdapter: ContractAdapter
 ): Promise<string | null> {
-    // Try TonClient first
+    // Try ContractAdapter first
     try {
         const master = Address.parse(jettonMasterAddress);
         const owner = Address.parse(ownerAddress);
@@ -403,17 +347,18 @@ export async function getJettonWalletAddress(
             cell: beginCell().storeAddress(owner).endCell(),
         };
 
-        const result = await tonClient.runMethod(master, "get_wallet_address", [ownerSlice]);
+        const provider = contractAdapter.provider(master);
+        const result = await provider.get("get_wallet_address", [ownerSlice]);
         const walletAddress = result.stack.readAddress();
 
         if (walletAddress) {
             return walletAddress.toString();
         }
     } catch (error) {
-        // TonClient failed, try TONAPI fallback
+        // ContractAdapter failed, try TONAPI fallback
         const errorMessage = error instanceof Error ? error.message : "";
         if (!errorMessage.includes("exit_code: -13")) {
-            console.warn("[getJettonWalletAddress] TonClient failed, trying TONAPI fallback");
+            console.warn("[getJettonWalletAddress] ContractAdapter failed, trying TONAPI fallback");
         }
     }
     
@@ -448,11 +393,12 @@ export async function getJettonWalletAddress(
  */
 export async function getJettonWalletData(
     jettonWalletAddress: string,
-    tonClient: TonClient
+    contractAdapter: ContractAdapter
 ): Promise<JettonWalletData | null> {
     try {
         const address = Address.parse(jettonWalletAddress);
-        const result = await tonClient.runMethod(address, "get_wallet_data");
+        const provider = contractAdapter.provider(address);
+        const result = await provider.get("get_wallet_data", []);
 
         const balance = result.stack.readBigNumber();
         const ownerAddress = result.stack.readAddress();
@@ -485,18 +431,18 @@ export async function getJettonWalletData(
 export async function getJettonBalance(
     jettonMasterAddress: string,
     ownerAddress: string,
-    tonClient: TonClient
+    contractAdapter: ContractAdapter
 ): Promise<bigint> {
     try {
         const walletAddress = await getJettonWalletAddress(
             jettonMasterAddress,
             ownerAddress,
-            tonClient
+            contractAdapter
         );
 
         if (!walletAddress) return BigInt(0);
 
-        const walletData = await getJettonWalletData(walletAddress, tonClient);
+        const walletData = await getJettonWalletData(walletAddress, contractAdapter);
         return walletData?.balance ?? BigInt(0);
     } catch {
         return BigInt(0);
@@ -509,11 +455,12 @@ export async function getJettonBalance(
  */
 export async function getBondingCurveData(
     jettonMasterAddress: string,
-    tonClient: TonClient
+    contractAdapter: ContractAdapter
 ): Promise<BondingCurveData | null> {
     try {
         const address = Address.parse(jettonMasterAddress);
-        const result = await tonClient.runMethod(address, "get_curve_data");
+        const provider = contractAdapter.provider(address);
+        const result = await provider.get("get_curve_data", []);
 
         const totalSupply = result.stack.readBigNumber();
         const tonReserve = result.stack.readBigNumber();
@@ -548,11 +495,12 @@ export async function getBondingCurveData(
 export async function previewBuyOnChain(
     jettonMasterAddress: string,
     tonAmount: bigint,
-    tonClient: TonClient
+    contractAdapter: ContractAdapter
 ): Promise<bigint> {
     try {
         const address = Address.parse(jettonMasterAddress);
-        const result = await tonClient.runMethod(address, "preview_buy", [
+        const provider = contractAdapter.provider(address);
+        const result = await provider.get("preview_buy", [
             { type: "int", value: tonAmount }
         ]);
 
@@ -568,11 +516,12 @@ export async function previewBuyOnChain(
 export async function previewSellOnChain(
     jettonMasterAddress: string,
     tokenAmount: bigint,
-    tonClient: TonClient
+    contractAdapter: ContractAdapter
 ): Promise<bigint> {
     try {
         const address = Address.parse(jettonMasterAddress);
-        const result = await tonClient.runMethod(address, "preview_sell", [
+        const provider = contractAdapter.provider(address);
+        const result = await provider.get("preview_sell", [
             { type: "int", value: tokenAmount }
         ]);
 
@@ -584,15 +533,16 @@ export async function previewSellOnChain(
 
 /**
  * Check if contract is deployed
+ * Uses TonAPI to check contract status
  */
 export async function isContractDeployed(
     address: string,
-    tonClient: TonClient
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _contractAdapter: ContractAdapter
 ): Promise<boolean> {
     try {
-        const addr = Address.parse(address);
-        const state = await tonClient.getContractState(addr);
-        return state.state === "active";
+        const { isContractActive } = await import("@/lib/ton-api");
+        return await isContractActive(address);
     } catch {
         return false;
     }

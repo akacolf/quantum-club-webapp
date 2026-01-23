@@ -9,10 +9,11 @@
 
 import { FARM, FARM_VERSION } from "@ston-fi/sdk";
 import { StonApiClient } from "@ston-fi/api";
-import { TonClient, SendMode } from "@ton/ton";
+import { SendMode, WalletContractV5R1 } from "@ton/ton";
 import { toNano, internal } from "@ton/core";
-import { WalletContractV5R1 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 
 // Farm pool info
 export interface FarmPool {
@@ -46,17 +47,16 @@ export interface FarmingResult {
     error?: string;
 }
 
-// Initialize TON client
-function getTonClient(isTestnet: boolean = false) {
-    return new TonClient({
-        endpoint: isTestnet 
-            ? "https://testnet.toncenter.com/api/v2/jsonRPC"
-            : "https://toncenter.com/api/v2/jsonRPC",
+// Initialize TonAPI contract adapter
+function getContractAdapter(isTestnet: boolean = false): ContractAdapter {
+    const tonApiClient = new TonApiClient({
+        baseUrl: isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
     });
+    return new ContractAdapter(tonApiClient);
 }
 
 // Get wallet from mnemonic
-async function getWallet(mnemonic: string[], tonClient: TonClient) {
+async function getWallet(mnemonic: string[], contractAdapter: ContractAdapter) {
     const keyPair = await mnemonicToPrivateKey(mnemonic);
     const wallet = WalletContractV5R1.create({
         workchain: 0,
@@ -65,7 +65,7 @@ async function getWallet(mnemonic: string[], tonClient: TonClient) {
     return {
         wallet,
         keyPair,
-        contract: tonClient.open(wallet),
+        contract: contractAdapter.open(wallet),
         address: wallet.address,
     };
 }
@@ -188,11 +188,11 @@ export async function stakeLpTokens(
     isTestnet: boolean = false
 ): Promise<FarmingResult> {
     try {
-        const tonClient = getTonClient(isTestnet);
-        const { keyPair, contract, address } = await getWallet(mnemonic, tonClient);
+        const contractAdapter = getContractAdapter(isTestnet);
+        const { keyPair, contract, address } = await getWallet(mnemonic, contractAdapter);
         
         // Get farm NFT minter contract
-        const farmNftMinter = tonClient.open(
+        const farmNftMinter = contractAdapter.open(
             FARM.v3.NftMinter.create(farmAddress)
         );
         
@@ -239,11 +239,11 @@ export async function unstakeLpTokens(
     isTestnet: boolean = false
 ): Promise<FarmingResult> {
     try {
-        const tonClient = getTonClient(isTestnet);
-        const { keyPair, contract } = await getWallet(mnemonic, tonClient);
+        const contractAdapter = getContractAdapter(isTestnet);
+        const { keyPair, contract } = await getWallet(mnemonic, contractAdapter);
         
         // Get farm NFT item contract
-        const farmNftItem = tonClient.open(
+        const farmNftItem = contractAdapter.open(
             FARM.v3.NftItem.create(farmNftAddress)
         );
         
@@ -286,11 +286,11 @@ export async function claimFarmingRewards(
     isTestnet: boolean = false
 ): Promise<FarmingResult> {
     try {
-        const tonClient = getTonClient(isTestnet);
-        const { keyPair, contract } = await getWallet(mnemonic, tonClient);
+        const contractAdapter = getContractAdapter(isTestnet);
+        const { keyPair, contract } = await getWallet(mnemonic, contractAdapter);
         
         // Get farm NFT item contract
-        const farmNftItem = tonClient.open(
+        const farmNftItem = contractAdapter.open(
             FARM.v3.NftItem.create(farmNftAddress)
         );
         

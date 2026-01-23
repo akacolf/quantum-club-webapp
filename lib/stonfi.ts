@@ -2,9 +2,9 @@
 
 import { StonApiClient, AssetTag } from "@ston-fi/api";
 import { dexFactory } from "@ston-fi/sdk";
-import { TonClient } from "@ton/ton";
 import { Address } from "@ton/core";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 
 // Types for swap assets
 export interface SwapAsset {
@@ -181,15 +181,17 @@ export async function buildSwapTxParams(
     body: Buffer | null;
 } | null> {
     try {
-        // Use Orbs Network for rate-limit-free access
-        const orbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
-        const tonClient = new TonClient({ endpoint: orbsEndpoint });
+        // Use TonAPI for reliable access
+        const tonApiClient = new TonApiClient({
+            baseUrl: "https://tonapi.io",
+        });
+        const contractAdapter = new ContractAdapter(tonApiClient);
 
         // Build DEX contracts from simulation router
         const dexContracts = dexFactory(simulation.router);
 
         // Open the router contract
-        const router = tonClient.open(
+        const router = contractAdapter.open(
             dexContracts.Router.create(simulation.router.address)
         );
 
@@ -300,11 +302,14 @@ export async function buildLiquidityTxParams(
     userWalletAddress: string
 ): Promise<Array<{ to: Address; value: bigint; body: Buffer | null }>> {
     try {
-        const orbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
-        const tonClient = new TonClient({ endpoint: orbsEndpoint });
+        // Use TonAPI for reliable access
+        const tonApiClient = new TonApiClient({
+            baseUrl: "https://tonapi.io",
+        });
+        const contractAdapter = new ContractAdapter(tonApiClient);
 
         const dexContracts = dexFactory(simulation.router);
-        const router = tonClient.open(
+        const router = contractAdapter.open(
             dexContracts.Router.create(simulation.router.address)
         );
         const proxyTon = dexContracts.pTON.create(simulation.router.ptonMasterAddress);
@@ -405,4 +410,78 @@ async function buildSingleLpTx(
         return router.getSingleSideProvideLiquidityJettonTxParams(args);
     }
     return router.getProvideLiquidityJettonTxParams(args);
+}
+
+// Burn LP tokens parameters
+export interface BurnLpParams {
+    poolAddress: string;
+    routerAddress: string;
+    lpBalance: string;
+    userWalletAddress: string;
+}
+
+// Build burn LP transaction parameters
+export async function buildBurnLpTxParams(
+    params: BurnLpParams
+): Promise<{ to: Address; value: bigint; body: Buffer | null } | null> {
+    try {
+        const apiClient = createStonApiClient();
+        
+        // Get pool info to retrieve router metadata
+        const poolInfo = await apiClient.getPool(params.poolAddress);
+        if (!poolInfo) {
+            throw new Error("Pool not found");
+        }
+
+        // Get router metadata for dexFactory
+        const routerMetadata = await apiClient.getRouter(poolInfo.routerAddress);
+        if (!routerMetadata) {
+            throw new Error("Router metadata not found");
+        }
+
+        // Use TonAPI for reliable access
+        const tonApiClient = new TonApiClient({
+            baseUrl: "https://tonapi.io",
+        });
+        const contractAdapter = new ContractAdapter(tonApiClient);
+
+        // Build DEX contracts from router metadata
+        const dexContracts = dexFactory(routerMetadata);
+
+        // Open the pool contract
+        const pool = contractAdapter.open(
+            dexContracts.Pool.create(params.poolAddress)
+        );
+
+        // Get LP wallet for user
+        const lpWallet = contractAdapter.open(
+            await pool.getJettonWallet({ ownerAddress: params.userWalletAddress })
+        );
+
+        // Get current LP balance if not provided (use from param or fetch)
+        let burnAmount = params.lpBalance;
+        if (!burnAmount || burnAmount === "0") {
+            const walletData = await lpWallet.getWalletData();
+            burnAmount = walletData.balance.toString();
+        }
+
+        // Build burn transaction
+        // responseAddress: where excess gas is returned
+        // userWalletAddress: the user's wallet address initiating the burn
+        const txParams = await pool.getBurnTxParams({
+            amount: burnAmount,
+            userWalletAddress: params.userWalletAddress,
+            responseAddress: params.userWalletAddress, // Same as user wallet for gas refund
+            queryId: Date.now(), // Use timestamp as unique query ID
+        });
+
+        return {
+            to: txParams.to,
+            value: txParams.value,
+            body: txParams.body ? txParams.body.toBoc() : null,
+        };
+    } catch (error) {
+        console.error("Failed to build burn LP transaction:", error);
+        return null;
+    }
 }

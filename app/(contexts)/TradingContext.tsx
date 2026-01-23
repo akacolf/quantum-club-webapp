@@ -40,8 +40,7 @@ import {
   DEFAULT_GRADUATION_THRESHOLD_TON,
 } from "@/types/trading";
 import {
-  createTonClient,
-  createTonClientAsync,
+  getContractAdapter,
   getJettonWalletAddress,
   getJettonBalance,
   getBondingCurveData,
@@ -54,6 +53,7 @@ import {
 } from "@/lib/jetton-operations";
 import { uploadTokenImage } from "@/lib/upload-image";
 import { FEE_CONFIG } from "@/lib/platform-config";
+import { getBalance, isContractActive } from "@/lib/ton-api";
 
 // =====================================================
 // Types
@@ -149,19 +149,13 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
   const [positions, setPositions] = useState<HolderPosition[]>([]);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
-  // TON client for on-chain queries - use TON Access (decentralized, no rate limits!)
-  const [tonClient, setTonClient] = useState(() => createTonClient(false)); // Always mainnet
+  // Contract adapter for on-chain queries - uses TonAPI
+  const [contractAdapter, setContractAdapter] = useState(() => getContractAdapter(false)); // Always mainnet
 
-  // Upgrade to TON Access on mount (async initialization)
+  // Initialize contract adapter on mount (sync, cached)
   useEffect(() => {
-    createTonClientAsync(false)
-      .then((client) => {
-        // Always mainnet
-        setTonClient(client);
-      })
-      .catch((err) => {
-        console.warn("Failed to init TON Access, using fallback:", err);
-      });
+    const adapter = getContractAdapter(false); // Always mainnet
+    setContractAdapter(adapter);
   }, []);
 
   // =====================================================
@@ -299,7 +293,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           
           const curveData = await getBondingCurveData(
             token.jettonMasterAddress,
-            tonClient
+            contractAdapter
           );
 
           if (curveData) {
@@ -337,7 +331,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         })
       );
     }
-  }, [trendingTokens, newTokens, tonClient]);
+  }, [trendingTokens, newTokens, contractAdapter]);
 
   // =====================================================
   // Fetch MY tokens (created by current user, including pending)
@@ -475,7 +469,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        // Wait for on-chain confirmation using Orbs TonClient (no rate limits!)
+        // Wait for on-chain confirmation using TonAPI
         let isDeployedOnChain = false;
         const maxRetries = 10;
         const retryDelay = 3000;
@@ -484,12 +478,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
           try {
-            const contractAddress = Address.parse(jettonAddress);
-            const contractState = await tonClient.getContractState(
-              contractAddress
-            );
+            const isActive = await isContractActive(jettonAddress);
 
-            if (contractState.state === "active") {
+            if (isActive) {
               isDeployedOnChain = true;
               break;
             }
@@ -598,7 +589,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           const balance = await getJettonBalance(
             token.jettonMasterAddress,
             walletAddress,
-            tonClient
+            contractAdapter
           );
 
           if (balance > BigInt(0)) {
@@ -625,7 +616,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error refreshing positions:", error);
     }
-  }, [walletAddress, tonClient, docToToken]);
+  }, [walletAddress, contractAdapter, docToToken]);
 
   // =====================================================
   // Select token (fetch on-chain data)
@@ -646,7 +637,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           try {
             const curveData = await getBondingCurveData(
               token.jettonMasterAddress,
-              tonClient
+              contractAdapter
             );
 
             if (curveData) {
@@ -673,7 +664,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         console.error("Error selecting token:", error);
       }
     },
-    [docToToken, tonClient]
+    [docToToken, contractAdapter]
   );
 
   // =====================================================
@@ -700,7 +691,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         let tokensOut = await previewBuyOnChain(
           token.jettonMasterAddress,
           tonNano,
-          tonClient
+          contractAdapter
         );
 
         // If on-chain preview fails, use local bonding curve calculation
@@ -736,7 +727,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     },
-    [docToToken, tonClient]
+    [docToToken, contractAdapter]
   );
 
   // =====================================================
@@ -763,7 +754,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         let tonOut = await previewSellOnChain(
           token.jettonMasterAddress,
           tokenNano,
-          tonClient
+          contractAdapter
         );
 
         // If on-chain preview fails, use local bonding curve calculation
@@ -799,7 +790,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     },
-    [docToToken, tonClient]
+    [docToToken, contractAdapter]
   );
 
   // =====================================================
@@ -836,10 +827,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
         // Skip balance check for initial buy - already accounted for in token creation
         if (!isInitialBuy) {
-          // Fetch current TON balance using Orbs TonClient (no rate limits!)
+          // Fetch current TON balance using TonAPI
           try {
-            const address = Address.parse(walletAddress);
-            const balanceInNano = await tonClient.getBalance(address);
+            const balanceInNano = await getBalance(walletAddress);
             const balanceInTon = Number(balanceInNano) / 1e9;
 
             // Require extra 0.1 TON for gas fees
@@ -877,14 +867,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
         // Skip contract verification for initial buy - already verified in createToken
         if (!isInitialBuy) {
-          // CRITICAL: Verify contract is active on blockchain using Orbs TonClient (no rate limits!)
+          // CRITICAL: Verify contract is active on blockchain using TonAPI
           try {
-            const contractAddress = Address.parse(token.jettonMasterAddress);
-            const contractState = await tonClient.getContractState(
-              contractAddress
-            );
+            const isActive = await isContractActive(token.jettonMasterAddress);
 
-            if (contractState.state !== "active") {
+            if (!isActive) {
               return {
                 success: false,
                 error:
@@ -978,10 +965,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           return { success: false, error: "Invalid amount" };
         }
 
-        // Check TON balance for gas fees using Orbs TonClient (no rate limits!)
+        // Check TON balance for gas fees using TonAPI
         try {
-          const address = Address.parse(walletAddress);
-          const balanceInNano = await tonClient.getBalance(address);
+          const balanceInNano = await getBalance(walletAddress);
           const balanceInTon = Number(balanceInNano) / 1e9;
 
           // Require 0.15 TON for gas fees
@@ -1013,14 +999,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           return { success: false, error: "Token not deployed on-chain" };
         }
 
-        // CRITICAL: Verify contract is active using Orbs TonClient (no rate limits!)
+        // CRITICAL: Verify contract is active using TonAPI
         try {
-          const contractAddress = Address.parse(token.jettonMasterAddress);
-          const contractState = await tonClient.getContractState(
-            contractAddress
-          );
+          const isActive = await isContractActive(token.jettonMasterAddress);
 
-          if (contractState.state !== "active") {
+          if (!isActive) {
             return {
               success: false,
               error: "Contract not active on blockchain",
@@ -1038,7 +1021,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         const jettonWalletAddress = await getJettonWalletAddress(
           token.jettonMasterAddress,
           walletAddress,
-          tonClient
+          contractAdapter
         );
 
         if (!jettonWalletAddress) {
@@ -1049,7 +1032,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         const userTokenBalance = await getJettonBalance(
           token.jettonMasterAddress,
           walletAddress,
-          tonClient
+          contractAdapter
         );
 
         const tokenNano = parseTokenAmount(tokenAmount);
@@ -1110,7 +1093,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
       walletAddress,
       telegramId,
       docToToken,
-      tonClient,
+      contractAdapter,
       sendTransaction,
       refreshPositions,
       previewSell,
@@ -1222,7 +1205,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (txResult.success) {
-            // CRITICAL: Wait for on-chain confirmation using Orbs TonClient (no rate limits!)
+            // CRITICAL: Wait for on-chain confirmation using TonAPI
             let isDeployedOnChain = false;
             const maxRetries = 10;
             const retryDelay = 3000; // 3 seconds between retries
@@ -1231,12 +1214,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
               await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
               try {
-                const contractAddress = Address.parse(jettonAddress);
-                const contractState = await tonClient.getContractState(
-                  contractAddress
-                );
+                const isActive = await isContractActive(jettonAddress);
 
-                if (contractState.state === "active") {
+                if (isActive) {
                   isDeployedOnChain = true;
                   break;
                 }

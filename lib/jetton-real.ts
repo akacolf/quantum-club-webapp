@@ -16,7 +16,7 @@ import {
     storeStateInit,
     Dictionary
 } from "@ton/core";
-import { TonClient } from "@ton/ton";
+import { runGetMethod, isContractActive as checkContractActive } from "@/lib/ton-api";
 
 // Import compiled contract bytecode
 import {
@@ -256,19 +256,21 @@ export function buildTransferMessage(
  */
 export async function getJettonWalletAddress(
     jettonMasterAddress: string,
-    ownerAddress: string,
-    tonClient: TonClient
+    ownerAddress: string
 ): Promise<string | null> {
     try {
-        const master = Address.parse(jettonMasterAddress);
         const owner = Address.parse(ownerAddress);
-
-        const result = await tonClient.runMethod(master, "get_wallet_address", [
-            { type: "slice", cell: beginCell().storeAddress(owner).endCell() }
-        ]);
-
-        const walletAddress = result.stack.readAddress();
-        return walletAddress?.toString({ bounceable: true }) || null;
+        const result = await runGetMethod(
+            jettonMasterAddress,
+            "get_wallet_address",
+            [{ type: "slice", cell: beginCell().storeAddress(owner).endCell() }]
+        );
+        
+        if (result.stack) {
+            const walletAddress = result.stack.readAddress();
+            return walletAddress?.toString({ bounceable: true }) || null;
+        }
+        return null;
     } catch {
         return null;
     }
@@ -278,15 +280,15 @@ export async function getJettonWalletAddress(
  * Get Jetton balance for a wallet
  */
 export async function getJettonBalance(
-    jettonWalletAddress: string,
-    tonClient: TonClient
+    jettonWalletAddress: string
 ): Promise<bigint> {
     try {
-        const wallet = Address.parse(jettonWalletAddress);
-        const result = await tonClient.runMethod(wallet, "get_wallet_data");
+        const result = await runGetMethod(jettonWalletAddress, "get_wallet_data");
 
-        const balance = result.stack.readBigNumber();
-        return balance;
+        if (result.stack) {
+            return result.stack.readBigNumber();
+        }
+        return BigInt(0);
     } catch {
         return BigInt(0);
     }
@@ -296,42 +298,36 @@ export async function getJettonBalance(
  * Check if Jetton contract is deployed and active
  */
 export async function isJettonDeployed(
-    jettonAddress: string,
-    tonClient: TonClient
+    jettonAddress: string
 ): Promise<boolean> {
-    try {
-        const address = Address.parse(jettonAddress);
-        const state = await tonClient.getContractState(address);
-        return state.state === "active";
-    } catch {
-        return false;
-    }
+    return checkContractActive(jettonAddress);
 }
 
 /**
  * Get full Jetton data from the master contract
  */
 export async function getJettonData(
-    jettonAddress: string,
-    tonClient: TonClient
+    jettonAddress: string
 ): Promise<{
     totalSupply: bigint;
     mintable: boolean;
     adminAddress: string;
 } | null> {
     try {
-        const address = Address.parse(jettonAddress);
-        const result = await tonClient.runMethod(address, "get_jetton_data");
+        const result = await runGetMethod(jettonAddress, "get_jetton_data");
 
-        const totalSupply = result.stack.readBigNumber();
-        const mintable = result.stack.readBoolean();
-        const adminAddress = result.stack.readAddress();
+        if (result.stack) {
+            const totalSupply = result.stack.readBigNumber();
+            const mintable = result.stack.readBoolean();
+            const adminAddress = result.stack.readAddress();
 
-        return {
-            totalSupply,
-            mintable,
-            adminAddress: adminAddress?.toString({ bounceable: true }) || "",
-        };
+            return {
+                totalSupply,
+                mintable,
+                adminAddress: adminAddress?.toString({ bounceable: true }) || "",
+            };
+        }
+        return null;
     } catch {
         return null;
     }

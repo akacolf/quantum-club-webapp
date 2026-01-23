@@ -48,6 +48,7 @@ import {
   toUnits,
   fromUnits,
   buildLiquidityTxParams,
+  buildBurnLpTxParams,
   type SwapAsset,
   type LiquidityProvisionResult,
 } from "@/lib/stonfi";
@@ -159,6 +160,8 @@ export default function LiquidityPage() {
     null,
   );
   const [removePercent, setRemovePercent] = useState("50");
+  const [isRemovingLiquidity, setIsRemovingLiquidity] = useState(false);
+  const [removeStep, setRemoveStep] = useState<"input" | "processing" | "success">("input");
 
   // Processing state
   const [, setIsProcessing] = useState(false);
@@ -685,6 +688,117 @@ export default function LiquidityPage() {
       setStep("input");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Handle remove liquidity
+  const handleRemoveLiquidity = async () => {
+    const authenticated = await requestAuth();
+    if (!authenticated) {
+      toast.error("Authentication required");
+      return;
+    }
+
+    await executeRemoveLiquidity();
+  };
+
+  // Execute remove liquidity (burn LP tokens)
+  const executeRemoveLiquidity = async () => {
+    if (!selectedPosition || !walletAddress) {
+      toast.error("Please select a position to remove");
+      return;
+    }
+
+    const storedMnemonic = localStorage.getItem(
+      `quantum_wallet_mnemonic_${telegramId}`,
+    );
+    if (!storedMnemonic) {
+      toast.error("Wallet not found");
+      return;
+    }
+
+    setIsRemovingLiquidity(true);
+    setRemoveStep("processing");
+
+    try {
+      // Calculate the amount of LP tokens to burn based on percentage
+      const percent = parseInt(removePercent);
+      const fullBalance = BigInt(selectedPosition.lpBalance);
+      const burnAmount = (fullBalance * BigInt(percent)) / BigInt(100);
+
+      if (burnAmount <= BigInt(0)) {
+        throw new Error("Invalid burn amount");
+      }
+
+      // Build burn LP transaction
+      const txParams = await buildBurnLpTxParams({
+        poolAddress: selectedPosition.poolAddress,
+        routerAddress: selectedPosition.poolInfo?.address || "",
+        lpBalance: burnAmount.toString(),
+        userWalletAddress: walletAddress,
+      });
+
+      if (!txParams) {
+        throw new Error("Failed to build burn transaction");
+      }
+
+      // Initialize TonAPI client
+      const tonApiClient = new TonApiClient({
+        baseUrl: "https://tonapi.io",
+      });
+      const contractAdapter = new ContractAdapter(tonApiClient);
+
+      // Create wallet from mnemonic
+      const mnemonic = storedMnemonic.split(" ");
+      const keyPair = await mnemonicToPrivateKey(mnemonic);
+      const wallet = WalletContractV5R1.create({
+        workchain: 0,
+        publicKey: keyPair.publicKey,
+      });
+      const contract = contractAdapter.open(wallet);
+
+      // Get current seqno
+      const seqno = await contract.getSeqno();
+
+      // Build message
+      const message = internal({
+        to: txParams.to,
+        value: txParams.value,
+        body: txParams.body ? Cell.fromBoc(txParams.body)[0] : undefined,
+      });
+
+      // Send the transaction
+      await contract.sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+        messages: [message],
+      });
+
+      toast.success("Liquidity removed successfully!", {
+        description: `Removed ${percent}% from ${selectedPosition.token0?.symbol}/${selectedPosition.token1?.symbol} pool`,
+      });
+
+      setRemoveStep("success");
+
+      // Refresh positions after a delay
+      setTimeout(() => {
+        setRemoveStep("input");
+        setTab("positions");
+        setSelectedPosition(null);
+        setRemovePercent("50");
+        // Trigger positions reload by resetting the state
+        setPositions([]);
+      }, 3000);
+    } catch (error) {
+      console.error("Remove liquidity failed:", error);
+      toast.error("Failed to remove liquidity", {
+        description:
+          error instanceof Error ? error.message : "Transaction failed",
+      });
+      setRemoveStep("input");
+    } finally {
+      setIsRemovingLiquidity(false);
     }
   };
 
@@ -1219,97 +1333,257 @@ export default function LiquidityPage() {
 
           {/* Remove Liquidity Tab */}
           <TabsContent value="remove" className="space-y-4">
-            {positions.length === 0 ? (
-              <Card className="bg-card/80 border-border rounded-2xl">
-                <CardContent className="p-8 text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-                    <Minus className="w-8 h-8 text-muted-foreground" />
+            <AnimatePresence mode="wait">
+              {removeStep === "processing" && (
+                <motion.div
+                  key="remove-processing"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-16 space-y-4"
+                >
+                  <div className="relative mx-auto w-20 h-20">
+                    <Loader />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg">
-                      No Positions to Remove
-                    </h3>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      You need to add liquidity first
+                  <h2 className="text-xl font-bold">Removing Liquidity...</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Please wait while your transaction is processed
+                  </p>
+                </motion.div>
+              )}
+
+              {removeStep === "success" && (
+                <motion.div
+                  key="remove-success"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-16 space-y-4"
+                >
+                  <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
+                    <Check className="w-10 h-10 text-green-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-green-500">
+                    Liquidity Removed!
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    Your LP tokens have been burned and tokens returned
+                  </p>
+                  {selectedPosition && (
+                    <p className="text-sm font-medium">
+                      Removed {removePercent}% from {selectedPosition.token0?.symbol}/{selectedPosition.token1?.symbol}
                     </p>
-                  </div>
-                  <Button onClick={() => setTab("add")} variant="outline">
-                    Add Liquidity
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {/* Position selector */}
-                <Card className="bg-card/80 border-border rounded-2xl">
-                  <CardContent className="p-4">
-                    <Label className="text-sm text-muted-foreground mb-2 block">
-                      Select Position
-                    </Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between h-12"
-                        >
-                          {selectedPosition ? (
-                            <span>
-                              {selectedPosition.token0?.symbol}/
+                  )}
+                </motion.div>
+              )}
+
+              {removeStep === "input" && positions.length === 0 && (
+                <motion.div
+                  key="remove-empty"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="bg-card/80 border-border rounded-2xl">
+                    <CardContent className="p-8 text-center space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+                        <Minus className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">
+                          No Positions to Remove
+                        </h3>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          You need to add liquidity first
+                        </p>
+                      </div>
+                      <Button onClick={() => setTab("add")} variant="outline">
+                        Add Liquidity
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+
+              {removeStep === "input" && positions.length > 0 && (
+                <motion.div
+                  key="remove-input"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  {/* Position selector */}
+                  <Card className="bg-card/80 border-border rounded-2xl">
+                    <CardContent className="p-4">
+                      <Label className="text-sm text-muted-foreground mb-2 block">
+                        Select Position
+                      </Label>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between h-12"
+                          >
+                            {selectedPosition ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex -space-x-1">
+                                  {selectedPosition.token0?.imageUrl && (
+                                    <Image
+                                      src={selectedPosition.token0.imageUrl}
+                                      alt={selectedPosition.token0.symbol}
+                                      width={20}
+                                      height={20}
+                                      className="w-5 h-5 rounded-full border border-card"
+                                      unoptimized
+                                    />
+                                  )}
+                                  {selectedPosition.token1?.imageUrl && (
+                                    <Image
+                                      src={selectedPosition.token1.imageUrl}
+                                      alt={selectedPosition.token1.symbol}
+                                      width={20}
+                                      height={20}
+                                      className="w-5 h-5 rounded-full border border-card"
+                                      unoptimized
+                                    />
+                                  )}
+                                </div>
+                                <span>
+                                  {selectedPosition.token0?.symbol}/
+                                  {selectedPosition.token1?.symbol}
+                                </span>
+                              </div>
+                            ) : (
+                              "Select a position"
+                            )}
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-full">
+                          {positions.map((pos, idx) => (
+                            <DropdownMenuItem
+                              key={idx}
+                              onClick={() => setSelectedPosition(pos)}
+                              className="flex items-center gap-2"
+                            >
+                              <div className="flex -space-x-1">
+                                {pos.token0?.imageUrl && (
+                                  <Image
+                                    src={pos.token0.imageUrl}
+                                    alt={pos.token0.symbol}
+                                    width={20}
+                                    height={20}
+                                    className="w-5 h-5 rounded-full"
+                                    unoptimized
+                                  />
+                                )}
+                                {pos.token1?.imageUrl && (
+                                  <Image
+                                    src={pos.token1.imageUrl}
+                                    alt={pos.token1.symbol}
+                                    width={20}
+                                    height={20}
+                                    className="w-5 h-5 rounded-full"
+                                    unoptimized
+                                  />
+                                )}
+                              </div>
+                              {pos.token0?.symbol}/{pos.token1?.symbol}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </CardContent>
+                  </Card>
+
+                  {selectedPosition && (
+                    <>
+                      {/* Position details */}
+                      <Card className="bg-muted/50 border-border rounded-xl">
+                        <CardContent className="p-4 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Your share
+                            </span>
+                            <span className="font-medium">
+                              {selectedPosition.sharePercent}%
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              {selectedPosition.token0?.symbol}
+                            </span>
+                            <span className="font-medium">
+                              {formatCompactNumber(parseFloat(selectedPosition.token0Amount))}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
                               {selectedPosition.token1?.symbol}
                             </span>
-                          ) : (
-                            "Select a position"
-                          )}
-                          <ChevronDown className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-full">
-                        {positions.map((pos, idx) => (
-                          <DropdownMenuItem
-                            key={idx}
-                            onClick={() => setSelectedPosition(pos)}
-                          >
-                            {pos.token0?.symbol}/{pos.token1?.symbol}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </CardContent>
-                </Card>
+                            <span className="font-medium">
+                              {formatCompactNumber(parseFloat(selectedPosition.token1Amount))}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
 
-                {selectedPosition && (
-                  <>
-                    {/* Amount slider */}
-                    <Card className="bg-card/80 border-border rounded-2xl">
-                      <CardContent className="p-4 space-y-4">
-                        <Label className="text-sm text-muted-foreground">
-                          Amount to Remove
-                        </Label>
-                        <div className="grid grid-cols-4 gap-2">
-                          {["25", "50", "75", "100"].map((pct) => (
-                            <Button
-                              key={pct}
-                              variant={
-                                removePercent === pct ? "default" : "outline"
-                              }
-                              size="sm"
-                              onClick={() => setRemovePercent(pct)}
-                              className="w-full"
-                            >
-                              {pct}%
-                            </Button>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
+                      {/* Amount slider */}
+                      <Card className="bg-card/80 border-border rounded-2xl">
+                        <CardContent className="p-4 space-y-4">
+                          <Label className="text-sm text-muted-foreground">
+                            Amount to Remove
+                          </Label>
+                          <div className="grid grid-cols-4 gap-2">
+                            {["25", "50", "75", "100"].map((pct) => (
+                              <Button
+                                key={pct}
+                                variant={
+                                  removePercent === pct ? "default" : "outline"
+                                }
+                                size="sm"
+                                onClick={() => setRemovePercent(pct)}
+                                className="w-full"
+                              >
+                                {pct}%
+                              </Button>
+                            ))}
+                          </div>
 
-                    <Button className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 h-14 rounded-xl font-bold text-lg">
-                      Remove Liquidity
-                    </Button>
-                  </>
-                )}
-              </div>
-            )}
+                          {/* Estimated return */}
+                          <div className="pt-2 border-t border-border space-y-1">
+                            <p className="text-xs text-muted-foreground">You will receive approximately:</p>
+                            <div className="flex justify-between text-sm">
+                              <span>{selectedPosition.token0?.symbol}</span>
+                              <span className="font-medium">
+                                {formatCompactNumber(parseFloat(selectedPosition.token0Amount) * parseInt(removePercent) / 100)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>{selectedPosition.token1?.symbol}</span>
+                              <span className="font-medium">
+                                {formatCompactNumber(parseFloat(selectedPosition.token1Amount) * parseInt(removePercent) / 100)}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Button 
+                        onClick={handleRemoveLiquidity}
+                        disabled={isRemovingLiquidity || parseFloat(tonBalance) < 0.1}
+                        className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 h-14 rounded-xl font-bold text-lg"
+                      >
+                        {isRemovingLiquidity ? (
+                          <ButtonLoader />
+                        ) : parseFloat(tonBalance) < 0.1 ? (
+                          "Insufficient TON for gas"
+                        ) : (
+                          `Remove ${removePercent}% Liquidity`
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </TabsContent>
         </Tabs>
       </div>

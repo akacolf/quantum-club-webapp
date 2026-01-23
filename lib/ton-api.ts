@@ -1,14 +1,15 @@
 /**
- * Unified TON API utilities using Orbs Network
+ * Unified TON API utilities using TonAPI
  * 
- * Orbs Network provides decentralized, rate-limit-free access to TON.
- * This module centralizes all TON API calls to avoid hitting rate limits.
+ * TonAPI provides reliable, fast access to TON blockchain.
+ * This module centralizes all TON API calls.
  * 
- * @see https://www.orbs.com/ton-access
+ * @see https://tonapi.io
  */
 
-import { TonClient, Address } from "@ton/ton";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { Address } from "@ton/core";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 
 // =====================================================
 // Configuration
@@ -17,85 +18,76 @@ import { getHttpEndpoint } from "@orbs-network/ton-access";
 const NETWORK = (process.env.NEXT_PUBLIC_TON_NETWORK || "mainnet") as "mainnet" | "testnet";
 const IS_TESTNET = NETWORK === "testnet";
 
-// Cache for Orbs endpoints
-let cachedEndpoint: string | null = null;
-let cachedClient: TonClient | null = null;
-let initPromise: Promise<TonClient> | null = null;
+// Cache for TonAPI client and adapter
+let cachedTonApiClient: TonApiClient | null = null;
+let cachedContractAdapter: ContractAdapter | null = null;
 
 // =====================================================
 // Core Client Management
 // =====================================================
 
 /**
- * Get the Orbs Network endpoint (cached)
+ * Get TonAPI client (cached)
  */
-export async function getOrbsEndpoint(): Promise<string> {
-    if (cachedEndpoint) return cachedEndpoint;
+export function getTonApiClient(): TonApiClient {
+    if (cachedTonApiClient) return cachedTonApiClient;
     
-    cachedEndpoint = await getHttpEndpoint({ network: NETWORK });
-    console.log(`[TON-API] Using Orbs endpoint: ${cachedEndpoint}`);
-    return cachedEndpoint;
+    cachedTonApiClient = new TonApiClient({
+        baseUrl: IS_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io",
+    });
+    return cachedTonApiClient;
 }
 
 /**
- * Get or create a TonClient using Orbs Network
- * This is rate-limit-free and decentralized
+ * Get or create a ContractAdapter using TonAPI
+ * @deprecated Use getContractAdapter from jetton-operations instead
  */
-export async function getTonClient(): Promise<TonClient> {
-    if (cachedClient) return cachedClient;
-    
-    // Prevent multiple simultaneous initializations
-    if (initPromise) return initPromise;
-    
-    initPromise = (async () => {
-        const endpoint = await getOrbsEndpoint();
-        cachedClient = new TonClient({ endpoint });
-        return cachedClient;
-    })();
-    
-    return initPromise;
+export async function getTonClient(): Promise<ContractAdapter> {
+    return getContractAdapter();
 }
 
 /**
- * Create a new TonClient synchronously with fallback
+ * Get ContractAdapter for blockchain operations
+ */
+export function getContractAdapter(): ContractAdapter {
+    if (cachedContractAdapter) return cachedContractAdapter;
+    
+    cachedContractAdapter = new ContractAdapter(getTonApiClient());
+    return cachedContractAdapter;
+}
+
+/**
+ * Create a new ContractAdapter synchronously
  * Used for initial render before async client is ready
  */
-export function createTonClientSync(): TonClient {
-    return new TonClient({
-        endpoint: IS_TESTNET
-            ? "https://testnet.toncenter.com/api/v2/jsonRPC"
-            : "https://toncenter.com/api/v2/jsonRPC",
-    });
+export function createTonClientSync(): ContractAdapter {
+    return getContractAdapter();
 }
 
 // =====================================================
-// Account Queries (replaces TONAPI calls)
+// Account Queries (using TonAPI REST)
 // =====================================================
 
 export interface AccountInfo {
     address: string;
     balance: bigint;
     status: "active" | "uninit" | "frozen" | "nonexist";
-    lastTransactionLt: bigint | null;
-    lastTransactionHash: string | null;
+    lastActivity: number | null; // Unix timestamp of last activity
 }
 
 /**
- * Get account info (balance, status, etc.) using Orbs
- * Replaces: tonapi.io/v2/accounts/{address}
+ * Get account info (balance, status, etc.) using TonAPI
  */
 export async function getAccountInfo(address: string): Promise<AccountInfo | null> {
     try {
-        const client = await getTonClient();
-        const addr = Address.parse(address);
-        const state = await client.getContractState(addr);
+        const client = getTonApiClient();
+        const account = await client.accounts.getAccount(Address.parse(address));
         
         return {
-            address: addr.toString(),
-            balance: state.balance,
-            status: state.state as "active" | "uninit" | "frozen" | "nonexist",
-            lastTransactionLt: state.lastTransaction?.lt ? BigInt(state.lastTransaction.lt) : null,
-            lastTransactionHash: state.lastTransaction?.hash ?? null,
+            address: account.address.toString(),
+            balance: account.balance,
+            status: account.status,
+            lastActivity: account.lastActivity ?? null,
         };
     } catch (error) {
         console.error(`[TON-API] Failed to get account info for ${address}:`, error);
@@ -105,14 +97,12 @@ export async function getAccountInfo(address: string): Promise<AccountInfo | nul
 
 /**
  * Get account balance in nanoTON
- * Replaces direct balance queries to tonapi.io
  */
 export async function getBalance(address: string): Promise<bigint> {
     try {
-        const client = await getTonClient();
-        const addr = Address.parse(address);
-        const balance = await client.getBalance(addr);
-        return balance;
+        const client = getTonApiClient();
+        const account = await client.accounts.getAccount(Address.parse(address));
+        return account.balance;
     } catch (error) {
         console.error(`[TON-API] Failed to get balance for ${address}:`, error);
         return BigInt(0);
@@ -121,14 +111,12 @@ export async function getBalance(address: string): Promise<bigint> {
 
 /**
  * Check if a contract is deployed and active
- * Replaces: tonapi.io/v2/accounts/{address} status check
  */
 export async function isContractActive(address: string): Promise<boolean> {
     try {
-        const client = await getTonClient();
-        const addr = Address.parse(address);
-        const state = await client.getContractState(addr);
-        return state.state === "active";
+        const client = getTonApiClient();
+        const account = await client.accounts.getAccount(Address.parse(address));
+        return account.status === "active";
     } catch (error) {
         console.error(`[TON-API] Failed to check contract status for ${address}:`, error);
         return false;
@@ -151,9 +139,10 @@ export async function runGetMethod(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
     try {
-        const client = await getTonClient();
+        const adapter = getContractAdapter();
         const addr = Address.parse(address);
-        const result = await client.runMethod(addr, method, args);
+        const provider = adapter.provider(addr);
+        const result = await provider.get(method, args ?? []);
         return result;
     } catch (error) {
         // Don't log expected errors (contract doesn't exist, etc.)
@@ -195,14 +184,13 @@ export async function getJettonInfo(jettonAddress: string): Promise<JettonInfo |
 
 /**
  * Get jetton wallet address for an owner
- * Replaces: tonapi.io queries for wallet address
  */
 export async function getJettonWalletAddress(
     jettonMasterAddress: string,
     ownerAddress: string
 ): Promise<string | null> {
     try {
-        const client = await getTonClient();
+        const adapter = getContractAdapter();
         const { beginCell } = await import("@ton/core");
         
         const ownerSlice = {
@@ -210,11 +198,8 @@ export async function getJettonWalletAddress(
             cell: beginCell().storeAddress(Address.parse(ownerAddress)).endCell(),
         };
         
-        const result = await client.runMethod(
-            Address.parse(jettonMasterAddress),
-            "get_wallet_address",
-            [ownerSlice]
-        );
+        const provider = adapter.provider(Address.parse(jettonMasterAddress));
+        const result = await provider.get("get_wallet_address", [ownerSlice]);
         
         const walletAddress = result.stack.readAddress();
         return walletAddress?.toString() ?? null;
@@ -341,11 +326,15 @@ export async function getTonPriceUsd(): Promise<number> {
 
 /**
  * Send a BOC (Bag of Cells) to the network
- * Uses Orbs endpoint for broadcasting
+ * Uses TonAPI for broadcasting
  */
 export async function sendBoc(boc: Buffer): Promise<void> {
-    const client = await getTonClient();
-    await client.sendFile(boc);
+    const client = getTonApiClient();
+    const { Cell } = await import("@ton/core");
+    const cell = Cell.fromBoc(boc)[0];
+    await client.blockchain.sendBlockchainMessage({
+        boc: cell,
+    });
 }
 
 // =====================================================

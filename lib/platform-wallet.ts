@@ -10,17 +10,18 @@
  */
 
 import { Address, internal, SendMode, Cell, beginCell } from "@ton/core";
-import { WalletContractV5R1, WalletContractV4, TonClient } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 import { PLATFORM_WALLET_ADDRESS } from "./platform-config";
 
 // Platform wallet configuration
 const PLATFORM_MNEMONIC = process.env.PLATFORM_WALLET_MNEMONIC || "";
 const PLATFORM_WALLET_VERSION = process.env.PLATFORM_WALLET_VERSION || "v5r1";
 
-// Cache for Orbs endpoint
-let cachedOrbsEndpoint: string | null = null;
+// Cache for TonAPI
+let cachedContractAdapter: ContractAdapter | null = null;
 
 /**
  * Check if platform wallet is configured
@@ -30,14 +31,15 @@ export function isPlatformWalletConfigured(): boolean {
 }
 
 /**
- * Get TonClient instance using Orbs Network (rate-limit free!)
+ * Get ContractAdapter instance using TonAPI
  */
-async function getTonClient(): Promise<TonClient> {
-    if (!cachedOrbsEndpoint) {
-        cachedOrbsEndpoint = await getHttpEndpoint({ network: "mainnet" });
-        console.log("[platform-wallet] Using Orbs endpoint:", cachedOrbsEndpoint);
+function getContractAdapter(): ContractAdapter {
+    if (!cachedContractAdapter) {
+        const client = new TonApiClient({ baseUrl: "https://tonapi.io" });
+        cachedContractAdapter = new ContractAdapter(client);
+        console.log("[platform-wallet] Using TonAPI");
     }
-    return new TonClient({ endpoint: cachedOrbsEndpoint });
+    return cachedContractAdapter;
 }
 
 /**
@@ -92,8 +94,8 @@ export async function sendFromPlatformWallet(params: {
             return { success: false, error: "Platform wallet address mismatch" };
         }
 
-        const tonClient = await getTonClient();
-        const contract = tonClient.open(wallet);
+        const contractAdapter = getContractAdapter();
+        const contract = contractAdapter.open(wallet);
         const toAddress = Address.parse(params.to);
 
         // Get seqno with retry

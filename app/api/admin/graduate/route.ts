@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Address, beginCell, toNano } from "@ton/core";
-import { TonClient } from "@ton/ton";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { 
     ADMIN_API_KEY, 
     PLATFORM_WALLET_ADDRESS,
     DEX_CONFIG 
 } from "@/lib/platform-config";
-
-// Environment-based API endpoint
-const TON_CENTER_ENDPOINT = process.env.NEXT_PUBLIC_TON_CENTER_ENDPOINT || 
-    "https://toncenter.com/api/v2/jsonRPC";
-const TON_CENTER_API_KEY = process.env.NEXT_PUBLIC_TON_CENTER_API_KEY || "";
+import { runGetMethod } from "@/lib/ton-api";
 
 /**
  * POST /api/admin/graduate
@@ -87,16 +82,20 @@ export async function POST(request: NextRequest) {
         }
 
         // Query on-chain state to verify graduation eligibility
-        const client = new TonClient({
-            endpoint: TON_CENTER_ENDPOINT,
-            apiKey: TON_CENTER_API_KEY || undefined,
-        });
+        const targetAddressStr = targetAddress.toString();
 
         try {
-            const result = await client.runMethod(targetAddress, "get_bonding_curve_data");
-            const tonReserve = result.stack.readBigNumber();
-            const graduated = result.stack.readNumber();
-            const graduationTarget = result.stack.readBigNumber();
+            const result = await runGetMethod(targetAddressStr, "get_bonding_curve_data");
+            
+            let tonReserve = BigInt(0);
+            let graduated = 0;
+            let graduationTarget = BigInt(0);
+            
+            if (result.stack) {
+                tonReserve = result.stack.readBigNumber();
+                graduated = Number(result.stack.readBigNumber());
+                graduationTarget = result.stack.readBigNumber();
+            }
 
             if (graduated === 1) {
                 // Update Firestore to match on-chain state

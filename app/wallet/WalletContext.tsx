@@ -2,10 +2,11 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { Address, fromNano, internal, SendMode, Cell, loadStateInit } from "@ton/core";
-import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, TonClient } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
-import { getHttpEndpoint } from "@orbs-network/ton-access";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
 import { useGameContext } from "../(contexts)/MiningContext";
 import { getAccountJettons } from "@/lib/tonapi-client";
@@ -442,40 +443,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Fetch TON price first
       const price = await fetchTonPrice();
       
-      // Use Orbs Network for TON balance (rate-limit free!)
+      // Use TonAPI for TON balance
       let tonUsd = 0;
       try {
-        const orbsEndpoint = await getHttpEndpoint({ 
-          network: isTestnet ? "testnet" : "mainnet" 
-        });
-        const orbsClient = new TonClient({ endpoint: orbsEndpoint });
-        const address = Address.parse(walletAddress);
-        
-        const balance = await orbsClient.getBalance(address);
-        const balanceInTon = fromNano(balance);
+        const { getAccount } = await import("@/lib/tonapi-client");
+        const balanceData = await getAccount(walletAddress, isTestnet);
+        const balanceInTon = fromNano(balanceData.balance || "0");
         setTonBalance(parseFloat(balanceInTon).toFixed(4));
-        
-        // Get contract state for wallet status
-        const state = await orbsClient.getContractState(address);
-        setWalletStatus(state.state as string);
-        
-        // Calculate USD value
+        setWalletStatus(balanceData.status);
         tonUsd = parseFloat(balanceInTon) * price;
         setTonUsdValue(tonUsd.toFixed(2));
       } catch (err) {
-        console.error("Failed to fetch balance via Orbs:", err);
-        // Fallback to TONAPI via authenticated proxy if Orbs fails
-        try {
-          const { getAccount } = await import("@/lib/tonapi-client");
-          const balanceData = await getAccount(walletAddress, isTestnet);
-          const balanceInTon = fromNano(balanceData.balance || "0");
-          setTonBalance(parseFloat(balanceInTon).toFixed(4));
-          setWalletStatus(balanceData.status);
-          tonUsd = parseFloat(balanceInTon) * price;
-          setTonUsdValue(tonUsd.toFixed(2));
-        } catch (apiErr) {
-          console.error("TonAPI fallback also failed:", apiErr);
-        }
+        console.error("Failed to fetch balance via TonAPI:", err);
       }
 
       // Fetch Jettons (tokens) balance with USD prices via authenticated proxy
@@ -693,22 +672,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           break;
       }
 
-      // Use TON Access for decentralized, rate-limit-free access
-      let tonClient: TonClient;
-      try {
-        const endpoint = await getHttpEndpoint({ network: isTestnet ? "testnet" : "mainnet" });
-        tonClient = new TonClient({ endpoint });
-      } catch (accessError) {
-        // Fallback to TonCenter if TON Access fails
-        console.warn("TON Access failed, falling back to TonCenter:", accessError);
-        tonClient = new TonClient({
-          endpoint: isTestnet
-            ? "https://testnet.toncenter.com/api/v2/jsonRPC"
-            : "https://toncenter.com/api/v2/jsonRPC",
-        });
-      }
-
-      const contract = tonClient.open(wallet);
+      // Use TonAPI for reliable access
+      const tonApiClient = new TonApiClient({
+        baseUrl: isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
+      });
+      const contractAdapter = new ContractAdapter(tonApiClient);
+      const contract = contractAdapter.open(wallet);
       const toAddress = Address.parse(params.to);
 
       // Get seqno with retry logic for rate limits
@@ -789,33 +758,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       let success = false;
       let lastError = "";
 
-      // Use Orbs Network for transaction broadcasting (rate-limit free!)
+      // Use TonAPI for transaction broadcasting
       for (let attempt = 1; attempt <= 3; attempt++) {
         if (attempt > 1) {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
         try {
-          // Get Orbs endpoint for current network
-          const orbsEndpoint = await getHttpEndpoint({ 
-            network: isTestnet ? "testnet" : "mainnet" 
-          });
-          const orbsClient = new TonClient({ endpoint: orbsEndpoint });
-          
-          // Send the BOC via Orbs (TonClient.sendFile expects a Buffer)
-          const bocBuffer = Buffer.from(bocBase64, "base64");
-          await orbsClient.sendFile(bocBuffer);
+          // Send via TonAPI proxy
+          const { sendBlockchainMessage } = await import("@/lib/tonapi-client");
+          await sendBlockchainMessage(bocBase64, isTestnet);
           
           success = true;
           break;
         } catch (err) {
-          console.error(`Orbs send attempt ${attempt} failed:`, err);
-          lastError = `Orbs: ${err instanceof Error ? err.message : String(err)}`;
+          console.error(`TonAPI send attempt ${attempt} failed:`, err);
+          lastError = `TonAPI: ${err instanceof Error ? err.message : String(err)}`;
         }
       }
 
       if (!success) {
-        throw new Error(lastError || "Failed to send transaction via Orbs Network");
+        throw new Error(lastError || "Failed to send transaction via TonAPI");
       }
 
       setTimeout(() => {

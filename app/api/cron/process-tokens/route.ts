@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Address, toNano } from "@ton/core";
-import { TonClient } from "@ton/ton";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { 
     ADMIN_API_KEY,
@@ -12,11 +11,7 @@ import {
     buildWithdrawFeesMessage,
     buildGraduateMessage,
 } from "@/lib/platform-wallet";
-
-// TON API configuration
-const TON_CENTER_ENDPOINT = process.env.NEXT_PUBLIC_TON_CENTER_ENDPOINT || 
-    "https://toncenter.com/api/v2/jsonRPC";
-const TON_CENTER_API_KEY = process.env.NEXT_PUBLIC_TON_CENTER_API_KEY || "";
+import { runGetMethod } from "@/lib/ton-api";
 
 // Minimum fees worth withdrawing (0.1 TON to cover gas)
 const MIN_FEES_TO_WITHDRAW = toNano("0.1");
@@ -83,12 +78,6 @@ export async function GET(request: NextRequest) {
             }, { status: 500 });
         }
 
-        // Initialize TON client
-        const tonClient = new TonClient({
-            endpoint: TON_CENTER_ENDPOINT,
-            apiKey: TON_CENTER_API_KEY || undefined,
-        });
-
         // Get all on-chain tokens that are not graduated
         const tokensSnapshot = await adminDb.collection("tokens")
             .where("isOnChain", "==", true)
@@ -126,6 +115,7 @@ export async function GET(request: NextRequest) {
 
             try {
                 const jettonAddress = Address.parse(token.jettonMasterAddress);
+                const addressStr = jettonAddress.toString();
 
                 // Query on-chain state
                 let platformFees = BigInt(0);
@@ -135,22 +125,20 @@ export async function GET(request: NextRequest) {
 
                 try {
                     // get_curve_data returns: total_supply, ton_reserve, current_price, graduated, graduation_target, total_fees
-                    const curveResult = await tonClient.runMethod(
-                        jettonAddress, 
-                        "get_curve_data"
-                    );
-                    curveResult.stack.readBigNumber(); // total_supply (skip)
-                    tonReserve = curveResult.stack.readBigNumber();
-                    curveResult.stack.readBigNumber(); // current_price (skip)
-                    graduated = Number(curveResult.stack.readBigNumber());
-                    graduationTarget = curveResult.stack.readBigNumber();
+                    const curveResult = await runGetMethod(addressStr, "get_curve_data");
+                    if (curveResult.stack) {
+                        curveResult.stack.readBigNumber(); // Skip total_supply
+                        tonReserve = curveResult.stack.readBigNumber();
+                        curveResult.stack.readBigNumber(); // Skip current_price
+                        graduated = Number(curveResult.stack.readBigNumber());
+                        graduationTarget = curveResult.stack.readBigNumber();
+                    }
                     
                     // get_fees_data returns: platform_fees, creator_fees
-                    const feesResult = await tonClient.runMethod(
-                        jettonAddress,
-                        "get_fees_data"
-                    );
-                    platformFees = feesResult.stack.readBigNumber();
+                    const feesResult = await runGetMethod(addressStr, "get_fees_data");
+                    if (feesResult.stack) {
+                        platformFees = feesResult.stack.readBigNumber();
+                    }
                 } catch (err) {
                     // Contract might not have this method or is not deployed
                     console.error(`Failed to query ${token.symbol}:`, err);
