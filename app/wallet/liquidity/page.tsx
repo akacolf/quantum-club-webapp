@@ -145,6 +145,13 @@ export default function LiquidityPage() {
     tokenBUnits: string;
     provisionType: ProvisionType;
     poolAddress?: string;
+    router?: {
+      address: string;
+      ptonMasterAddress: string;
+      ptonVersion: string;
+      majorVersion: number;
+      minorVersion: number;
+    };
   } | null>(null);
 
   // Remove liquidity state
@@ -355,6 +362,8 @@ export default function LiquidityPage() {
         tokenBUnits: result.tokenBUnits,
         provisionType: result.provisionType as ProvisionType,
         poolAddress: pool?.address,
+        // Store router info from simulation result (per STON.fi docs)
+        router: result.router,
       });
 
       // If balanced, update tokenB amount
@@ -463,20 +472,22 @@ export default function LiquidityPage() {
     setStep("processing");
 
     try {
-      // Build the simulation result for the LP helper
-      // IMPORTANT: router.address must be the STON.fi Router v2.1 address, NOT the pool address
-      const STONFI_ROUTER_V2_1 =
-        "EQCqX53C27YsoOqdEO6x_hMs0vT-gOMRtjG14kmqORvLLqbp"; // STON.fi Router v2.1 mainnet
+      // Use router info from simulation result (per STON.fi docs)
+      // The simulation result contains the correct router for the pool
+      const routerInfo = simulationResult.router;
+      
+      // Fallback to default router if not provided in simulation
+      const defaultRouter = {
+        address: "EQCqX53C27YsoOqdEO6x_hMs0vT-gOMRtjG14kmqORvLLqbp", // STON.fi Router v2.1
+        ptonMasterAddress: "EQBnGWMCf3-FZZq1W4IWcWiGAc3PHuZ0_H-7sad2oY00o83S",
+        ptonVersion: "v2.1",
+        majorVersion: 2,
+        minorVersion: 1,
+      };
 
       const lpSimulation: LiquidityProvisionResult = {
         provisionType: simulationResult.provisionType,
-        router: {
-          address: STONFI_ROUTER_V2_1, // Fixed: Use router address, not pool address
-          ptonMasterAddress: "EQBnGWMCf3-FZZq1W4IWcWiGAc3PHuZ0_H-7sad2oY00o83S", // pTON Master v2.1
-          ptonVersion: "v2.1",
-          majorVersion: 2,
-          minorVersion: 1,
-        },
+        router: routerInfo || defaultRouter,
         poolAddress: simulationResult.poolAddress || "",
         tokenA: tokenA.contractAddress,
         tokenB: tokenB.contractAddress,
