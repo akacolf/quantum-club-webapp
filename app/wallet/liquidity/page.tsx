@@ -209,77 +209,113 @@ export default function LiquidityPage() {
         const client = new StonApiClient();
         const walletPools = await client.getWalletPools({
           walletAddress,
-          dexV2: true, // Fixed: correct property name
+          dexV2: true,
         });
 
+        // Filter pools with balance
+        const poolsWithBalance = walletPools.filter(
+          (pool) => pool.lpBalance && BigInt(pool.lpBalance) > 0
+        );
+
+        // Collect unique token addresses to fetch
+        const tokenAddresses = new Set<string>();
+        poolsWithBalance.forEach((pool) => {
+          tokenAddresses.add(pool.token0Address);
+          tokenAddresses.add(pool.token1Address);
+        });
+
+        // Fetch asset info for tokens we don't have locally
+        const assetMap = new Map<string, SwapAsset>();
+        
+        // First, add local assets to map
+        swapAssets.forEach((asset) => {
+          assetMap.set(asset.contractAddress, asset);
+        });
+
+        // Fetch missing assets from API
+        for (const addr of tokenAddresses) {
+          if (!assetMap.has(addr)) {
+            try {
+              const assetInfo = await client.getAsset(addr);
+              if (assetInfo) {
+                assetMap.set(addr, {
+                  contractAddress: assetInfo.contractAddress,
+                  kind: assetInfo.kind === "Ton" ? "Ton" : "Jetton",
+                  symbol: assetInfo.symbol || "???",
+                  displayName: assetInfo.displayName || assetInfo.symbol || "Unknown",
+                  imageUrl: assetInfo.imageUrl,
+                  decimals: assetInfo.decimals ?? 9,
+                });
+              }
+            } catch (e) {
+              console.warn(`Failed to fetch asset ${addr}:`, e);
+            }
+          }
+        }
+
         // Map API response to our LPPosition interface
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mappedPositions: LPPosition[] = walletPools
-          .filter((pool) => pool.lpBalance && BigInt(pool.lpBalance) > 0)
-          .map((pool) => {
-            // Find token info from swapAssets or use pool data
-            const token0Asset = swapAssets.find(
-              (a) => a.contractAddress === pool.token0Address
-            );
-            const token1Asset = swapAssets.find(
-              (a) => a.contractAddress === pool.token1Address
-            );
+        const mappedPositions: LPPosition[] = poolsWithBalance.map((pool) => {
+          // Find token info from our asset map
+          const token0Asset = assetMap.get(pool.token0Address);
+          const token1Asset = assetMap.get(pool.token1Address);
 
-            // Calculate share of pool
-            const lpBalance = BigInt(pool.lpBalance || "0");
-            const lpSupply = BigInt(pool.lpTotalSupply || "1");
-            const sharePercent = lpSupply > 0
-              ? ((Number(lpBalance) / Number(lpSupply)) * 100).toFixed(4)
-              : "0";
+          // Calculate share of pool
+          const lpBalance = BigInt(pool.lpBalance || "0");
+          const lpSupply = BigInt(pool.lpTotalSupply || "1");
+          const sharePercent = lpSupply > 0
+            ? ((Number(lpBalance) / Number(lpSupply)) * 100).toFixed(4)
+            : "0";
 
-            // Calculate token amounts based on reserves and share
-            const reserve0 = BigInt(pool.reserve0 || "0");
-            const reserve1 = BigInt(pool.reserve1 || "0");
-            const token0Amount = lpSupply > 0
-              ? ((Number(reserve0) * Number(lpBalance)) / Number(lpSupply) / 1e9).toFixed(4)
-              : "0";
-            const token1Amount = lpSupply > 0
-              ? ((Number(reserve1) * Number(lpBalance)) / Number(lpSupply) / 1e9).toFixed(4)
-              : "0";
+          // Calculate token amounts based on reserves and share
+          const reserve0 = BigInt(pool.reserve0 || "0");
+          const reserve1 = BigInt(pool.reserve1 || "0");
+          const token0Decimals = token0Asset?.decimals || 9;
+          const token1Decimals = token1Asset?.decimals || 9;
+          const token0Amount = lpSupply > 0
+            ? ((Number(reserve0) * Number(lpBalance)) / Number(lpSupply) / Math.pow(10, token0Decimals)).toFixed(4)
+            : "0";
+          const token1Amount = lpSupply > 0
+            ? ((Number(reserve1) * Number(lpBalance)) / Number(lpSupply) / Math.pow(10, token1Decimals)).toFixed(4)
+            : "0";
 
-            // Get token symbols from assets or use addresses
-            const token0Symbol = token0Asset?.symbol || pool.token0Address.slice(0, 6) + "...";
-            const token1Symbol = token1Asset?.symbol || pool.token1Address.slice(0, 6) + "...";
+          // Get token symbols - prefer asset lookup, fallback to "Token" instead of address
+          const token0Symbol = token0Asset?.symbol || "Token A";
+          const token1Symbol = token1Asset?.symbol || "Token B";
 
-            return {
-              poolAddress: pool.address,
-              lpBalance: pool.lpBalance || "0", // Fixed: ensure string
-              token0: token0Asset || {
-                contractAddress: pool.token0Address,
-                kind: "Jetton" as const,
-                symbol: token0Symbol,
-                displayName: token0Symbol,
-                decimals: 9,
-              },
-              token1: token1Asset || {
-                contractAddress: pool.token1Address,
-                kind: "Jetton" as const,
-                symbol: token1Symbol,
-                displayName: token1Symbol,
-                decimals: 9,
-              },
-              token0Amount,
-              token1Amount,
-              sharePercent,
-              poolInfo: {
-                address: pool.address,
-                reserve0: pool.reserve0,
-                reserve1: pool.reserve1,
-                token0Address: pool.token0Address,
-                token1Address: pool.token1Address,
-                lpTotalSupply: pool.lpTotalSupply,
-                lpFee: pool.lpFee || "0.3",
-                protocolFee: pool.protocolFee || "0",
-                apy: parseFloat(pool.apy7D || pool.apy1D || "0"), // Fixed: use apy7D or apy1D
-                tvl: pool.lpTotalSupplyUsd, // Fixed: use lpTotalSupplyUsd
-              },
-            };
-          });
+          return {
+            poolAddress: pool.address,
+            lpBalance: pool.lpBalance || "0",
+            token0: token0Asset || {
+              contractAddress: pool.token0Address,
+              kind: "Jetton" as const,
+              symbol: token0Symbol,
+              displayName: token0Symbol,
+              decimals: 9,
+            },
+            token1: token1Asset || {
+              contractAddress: pool.token1Address,
+              kind: "Jetton" as const,
+              symbol: token1Symbol,
+              displayName: token1Symbol,
+              decimals: 9,
+            },
+            token0Amount,
+            token1Amount,
+            sharePercent,
+            poolInfo: {
+              address: pool.address,
+              reserve0: pool.reserve0,
+              reserve1: pool.reserve1,
+              token0Address: pool.token0Address,
+              token1Address: pool.token1Address,
+              lpTotalSupply: pool.lpTotalSupply,
+              lpFee: pool.lpFee || "0.3",
+              protocolFee: pool.protocolFee || "0",
+              apy: parseFloat(pool.apy7D || pool.apy1D || "0"),
+              tvl: pool.lpTotalSupplyUsd,
+            },
+          };
+        });
 
         setPositions(mappedPositions);
       } catch (error) {
