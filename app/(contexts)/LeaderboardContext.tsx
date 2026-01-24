@@ -19,11 +19,20 @@ interface LeaderboardContextType {
 const LeaderboardContext = createContext<LeaderboardContextType>({} as LeaderboardContextType);
 
 export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
-  const [leaderboardContext, setLeaderboardContext] = useState(() => {
+  const [leaderboardContext, setLeaderboardContext] = useState<Leaderboard[]>(() => {
     if (typeof window !== "undefined") {
       const savedBoards = sessionStorage.getItem("lboard");
-      return savedBoards ? JSON.parse(savedBoards) : [];
+      if (savedBoards) {
+        try {
+          return JSON.parse(savedBoards);
+        } catch {
+          sessionStorage.removeItem("lboard");
+          return [];
+        }
+      }
+      return [];
     }
+    return [];
   });
   const [userRank, setUserRank] = useState<number | null>(() => {
     if (typeof window !== "undefined") {

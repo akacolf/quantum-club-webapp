@@ -25,17 +25,24 @@ export default function Login() {
   } = useGameContext();
   const { setUserRank } = useLeaderboardContext();
   useEffect(()=>{
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     const getData = async()=>{
+      if (!isMounted) return;
+      
       if(typeof window !=="undefined" && window.Telegram && window.Telegram.WebApp){
         const WebApp = window?.Telegram?.WebApp;
         if (!WebApp) return;
         WebApp.ready();
         const initDataUnsafe = WebApp.initDataUnsafe
          const authenticated = await authenticateUser();
-        if (authenticated) {
+        if (authenticated && isMounted) {
           const encrypedId = await encryptData(initDataUnsafe.user?.id.toString() || "");
           if(!encrypedId) {
-            setTimeout(getData, 100);
+            if (isMounted) {
+              timeoutId = setTimeout(getData, 100);
+            }
             return;
           }
           const cleanData = encrypedId.toString();
@@ -54,15 +61,20 @@ export default function Login() {
           throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
         }
 
+        if (!isMounted) return;
+        
         const { customToken } = await responseAuth.json();
         await auth?.loginWithToken(customToken)
         const data =  await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});
+        
+        if (!isMounted) return;
+        
          if(data.status ==="maintenance"){
           router.replace('/maintenance');
           return;
          }
          if(data.status ==="error"){
-          setTimeout(getData, 100);
+          timeoutId = setTimeout(getData, 100);
           return;
          }
          if(data.status ==="completed"){
@@ -80,12 +92,21 @@ export default function Login() {
         }
       }else{
         // WebApp not ready yet, silently retry
-        setTimeout(getData, 100);
+        if (isMounted) {
+          timeoutId = setTimeout(getData, 100);
+        }
       }
       
 
     }
     getData()
+    
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   },[])
   useSafeArea();
   useDeviceDetection();

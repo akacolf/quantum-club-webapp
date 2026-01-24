@@ -342,7 +342,7 @@ export default function ProfilePage() {
                     <Card className="bg-card/80 backdrop-blur-xl border-border overflow-hidden">
                         <CardContent className="p-0">
                             <a
-                                href="https://t.me/QuantumClubBot"
+                                href="https://t.me/QCSupportBot"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"

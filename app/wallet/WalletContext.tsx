@@ -236,7 +236,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(`quantum_wallets_${telegramId}`);
-      return stored ? JSON.parse(stored) : [];
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          localStorage.removeItem(`quantum_wallets_${telegramId}`);
+          return [];
+        }
+      }
+      return [];
     }
     return [];
   });
@@ -252,7 +260,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [hiddenAssets, setHiddenAssets] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(`quantum_hidden_assets_${telegramId}`);
-      return stored ? JSON.parse(stored) : [];
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          localStorage.removeItem(`quantum_hidden_assets_${telegramId}`);
+          return [];
+        }
+      }
+      return [];
     }
     return [];
   });

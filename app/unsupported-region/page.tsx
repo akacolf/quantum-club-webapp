@@ -142,7 +142,7 @@ export default function UnsupportedRegionPage() {
                 <Button
                   variant="outline"
                   className="w-full bg-transparent border-[#333] text-white hover:bg-[#1a1a1a] hover:border-orange-500/50"
-                  onClick={() => window.open("https://t.me/QuantumClubSupport", "_blank")}
+                  onClick={() => window.open("https://t.me/QCSupportBot", "_blank")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

@@ -211,6 +211,7 @@ export default function AIChatDrawer() {
     const [viewMode, setViewMode] = useState<"chat" | "history">("chat");
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // Get current session's messages
     const currentSession = sessions.find(s => s.id === currentSessionId);
@@ -219,6 +220,13 @@ export default function AIChatDrawer() {
     messagesRef.current = messages;
 
     const suggestedPrompts = getContextualPrompts(pathname);
+
+    // Cleanup abort controller on unmount
+    useEffect(() => {
+        return () => {
+            abortControllerRef.current?.abort();
+        };
+    }, []);
 
     // Load chat sessions from localStorage on mount
     useEffect(() => {
@@ -363,6 +371,10 @@ export default function AIChatDrawer() {
 
         setIsLoading(true);
 
+        // Cancel any previous request
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = new AbortController();
+
         try {
             const response = await fetch("/api/ai/chat", {
                 method: "POST",
@@ -372,6 +384,7 @@ export default function AIChatDrawer() {
                     history: messagesRef.current.slice(-10),
                     currentPage: pathname,
                 }),
+                signal: abortControllerRef.current.signal,
             });
 
             if (!response.ok) {
@@ -434,6 +447,10 @@ export default function AIChatDrawer() {
                 }));
             }
         } catch (error) {
+            // Ignore abort errors (user cancelled request)
+            if (error instanceof Error && error.name === 'AbortError') {
+                return;
+            }
             console.error("AI Chat Error:", error);
             toast.error("Failed to connect. Please try again.");
             setSessions(prev => prev.map(session => {

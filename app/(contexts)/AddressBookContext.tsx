@@ -23,20 +23,31 @@ const STORAGE_KEY = "quantum_address_book";
 
 export function AddressBookProvider({ children }: { children: ReactNode }) {
     const { telegramId } = useGameContext();
-    const [addresses, setAddresses] = useState<SavedAddress[]>(() => {
-        if (typeof window !== "undefined") {
-            const stored = localStorage.getItem(STORAGE_KEY+`_${telegramId}`);
-            return stored ? JSON.parse(stored) : [];
-        }
-        return [];
-    });
+    const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+    const [isInitialized, setIsInitialized] = useState(false);
 
-    // Persist to localStorage
+    // Load addresses from localStorage when telegramId is available
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem(STORAGE_KEY+`_${telegramId}`, JSON.stringify(addresses));
+        if (typeof window !== "undefined" && telegramId) {
+            const stored = localStorage.getItem(`${STORAGE_KEY}_${telegramId}`);
+            if (stored) {
+                try {
+                    setAddresses(JSON.parse(stored));
+                } catch {
+                    // Invalid JSON, reset storage
+                    localStorage.removeItem(`${STORAGE_KEY}_${telegramId}`);
+                }
+            }
+            setIsInitialized(true);
         }
-    }, [addresses]);
+    }, [telegramId]);
+
+    // Persist to localStorage only after initialization
+    useEffect(() => {
+        if (typeof window !== "undefined" && telegramId && isInitialized) {
+            localStorage.setItem(`${STORAGE_KEY}_${telegramId}`, JSON.stringify(addresses));
+        }
+    }, [addresses, telegramId, isInitialized]);
 
     const addAddress = useCallback((address: string, name: string) => {
         setAddresses((prev) => {

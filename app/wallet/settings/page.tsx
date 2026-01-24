@@ -432,7 +432,7 @@ export default function WalletSettingsPage() {
               Community & Announcements
             </a>
             <a
-              href="https://t.me/QuantumClubBot"
+              href="https://t.me/QCSupportBot"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"

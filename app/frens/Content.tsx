@@ -154,12 +154,18 @@ const FrensContent = () => {
     };
 
     fetchReferralsData();
-  }, []);
+  }, [telegramId, addReferral, referralsContext, setReferralNum, router]);
+
+  // Track which photos are being fetched to avoid duplicates
+  const fetchingPhotosRef = useRef<Set<string>>(new Set());
 
   // Fetch profile photos for referrals
   const fetchProfilePhoto = useCallback(async (tgId: string) => {
-    // Skip if already fetched
-    if (photoUrls[tgId] !== undefined) return;
+    // Skip if already fetched or currently fetching
+    if (fetchingPhotosRef.current.has(tgId)) return;
+    
+    // Mark as fetching
+    fetchingPhotosRef.current.add(tgId);
 
     try {
       const response = await fetch('/api/get-profile-photo', {
@@ -172,13 +178,19 @@ const FrensContent = () => {
     } catch {
       setPhotoUrls(prev => ({ ...prev, [tgId]: null }));
     }
-  }, [photoUrls]);
+  }, []);
 
   // Fetch photos when referrals are loaded
   useEffect(() => {
     if (referralsContext.length > 0) {
       referralsContext.forEach((referral) => {
-        fetchProfilePhoto(referral.id);
+        // Only fetch if not already in state
+        setPhotoUrls(prev => {
+          if (prev[referral.id] === undefined) {
+            fetchProfilePhoto(referral.id);
+          }
+          return prev;
+        });
       });
     }
   }, [referralsContext, fetchProfilePhoto]);

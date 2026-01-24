@@ -21,11 +21,20 @@ const FrensContext = createContext<FrensContextType>({} as FrensContextType);
 });*/
 
 export const FrensProvider = ({ children }: { children: ReactNode }) => {
-  const [referralsContext, setReferralsContext] = useState(() => {
+  const [referralsContext, setReferralsContext] = useState<Referral[]>(() => {
     if (typeof window !== "undefined") {
       const savedReferrals = sessionStorage.getItem("referrals");
-      return savedReferrals ? JSON.parse(savedReferrals) : []; // Boşsa dizi döndür
+      if (savedReferrals) {
+        try {
+          return JSON.parse(savedReferrals);
+        } catch {
+          sessionStorage.removeItem("referrals");
+          return [];
+        }
+      }
+      return [];
     }
+    return [];
   });
 
   const [referralsNum, setReferralNum] = useState(() => {
