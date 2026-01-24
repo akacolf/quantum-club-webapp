@@ -349,10 +349,18 @@ export async function sendBoc(boc: Buffer): Promise<void> {
 export async function resolveDns(domain: string): Promise<string | null> {
     try {
         // DNS resolution requires indexed data, using tonconsole as fallback
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
         const response = await fetch(
             `https://tonconsole.com/api/v1/dns/resolve?domain=${encodeURIComponent(domain)}`,
-            { next: { revalidate: 300 } } // Cache for 5 minutes
+            { 
+                next: { revalidate: 300 }, // Cache for 5 minutes
+                signal: controller.signal
+            }
         );
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) return null;
         

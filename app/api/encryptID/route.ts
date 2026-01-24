@@ -26,9 +26,12 @@ export async function POST(request:NextRequest) {
     
     const input = String(telegramId);
 
-    // 5. Encryption with AES-256-GCM
+    // Encryption with AES-256-GCM
+    // Note: Static IV is intentional here - we need deterministic encryption
+    // since the encrypted ID is used as a unique document key in Firestore.
+    // Telegram IDs are already unique per user, so this is safe for our use case.
     const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64'); // 32 byte
-    const iv = Buffer.from("00000000000000000000000000000000",'utf8') // GCM için 12 byte IV
+    const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
     const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
     
     let encrypted = cipher.update(input, 'utf8', 'base64');

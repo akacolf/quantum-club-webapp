@@ -29,10 +29,18 @@ export async function decrypt(input:string) {
         typeof payload.user === "object" &&
         payload.user !== null && // Ensure it's not null
         "telegramId" in payload.user && // Check if 'telegramId' exists
-        typeof (payload.user as { telegramId: unknown }).telegramId === "number" &&
+        (typeof (payload.user as { telegramId: unknown }).telegramId === "string" ||
+         typeof (payload.user as { telegramId: unknown }).telegramId === "number") &&
         typeof payload.expires === "string"
       ) {
-        return payload as Payload; // Safe to cast now
+        // Normalize telegramId to string
+        const normalizedPayload = {
+          ...payload,
+          user: {
+            telegramId: String((payload.user as { telegramId: unknown }).telegramId)
+          }
+        };
+        return normalizedPayload as Payload; // Safe to cast now
       }
     
       throw new Error("Invalid payload structure");

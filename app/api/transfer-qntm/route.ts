@@ -111,24 +111,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const recipientData = recipientSnapshot.data();
-    const recipientBalance = recipientData?.QuantAmount || 0;
-
     // Perform the transfer using a transaction for atomicity
-    await db.runTransaction(async (transaction) => {
+    // Re-read balances inside transaction to prevent TOCTOU race condition
+    const result = await db.runTransaction(async (transaction) => {
+      // Re-read sender balance inside transaction
+      const senderDoc = await transaction.get(senderMiningRef);
+      if (!senderDoc.exists) {
+        throw new Error('Sender account not found');
+      }
+      const currentSenderBalance = senderDoc.data()?.QuantAmount || 0;
+      
+      // Validate balance inside transaction
+      if (currentSenderBalance < transferAmount) {
+        throw new Error('Insufficient QNTM balance');
+      }
+      
+      // Re-read recipient balance inside transaction
+      const recipientDoc = await transaction.get(recipientMiningRef);
+      if (!recipientDoc.exists) {
+        throw new Error('Recipient not found');
+      }
+      const currentRecipientBalance = recipientDoc.data()?.QuantAmount || 0;
+
+      // Generate unique IDs to prevent document collision
+      const transferId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       // Deduct from sender
       transaction.update(senderMiningRef, {
-        QuantAmount: senderBalance - transferAmount,
+        QuantAmount: currentSenderBalance - transferAmount,
       });
 
       // Add to recipient
       transaction.update(recipientMiningRef, {
-        QuantAmount: recipientBalance + transferAmount,
+        QuantAmount: currentRecipientBalance + transferAmount,
       });
 
       // Create transfer history for sender
       const senderHistoryRef = db.doc(
-        `user/${senderQcId}/transferHistory/${Date.now()}`
+        `user/${senderQcId}/transferHistory/${transferId}_sent`
       );
       transaction.set(senderHistoryRef, {
         type: 'sent',
@@ -140,7 +160,7 @@ export async function POST(request: NextRequest) {
 
       // Create transfer history for recipient
       const recipientHistoryRef = db.doc(
-        `user/${recipientQcId}/transferHistory/${Date.now()}`
+        `user/${recipientQcId}/transferHistory/${transferId}_received`
       );
       transaction.set(recipientHistoryRef, {
         type: 'received',
@@ -149,20 +169,21 @@ export async function POST(request: NextRequest) {
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         date: new Date().toISOString(),
       });
+      
+      return { newSenderBalance: currentSenderBalance - transferAmount };
     });
-
-    const newSenderBalance = senderBalance - transferAmount;
 
     return NextResponse.json({
       success: true,
       message: 'Transfer successful',
-      newBalance: newSenderBalance,
+      newBalance: result.newSenderBalance,
       transferredAmount: transferAmount,
     });
   } catch (error) {
     console.error('QNTM Transfer error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Transfer failed. Please try again.';
     return NextResponse.json(
-      { error: 'Transfer failed. Please try again.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

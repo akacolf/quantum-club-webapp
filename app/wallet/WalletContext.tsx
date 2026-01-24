@@ -136,6 +136,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       
   // Re-derive TON address when network changes
   const rederiveTonAddress = useCallback(async (testnet: boolean) => {
+    if (!telegramId) return;
+    
     const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
     const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
 
@@ -168,7 +170,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to re-derive address:", error);
     }
-  }, []);
+  }, [telegramId]);
 
   const toggleTestnet = useCallback(() => {
     setIsTestnet(prev => {
@@ -378,10 +380,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const newHidden = prev.includes(symbol)
         ? prev.filter(s => s !== symbol)
         : [...prev, symbol];
-      localStorage.setItem("quantum_hidden_assets", JSON.stringify(newHidden));
+      localStorage.setItem(`quantum_hidden_assets_${telegramId}`, JSON.stringify(newHidden));
       return newHidden;
     });
-  }, []);
+  }, [telegramId]);
 
   const toggleHideBalance = useCallback(() => {
     setHideBalance(prev => {

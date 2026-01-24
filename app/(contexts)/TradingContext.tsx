@@ -807,6 +807,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: "Wallet not connected" };
       }
 
+      // Validate slippage tolerance bounds (0.1% to 50%)
+      if (slippageTolerance < 0.001 || slippageTolerance > 0.5) {
+        return { success: false, error: "Invalid slippage tolerance. Must be between 0.1% and 50%" };
+      }
+
       setIsBuying(true);
       try {
         // CRITICAL: Check balance before proceeding
