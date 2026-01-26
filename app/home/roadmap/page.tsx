@@ -38,33 +38,33 @@ export default function Roadmap() {
       status: "completed"
     },
     {
-      title: "Yield Aggregator",
-      date: "Q1 2026",
-      description: "Multi-protocol yield optimization with staking, liquidity pools, and LP farming. Find the best APY automatically.",
-      status: "completed"
-    },
-    {
       title: "QC AI",
       date: "Q1 2026",
       description: "AI-powered assistant for portfolio analysis, token insights, and intelligent transaction support.",
       status: "completed"
     },
     {
-      title: "NFT Marketplace",
+      title: "Yield Aggregator",
+      date: "Q1 2026",
+      description: "Multi-protocol yield optimization with staking, liquidity pools, and LP farming. Find the best APY automatically.",
+      status: "completed"
+    },
+    {
+      title: "NFT Marketplace (Beta)",
       date: "Q1 2026",
       description: "Discover, buy, sell, and manage NFTs directly within the wallet. Browse collections, view floor prices, and trade seamlessly.",
+      status: "completed"
+    },
+    {
+      title: "AI-powered Trading Platform",
+      date: "Q1 2026",
+      description: "A powerful trading platform for seamless crypto trading with AI insights and smart alerts.",
       status: "current"
     },
     {
       title: "QC Pay",
       date: "Q2 2026",
       description: "P2P payments with QR codes, payment links, and recurring payments for everyday crypto transactions.",
-      status: "upcoming"
-    },
-    {
-      title: "AI-powered Trading Platform",
-      date: "Q2 2026",
-      description: "A powerful trading platform for seamless crypto trading with AI insights and smart alerts.",
       status: "upcoming"
     },
     {
@@ -95,6 +95,12 @@ export default function Roadmap() {
       title: "Establishment of the Quantum Club Chain",
       date: "Q2 2027",
       description: "Our own blockchain infrastructure for the Quantum Club ecosystem.",
+      status: "upcoming"
+    },
+    {
+      title: "iOS & Android Apps",
+      date: "Q2 2027",
+      description: "Native mobile applications for iOS and Android, bringing the full Quantum Club experience to your pocket.",
       status: "upcoming"
     }
   ];

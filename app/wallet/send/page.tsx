@@ -27,9 +27,10 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
-import { toNano, Address, beginCell } from "@ton/core";
+import { toNano, Address, beginCell, Cell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { encryptComment as encryptCommentMessage, createTextComment } from "@/lib/ton-encrypted-comment";
 import { useWallet } from "../WalletContext";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { resolveTonAddress } from "@/lib/tonAddressResolver";
@@ -167,6 +168,8 @@ export default function SendPage() {
   const [isDomainAddress, setIsDomainAddress] = useState(false);
   const [comment, setComment] = useState("");
   const [encryptComment, setEncryptComment] = useState(false);
+  const [recipientPublicKey, setRecipientPublicKey] = useState<Uint8Array | null>(null);
+  const [canEncrypt, setCanEncrypt] = useState(false);
   const [amount, setAmount] = useState("");
   const [estimatedFee, setEstimatedFee] = useState("0.005");
   const [isEstimating, setIsEstimating] = useState(false);
@@ -292,6 +295,28 @@ export default function SendPage() {
   // Explorer URL based on network
   const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
+  // Fetch recipient public key for encryption
+  const fetchRecipientPublicKey = useCallback(async (address: string) => {
+    try {
+      const response = await fetch(`${TON_API_BASE_URL}/v2/accounts/${encodeURIComponent(address)}/publickey`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.public_key) {
+          // Public key is returned as hex string
+          const pubKeyBytes = new Uint8Array(Buffer.from(data.public_key, 'hex'));
+          setRecipientPublicKey(pubKeyBytes);
+          setCanEncrypt(true);
+          return;
+        }
+      }
+    } catch (error) {
+      console.log("Could not fetch recipient public key:", error);
+    }
+    setRecipientPublicKey(null);
+    setCanEncrypt(false);
+    setEncryptComment(false); // Disable encryption if we can't get the key
+  }, [TON_API_BASE_URL]);
+
   // Resolve .ton domain addresses
   useEffect(() => {
     const resolveAddress = async () => {
@@ -299,6 +324,8 @@ export default function SendPage() {
         setResolvedAddress("");
         setAddressError("");
         setIsDomainAddress(false);
+        setRecipientPublicKey(null);
+        setCanEncrypt(false);
         return;
       }
 
@@ -313,9 +340,13 @@ export default function SendPage() {
         if (result.isValid) {
           setResolvedAddress(result.address);
           setAddressError("");
+          // Fetch public key for encryption
+          fetchRecipientPublicKey(result.address);
         } else {
           setResolvedAddress("");
           setAddressError(result.error || "Invalid domain");
+          setRecipientPublicKey(null);
+          setCanEncrypt(false);
         }
         setIsResolvingAddress(false);
       } else {
@@ -325,16 +356,20 @@ export default function SendPage() {
         if (result.isValid) {
           setResolvedAddress(result.address);
           setAddressError("");
+          // Fetch public key for encryption
+          fetchRecipientPublicKey(result.address);
         } else if (recipient.trim().length > 0) {
           setResolvedAddress("");
           setAddressError(result.error || "Invalid address");
+          setRecipientPublicKey(null);
+          setCanEncrypt(false);
         }
       }
     };
 
     const debounceTimer = setTimeout(resolveAddress, 500);
     return () => clearTimeout(debounceTimer);
-  }, [recipient]);
+  }, [recipient, fetchRecipientPublicKey]);
 
   // Redirect if no wallet
   useEffect(() => {
@@ -534,13 +569,15 @@ export default function SendPage() {
         networkFee = calculateNetworkFee(1, hasComment);
         networkFee = Math.max(networkFee, 0.003);
 
-        // Build comment body if provided
-        const messageBody = hasComment
-          ? beginCell()
-            .storeUint(0, 32)
-            .storeStringTail(comment.trim())
-            .endCell()
-          : undefined;
+        // Build comment body if provided - use encryption if enabled and recipient has public key
+        let messageBody: Cell | undefined = undefined;
+        if (hasComment) {
+          if (encryptComment && recipientPublicKey) {
+            messageBody = await encryptCommentMessage(comment.trim(), recipientPublicKey);
+          } else {
+            messageBody = createTextComment(comment.trim());
+          }
+        }
 
         const messages = [
           internal({
@@ -738,13 +775,17 @@ export default function SendPage() {
         const fee = parseFloat(estimatedFee);
         const recipientAmount = Math.max(0, inputAmount - fee);
 
-        // Build comment body if provided
-        const messageBody = comment.trim()
-          ? beginCell()
-            .storeUint(0, 32)
-            .storeStringTail(comment.trim())
-            .endCell()
-          : undefined;
+        // Build comment body if provided - use encryption if enabled and recipient has public key
+        let messageBody: Cell | undefined = undefined;
+        if (comment.trim()) {
+          if (encryptComment && recipientPublicKey) {
+            // Use encrypted comment
+            messageBody = await encryptCommentMessage(comment.trim(), recipientPublicKey);
+          } else {
+            // Use plain text comment
+            messageBody = createTextComment(comment.trim());
+          }
+        }
 
         // For first transaction with undeployed wallet, we need to manually send with StateInit
         if (!isWalletDeployed && seqno === 0) {
@@ -1535,8 +1576,8 @@ export default function SendPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">{comment.length}/120</p>
                   
-                  {/* Encrypt toggle - only for TON transfers with comments */}
-                  {selectedAsset?.type === "ton" && comment.trim().length > 0 && (
+                  {/* Encrypt toggle - only for TON transfers with comments when encryption is available */}
+                  {selectedAsset?.type === "ton" && comment.trim().length > 0 && canEncrypt && (
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1.5">
                         {encryptComment ? (
@@ -1560,10 +1601,15 @@ export default function SendPage() {
                 {/* Encryption info */}
                 {selectedAsset?.type === "ton" && comment.trim().length > 0 && (
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 leading-relaxed">
-                    {encryptComment ? (
+                    {encryptComment && canEncrypt ? (
                       <>
                         <Lock className="w-3 h-3 text-primary shrink-0" />
                         <span>Only you and the recipient can read this message.</span>
+                      </>
+                    ) : !canEncrypt ? (
+                      <>
+                        <Info className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+                        <span>Encryption unavailable - recipient wallet hasn&apos;t sent any transactions yet.</span>
                       </>
                     ) : (
                       <>

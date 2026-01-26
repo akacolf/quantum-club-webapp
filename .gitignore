@@ -43,6 +43,12 @@ next-env.d.ts
 # Turbo
 .turbo
 
+# AI Agent Skills
+.agents/
+
+# GitHub Copilot Instructions
+.github/
+
 # Firebase Functions
 functions/node_modules
 functions/lib

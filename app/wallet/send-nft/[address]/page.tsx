@@ -58,10 +58,21 @@ export default function SendNftPage() {
 
     const insufficientTonForGas = parseFloat(tonBalance) < MIN_TON_FOR_NFT;
 
-    // Fetch NFT details
+    // Track if wallet context is ready
+    const [isWalletReady, setIsWalletReady] = useState(false);
+    
+    // Wait for wallet context to be ready before fetching NFT
+    useEffect(() => {
+        // isTestnet will be undefined until context loads, then boolean
+        if (typeof isTestnet === 'boolean') {
+            setIsWalletReady(true);
+        }
+    }, [isTestnet]);
+
+    // Fetch NFT details - only when wallet context is ready
     useEffect(() => {
         const fetchNft = async () => {
-            if (!nftAddress) return;
+            if (!nftAddress || !isWalletReady) return;
             setIsLoadingNft(true);
             try {
                 const response = await fetch(`${TON_API_BASE_URL}/v2/nfts/${encodeURIComponent(nftAddress)}`);
@@ -84,7 +95,7 @@ export default function SendNftPage() {
             }
         };
         fetchNft();
-    }, [nftAddress, TON_API_BASE_URL]);
+    }, [nftAddress, TON_API_BASE_URL, isWalletReady]);
 
     // Resolve .ton domain addresses
     useEffect(() => {
