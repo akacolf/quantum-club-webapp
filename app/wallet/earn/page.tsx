@@ -99,15 +99,28 @@ export default function EarnPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [protocols, setProtocols] = useState<YieldProtocol[]>([]);
 
-    // Simulate fetching live APY data
+    // Fetch live APY data
     const fetchYieldData = useCallback(async () => {
         setIsLoading(true);
         try {
-            // In production, fetch live APY from protocol APIs
-            const updatedProtocols = YIELD_PROTOCOLS.map(p => ({
-                ...p,
-                apy: p.apy + (Math.random() - 0.5) * 0.5, // ±0.25% variation
-            }));
+            // Fetch live staking APY for the staking protocol
+            const { fetchLiveApyData } = await import("@/lib/staking-service");
+            const liveApyData = await fetchLiveApyData();
+            
+            // Calculate average staking APY from live data
+            let stakingApy = 5.0; // Default
+            if (liveApyData.size > 0) {
+                const apyValues = Array.from(liveApyData.values());
+                stakingApy = apyValues.reduce((a, b) => a + b, 0) / apyValues.length;
+            }
+            
+            // Update protocols with live data
+            const updatedProtocols = YIELD_PROTOCOLS.map(p => {
+                if (p.id === "ton-staking") {
+                    return { ...p, apy: parseFloat(stakingApy.toFixed(2)) };
+                }
+                return p;
+            });
             setProtocols(updatedProtocols);
         } catch (error) {
             console.error("Failed to fetch yield data:", error);

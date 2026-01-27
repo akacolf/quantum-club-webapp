@@ -343,17 +343,56 @@ export async function buildUnstakeTransaction(
 
 /**
  * Fetch live APY data from staking pools
- * Returns fixed APY values from official provider sources
+ * Tries to fetch from provider APIs, falls back to static values
  */
 export async function fetchLiveApyData(): Promise<Map<string, number>> {
     const apyData = new Map<string, number>();
     
-    // Use exact APY values from official provider websites
-    // TON Stakers: 3.01% (from tonstakers.com)
-    // Bemo Finance: 2.39% (from app.bemo.fi)
-    // Hipo Finance: 6.2% (from hipo.finance)
+    // Fetch live APY from each provider in parallel
+    const fetchPromises = STAKING_POOLS.map(async (pool) => {
+        try {
+            switch (pool.id) {
+                case "hipo": {
+                    // Fetch live APY from Hipo integration
+                    const { getHipoLiveApy } = await import("./hipo-integration");
+                    const liveApy = await getHipoLiveApy(false);
+                    return { id: pool.id, apy: liveApy };
+                }
+                
+                case "tonstakers": {
+                    // For TON Stakers, we need wallet context for SDK init
+                    // Fall back to official website value
+                    return { id: pool.id, apy: 3.01 };
+                }
+                
+                case "bemo": {
+                    // Bemo doesn't have a public APY API
+                    // Use value from app.bemo.fi
+                    return { id: pool.id, apy: 2.39 };
+                }
+                
+                default:
+                    return { id: pool.id, apy: pool.apy };
+            }
+        } catch (error) {
+            console.warn(`Failed to fetch live APY for ${pool.id}:`, error);
+            return { id: pool.id, apy: pool.apy };
+        }
+    });
+    
+    const results = await Promise.allSettled(fetchPromises);
+    
+    results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value) {
+            apyData.set(result.value.id, result.value.apy);
+        }
+    });
+    
+    // Ensure all pools have values
     for (const pool of STAKING_POOLS) {
-        apyData.set(pool.id, pool.apy);
+        if (!apyData.has(pool.id)) {
+            apyData.set(pool.id, pool.apy);
+        }
     }
     
     return apyData;
