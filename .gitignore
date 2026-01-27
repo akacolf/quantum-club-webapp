@@ -46,6 +46,7 @@ next-env.d.ts
 # AI Agent Skills
 .agents/
 .agent/
+.gemini/
 
 # GitHub Copilot Instructions
 .github/
