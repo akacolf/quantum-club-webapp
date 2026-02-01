@@ -7,11 +7,14 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { ArrowLeft, Copy, Check, Share2 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "~/lib/theme";
 
 export default function Receive() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const walletAddress = "EQDrLq-X6jKZNHAScgghh0h1iog3StK71zn8dcmrOj8jPWRA"; // Placeholder
+  const { isDark } = useTheme();
+  const iconColor = isDark ? "#fff" : "#1f2937";
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(walletAddress);
@@ -28,11 +31,11 @@ export default function Receive() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#fff" />
+          <ArrowLeft size={24} color={iconColor} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-foreground">Receive</Text>
         <TouchableOpacity>
-          <Share2 size={24} color="#fff" />
+          <Share2 size={24} color={iconColor} />
         </TouchableOpacity>
       </View>
 

@@ -4,6 +4,7 @@ import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, RefreshCw } from "lucide-react-native";
+import { useTheme } from "~/lib/theme";
 
 interface Transaction {
   id: string;
@@ -100,13 +101,15 @@ function TransactionItem({ tx }: { tx: Transaction }) {
 
 export default function History() {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const iconColor = isDark ? "#fff" : "#1f2937";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center px-4 py-3">
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#fff" />
+          <ArrowLeft size={24} color={iconColor} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-foreground ml-4">Transaction History</Text>
       </View>

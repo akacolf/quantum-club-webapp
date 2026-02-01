@@ -6,22 +6,25 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { ArrowLeft, Scan, ChevronDown } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "~/lib/theme";
 
 export default function Send() {
   const router = useRouter();
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
+  const { isDark } = useTheme();
+  const iconColor = isDark ? "#fff" : "#1f2937";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#fff" />
+          <ArrowLeft size={24} color={iconColor} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-foreground">Send</Text>
         <TouchableOpacity>
-          <Scan size={24} color="#fff" />
+          <Scan size={24} color={iconColor} />
         </TouchableOpacity>
       </View>
 
@@ -30,7 +33,7 @@ export default function Send() {
         <View className="mb-6">
           <Text className="text-sm font-medium text-foreground mb-2">Recipient Address</Text>
           <TextInput
-            className="bg-secondary rounded-xl p-4 text-base text-foreground border border-border"
+            className="bg-muted rounded-xl p-4 text-base text-foreground border border-border"
             value={recipient}
             onChangeText={setRecipient}
             placeholder="Enter wallet address"
@@ -45,16 +48,16 @@ export default function Send() {
           <Text className="text-sm font-medium text-foreground mb-2">Amount</Text>
           <View className="flex-row items-center">
             <TextInput
-              className="flex-1 bg-secondary rounded-l-xl p-4 text-base text-foreground border border-border border-r-0"
+              className="flex-1 bg-muted rounded-l-xl p-4 text-base text-foreground border border-border border-r-0"
               value={amount}
               onChangeText={setAmount}
               placeholder="0.00"
               placeholderTextColor="#6B7280"
               keyboardType="decimal-pad"
             />
-            <TouchableOpacity className="bg-secondary/80 p-4 rounded-r-xl border border-border flex-row items-center">
+            <TouchableOpacity className="bg-muted p-4 rounded-r-xl border border-border flex-row items-center">
               <Text className="text-base font-semibold text-foreground mr-1">TON</Text>
-              <ChevronDown size={16} color="#fff" />
+              <ChevronDown size={16} color={iconColor} />
             </TouchableOpacity>
           </View>
           <Text className="text-xs text-muted-foreground mt-2">Balance: 0.00 TON</Text>
@@ -62,13 +65,13 @@ export default function Send() {
 
         {/* Quick Amount Buttons */}
         <View className="flex-row gap-2 mb-6">
-          <TouchableOpacity className="flex-1 bg-secondary py-2 rounded-lg items-center">
+          <TouchableOpacity className="flex-1 bg-muted py-2 rounded-lg items-center">
             <Text className="text-sm text-foreground">25%</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="flex-1 bg-secondary py-2 rounded-lg items-center">
+          <TouchableOpacity className="flex-1 bg-muted py-2 rounded-lg items-center">
             <Text className="text-sm text-foreground">50%</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="flex-1 bg-secondary py-2 rounded-lg items-center">
+          <TouchableOpacity className="flex-1 bg-muted py-2 rounded-lg items-center">
             <Text className="text-sm text-foreground">75%</Text>
           </TouchableOpacity>
           <TouchableOpacity className="flex-1 bg-primary py-2 rounded-lg items-center">
@@ -77,7 +80,7 @@ export default function Send() {
         </View>
 
         {/* Transaction Summary */}
-        <Card className="bg-secondary mb-6">
+        <Card className="bg-card border border-border mb-6">
           <CardContent className="p-4">
             <View className="flex-row justify-between mb-2">
               <Text className="text-sm text-muted-foreground">Network Fee</Text>

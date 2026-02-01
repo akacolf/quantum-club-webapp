@@ -3,15 +3,18 @@ import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Send, ArrowDownLeft, RefreshCw, TrendingUp, Wallet, ChevronRight, Settings, History, Eye, EyeOff, LucideIcon } from "lucide-react-native";
+import { Send, ArrowDownLeft, RefreshCw, TrendingUp, Wallet, ChevronRight, Settings, History, Eye, EyeOff, LucideIcon, Store } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
+import { useTheme } from "~/lib/theme";
 
 const TON_ICON = "https://ton.org/download/ton_symbol.svg";
 
 export default function WalletHome() {
   const router = useRouter();
   const [hideBalance, setHideBalance] = useState(false);
+  const { isDark } = useTheme();
+  const iconColor = isDark ? "#fff" : "#1f2937";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -25,23 +28,23 @@ export default function WalletHome() {
         </View>
         <View className="flex-row gap-2">
           <TouchableOpacity 
-            className="w-10 h-10 rounded-full bg-secondary justify-center items-center"
+            className="w-10 h-10 rounded-full bg-muted justify-center items-center"
             onPress={() => router.push("/(wallet)/history")}
           >
-            <History size={20} color="#fff" />
+            <History size={20} color={iconColor} />
           </TouchableOpacity>
           <TouchableOpacity 
-            className="w-10 h-10 rounded-full bg-secondary justify-center items-center"
+            className="w-10 h-10 rounded-full bg-muted justify-center items-center"
             onPress={() => router.push("/(wallet)/settings")}
           >
-            <Settings size={20} color="#fff" />
+            <Settings size={20} color={iconColor} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView className="flex-1 px-4">
         {/* Balance Card */}
-        <Card className="mb-6 bg-secondary">
+        <Card className="mb-6 bg-card border border-border">
           <CardContent className="p-6">
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-sm text-muted-foreground">Total Balance</Text>
@@ -74,8 +77,8 @@ export default function WalletHome() {
             label="Receive"
             onPress={() => router.push("/(wallet)/receive")}
           />
-          <ActionButton Icon={RefreshCw} label="Swap" onPress={() => {}} />
-          <ActionButton Icon={TrendingUp} label="Stake" onPress={() => {}} />
+          <ActionButton Icon={RefreshCw} label="Swap" onPress={() => router.push("/(wallet)/swap")} />
+          <ActionButton Icon={TrendingUp} label="Stake" onPress={() => router.push("/(wallet)/staking")} />
         </View>
 
         {/* Assets Section */}
@@ -86,7 +89,7 @@ export default function WalletHome() {
               <Text className="text-sm text-primary">Manage</Text>
             </TouchableOpacity>
           </View>
-          <Card className="bg-secondary">
+          <Card className="bg-card border border-border">
             <CardContent className="p-8 items-center">
               <Wallet size={48} color="#6B7280" />
               <Text className="text-base font-medium text-foreground mt-4 mb-2">No assets yet</Text>
@@ -105,7 +108,7 @@ export default function WalletHome() {
               <Text className="text-sm text-primary">View all</Text>
             </TouchableOpacity>
           </View>
-          <Card className="bg-secondary">
+          <Card className="bg-card border border-border">
             <CardContent className="p-8 items-center">
               <Text className="text-sm text-muted-foreground text-center">
                 No transactions yet
@@ -113,6 +116,24 @@ export default function WalletHome() {
             </CardContent>
           </Card>
         </View>
+
+        {/* NFT Marketplace Banner */}
+        <TouchableOpacity onPress={() => router.push("/(wallet)/marketplace")}>
+          <Card className="mb-6 bg-gradient-to-r from-primary to-primary/80">
+            <CardContent className="p-4 flex-row items-center justify-between">
+              <View className="flex-row items-center">
+                <View className="w-12 h-12 rounded-full bg-white/20 justify-center items-center mr-3">
+                  <Store size={24} color="#fff" />
+                </View>
+                <View>
+                  <Text className="text-base font-semibold text-foreground">NFT Marketplace</Text>
+                  <Text className="text-xs text-muted-foreground">Browse collections</Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={iconColor} />
+            </CardContent>
+          </Card>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
