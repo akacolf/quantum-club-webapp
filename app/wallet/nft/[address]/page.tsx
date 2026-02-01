@@ -19,7 +19,6 @@ import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, type NftIt
 import { calculateFees, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
 
 export default function NftDetailPage() {
-    useTelegramBackButton("/wallet");
     const params = useParams();
     const router = useRouter();
     const { isTestnet, walletAddress } = useWallet();
@@ -37,6 +36,12 @@ export default function NftDetailPage() {
     const [showListingModal, setShowListingModal] = useState(false);
     const [listingPrice, setListingPrice] = useState("");
     const [isListing, setIsListing] = useState(false);
+
+    // Dynamic back button - go to collection page if NFT has a collection, otherwise wallet
+    const backPath = nft?.collectionAddress 
+        ? `/wallet/marketplace/collection/${encodeURIComponent(nft.collectionAddress)}`
+        : "/wallet";
+    useTelegramBackButton(backPath);
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 

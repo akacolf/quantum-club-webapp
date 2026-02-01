@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { authenticateUser } from "@/lib/telegramAuth";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -62,7 +63,9 @@ export default function PriceAlertsPage() {
         
         setIsLoading(true);
         try {
-            const response = await fetch(`/api/price-alerts?telegramId=${telegramId}`);
+            const response = await fetch(`/api/price-alerts?telegramId=${telegramId}`, {
+                credentials: "include",
+            });
             if (response.ok) {
                 const data = await response.json();
                 setAlerts(data.alerts || []);
@@ -117,9 +120,13 @@ export default function PriceAlertsPage() {
 
         setIsSaving(true);
         try {
+            // Ensure we have a valid session before making the request
+            await authenticateUser();
+            
             const response = await fetch("/api/price-alerts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({
                     telegramId,
                     symbol: selectedToken.symbol,
@@ -135,6 +142,33 @@ export default function PriceAlertsPage() {
                 setTargetPrice("");
                 setIsAdding(false);
                 toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
+            } else if (response.status === 401 || response.status === 403) {
+                // Try re-authenticating and retry once
+                const reauthed = await authenticateUser();
+                if (reauthed) {
+                    const retryResponse = await fetch("/api/price-alerts", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            telegramId,
+                            symbol: selectedToken.symbol,
+                            targetPrice: price,
+                            direction,
+                        }),
+                    });
+                    const retryData = await retryResponse.json();
+                    if (retryResponse.ok) {
+                        setAlerts([retryData.alert, ...alerts]);
+                        setTargetPrice("");
+                        setIsAdding(false);
+                        toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
+                    } else {
+                        toast.error(retryData.error || "Failed to create alert");
+                    }
+                } else {
+                    toast.error("Authentication failed. Please restart the app.");
+                }
             } else {
                 toast.error(data.error || "Failed to create alert");
             }
@@ -152,7 +186,7 @@ export default function PriceAlertsPage() {
         try {
             const response = await fetch(
                 `/api/price-alerts?alertId=${alertId}&telegramId=${telegramId}`,
-                { method: "DELETE" }
+                { method: "DELETE", credentials: "include" }
             );
 
             if (response.ok) {
@@ -175,9 +209,8 @@ export default function PriceAlertsPage() {
     };
 
     const formatPrice = (price: number, symbol: string) => {
-        if (symbol === "BTC") return price.toLocaleString();
-        if (symbol === "ETH") return price.toFixed(2);
-        return price.toFixed(4);
+        if (symbol === "BTC") return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return price.toFixed(2);
     };
 
     if (isLoading) {
@@ -491,7 +524,7 @@ export default function PriceAlertsPage() {
                 )}
 
                 <div className="mt-6 p-3 bg-primary/10 border border-primary/20 rounded-xl">
-                    <p className="text-xs text-primary/80 text-center flex items-center justify-center gap-1.5">
+                    <p className="text-xs text-primary/80 text-left flex items-center justify-start gap-1.5">
                         <Info className="w-3.5 h-3.5 shrink-0" />
                         Alerts are checked every minute. You&apos;ll receive a Telegram notification when your price target is hit.
                     </p>

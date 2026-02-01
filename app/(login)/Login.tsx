@@ -26,7 +26,7 @@ export default function Login() {
   const { setUserRank } = useLeaderboardContext();
   useEffect(()=>{
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     
     const getData = async()=>{
       if (!isMounted) return;

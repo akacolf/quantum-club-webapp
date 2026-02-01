@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Quantum Club",
+    "slug": "quantum-club",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "quantumclub",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0B1E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.quantumclub.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0B1E"
+      },
+      "package": "com.quantumclub.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router"]
+  }
+}

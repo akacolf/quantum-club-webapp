@@ -2,7 +2,6 @@
 
 import React from "react";
 import Image from "next/image";
-import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface ImageViewerProps {
@@ -28,15 +27,6 @@ export default function ImageViewer({ isOpen, onClose, imageUrl, alt }: ImageVie
                 >
                     {/* Dark overlay background */}
                     <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
-
-                    {/* Close button - top right with safe area */}
-                    <button
-                        onClick={onClose}
-                        className="absolute top-12 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                        aria-label="Close"
-                    >
-                        <Icon icon="solar:close-bold" className="w-6 h-6 text-white" />
-                    </button>
 
                     {/* Profile name - below safe area */}
                     <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10">

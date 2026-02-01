@@ -26,7 +26,7 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell, Cell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
@@ -98,14 +98,54 @@ export default function SendPage() {
           if (result.startsWith("ton://transfer/")) {
             const url = new URL(result);
             address = url.pathname.replace("/transfer/", "");
+            setRecipient(address);
           } else if (result.startsWith("tonkeeper://")) {
             address = result.replace("tonkeeper://transfer/", "").split("?")[0];
+            setRecipient(address);
+          } else if (result.startsWith("ethereum:") || result.startsWith("0x")) {
+            // Ethereum address (EIP-681 or raw)
+            address = result.startsWith("ethereum:") ? result.replace("ethereum:", "").split("@")[0] : result;
+            if (isValidEthAddress(address)) {
+              setSelectedChain("eth");
+              setMultiChainRecipient(address);
+            } else {
+              setRecipient(address);
+            }
+          } else if (result.startsWith("solana:") || (result.length >= 32 && result.length <= 44 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(result))) {
+            // Solana address
+            address = result.startsWith("solana:") ? result.replace("solana:", "").split("?")[0] : result;
+            if (isValidSolAddress(address)) {
+              setSelectedChain("sol");
+              setMultiChainRecipient(address);
+            } else {
+              setRecipient(address);
+            }
+          } else if (result.startsWith("bitcoin:") || result.startsWith("bc1") || result.startsWith("tb1") || result.startsWith("1") || result.startsWith("3")) {
+            // Bitcoin address
+            address = result.startsWith("bitcoin:") ? result.replace("bitcoin:", "").split("?")[0] : result;
+            if (isValidBtcAddress(address)) {
+              setSelectedChain("btc");
+              setMultiChainRecipient(address);
+            } else {
+              setRecipient(address);
+            }
+          } else if (result.startsWith("tron:") || result.startsWith("T")) {
+            // TRON address
+            address = result.startsWith("tron:") ? result.replace("tron:", "").split("?")[0] : result;
+            if (isValidTrxAddress(address)) {
+              setSelectedChain("trx");
+              setMultiChainRecipient(address);
+            } else {
+              setRecipient(address);
+            }
           } else if (result.includes("?")) {
             address = result.split("?")[0];
+            setRecipient(address);
+          } else {
+            // Default to TON
+            setRecipient(address);
           }
           
-          // Set address and close scanner
-          setRecipient(address);
           toast.success("Address scanned!");
           WebApp.closeScanQrPopup();
           return true;
@@ -549,10 +589,21 @@ export default function SendPage() {
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
 
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
+      // Get the stored wallet version to create the correct wallet contract
+      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
 
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
       const adapter = new ContractAdapter(ta);
@@ -615,7 +666,8 @@ export default function SendPage() {
         setIsFirstTransaction(isNewWallet);
 
         // Create transfer for emulation
-        const transfer = wallet.createTransfer({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const transfer = (wallet as any).createTransfer({
           seqno,
           secretKey: keyPair.secretKey,
           sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
@@ -746,10 +798,21 @@ export default function SendPage() {
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
 
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
+      // Get the stored wallet version to create the correct wallet contract
+      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
 
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
       const adapter = new ContractAdapter(ta);
@@ -802,7 +865,8 @@ export default function SendPage() {
         // For first transaction with undeployed wallet, we need to manually send with StateInit
         if (!isWalletDeployed && seqno === 0) {
           // Create the transfer message
-          const transfer = wallet.createTransfer({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transfer = (wallet as any).createTransfer({
             seqno: 0,
             secretKey: keyPair.secretKey,
             sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
@@ -882,7 +946,8 @@ export default function SendPage() {
         // For first transaction with undeployed wallet, we need to manually send with StateInit
         if (!isWalletDeployed && seqno === 0) {
           // Create the transfer message for jetton
-          const transfer = wallet.createTransfer({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transfer = (wallet as any).createTransfer({
             seqno: 0,
             secretKey: keyPair.secretKey,
             sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,

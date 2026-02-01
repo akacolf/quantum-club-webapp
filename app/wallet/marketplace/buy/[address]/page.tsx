@@ -32,6 +32,7 @@ import {
     getSaleInfo,
     QC_MARKETPLACE_FEE_PERCENT,
 } from "@/lib/nft-sale-contracts";
+import { convertTonToStars } from "@/lib/telegram-payments";
 
 type ViewMode = "preview" | "processing" | "success" | "error";
 
@@ -54,6 +55,8 @@ export default function BuyNftPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [viewMode, setViewMode] = useState<ViewMode>("preview");
     const [error, setError] = useState<string | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<"TON" | "STARS">("TON");
+    const [starsAmount, setStarsAmount] = useState<number | null>(null);
 
     // Fetch NFT details
     const fetchNft = useCallback(async () => {
@@ -80,9 +83,20 @@ export default function BuyNftPage() {
     // Calculate price with fee
     const priceInfo = nft?.sale ? calculateTotalPrice(nft.sale.price) : null;
 
+    // Calculate Stars equivalent when price changes
+    useEffect(() => {
+        if (priceInfo) {
+            // Get TON price from wallet context (approximate $5.50 USD fallback)
+            const tonPriceUsd = 5.5; // TODO: Get from price API
+            const tonAmount = Number(priceInfo.totalPrice) / 1e9;
+            const stars = convertTonToStars(tonAmount, tonPriceUsd);
+            setStarsAmount(stars);
+        }
+    }, [priceInfo]);
+
     // Check balance - tonBalance is a string in WalletContext
     const balanceNum = typeof tonBalance === 'string' ? parseFloat(tonBalance) : tonBalance;
-    const hasInsufficientBalance = priceInfo ? balanceNum < Number(priceInfo.totalPrice) / 1e9 : false;
+    const hasInsufficientBalance = paymentMethod === "TON" && priceInfo ? balanceNum < Number(priceInfo.totalPrice) / 1e9 : false;
 
     // Handle purchase
     const handlePurchase = async () => {
@@ -91,7 +105,13 @@ export default function BuyNftPage() {
             return;
         }
 
-        // Authenticate
+        // For Stars payment, use Telegram Stars flow
+        if (paymentMethod === "STARS") {
+            await handleStarsPurchase();
+            return;
+        }
+
+        // Authenticate for TON payment
         const authenticated = await requestAuth();
         if (!authenticated) {
             toast.error("Authentication required");
@@ -167,6 +187,72 @@ export default function BuyNftPage() {
         } catch (err) {
             console.error("Purchase error:", err);
             setError(err instanceof Error ? err.message : "Purchase failed");
+            setViewMode("error");
+        }
+    };
+
+    // Handle Telegram Stars purchase
+    const handleStarsPurchase = async () => {
+        if (!nft?.sale || !starsAmount || !telegramId) {
+            toast.error("Missing purchase information");
+            return;
+        }
+
+        setViewMode("processing");
+
+        try {
+            // Create Stars invoice via our API
+            const response = await fetch("/api/payments/telegram-stars", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "create-invoice",
+                    title: `NFT: ${nft.name || "NFT Purchase"}`,
+                    description: `Purchase NFT from ${nft.collectionName || "collection"}`,
+                    payload: JSON.stringify({
+                        type: "nft_purchase",
+                        nftAddress: nftAddress,
+                        buyerId: telegramId,
+                        sellerAddress: nft.sale.owner,
+                        saleContractAddress: nft.sale.address,
+                    }),
+                    amount: starsAmount,
+                    photoUrl: nft.image,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.invoiceLink) {
+                // Open Telegram Stars payment in Telegram WebApp
+                if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+                    // Use type assertion - openInvoice is available in Telegram WebApp but not in all type definitions
+                    const webApp = window.Telegram.WebApp as unknown as {
+                        openInvoice: (url: string, callback: (status: string) => void) => void;
+                    };
+                    webApp.openInvoice(result.invoiceLink, (status) => {
+                        if (status === "paid") {
+                            toast.success("Payment successful! NFT will be transferred shortly.");
+                            setViewMode("success");
+                        } else if (status === "cancelled") {
+                            toast.info("Payment cancelled");
+                            setViewMode("preview");
+                        } else {
+                            toast.error("Payment failed");
+                            setViewMode("error");
+                        }
+                    });
+                } else {
+                    // Fallback: open in browser (won't work as well)
+                    window.open(result.invoiceLink, "_blank");
+                    toast.info("Complete payment in Telegram");
+                }
+            } else {
+                throw new Error(result.error || "Failed to create invoice");
+            }
+        } catch (err) {
+            console.error("Stars purchase error:", err);
+            setError(err instanceof Error ? err.message : "Stars payment failed");
             setViewMode("error");
         }
     };
@@ -403,6 +489,42 @@ export default function BuyNftPage() {
                     </Card>
                 ) : null}
 
+                {/* Payment Method Selector */}
+                <Card className="bg-card border-border">
+                    <CardContent className="p-4">
+                        <p className="text-sm font-semibold mb-3">Payment Method</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                variant={paymentMethod === "TON" ? "default" : "outline"}
+                                onClick={() => setPaymentMethod("TON")}
+                                className={`flex-1 h-12 ${paymentMethod === "TON" ? "bg-primary" : ""}`}
+                            >
+                                <span className="mr-2">💎</span>
+                                <div className="text-left">
+                                    <div className="font-semibold">TON</div>
+                                    <div className="text-xs opacity-75">{priceInfo.totalPriceFormatted} TON</div>
+                                </div>
+                            </Button>
+                            <Button
+                                variant={paymentMethod === "STARS" ? "default" : "outline"}
+                                onClick={() => setPaymentMethod("STARS")}
+                                className={`flex-1 h-12 ${paymentMethod === "STARS" ? "bg-yellow-500 hover:bg-yellow-600" : ""}`}
+                            >
+                                <span className="mr-2">⭐</span>
+                                <div className="text-left">
+                                    <div className="font-semibold">Stars</div>
+                                    <div className="text-xs opacity-75">{starsAmount || "..."} Stars</div>
+                                </div>
+                            </Button>
+                        </div>
+                        {paymentMethod === "STARS" && (
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                                Pay with Telegram Stars • No wallet needed
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+
                 {/* Purchase Button */}
                 <Button
                     onClick={handlePurchase}
@@ -410,7 +532,9 @@ export default function BuyNftPage() {
                     className="w-full h-14 rounded-xl font-bold text-lg bg-green-600 hover:bg-green-700"
                 >
                     <ShoppingCart className="w-5 h-5 mr-2" />
-                    Buy for {priceInfo.totalPriceFormatted} TON
+                    {paymentMethod === "TON" 
+                        ? `Buy for ${priceInfo.totalPriceFormatted} TON`
+                        : `Buy for ${starsAmount || "..."} Stars`}
                     <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
             </motion.div>
