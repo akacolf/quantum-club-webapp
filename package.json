@@ -1,12 +1,19 @@
 {
-  "name": "web",
+  "name": "quantum-club",
   "version": "3.2.2",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@quantum-club/web",
+    "dev:mobile": "cd apps/mobile && npm start",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=@quantum-club/web",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
     "compile:contracts": "npx tsx scripts/compile-contracts.ts",
     "test:contracts": "cd contracts && npx jest --config jest.config.js"
   },

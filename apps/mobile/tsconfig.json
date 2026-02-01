@@ -4,11 +4,12 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
+      "~/*": ["./*"],
       "@/*": ["./*"],
       "@quantum-club/types": ["../../packages/types/src"],
       "@quantum-club/utils": ["../../packages/utils/src"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts"],
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "nativewind-env.d.ts"],
   "exclude": ["node_modules"]
 }

@@ -7,29 +7,14 @@ export default function WalletLayout() {
         headerStyle: { backgroundColor: "#0A0B1E" },
         headerTintColor: "#FFFFFF",
         contentStyle: { backgroundColor: "#0A0B1E" },
+        headerShown: false,
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          title: "Wallet",
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="send"
-        options={{
-          title: "Send",
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="receive"
-        options={{
-          title: "Receive",
-          headerShown: true,
-        }}
-      />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="send" />
+      <Stack.Screen name="receive" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="history" />
     </Stack>
   );
 }

@@ -1,10 +1,17 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
+import { useRouter } from "expo-router";
+import { Text } from "~/components/ui/text";
+import { Card, CardContent } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { ArrowLeft, Copy, Check, Share2 } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Receive() {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
-  const walletAddress = "EQ...your-address"; // Placeholder
+  const walletAddress = "EQDrLq-X6jKZNHAScgghh0h1iog3StK71zn8dcmrOj8jPWRA"; // Placeholder
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(walletAddress);
@@ -12,109 +19,99 @@ export default function Receive() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <View style={styles.container}>
-      {/* QR Code Placeholder */}
-      <View style={styles.qrContainer}>
-        <View style={styles.qrPlaceholder}>
-          <Text style={styles.qrText}>📱</Text>
-          <Text style={styles.qrLabel}>QR Code</Text>
-        </View>
-      </View>
+  const shortenAddress = (addr: string) => {
+    return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
+  };
 
-      {/* Address Display */}
-      <View style={styles.addressContainer}>
-        <Text style={styles.addressLabel}>Your Wallet Address</Text>
-        <View style={styles.addressBox}>
-          <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
-            {walletAddress}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
-          <Text style={styles.copyButtonText}>
-            {copied ? "✓ Copied!" : "Copy Address"}
-          </Text>
+  return (
+    <SafeAreaView className="flex-1 bg-background">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text className="text-lg font-semibold text-foreground">Receive</Text>
+        <TouchableOpacity>
+          <Share2 size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Info */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          Share this address to receive TON or other supported tokens.
-        </Text>
+      <View className="flex-1 px-4 items-center">
+        {/* QR Code Placeholder */}
+        <View className="mt-8 mb-8">
+          <View className="w-52 h-52 bg-white rounded-2xl justify-center items-center p-4">
+            <View className="w-full h-full bg-gray-100 rounded-lg justify-center items-center">
+              <Text className="text-6xl">📱</Text>
+              <Text className="text-sm text-gray-500 mt-2">QR Code</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Address Card */}
+        <Card className="w-full bg-secondary mb-4">
+          <CardContent className="p-4">
+            <Text className="text-xs text-muted-foreground text-center mb-3">Your TON Address</Text>
+            <Text className="text-sm font-mono text-foreground text-center" numberOfLines={1}>
+              {shortenAddress(walletAddress)}
+            </Text>
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons */}
+        <View className="flex-row gap-3 w-full">
+          <Button
+            className="flex-1 bg-primary py-3 flex-row items-center justify-center gap-2"
+            onPress={handleCopy}
+          >
+            {copied ? (
+              <Check size={20} color="#0A0B1E" />
+            ) : (
+              <Copy size={20} color="#0A0B1E" />
+            )}
+            <Text className="text-base font-medium text-primary-foreground">
+              {copied ? "Copied!" : "Copy"}
+            </Text>
+          </Button>
+          <Button className="flex-1 bg-secondary py-3 flex-row items-center justify-center gap-2">
+            <Share2 size={20} color="#fff" />
+            <Text className="text-base font-medium text-foreground">Share</Text>
+          </Button>
+        </View>
+
+        {/* Info */}
+        <View className="mt-8 px-6">
+          <Text className="text-sm text-muted-foreground text-center leading-5">
+            Share this address to receive TON or other supported tokens on the TON blockchain.
+          </Text>
+        </View>
+
+        {/* Supported Tokens */}
+        <Card className="w-full bg-secondary mt-6">
+          <CardContent className="p-4">
+            <Text className="text-xs text-muted-foreground text-center mb-3">Supported tokens</Text>
+            <View className="flex-row justify-center gap-4">
+              <View className="items-center">
+                <View className="w-10 h-10 rounded-full bg-blue-500 justify-center items-center mb-1">
+                  <Text className="text-lg">💎</Text>
+                </View>
+                <Text className="text-xs text-foreground">TON</Text>
+              </View>
+              <View className="items-center">
+                <View className="w-10 h-10 rounded-full bg-yellow-500 justify-center items-center mb-1">
+                  <Text className="text-lg">🪙</Text>
+                </View>
+                <Text className="text-xs text-foreground">USDT</Text>
+              </View>
+              <View className="items-center">
+                <View className="w-10 h-10 rounded-full bg-purple-500 justify-center items-center mb-1">
+                  <Text className="text-lg">⚡</Text>
+                </View>
+                <Text className="text-xs text-foreground">Jettons</Text>
+              </View>
+            </View>
+          </CardContent>
+        </Card>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0A0B1E",
-    padding: 16,
-    alignItems: "center",
-  },
-  qrContainer: {
-    marginTop: 32,
-    marginBottom: 32,
-  },
-  qrPlaceholder: {
-    width: 200,
-    height: 200,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  qrText: {
-    fontSize: 64,
-  },
-  qrLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 8,
-  },
-  addressContainer: {
-    width: "100%",
-    alignItems: "center",
-  },
-  addressLabel: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginBottom: 12,
-  },
-  addressBox: {
-    backgroundColor: "#1E1F3B",
-    padding: 16,
-    borderRadius: 12,
-    width: "100%",
-    marginBottom: 16,
-  },
-  addressText: {
-    fontSize: 14,
-    color: "#FFFFFF",
-    fontFamily: "monospace",
-    textAlign: "center",
-  },
-  copyButton: {
-    backgroundColor: "#6366F1",
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  copyButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#FFFFFF",
-  },
-  infoContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-});
