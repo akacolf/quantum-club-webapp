@@ -49,7 +49,7 @@ function isFromSanctionedLocation(request: NextRequest): boolean {
   return false;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Allow unsupported region page to be accessed without restrictions
   if (request.nextUrl.pathname === "/unsupported-region") {
     return NextResponse.next();

@@ -156,17 +156,12 @@ export default function BuyNftPage() {
                     throw new Error(result.error || "Transaction failed");
                 }
             } else {
-                // Fallback: Open marketplace to complete purchase
-                const marketUrl = `https://getgems.io/nft/${nftAddress}`;
-                window.open(marketUrl, "_blank");
-                
-                toast.info("Complete purchase on external marketplace", {
-                    description: "You will be redirected to complete the transaction",
+                // NFT is not listed on QC Marketplace - show error instead of external redirect
+                toast.error("NFT not available", {
+                    description: "This NFT is not listed for sale on our marketplace.",
                 });
-                
-                setTimeout(() => {
-                    setViewMode("success");
-                }, 2000);
+                setError("This NFT is not listed for sale on our marketplace. Please wait for the owner to list it.");
+                setViewMode("error");
             }
 
         } catch (err) {

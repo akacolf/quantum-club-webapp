@@ -48,7 +48,7 @@ interface WalletKitContextType {
     handleTonConnectUrl: (url: string) => Promise<void>;
     
     // Wallet registration
-    registerWallet: (mnemonic: string[]) => Promise<void>;
+    registerWallet: (mnemonic: string[]) => Promise<boolean>;
     isWalletRegistered: boolean;
 }
 
@@ -193,10 +193,10 @@ export function WalletKitProvider({
     }, [isTestnet]);
 
     // Register wallet with WalletKit
-    const registerWallet = useCallback(async (mnemonic: string[]) => {
+    const registerWallet = useCallback(async (mnemonic: string[]): Promise<boolean> => {
         if (!kitRef.current) {
             console.error("[WalletKit] Kit not initialized");
-            return;
+            return false;
         }
         
         try {
@@ -222,9 +222,12 @@ export function WalletKitProvider({
                 walletRef.current = registeredWallet;
                 setIsWalletRegistered(true);
                 console.log("[WalletKit] Wallet registered:", registeredWallet.getAddress());
+                return true;
             }
+            return false;
         } catch (error) {
             console.error("[WalletKit] Failed to register wallet:", error);
+            return false;
         }
     }, [isTestnet]);
 
@@ -243,17 +246,16 @@ export function WalletKitProvider({
             console.log("[WalletKit] Wallet not registered, attempting to register...");
             
             // Try to get mnemonic from localStorage and register
-            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${localStorage.getItem("telegramId") || ""}`);
+            // The telegramId is stored as encrypted value in localStorage
+            const telegramId = localStorage.getItem("telegramId") || "";
+            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
             
             if (storedMnemonic) {
                 try {
                     const mnemonic = storedMnemonic.split(" ");
-                    await registerWallet(mnemonic);
+                    const registered = await registerWallet(mnemonic);
                     
-                    // Wait a bit for registration to complete
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    if (!walletRef.current) {
+                    if (!registered || !walletRef.current) {
                         throw new Error("Wallet registration failed");
                     }
                 } catch (regError) {
@@ -265,7 +267,7 @@ export function WalletKitProvider({
                     return;
                 }
             } else {
-                console.error("[WalletKit] Cannot approve: no mnemonic found");
+                console.error("[WalletKit] Cannot approve: no mnemonic found for telegramId:", telegramId);
                 toast.error("Connection failed", {
                     description: "No wallet found. Please create or import a wallet first.",
                 });

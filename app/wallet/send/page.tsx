@@ -572,8 +572,14 @@ export default function SendPage() {
         // Build comment body if provided - use encryption if enabled and recipient has public key
         let messageBody: Cell | undefined = undefined;
         if (hasComment) {
-          if (encryptComment && recipientPublicKey) {
-            messageBody = await encryptCommentMessage(comment.trim(), recipientPublicKey);
+          if (encryptComment && recipientPublicKey && walletAddress) {
+            messageBody = await encryptCommentMessage(
+              comment.trim(), 
+              recipientPublicKey,
+              undefined, // Use ephemeral sender keys
+              undefined,
+              walletAddress // Sender address for salt
+            );
           } else {
             messageBody = createTextComment(comment.trim());
           }
@@ -778,9 +784,15 @@ export default function SendPage() {
         // Build comment body if provided - use encryption if enabled and recipient has public key
         let messageBody: Cell | undefined = undefined;
         if (comment.trim()) {
-          if (encryptComment && recipientPublicKey) {
+          if (encryptComment && recipientPublicKey && walletAddress) {
             // Use encrypted comment
-            messageBody = await encryptCommentMessage(comment.trim(), recipientPublicKey);
+            messageBody = await encryptCommentMessage(
+              comment.trim(), 
+              recipientPublicKey,
+              undefined, // Use ephemeral sender keys
+              undefined,
+              walletAddress // Sender address for salt
+            );
           } else {
             // Use plain text comment
             messageBody = createTextComment(comment.trim());

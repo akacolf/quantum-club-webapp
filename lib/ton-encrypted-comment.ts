@@ -3,160 +3,354 @@
 /**
  * TON Encrypted Comment Utility
  * 
- * Implements TON's encrypted comment feature using NaCL cryptography.
- * The encrypted comment uses op_code 0x2167da4b (simple_transfer_comment).
+ * Implements TON's encrypted comment feature compatible with Tonkeeper.
+ * The encrypted comment uses op_code 0x2167da4b.
  * 
- * This implementation follows the TON standard for encrypted comments
- * and is compatible with Tonkeeper's decryption.
+ * This implementation follows the TON standard using:
+ * - X25519 ECDH key exchange (Ed25519 keys converted to X25519)
+ * - AES-256-CBC encryption with HMAC-SHA512 key derivation
+ * - Sender address as salt for encryption
  * 
  * Format:
  * - 32 bits: op_code (0x2167da4b)
- * - 256 bits: sender's public key (for ECDH)
- * - 256 bits: XOR of sender's and recipient's public keys (for sender decryption)
- * - 24 bytes: nonce
- * - Variable: ciphertext (NaCl box encrypted)
- * 
- * Note: TON wallets use Ed25519 keys for signing, but the public keys
- * can be used directly with NaCl box (which uses X25519 internally
- * because Ed25519 and X25519 share the same underlying curve).
+ * - 256 bits: XOR of sender's and recipient's public keys
+ * - 128 bits: message key (first 16 bytes of HMAC)
+ * - Variable: AES-CBC encrypted data with random prefix
  */
 
-import { beginCell, Cell } from "@ton/core";
-import { getSecureRandomBytes, keyPairFromSeed } from "@ton/crypto";
+import { beginCell, Cell, Address } from "@ton/core";
+import { getSecureRandomBytes, keyPairFromSeed, sha512 } from "@ton/crypto";
+import { x25519, edwardsToMontgomeryPub, edwardsToMontgomeryPriv } from "@noble/curves/ed25519";
+import aesjs from "aes-js";
 
 // Op-code for encrypted text comment
 const ENCRYPTED_COMMENT_OPCODE = 0x2167da4b;
 
 /**
- * Encrypt a comment for a TON transfer
- * 
- * Uses NaCl box encryption with ephemeral keys for forward secrecy.
- * The recipient can decrypt using their wallet's secret key.
+ * HMAC-SHA512 implementation
+ */
+async function hmacSha512(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
+    const blockSize = 128;
+    
+    // Pad or hash the key to blockSize
+    const keyBlock = new Uint8Array(blockSize);
+    if (key.length > blockSize) {
+        const hashedKey = await sha512(Buffer.from(key));
+        keyBlock.set(new Uint8Array(hashedKey));
+    } else {
+        keyBlock.set(key);
+    }
+    
+    // Create inner and outer padded keys
+    const ipad = new Uint8Array(blockSize);
+    const opad = new Uint8Array(blockSize);
+    for (let i = 0; i < blockSize; i++) {
+        ipad[i] = keyBlock[i] ^ 0x36;
+        opad[i] = keyBlock[i] ^ 0x5c;
+    }
+    
+    // Inner hash
+    const innerData = new Uint8Array(ipad.length + data.length);
+    innerData.set(ipad);
+    innerData.set(data, ipad.length);
+    const innerHash = await sha512(Buffer.from(innerData));
+    
+    // Outer hash
+    const outerData = new Uint8Array(opad.length + innerHash.length);
+    outerData.set(opad);
+    outerData.set(new Uint8Array(innerHash), opad.length);
+    const result = await sha512(Buffer.from(outerData));
+    
+    return new Uint8Array(result);
+}
+
+/**
+ * AES-CBC encryption (no padding - data must be multiple of 16)
+ */
+function aesCbcEncrypt(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+    const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
+    return aesCbc.encrypt(data);
+}
+
+/**
+ * AES-CBC decryption
+ */
+function aesCbcDecrypt(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+    const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
+    return aesCbc.decrypt(data);
+}
+
+/**
+ * Get random prefix for padding data to multiple of 16 bytes
+ */
+function getRandomPrefix(dataLength: number, minPadding: number): Uint8Array {
+    const prefixLength = ((minPadding + 15 + dataLength) & -16) - dataLength;
+    const prefix = new Uint8Array(prefixLength);
+    crypto.getRandomValues(prefix);
+    prefix[0] = prefixLength;
+    return prefix;
+}
+
+/**
+ * Store data in snake cells (for large payloads)
+ */
+function storeDeepRef(bytes: Uint8Array): Cell {
+    const CELL_BYTE_LENGTH = 127;
+    if (bytes.length <= CELL_BYTE_LENGTH) {
+        return beginCell()
+            .storeBuffer(Buffer.from(bytes.slice(0, CELL_BYTE_LENGTH)))
+            .endCell();
+    } else {
+        return beginCell()
+            .storeBuffer(Buffer.from(bytes.slice(0, Math.min(bytes.length, CELL_BYTE_LENGTH))))
+            .storeRef(storeDeepRef(bytes.slice(CELL_BYTE_LENGTH)))
+            .endCell();
+    }
+}
+
+/**
+ * Create snake cells for the encrypted payload
+ */
+function makeSnakeCells(bytes: Uint8Array): Cell {
+    const ROOT_CELL_BYTE_LENGTH = 35 + 4; // 4 bytes for opcode, 35 for initial data
+    const CELL_BYTE_LENGTH = 127;
+    
+    if (bytes.length <= ROOT_CELL_BYTE_LENGTH) {
+        return beginCell()
+            .storeBuffer(Buffer.from(bytes))
+            .endCell();
+    }
+    
+    const rootCellBuilder = beginCell()
+        .storeBuffer(Buffer.from(bytes.slice(0, Math.min(bytes.length, ROOT_CELL_BYTE_LENGTH))));
+
+    const cellCount = Math.ceil((bytes.length - ROOT_CELL_BYTE_LENGTH) / CELL_BYTE_LENGTH);
+    if (cellCount > 16) {
+        throw new Error("Text too long");
+    }
+
+    rootCellBuilder.storeRef(
+        storeDeepRef(bytes.slice(ROOT_CELL_BYTE_LENGTH))
+    );
+
+    return rootCellBuilder.endCell();
+}
+
+/**
+ * Encrypt a comment for a TON transfer (Tonkeeper compatible)
  * 
  * @param comment The plaintext comment to encrypt
  * @param recipientPublicKey The recipient's Ed25519 public key (32 bytes)
+ * @param senderPublicKey The sender's Ed25519 public key (32 bytes) 
+ * @param senderPrivateKey The sender's Ed25519 private key (32 or 64 bytes)
+ * @param senderAddress The sender's wallet address (used as salt)
  * @returns The encrypted comment as a Cell
  */
 export async function encryptComment(
     comment: string,
-    recipientPublicKey: Uint8Array
+    recipientPublicKey: Uint8Array,
+    senderPublicKey?: Uint8Array,
+    senderPrivateKey?: Uint8Array,
+    senderAddress?: string | Address
 ): Promise<Cell> {
-    const nacl = await import("tweetnacl");
+    // If sender keys not provided, generate ephemeral keys
+    let myPublicKey: Uint8Array;
+    let myPrivateKey: Uint8Array;
     
-    // Generate ephemeral key pair for this message (provides forward secrecy)
-    const ephemeralSeed = await getSecureRandomBytes(32);
-    const ephemeralKeyPair = keyPairFromSeed(ephemeralSeed);
+    if (senderPublicKey && senderPrivateKey) {
+        myPublicKey = senderPublicKey;
+        myPrivateKey = senderPrivateKey.length === 64 ? senderPrivateKey.slice(0, 32) : senderPrivateKey;
+    } else {
+        // Generate ephemeral key pair
+        const ephemeralSeed = await getSecureRandomBytes(32);
+        const ephemeralKeyPair = keyPairFromSeed(Buffer.from(ephemeralSeed));
+        myPublicKey = ephemeralKeyPair.publicKey;
+        myPrivateKey = ephemeralSeed;
+    }
     
-    // Convert comment to bytes
-    const messageBytes = new TextEncoder().encode(comment);
+    if (!comment || !comment.length) {
+        throw new Error("Empty comment");
+    }
     
-    // Generate random nonce (24 bytes for NaCl box)
-    const nonce = nacl.randomBytes(24);
+    const commentBytes = new TextEncoder().encode(comment);
     
-    // Encrypt using NaCl box
-    // nacl.box uses X25519 for key exchange and XSalsa20-Poly1305 for encryption
-    // Ed25519 public keys work because they share the same curve as X25519
-    const ciphertext = nacl.box(
-        messageBytes,
-        nonce,
-        recipientPublicKey,
-        ephemeralSeed // Use seed as secret key (first 32 bytes)
-    );
+    // Create salt from sender address
+    let salt: Uint8Array;
+    if (senderAddress) {
+        const address = senderAddress instanceof Address ? senderAddress : Address.parse(senderAddress);
+        salt = new TextEncoder().encode(
+            address.toString({ bounceable: true, urlSafe: true, testOnly: false })
+        );
+    } else {
+        // Use a default salt if no address provided
+        salt = new TextEncoder().encode("ton-encrypted");
+    }
     
-    // Build XOR'd public key (allows sender to decrypt their own message later)
+    // Convert Ed25519 keys to X25519 for ECDH key exchange
+    const myX25519Private = edwardsToMontgomeryPriv(myPrivateKey);
+    const theirX25519Public = edwardsToMontgomeryPub(recipientPublicKey);
+    
+    // Get shared secret using X25519
+    const sharedSecret = x25519.getSharedSecret(myX25519Private, theirX25519Public);
+    
+    // Add random prefix for padding
+    const prefix = getRandomPrefix(commentBytes.length, 16);
+    const combined = new Uint8Array(prefix.length + commentBytes.length);
+    combined.set(prefix);
+    combined.set(commentBytes, prefix.length);
+    
+    // Derive message key and encryption key
+    const dataHash = await hmacSha512(salt, combined);
+    const msgKey = dataHash.slice(0, 16);
+    const cbcStateSecret = await hmacSha512(sharedSecret, msgKey);
+    const aesKey = cbcStateSecret.slice(0, 32);
+    const aesIv = cbcStateSecret.slice(32, 48);
+    
+    // Encrypt with AES-CBC
+    const encrypted = aesCbcEncrypt(combined, aesKey, aesIv);
+    
+    // Build XOR'd public key (allows sender to decrypt their own message)
     const xorPubkey = new Uint8Array(32);
     for (let i = 0; i < 32; i++) {
-        xorPubkey[i] = ephemeralKeyPair.publicKey[i] ^ recipientPublicKey[i];
+        xorPubkey[i] = recipientPublicKey[i] ^ myPublicKey[i];
     }
     
-    // Build the encrypted comment cell
-    // Format: [op_code:32] [sender_pubkey:256] [xor_pubkey:256] [nonce] [ciphertext]
-    const builder = beginCell()
-        .storeUint(ENCRYPTED_COMMENT_OPCODE, 32)
-        .storeBuffer(Buffer.from(ephemeralKeyPair.publicKey))
-        .storeBuffer(Buffer.from(xorPubkey));
+    // Combine: [xor_pubkey:32] [msgKey:16] [encrypted]
+    const encryptedPayload = new Uint8Array(32 + 16 + encrypted.length);
+    encryptedPayload.set(xorPubkey, 0);
+    encryptedPayload.set(msgKey, 32);
+    encryptedPayload.set(encrypted, 48);
     
-    // Combine nonce and ciphertext
-    const payload = Buffer.concat([
-        Buffer.from(nonce),
-        Buffer.from(ciphertext)
-    ]);
+    // Build final payload with opcode
+    const payload = new Uint8Array(4 + encryptedPayload.length);
+    payload[0] = 0x21;
+    payload[1] = 0x67;
+    payload[2] = 0xda;
+    payload[3] = 0x4b;
+    payload.set(encryptedPayload, 4);
     
-    // Calculate remaining bits in current cell
-    const usedBits = 32 + 256 + 256; // opcode + sender_pubkey + xor_pubkey
-    const remainingBits = 1023 - usedBits;
-    
-    // If payload fits in current cell, store it directly
-    if (payload.length * 8 <= remainingBits) {
-        builder.storeBuffer(payload);
-    } else {
-        // Store in reference cell for larger payloads
-        builder.storeRef(beginCell().storeBuffer(payload).endCell());
-    }
-    
-    return builder.endCell();
+    return makeSnakeCells(payload);
 }
 
 /**
- * Decrypt an encrypted comment from a TON transfer
+ * Read all data from snake cells
+ */
+function readSnakeCells(cell: Cell): Uint8Array {
+    const slice = cell.beginParse();
+    const chunks: Buffer[] = [];
+    
+    // Read data from current cell
+    if (slice.remainingBits > 0) {
+        chunks.push(slice.loadBuffer(Math.floor(slice.remainingBits / 8)));
+    }
+    
+    // Read data from referenced cells
+    while (slice.remainingRefs > 0) {
+        const refCell = slice.loadRef();
+        const refData = readSnakeCells(refCell);
+        chunks.push(Buffer.from(refData));
+    }
+    
+    return new Uint8Array(Buffer.concat(chunks));
+}
+
+/**
+ * Decrypt an encrypted comment from a TON transfer (Tonkeeper compatible)
  * 
- * @param cell The cell containing the encrypted comment
- * @param recipientSecretKey The recipient's secret key (32 or 64 bytes)
+ * @param encryptedData The encrypted data (without opcode) or Cell
+ * @param myPublicKey The recipient's Ed25519 public key (32 bytes)
+ * @param myPrivateKey The recipient's Ed25519 private key (32 or 64 bytes)
+ * @param senderAddress The sender's wallet address (used as salt)
  * @returns The decrypted comment string, or null if decryption fails
  */
 export async function decryptComment(
-    cell: Cell,
-    recipientSecretKey: Uint8Array
+    encryptedDataOrCell: Uint8Array | Cell,
+    myPublicKey: Uint8Array,
+    myPrivateKey: Uint8Array,
+    senderAddress: string | Address
 ): Promise<string | null> {
     try {
-        const nacl = await import("tweetnacl");
-        const slice = cell.beginParse();
+        let data: Uint8Array;
         
-        // Read and verify op_code
-        const opcode = slice.loadUint(32);
-        if (opcode !== ENCRYPTED_COMMENT_OPCODE) {
-            return null;
-        }
-        
-        // Read sender's public key
-        const senderPubkey = slice.loadBuffer(32);
-        
-        // Read XOR'd public key (skip - only needed for sender to decrypt)
-        slice.loadBuffer(32);
-        
-        // Read payload (nonce + ciphertext)
-        let payload: Buffer;
-        if (slice.remainingBits > 0) {
-            payload = slice.loadBuffer(slice.remainingBits / 8);
-        } else if (slice.remainingRefs > 0) {
-            const refSlice = slice.loadRef().beginParse();
-            payload = refSlice.loadBuffer(refSlice.remainingBits / 8);
+        // Handle Cell input
+        if (encryptedDataOrCell instanceof Cell) {
+            const fullData = readSnakeCells(encryptedDataOrCell);
+            // Check and skip opcode
+            if (fullData[0] === 0x21 && fullData[1] === 0x67 && fullData[2] === 0xda && fullData[3] === 0x4b) {
+                data = fullData.slice(4);
+            } else {
+                return null; // Not an encrypted comment
+            }
         } else {
-            return null;
+            data = encryptedDataOrCell;
         }
         
-        // Extract nonce (first 24 bytes) and ciphertext
-        const nonce = payload.slice(0, 24);
-        const ciphertext = payload.slice(24);
+        // Normalize private key
+        const privateKey = myPrivateKey.length === 64 ? myPrivateKey.slice(0, 32) : myPrivateKey;
         
-        // Get the secret key (first 32 bytes if 64-byte key)
-        const secretKey = recipientSecretKey.length === 64 
-            ? recipientSecretKey.slice(0, 32) 
-            : recipientSecretKey;
-        
-        // Decrypt using NaCl box.open
-        const decrypted = nacl.box.open(
-            new Uint8Array(ciphertext),
-            new Uint8Array(nonce),
-            new Uint8Array(senderPubkey),
-            secretKey
+        // Create salt from sender address
+        const address = senderAddress instanceof Address ? senderAddress : Address.parse(senderAddress);
+        const salt = new TextEncoder().encode(
+            address.toString({ bounceable: true, urlSafe: true, testOnly: false })
         );
         
-        if (!decrypted) {
-            return null;
+        if (data.length < 48) { // 32 (xor) + 16 (msgKey) minimum
+            throw new Error("Data too small");
         }
         
-        return new TextDecoder().decode(decrypted);
+        // Extract XOR'd public key to get sender's public key (Ed25519)
+        const theirPublicKey = new Uint8Array(32);
+        for (let i = 0; i < 32; i++) {
+            theirPublicKey[i] = data[i] ^ myPublicKey[i];
+        }
+        
+        // Convert Ed25519 keys to X25519 for ECDH
+        const myX25519Private = edwardsToMontgomeryPriv(privateKey);
+        const theirX25519Public = edwardsToMontgomeryPub(theirPublicKey);
+        
+        // Get shared secret using X25519
+        const sharedSecret = x25519.getSharedSecret(myX25519Private, theirX25519Public);
+        
+        // Extract message key and encrypted data
+        const msgKey = data.slice(32, 48);
+        const encryptedData = data.slice(48);
+        
+        if (encryptedData.length % 16 !== 0) {
+            throw new Error("Encrypted data size not divisible by 16");
+        }
+        
+        // Derive decryption key
+        const cbcStateSecret = await hmacSha512(sharedSecret, msgKey);
+        const aesKey = cbcStateSecret.slice(0, 32);
+        const aesIv = cbcStateSecret.slice(32, 48);
+        
+        // Decrypt with AES-CBC
+        const decrypted = aesCbcDecrypt(encryptedData, aesKey, aesIv);
+        
+        // Verify hash
+        const dataHash = await hmacSha512(salt, decrypted);
+        const gotMsgKey = dataHash.slice(0, 16);
+        
+        let keysMatch = true;
+        for (let i = 0; i < 16; i++) {
+            if (msgKey[i] !== gotMsgKey[i]) {
+                keysMatch = false;
+                break;
+            }
+        }
+        
+        if (!keysMatch) {
+            throw new Error("Hash mismatch");
+        }
+        
+        // Remove prefix
+        const prefixLength = decrypted[0];
+        if (prefixLength > decrypted.length || prefixLength < 16) {
+            throw new Error("Invalid prefix size");
+        }
+        
+        const messageBytes = decrypted.slice(prefixLength);
+        return new TextDecoder().decode(messageBytes);
     } catch (error) {
         console.error("Failed to decrypt comment:", error);
         return null;
