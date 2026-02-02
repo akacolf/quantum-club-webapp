@@ -4,13 +4,29 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./*"],
-      "@/*": ["./*"],
-      "@quantum-club/types": ["../../packages/types/src"],
-      "@quantum-club/utils": ["../../packages/utils/src"],
-      "nativewind/types": ["../../node_modules/nativewind/types.d.ts"]
+      "~/*": [
+        "./*"
+      ],
+      "@/*": [
+        "./*"
+      ],
+      "@quantum-club/types": [
+        "../../packages/types/src"
+      ],
+      "@quantum-club/utils": [
+        "../../packages/utils/src"
+      ],
+      "nativewind/types": [
+        "../../node_modules/nativewind/types.d.ts"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "nativewind-env.d.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

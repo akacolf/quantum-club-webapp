@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme as useNativeColorScheme } from 'react-native';
+import { useColorScheme as useNativeWindColorScheme } from 'nativewind';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SystemUI from 'expo-system-ui';
 
@@ -18,6 +19,7 @@ const THEME_STORAGE_KEY = '@quantum_club_theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useNativeColorScheme();
+  const nativewindColorScheme = useNativeWindColorScheme();
   const [theme, setThemeState] = useState<Theme>('system');
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -26,6 +28,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.getItem(THEME_STORAGE_KEY).then((savedTheme) => {
       if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
         setThemeState(savedTheme as Theme);
+        // Sync with NativeWind
+        if (savedTheme === 'system') {
+          nativewindColorScheme.setColorScheme('system');
+        } else {
+          nativewindColorScheme.setColorScheme(savedTheme as 'light' | 'dark');
+        }
       }
       setIsLoaded(true);
     });
@@ -49,6 +57,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = async (newTheme: Theme) => {
     setThemeState(newTheme);
     await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
+    // Sync with NativeWind's color scheme
+    if (newTheme === 'system') {
+      nativewindColorScheme.setColorScheme('system');
+    } else {
+      nativewindColorScheme.setColorScheme(newTheme);
+    }
   };
 
   if (!isLoaded) {
