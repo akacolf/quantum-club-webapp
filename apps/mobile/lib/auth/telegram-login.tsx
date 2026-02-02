@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from "react";
-import { View, Modal, ActivityIndicator, TouchableOpacity } from "react-native";
-import { WebView, WebViewMessageEvent } from "react-native-webview";
+import React, { useState, useCallback, useEffect } from "react";
+import { View, Modal, ActivityIndicator, Pressable, Linking, StyleSheet, Alert } from "react-native";
 import { Text } from "~/components/ui/text";
-import { X } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 
 interface TelegramAuthData {
   id: number;
@@ -22,8 +22,15 @@ interface TelegramLoginProps {
 }
 
 /**
- * Telegram Login Widget implemented via WebView
- * Uses Telegram's official login widget: https://core.telegram.org/widgets/login
+ * Telegram Login for Mobile Apps
+ * 
+ * For standalone mobile apps (not Telegram Mini Apps), we use deep linking:
+ * 1. Open Telegram with a start parameter containing a unique session token
+ * 2. User confirms login in Telegram
+ * 3. Bot sends auth data to our backend
+ * 4. App polls backend or uses push notification to complete auth
+ * 
+ * Alternative: Use Telegram's OAuth-like flow for verified apps
  */
 export function TelegramLoginWebView({
   botUsername,
@@ -31,79 +38,93 @@ export function TelegramLoginWebView({
   onClose,
   onAuth,
 }: TelegramLoginProps) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
 
-  // HTML page that loads Telegram Login Widget
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-      <style>
-        body {
-          margin: 0;
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: #0A0B1E;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .title {
-          color: #fff;
-          font-size: 18px;
-          margin-bottom: 20px;
-          text-align: center;
-        }
-        .subtitle {
-          color: #9CA3AF;
-          font-size: 14px;
-          margin-bottom: 30px;
-          text-align: center;
-        }
-        .widget-container {
-          display: flex;
-          justify-content: center;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="title">Connect with Telegram</div>
-      <div class="subtitle">Login with your existing Telegram account</div>
-      <div class="widget-container">
-        <script 
-          async 
-          src="https://telegram.org/js/telegram-widget.js?22" 
-          data-telegram-login="${botUsername}"
-          data-size="large"
-          data-radius="10"
-          data-onauth="onTelegramAuth(user)"
-          data-request-access="write"
-        ></script>
-      </div>
-      <script>
-        function onTelegramAuth(user) {
-          window.ReactNativeWebView.postMessage(JSON.stringify(user));
-        }
-      </script>
-    </body>
-    </html>
-  `;
+  // Generate a unique session token for this login attempt
+  const generateSessionToken = useCallback(() => {
+    const token = `mob_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    setSessionToken(token);
+    return token;
+  }, []);
 
-  const handleMessage = useCallback(
-    (event: WebViewMessageEvent) => {
-      try {
-        const data: TelegramAuthData = JSON.parse(event.nativeEvent.data);
-        onAuth(data);
-        onClose();
-      } catch (error) {
-        console.error("Failed to parse Telegram auth data:", error);
+  // Open Telegram with login deep link
+  const handleOpenTelegram = useCallback(async () => {
+    setLoading(true);
+    const token = generateSessionToken();
+    
+    // The bot will receive this start parameter and can verify the user
+    const telegramUrl = `tg://resolve?domain=${botUsername}&start=auth_${token}`;
+    const webUrl = `https://t.me/${botUsername}?start=auth_${token}`;
+    
+    try {
+      // Try to open Telegram app directly
+      const canOpen = await Linking.canOpenURL(telegramUrl);
+      
+      if (canOpen) {
+        await Linking.openURL(telegramUrl);
+      } else {
+        // Fall back to web browser
+        await WebBrowser.openBrowserAsync(webUrl);
       }
-    },
-    [onAuth, onClose]
-  );
+      
+      // Start polling for auth completion
+      setPolling(true);
+    } catch (error) {
+      console.error("Failed to open Telegram:", error);
+      Alert.alert("Error", "Could not open Telegram. Please make sure it's installed.");
+    } finally {
+      setLoading(false);
+    }
+  }, [botUsername, generateSessionToken]);
+
+  // Poll backend for auth completion
+  useEffect(() => {
+    if (!polling || !sessionToken) return;
+
+    let attempts = 0;
+    const maxAttempts = 60; // 60 attempts * 2 seconds = 2 minutes timeout
+    
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL || "https://quantumclub.app"}/api/auth/telegram/check`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionToken }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.authenticated && data.user) {
+            clearInterval(pollInterval);
+            setPolling(false);
+            onAuth(data.user);
+            onClose();
+          }
+        }
+      } catch (error) {
+        console.error("Auth poll error:", error);
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(pollInterval);
+        setPolling(false);
+        Alert.alert(
+          "Login Timeout",
+          "The login session has expired. Please try again.",
+          [{ text: "OK", onPress: onClose }]
+        );
+      }
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [polling, sessionToken, onAuth, onClose]);
 
   return (
     <Modal
@@ -112,37 +133,159 @@ export function TelegramLoginWebView({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-[#0A0B1E]">
+      <View style={styles.container}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
-          <Text className="text-white font-bold text-lg">Telegram Login</Text>
-          <TouchableOpacity onPress={onClose} className="p-2">
-            <X size={24} color="#9CA3AF" />
-          </TouchableOpacity>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Login with Telegram</Text>
+          <Pressable onPress={onClose} style={styles.closeButton}>
+            <Ionicons name="close" size={24} color="#9CA3AF" />
+          </Pressable>
         </View>
 
-        {/* WebView with Telegram Widget */}
-        <View className="flex-1">
-          {loading && (
-            <View className="absolute inset-0 items-center justify-center bg-[#0A0B1E] z-10">
-              <ActivityIndicator size="large" color="#6366F1" />
-              <Text className="text-gray-400 mt-4">Loading Telegram...</Text>
+        {/* Content */}
+        <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="paper-plane" size={48} color="#0088cc" />
+          </View>
+
+          <Text style={styles.title}>Connect with Telegram</Text>
+          <Text style={styles.subtitle}>
+            Tap the button below to open Telegram and confirm your login.
+            Your existing account will be linked automatically.
+          </Text>
+
+          {polling ? (
+            <View style={styles.pollingContainer}>
+              <ActivityIndicator size="large" color="#0088cc" />
+              <Text style={styles.pollingText}>
+                Waiting for confirmation in Telegram...
+              </Text>
+              <Pressable onPress={() => setPolling(false)} style={styles.cancelButton}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
             </View>
+          ) : (
+            <Pressable
+              onPress={handleOpenTelegram}
+              style={styles.telegramButton}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="paper-plane" size={20} color="#fff" />
+                  <Text style={styles.telegramButtonText}>Open Telegram</Text>
+                </>
+              )}
+            </Pressable>
           )}
-          <WebView
-            source={{ html }}
-            onLoadEnd={() => setLoading(false)}
-            onMessage={handleMessage}
-            javaScriptEnabled
-            domStorageEnabled
-            startInLoadingState
-            originWhitelist={["*"]}
-            style={{ backgroundColor: "#0A0B1E" }}
-          />
+
+          <Text style={styles.helperText}>
+            Make sure you have Telegram installed on this device.
+            You'll be redirected to our bot to confirm the login.
+          </Text>
         </View>
       </View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  closeButton: {
+    padding: 8,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    alignItems: "center",
+  },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(0,136,204,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: "Onest_400Regular",
+    color: "#9ca3af",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 40,
+  },
+  telegramButton: {
+    height: 56,
+    width: "100%",
+    backgroundColor: "#0088cc",
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 24,
+  },
+  telegramButtonText: {
+    fontSize: 16,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  helperText: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  pollingContainer: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  pollingText: {
+    fontSize: 16,
+    fontFamily: "Onest_500Medium",
+    color: "#9ca3af",
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontFamily: "Onest_600SemiBold",
+    color: "#ef4444",
+  },
+});
 
 export type { TelegramAuthData };

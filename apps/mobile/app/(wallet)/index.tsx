@@ -1,99 +1,101 @@
-import { View, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Send, ArrowDownLeft, RefreshCw, TrendingUp, Wallet, ChevronRight, Settings, History, Eye, EyeOff, LucideIcon, Store } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
-import { useTheme } from "~/lib/theme";
-
-const TON_ICON = "https://ton.org/download/ton_symbol.svg";
 
 export default function WalletHome() {
   const router = useRouter();
   const [hideBalance, setHideBalance] = useState(false);
-  const { isDark } = useTheme();
-  const iconColor = isDark ? "#fff" : "#1f2937";
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <View className="flex-row items-center">
-          <View className="w-10 h-10 rounded-full bg-primary justify-center items-center mr-3">
-            <Text className="text-lg">💎</Text>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.logoContainer}>
+            <Ionicons name="diamond" size={20} color="#fff" />
           </View>
-          <Text className="text-lg font-bold text-foreground">Quantum Club</Text>
+          <Text style={styles.headerTitle}>Quantum Club</Text>
         </View>
-        <View className="flex-row gap-2">
-          <TouchableOpacity 
-            className="w-10 h-10 rounded-full bg-muted justify-center items-center"
+        <View style={styles.headerRight}>
+          <Pressable 
+            style={styles.headerButton}
             onPress={() => router.push("/(wallet)/history")}
           >
-            <History size={20} color={iconColor} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            className="w-10 h-10 rounded-full bg-muted justify-center items-center"
+            <Ionicons name="time-outline" size={20} color="#fff" />
+          </Pressable>
+          <Pressable 
+            style={styles.headerButton}
             onPress={() => router.push("/(wallet)/settings")}
           >
-            <Settings size={20} color={iconColor} />
-          </TouchableOpacity>
+            <Ionicons name="settings-outline" size={20} color="#fff" />
+          </Pressable>
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-4">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Balance Card */}
-        <Card className="mb-6 bg-card border border-border">
-          <CardContent className="p-6">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-sm text-muted-foreground">Total Balance</Text>
-              <TouchableOpacity onPress={() => setHideBalance(!hideBalance)}>
-                {hideBalance ? (
-                  <EyeOff size={18} color="#6B7280" />
-                ) : (
-                  <Eye size={18} color="#6B7280" />
-                )}
-              </TouchableOpacity>
+        <Card style={styles.balanceCard}>
+          <CardContent style={styles.balanceContent}>
+            <View style={styles.balanceHeader}>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <Pressable onPress={() => setHideBalance(!hideBalance)}>
+                <Ionicons 
+                  name={hideBalance ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color="#6b7280" 
+                />
+              </Pressable>
             </View>
-            <Text className="text-4xl font-bold text-foreground text-center">
+            <Text style={styles.balanceValue}>
               {hideBalance ? "••••••" : "$0.00"}
             </Text>
-            <Text className="text-sm text-muted-foreground text-center mt-1">
+            <Text style={styles.balanceSubtext}>
               {hideBalance ? "••••" : "≈ 0.00 TON"}
             </Text>
           </CardContent>
         </Card>
 
         {/* Action Buttons */}
-        <View className="flex-row justify-around mb-8">
+        <View style={styles.actionsRow}>
           <ActionButton
-            Icon={Send}
+            icon="paper-plane"
             label="Send"
             onPress={() => router.push("/(wallet)/send")}
           />
           <ActionButton
-            Icon={ArrowDownLeft}
+            icon="download"
             label="Receive"
             onPress={() => router.push("/(wallet)/receive")}
           />
-          <ActionButton Icon={RefreshCw} label="Swap" onPress={() => router.push("/(wallet)/swap")} />
-          <ActionButton Icon={TrendingUp} label="Stake" onPress={() => router.push("/(wallet)/staking")} />
+          <ActionButton 
+            icon="swap-horizontal" 
+            label="Swap" 
+            onPress={() => router.push("/(wallet)/swap")} 
+          />
+          <ActionButton 
+            icon="trending-up" 
+            label="Stake" 
+            onPress={() => router.push("/(wallet)/staking")} 
+          />
         </View>
 
         {/* Assets Section */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-semibold text-foreground">Assets</Text>
-            <TouchableOpacity>
-              <Text className="text-sm text-primary">Manage</Text>
-            </TouchableOpacity>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Assets</Text>
+            <Pressable>
+              <Text style={styles.sectionLink}>Manage</Text>
+            </Pressable>
           </View>
-          <Card className="bg-card border border-border">
-            <CardContent className="p-8 items-center">
-              <Wallet size={48} color="#6B7280" />
-              <Text className="text-base font-medium text-foreground mt-4 mb-2">No assets yet</Text>
-              <Text className="text-sm text-muted-foreground text-center">
+          <Card style={styles.emptyCard}>
+            <CardContent style={styles.emptyContent}>
+              <Ionicons name="wallet-outline" size={48} color="#6b7280" />
+              <Text style={styles.emptyTitle}>No assets yet</Text>
+              <Text style={styles.emptySubtitle}>
                 Connect your wallet or receive tokens to get started
               </Text>
             </CardContent>
@@ -101,59 +103,244 @@ export default function WalletHome() {
         </View>
 
         {/* Recent Activity */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-semibold text-foreground">Recent Activity</Text>
-            <TouchableOpacity onPress={() => router.push("/(wallet)/history")}>
-              <Text className="text-sm text-primary">View all</Text>
-            </TouchableOpacity>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <Pressable onPress={() => router.push("/(wallet)/history")}>
+              <Text style={styles.sectionLink}>View all</Text>
+            </Pressable>
           </View>
-          <Card className="bg-card border border-border">
-            <CardContent className="p-8 items-center">
-              <Text className="text-sm text-muted-foreground text-center">
-                No transactions yet
-              </Text>
+          <Card style={styles.emptyCard}>
+            <CardContent style={styles.emptyContentSmall}>
+              <Text style={styles.emptySubtitle}>No transactions yet</Text>
             </CardContent>
           </Card>
         </View>
 
         {/* NFT Marketplace Banner */}
-        <TouchableOpacity onPress={() => router.push("/(wallet)/marketplace")}>
-          <Card className="mb-6 bg-gradient-to-r from-primary to-primary/80">
-            <CardContent className="p-4 flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <View className="w-12 h-12 rounded-full bg-white/20 justify-center items-center mr-3">
-                  <Store size={24} color="#fff" />
+        <Pressable onPress={() => router.push("/(wallet)/marketplace")}>
+          <Card style={styles.marketplaceCard}>
+            <CardContent style={styles.marketplaceContent}>
+              <View style={styles.marketplaceLeft}>
+                <View style={styles.marketplaceIcon}>
+                  <Ionicons name="storefront" size={24} color="#fff" />
                 </View>
                 <View>
-                  <Text className="text-base font-semibold text-foreground">NFT Marketplace</Text>
-                  <Text className="text-xs text-muted-foreground">Browse collections</Text>
+                  <Text style={styles.marketplaceTitle}>NFT Marketplace</Text>
+                  <Text style={styles.marketplaceSubtitle}>Browse collections</Text>
                 </View>
               </View>
-              <ChevronRight size={20} color={iconColor} />
+              <Ionicons name="chevron-forward" size={20} color="#6b7280" />
             </CardContent>
           </Card>
-        </TouchableOpacity>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 function ActionButton({
-  Icon,
+  icon,
   label,
   onPress,
 }: {
-  Icon: LucideIcon;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity className="items-center" onPress={onPress}>
-      <View className="w-14 h-14 rounded-full bg-primary justify-center items-center mb-2">
-        <Icon size={24} color="#0A0B1E" />
+    <Pressable style={styles.actionButton} onPress={onPress}>
+      <View style={styles.actionButtonIcon}>
+        <Ionicons name={icon} size={24} color="#000" />
       </View>
-      <Text className="text-xs text-foreground">{label}</Text>
-    </TouchableOpacity>
+      <Text style={styles.actionButtonLabel}>{label}</Text>
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  logoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fb923c",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  headerRight: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#111",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  balanceCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+    marginBottom: 24,
+  },
+  balanceContent: {
+    padding: 24,
+  },
+  balanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  balanceLabel: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+  },
+  balanceValue: {
+    fontSize: 40,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+    textAlign: "center",
+  },
+  balanceSubtext: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 32,
+  },
+  actionButton: {
+    alignItems: "center",
+  },
+  actionButtonIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  actionButtonLabel: {
+    fontSize: 12,
+    fontFamily: "Onest_500Medium",
+    color: "#fff",
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+  },
+  sectionLink: {
+    fontSize: 14,
+    fontFamily: "Onest_500Medium",
+    color: "#fb923c",
+  },
+  emptyCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+  },
+  emptyContent: {
+    padding: 32,
+    alignItems: "center",
+  },
+  emptyContentSmall: {
+    padding: 24,
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  marketplaceCard: {
+    backgroundColor: "#fb923c",
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  marketplaceContent: {
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  marketplaceLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  marketplaceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  marketplaceTitle: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    color: "#000",
+  },
+  marketplaceSubtitle: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "rgba(0,0,0,0.6)",
+  },
+});

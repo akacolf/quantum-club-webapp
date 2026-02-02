@@ -1,10 +1,10 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import { View, ScrollView, Pressable, StyleSheet } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, RefreshCw } from "lucide-react-native";
-import { useTheme } from "~/lib/theme";
+import { Ionicons } from "@expo/vector-icons";
 
 interface Transaction {
   id: string;
@@ -46,107 +46,133 @@ const mockTransactions: Transaction[] = [
   },
 ];
 
+type FilterType = "all" | "send" | "receive" | "swap";
+
 function TransactionItem({ tx }: { tx: Transaction }) {
-  const getIcon = () => {
+  const getIcon = (): keyof typeof Ionicons.glyphMap => {
     switch (tx.type) {
       case "send":
-        return <ArrowUpRight size={20} color="#EF4444" />;
+        return "arrow-up";
       case "receive":
-        return <ArrowDownLeft size={20} color="#10B981" />;
+        return "arrow-down";
       case "swap":
-        return <RefreshCw size={20} color="#6366F1" />;
+        return "swap-horizontal";
     }
   };
 
-  const getBgColor = () => {
+  const getIconColor = () => {
     switch (tx.type) {
       case "send":
-        return "bg-red-500/20";
+        return "#ef4444";
       case "receive":
-        return "bg-green-500/20";
+        return "#22c55e";
       case "swap":
-        return "bg-indigo-500/20";
+        return "#fb923c";
     }
   };
 
-  const getAmountColor = () => {
+  const getIconBgColor = () => {
     switch (tx.type) {
       case "send":
-        return "text-red-500";
+        return "rgba(239, 68, 68, 0.1)";
       case "receive":
-        return "text-green-500";
+        return "rgba(34, 197, 94, 0.1)";
       case "swap":
-        return "text-foreground";
+        return "rgba(251, 146, 60, 0.1)";
     }
   };
 
   return (
-    <TouchableOpacity className="flex-row items-center py-4 border-b border-border">
-      <View className={`w-10 h-10 rounded-full ${getBgColor()} justify-center items-center mr-3`}>
-        {getIcon()}
+    <Pressable style={styles.txItem}>
+      <View style={[styles.txIcon, { backgroundColor: getIconBgColor() }]}>
+        <Ionicons name={getIcon()} size={20} color={getIconColor()} />
       </View>
-      <View className="flex-1">
-        <Text className="text-base text-foreground capitalize">{tx.type}</Text>
-        <Text className="text-xs text-muted-foreground">{tx.timestamp}</Text>
+      <View style={styles.txInfo}>
+        <Text style={styles.txType}>{tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}</Text>
+        <Text style={styles.txTime}>{tx.timestamp}</Text>
       </View>
-      <View className="items-end">
-        <Text className={`text-base font-medium ${getAmountColor()}`}>
+      <View style={styles.txAmountContainer}>
+        <Text style={[styles.txAmount, { color: getIconColor() }]}>
           {tx.amount} {tx.token}
         </Text>
-        <Text className="text-xs text-muted-foreground capitalize">{tx.status}</Text>
+        <Text style={styles.txStatus}>{tx.status}</Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 export default function History() {
   const router = useRouter();
-  const { isDark } = useTheme();
-  const iconColor = isDark ? "#fff" : "#1f2937";
+  const [filter, setFilter] = useState<FilterType>("all");
+
+  const filteredTransactions = mockTransactions.filter((tx) => 
+    filter === "all" ? true : tx.type === filter
+  );
+
+  const filters: { key: FilterType; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "send", label: "Sent" },
+    { key: "receive", label: "Received" },
+    { key: "swap", label: "Swaps" },
+  ];
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={iconColor} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground ml-4">Transaction History</Text>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Transaction History</Text>
+        <View style={styles.headerButton} />
       </View>
 
-      <ScrollView className="flex-1 px-4">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Filter Tabs */}
-        <View className="flex-row gap-2 mb-4">
-          <TouchableOpacity className="px-4 py-2 bg-primary rounded-full">
-            <Text className="text-sm font-medium text-primary-foreground">All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="px-4 py-2 bg-secondary rounded-full">
-            <Text className="text-sm text-foreground">Sent</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="px-4 py-2 bg-secondary rounded-full">
-            <Text className="text-sm text-foreground">Received</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="px-4 py-2 bg-secondary rounded-full">
-            <Text className="text-sm text-foreground">Swaps</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContainer}
+        >
+          {filters.map((f) => (
+            <Pressable
+              key={f.key}
+              style={[
+                styles.filterButton,
+                filter === f.key && styles.filterButtonActive,
+              ]}
+              onPress={() => setFilter(f.key)}
+            >
+              <Text style={[
+                styles.filterText,
+                filter === f.key && styles.filterTextActive,
+              ]}>
+                {f.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
 
         {/* Transactions List */}
-        <Card className="bg-secondary">
-          <CardContent className="px-4 py-0">
-            {mockTransactions.map((tx) => (
-              <TransactionItem key={tx.id} tx={tx} />
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Empty State (hidden when there are transactions) */}
-        {mockTransactions.length === 0 && (
-          <Card className="bg-secondary">
-            <CardContent className="p-8 items-center">
-              <Text className="text-4xl mb-4">📭</Text>
-              <Text className="text-base font-medium text-foreground mb-2">No transactions yet</Text>
-              <Text className="text-sm text-muted-foreground text-center">
+        {filteredTransactions.length > 0 ? (
+          <Card style={styles.txCard}>
+            <CardContent style={styles.txCardContent}>
+              {filteredTransactions.map((tx, index) => (
+                <View key={tx.id}>
+                  <TransactionItem tx={tx} />
+                  {index < filteredTransactions.length - 1 && (
+                    <View style={styles.separator} />
+                  )}
+                </View>
+              ))}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card style={styles.emptyCard}>
+            <CardContent style={styles.emptyContent}>
+              <Ionicons name="receipt-outline" size={48} color="#6b7280" />
+              <Text style={styles.emptyTitle}>No transactions yet</Text>
+              <Text style={styles.emptySubtitle}>
                 Your transaction history will appear here
               </Text>
             </CardContent>
@@ -156,3 +182,140 @@ export default function History() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222",
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingBottom: 16,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+  },
+  filterButtonActive: {
+    backgroundColor: "#fff",
+    borderColor: "#fff",
+  },
+  filterText: {
+    fontSize: 14,
+    fontFamily: "Onest_500Medium",
+    color: "#9ca3af",
+  },
+  filterTextActive: {
+    color: "#000",
+    fontFamily: "Onest_600SemiBold",
+  },
+  txCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+  },
+  txCardContent: {
+    padding: 0,
+  },
+  txItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  txIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  txInfo: {
+    flex: 1,
+  },
+  txType: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+    marginBottom: 2,
+  },
+  txTime: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+  },
+  txAmountContainer: {
+    alignItems: "flex-end",
+  },
+  txAmount: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    marginBottom: 2,
+  },
+  txStatus: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textTransform: "capitalize",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#222",
+    marginHorizontal: 16,
+  },
+  emptyCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+  },
+  emptyContent: {
+    padding: 48,
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textAlign: "center",
+  },
+});

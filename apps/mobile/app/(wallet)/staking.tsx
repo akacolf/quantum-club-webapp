@@ -1,10 +1,9 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, TrendingUp, Lock, Clock, Percent } from "lucide-react-native";
-import { useTheme } from "~/lib/theme";
+import { Ionicons } from "@expo/vector-icons";
 
 interface StakingPool {
   id: string;
@@ -43,36 +42,30 @@ const mockPools: StakingPool[] = [
 ];
 
 function PoolCard({ pool }: { pool: StakingPool }) {
-  const { isDark } = useTheme();
-  const iconColor = isDark ? "#fff" : "#1f2937";
-  const mutedColor = isDark ? "#9ca3af" : "#6b7280";
-
   return (
-    <Card className="mb-3">
-      <CardContent className="p-4">
-        <View className="flex-row justify-between items-start mb-3">
+    <Card style={styles.poolCard}>
+      <CardContent style={styles.poolContent}>
+        <View style={styles.poolHeader}>
           <View>
-            <Text className="text-base font-semibold text-foreground">{pool.name}</Text>
-            <Text className="text-xs text-muted-foreground">TVL: {pool.tvl}</Text>
+            <Text style={styles.poolName}>{pool.name}</Text>
+            <Text style={styles.poolTvl}>TVL: {pool.tvl}</Text>
           </View>
-          <View className="bg-green-500/20 px-2 py-1 rounded-full">
-            <Text className="text-sm font-bold text-green-500">{pool.apy} APY</Text>
+          <View style={styles.apyBadge}>
+            <Text style={styles.apyText}>{pool.apy} APY</Text>
           </View>
         </View>
         
-        <View className="flex-row justify-between mt-2">
-          <View className="flex-row items-center">
-            <Lock size={14} color={mutedColor} />
-            <Text className="text-xs text-muted-foreground ml-1">{pool.lockPeriod}</Text>
+        <View style={styles.poolDetails}>
+          <View style={styles.poolDetailItem}>
+            <Ionicons name="lock-closed-outline" size={14} color="#6b7280" />
+            <Text style={styles.poolDetailText}>{pool.lockPeriod}</Text>
           </View>
-          <View className="flex-row items-center">
-            <Text className="text-xs text-muted-foreground">Min: {pool.minStake}</Text>
-          </View>
+          <Text style={styles.poolDetailText}>Min: {pool.minStake}</Text>
         </View>
 
-        <TouchableOpacity className="bg-primary mt-4 py-2 rounded-lg items-center">
-          <Text className="text-primary-foreground font-medium">Stake Now</Text>
-        </TouchableOpacity>
+        <Pressable style={styles.stakeButton}>
+          <Text style={styles.stakeButtonText}>Stake Now</Text>
+        </Pressable>
       </CardContent>
     </Card>
   );
@@ -80,54 +73,52 @@ function PoolCard({ pool }: { pool: StakingPool }) {
 
 export default function Staking() {
   const router = useRouter();
-  const { isDark } = useTheme();
-  const iconColor = isDark ? "#fff" : "#1f2937";
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={iconColor} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground ml-4">Staking</Text>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Staking</Text>
+        <View style={styles.headerButton} />
       </View>
 
-      <ScrollView className="flex-1 px-4">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Stats Overview */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <View className="flex-row justify-between">
-              <View className="items-center flex-1">
-                <TrendingUp size={24} color="#10b981" />
-                <Text className="text-xs text-muted-foreground mt-1">Total Staked</Text>
-                <Text className="text-lg font-bold text-foreground">0 TON</Text>
-              </View>
-              <View className="items-center flex-1">
-                <Percent size={24} color="#6366f1" />
-                <Text className="text-xs text-muted-foreground mt-1">Rewards</Text>
-                <Text className="text-lg font-bold text-foreground">0 TON</Text>
-              </View>
-              <View className="items-center flex-1">
-                <Clock size={24} color="#f59e0b" />
-                <Text className="text-xs text-muted-foreground mt-1">Active Stakes</Text>
-                <Text className="text-lg font-bold text-foreground">0</Text>
-              </View>
+        <Card style={styles.statsCard}>
+          <CardContent style={styles.statsContent}>
+            <View style={styles.statItem}>
+              <Ionicons name="trending-up" size={24} color="#22c55e" />
+              <Text style={styles.statLabel}>Total Staked</Text>
+              <Text style={styles.statValue}>0 TON</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="gift" size={24} color="#fb923c" />
+              <Text style={styles.statLabel}>Rewards</Text>
+              <Text style={styles.statValue}>0 TON</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="time" size={24} color="#3b82f6" />
+              <Text style={styles.statLabel}>Active Stakes</Text>
+              <Text style={styles.statValue}>0</Text>
             </View>
           </CardContent>
         </Card>
 
         {/* Staking Pools */}
-        <Text className="text-lg font-semibold text-foreground mb-3">Available Pools</Text>
+        <Text style={styles.sectionTitle}>Available Pools</Text>
         {mockPools.map((pool) => (
           <PoolCard key={pool.id} pool={pool} />
         ))}
 
         {/* Info Card */}
-        <Card className="mt-4 mb-8">
-          <CardContent className="p-4">
-            <Text className="text-sm text-muted-foreground">
-              💡 Staking rewards are distributed automatically. Higher lock periods offer better APY rates.
+        <Card style={styles.infoCard}>
+          <CardContent style={styles.infoContent}>
+            <Ionicons name="bulb-outline" size={20} color="#fb923c" />
+            <Text style={styles.infoText}>
+              Staking rewards are distributed automatically. Higher lock periods offer better APY rates.
             </Text>
           </CardContent>
         </Card>
@@ -135,3 +126,155 @@ export default function Staking() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222",
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  statsCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+    marginBottom: 24,
+  },
+  statsContent: {
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+    marginBottom: 12,
+  },
+  poolCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+    marginBottom: 12,
+  },
+  poolContent: {
+    padding: 16,
+  },
+  poolHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  poolName: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+  },
+  poolTvl: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  apyBadge: {
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  apyText: {
+    fontSize: 14,
+    fontFamily: "Onest_700Bold",
+    color: "#22c55e",
+  },
+  poolDetails: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  poolDetailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  poolDetailText: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+  },
+  stakeButton: {
+    backgroundColor: "#fb923c",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  stakeButtonText: {
+    fontSize: 14,
+    fontFamily: "Onest_600SemiBold",
+    color: "#000",
+  },
+  infoCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+    marginTop: 12,
+  },
+  infoContent: {
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    lineHeight: 20,
+  },
+});

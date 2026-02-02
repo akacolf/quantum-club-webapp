@@ -1,20 +1,17 @@
-import { View, TouchableOpacity } from "react-native";
+import { View, Pressable, StyleSheet, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { ArrowLeft, Copy, Check, Share2 } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "~/lib/theme";
+import QRCode from "react-native-qrcode-svg";
 
 export default function Receive() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const walletAddress = "EQDrLq-X6jKZNHAScgghh0h1iog3StK71zn8dcmrOj8jPWRA"; // Placeholder
-  const { isDark } = useTheme();
-  const iconColor = isDark ? "#fff" : "#1f2937";
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(walletAddress);
@@ -22,94 +19,102 @@ export default function Receive() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: walletAddress,
+        title: "My TON Address",
+      });
+    } catch (error) {
+      console.error("Share error:", error);
+    }
+  };
+
   const shortenAddress = (addr: string) => {
     return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={iconColor} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground">Receive</Text>
-        <TouchableOpacity>
-          <Share2 size={24} color={iconColor} />
-        </TouchableOpacity>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Receive</Text>
+        <Pressable onPress={handleShare} style={styles.headerButton}>
+          <Ionicons name="share-outline" size={24} color="#fff" />
+        </Pressable>
       </View>
 
-      <View className="flex-1 px-4 items-center">
-        {/* QR Code Placeholder */}
-        <View className="mt-8 mb-8">
-          <View className="w-52 h-52 bg-white rounded-2xl justify-center items-center p-4">
-            <View className="w-full h-full bg-gray-100 rounded-lg justify-center items-center">
-              <Text className="text-6xl">📱</Text>
-              <Text className="text-sm text-gray-500 mt-2">QR Code</Text>
-            </View>
+      <View style={styles.content}>
+        {/* QR Code */}
+        <View style={styles.qrContainer}>
+          <View style={styles.qrWrapper}>
+            <QRCode
+              value={walletAddress}
+              size={200}
+              backgroundColor="#fff"
+              color="#000"
+            />
           </View>
         </View>
 
         {/* Address Card */}
-        <Card className="w-full bg-secondary mb-4">
-          <CardContent className="p-4">
-            <Text className="text-xs text-muted-foreground text-center mb-3">Your TON Address</Text>
-            <Text className="text-sm font-mono text-foreground text-center" numberOfLines={1}>
+        <Card style={styles.addressCard}>
+          <CardContent style={styles.addressContent}>
+            <Text style={styles.addressLabel}>Your TON Address</Text>
+            <Text style={styles.addressText} numberOfLines={1}>
               {shortenAddress(walletAddress)}
             </Text>
           </CardContent>
         </Card>
 
         {/* Action Buttons */}
-        <View className="flex-row gap-3 w-full">
-          <Button
-            className="flex-1 bg-primary py-3 flex-row items-center justify-center gap-2"
-            onPress={handleCopy}
-          >
-            {copied ? (
-              <Check size={20} color="#0A0B1E" />
-            ) : (
-              <Copy size={20} color="#0A0B1E" />
-            )}
-            <Text className="text-base font-medium text-primary-foreground">
+        <View style={styles.actionButtons}>
+          <Pressable style={styles.copyButton} onPress={handleCopy}>
+            <Ionicons 
+              name={copied ? "checkmark" : "copy-outline"} 
+              size={20} 
+              color="#000" 
+            />
+            <Text style={styles.copyButtonText}>
               {copied ? "Copied!" : "Copy"}
             </Text>
-          </Button>
-          <Button className="flex-1 bg-secondary py-3 flex-row items-center justify-center gap-2">
-            <Share2 size={20} color="#fff" />
-            <Text className="text-base font-medium text-foreground">Share</Text>
-          </Button>
+          </Pressable>
+          <Pressable style={styles.shareButton} onPress={handleShare}>
+            <Ionicons name="share-outline" size={20} color="#fff" />
+            <Text style={styles.shareButtonText}>Share</Text>
+          </Pressable>
         </View>
 
         {/* Info */}
-        <View className="mt-8 px-6">
-          <Text className="text-sm text-muted-foreground text-center leading-5">
-            Share this address to receive TON or other supported tokens on the TON blockchain.
-          </Text>
-        </View>
+        <Text style={styles.infoText}>
+          Share this address to receive TON or other supported tokens on the TON blockchain.
+        </Text>
 
         {/* Supported Tokens */}
-        <Card className="w-full bg-secondary mt-6">
-          <CardContent className="p-4">
-            <Text className="text-xs text-muted-foreground text-center mb-3">Supported tokens</Text>
-            <View className="flex-row justify-center gap-4">
-              <View className="items-center">
-                <View className="w-10 h-10 rounded-full bg-blue-500 justify-center items-center mb-1">
-                  <Text className="text-lg">💎</Text>
+        <Card style={styles.tokensCard}>
+          <CardContent style={styles.tokensContent}>
+            <Text style={styles.tokensLabel}>Supported tokens</Text>
+            <View style={styles.tokensRow}>
+              <View style={styles.tokenItem}>
+                <View style={[styles.tokenIcon, { backgroundColor: "#3b82f6" }]}>
+                  <Ionicons name="diamond" size={20} color="#fff" />
                 </View>
-                <Text className="text-xs text-foreground">TON</Text>
+                <Text style={styles.tokenName}>TON</Text>
               </View>
-              <View className="items-center">
-                <View className="w-10 h-10 rounded-full bg-yellow-500 justify-center items-center mb-1">
-                  <Text className="text-lg">🪙</Text>
+              <View style={styles.tokenItem}>
+                <View style={[styles.tokenIcon, { backgroundColor: "#22c55e" }]}>
+                  <Ionicons name="logo-usd" size={20} color="#fff" />
                 </View>
-                <Text className="text-xs text-foreground">USDT</Text>
+                <Text style={styles.tokenName}>USDT</Text>
               </View>
-              <View className="items-center">
-                <View className="w-10 h-10 rounded-full bg-purple-500 justify-center items-center mb-1">
-                  <Text className="text-lg">⚡</Text>
+              <View style={styles.tokenItem}>
+                <View style={[styles.tokenIcon, { backgroundColor: "#a855f7" }]}>
+                  <Ionicons name="flash" size={20} color="#fff" />
                 </View>
-                <Text className="text-xs text-foreground">Jettons</Text>
+                <Text style={styles.tokenName}>Jettons</Text>
               </View>
             </View>
           </CardContent>
@@ -118,3 +123,152 @@ export default function Receive() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222",
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    paddingTop: 32,
+  },
+  qrContainer: {
+    marginBottom: 24,
+  },
+  qrWrapper: {
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 24,
+  },
+  addressCard: {
+    width: "100%",
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+    marginBottom: 16,
+  },
+  addressContent: {
+    padding: 16,
+    alignItems: "center",
+  },
+  addressLabel: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    marginBottom: 8,
+  },
+  addressText: {
+    fontSize: 14,
+    fontFamily: "Onest_500Medium",
+    color: "#fff",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+    marginBottom: 24,
+  },
+  copyButton: {
+    flex: 1,
+    height: 52,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  copyButtonText: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    color: "#000",
+  },
+  shareButton: {
+    flex: 1,
+    height: 52,
+    backgroundColor: "#111",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#222",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  shareButtonText: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+  },
+  infoText: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  tokensCard: {
+    width: "100%",
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+  },
+  tokensContent: {
+    padding: 16,
+  },
+  tokensLabel: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  tokensRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 32,
+  },
+  tokenItem: {
+    alignItems: "center",
+  },
+  tokenIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  tokenName: {
+    fontSize: 12,
+    fontFamily: "Onest_500Medium",
+    color: "#fff",
+  },
+});

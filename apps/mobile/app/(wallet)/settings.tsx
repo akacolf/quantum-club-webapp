@@ -1,31 +1,12 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "~/lib/theme";
-import {
-  ArrowLeft,
-  User,
-  Shield,
-  Bell,
-  Palette,
-  Globe,
-  HelpCircle,
-  FileText,
-  LogOut,
-  ChevronRight,
-  Key,
-  Smartphone,
-  Sun,
-  Moon,
-  Monitor,
-  LucideIcon,
-  Check,
-} from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface SettingItemProps {
-  Icon: LucideIcon;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   description?: string;
   onPress?: () => void;
@@ -33,75 +14,59 @@ interface SettingItemProps {
   rightElement?: React.ReactNode;
 }
 
-function SettingItem({ Icon, label, description, onPress, danger, rightElement }: SettingItemProps) {
-  const { isDark } = useTheme();
-  const iconColor = danger ? "#EF4444" : (isDark ? "#fff" : "#1f2937");
-  
+function SettingItem({ icon, label, description, onPress, danger, rightElement }: SettingItemProps) {
   return (
-    <TouchableOpacity
-      className="flex-row items-center py-4 border-b border-border"
-      onPress={onPress}
-    >
-      <View className={`w-10 h-10 rounded-full ${danger ? 'bg-red-500/20' : 'bg-muted'} justify-center items-center mr-3`}>
-        <Icon size={20} color={iconColor} />
+    <Pressable style={styles.settingItem} onPress={onPress}>
+      <View style={[
+        styles.settingIcon, 
+        { backgroundColor: danger ? "rgba(239,68,68,0.1)" : "#1a1a1a" }
+      ]}>
+        <Ionicons name={icon} size={20} color={danger ? "#ef4444" : "#fff"} />
       </View>
-      <View className="flex-1">
-        <Text className={`text-base ${danger ? 'text-red-500' : 'text-foreground'}`}>{label}</Text>
+      <View style={styles.settingContent}>
+        <Text style={[styles.settingLabel, danger && styles.settingLabelDanger]}>
+          {label}
+        </Text>
         {description && (
-          <Text className="text-xs text-muted-foreground mt-0.5">{description}</Text>
+          <Text style={styles.settingDescription}>{description}</Text>
         )}
       </View>
-      {rightElement !== undefined ? <>{rightElement}</> : <ChevronRight size={20} color="#6B7280" />}
-    </TouchableOpacity>
+      {rightElement ?? <Ionicons name="chevron-forward" size={20} color="#6b7280" />}
+    </Pressable>
   );
 }
 
 function ThemeSelector() {
-  const { theme, setTheme, isDark } = useTheme();
-  const iconColor = isDark ? "#fff" : "#1f2937";
+  // For now, fixed dark theme - can add theme switching later
+  const theme = "dark";
   
   return (
-    <View className="py-4 border-b border-border">
-      <View className="flex-row items-center mb-3">
-        <View className="w-10 h-10 rounded-full bg-muted justify-center items-center mr-3">
-          <Palette size={20} color={iconColor} />
+    <View style={styles.themeSection}>
+      <View style={styles.themeLabelRow}>
+        <View style={styles.settingIcon}>
+          <Ionicons name="color-palette-outline" size={20} color="#fff" />
         </View>
-        <Text className="text-base text-foreground">Appearance</Text>
+        <Text style={styles.settingLabel}>Appearance</Text>
       </View>
-      <View className="flex-row gap-2 ml-13">
-        <TouchableOpacity
-          className={`flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl ${
-            theme === 'light' ? 'bg-primary' : 'bg-muted'
-          }`}
-          onPress={() => setTheme('light')}
-        >
-          <Sun size={16} color={theme === 'light' ? (isDark ? "#0A0B1E" : "#fff") : iconColor} />
-          <Text className={`ml-2 text-sm font-medium ${
-            theme === 'light' ? 'text-primary-foreground' : 'text-foreground'
-          }`}>Light</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl ${
-            theme === 'dark' ? 'bg-primary' : 'bg-muted'
-          }`}
-          onPress={() => setTheme('dark')}
-        >
-          <Moon size={16} color={theme === 'dark' ? (isDark ? "#0A0B1E" : "#fff") : iconColor} />
-          <Text className={`ml-2 text-sm font-medium ${
-            theme === 'dark' ? 'text-primary-foreground' : 'text-foreground'
-          }`}>Dark</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl ${
-            theme === 'system' ? 'bg-primary' : 'bg-muted'
-          }`}
-          onPress={() => setTheme('system')}
-        >
-          <Monitor size={16} color={theme === 'system' ? (isDark ? "#0A0B1E" : "#fff") : iconColor} />
-          <Text className={`ml-2 text-sm font-medium ${
-            theme === 'system' ? 'text-primary-foreground' : 'text-foreground'
-          }`}>Auto</Text>
-        </TouchableOpacity>
+      <View style={styles.themeOptions}>
+        <Pressable style={[styles.themeOption, theme === "light" && styles.themeOptionActive]}>
+          <Ionicons name="sunny-outline" size={16} color={theme === "light" ? "#000" : "#fff"} />
+          <Text style={[styles.themeOptionText, theme === "light" && styles.themeOptionTextActive]}>
+            Light
+          </Text>
+        </Pressable>
+        <Pressable style={[styles.themeOption, theme === "dark" && styles.themeOptionActive]}>
+          <Ionicons name="moon-outline" size={16} color={theme === "dark" ? "#000" : "#fff"} />
+          <Text style={[styles.themeOptionText, theme === "dark" && styles.themeOptionTextActive]}>
+            Dark
+          </Text>
+        </Pressable>
+        <Pressable style={[styles.themeOption, theme === "system" && styles.themeOptionActive]}>
+          <Ionicons name="phone-portrait-outline" size={16} color={theme === "system" ? "#000" : "#fff"} />
+          <Text style={[styles.themeOptionText, theme === "system" && styles.themeOptionTextActive]}>
+            Auto
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -109,53 +74,50 @@ function ThemeSelector() {
 
 export default function Settings() {
   const router = useRouter();
-  const { isDark } = useTheme();
-  const iconColor = isDark ? "#fff" : "#1f2937";
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={iconColor} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground ml-4">Settings</Text>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={styles.headerButton} />
       </View>
 
-      <ScrollView className="flex-1 px-4">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profile Section */}
-        <Card className="bg-card border border-border mb-6">
-          <CardContent className="p-4">
-            <View className="flex-row items-center">
-              <View className="w-16 h-16 rounded-full bg-primary justify-center items-center mr-4">
-                <Text className="text-2xl">👤</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-lg font-semibold text-foreground">Quantum User</Text>
-                <Text className="text-sm text-muted-foreground">Connected via Telegram</Text>
-              </View>
+        <Card style={styles.profileCard}>
+          <CardContent style={styles.profileContent}>
+            <View style={styles.avatarContainer}>
+              <Ionicons name="person" size={32} color="#fff" />
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>Quantum User</Text>
+              <Text style={styles.profileSubtitle}>Connected via Telegram</Text>
             </View>
           </CardContent>
         </Card>
 
         {/* Security Section */}
-        <Text className="text-sm font-medium text-muted-foreground mb-3 uppercase">Security</Text>
-        <Card className="bg-card border border-border mb-6">
-          <CardContent className="px-4 py-0">
+        <Text style={styles.sectionTitle}>Security</Text>
+        <Card style={styles.sectionCard}>
+          <CardContent style={styles.sectionContent}>
             <SettingItem
-              Icon={Key}
+              icon="key-outline"
               label="Recovery Phrase"
               description="Backup your wallet"
               onPress={() => {}}
             />
             <SettingItem
-              Icon={Shield}
+              icon="shield-outline"
               label="Security Settings"
               description="PIN, biometrics"
               onPress={() => {}}
             />
             <SettingItem
-              Icon={Smartphone}
+              icon="phone-portrait-outline"
               label="Connected Apps"
               description="Manage dApp connections"
               onPress={() => {}}
@@ -164,18 +126,18 @@ export default function Settings() {
         </Card>
 
         {/* Preferences Section */}
-        <Text className="text-sm font-medium text-muted-foreground mb-3 uppercase">Preferences</Text>
-        <Card className="bg-card border border-border mb-6">
-          <CardContent className="px-4 py-0">
+        <Text style={styles.sectionTitle}>Preferences</Text>
+        <Card style={styles.sectionCard}>
+          <CardContent style={styles.sectionContent}>
             <SettingItem
-              Icon={Bell}
+              icon="notifications-outline"
               label="Notifications"
               description="Price alerts, transactions"
               onPress={() => {}}
             />
             <ThemeSelector />
             <SettingItem
-              Icon={Globe}
+              icon="globe-outline"
               label="Language"
               description="English"
               onPress={() => {}}
@@ -184,16 +146,16 @@ export default function Settings() {
         </Card>
 
         {/* Support Section */}
-        <Text className="text-sm font-medium text-muted-foreground mb-3 uppercase">Support</Text>
-        <Card className="bg-card border border-border mb-6">
-          <CardContent className="px-4 py-0">
+        <Text style={styles.sectionTitle}>Support</Text>
+        <Card style={styles.sectionCard}>
+          <CardContent style={styles.sectionContent}>
             <SettingItem
-              Icon={HelpCircle}
+              icon="help-circle-outline"
               label="Help Center"
               onPress={() => {}}
             />
             <SettingItem
-              Icon={FileText}
+              icon="document-text-outline"
               label="Terms of Service"
               onPress={() => {}}
             />
@@ -201,10 +163,10 @@ export default function Settings() {
         </Card>
 
         {/* Logout */}
-        <Card className="bg-card border border-border mb-8">
-          <CardContent className="px-4 py-0">
+        <Card style={styles.sectionCard}>
+          <CardContent style={styles.sectionContent}>
             <SettingItem
-              Icon={LogOut}
+              icon="log-out-outline"
               label="Log Out"
               danger
               onPress={() => {}}
@@ -213,10 +175,171 @@ export default function Settings() {
         </Card>
 
         {/* Version */}
-        <Text className="text-xs text-muted-foreground text-center mb-8">
-          Quantum Club v1.0.0
-        </Text>
+        <Text style={styles.versionText}>Quantum Club v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222",
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  profileCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+    marginBottom: 24,
+  },
+  profileContent: {
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#fb923c",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  profileSubtitle: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontFamily: "Onest_600SemiBold",
+    color: "#6b7280",
+    textTransform: "uppercase",
+    marginBottom: 12,
+    letterSpacing: 1,
+  },
+  sectionCard: {
+    backgroundColor: "#111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#222",
+    marginBottom: 24,
+  },
+  sectionContent: {
+    padding: 0,
+  },
+  settingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222",
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1a1a1a",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontFamily: "Onest_500Medium",
+    color: "#fff",
+  },
+  settingLabelDanger: {
+    color: "#ef4444",
+  },
+  settingDescription: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  themeSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222",
+  },
+  themeLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  themeOptions: {
+    flexDirection: "row",
+    gap: 8,
+    marginLeft: 52,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "#1a1a1a",
+    borderRadius: 12,
+    gap: 6,
+  },
+  themeOptionActive: {
+    backgroundColor: "#fff",
+  },
+  themeOptionText: {
+    fontSize: 12,
+    fontFamily: "Onest_500Medium",
+    color: "#fff",
+  },
+  themeOptionTextActive: {
+    color: "#000",
+  },
+  versionText: {
+    fontSize: 12,
+    fontFamily: "Onest_400Regular",
+    color: "#6b7280",
+    textAlign: "center",
+  },
+});
