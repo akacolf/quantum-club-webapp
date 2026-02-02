@@ -236,6 +236,33 @@ quantum-club/
 
    Navigate to [http://localhost:3000](http://localhost:3000)
 
+### Development Commands
+
+```bash
+# Development (Turborepo)
+npm run dev              # All workspaces
+npm run dev:web          # Web app only
+npm run dev:mobile       # Mobile app (Expo)
+
+# Build
+npm run build            # All workspaces
+npm run build:web        # Web app only
+
+# Lint and Typecheck
+npm run lint             # ESLint across all workspaces
+npm run typecheck        # TypeScript check all workspaces
+
+# Smart Contracts
+npm run compile:contracts                              # Compile FunC contracts
+npm run test:contracts                                 # Run all contract tests
+npx jest --config contracts/jest.config.js JettonMaster  # Single test file
+
+# Firebase Functions
+cd functions && npm run build       # Build functions
+cd functions && npm run serve       # Local emulator
+cd functions && npm run deploy      # Deploy to Firebase
+```
+
 ### Telegram Mini App Development
 
 For testing as a Telegram Mini App:

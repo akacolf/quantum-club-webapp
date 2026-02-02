@@ -4,13 +4,14 @@ import { TextClassContext } from '~/components/ui/text';
 import { cn } from '~/lib/utils';
 
 const Card = React.forwardRef<React.ElementRef<typeof View>, ViewProps>(
-  ({ className, ...props }, ref) => (
+  ({ className, style, ...props }, ref) => (
     <View
       ref={ref}
       className={cn(
-        'rounded-lg border border-border bg-card shadow-sm shadow-foreground/10',
+        'rounded-3xl border border-border bg-card shadow-sm shadow-foreground/10',
         className
       )}
+      style={[{ borderRadius: 20, borderCurve: 'continuous' }, style]}
       {...props}
     />
   )
