@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import { View, ScrollView, RefreshControl } from "react-native";
+import { View, ScrollView, RefreshControl, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Text } from "~/components/ui/text";
+import { Card, CardContent } from "~/components/ui/card";
 import { PersonalizedGreeting } from "./components/PersonalizedGreeting";
 import { QntmBalance } from "./components/QntmBalance";
 import { DailyCheckIn } from "./components/DailyCheckIn";
 import { SolveToEarnCard } from "./components/SolveToEarnCard";
 import { useGameContext } from "~/contexts/GameContext";
 import { claimDailyCheckIn } from "~/lib/api";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -87,7 +90,54 @@ export default function HomeScreen() {
         {/* TODO: Add HomeCarousel component */}
         
         <SolveToEarnCard onPress={handleSolveToEarn} />
+
+        {/* Quick Actions */}
+        <View className="mx-4 mt-6">
+          <Text style={styles.sectionTitle}>Explore</Text>
+          <View className="flex-row gap-3">
+            <Pressable
+              onPress={() => router.push("/leaderboard" as never)}
+              className="flex-1"
+            >
+              <Card className="border-[#222] bg-[#111]">
+                <CardContent className="p-4 items-center gap-2">
+                  <View className="w-12 h-12 rounded-2xl bg-yellow-500/10 items-center justify-center">
+                    <Ionicons name="trophy" size={24} color="#eab308" />
+                  </View>
+                  <Text style={styles.actionLabel}>Leaderboard</Text>
+                </CardContent>
+              </Card>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/trade" as never)}
+              className="flex-1"
+            >
+              <Card className="border-[#222] bg-[#111]">
+                <CardContent className="p-4 items-center gap-2">
+                  <View className="w-12 h-12 rounded-2xl bg-blue-500/10 items-center justify-center">
+                    <Ionicons name="rocket" size={24} color="#3b82f6" />
+                  </View>
+                  <Text style={styles.actionLabel}>RocketStart</Text>
+                </CardContent>
+              </Card>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+    marginBottom: 12,
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+  },
+});
