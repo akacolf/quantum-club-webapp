@@ -3,16 +3,14 @@ import {
   Auth, 
   initializeAuth,
   getAuth,
-  browserLocalPersistence,
-  indexedDBLocalPersistence,
-  browserSessionPersistence
+  inMemoryPersistence
 } from "firebase/auth";
 import { Firestore, getFirestore } from "firebase/firestore";
 import { Database, getDatabase } from "firebase/database";
 import { FirebaseStorage, getStorage } from "firebase/storage";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Firebase config - these values should match your web app config
+// Firebase config
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_AUTH_DOMAIN,
@@ -29,39 +27,13 @@ let dbfs: Firestore;
 let database: Database;
 let storage: FirebaseStorage;
 
-// Custom persistence layer using AsyncStorage
-const reactNativePersistence = (storage: typeof ReactNativeAsyncStorage) => ({
-  type: "LOCAL" as const,
-  _isAvailable: async () => {
-    try {
-      await storage.setItem("__persistence_test__", "test");
-      await storage.removeItem("__persistence_test__");
-      return true;
-    } catch {
-      return false;
-    }
-  },
-  _set: async (key: string, value: any) => {
-    await storage.setItem(key, JSON.stringify(value));
-  },
-  _get: async (key: string) => {
-    const value = await storage.getItem(key);
-    return value ? JSON.parse(value) : null;
-  },
-  _remove: async (key: string) => {
-    await storage.removeItem(key);
-  },
-  _addListener: (_key: string, _listener: any) => () => {},
-  _shouldAllowMigration: true,
-});
-
 const currentApps = getApps();
 
 if (!currentApps.length) {
   app = initializeApp(firebaseConfig);
-  // Initialize Auth with custom persistence for React Native
+  // Use in-memory persistence and manually handle with AsyncStorage
   auth = initializeAuth(app, {
-    persistence: reactNativePersistence(ReactNativeAsyncStorage) as any,
+    persistence: inMemoryPersistence,
   });
 } else {
   app = currentApps[0];
@@ -72,4 +44,22 @@ dbfs = getFirestore(app);
 database = getDatabase(app);
 storage = getStorage(app);
 
-export { app, auth, dbfs, database, storage };
+// Helper to persist auth state manually
+export async function persistAuthUser(user: any) {
+  if (user) {
+    await AsyncStorage.setItem("@auth_user", JSON.stringify({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+    }));
+  } else {
+    await AsyncStorage.removeItem("@auth_user");
+  }
+}
+
+export async function getPersistedUser() {
+  const data = await AsyncStorage.getItem("@auth_user");
+  return data ? JSON.parse(data) : null;
+}
+
+export { app, auth, dbfs, database, storage, AsyncStorage };

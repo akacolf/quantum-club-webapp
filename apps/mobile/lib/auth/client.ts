@@ -6,12 +6,15 @@ import {
   onAuthStateChanged,
   User
 } from "firebase/auth";
-import { auth } from "~/lib/firebase/client";
+import { auth, persistAuthUser, getPersistedUser, AsyncStorage } from "~/lib/firebase/client";
+import { useState, useEffect } from "react";
 
 // Sign in with email and password
 export async function signInWithEmail(email: string, password: string) {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // Persist user data
+    await persistAuthUser(userCredential.user);
     return { user: userCredential.user, error: null };
   } catch (error: any) {
     let message = "Login failed";
@@ -40,6 +43,9 @@ export async function signUpWithEmail(email: string, password: string, name?: st
       await updateProfile(userCredential.user, { displayName: name });
     }
     
+    // Persist user data
+    await persistAuthUser(userCredential.user);
+    
     return { user: userCredential.user, error: null };
   } catch (error: any) {
     let message = "Registration failed";
@@ -58,6 +64,7 @@ export async function signUpWithEmail(email: string, password: string, name?: st
 export async function signOut() {
   try {
     await firebaseSignOut(auth);
+    await persistAuthUser(null);
     return { error: null };
   } catch (error: any) {
     return { error: { message: error.message } };
@@ -88,15 +95,22 @@ export const signUp = {
 };
 
 // useSession hook for React components
-import { useState, useEffect } from "react";
-
 export function useSession() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    // Check for persisted user on mount
+    getPersistedUser().then((persistedUser) => {
+      if (persistedUser && !auth.currentUser) {
+        // We have persisted data but no current user - user needs to re-auth
+        setLoading(false);
+      }
+    });
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      await persistAuthUser(user);
       setLoading(false);
     });
 
