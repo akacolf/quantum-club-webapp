@@ -10,16 +10,13 @@ const config = getDefaultConfig(projectRoot);
 // Watch all files in the monorepo
 config.watchFolders = [workspaceRoot];
 
-// Let Metro know where to resolve packages
+// Let Metro know where to resolve packages in monorepo
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
-// Ensure we find react-native in the right place
-config.resolver.disableHierarchicalLookup = true;
-
-// Enable package exports for better-auth
+// Enable package exports for better compatibility
 config.resolver.unstable_enablePackageExports = true;
 
 module.exports = withNativeWind(config, { 
