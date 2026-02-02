@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { View, Modal, ActivityIndicator, Pressable, Linking, StyleSheet, Alert } from "react-native";
 import { Text } from "~/components/ui/text";
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 
 interface TelegramAuthData {
@@ -138,14 +138,14 @@ export function TelegramLoginWebView({
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Login with Telegram</Text>
           <Pressable onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#9CA3AF" />
+            <FontAwesome5 name="times" size={24} color="#9CA3AF" />
           </Pressable>
         </View>
 
         {/* Content */}
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Ionicons name="paper-plane" size={48} color="#0088cc" />
+            <FontAwesome5 name="telegram-plane" size={48} color="#0088cc" />
           </View>
 
           <Text style={styles.title}>Connect with Telegram</Text>
@@ -174,7 +174,7 @@ export function TelegramLoginWebView({
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Ionicons name="paper-plane" size={20} color="#fff" />
+                  <FontAwesome5 name="telegram-plane" size={20} color="#fff" />
                   <Text style={styles.telegramButtonText}>Open Telegram</Text>
                 </>
               )}

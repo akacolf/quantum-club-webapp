@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
@@ -36,9 +37,11 @@ function SettingItem({ icon, label, description, onPress, danger, rightElement }
   );
 }
 
+type ThemeMode = "dark" | "light" | "system";
+
 function ThemeSelector() {
   // For now, fixed dark theme - can add theme switching later
-  const theme = "dark";
+  const [theme, setTheme] = useState<ThemeMode>("dark");
   
   return (
     <View style={styles.themeSection}>
@@ -49,19 +52,28 @@ function ThemeSelector() {
         <Text style={styles.settingLabel}>Appearance</Text>
       </View>
       <View style={styles.themeOptions}>
-        <Pressable style={[styles.themeOption, theme === "light" && styles.themeOptionActive]}>
+        <Pressable 
+          style={[styles.themeOption, theme === "light" && styles.themeOptionActive]}
+          onPress={() => setTheme("light")}
+        >
           <Ionicons name="sunny-outline" size={16} color={theme === "light" ? "#000" : "#fff"} />
           <Text style={[styles.themeOptionText, theme === "light" && styles.themeOptionTextActive]}>
             Light
           </Text>
         </Pressable>
-        <Pressable style={[styles.themeOption, theme === "dark" && styles.themeOptionActive]}>
+        <Pressable 
+          style={[styles.themeOption, theme === "dark" && styles.themeOptionActive]}
+          onPress={() => setTheme("dark")}
+        >
           <Ionicons name="moon-outline" size={16} color={theme === "dark" ? "#000" : "#fff"} />
           <Text style={[styles.themeOptionText, theme === "dark" && styles.themeOptionTextActive]}>
             Dark
           </Text>
         </Pressable>
-        <Pressable style={[styles.themeOption, theme === "system" && styles.themeOptionActive]}>
+        <Pressable 
+          style={[styles.themeOption, theme === "system" && styles.themeOptionActive]}
+          onPress={() => setTheme("system")}
+        >
           <Ionicons name="phone-portrait-outline" size={16} color={theme === "system" ? "#000" : "#fff"} />
           <Text style={[styles.themeOptionText, theme === "system" && styles.themeOptionTextActive]}>
             Auto

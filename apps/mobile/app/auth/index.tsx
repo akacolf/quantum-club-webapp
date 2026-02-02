@@ -8,11 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { signIn, signUp } from "~/lib/auth/client";
 import { TelegramLoginWebView, TelegramAuthData } from "~/lib/auth/telegram-login";
 import Svg, { Path } from "react-native-svg";
@@ -51,6 +52,13 @@ export default function AuthScreen() {
       return;
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     if (mode === "register") {
       if (password !== confirmPassword) {
         setError("Passwords do not match");
@@ -68,6 +76,7 @@ export default function AuthScreen() {
         const result = await signIn.email({ email, password });
         if (result.error) {
           setError(result.error.message || "Login failed");
+          setLoading(false);
           return;
         }
       } else {
@@ -78,6 +87,7 @@ export default function AuthScreen() {
         });
         if (result.error) {
           setError(result.error.message || "Registration failed");
+          setLoading(false);
           return;
         }
       }
@@ -95,7 +105,7 @@ export default function AuthScreen() {
     setError(null);
     try {
       // Send Telegram auth data to backend for verification
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || "https://quantumclub.app"}/api/auth/telegram`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || "https://quantumclub.app"}/api/auth/telegram/mobile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -116,6 +126,14 @@ export default function AuthScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openTerms = () => {
+    router.push("/legal/terms");
+  };
+
+  const openPrivacy = () => {
+    router.push("/legal/privacy");
   };
 
   return (
@@ -242,7 +260,7 @@ export default function AuthScreen() {
               onPress={() => setShowTelegramLogin(true)}
               disabled={loading}
             >
-              <Ionicons name="paper-plane" size={20} color="#fff" />
+              <FontAwesome5 name="telegram-plane" size={20} color="#fff" />
               <Text style={styles.telegramButtonText}>Continue with Telegram</Text>
             </Pressable>
 
@@ -260,11 +278,16 @@ export default function AuthScreen() {
           </View>
 
           {/* Terms */}
-          <Text style={styles.terms}>
-            By continuing, you agree to our{" "}
-            <Text style={styles.termsLink}>Terms of Service</Text> and{" "}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
-          </Text>
+          <View style={styles.termsContainer}>
+            <Text style={styles.terms}>By continuing, you agree to our </Text>
+            <Pressable onPress={openTerms}>
+              <Text style={styles.termsLink}>Terms of Service</Text>
+            </Pressable>
+            <Text style={styles.terms}> and </Text>
+            <Pressable onPress={openPrivacy}>
+              <Text style={styles.termsLink}>Privacy Policy</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -414,16 +437,23 @@ const styles = StyleSheet.create({
     fontFamily: "Onest_600SemiBold",
     color: "#fb923c",
   },
+  termsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginTop: 32,
+  },
   terms: {
     fontSize: 12,
     fontFamily: "Onest_400Regular",
     color: "#6b7280",
-    textAlign: "center",
-    marginTop: 32,
     lineHeight: 18,
   },
   termsLink: {
+    fontSize: 12,
+    fontFamily: "Onest_500Medium",
     color: "#9ca3af",
     textDecorationLine: "underline",
+    lineHeight: 18,
   },
 });
