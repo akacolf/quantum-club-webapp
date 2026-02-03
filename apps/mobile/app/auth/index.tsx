@@ -30,6 +30,10 @@ function QntmLogo() {
   );
 }
 
+// Test credentials for development
+const TEST_EMAIL = "test@quantumclub.space";
+const TEST_PASSWORD = "testdev123";
+
 type AuthMode = "login" | "register";
 
 export default function AuthScreen() {
@@ -43,6 +47,42 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showTelegramLogin, setShowTelegramLogin] = useState(false);
+
+  // Quick dev login with test credentials
+  const handleDevLogin = async () => {
+    setEmail(TEST_EMAIL);
+    setPassword(TEST_PASSWORD);
+    setLoading(true);
+    setError(null);
+    try {
+      // First try to sign in
+      const result = await signIn.email({ email: TEST_EMAIL, password: TEST_PASSWORD });
+      if (result.error) {
+        // If user doesn't exist, create them
+        if (result.error.code === "auth/user-not-found" || result.error.code === "auth/invalid-credential") {
+          const signUpResult = await signUp.email({ 
+            email: TEST_EMAIL, 
+            password: TEST_PASSWORD,
+            name: "Test User"
+          });
+          if (signUpResult.error) {
+            setError(signUpResult.error.message || "Failed to create test account");
+            setLoading(false);
+            return;
+          }
+        } else {
+          setError(result.error.message || "Login failed");
+          setLoading(false);
+          return;
+        }
+      }
+      router.replace("/(tabs)/home");
+    } catch (err: any) {
+      setError(err.message || "Dev login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEmailAuth = async () => {
     setError(null);
@@ -264,6 +304,18 @@ export default function AuthScreen() {
               <Text style={styles.telegramButtonText}>Continue with Telegram</Text>
             </Pressable>
 
+            {/* Dev Login Button - for testing */}
+            {__DEV__ && (
+              <Pressable
+                style={styles.devButton}
+                onPress={handleDevLogin}
+                disabled={loading}
+              >
+                <Ionicons name="bug-outline" size={20} color="#fff" />
+                <Text style={styles.devButtonText}>Dev Login (Test Account)</Text>
+              </Pressable>
+            )}
+
             {/* Switch Mode */}
             <View style={styles.switchMode}>
               <Text style={styles.switchModeText}>
@@ -417,6 +469,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   telegramButtonText: {
+    fontSize: 16,
+    fontFamily: "Onest_600SemiBold",
+    color: "#fff",
+  },
+  devButton: {
+    height: 56,
+    backgroundColor: "#4a4a4a",
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#666",
+    borderStyle: "dashed",
+  },
+  devButtonText: {
     fontSize: 16,
     fontFamily: "Onest_600SemiBold",
     color: "#fff",
