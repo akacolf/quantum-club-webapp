@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { Skeleton } from "~/components/ui/skeleton";
-import { TaskCard, EarnTask } from "./TaskCard";
+import { TaskCard, EarnTask } from "./_TaskCard";
 import { useGameContext } from "~/contexts/GameContext";
 import { getTasks, completeTask as apiCompleteTask, Task } from "~/lib/api";
 
