@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, ScrollView, RefreshControl, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -8,16 +8,14 @@ import { PersonalizedGreeting } from "~/components/home/PersonalizedGreeting";
 import { QntmBalance } from "~/components/home/QntmBalance";
 import { DailyCheckIn } from "~/components/home/DailyCheckIn";
 import { SolveToEarnCard } from "~/components/home/SolveToEarnCard";
+import { HomeCarousel } from "~/components/home/HomeCarousel";
+import { Loader } from "~/components/Loader";
 import { useGameContext } from "~/contexts/GameContext";
-import { claimDailyCheckIn } from "~/lib/api";
+import { claimDailyCheckIn, getUserData } from "~/lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { 
   FadeInDown, 
-  FadeInUp,
   SlideInRight,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
 } from "react-native-reanimated";
 
 export default function HomeScreen() {
@@ -29,11 +27,27 @@ export default function HomeScreen() {
     refreshUserData,
     mainQuantAmount,
     daily,
+    isLoading,
   } = useGameContext();
   
   const [refreshing, setRefreshing] = useState(false);
   const [isClaimDay, setIsClaimDay] = useState(false);
   const [loadingDay, setLoadingDay] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Fetch user data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await refreshUserData();
+      } catch (error) {
+        console.error("Initial load error:", error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -70,6 +84,11 @@ export default function HomeScreen() {
     router.push("/solve-to-earn" as never);
   };
 
+  // Show loader while initial data loads
+  if (initialLoading || isLoading) {
+    return <Loader fullScreen />;
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-black" edges={["top"]}>
       <ScrollView
@@ -95,7 +114,7 @@ export default function HomeScreen() {
           onClaim={handleClaimDaily}
         />
         
-        {/* TODO: Add HomeCarousel component */}
+        <HomeCarousel />
         
         <SolveToEarnCard onPress={handleSolveToEarn} />
 

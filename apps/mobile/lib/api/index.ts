@@ -4,7 +4,7 @@
  */
 
 // Base URL for API calls - points to the web app backend
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://app.quantumclub.ai";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://quantumclub.space";
 
 interface ApiResponse<T> {
   success: boolean;
