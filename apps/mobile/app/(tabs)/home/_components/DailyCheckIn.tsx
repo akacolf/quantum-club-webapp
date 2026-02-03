@@ -3,6 +3,14 @@ import { View, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { useGameContext } from "~/contexts/GameContext";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+  FadeInRight,
+} from "react-native-reanimated";
 
 interface DailyCheckInProps {
   isClaimDay: boolean;
@@ -46,6 +54,7 @@ export function DailyCheckIn({
 }: DailyCheckInProps) {
   const { daily } = useGameContext();
   const [remainingTime, setRemainingTime] = useState(calculateRemainingTime());
+  const buttonScale = useSharedValue(1);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -55,45 +64,62 @@ export function DailyCheckIn({
     return () => clearInterval(interval);
   }, []);
 
+  const handlePress = async () => {
+    // Animate button press
+    buttonScale.value = withSequence(
+      withSpring(0.95),
+      withSpring(1)
+    );
+    await onClaim();
+  };
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
   return (
-    <Card className="mx-4 mt-6 border-[#222] bg-[#111]">
-      <CardContent className="p-4 flex-row items-center justify-between gap-2">
-        <View className="flex-row items-center gap-3 flex-1">
-          {/* Fire Icon */}
-          <View className="w-10 h-10 items-center justify-center">
-            <Text className="text-3xl">🔥</Text>
-          </View>
+    <Animated.View entering={FadeInRight.duration(500).delay(300)}>
+      <Card className="mx-4 mt-6 border-[#222] bg-[#111]">
+        <CardContent className="p-4 flex-row items-center justify-between gap-2">
+          <View className="flex-row items-center gap-3 flex-1">
+            {/* Fire Icon */}
+            <View className="w-10 h-10 items-center justify-center">
+              <Text className="text-3xl">🔥</Text>
+            </View>
 
-          <View className="flex-1">
-            <Text style={styles.streakText}>{daily} Day Streak</Text>
-            <View className="flex-row items-center gap-1 mt-0.5">
-              <Text style={styles.nextRewardLabel}>Next reward:</Text>
-              <Text style={styles.timer}>{remainingTime}</Text>
+            <View className="flex-1">
+              <Text style={styles.streakText}>{daily} Day Streak</Text>
+              <View className="flex-row items-center gap-1 mt-0.5">
+                <Text style={styles.nextRewardLabel}>Next reward:</Text>
+                <Text style={styles.timer}>{remainingTime}</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <Pressable
-          onPress={onClaim}
-          disabled={isClaimDay || loadingDay}
-          style={[
-            styles.claimButton,
-            isClaimDay ? styles.claimButtonDisabled : styles.claimButtonActive,
-          ]}
-        >
-          {loadingDay ? (
-            <ActivityIndicator size="small" color={isClaimDay ? "#6B7280" : "#000"} />
-          ) : isClaimDay ? (
-            <View className="flex-row items-center gap-1.5">
-              <Text style={styles.doneText}>Done</Text>
-              <Text className="text-green-500">✓</Text>
-            </View>
-          ) : (
-            <Text style={styles.claimText}>Claim</Text>
-          )}
-        </Pressable>
-      </CardContent>
-    </Card>
+          <Animated.View style={buttonAnimatedStyle}>
+            <Pressable
+              onPress={handlePress}
+              disabled={isClaimDay || loadingDay}
+              style={[
+                styles.claimButton,
+                isClaimDay ? styles.claimButtonDisabled : styles.claimButtonActive,
+              ]}
+            >
+              {loadingDay ? (
+                <ActivityIndicator size="small" color={isClaimDay ? "#6B7280" : "#000"} />
+              ) : isClaimDay ? (
+                <View className="flex-row items-center gap-1.5">
+                  <Text style={styles.doneText}>Done</Text>
+                  <Text className="text-green-500">✓</Text>
+                </View>
+              ) : (
+                <Text style={styles.claimText}>Claim</Text>
+              )}
+            </Pressable>
+          </Animated.View>
+        </CardContent>
+      </Card>
+    </Animated.View>
   );
 }
 

@@ -10,8 +10,8 @@ import { Database, getDatabase } from "firebase/database";
 import { FirebaseStorage, getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// API base URL - this is the only env var we need
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://quantumclub.app";
+// API base URL
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://quantumclub.space";
 
 // Cache for Firebase config
 let cachedConfig: any = null;
@@ -32,7 +32,8 @@ export async function fetchFirebaseConfig() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/api/mobile/auth`);
+    // Fetch from our Expo API route
+    const response = await fetch(`${API_URL}/api/config`);
     if (response.ok) {
       cachedConfig = await response.json();
       // Cache the config
@@ -43,15 +44,8 @@ export async function fetchFirebaseConfig() {
     console.warn("Failed to fetch Firebase config from server");
   }
 
-  // Fallback to env vars if server is unavailable
-  return {
-    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.EXPO_PUBLIC_AUTH_DOMAIN,
-    projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-    storageBucket: process.env.EXPO_PUBLIC_STORAGE_BUCKET,
-    messagingSenderId: process.env.EXPO_PUBLIC_SENDER_ID,
-    appId: process.env.EXPO_PUBLIC_APP_ID,
-  };
+  // Fallback config (for development)
+  return null;
 }
 
 let app: FirebaseApp;
@@ -61,11 +55,16 @@ let database: Database;
 let storage: FirebaseStorage;
 let isInitialized = false;
 
-// Initialize Firebase with config
+// Initialize Firebase with config from server
 export async function initializeFirebase() {
   if (isInitialized) return { app, auth, dbfs, database, storage };
 
   const firebaseConfig = await fetchFirebaseConfig();
+  
+  if (!firebaseConfig) {
+    throw new Error("Failed to load Firebase configuration");
+  }
+
   const currentApps = getApps();
 
   if (!currentApps.length) {
@@ -86,8 +85,7 @@ export async function initializeFirebase() {
   return { app, auth, dbfs, database, storage };
 }
 
-// Synchronous getters (will use cached/initialized values)
-// These require initializeFirebase() to be called first
+// Synchronous getters (require initializeFirebase() first)
 export function getFirebaseApp() { return app; }
 export function getFirebaseAuth() { return auth; }
 export function getFirebaseFirestore() { return dbfs; }
@@ -112,29 +110,16 @@ export async function getPersistedUser() {
   return data ? JSON.parse(data) : null;
 }
 
-// Initialize immediately for backwards compatibility
-// This uses fallback env vars initially, then updates when server config is fetched
-const fallbackConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_APP_ID,
-};
+// Lazy initialization - will be called when Firebase is first accessed
+let initPromise: Promise<any> | null = null;
 
-const currentApps = getApps();
-if (!currentApps.length) {
-  app = initializeApp(fallbackConfig);
-  auth = initializeAuth(app, {
-    persistence: inMemoryPersistence,
-  });
-} else {
-  app = currentApps[0];
-  auth = getAuth(app);
+export function ensureFirebaseInitialized() {
+  if (!initPromise) {
+    initPromise = initializeFirebase();
+  }
+  return initPromise;
 }
-dbfs = getFirestore(app);
-database = getDatabase(app);
-storage = getStorage(app);
 
+// Export for backwards compatibility (initialize on first import)
+// These will be undefined until ensureFirebaseInitialized() completes
 export { app, auth, dbfs, database, storage, AsyncStorage, API_URL };

@@ -1,10 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Text } from "~/components/ui/text";
 import { useGameContext } from "~/contexts/GameContext";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path, Circle } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withRepeat,
+  withSequence,
+  withTiming,
+  FadeIn,
+  SlideInUp,
+} from "react-native-reanimated";
 
 // QNTM Icon matching web design
 function QntmIcon() {
@@ -58,39 +68,69 @@ export function QntmBalance() {
   const { mainQuantAmount, rank } = useGameContext();
   const router = useRouter();
 
+  // Animated icon scale with subtle pulse
+  const iconScale = useSharedValue(1);
+  
+  useEffect(() => {
+    iconScale.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 2000 }),
+        withTiming(1, { duration: 2000 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const iconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }],
+  }));
+
   return (
     <View className="items-center py-8">
-      {/* QNTM Icon */}
-      <View className="mb-4">
+      {/* QNTM Icon with pulse animation */}
+      <Animated.View 
+        entering={FadeIn.duration(800).delay(200)}
+        style={iconAnimatedStyle}
+        className="mb-4"
+      >
         <QntmIcon />
-      </View>
+      </Animated.View>
 
-      {/* Balance */}
-      <View className="flex-row items-center gap-2 mt-2">
+      {/* Balance with slide-in animation */}
+      <Animated.View 
+        entering={SlideInUp.duration(600).delay(400)}
+        className="flex-row items-center gap-2 mt-2"
+      >
         <Text style={styles.balance}>
           {mainQuantAmount}
         </Text>
         <Text style={styles.unit}>QNTM</Text>
-      </View>
+      </Animated.View>
 
-      {/* Rank Badge */}
-      <View className="flex-row items-center justify-center gap-3 px-5 py-2 mt-4 rounded-full bg-[#111] border border-[#222]">
+      {/* Rank Badge with fade-in */}
+      <Animated.View 
+        entering={FadeIn.duration(600).delay(600)}
+        className="flex-row items-center justify-center gap-3 px-5 py-2 mt-4 rounded-full bg-[#111] border border-[#222]"
+      >
         <Text style={styles.rankLabel}>RANK</Text>
         <View className="w-px h-3 bg-[#333]" />
         <View className="flex-row items-center gap-2">
           <RankIcon rank={rank} />
           <Text style={styles.rankValue}>{rank || "#1"}</Text>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Rewards History Link */}
-      <Pressable
-        onPress={() => router.push("/rewards-history" as never)}
-        className="mt-4 flex-row items-center gap-1"
-      >
-        <Text style={styles.rewardsLink}>Rewards history</Text>
-        <Ionicons name="chevron-forward" size={14} color="#6b7280" />
-      </Pressable>
+      <Animated.View entering={FadeIn.duration(600).delay(800)}>
+        <Pressable
+          onPress={() => router.push("/rewards-history" as never)}
+          className="mt-4 flex-row items-center gap-1"
+        >
+          <Text style={styles.rewardsLink}>Rewards history</Text>
+          <Ionicons name="chevron-forward" size={14} color="#6b7280" />
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }

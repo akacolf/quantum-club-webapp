@@ -4,14 +4,27 @@ import {
   updateProfile,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  User
+  User,
+  Auth
 } from "firebase/auth";
-import { auth, persistAuthUser, getPersistedUser, AsyncStorage } from "~/lib/firebase/client";
+import { 
+  ensureFirebaseInitialized, 
+  getFirebaseAuth,
+  persistAuthUser, 
+  getPersistedUser 
+} from "~/lib/firebase/client";
 import { useState, useEffect } from "react";
+
+// Get auth instance (async)
+async function getAuth(): Promise<Auth> {
+  await ensureFirebaseInitialized();
+  return getFirebaseAuth();
+}
 
 // Sign in with email and password
 export async function signInWithEmail(email: string, password: string) {
   try {
+    const auth = await getAuth();
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     // Persist user data
     await persistAuthUser(userCredential.user);
@@ -36,6 +49,7 @@ export async function signInWithEmail(email: string, password: string) {
 // Sign up with email and password
 export async function signUpWithEmail(email: string, password: string, name?: string) {
   try {
+    const auth = await getAuth();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     
     // Update display name if provided
@@ -63,6 +77,7 @@ export async function signUpWithEmail(email: string, password: string, name?: st
 // Sign out
 export async function signOut() {
   try {
+    const auth = await getAuth();
     await firebaseSignOut(auth);
     await persistAuthUser(null);
     return { error: null };
@@ -71,13 +86,15 @@ export async function signOut() {
   }
 }
 
-// Get current user
-export function getCurrentUser(): User | null {
+// Get current user (async)
+export async function getCurrentUser(): Promise<User | null> {
+  const auth = await getAuth();
   return auth.currentUser;
 }
 
 // Subscribe to auth state changes
-export function onAuthStateChange(callback: (user: User | null) => void) {
+export async function onAuthStateChange(callback: (user: User | null) => void) {
+  const auth = await getAuth();
   return onAuthStateChanged(auth, callback);
 }
 
@@ -96,25 +113,41 @@ export const signUp = {
 
 // useSession hook for React components
 export function useSession() {
-  const [user, setUser] = useState<User | null>(auth.currentUser);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for persisted user on mount
-    getPersistedUser().then((persistedUser) => {
-      if (persistedUser && !auth.currentUser) {
-        // We have persisted data but no current user - user needs to re-auth
+    let unsubscribe: (() => void) | null = null;
+
+    async function init() {
+      try {
+        // Initialize Firebase first
+        await ensureFirebaseInitialized();
+        const auth = getFirebaseAuth();
+        
+        // Check for persisted user on mount
+        const persistedUser = await getPersistedUser();
+        if (persistedUser && !auth.currentUser) {
+          // We have persisted data but no current user - user needs to re-auth
+          setLoading(false);
+        }
+
+        unsubscribe = onAuthStateChanged(auth, async (user) => {
+          setUser(user);
+          await persistAuthUser(user);
+          setLoading(false);
+        });
+      } catch (error) {
+        console.error("Auth initialization error:", error);
         setLoading(false);
       }
-    });
+    }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      await persistAuthUser(user);
-      setLoading(false);
-    });
+    init();
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   return {
