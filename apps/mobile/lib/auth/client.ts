@@ -12,10 +12,13 @@ import { useState, useEffect } from "react";
 // Sign in with email and password
 export async function signInWithEmail(email: string, password: string) {
   try {
+    console.log("[Auth] Attempting sign in for:", email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    console.log("[Auth] Sign in successful:", userCredential.user.uid);
     await persistAuthUser(userCredential.user);
     return { user: userCredential.user, error: null };
   } catch (error: any) {
+    console.log("[Auth] Sign in error:", error.code, error.message);
     let message = "Login failed";
     if (error.code === "auth/user-not-found") {
       message = "No account found with this email";
@@ -35,7 +38,9 @@ export async function signInWithEmail(email: string, password: string) {
 // Sign up with email and password
 export async function signUpWithEmail(email: string, password: string, name?: string) {
   try {
+    console.log("[Auth] Attempting sign up for:", email);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    console.log("[Auth] Sign up successful:", userCredential.user.uid);
     
     if (name && userCredential.user) {
       await updateProfile(userCredential.user, { displayName: name });
@@ -44,6 +49,7 @@ export async function signUpWithEmail(email: string, password: string, name?: st
     await persistAuthUser(userCredential.user);
     return { user: userCredential.user, error: null };
   } catch (error: any) {
+    console.log("[Auth] Sign up error:", error.code, error.message);
     let message = "Registration failed";
     if (error.code === "auth/email-already-in-use") {
       message = "An account with this email already exists";

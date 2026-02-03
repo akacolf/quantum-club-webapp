@@ -23,6 +23,10 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_APP_ID,
 };
 
+// Debug: Log config (without sensitive data)
+console.log("[Firebase] Initializing with project:", firebaseConfig.projectId);
+console.log("[Firebase] Auth domain:", firebaseConfig.authDomain);
+
 let app: FirebaseApp;
 let auth: Auth;
 let dbfs: Firestore;

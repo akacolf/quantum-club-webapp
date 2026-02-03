@@ -43,13 +43,78 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: "#000" },
-              animation: "slide_from_right",
+              animation: "fade_from_bottom",
+              animationDuration: 250,
             }}
           >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(wallet)" options={{ headerShown: false }} />
-            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="index" 
+              options={{ animation: "fade" }}
+            />
+            <Stack.Screen 
+              name="(tabs)" 
+              options={{ 
+                headerShown: false,
+                animation: "fade",
+              }} 
+            />
+            <Stack.Screen 
+              name="(wallet)" 
+              options={{ 
+                headerShown: false,
+                animation: "slide_from_right",
+                animationDuration: 300,
+              }} 
+            />
+            <Stack.Screen 
+              name="auth" 
+              options={{ 
+                animation: "fade",
+                animationDuration: 400,
+              }} 
+            />
+            <Stack.Screen 
+              name="profile" 
+              options={{ 
+                headerShown: false,
+                animation: "slide_from_bottom",
+                animationDuration: 300,
+                presentation: "modal",
+              }} 
+            />
+            <Stack.Screen 
+              name="story" 
+              options={{ 
+                animation: "fade",
+                animationDuration: 300,
+                presentation: "fullScreenModal",
+              }} 
+            />
+            <Stack.Screen 
+              name="legal" 
+              options={{ 
+                animation: "slide_from_right",
+              }} 
+            />
+            <Stack.Screen 
+              name="leaderboard" 
+              options={{ 
+                animation: "slide_from_right",
+              }} 
+            />
+            <Stack.Screen 
+              name="chat" 
+              options={{ 
+                animation: "slide_from_right",
+              }} 
+            />
+            <Stack.Screen 
+              name="trade" 
+              options={{ 
+                animation: "slide_from_bottom",
+                presentation: "modal",
+              }} 
+            />
           </Stack>
           <StatusBar style="light" />
         </View>

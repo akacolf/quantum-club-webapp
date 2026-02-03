@@ -3,6 +3,13 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { useGameContext } from "~/contexts/GameContext";
+import Animated, {
+  FadeInLeft,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+} from "react-native-reanimated";
 
 interface SolveToEarnCardProps {
   onPress: () => void;
@@ -10,43 +17,60 @@ interface SolveToEarnCardProps {
 
 export function SolveToEarnCard({ onPress }: SolveToEarnCardProps) {
   const { remainingSolveToEarn } = useGameContext();
+  const buttonScale = useSharedValue(1);
+
+  const handlePress = () => {
+    buttonScale.value = withSequence(
+      withSpring(0.95),
+      withSpring(1)
+    );
+    onPress();
+  };
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
 
   return (
-    <Card className="mx-4 mt-6 border-[#222] bg-[#111]">
-      <CardContent className="p-4 flex-row items-center justify-between gap-2">
-        <View className="flex-row items-center gap-3 flex-1">
-          {/* 100 Icon */}
-          <View className="w-10 h-10 items-center justify-center">
-            <Text className="text-3xl">💯</Text>
+    <Animated.View entering={FadeInLeft.duration(500).delay(400)}>
+      <Card className="mx-4 mt-6 border-[#222] bg-[#111]">
+        <CardContent className="p-4 flex-row items-center justify-between gap-2">
+          <View className="flex-row items-center gap-3 flex-1">
+            {/* 100 Icon */}
+            <View className="w-10 h-10 items-center justify-center">
+              <Text className="text-3xl">💯</Text>
+            </View>
+
+            <View className="flex-1">
+              <Text style={styles.title}>Solve & Earn</Text>
+              <Text style={styles.subtitle}>
+                {remainingSolveToEarn} passes available
+              </Text>
+            </View>
           </View>
 
-          <View className="flex-1">
-            <Text style={styles.title}>Solve & Earn</Text>
-            <Text style={styles.subtitle}>
-              {remainingSolveToEarn} passes available
-            </Text>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={onPress}
-          disabled={remainingSolveToEarn === 0}
-          style={[
-            styles.solveButton,
-            remainingSolveToEarn > 0 ? styles.solveButtonActive : styles.solveButtonDisabled,
-          ]}
-        >
-          <Text
-            style={[
-              styles.solveText,
-              remainingSolveToEarn === 0 && styles.solveTextDisabled,
-            ]}
-          >
-            Solve
-          </Text>
-        </Pressable>
-      </CardContent>
-    </Card>
+          <Animated.View style={buttonAnimatedStyle}>
+            <Pressable
+              onPress={handlePress}
+              disabled={remainingSolveToEarn === 0}
+              style={[
+                styles.solveButton,
+                remainingSolveToEarn > 0 ? styles.solveButtonActive : styles.solveButtonDisabled,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.solveText,
+                  remainingSolveToEarn === 0 && styles.solveTextDisabled,
+                ]}
+              >
+                Solve
+              </Text>
+            </Pressable>
+          </Animated.View>
+        </CardContent>
+      </Card>
+    </Animated.View>
   );
 }
 

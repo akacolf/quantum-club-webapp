@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
@@ -17,6 +16,16 @@ import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { signIn, signUp } from "~/lib/auth/client";
 import { TelegramLoginWebView, TelegramAuthData } from "~/lib/auth/telegram-login";
 import Svg, { Path } from "react-native-svg";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  SlideInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+} from "react-native-reanimated";
 
 // QNTM Logo
 function QntmLogo() {
@@ -187,27 +196,46 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo & Title */}
-          <View style={styles.header}>
-            <QntmLogo />
-            <Text style={styles.title}>Quantum Club</Text>
-            <Text style={styles.subtitle}>
+          {/* Logo & Title with animations */}
+          <Animated.View 
+            entering={FadeIn.duration(600).delay(100)}
+            style={styles.header}
+          >
+            <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+              <QntmLogo />
+            </Animated.View>
+            <Animated.Text 
+              entering={FadeInUp.duration(400).delay(300)}
+              style={styles.title}
+            >
+              Quantum Club
+            </Animated.Text>
+            <Animated.Text 
+              entering={FadeInUp.duration(400).delay(400)}
+              style={styles.subtitle}
+            >
               {mode === "login" 
                 ? "Welcome back! Sign in to continue" 
                 : "Create your account to get started"}
-            </Text>
-          </View>
+            </Animated.Text>
+          </Animated.View>
 
           {/* Error Message */}
           {error && (
-            <View style={styles.errorContainer}>
+            <Animated.View 
+              entering={FadeIn.duration(300)}
+              style={styles.errorContainer}
+            >
               <Ionicons name="alert-circle" size={18} color="#ef4444" />
               <Text style={styles.errorText}>{error}</Text>
-            </View>
+            </Animated.View>
           )}
 
-          {/* Auth Form */}
-          <View style={styles.form}>
+          {/* Auth Form with staggered animations */}
+          <Animated.View 
+            entering={FadeInUp.duration(500).delay(500)}
+            style={styles.form}
+          >
             {mode === "register" && (
               <View style={styles.inputContainer}>
                 <Ionicons name="person-outline" size={20} color="#6b7280" style={styles.inputIcon} />
@@ -327,10 +355,13 @@ export default function AuthScreen() {
                 </Text>
               </Pressable>
             </View>
-          </View>
+          </Animated.View>
 
-          {/* Terms */}
-          <View style={styles.termsContainer}>
+          {/* Terms with fade in */}
+          <Animated.View 
+            entering={FadeIn.duration(400).delay(800)}
+            style={styles.termsContainer}
+          >
             <Text style={styles.terms}>By continuing, you agree to our </Text>
             <Pressable onPress={openTerms}>
               <Text style={styles.termsLink}>Terms of Service</Text>
@@ -339,7 +370,7 @@ export default function AuthScreen() {
             <Pressable onPress={openPrivacy}>
               <Text style={styles.termsLink}>Privacy Policy</Text>
             </Pressable>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
