@@ -5,90 +5,107 @@ import {
   Pressable,
   Dimensions,
   StyleSheet,
-  Image,
   Linking,
 } from "react-native";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withSpring,
   FadeIn,
-  interpolate,
-  Extrapolation,
-  runOnJS,
 } from "react-native-reanimated";
+import LottieView from "lottie-react-native";
+import Svg, { Defs, RadialGradient, Stop, Circle, Path, G } from "react-native-svg";
+
+// SVG Backgrounds
+import CarouselBg from "~/assets/svg/carousel-bg.svg";
+import CarouselBgJoinTG from "~/assets/svg/carousel-bg-join-tg.svg";
+import BgTgeProgressCard from "~/assets/svg/bg-tge-progress-card.svg";
+
+// Lotties
+const diamondLottie = require("~/assets/lottie/diamond-lottie.json");
+const storyLottie = require("~/assets/lottie/story-lottie.json");
+const goldMedalLottie = require("~/assets/lottie/gold-medal-lottie.json");
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.9;
 const CARD_MARGIN = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+const CARD_SPACING = 12;
 const AUTO_PLAY_INTERVAL = 7000;
 
 interface CarouselCard {
   id: string;
   title: string;
   description: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
+  lottie?: any;
+  icon?: React.ReactNode;
   buttonText: string;
   route?: string;
   externalUrl?: string;
   disabled?: boolean;
-  bgGradient?: string;
+  bgComponent?: React.FC<any>;
+  bgGlowColor?: string;
 }
+
+// Telegram Icon Component
+const TelegramIcon = () => (
+  <Icon name="ri:telegram-fill" size={24} color="#60a5fa" />
+);
+
+// Progress Icon Component
+const ProgressIcon = () => (
+  <Icon name="solar:graph-new-up-linear" size={20} color="#4ade80" />
+);
 
 const carouselCards: CarouselCard[] = [
   {
     id: "ai-trading",
     title: "AI-Powered Trading",
     description: "Experience the future of trading with our AI-driven platform.",
-    icon: "diamond",
-    iconColor: "#3b82f6",
+    lottie: diamondLottie,
     buttonText: "Coming Soon",
     disabled: true,
-    bgGradient: "blue",
+    bgGlowColor: "#3b82f6",
   },
   {
     id: "story",
     title: "The Quantum Era",
     description: "Explore your TG story with us. Watch it unfold.",
-    icon: "book",
-    iconColor: "#a855f7",
+    lottie: storyLottie,
     buttonText: "Explore",
     route: "/story",
+    bgComponent: CarouselBg,
   },
   {
     id: "leaderboard",
     title: "The Race is On",
     description: "Check your standings on the global leaderboard.",
-    icon: "trophy",
-    iconColor: "#eab308",
+    lottie: goldMedalLottie,
     buttonText: "Check Rank",
     route: "/leaderboard",
-    bgGradient: "yellow",
+    bgGlowColor: "#eab308",
   },
   {
     id: "telegram",
     title: "The Club of OGs",
     description: "Stay updated with the latest news. Never miss a beat.",
-    icon: "paper-plane",
-    iconColor: "#0088cc",
+    icon: <TelegramIcon />,
     buttonText: "Join Channel",
-    externalUrl: "https://t.me/quantumclubchannel",
+    externalUrl: "https://t.me/quantumclubinc",
+    bgComponent: CarouselBgJoinTG,
   },
   {
     id: "roadmap",
     title: "The Progress",
     description: "Building the future. See our roadmap.",
-    icon: "trending-up",
-    iconColor: "#22c55e",
+    icon: <ProgressIcon />,
     buttonText: "View Roadmap",
     route: "/roadmap",
-    bgGradient: "green",
+    bgComponent: BgTgeProgressCard,
   },
 ];
 
@@ -113,7 +130,7 @@ export function HomeCarousel() {
 
   const scrollToIndex = (index: number) => {
     scrollViewRef.current?.scrollTo({
-      x: index * CARD_WIDTH,
+      x: index * (CARD_WIDTH + CARD_SPACING),
       animated: true,
     });
     setCurrentIndex(index);
@@ -123,7 +140,7 @@ export function HomeCarousel() {
 
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const newIndex = Math.round(offsetX / CARD_WIDTH);
+    const newIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
     if (newIndex !== currentIndex && newIndex >= 0 && newIndex < carouselCards.length) {
       setCurrentIndex(newIndex);
       progressWidth.value = 0;
@@ -153,7 +170,7 @@ export function HomeCarousel() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleScroll}
-        snapToInterval={CARD_WIDTH}
+        snapToInterval={CARD_WIDTH + CARD_SPACING}
         decelerationRate="fast"
         contentContainerStyle={styles.scrollContent}
       >
@@ -161,6 +178,7 @@ export function HomeCarousel() {
           <CarouselCardItem
             key={card.id}
             card={card}
+            isLast={index === carouselCards.length - 1}
             onPress={() => handleCardPress(card)}
           />
         ))}
@@ -189,10 +207,12 @@ export function HomeCarousel() {
 
 function CarouselCardItem({ 
   card, 
-  onPress 
+  onPress,
+  isLast
 }: { 
   card: CarouselCard; 
   onPress: () => void;
+  isLast: boolean;
 }) {
   const scale = useSharedValue(1);
 
@@ -210,44 +230,54 @@ function CarouselCardItem({
     scale.value = withSpring(1);
   };
 
-  const getBgStyle = () => {
-    switch (card.bgGradient) {
-      case "blue":
-        return { backgroundColor: "rgba(59, 130, 246, 0.1)" };
-      case "yellow":
-        return { backgroundColor: "rgba(234, 179, 8, 0.1)" };
-      case "green":
-        return { backgroundColor: "rgba(34, 197, 94, 0.1)" };
-      default:
-        return {};
-    }
-  };
-
   return (
-    <Animated.View style={[styles.cardContainer, animatedStyle]}>
+    <Animated.View style={[styles.cardContainer, animatedStyle, { marginRight: isLast ? 0 : CARD_SPACING }]}>
       <Pressable
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={card.disabled}
       >
-        <Card style={[styles.card, getBgStyle()]}>
-          <CardContent style={styles.cardContent}>
-            {/* Background glow effect */}
-            {card.bgGradient && (
-              <View
-                style={[
-                  styles.bgGlow,
-                  { backgroundColor: card.iconColor, opacity: 0.1 },
-                ]}
-              />
-            )}
+        <Card style={styles.card}>
+          {/* Background SVG or Glow */}
+          <View style={StyleSheet.absoluteFill}>
+            {card.bgComponent ? (
+              <>
+                <card.bgComponent width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+              </>
+            ) : card.bgGlowColor ? (
+              <View style={{ position: 'absolute', top: -40, right: -40 }}>
+                <Svg height="200" width="200">
+                  <Defs>
+                    <RadialGradient id={`glow-${card.id}`} cx="50%" cy="50%" r="50%">
+                      <Stop offset="0" stopColor={card.bgGlowColor} stopOpacity="0.15" />
+                      <Stop offset="1" stopColor={card.bgGlowColor} stopOpacity="0" />
+                    </RadialGradient>
+                  </Defs>
+                  <Circle cx="100" cy="100" r="100" fill={`url(#glow-${card.id})`} />
+                </Svg>
+              </View>
+            ) : null}
+          </View>
 
+          <CardContent style={styles.cardContent}>
             {/* Header */}
             <View style={styles.cardHeader}>
               <View style={styles.titleRow}>
                 <Text style={styles.cardTitle}>{card.title}</Text>
-                <Ionicons name={card.icon} size={20} color={card.iconColor} />
+                {card.lottie ? (
+                  <View style={{ width: 24, height: 24 }}>
+                    <LottieView
+                      source={card.lottie}
+                      autoPlay
+                      loop
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </View>
+                ) : (
+                  card.icon
+                )}
               </View>
               <Text style={styles.cardDescription}>{card.description}</Text>
             </View>
@@ -294,22 +324,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     overflow: "hidden",
+    position: 'relative',
   },
   cardContent: {
     flex: 1,
-    padding: 16,
-    justifyContent: "space-between",
-  },
-  bgGlow: {
-    position: "absolute",
-    top: -40,
-    right: -40,
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    paddingHorizontal: 20,
+    paddingTop: 28, // Pushed down content slightly
+    paddingBottom: 20,
+    justifyContent: "center",
+    gap: 20, // Increased gap to push button lower
+    zIndex: 10,
   },
   cardHeader: {
     gap: 8,
+    marginTop: 0, // Removed top margin
   },
   titleRow: {
     flexDirection: "row",
@@ -326,9 +354,10 @@ const styles = StyleSheet.create({
     fontFamily: "Onest_400Regular",
     color: "#9ca3af",
     lineHeight: 18,
+    maxWidth: "90%",
   },
   cardFooter: {
-    marginTop: "auto",
+    marginTop: 0, // Removed auto margin
   },
   button: {
     alignSelf: "flex-start",

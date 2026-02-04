@@ -7,7 +7,7 @@ import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { useGameContext } from "~/contexts/GameContext";
 import { getReferralStats, claimReferralRewards } from "~/lib/api";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import * as Clipboard from "expo-clipboard";
 
 interface Referral {
@@ -187,7 +187,7 @@ export default function FrensScreen() {
                 </View>
                 <View className="items-end">
                   <View className="flex-row items-center gap-2">
-                    <Ionicons name="people" size={32} color="#9ca3af" />
+                    <Icon name="solar:users-group-rounded-bold" size={32} color="#9ca3af" />
                     <Text style={styles.statNumber}>{referralsCount}</Text>
                   </View>
                   <Text style={styles.statLabel}>INVITED FRENS</Text>
@@ -206,7 +206,7 @@ export default function FrensScreen() {
                   {secondTierCount > 0 && (
                     <View className="items-end">
                       <View className="flex-row items-center gap-2">
-                        <Ionicons name="people-outline" size={24} color="#9ca3af" />
+                        <Icon name="solar:users-group-rounded-linear" size={24} color="#9ca3af" />
                         <Text style={styles.statNumberSmall}>{secondTierCount}</Text>
                       </View>
                       <Text style={styles.statLabel}>2ND TIER FRENS</Text>
@@ -218,7 +218,7 @@ export default function FrensScreen() {
                 <View className="mt-4 p-3 bg-white/5 border border-[#222] rounded-lg">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
-                      <Ionicons name="gift" size={20} color="#fff" />
+                      <Icon name="solar:gift-bold" size={20} color="#fff" />
                       <View>
                         <Text style={styles.pendingLabel}>Pending Rewards</Text>
                         <Text style={styles.pendingAmount}>
@@ -260,8 +260,8 @@ export default function FrensScreen() {
                   {referralLink}
                 </Text>
                 <Pressable onPress={handleCopyLink} className="p-2">
-                  <Ionicons 
-                    name={copied ? "checkmark" : "copy-outline"} 
+                  <Icon 
+                    name={copied ? "solar:check-circle-bold" : "solar:copy-linear"} 
                     size={20} 
                     color={copied ? "#22c55e" : "#9ca3af"} 
                   />
@@ -278,7 +278,7 @@ export default function FrensScreen() {
           {/* Referrals List */}
           <View className="mb-4">
             <View className="flex-row items-center gap-2 mb-4">
-              <Ionicons name="people" size={20} color="#3b82f6" />
+              <Icon name="solar:users-group-rounded-bold" size={20} color="#3b82f6" />
               <Text style={styles.sectionTitle}>Your Referrals</Text>
             </View>
 
@@ -290,13 +290,13 @@ export default function FrensScreen() {
                       <View className="flex-row items-center gap-3">
                         <Avatar className="w-10 h-10 border border-[#222]">
                           <AvatarFallback className="bg-[#1a1a1a]">
-                            <Ionicons name="person" size={20} color="#9ca3af" />
+                            <Icon name="solar:user-bold" size={20} color="#9ca3af" />
                           </AvatarFallback>
                         </Avatar>
                         <Text style={styles.referralName}>{referral.username}</Text>
                       </View>
                       <View className="flex-row items-center gap-2 bg-[#1a1a1a] px-3 py-1.5 rounded-lg border border-[#222]">
-                        <Ionicons name="trophy" size={14} color="#eab308" />
+                        <Icon name="solar:cup-star-bold" size={14} color="#eab308" />
                         <Text style={styles.rewardAmount}>
                           +{((referral.quantamount * 10) / 100).toFixed(0)} QNTM
                         </Text>
@@ -307,7 +307,7 @@ export default function FrensScreen() {
               </View>
             ) : (
               <View className="items-center justify-center py-8">
-                <Ionicons name="person-add" size={64} color="#4b5563" />
+                <Icon name="solar:user-plus-linear" size={64} color="#4b5563" />
                 <Text style={styles.emptyText}>Invite some frens to see them here!</Text>
               </View>
             )}

@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 
 interface StakingPool {
   id: string;
@@ -57,7 +57,7 @@ function PoolCard({ pool }: { pool: StakingPool }) {
         
         <View style={styles.poolDetails}>
           <View style={styles.poolDetailItem}>
-            <Ionicons name="lock-closed-outline" size={14} color="#6b7280" />
+            <Icon name="solar:lock-keyhole-linear" size={14} color="#6b7280" />
             <Text style={styles.poolDetailText}>{pool.lockPeriod}</Text>
           </View>
           <Text style={styles.poolDetailText}>Min: {pool.minStake}</Text>
@@ -79,7 +79,7 @@ export default function Staking() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Staking</Text>
         <View style={styles.headerButton} />
@@ -90,17 +90,17 @@ export default function Staking() {
         <Card style={styles.statsCard}>
           <CardContent style={styles.statsContent}>
             <View style={styles.statItem}>
-              <Ionicons name="trending-up" size={24} color="#22c55e" />
+              <Icon name="solar:graph-new-up-linear" size={24} color="#22c55e" />
               <Text style={styles.statLabel}>Total Staked</Text>
               <Text style={styles.statValue}>0 TON</Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="gift" size={24} color="#fb923c" />
+              <Icon name="solar:gift-linear" size={24} color="#fb923c" />
               <Text style={styles.statLabel}>Rewards</Text>
               <Text style={styles.statValue}>0 TON</Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="time" size={24} color="#3b82f6" />
+              <Icon name="solar:clock-circle-linear" size={24} color="#3b82f6" />
               <Text style={styles.statLabel}>Active Stakes</Text>
               <Text style={styles.statValue}>0</Text>
             </View>
@@ -116,7 +116,7 @@ export default function Staking() {
         {/* Info Card */}
         <Card style={styles.infoCard}>
           <CardContent style={styles.infoContent}>
-            <Ionicons name="bulb-outline" size={20} color="#fb923c" />
+            <Icon name="solar:lightbulb-linear" size={20} color="#fb923c" />
             <Text style={styles.infoText}>
               Staking rewards are distributed automatically. Higher lock periods offer better APY rates.
             </Text>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Send() {
@@ -22,11 +22,11 @@ export default function Send() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Send</Text>
         <Pressable style={styles.headerButton}>
-          <Ionicons name="scan-outline" size={24} color="#fff" />
+          <Icon name="solar:scanner-linear" size={24} color="#fff" />
         </Pressable>
       </View>
 
@@ -35,7 +35,7 @@ export default function Send() {
         <View style={styles.inputSection}>
           <Text style={styles.inputLabel}>Recipient Address</Text>
           <View style={styles.inputContainer}>
-            <Ionicons name="wallet-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+            <Icon name="solar:wallet-linear" size={20} color="#6b7280" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               value={recipient}
@@ -64,7 +64,7 @@ export default function Send() {
             </View>
             <Pressable style={styles.tokenSelector}>
               <Text style={styles.tokenText}>TON</Text>
-              <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+              <Icon name="solar:alt-arrow-down-linear" size={16} color="#9ca3af" />
             </Pressable>
           </View>
           <Text style={styles.balanceText}>Balance: 0.00 TON</Text>
@@ -113,7 +113,7 @@ export default function Send() {
           ]}
           disabled={!recipient || !amount}
         >
-          <Ionicons name="paper-plane" size={20} color={recipient && amount ? "#000" : "#6b7280"} />
+          <Icon name="solar:plain-2-linear" size={20} color={recipient && amount ? "#000" : "#6b7280"} />
           <Text style={[
             styles.sendButtonText,
             (!recipient || !amount) && styles.sendButtonTextDisabled,

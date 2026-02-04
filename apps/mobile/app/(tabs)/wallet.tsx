@@ -6,7 +6,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { useGameContext } from "~/contexts/GameContext";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import Svg, { Path, Circle, G, Rect, Defs, ClipPath } from "react-native-svg";
 import * as Clipboard from "expo-clipboard";
 
@@ -42,7 +42,7 @@ function TonIcon({ size = 24 }: { size?: number }) {
 }
 
 interface ActionButton {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   label: string;
   onPress: () => void;
   disabled?: boolean;
@@ -99,27 +99,27 @@ export default function WalletScreen() {
     router.push("/wallet/import" as never);
   };
 
-  const actionButtons: ActionButton[] = [
+  const actionButtons = [
     {
-      icon: "arrow-up",
+      icon: "solar:arrow-up-linear",
       label: "Send",
       onPress: () => router.push("/wallet/send" as never),
       disabled: !hasWallet,
     },
     {
-      icon: "arrow-down",
+      icon: "solar:arrow-down-linear",
       label: "Receive",
       onPress: () => router.push("/wallet/receive" as never),
       disabled: !hasWallet,
     },
     {
-      icon: "time-outline",
+      icon: "solar:clock-circle-linear",
       label: "History",
       onPress: () => router.push("/wallet/history" as never),
       disabled: !hasWallet,
     },
     {
-      icon: "pie-chart-outline",
+      icon: "solar:pie-chart-2-linear",
       label: "Portfolio",
       onPress: () => router.push("/wallet/analytics" as never),
       disabled: !hasWallet,
@@ -175,7 +175,7 @@ export default function WalletScreen() {
                   style={walletStyles.sendButton}
                   onPress={() => router.push("/wallet/send-qntm" as never)}
                 >
-                  <Ionicons name="arrow-up" size={16} color="#000" />
+                  <Icon name="solar:arrow-up-linear" size={16} color="#000" />
                   <Text style={walletStyles.sendButtonText}>Send QNTM</Text>
                 </Pressable>
               </CardContent>
@@ -185,7 +185,7 @@ export default function WalletScreen() {
             <Card className="mb-4 border-[#222] bg-[#111]">
               <CardContent className="p-6 items-center">
                 <View className="w-20 h-20 rounded-full bg-white/5 items-center justify-center mb-4">
-                  <Ionicons name="add" size={40} color="#fff" />
+                  <Icon name="solar:add-circle-bold" size={40} color="#fff" />
                 </View>
                 <Text style={walletStyles.createTitle}>Create New Wallet</Text>
                 <Text style={walletStyles.createSubtitle}>
@@ -204,7 +204,7 @@ export default function WalletScreen() {
             >
               <Text style={walletStyles.importHint}>Already have a wallet?</Text>
               <Text style={walletStyles.importLink}>Import</Text>
-              <Ionicons name="chevron-forward" size={16} color="#fff" />
+              <Icon name="solar:alt-arrow-right-linear" size={16} color="#fff" />
             </Pressable>
 
             {/* Features Preview */}
@@ -222,7 +222,7 @@ export default function WalletScreen() {
                   <Text style={walletStyles.comingSoon}>Coming soon</Text>
                 </View>
                 <View className="w-16 h-16 rounded-2xl bg-white/5 items-center justify-center">
-                  <Ionicons name="trending-up" size={32} color="#6b7280" />
+                  <Icon name="solar:graph-new-up-linear" size={32} color="#6b7280" />
                 </View>
               </Pressable>
 
@@ -237,7 +237,7 @@ export default function WalletScreen() {
                   <Text style={walletStyles.comingSoon}>Coming soon</Text>
                 </View>
                 <View className="w-16 h-16 rounded-2xl bg-white/5 items-center justify-center">
-                  <Ionicons name="image-outline" size={32} color="#6b7280" />
+                  <Icon name="solar:gallery-linear" size={32} color="#6b7280" />
                 </View>
               </Pressable>
             </View>
@@ -271,8 +271,8 @@ export default function WalletScreen() {
               onPress={toggleHideBalance}
               className="w-10 h-10 rounded-full bg-white/5 items-center justify-center"
             >
-              <Ionicons 
-                name={hideBalance ? "eye-off-outline" : "eye-outline"} 
+              <Icon 
+                name={hideBalance ? "solar:eye-closed-linear" : "solar:eye-linear"} 
                 size={20} 
                 color="#9ca3af" 
               />
@@ -291,8 +291,8 @@ export default function WalletScreen() {
                   <Text style={walletStyles.addressText} numberOfLines={1}>
                     {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
                   </Text>
-                  <Ionicons 
-                    name={copied ? "checkmark" : "copy-outline"} 
+                  <Icon 
+                    name={copied ? "solar:check-circle-bold" : "solar:copy-linear"} 
                     size={14} 
                     color={copied ? "#22c55e" : "#9ca3af"} 
                   />
@@ -317,7 +317,7 @@ export default function WalletScreen() {
                     style={{ flex: 1, alignItems: "center", gap: 8, opacity: action.disabled ? 0.5 : 1 }}
                   >
                     <View className="w-12 h-12 rounded-2xl bg-[#1a1a1a] items-center justify-center">
-                      <Ionicons name={action.icon} size={20} color="#9ca3af" />
+                      <Icon name={action.icon} size={20} color="#9ca3af" />
                     </View>
                     <Text style={walletStyles.actionLabel}>{action.label}</Text>
                   </Pressable>
@@ -349,7 +349,7 @@ export default function WalletScreen() {
                   </View>
                 </View>
                 <Pressable style={walletStyles.sendButton} onPress={() => router.push("/wallet/send-qntm" as never)}>
-                  <Ionicons name="arrow-up" size={16} color="#000" />
+                  <Icon name="solar:arrow-up-linear" size={16} color="#000" />
                   <Text style={walletStyles.sendButtonText}>Send QNTM</Text>
                 </Pressable>
               </CardContent>

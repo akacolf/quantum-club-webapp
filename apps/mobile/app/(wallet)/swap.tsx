@@ -4,20 +4,20 @@ import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 
 interface Token {
   symbol: string;
   name: string;
   balance: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   color: string;
 }
 
 const tokens: Token[] = [
-  { symbol: "TON", name: "Toncoin", balance: "100.00", icon: "diamond", color: "#3b82f6" },
-  { symbol: "USDT", name: "Tether USD", balance: "250.00", icon: "logo-usd", color: "#22c55e" },
-  { symbol: "QNTM", name: "Quantum", balance: "1000.00", icon: "flash", color: "#a855f7" },
+  { symbol: "TON", name: "Toncoin", balance: "100.00", icon: "solar:diamond-bold", color: "#3b82f6" },
+  { symbol: "USDT", name: "Tether USD", balance: "250.00", icon: "solar:dollar-bold", color: "#22c55e" },
+  { symbol: "QNTM", name: "Quantum", balance: "1000.00", icon: "solar:bolt-bold", color: "#a855f7" },
 ];
 
 export default function Swap() {
@@ -53,11 +53,11 @@ export default function Swap() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Swap</Text>
         <Pressable style={styles.headerButton}>
-          <Ionicons name="settings-outline" size={24} color="#fff" />
+          <Icon name="solar:settings-linear" size={24} color="#fff" />
         </Pressable>
       </View>
 
@@ -69,10 +69,10 @@ export default function Swap() {
             <View style={styles.tokenRow}>
               <Pressable style={styles.tokenSelector}>
                 <View style={[styles.tokenIconBg, { backgroundColor: fromToken.color }]}>
-                  <Ionicons name={fromToken.icon} size={16} color="#fff" />
+                  <Icon name={fromToken.icon} size={16} color="#fff" />
                 </View>
                 <Text style={styles.tokenSymbol}>{fromToken.symbol}</Text>
-                <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                <Icon name="solar:alt-arrow-down-linear" size={16} color="#6b7280" />
               </Pressable>
               <TextInput
                 style={styles.amountInput}
@@ -97,7 +97,7 @@ export default function Swap() {
         {/* Swap Button */}
         <View style={styles.swapButtonContainer}>
           <Pressable style={styles.swapButton} onPress={handleSwapTokens}>
-            <Ionicons name="swap-vertical" size={20} color="#fff" />
+            <Icon name="solar:transfer-vertical-linear" size={20} color="#fff" />
           </Pressable>
         </View>
 
@@ -108,10 +108,10 @@ export default function Swap() {
             <View style={styles.tokenRow}>
               <Pressable style={styles.tokenSelector}>
                 <View style={[styles.tokenIconBg, { backgroundColor: toToken.color }]}>
-                  <Ionicons name={toToken.icon} size={16} color="#fff" />
+                  <Icon name={toToken.icon} size={16} color="#fff" />
                 </View>
                 <Text style={styles.tokenSymbol}>{toToken.symbol}</Text>
-                <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                <Icon name="solar:alt-arrow-down-linear" size={16} color="#6b7280" />
               </Pressable>
               <TextInput
                 style={styles.amountInput}
@@ -156,8 +156,8 @@ export default function Swap() {
           ]}
           disabled={!fromAmount}
         >
-          <Ionicons 
-            name="swap-horizontal" 
+          <Icon 
+            name="solar:transfer-horizontal-linear" 
             size={20} 
             color={fromAmount ? "#000" : "#6b7280"} 
           />

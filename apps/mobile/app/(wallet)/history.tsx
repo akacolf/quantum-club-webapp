@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 
 interface Transaction {
   id: string;
@@ -49,14 +49,14 @@ const mockTransactions: Transaction[] = [
 type FilterType = "all" | "send" | "receive" | "swap";
 
 function TransactionItem({ tx }: { tx: Transaction }) {
-  const getIcon = (): keyof typeof Ionicons.glyphMap => {
+  const getIcon = (): string => {
     switch (tx.type) {
       case "send":
-        return "arrow-up";
+        return "solar:arrow-right-up-linear";
       case "receive":
-        return "arrow-down";
+        return "solar:arrow-left-down-linear";
       case "swap":
-        return "swap-horizontal";
+        return "solar:transfer-horizontal-linear";
     }
   };
 
@@ -85,7 +85,7 @@ function TransactionItem({ tx }: { tx: Transaction }) {
   return (
     <Pressable style={styles.txItem}>
       <View style={[styles.txIcon, { backgroundColor: getIconBgColor() }]}>
-        <Ionicons name={getIcon()} size={20} color={getIconColor()} />
+        <Icon name={getIcon()} size={20} color={getIconColor()} />
       </View>
       <View style={styles.txInfo}>
         <Text style={styles.txType}>{tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}</Text>
@@ -121,7 +121,7 @@ export default function History() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Transaction History</Text>
         <View style={styles.headerButton} />
@@ -170,7 +170,7 @@ export default function History() {
         ) : (
           <Card style={styles.emptyCard}>
             <CardContent style={styles.emptyContent}>
-              <Ionicons name="receipt-outline" size={48} color="#6b7280" />
+              <Icon name="solar:bill-list-linear" size={48} color="#6b7280" />
               <Text style={styles.emptyTitle}>No transactions yet</Text>
               <Text style={styles.emptySubtitle}>
                 Your transaction history will appear here

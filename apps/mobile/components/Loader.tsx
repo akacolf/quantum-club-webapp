@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import Animated, {
   useSharedValue,
@@ -7,7 +7,6 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { useEffect } from "react";
 
 interface LoaderProps {
   size?: "small" | "medium" | "large";
@@ -42,6 +41,7 @@ export function Loader({
 
   const spinnerSize = sizeMap[size];
 
+  // Simple spinner border style
   const spinner = (
     <Animated.View
       style={[

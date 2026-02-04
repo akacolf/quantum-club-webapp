@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
@@ -8,9 +8,11 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withSequence,
-  withTiming,
   FadeInRight,
 } from "react-native-reanimated";
+import { Icon } from '@/components/icons';
+import LottieView from "lottie-react-native";
+import Svg, { Defs, RadialGradient, Stop, Circle } from "react-native-svg";
 
 interface DailyCheckInProps {
   isClaimDay: boolean;
@@ -55,6 +57,7 @@ export function DailyCheckIn({
   const { daily } = useGameContext();
   const [remainingTime, setRemainingTime] = useState(calculateRemainingTime());
   const buttonScale = useSharedValue(1);
+  const lottieRef = useRef<LottieView>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -79,12 +82,31 @@ export function DailyCheckIn({
 
   return (
     <Animated.View entering={FadeInRight.duration(500).delay(300)}>
-      <Card className="mx-4 mt-6 border-[#222] bg-[#111]">
+      <Card className="mx-4 mt-6 border-[#222] bg-[#111] overflow-hidden">
+        {/* Glow Effect */}
+        <View style={{ position: 'absolute', top: -40, right: -40 }} pointerEvents="none">
+          <Svg height="128" width="128">
+            <Defs>
+              <RadialGradient id="orangeGlow" cx="50%" cy="50%" r="50%">
+                <Stop offset="0" stopColor="#fb923c" stopOpacity="0.1" />
+                <Stop offset="1" stopColor="#fb923c" stopOpacity="0" />
+              </RadialGradient>
+            </Defs>
+            <Circle cx="64" cy="64" r="64" fill="url(#orangeGlow)" />
+          </Svg>
+        </View>
+
         <CardContent className="p-4 flex-row items-center justify-between gap-2">
           <View className="flex-row items-center gap-3 flex-1">
-            {/* Fire Icon */}
-            <View className="w-10 h-10 items-center justify-center">
-              <Text className="text-3xl">🔥</Text>
+            {/* Fire Animation */}
+            <View className="w-12 h-12">
+              <LottieView
+                ref={lottieRef}
+                source={require("~/assets/lottie/fire-lottie.json")}
+                autoPlay
+                loop
+                style={{ width: "100%", height: "100%" }}
+              />
             </View>
 
             <View className="flex-1">
@@ -110,7 +132,7 @@ export function DailyCheckIn({
               ) : isClaimDay ? (
                 <View className="flex-row items-center gap-1.5">
                   <Text style={styles.doneText}>Done</Text>
-                  <Text className="text-green-500">✓</Text>
+                  <Icon name="solar:check-circle-bold" size={14} color="#22c55e" />
                 </View>
               ) : (
                 <Text style={styles.claimText}>Claim</Text>

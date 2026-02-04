@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
@@ -10,6 +10,8 @@ import Animated, {
   withSpring,
   withSequence,
 } from "react-native-reanimated";
+import LottieView from "lottie-react-native";
+import BgSolveToEarnCard from "~/assets/svg/bg-solve-to-earn-card.svg";
 
 interface SolveToEarnCardProps {
   onPress: () => void;
@@ -18,6 +20,7 @@ interface SolveToEarnCardProps {
 export function SolveToEarnCard({ onPress }: SolveToEarnCardProps) {
   const { remainingSolveToEarn } = useGameContext();
   const buttonScale = useSharedValue(1);
+  const lottieRef = useRef<LottieView>(null);
 
   const handlePress = () => {
     buttonScale.value = withSequence(
@@ -33,12 +36,24 @@ export function SolveToEarnCard({ onPress }: SolveToEarnCardProps) {
 
   return (
     <Animated.View entering={FadeInLeft.duration(500).delay(400)}>
-      <Card className="mx-4 mt-6 border-[#222] bg-[#111]">
-        <CardContent className="p-4 flex-row items-center justify-between gap-2">
+      <Card className="mx-4 mt-6 border-0 bg-[#111] overflow-hidden relative">
+        {/* Background SVG */}
+        <View style={StyleSheet.absoluteFill}>
+          <BgSolveToEarnCard width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+        </View>
+
+        <CardContent className="p-4 flex-row items-center justify-between gap-2 relative z-10">
           <View className="flex-row items-center gap-3 flex-1">
-            {/* 100 Icon */}
-            <View className="w-10 h-10 items-center justify-center">
-              <Text className="text-3xl">💯</Text>
+            {/* 100 Animation */}
+            <View className="w-12 h-12 items-center justify-center">
+              <LottieView
+                ref={lottieRef}
+                source={require("~/assets/lottie/hundred-lottie.json")}
+                autoPlay
+                loop
+                style={{ width: "100%", height: "100%" }}
+              />
             </View>
 
             <View className="flex-1">

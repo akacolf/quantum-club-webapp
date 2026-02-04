@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, RefreshControl, Pressable, StyleSheet } from "react-native";
+import { ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Text } from "~/components/ui/text";
-import { Card, CardContent } from "~/components/ui/card";
 import { PersonalizedGreeting } from "~/components/home/PersonalizedGreeting";
 import { QntmBalance } from "~/components/home/QntmBalance";
 import { DailyCheckIn } from "~/components/home/DailyCheckIn";
@@ -11,12 +9,7 @@ import { SolveToEarnCard } from "~/components/home/SolveToEarnCard";
 import { HomeCarousel } from "~/components/home/HomeCarousel";
 import { Loader } from "~/components/Loader";
 import { useGameContext } from "~/contexts/GameContext";
-import { claimDailyCheckIn, getUserData } from "~/lib/api";
-import { Ionicons } from "@expo/vector-icons";
-import Animated, { 
-  FadeInDown, 
-  SlideInRight,
-} from "react-native-reanimated";
+import { claimDailyCheckIn } from "~/lib/api";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -117,61 +110,7 @@ export default function HomeScreen() {
         <HomeCarousel />
         
         <SolveToEarnCard onPress={handleSolveToEarn} />
-
-        {/* Quick Actions with staggered animation */}
-        <Animated.View 
-          entering={FadeInDown.duration(500).delay(600)}
-          className="mx-4 mt-6"
-        >
-          <Text style={styles.sectionTitle}>Explore</Text>
-          <View className="flex-row gap-3">
-            <Animated.View 
-              entering={SlideInRight.duration(400).delay(700)}
-              className="flex-1"
-            >
-              <Pressable onPress={() => router.push("/leaderboard" as never)}>
-                <Card className="border-[#222] bg-[#111]">
-                  <CardContent className="p-4 items-center gap-2">
-                    <View className="w-12 h-12 rounded-2xl bg-yellow-500/10 items-center justify-center">
-                      <Ionicons name="trophy" size={24} color="#eab308" />
-                    </View>
-                    <Text style={styles.actionLabel}>Leaderboard</Text>
-                  </CardContent>
-                </Card>
-              </Pressable>
-            </Animated.View>
-            <Animated.View 
-              entering={SlideInRight.duration(400).delay(800)}
-              className="flex-1"
-            >
-              <Pressable onPress={() => router.push("/trade" as never)}>
-                <Card className="border-[#222] bg-[#111]">
-                  <CardContent className="p-4 items-center gap-2">
-                    <View className="w-12 h-12 rounded-2xl bg-blue-500/10 items-center justify-center">
-                      <Ionicons name="rocket" size={24} color="#3b82f6" />
-                    </View>
-                    <Text style={styles.actionLabel}>RocketStart</Text>
-                  </CardContent>
-                </Card>
-              </Pressable>
-            </Animated.View>
-          </View>
-        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: "Onest_700Bold",
-    color: "#fff",
-    marginBottom: 12,
-  },
-  actionLabel: {
-    fontSize: 12,
-    fontFamily: "Onest_600SemiBold",
-    color: "#fff",
-  },
-});

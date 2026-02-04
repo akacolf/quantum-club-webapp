@@ -13,7 +13,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { useGameContext } from "~/contexts/GameContext";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 
 interface Message {
   id: string;
@@ -72,7 +72,7 @@ function ChatItem({
           <Avatar className="w-12 h-12 border border-[#222]">
             {chat.type === "group" ? (
               <AvatarFallback className="bg-[#1a1a1a]">
-                <Ionicons name="people" size={20} color="#9ca3af" />
+                <Icon name="solar:users-group-rounded-bold" size={20} color="#9ca3af" />
               </AvatarFallback>
             ) : (
               <>
@@ -174,7 +174,7 @@ export default function ChatScreen() {
               onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-white/5 items-center justify-center"
             >
-              <Ionicons name="arrow-back" size={20} color="#fff" />
+              <Icon name="solar:arrow-left-linear" size={20} color="#fff" />
             </Pressable>
             <View>
               <Text style={styles.header}>Messages</Text>
@@ -186,7 +186,7 @@ export default function ChatScreen() {
           {chats.length === 0 ? (
             <View className="items-center justify-center py-16">
               <View className="w-16 h-16 rounded-full bg-white/5 items-center justify-center mb-4">
-                <Ionicons name="chatbubble-ellipses-outline" size={32} color="#6b7280" />
+                <Icon name="solar:chat-round-dots-linear" size={32} color="#6b7280" />
               </View>
               <Text style={styles.emptyTitle}>No conversations yet</Text>
               <Text style={styles.emptySubtitle}>

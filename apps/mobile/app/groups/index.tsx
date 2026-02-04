@@ -13,7 +13,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { useGameContext } from "~/contexts/GameContext";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 
 interface Group {
   id: string;
@@ -47,7 +47,7 @@ function GroupItem({ group, onPress }: { group: Group; onPress: () => void }) {
               </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+          <Icon name="solar:alt-arrow-right-linear" size={20} color="#6b7280" />
         </CardContent>
       </Card>
     </Pressable>
@@ -116,7 +116,7 @@ export default function GroupsScreen() {
                 onPress={() => router.back()}
                 className="w-10 h-10 rounded-full bg-white/5 items-center justify-center"
               >
-                <Ionicons name="arrow-back" size={20} color="#fff" />
+                <Icon name="solar:arrow-left-linear" size={20} color="#fff" />
               </Pressable>
               <View>
                 <Text style={styles.header}>Groups</Text>
@@ -127,7 +127,7 @@ export default function GroupsScreen() {
               onPress={() => router.push("/groups/create" as never)}
               className="h-10 px-4 rounded-xl bg-white flex-row items-center gap-2"
             >
-              <Ionicons name="add" size={18} color="#000" />
+              <Icon name="solar:add-circle-bold" size={18} color="#000" />
               <Text style={styles.createButtonText}>Create</Text>
             </Pressable>
           </View>
@@ -136,7 +136,7 @@ export default function GroupsScreen() {
           {groups.length === 0 ? (
             <View className="items-center justify-center py-16">
               <View className="w-16 h-16 rounded-full bg-white/5 items-center justify-center mb-4">
-                <Ionicons name="people-outline" size={32} color="#6b7280" />
+                <Icon name="solar:users-group-rounded-linear" size={32} color="#6b7280" />
               </View>
               <Text style={styles.emptyTitle}>No groups yet</Text>
               <Text style={styles.emptySubtitle}>

@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Text } from "~/components/ui/text";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -20,7 +20,7 @@ interface SlideData {
   title: string;
   value: string;
   subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   gradientColors: readonly [string, string, ...string[]];
   iconBgColor: string;
 }
@@ -45,7 +45,7 @@ export default function StoryScreen() {
       title: "Total QNTM Earned",
       value: qntmAmount.toLocaleString(),
       subtitle: "Your ecosystem activity",
-      icon: "wallet",
+      icon: "solar:wallet-bold",
       gradientColors: ["#1e3a8a", "#3b82f6", "#0ea5e9"],
       iconBgColor: "rgba(59, 130, 246, 0.2)",
     },
@@ -54,7 +54,7 @@ export default function StoryScreen() {
       title: "Your Rank",
       value: userRank,
       subtitle: "Based on your account activity",
-      icon: "trophy",
+      icon: "solar:cup-star-bold",
       gradientColors: ["#581c87", "#7c3aed", "#a855f7"],
       iconBgColor: "rgba(168, 85, 247, 0.2)",
     },
@@ -151,11 +151,6 @@ export default function StoryScreen() {
           ))}
         </View>
 
-        {/* Close Button */}
-        <Pressable style={styles.closeButton} onPress={() => router.back()}>
-          <Ionicons name="close" size={28} color="#fff" />
-        </Pressable>
-
         {/* Slide Content */}
         <Pressable
           style={styles.slideContent}
@@ -166,7 +161,7 @@ export default function StoryScreen() {
           <View style={styles.contentWrapper}>
             {/* Icon */}
             <View style={[styles.iconContainer, { backgroundColor: currentSlideData.iconBgColor }]}>
-              <Ionicons name={currentSlideData.icon} size={48} color="#fff" />
+              <Icon name={currentSlideData.icon} size={48} color="#fff" />
             </View>
 
             {/* Title */}
@@ -177,11 +172,6 @@ export default function StoryScreen() {
 
             {/* Subtitle */}
             <Text style={styles.slideSubtitle}>{currentSlideData.subtitle}</Text>
-
-            {/* Sparkle decoration */}
-            <View style={styles.sparkleContainer}>
-              <Ionicons name="sparkles" size={24} color="rgba(255,255,255,0.5)" />
-            </View>
           </View>
         </Pressable>
 
@@ -252,10 +242,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: 16, // Reduced padding
   },
   contentWrapper: {
     alignItems: "center",
+    justifyContent: "center", // Changed to center
+    gap: 16, // Reduced gap
+    flex: 1,
+    paddingVertical: 20,
+    width: "100%", // Ensure full width for centering
   },
   iconContainer: {
     width: 100,
@@ -263,20 +258,21 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 32,
+    marginBottom: 20, // Reduced margin
   },
   slideTitle: {
     fontSize: 18,
     fontFamily: "Onest_500Medium",
     color: "rgba(255,255,255,0.8)",
-    marginBottom: 12,
+    marginBottom: 8, // Reduced margin
     textAlign: "center",
   },
   slideValue: {
-    fontSize: 56,
+    fontSize: 48, // Reduced from 56
+    lineHeight: 56, // Added line height
     fontFamily: "Onest_700Bold",
     color: "#fff",
-    marginBottom: 16,
+    marginBottom: 12, // Reduced margin
     textAlign: "center",
   },
   slideSubtitle: {
@@ -284,11 +280,6 @@ const styles = StyleSheet.create({
     fontFamily: "Onest_400Regular",
     color: "rgba(255,255,255,0.6)",
     textAlign: "center",
-  },
-  sparkleContainer: {
-    position: "absolute",
-    top: -40,
-    right: -40,
   },
   navigationHint: {
     alignItems: "center",

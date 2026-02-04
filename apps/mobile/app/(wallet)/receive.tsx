@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
 
@@ -39,11 +39,11 @@ export default function Receive() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Receive</Text>
         <Pressable onPress={handleShare} style={styles.headerButton}>
-          <Ionicons name="share-outline" size={24} color="#fff" />
+          <Icon name="solar:share-linear" size={24} color="#fff" />
         </Pressable>
       </View>
 
@@ -73,17 +73,17 @@ export default function Receive() {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Pressable style={styles.copyButton} onPress={handleCopy}>
-            <Ionicons 
-              name={copied ? "checkmark" : "copy-outline"} 
+            <Icon 
+              name={copied ? "solar:check-circle-bold" : "solar:copy-linear"} 
               size={20} 
-              color="#000" 
+              color={copied ? "#22c55e" : "#000"} 
             />
             <Text style={styles.copyButtonText}>
               {copied ? "Copied!" : "Copy"}
             </Text>
           </Pressable>
           <Pressable style={styles.shareButton} onPress={handleShare}>
-            <Ionicons name="share-outline" size={20} color="#fff" />
+            <Icon name="solar:share-linear" size={20} color="#fff" />
             <Text style={styles.shareButtonText}>Share</Text>
           </Pressable>
         </View>
@@ -100,19 +100,19 @@ export default function Receive() {
             <View style={styles.tokensRow}>
               <View style={styles.tokenItem}>
                 <View style={[styles.tokenIcon, { backgroundColor: "#3b82f6" }]}>
-                  <Ionicons name="diamond" size={20} color="#fff" />
+                  <Icon name="solar:diamond-bold" size={20} color="#fff" />
                 </View>
                 <Text style={styles.tokenName}>TON</Text>
               </View>
               <View style={styles.tokenItem}>
                 <View style={[styles.tokenIcon, { backgroundColor: "#22c55e" }]}>
-                  <Ionicons name="logo-usd" size={20} color="#fff" />
+                  <Icon name="solar:dollar-bold" size={20} color="#fff" />
                 </View>
                 <Text style={styles.tokenName}>USDT</Text>
               </View>
               <View style={styles.tokenItem}>
                 <View style={[styles.tokenIcon, { backgroundColor: "#a855f7" }]}>
-                  <Ionicons name="flash" size={20} color="#fff" />
+                  <Icon name="solar:bolt-bold" size={20} color="#fff" />
                 </View>
                 <Text style={styles.tokenName}>Jettons</Text>
               </View>

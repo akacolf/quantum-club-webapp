@@ -3,18 +3,18 @@ import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
 
 const categories = [
-  { name: "Art", icon: "color-palette", color: "#a855f7" },
-  { name: "Gaming", icon: "game-controller", color: "#3b82f6" },
-  { name: "Collectibles", icon: "diamond", color: "#22c55e" },
-  { name: "Music", icon: "musical-notes", color: "#f43f5e" },
-  { name: "Photography", icon: "camera", color: "#fb923c" },
-  { name: "Sports", icon: "football", color: "#14b8a6" },
+  { name: "Art", icon: "solar:palette-linear", color: "#a855f7" },
+  { name: "Gaming", icon: "solar:gamepad-linear", color: "#3b82f6" },
+  { name: "Collectibles", icon: "solar:diamond-linear", color: "#22c55e" },
+  { name: "Music", icon: "solar:music-note-linear", color: "#f43f5e" },
+  { name: "Photography", icon: "solar:camera-linear", color: "#fb923c" },
+  { name: "Sports", icon: "solar:football-linear", color: "#14b8a6" },
 ];
 
 export default function Marketplace() {
@@ -29,7 +29,7 @@ export default function Marketplace() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>NFT Marketplace</Text>
         <View style={styles.headerButton} />
@@ -40,14 +40,14 @@ export default function Marketplace() {
         <Card style={styles.comingSoonCard}>
           <CardContent style={styles.comingSoonContent}>
             <View style={styles.comingSoonIcon}>
-              <Ionicons name="color-palette" size={48} color="#a855f7" />
+              <Icon name="solar:palette-linear" size={48} color="#a855f7" />
             </View>
             <Text style={styles.comingSoonTitle}>Collections are coming soon!</Text>
             <Text style={styles.comingSoonSubtitle}>
               Make sure to follow our Telegram channel for updates.
             </Text>
             <Pressable style={styles.telegramButton} onPress={handleTelegram}>
-              <Ionicons name="paper-plane" size={18} color="#fff" />
+              <Icon name="solar:plain-2-linear" size={18} color="#fff" />
               <Text style={styles.telegramButtonText}>t.me/quantumclubinc</Text>
             </Pressable>
           </CardContent>
@@ -61,8 +61,8 @@ export default function Marketplace() {
               <Card style={styles.categoryCardInner}>
                 <CardContent style={styles.categoryContent}>
                   <View style={[styles.categoryIcon, { backgroundColor: `${category.color}20` }]}>
-                    <Ionicons 
-                      name={category.icon as keyof typeof Ionicons.glyphMap} 
+                    <Icon 
+                      name={category.icon} 
                       size={28} 
                       color={category.color} 
                     />

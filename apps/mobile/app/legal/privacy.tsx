@@ -3,17 +3,22 @@ import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 export default function PrivacyPolicyPage() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
-      <View style={styles.header}>
+      <Animated.View 
+        entering={FadeInDown.duration(500).springify()} 
+        style={{ flex: 1 }}
+      >
+        {/* Header */}
+        <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Privacy Policy</Text>
         <View style={{ width: 40 }} />
@@ -26,7 +31,7 @@ export default function PrivacyPolicyPage() {
       >
         {/* Icon */}
         <View style={styles.iconContainer}>
-          <Ionicons name="shield-checkmark-outline" size={32} color="#fb923c" />
+          <Icon name="solar:shield-check-linear" size={32} color="#fb923c" />
         </View>
 
         <Text style={styles.lastUpdated}>Last updated: January 19, 2026</Text>
@@ -181,6 +186,7 @@ export default function PrivacyPolicyPage() {
           </Text>
         </View>
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }

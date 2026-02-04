@@ -2,7 +2,7 @@ import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 
@@ -16,7 +16,7 @@ export default function WalletHome() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoContainer}>
-            <Ionicons name="diamond" size={20} color="#fff" />
+            <Icon name="solar:diamond-bold" size={20} color="#fff" />
           </View>
           <Text style={styles.headerTitle}>Quantum Club</Text>
         </View>
@@ -25,13 +25,13 @@ export default function WalletHome() {
             style={styles.headerButton}
             onPress={() => router.push("/(wallet)/history")}
           >
-            <Ionicons name="time-outline" size={20} color="#fff" />
+            <Icon name="solar:clock-circle-linear" size={20} color="#fff" />
           </Pressable>
           <Pressable 
             style={styles.headerButton}
             onPress={() => router.push("/(wallet)/settings")}
           >
-            <Ionicons name="settings-outline" size={20} color="#fff" />
+            <Icon name="solar:settings-linear" size={20} color="#fff" />
           </Pressable>
         </View>
       </View>
@@ -43,8 +43,8 @@ export default function WalletHome() {
             <View style={styles.balanceHeader}>
               <Text style={styles.balanceLabel}>Total Balance</Text>
               <Pressable onPress={() => setHideBalance(!hideBalance)}>
-                <Ionicons 
-                  name={hideBalance ? "eye-off-outline" : "eye-outline"} 
+                <Icon 
+                  name={hideBalance ? "solar:eye-closed-linear" : "solar:eye-linear"} 
                   size={20} 
                   color="#6b7280" 
                 />
@@ -62,22 +62,22 @@ export default function WalletHome() {
         {/* Action Buttons */}
         <View style={styles.actionsRow}>
           <ActionButton
-            icon="paper-plane"
+            icon="solar:arrow-right-up-linear"
             label="Send"
             onPress={() => router.push("/(wallet)/send")}
           />
           <ActionButton
-            icon="download"
+            icon="solar:arrow-left-down-linear"
             label="Receive"
             onPress={() => router.push("/(wallet)/receive")}
           />
           <ActionButton 
-            icon="swap-horizontal" 
+            icon="solar:transfer-horizontal-linear" 
             label="Swap" 
             onPress={() => router.push("/(wallet)/swap")} 
           />
           <ActionButton 
-            icon="trending-up" 
+            icon="solar:graph-new-up-linear" 
             label="Stake" 
             onPress={() => router.push("/(wallet)/staking")} 
           />
@@ -93,7 +93,7 @@ export default function WalletHome() {
           </View>
           <Card style={styles.emptyCard}>
             <CardContent style={styles.emptyContent}>
-              <Ionicons name="wallet-outline" size={48} color="#6b7280" />
+              <Icon name="solar:wallet-linear" size={48} color="#6b7280" />
               <Text style={styles.emptyTitle}>No assets yet</Text>
               <Text style={styles.emptySubtitle}>
                 Connect your wallet or receive tokens to get started
@@ -123,14 +123,14 @@ export default function WalletHome() {
             <CardContent style={styles.marketplaceContent}>
               <View style={styles.marketplaceLeft}>
                 <View style={styles.marketplaceIcon}>
-                  <Ionicons name="storefront" size={24} color="#fff" />
+                  <Icon name="solar:shop-linear" size={24} color="#fff" />
                 </View>
                 <View>
                   <Text style={styles.marketplaceTitle}>NFT Marketplace</Text>
                   <Text style={styles.marketplaceSubtitle}>Browse collections</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+              <Icon name="solar:alt-arrow-right-linear" size={20} color="#6b7280" />
             </CardContent>
           </Card>
         </Pressable>
@@ -144,14 +144,14 @@ function ActionButton({
   label,
   onPress,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   label: string;
   onPress: () => void;
 }) {
   return (
     <Pressable style={styles.actionButton} onPress={onPress}>
       <View style={styles.actionButtonIcon}>
-        <Ionicons name={icon} size={24} color="#000" />
+        <Icon name={icon} size={24} color="#000" />
       </View>
       <Text style={styles.actionButtonLabel}>{label}</Text>
     </Pressable>

@@ -1,13 +1,22 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, Pressable, Linking, ActivityIndicator, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, ScrollView, Pressable, Linking, ActivityIndicator, StyleSheet, Modal, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { useGameContext } from "~/contexts/GameContext";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import * as Clipboard from "expo-clipboard";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  FadeIn,
+  FadeInUp
+} from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 
 const APP_VERSION = "1.0.0";
 
@@ -23,85 +32,136 @@ interface Achievement {
   id: string;
   name: string;
   description: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  condition: (stats: UserStats) => boolean;
   howToUnlock: string;
+  icon: string;
+  condition: (stats: UserStats) => boolean;
 }
 
 const achievements: Achievement[] = [
-  {
-    id: "first_login",
-    name: "Welcome",
-    description: "Started your Quantum journey",
-    icon: "trophy",
-    condition: () => true,
-    howToUnlock: "Login to Quantum Club",
-  },
-  {
-    id: "streak_7",
-    name: "Week Warrior",
-    description: "7 day login streak",
-    icon: "flame",
-    condition: (stats) => stats.dailyStreak >= 7,
-    howToUnlock: "Login for 7 consecutive days",
-  },
-  {
-    id: "streak_30",
-    name: "Monthly Master",
-    description: "30 day login streak",
-    icon: "flame",
-    condition: (stats) => stats.dailyStreak >= 30,
-    howToUnlock: "Login for 30 consecutive days",
-  },
-  {
-    id: "referral_1",
-    name: "Networker",
-    description: "Invited your first friend",
-    icon: "people",
-    condition: (stats) => stats.referralCount >= 1,
-    howToUnlock: "Invite 1 friend to Quantum Club",
-  },
-  {
-    id: "referral_10",
-    name: "Influencer",
-    description: "Invited 10 friends",
-    icon: "people",
-    condition: (stats) => stats.referralCount >= 10,
-    howToUnlock: "Invite 10 friends to Quantum Club",
-  },
-  {
-    id: "tasks_5",
-    name: "Task Hunter",
-    description: "Completed 5 tasks",
-    icon: "checkbox",
-    condition: (stats) => stats.tasksCompleted >= 5,
-    howToUnlock: "Complete 5 tasks in the Earn section",
-  },
-  {
-    id: "wallet_created",
-    name: "Self Custody",
-    description: "Created your first wallet",
-    icon: "wallet",
-    condition: (stats) => stats.walletCreated,
-    howToUnlock: "Create a wallet in the Wallet section",
-  },
-  {
-    id: "qntm_1000",
-    name: "Thousandaire",
-    description: "Earned 1,000 QNTM",
-    icon: "trophy",
-    condition: (stats) => stats.totalQntm >= 1000,
-    howToUnlock: "Accumulate 1,000 QNTM tokens",
-  },
-  {
-    id: "qntm_10000",
-    name: "QNTM Whale",
-    description: "Earned 10,000 QNTM",
-    icon: "trophy",
-    condition: (stats) => stats.totalQntm >= 10000,
-    howToUnlock: "Accumulate 10,000 QNTM tokens",
-  },
+    {
+        id: "first_qntm",
+        name: "First Steps",
+        description: "You've earned your first QNTM tokens!",
+        howToUnlock: "Earn at least 1 QNTM from any activity",
+        icon: "solar:bolt-bold",
+        condition: (stats) => stats.totalQntm > 0,
+    },
+    {
+        id: "qntm_1k",
+        name: "Getting Started",
+        description: "You've accumulated 1,000 QNTM tokens!",
+        howToUnlock: "Earn a total of 1,000 QNTM",
+        icon: "solar:star-bold",
+        condition: (stats) => stats.totalQntm >= 1000,
+    },
+    {
+        id: "qntm_10k",
+        name: "Rising Star",
+        description: "Impressive! You've reached 10,000 QNTM!",
+        howToUnlock: "Earn a total of 10,000 QNTM",
+        icon: "solar:rocket-bold",
+        condition: (stats) => stats.totalQntm >= 10000,
+    },
+    {
+        id: "qntm_100k",
+        name: "Quantum Master",
+        description: "You're a true Quantum master with 100,000 QNTM!",
+        howToUnlock: "Earn a total of 100,000 QNTM",
+        icon: "solar:crown-bold",
+        condition: (stats) => stats.totalQntm >= 100000,
+    },
+    {
+        id: "first_referral",
+        name: "Networker",
+        description: "You've invited your first friend to Quantum Club!",
+        howToUnlock: "Invite 1 friend using your referral link",
+        icon: "solar:users-group-rounded-bold",
+        condition: (stats) => stats.referralCount >= 1,
+    },
+    {
+        id: "referrals_5",
+        name: "Team Builder",
+        description: "Your network is growing! 5 friends joined through you.",
+        howToUnlock: "Invite 5 friends using your referral link",
+        icon: "solar:target-bold",
+        condition: (stats) => stats.referralCount >= 5,
+    },
+    {
+        id: "referrals_10",
+        name: "Community Leader",
+        description: "You're building a community! 10 friends and counting.",
+        howToUnlock: "Invite 10 friends using your referral link",
+        icon: "solar:medal-ribbons-star-bold",
+        condition: (stats) => stats.referralCount >= 10,
+    },
+    {
+        id: "first_task",
+        name: "Task Hunter",
+        description: "You've completed your first task!",
+        howToUnlock: "Complete any task in the Earn section",
+        icon: "solar:diploma-verified-bold",
+        condition: (stats) => stats.tasksCompleted >= 1,
+    },
+    {
+        id: "tasks_10",
+        name: "Dedicated Player",
+        description: "You're dedicated! 10 tasks completed.",
+        howToUnlock: "Complete 10 tasks in the Earn section",
+        icon: "solar:cup-star-bold",
+        condition: (stats) => stats.tasksCompleted >= 10,
+    },
+    {
+        id: "streak_7",
+        name: "Consistent",
+        description: "You've maintained a 7-day daily login streak!",
+        howToUnlock: "Log in for 7 consecutive days",
+        icon: "solar:fire-bold",
+        condition: (stats) => stats.dailyStreak >= 7,
+    },
+    {
+        id: "wallet_created",
+        name: "Wallet Ready",
+        description: "Your QC Wallet is set up and ready to use!",
+        howToUnlock: "Create your QC Wallet in the Wallet section",
+        icon: "solar:wallet-bold",
+        condition: (stats) => stats.walletCreated,
+    },
 ];
+
+function AchievementIcon({ id, isUnlocked, size = 24 }: { id: string; isUnlocked: boolean; size?: number }) {
+  const color = isUnlocked ? "#eab308" : "#9ca3af";
+
+  if (!isUnlocked) {
+    return <Icon name="solar:lock-keyhole-bold" size={size} color={color} />;
+  }
+
+  switch (id) {
+    case "first_qntm":
+      return <Icon name="solar:bolt-bold" size={size} color={color} />;
+    case "qntm_1k":
+      return <Icon name="solar:star-bold" size={size} color={color} />;
+    case "qntm_10k":
+      return <Icon name="solar:rocket-bold" size={size} color={color} />;
+    case "qntm_100k":
+      return <Icon name="solar:crown-bold" size={size} color={color} />;
+    case "first_referral":
+      return <Icon name="solar:users-group-rounded-bold" size={size} color={color} />;
+    case "referrals_5":
+      return <Icon name="solar:target-bold" size={size} color={color} />;
+    case "referrals_10":
+      return <Icon name="solar:medal-ribbons-star-bold" size={size} color={color} />;
+    case "first_task":
+      return <Icon name="solar:diploma-verified-bold" size={size} color={color} />;
+    case "tasks_10":
+      return <Icon name="solar:cup-star-bold" size={size} color={color} />;
+    case "streak_7":
+      return <Icon name="solar:fire-bold" size={size} color={color} />;
+    case "wallet_created":
+      return <Icon name="solar:wallet-bold" size={size} color={color} />;
+    default:
+      return <Icon name="solar:star-bold" size={size} color={color} />;
+  }
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -109,6 +169,7 @@ export default function ProfileScreen() {
 
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
   const [stats, setStats] = useState<UserStats>({
     totalQntm: 0,
     referralCount: 0,
@@ -146,9 +207,6 @@ export default function ProfileScreen() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const unlockedAchievements = achievements.filter((a) => a.condition(stats));
-  const lockedAchievements = achievements.filter((a) => !a.condition(stats));
-
   const handleOpenLink = async (url: string) => {
     try {
       await Linking.openURL(url);
@@ -180,7 +238,7 @@ export default function ProfileScreen() {
             onPress={() => router.back()}
             className="w-10 h-10 rounded-full bg-white/5 items-center justify-center mr-3"
           >
-            <Ionicons name="chevron-back" size={24} color="#fff" />
+            <Icon name="solar:alt-arrow-left-linear" size={24} color="#fff" />
           </Pressable>
           <Text style={profileStyles.headerTitle}>Profile</Text>
         </View>
@@ -190,7 +248,7 @@ export default function ProfileScreen() {
           <View className="items-center mb-6">
             <Avatar className="w-28 h-28 border-2 border-[#222] mb-4">
               <AvatarFallback className="bg-[#111]">
-                <Ionicons name="person" size={48} color="#9ca3af" />
+                <Icon name="solar:user-bold" size={48} color="#9ca3af" />
               </AvatarFallback>
             </Avatar>
 
@@ -203,8 +261,8 @@ export default function ProfileScreen() {
             >
               <Text style={profileStyles.idLabel}>QC ID:</Text>
               <Text style={profileStyles.idValue}>{telegramId}</Text>
-              <Ionicons 
-                name={copied ? "checkmark" : "copy-outline"} 
+              <Icon 
+                name={copied ? "solar:check-circle-bold" : "solar:copy-linear"} 
                 size={16} 
                 color={copied ? "#22c55e" : "#9ca3af"} 
               />
@@ -217,7 +275,7 @@ export default function ProfileScreen() {
               <Card className="bg-[#111] border-[#222]">
                 <CardContent className="p-4">
                   <View className="flex-row items-center gap-2 mb-1">
-                    <Ionicons name="wallet-outline" size={16} color="#9ca3af" />
+                    <Icon name="solar:wallet-linear" size={16} color="#9ca3af" />
                     <Text style={profileStyles.statLabel}>Total QNTM</Text>
                   </View>
                   <Text style={profileStyles.statValue}>{mainQuantAmount || "0"}</Text>
@@ -228,7 +286,7 @@ export default function ProfileScreen() {
               <Card className="bg-[#111] border-[#222]">
                 <CardContent className="p-4">
                   <View className="flex-row items-center gap-2 mb-1">
-                    <Ionicons name="people-outline" size={16} color="#9ca3af" />
+                    <Icon name="solar:users-group-rounded-linear" size={16} color="#9ca3af" />
                     <Text style={profileStyles.statLabel}>Referrals</Text>
                   </View>
                   <Text style={profileStyles.statValue}>{stats.referralCount}</Text>
@@ -239,7 +297,7 @@ export default function ProfileScreen() {
               <Card className="bg-[#111] border-[#222]">
                 <CardContent className="p-4">
                   <View className="flex-row items-center gap-2 mb-1">
-                    <Ionicons name="checkbox-outline" size={16} color="#9ca3af" />
+                    <Icon name="solar:check-square-linear" size={16} color="#9ca3af" />
                     <Text style={profileStyles.statLabel}>Tasks Done</Text>
                   </View>
                   <Text style={profileStyles.statValue}>{stats.tasksCompleted}</Text>
@@ -250,7 +308,7 @@ export default function ProfileScreen() {
               <Card className="bg-[#111] border-[#222]">
                 <CardContent className="p-4">
                   <View className="flex-row items-center gap-2 mb-1">
-                    <Ionicons name="flame-outline" size={16} color="#9ca3af" />
+                    <Icon name="solar:fire-linear" size={16} color="#9ca3af" />
                     <Text style={profileStyles.statLabel}>Daily Streak</Text>
                   </View>
                   <Text style={profileStyles.statValue}>
@@ -264,35 +322,34 @@ export default function ProfileScreen() {
           {/* Achievements Section */}
           <View className="mb-6">
             <View className="flex-row items-center gap-2 mb-4">
-              <Ionicons name="trophy" size={20} color="#eab308" />
+              <Icon name="solar:cup-star-bold" size={20} color="#eab308" />
               <Text style={profileStyles.sectionTitle}>Achievements</Text>
               <Text style={profileStyles.achievementCount}>
-                ({unlockedAchievements.length}/{achievements.length})
+                ({achievements.filter(a => a.condition(stats)).length}/{achievements.length})
               </Text>
             </View>
 
             <View className="flex-row flex-wrap gap-3">
-              {/* Unlocked Achievements */}
-              {unlockedAchievements.map((achievement) => (
-                <View
-                  key={achievement.id}
-                  className="w-[30%] bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 items-center"
-                >
-                  <Ionicons name={achievement.icon} size={24} color="#eab308" />
-                  <Text style={profileStyles.achievementName}>{achievement.name}</Text>
-                </View>
-              ))}
-
-              {/* Locked Achievements */}
-              {lockedAchievements.map((achievement) => (
-                <View
-                  key={achievement.id}
-                  className="w-[30%] bg-[#111] border border-[#222] rounded-xl p-3 items-center opacity-60"
-                >
-                  <Ionicons name="lock-closed" size={24} color="#9ca3af" />
-                  <Text style={profileStyles.lockedAchievementName}>{achievement.name}</Text>
-                </View>
-              ))}
+              {achievements.map((achievement) => {
+                const isUnlocked = achievement.condition(stats);
+                return (
+                  <Pressable
+                    key={achievement.id}
+                    onPress={() => setSelectedAchievement(achievement)}
+                    style={[
+                      profileStyles.achievementCard,
+                      isUnlocked 
+                        ? { backgroundColor: "rgba(234, 179, 8, 0.1)", borderColor: "rgba(234, 179, 8, 0.3)" }
+                        : { backgroundColor: "#111", borderColor: "#222", opacity: 0.6 }
+                    ]}
+                  >
+                    <AchievementIcon id={achievement.id} isUnlocked={isUnlocked} size={24} />
+                    <Text style={isUnlocked ? profileStyles.achievementName : profileStyles.lockedAchievementName} numberOfLines={2}>
+                      {achievement.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
 
@@ -301,12 +358,12 @@ export default function ProfileScreen() {
             <Card className="bg-[#111] border-[#222] overflow-hidden">
               <CardContent className="p-0">
                 <Pressable
-                  onPress={() => handleOpenLink("https://quantumclub.ai/terms")}
+                  onPress={() => router.push("/legal/terms" as never)}
                   className="flex-row items-center justify-between p-4"
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-10 h-10 bg-blue-500/10 rounded-full items-center justify-center">
-                      <Ionicons name="document-text-outline" size={20} color="#3b82f6" />
+                      <Icon name="solar:document-text-linear" size={20} color="#3b82f6" />
                     </View>
                     <View>
                       <Text style={profileStyles.linkTitle}>Terms of Service</Text>
@@ -315,18 +372,18 @@ export default function ProfileScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Ionicons name="open-outline" size={20} color="#9ca3af" />
+                  <Icon name="solar:alt-arrow-right-linear" size={20} color="#9ca3af" />
                 </Pressable>
 
                 <View className="border-t border-[#222]" />
 
                 <Pressable
-                  onPress={() => handleOpenLink("https://quantumclub.ai/privacy")}
+                  onPress={() => router.push("/legal/privacy" as never)}
                   className="flex-row items-center justify-between p-4"
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-10 h-10 bg-purple-500/10 rounded-full items-center justify-center">
-                      <Ionicons name="shield-checkmark-outline" size={20} color="#a855f7" />
+                      <Icon name="solar:shield-check-linear" size={20} color="#a855f7" />
                     </View>
                     <View>
                       <Text style={profileStyles.linkTitle}>Privacy Policy</Text>
@@ -335,7 +392,7 @@ export default function ProfileScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Ionicons name="open-outline" size={20} color="#9ca3af" />
+                  <Icon name="solar:alt-arrow-right-linear" size={20} color="#9ca3af" />
                 </Pressable>
               </CardContent>
             </Card>
@@ -351,7 +408,7 @@ export default function ProfileScreen() {
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-10 h-10 bg-white/5 rounded-full items-center justify-center">
-                      <Ionicons name="headset-outline" size={20} color="#fff" />
+                      <Icon name="solar:headset-linear" size={20} color="#fff" />
                     </View>
                     <View>
                       <Text style={profileStyles.linkTitle}>Get Support</Text>
@@ -360,7 +417,7 @@ export default function ProfileScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Ionicons name="open-outline" size={20} color="#9ca3af" />
+                  <Icon name="solar:link-circle-linear" size={20} color="#9ca3af" />
                 </Pressable>
 
                 <View className="border-t border-[#222]" />
@@ -371,7 +428,7 @@ export default function ProfileScreen() {
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-10 h-10 bg-cyan-500/10 rounded-full items-center justify-center">
-                      <Ionicons name="people-outline" size={20} color="#06b6d4" />
+                      <Icon name="solar:users-group-rounded-linear" size={20} color="#06b6d4" />
                     </View>
                     <View>
                       <Text style={profileStyles.linkTitle}>Community</Text>
@@ -380,7 +437,7 @@ export default function ProfileScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Ionicons name="open-outline" size={20} color="#9ca3af" />
+                  <Icon name="solar:link-circle-linear" size={20} color="#9ca3af" />
                 </Pressable>
               </CardContent>
             </Card>
@@ -392,7 +449,67 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Achievement Detail Modal */}
+      {selectedAchievement && (
+        <AchievementModal
+          achievement={selectedAchievement}
+          isUnlocked={selectedAchievement.condition(stats)}
+          onClose={() => setSelectedAchievement(null)}
+        />
+      )}
     </SafeAreaView>
+  );
+}
+
+function AchievementModal({ 
+  achievement, 
+  isUnlocked, 
+  onClose 
+}: { 
+  achievement: Achievement; 
+  isUnlocked: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal transparent animationType="fade" visible onRequestClose={onClose}>
+      <View style={StyleSheet.absoluteFill}>
+        <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+          <Animated.View 
+            entering={FadeInUp.springify()} 
+            style={{ width: "100%", maxWidth: 320 }}
+          >
+            <Card className="bg-[#111] border-[#333]">
+              <CardContent className="p-6 items-center">
+                <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${isUnlocked ? "bg-yellow-500/10" : "bg-zinc-800"}`}>
+                  <AchievementIcon id={achievement.id} isUnlocked={isUnlocked} size={40} />
+                </View>
+                
+                <Text style={profileStyles.modalTitle}>{achievement.name}</Text>
+                <Text style={profileStyles.modalDescription}>{achievement.description}</Text>
+                
+                <View className="w-full h-px bg-[#333] my-4" />
+                
+                <View className="items-center">
+                  <Text style={profileStyles.modalSubtitle}>How to unlock:</Text>
+                  <Text style={profileStyles.modalInstruction}>{achievement.howToUnlock}</Text>
+                </View>
+                
+                <Pressable
+                  onPress={onClose}
+                  className="mt-6 px-6 py-2 bg-white rounded-full"
+                >
+                  <Text style={profileStyles.closeButtonText}>Close</Text>
+                </Pressable>
+              </CardContent>
+            </Card>
+          </Animated.View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -438,15 +555,24 @@ const profileStyles = StyleSheet.create({
     fontFamily: "Onest_400Regular",
     color: "#9ca3af",
   },
+  achievementCard: {
+    width: "30%", 
+    aspectRatio: 1, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    padding: 8, 
+    alignItems: "center", 
+    justifyContent: "center",
+  },
   achievementName: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: "Onest_500Medium",
     color: "#fff",
     textAlign: "center",
     marginTop: 8,
   },
   lockedAchievementName: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: "Onest_400Regular",
     color: "#9ca3af",
     textAlign: "center",
@@ -466,5 +592,35 @@ const profileStyles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Onest_400Regular",
     color: "#6b7280",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: "Onest_700Bold",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  modalDescription: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#ccc",
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    fontFamily: "Onest_700Bold",
+    color: "#6b7280",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  modalInstruction: {
+    fontSize: 14,
+    fontFamily: "Onest_400Regular",
+    color: "#fff",
+    textAlign: "center",
+  },
+  closeButtonText: {
+    fontSize: 14,
+    fontFamily: "Onest_600SemiBold",
+    color: "#000",
   },
 });

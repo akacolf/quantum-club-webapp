@@ -13,7 +13,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { useGameContext } from "~/contexts/GameContext";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import Svg, { Path, Circle } from "react-native-svg";
 
 interface LeaderboardUser {
@@ -157,7 +157,7 @@ export default function LeaderboardScreen() {
               onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-white/5 items-center justify-center"
             >
-              <Ionicons name="arrow-back" size={20} color="#fff" />
+              <Icon name="solar:arrow-left-linear" size={20} color="#fff" />
             </Pressable>
             <Text style={styles.header}>Leaderboard</Text>
           </View>
@@ -167,7 +167,7 @@ export default function LeaderboardScreen() {
             <Card className="flex-1 border-[#222] bg-[#111]">
               <CardContent className="p-4 items-center">
                 <View className="flex-row items-center gap-1 mb-1">
-                  <Ionicons name="people" size={16} color="#9ca3af" />
+                  <Icon name="solar:users-group-rounded-linear" size={16} color="#9ca3af" />
                   <Text style={styles.statsLabel}>Users</Text>
                 </View>
                 <Text style={styles.statsValue}>{totalUsers.toLocaleString()}</Text>
@@ -190,7 +190,7 @@ export default function LeaderboardScreen() {
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
                   <View className="w-12 h-12 rounded-full bg-orange-500/20 items-center justify-center border border-orange-500/30">
-                    <Ionicons name="person" size={24} color="#fb923c" />
+                    <Icon name="solar:user-bold" size={24} color="#fb923c" />
                   </View>
                   <View>
                     <Text style={styles.userName}>{username || "You"}</Text>
@@ -244,7 +244,7 @@ export default function LeaderboardScreen() {
                       {/* Avatar */}
                       <Avatar className="w-10 h-10 border border-[#222]">
                         <AvatarFallback className="bg-[#1a1a1a]">
-                          <Ionicons name="person" size={18} color="#9ca3af" />
+                          <Icon name="solar:user-linear" size={18} color="#9ca3af" />
                         </AvatarFallback>
                       </Avatar>
 

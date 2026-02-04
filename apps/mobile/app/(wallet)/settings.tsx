@@ -4,10 +4,10 @@ import { useRouter } from "expo-router";
 import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 
 interface SettingItemProps {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   label: string;
   description?: string;
   onPress?: () => void;
@@ -22,7 +22,7 @@ function SettingItem({ icon, label, description, onPress, danger, rightElement }
         styles.settingIcon, 
         { backgroundColor: danger ? "rgba(239,68,68,0.1)" : "#1a1a1a" }
       ]}>
-        <Ionicons name={icon} size={20} color={danger ? "#ef4444" : "#fff"} />
+        <Icon name={icon} size={20} color={danger ? "#ef4444" : "#fff"} />
       </View>
       <View style={styles.settingContent}>
         <Text style={[styles.settingLabel, danger && styles.settingLabelDanger]}>
@@ -32,7 +32,7 @@ function SettingItem({ icon, label, description, onPress, danger, rightElement }
           <Text style={styles.settingDescription}>{description}</Text>
         )}
       </View>
-      {rightElement ?? <Ionicons name="chevron-forward" size={20} color="#6b7280" />}
+      {rightElement ?? <Icon name="solar:alt-arrow-right-linear" size={20} color="#6b7280" />}
     </Pressable>
   );
 }
@@ -47,7 +47,7 @@ function ThemeSelector() {
     <View style={styles.themeSection}>
       <View style={styles.themeLabelRow}>
         <View style={styles.settingIcon}>
-          <Ionicons name="color-palette-outline" size={20} color="#fff" />
+          <Icon name="solar:palette-linear" size={20} color="#fff" />
         </View>
         <Text style={styles.settingLabel}>Appearance</Text>
       </View>
@@ -56,7 +56,7 @@ function ThemeSelector() {
           style={[styles.themeOption, theme === "light" && styles.themeOptionActive]}
           onPress={() => setTheme("light")}
         >
-          <Ionicons name="sunny-outline" size={16} color={theme === "light" ? "#000" : "#fff"} />
+          <Icon name="solar:sun-linear" size={16} color={theme === "light" ? "#000" : "#fff"} />
           <Text style={[styles.themeOptionText, theme === "light" && styles.themeOptionTextActive]}>
             Light
           </Text>
@@ -65,7 +65,7 @@ function ThemeSelector() {
           style={[styles.themeOption, theme === "dark" && styles.themeOptionActive]}
           onPress={() => setTheme("dark")}
         >
-          <Ionicons name="moon-outline" size={16} color={theme === "dark" ? "#000" : "#fff"} />
+          <Icon name="solar:moon-linear" size={16} color={theme === "dark" ? "#000" : "#fff"} />
           <Text style={[styles.themeOptionText, theme === "dark" && styles.themeOptionTextActive]}>
             Dark
           </Text>
@@ -74,7 +74,7 @@ function ThemeSelector() {
           style={[styles.themeOption, theme === "system" && styles.themeOptionActive]}
           onPress={() => setTheme("system")}
         >
-          <Ionicons name="phone-portrait-outline" size={16} color={theme === "system" ? "#000" : "#fff"} />
+          <Icon name="solar:smartphone-linear" size={16} color={theme === "system" ? "#000" : "#fff"} />
           <Text style={[styles.themeOptionText, theme === "system" && styles.themeOptionTextActive]}>
             Auto
           </Text>
@@ -92,7 +92,7 @@ export default function Settings() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Icon name="solar:arrow-left-linear" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={styles.headerButton} />
@@ -103,7 +103,7 @@ export default function Settings() {
         <Card style={styles.profileCard}>
           <CardContent style={styles.profileContent}>
             <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={32} color="#fff" />
+              <Icon name="solar:user-bold" size={32} color="#fff" />
             </View>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>Quantum User</Text>
@@ -117,19 +117,19 @@ export default function Settings() {
         <Card style={styles.sectionCard}>
           <CardContent style={styles.sectionContent}>
             <SettingItem
-              icon="key-outline"
+              icon="solar:key-linear"
               label="Recovery Phrase"
               description="Backup your wallet"
               onPress={() => {}}
             />
             <SettingItem
-              icon="shield-outline"
+              icon="solar:shield-linear"
               label="Security Settings"
               description="PIN, biometrics"
               onPress={() => {}}
             />
             <SettingItem
-              icon="phone-portrait-outline"
+              icon="solar:smartphone-linear"
               label="Connected Apps"
               description="Manage dApp connections"
               onPress={() => {}}
@@ -142,14 +142,14 @@ export default function Settings() {
         <Card style={styles.sectionCard}>
           <CardContent style={styles.sectionContent}>
             <SettingItem
-              icon="notifications-outline"
+              icon="solar:bell-linear"
               label="Notifications"
               description="Price alerts, transactions"
               onPress={() => {}}
             />
             <ThemeSelector />
             <SettingItem
-              icon="globe-outline"
+              icon="solar:globe-linear"
               label="Language"
               description="English"
               onPress={() => {}}
@@ -162,12 +162,12 @@ export default function Settings() {
         <Card style={styles.sectionCard}>
           <CardContent style={styles.sectionContent}>
             <SettingItem
-              icon="help-circle-outline"
+              icon="solar:question-circle-linear"
               label="Help Center"
               onPress={() => {}}
             />
             <SettingItem
-              icon="document-text-outline"
+              icon="solar:document-text-linear"
               label="Terms of Service"
               onPress={() => {}}
             />
@@ -178,7 +178,7 @@ export default function Settings() {
         <Card style={styles.sectionCard}>
           <CardContent style={styles.sectionContent}>
             <SettingItem
-              icon="log-out-outline"
+              icon="solar:logout-linear"
               label="Log Out"
               danger
               onPress={() => {}}

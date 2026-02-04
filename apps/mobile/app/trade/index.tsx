@@ -13,7 +13,7 @@ import { Text } from "~/components/ui/text";
 import { Card, CardContent } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import Svg, { Path, Rect } from "react-native-svg";
 
 interface Token {
@@ -141,8 +141,8 @@ function TokenCard({ token, index }: { token: Token; index: number }) {
                     {formatPrice(BigInt(token.currentPrice || "0"))}
                   </Text>
                   <View className="flex-row items-center gap-0.5">
-                    <Ionicons
-                      name={isPositive ? "trending-up" : "trending-down"}
+                    <Icon
+                      name={isPositive ? "solar:arrow-right-up-linear" : "solar:arrow-left-down-linear"}
                       size={10}
                       color={isPositive ? "#4ade80" : "#f87171"}
                     />
@@ -186,7 +186,7 @@ function TokenCard({ token, index }: { token: Token; index: number }) {
           {/* Footer Stats */}
           <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-[#222]">
             <View className="flex-row items-center gap-1.5">
-              <Ionicons name="stats-chart" size={12} color="#9ca3af" />
+              <Icon name="solar:chart-2-linear" size={12} color="#9ca3af" />
               <Text style={styles.statLabel}>MCap:</Text>
               <Text style={styles.statValue}>
                 {formatMarketCap(token.tonReserve || token.marketCap || "0")}
@@ -194,7 +194,7 @@ function TokenCard({ token, index }: { token: Token; index: number }) {
             </View>
             <View className="w-px h-3 bg-[#333]" />
             <View className="flex-row items-center gap-1.5">
-              <Ionicons name="bar-chart" size={12} color="#9ca3af" />
+              <Icon name="solar:graph-up-linear" size={12} color="#9ca3af" />
               <Text style={styles.statLabel}>Vol:</Text>
               <Text style={styles.statValue}>
                 {((token.volume24h || 0) / 1e9).toFixed(1)} TON
@@ -216,7 +216,7 @@ function TabButton({
 }: {
   label: string;
   active: boolean;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   onPress: () => void;
 }) {
   return (
@@ -226,7 +226,7 @@ function TabButton({
         active ? "bg-white" : "bg-transparent"
       }`}
     >
-      <Ionicons name={icon} size={14} color={active ? "#000" : "#9ca3af"} />
+      <Icon name={icon} size={14} color={active ? "#000" : "#9ca3af"} />
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
         {label}
       </Text>
@@ -298,7 +298,7 @@ export default function TradeScreen() {
                 onPress={() => router.back()}
                 className="w-10 h-10 rounded-full bg-white/5 items-center justify-center"
               >
-                <Ionicons name="arrow-back" size={20} color="#fff" />
+                <Icon name="solar:arrow-left-linear" size={20} color="#fff" />
               </Pressable>
               <Text style={styles.header}>RocketStart</Text>
             </View>
@@ -306,14 +306,14 @@ export default function TradeScreen() {
               onPress={() => router.push("/trade/create" as never)}
               className="h-10 px-4 rounded-xl bg-white flex-row items-center gap-2"
             >
-              <Ionicons name="add" size={18} color="#000" />
+              <Icon name="solar:add-circle-bold" size={18} color="#000" />
               <Text style={styles.createButtonText}>Create</Text>
             </Pressable>
           </View>
 
           {/* Search */}
           <View className="flex-row items-center gap-2 p-3 bg-[#111] border border-[#222] rounded-xl mb-4">
-            <Ionicons name="search" size={18} color="#9ca3af" />
+            <Icon name="solar:magnifer-linear" size={18} color="#9ca3af" />
             <TextInput
               style={styles.searchInput}
               placeholder="Search tokens..."
@@ -325,7 +325,7 @@ export default function TradeScreen() {
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={18} color="#6b7280" />
+                <Icon name="solar:close-circle-bold" size={18} color="#6b7280" />
               </Pressable>
             )}
           </View>
@@ -334,19 +334,19 @@ export default function TradeScreen() {
           <View className="flex-row gap-2 p-1 bg-[#111] border border-[#222] rounded-xl mb-6">
             <TabButton
               label="Trending"
-              icon="flame"
+              icon="solar:fire-bold"
               active={activeTab === "trending"}
               onPress={() => setActiveTab("trending")}
             />
             <TabButton
               label="New"
-              icon="sparkles"
+              icon="solar:stars-bold"
               active={activeTab === "new"}
               onPress={() => setActiveTab("new")}
             />
             <TabButton
               label="Graduated"
-              icon="rocket"
+              icon="solar:rocket-bold"
               active={activeTab === "graduated"}
               onPress={() => setActiveTab("graduated")}
             />
@@ -377,7 +377,7 @@ export default function TradeScreen() {
           ) : (
             <View className="items-center justify-center py-12">
               <View className="w-16 h-16 rounded-full bg-white/5 items-center justify-center mb-4">
-                <Ionicons name="cube-outline" size={32} color="#6b7280" />
+                <Icon name="solar:box-linear" size={32} color="#6b7280" />
               </View>
               <Text style={styles.emptyText}>
                 {searchQuery ? "No tokens found" : "No tokens yet"}

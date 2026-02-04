@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
 import { useRouter } from "expo-router";
-import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { Icon } from '@/components/icons';
 import { signIn, signUp } from "~/lib/auth/client";
 import { TelegramLoginWebView, TelegramAuthData } from "~/lib/auth/telegram-login";
 import Svg, { Path } from "react-native-svg";
@@ -196,49 +196,34 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo & Title with animations */}
-          <Animated.View 
-            entering={FadeIn.duration(600).delay(100)}
-            style={styles.header}
-          >
-            <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+          {/* Logo & Title - Removed entry animations */}
+          <View style={styles.header}>
+            <View>
               <QntmLogo />
-            </Animated.View>
-            <Animated.Text 
-              entering={FadeInUp.duration(400).delay(300)}
-              style={styles.title}
-            >
+            </View>
+            <Text style={styles.title}>
               Quantum Club
-            </Animated.Text>
-            <Animated.Text 
-              entering={FadeInUp.duration(400).delay(400)}
-              style={styles.subtitle}
-            >
+            </Text>
+            <Text style={styles.subtitle}>
               {mode === "login" 
                 ? "Welcome back! Sign in to continue" 
                 : "Create your account to get started"}
-            </Animated.Text>
-          </Animated.View>
+            </Text>
+          </View>
 
           {/* Error Message */}
           {error && (
-            <Animated.View 
-              entering={FadeIn.duration(300)}
-              style={styles.errorContainer}
-            >
-              <Ionicons name="alert-circle" size={18} color="#ef4444" />
+            <View style={styles.errorContainer}>
+              <Icon name="solar:danger-circle-bold" size={18} color="#ef4444" />
               <Text style={styles.errorText}>{error}</Text>
-            </Animated.View>
+            </View>
           )}
 
-          {/* Auth Form with staggered animations */}
-          <Animated.View 
-            entering={FadeInUp.duration(500).delay(500)}
-            style={styles.form}
-          >
+          {/* Auth Form - Removed entry animations */}
+          <View style={styles.form}>
             {mode === "register" && (
               <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+                <Icon name="solar:user-linear" size={20} color="#6b7280" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Username"
@@ -252,7 +237,7 @@ export default function AuthScreen() {
             )}
 
             <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+              <Icon name="solar:letter-linear" size={20} color="#6b7280" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
@@ -266,7 +251,7 @@ export default function AuthScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+              <Icon name="solar:lock-keyhole-linear" size={20} color="#6b7280" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -277,8 +262,8 @@ export default function AuthScreen() {
                 autoCapitalize="none"
               />
               <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-                <Ionicons 
-                  name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                <Icon 
+                  name={showPassword ? "solar:eye-linear" : "solar:eye-closed-linear"} 
                   size={20} 
                   color="#6b7280" 
                 />
@@ -287,7 +272,7 @@ export default function AuthScreen() {
 
             {mode === "register" && (
               <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+                <Icon name="solar:lock-keyhole-linear" size={20} color="#6b7280" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm Password"
@@ -328,7 +313,7 @@ export default function AuthScreen() {
               onPress={() => setShowTelegramLogin(true)}
               disabled={loading}
             >
-              <FontAwesome5 name="telegram-plane" size={20} color="#fff" />
+              <Icon name="ri:telegram-fill" size={20} color="#fff" />
               <Text style={styles.telegramButtonText}>Continue with Telegram</Text>
             </Pressable>
 
@@ -339,7 +324,7 @@ export default function AuthScreen() {
                 onPress={handleDevLogin}
                 disabled={loading}
               >
-                <Ionicons name="bug-outline" size={20} color="#fff" />
+                <Icon name="solar:bug-linear" size={20} color="#fff" />
                 <Text style={styles.devButtonText}>Dev Login (Test Account)</Text>
               </Pressable>
             )}
@@ -355,13 +340,10 @@ export default function AuthScreen() {
                 </Text>
               </Pressable>
             </View>
-          </Animated.View>
+          </View>
 
-          {/* Terms with fade in */}
-          <Animated.View 
-            entering={FadeIn.duration(400).delay(800)}
-            style={styles.termsContainer}
-          >
+          {/* Terms - Removed entry animations */}
+          <View style={styles.termsContainer}>
             <Text style={styles.terms}>By continuing, you agree to our </Text>
             <Pressable onPress={openTerms}>
               <Text style={styles.termsLink}>Terms of Service</Text>
@@ -370,7 +352,7 @@ export default function AuthScreen() {
             <Pressable onPress={openPrivacy}>
               <Text style={styles.termsLink}>Privacy Policy</Text>
             </Pressable>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
