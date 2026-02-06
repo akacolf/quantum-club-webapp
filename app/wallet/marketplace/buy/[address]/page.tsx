@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "@/app/wallet/WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
 import {
@@ -41,7 +41,7 @@ export default function BuyNftPage() {
     const params = useParams();
     const router = useRouter();
     const { isTestnet, walletAddress, tonBalance } = useWallet();
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     const {
         isOpen: isAuthOpen,
         requestAuth,

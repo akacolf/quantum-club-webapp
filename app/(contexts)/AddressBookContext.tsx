@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
-import { useGameContext } from "./MiningContext";
+import { useUserContext } from "./UserContext";
 
 export interface SavedAddress {
     address: string;
@@ -22,7 +22,7 @@ const AddressBookContext = createContext<AddressBookContextType | null>(null);
 const STORAGE_KEY = "quantum_address_book";
 
 export function AddressBookProvider({ children }: { children: ReactNode }) {
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     const [addresses, setAddresses] = useState<SavedAddress[]>([]);
     const [isInitialized, setIsInitialized] = useState(false);
 

@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, Wallet } from "lucide-react";
 
@@ -35,7 +35,7 @@ const TelegramSVG = memo(({ className }: { className?: string }) => (
 
 export default function StoryStats() {
   
-  const { rank } = useGameContext();
+  const { rank } = useUserContext();
       const [quantValue] = useState(() => {
         if (typeof window !== "undefined") {
           return sessionStorage.getItem("firstQuant");

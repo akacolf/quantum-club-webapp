@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/client";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ const SolveToEarnContent = () => {
   const router = useRouter();
   const [mathProcess, setMathProcess] = useState("");
   const [options, setOptions] = useState(["first", "second", "third", "fourth"]);
-  const { telegramId, SetMainQuantAmount } = useGameContext();
+  const { telegramId, SetMainQuantAmount } = useUserContext();
   const [correctAnswer, setCorrectAnswer] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const answersRef = useRef(answers);

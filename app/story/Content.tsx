@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Lottie from "lottie-react";
@@ -42,7 +42,7 @@ const TelegramSVG = ({ className }: { className?: string }) => (
 const StoryContent = () => {
   useTelegramBackButton();
   const router = useRouter();
-  const { rank } = useGameContext();
+  const { rank } = useUserContext();
   const [quantValue, setQuantValue] = useState("0");
   const [currentStory, setCurrentStory] = useState(0);
   const [progress, setProgress] = useState(0);

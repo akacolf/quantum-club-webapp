@@ -24,14 +24,14 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 export default function CreateTokenPage() {
     const router = useRouter();
     const { createToken, refreshTokens } = useTrading();
     const { walletAddress, setWalletAddress } = useWallet();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     // Telegram back button
     useTelegramBackButton("/trade");
 

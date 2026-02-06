@@ -51,7 +51,7 @@ import {
     type SwapAsset,
 } from "@/lib/stonfi";
 import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 // Custom hook for debouncing values
 function useDebounce<T>(value: T, delay: number): T {
@@ -91,7 +91,7 @@ function formatDisplayNumber(value: string | number, maxDecimals: number = 4): s
 
 export default function SwapPage() {
     useTelegramBackButton("/wallet");
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     const router = useRouter();
 
     const {

@@ -15,7 +15,7 @@ import {
     serverTimestamp,
     Timestamp,
 } from "firebase/firestore";
-import { useGameContext } from "./MiningContext";
+import { useUserContext } from "./UserContext";
 
 export interface Message {
     id: string;
@@ -52,7 +52,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-    const { telegramId, username } = useGameContext();
+    const { telegramId, username } = useUserContext();
     const [chats, setChats] = useState<Chat[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentMessages, setCurrentMessages] = useState<Message[]>([]);

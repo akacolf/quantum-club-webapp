@@ -11,7 +11,7 @@ import {
     deleteDoc,
     serverTimestamp,
 } from "firebase/firestore";
-import { useGameContext } from "./MiningContext";
+import { useUserContext } from "./UserContext";
 
 export interface Group {
     id: string;
@@ -46,7 +46,7 @@ interface GroupsContextType {
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
 
 export function GroupsProvider({ children }: { children: React.ReactNode }) {
-    const { telegramId, username } = useGameContext();
+    const { telegramId, username } = useUserContext();
     const [groups, setGroups] = useState<Group[]>([]);
     const [myGroupIds, setMyGroupIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);

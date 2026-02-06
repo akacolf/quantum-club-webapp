@@ -1,6 +1,6 @@
 'use client';
 
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,7 @@ const SolveToEarnResults = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const [buttonClicked, setButtonClicked] = useState(false);
 
-  const { remainingSolveToEarn, telegramId, setRemainingSolveToEarn } = useGameContext();
+  const { remainingSolveToEarn, telegramId, setRemainingSolveToEarn } = useUserContext();
   const solvetoearnremaining = useState(remainingSolveToEarn);
   const router = useRouter();
 

@@ -48,7 +48,7 @@ import {
   sendTrxTransaction,
   sendBtcTransaction,
 } from "../utils/multichain";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 type NetworkMode = "ton" | "multichain";
 type MultiChainType = "eth" | "sol" | "trx" | "btc";
@@ -80,7 +80,7 @@ interface MultiChainOption {
 export default function SendPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-  const {telegramId} = useGameContext()
+  const {telegramId} = useUserContext()
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
   // Telegram native QR scanner handler

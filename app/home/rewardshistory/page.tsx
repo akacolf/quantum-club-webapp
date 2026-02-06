@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from "react";
 import { dbfs } from "@/app/(firebase)/client";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { TaskHistory } from "@/lib/interfaces";
 import { getDocs, collection } from "firebase/firestore";
 import TasksSkeleton from "./(components)/TasksSkeleton";
@@ -283,7 +283,7 @@ const convertToDate = (dateStr: string) => {
 
 export default function RewardsHistory() {
   useTelegramBackButton();
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
 

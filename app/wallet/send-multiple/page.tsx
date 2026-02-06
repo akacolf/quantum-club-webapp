@@ -15,7 +15,7 @@ import {
 import Image from "next/image";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +48,7 @@ type ViewMode = "input" | "confirm" | "processing" | "success";
 export default function SendMultiplePage() {
   useTelegramBackButton("/wallet");
   const { tonBalance, tonPrice, fetchWalletAssets } = useWallet();
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
 
   const {
     isOpen: isAuthOpen,

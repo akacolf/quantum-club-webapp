@@ -40,7 +40,7 @@ import {
 import Loader from "@/app/(components)/Loader";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
 import { AnimatedPrice } from "@/components/ui/animated-price";
@@ -99,7 +99,7 @@ const formatUsd = (value: number | string): string => {
 
 export default function WalletPage() {
   const router = useRouter();
-  const { MainQuantAmount } = useGameContext();
+  const { MainQuantAmount } = useUserContext();
   const {
     walletAddress,
     setWalletAddress: setContextWalletAddress,
@@ -138,7 +138,7 @@ export default function WalletPage() {
     isLoadingMultiChain
   } = useWallet();
 
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   
   // Back button to return to main app
   useTelegramBackButton("/trade");

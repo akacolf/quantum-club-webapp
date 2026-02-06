@@ -19,7 +19,7 @@ import { fromNano, Address } from "@ton/core";
 import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
 import {
@@ -82,7 +82,7 @@ type FilterType = "all" | "sent" | "received" | "swap" | "nft";
 export default function HistoryPage() {
   useTelegramBackButton("/wallet");
   const { walletAddress, isTestnet } = useWallet();
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const [history, setHistory] = useState<HistoryEvent[]>([]);
   const [qntmHistory, setQntmHistory] = useState<QNTMTransfer[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);

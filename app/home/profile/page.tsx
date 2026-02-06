@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { toast } from "sonner";
 import { dbfs } from "@/app/(firebase)/client";
@@ -25,7 +25,7 @@ import { APP_VERSION } from "@/lib/version";
 export default function ProfilePage() {
     useTelegramBackButton("/home");
     const router = useRouter();
-    const { telegramId, username, MainQuantAmount, daily } = useGameContext();
+    const { telegramId, username, MainQuantAmount, daily } = useUserContext();
 
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);

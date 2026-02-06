@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import {
     STAKING_POOLS,
     fetchLiveApyData,
@@ -39,7 +39,7 @@ type ViewMode = "list" | "stake";
 export default function StakingPage() {
     const router = useRouter();
     const { tonBalance, tonPrice, fetchWalletAssets } = useWallet();
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     
     const {
         isOpen: isAuthOpen,

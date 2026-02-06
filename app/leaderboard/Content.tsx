@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/client";
 import { useTelegramBackButton } from "../(hooks)/useBackButton";
@@ -22,7 +22,7 @@ const LeaderboardContent = () => {
     setTotalUsers,
     setTotalQuant,
   } = useLeaderboardContext();
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const [pageLoading, setPageLoading] = useState(true);
 
   const formattedAmount = useCallback((total: number) => {

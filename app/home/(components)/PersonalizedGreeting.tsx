@@ -1,6 +1,6 @@
 "use client";
 
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronRight, User } from "lucide-react";
@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function PersonalizedGreeting() {
-  const { username } = useGameContext();
+  const { username } = useUserContext();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
-import { useGameContext } from "../(contexts)/MiningContext";
+import { useUserContext } from "../(contexts)/UserContext";
 import { getAccountJettons } from "@/lib/tonapi-client";
 
 // Default testnet mode - can be overridden by user preference in localStorage
@@ -111,7 +111,7 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const {telegramId} = useGameContext();
+  const {telegramId} = useUserContext();
   const [walletAddress, setWalletAddress] = useState(() => {
     const wallet = typeof window !== "undefined" ? localStorage.getItem(`quantum_wallet_address_${telegramId}`) : "";
     return wallet || ""; // Default to empty string if null

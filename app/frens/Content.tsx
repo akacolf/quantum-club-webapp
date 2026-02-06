@@ -5,7 +5,7 @@ import { dbfs } from "@/app/(firebase)/client";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 
 import { useRouter } from "next/navigation";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { collection, doc, getDoc, getDocs, getCountFromServer, query, where } from 'firebase/firestore';
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -23,7 +23,7 @@ const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const { referralsNum, setReferralNum } = useFrenContext();
   const router = useRouter();
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const {
     referralsContext,
     addReferral,

@@ -7,22 +7,13 @@ import { useEffect } from "react";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
 import { useRouter } from "next/navigation";
-import { useGameContext } from "../(contexts)/MiningContext";
+import {  useUserContext} from "../(contexts)/UserContext";
 import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
 import { useAuth } from "../(contexts)/auth";
 export default function Login() {
   const auth = useAuth();
   const router = useRouter();
-  const {
-    setTelegramId,
-    SetMainQuantAmount,
-    setRank,
-    setDaily,
-    setUsername,
-    setWalletAddress,
-    setLastActiveTime,
-    setRemainingSolveToEarn,
-  } = useGameContext();
+  const user = useUserContext();
   const { setUserRank } = useLeaderboardContext();
   useEffect(()=>{
     let isMounted = true;
@@ -75,15 +66,15 @@ export default function Login() {
           return;
          }
          if(data.status ==="completed"){
-        setTelegramId(data.telegramId);
-        SetMainQuantAmount(data.MainQuantAmount);
-        setRank(data.rank);
+        user.setTelegramId(data.telegramId);
+        user.SetMainQuantAmount(data.MainQuantAmount);
+        user.setRank(data.rank);
         setUserRank(data.userRank);
-        setDaily(data.daily);
-        setUsername(data.username);
-        setWalletAddress(data.walletAddress);
-        setLastActiveTime(data.lastActiveTime);
-        setRemainingSolveToEarn(data.remainingSolveToEarn);
+        user.setDaily(data.daily);
+        user.setUsername(data.username);
+        user.setWalletAddress(data.walletAddress);
+        user.setLastActiveTime(data.lastActiveTime);
+        user.setRemainingSolveToEarn(data.remainingSolveToEarn);
         router.replace('/home'); 
         }
         }

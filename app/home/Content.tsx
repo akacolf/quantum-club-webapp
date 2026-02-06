@@ -8,7 +8,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
@@ -146,7 +146,7 @@ const HomeContent = () => {
     setDaily,
     setRemainingSolveToEarn,
     remainingSolveToEarn,
-  } = useGameContext();
+  } = useUserContext();
 
   const [isClaimDay, setIsclaimDay] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);

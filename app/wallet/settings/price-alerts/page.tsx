@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -45,7 +45,7 @@ const SUPPORTED_TOKENS: TokenOption[] = [
 
 export default function PriceAlertsPage() {
     useTelegramBackButton("/wallet/settings");
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
 
     const [alerts, setAlerts] = useState<PriceAlert[]>([]);
     const [isLoading, setIsLoading] = useState(true);

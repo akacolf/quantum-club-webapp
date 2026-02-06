@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups, GroupMember } from "@/app/(contexts)/GroupsContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,7 +18,7 @@ export default function GroupDetailPage() {
     const params = useParams();
     const groupId = params.groupId as string;
 
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     const { groups, leaveGroup, getGroupMembers } = useGroups();
 
     const [members, setMembers] = useState<GroupMember[]>([]);

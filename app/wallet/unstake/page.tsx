@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export default function UnstakePage() {
     useTelegramBackButton("/wallet/staking");
     const router = useRouter();
     const { jettons, fetchWalletAssets } = useWallet();
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     
     const {
         isOpen: isAuthOpen,

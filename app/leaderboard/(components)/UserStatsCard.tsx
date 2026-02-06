@@ -1,5 +1,5 @@
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext"
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { SvgProps } from "@/types/svg";
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +23,7 @@ Logo.displayName = "Logo";
 
 export default function UserStatsCard() {
   const { userRank } = useLeaderboardContext();
-  const { MainQuantAmount, username } = useGameContext();
+  const { MainQuantAmount, username } = useUserContext();
 
   return (
     <div className="flex flex-col mt-6 px-4">

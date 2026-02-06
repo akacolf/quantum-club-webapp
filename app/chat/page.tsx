@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useChat, Chat } from "@/app/(contexts)/ChatContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -104,7 +104,7 @@ export default function ChatListPage() {
     useTelegramBackButton("/home");
     const router = useRouter();
     const { chats, loading } = useChat();
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
 
     // Memoized navigation handler
     const handleNavigate = useCallback((chatId: string) => {

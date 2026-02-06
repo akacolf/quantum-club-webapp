@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Address, toNano } from "@ton/core";
 import { toast } from "sonner";
 import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, type NftItem } from "@/lib/nft-marketplace";
@@ -22,7 +22,7 @@ export default function NftDetailPage() {
     const params = useParams();
     const router = useRouter();
     const { isTestnet, walletAddress } = useWallet();
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     const nftAddress = decodeURIComponent(params.address as string);
 
     const [nft, setNft] = useState<NftItem | null>(null);

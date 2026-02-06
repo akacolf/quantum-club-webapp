@@ -1,6 +1,6 @@
 'use client';
 
-import { useGameContext } from '@/app/(contexts)/MiningContext';
+import { useUserContext } from '@/app/(contexts)/UserContext';
 import { dbfs } from '@/app/(firebase)/client';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import React, { useEffect, useState } from 'react';
 
 export default function AnswerPage() {
-    const { telegramId, SetMainQuantAmount } = useGameContext();
+    const { telegramId, SetMainQuantAmount } = useUserContext();
     const [taskId, setTaskId] = useState("");
     const [textBox, setTextBox] = useState("");
     const router = useRouter();

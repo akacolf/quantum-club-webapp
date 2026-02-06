@@ -3,13 +3,13 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import QRCodeStyling from "qr-code-styling";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy, Share2, Users, X } from "lucide-react";
 
 const InvitePopup = () => {
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const inviteLink = useMemo(
     () => `https://t.me/QuantumClubBot/app?startapp=${telegramId}`,
     [telegramId]

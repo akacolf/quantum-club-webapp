@@ -10,7 +10,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
 import { Address } from "@ton/core";
 import { useWallet } from "../../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 interface SavedAddress {
     address: string;
@@ -31,7 +31,7 @@ export default function AddressBookPage() {
     const [newAddress, setNewAddress] = useState("");
     const [editName, setEditName] = useState("");
     const [addressError, setAddressError] = useState("");
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     // Format address for display
     const formatAddress = useCallback((address: string): string => {
         try {

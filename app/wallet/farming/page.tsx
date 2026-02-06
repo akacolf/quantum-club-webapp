@@ -13,7 +13,7 @@ import {
     Info,
 } from "lucide-react";
 import { useWallet } from "../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +36,7 @@ type ViewMode = "list" | "stake" | "positions" | "details";
 export default function FarmingPage() {
     const router = useRouter();
     const { fetchWalletAssets, jettons } = useWallet();
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     
     const {
         isOpen: isAuthOpen,

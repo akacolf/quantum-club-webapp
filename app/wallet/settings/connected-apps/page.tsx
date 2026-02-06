@@ -34,14 +34,14 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useWalletKitOptional } from "@/lib/walletkit-provider";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 export default function ConnectedAppsPage() {
     const router = useRouter();
     
     // Use WalletKit if available (returns null if provider not mounted)
     const walletKit = useWalletKitOptional();
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);

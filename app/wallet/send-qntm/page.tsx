@@ -12,12 +12,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 export default function SendQNTMPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
-  const { telegramId, username, MainQuantAmount, SetMainQuantAmount } = useGameContext();
+  const { telegramId, username, MainQuantAmount, SetMainQuantAmount } = useUserContext();
 
   // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();

@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useState, useContext, ReactNode, useMemo } from "react";
 
-interface GameContextType {
+interface UserContextType {
   username: string | null;
   setUsername: (value: string | null) => void;
   telegramId: string | null;
@@ -28,9 +28,9 @@ interface GameContextType {
   setWalletAddress: (value: string | null) => void;
 }
 
-const GameContext = createContext<GameContextType>({} as GameContextType);
+const userContext = createContext<UserContextType>({} as UserContextType);
 
-export const GameProvider = ({ children }: { children: ReactNode }) => {
+export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [username, setUsername] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("username");
@@ -105,7 +105,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
     return null;
   });
-
+  const resetContext = () => {
+    setUsername(null);
+    setTelegramId(null);
+    setMiningActive(false);
+    setLastActiveTime(null);
+    setMiningTimestamp(null);
+    SetMainQuantAmount("0"); // Başlangıç değeriniz neyse
+    setJoinButtonText(""); 
+    setRank(null);
+    setTelegramIdNm(null);
+    setDaily(0);
+    setRemainingSolveToEarn(0);
+    setWalletAddress(null);
+  };
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     username,
@@ -132,16 +145,17 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setRemainingSolveToEarn,
     walletAddress,
     setWalletAddress,
+    resetContext,
   }), [
     username, telegramId, miningActive, lastActiveTime, miningTimestamp,
     MainQuantAmount, jointext, rank, telegramIdNM, daily, remainingSolveToEarn, walletAddress
   ]);
-
+    
   return (
-    <GameContext.Provider value={contextValue}>
+    <userContext.Provider value={contextValue}>
       {children}
-    </GameContext.Provider>
+    </userContext.Provider>
   );
 };
 
-export const useGameContext = () => useContext(GameContext);
+export const useUserContext = () => useContext(userContext);

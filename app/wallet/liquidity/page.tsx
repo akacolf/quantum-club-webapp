@@ -52,7 +52,7 @@ import {
   type SwapAsset,
   type LiquidityProvisionResult,
 } from "@/lib/stonfi";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { StonApiClient } from "@ston-fi/api";
 
 // Format large numbers with K, M, B suffixes
@@ -104,7 +104,7 @@ type ProvisionType = "Balanced" | "Arbitrary" | "Initial";
 
 export default function LiquidityPage() {
   useTelegramBackButton("/wallet");
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const router = useRouter();
 
   const {

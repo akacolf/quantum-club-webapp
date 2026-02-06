@@ -8,7 +8,7 @@ import {
   collection,
 } from "firebase/firestore";
 import Loader from "../(components)/Loader";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { getAuth } from "firebase/auth";
 import { ButtonLoader } from "../(components)/ButtonLoader";
 import { getAllTasks } from "./tasks";
@@ -34,7 +34,7 @@ const EarnContent = () => {
   const {
     telegramId,
     SetMainQuantAmount /*remainingSolveToEarn, setRemainingSolveToEarn*/,
-  } = useGameContext();
+  } = useUserContext();
   const { totalUsers } = useLeaderboardContext();
   const [activeTaskId, setActiveTaskId] = useState(null);
   const auth = useAuth();

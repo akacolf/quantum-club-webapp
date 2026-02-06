@@ -29,7 +29,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { Address, toNano, Cell } from "@ton/core";
-import { useGameContext } from "./MiningContext";
+import { useUserContext } from "./UserContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import {
   Token,
@@ -134,7 +134,7 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 // =====================================================
 
 export function TradingProvider({ children }: { children: React.ReactNode }) {
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const { walletAddress, sendTransaction } = useWallet();
 
   // State

@@ -19,7 +19,7 @@ import {
     serverTimestamp,
     Timestamp,
 } from "firebase/firestore";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface TokenChatMessage {
@@ -37,7 +37,7 @@ interface TokenChatProps {
 }
 
 export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
-    const { telegramId, username } = useGameContext();
+    const { telegramId, username } = useUserContext();
     const [messages, setMessages] = useState<TokenChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [isSending, setIsSending] = useState(false);

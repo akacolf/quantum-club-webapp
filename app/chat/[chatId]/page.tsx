@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useChat, Message } from "@/app/(contexts)/ChatContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ export default function ChatPage() {
     const params = useParams();
     const chatId = params.chatId as string;
 
-    const { telegramId } = useGameContext();
+    const { telegramId } = useUserContext();
     const { chats, currentMessages, sendMessage, subscribeToChat } = useChat();
 
     const [message, setMessage] = useState("");

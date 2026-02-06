@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 // Protocol versions with professional descriptions
 const WALLET_VERSIONS = [
@@ -47,7 +47,7 @@ const WALLET_VERSIONS = [
 
 export default function ImportWalletPage() {
   const router = useRouter();
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   useTelegramBackButton("/wallet");
 
   const { setWalletAddress, addWallet, switchWallet, storedWallets, isTestnet } = useWallet();

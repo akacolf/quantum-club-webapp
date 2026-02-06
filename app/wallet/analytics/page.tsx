@@ -31,7 +31,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import Loader from "@/app/(components)/Loader";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { PortfolioHealthCard } from "@/components/ai";
 
 const COLORS = [
@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
     solUsdValue,
     trxUsdValue,
   } = useWallet();
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const [change24h, setChange24h] = useState<number | null>(null);
   const [change7d, setChange7d] = useState<number | null>(null);
 

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
-import { GameProvider } from "../(contexts)/MiningContext";
+import { UserDataProvider } from "../(contexts)/UserContext";
 import { WalletProvider } from "../wallet/WalletContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
@@ -33,7 +33,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
 
   return (
     <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
-      <GameProvider>
+      <UserDataProvider>
         <WalletProvider>
           <LeaderboardProvider>
             <FrensProvider>
@@ -50,7 +50,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
             </FrensProvider>
           </LeaderboardProvider>
         </WalletProvider>
-      </GameProvider>
+      </UserDataProvider>
     </ThemeProvider>
   );
 }

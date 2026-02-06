@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Fingerprint, KeyRound, X, ShieldCheck, AlertCircle } from "lucide-react";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/client";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 interface BiometricAuthProps {
   isOpen: boolean;
@@ -49,7 +49,7 @@ export function BiometricAuth({
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasBiometric, setHasBiometric] = useState(false);
   const [hasStoredPin, setHasStoredPin] = useState(false);
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
 
   // Secure PIN hashing using SHA-256 (Web Crypto API)
   const hashPin = useCallback(async (pinValue: string): Promise<string> => {

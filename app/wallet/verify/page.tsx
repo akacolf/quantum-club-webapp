@@ -11,11 +11,11 @@ import { Label } from "@/components/ui/label";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { useWallet } from "../WalletContext";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 export default function VerifyPhrasePage() {
   useTelegramBackButton("/wallet/backup");
-  const { telegramId } = useGameContext();
+  const { telegramId } = useUserContext();
   const router = useRouter();
   const { addWallet, switchWallet, storedWallets } = useWallet();
   const [mnemonic, setMnemonic] = useState<string[]>([]);

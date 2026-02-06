@@ -19,7 +19,7 @@ import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
-import { useGameContext } from "../(contexts)/MiningContext";
+import { useUserContext } from "../(contexts)/UserContext";
 
 // Lazy load Lottie (large library)
 const Lottie = dynamic(() => import("lottie-react"), {
@@ -250,7 +250,7 @@ export default function TradePage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("trending");
     const [deployingTokenId, setDeployingTokenId] = useState<string | null>(null);
-    const {telegramId} = useGameContext()
+    const {telegramId} = useUserContext()
     // Check if wallet exists - prioritize context state, fallback to localStorage for SSR
     const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
 
