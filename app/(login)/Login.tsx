@@ -30,7 +30,6 @@ export default function Login() {
     
     const getData = async()=>{
       if (!isMounted) return;
-      
       if(typeof window !=="undefined" && window.Telegram && window.Telegram.WebApp){
         const WebApp = window?.Telegram?.WebApp;
         if (!WebApp) return;
@@ -60,9 +59,7 @@ export default function Login() {
           const errorData = await responseAuth.text();
           throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
         }
-
         if (!isMounted) return;
-        
         const { customToken } = await responseAuth.json();
         await auth?.loginWithToken(customToken)
         const data =  await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});

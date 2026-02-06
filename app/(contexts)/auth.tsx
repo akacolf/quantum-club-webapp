@@ -1,14 +1,16 @@
 "use client"
 
 import { auth } from "@/app/(firebase)/client";
-import { ParsedToken, signInWithCustomToken, User } from "firebase/auth";
+import { isSignInWithEmailLink, ParsedToken, sendSignInLinkToEmail, signInWithCustomToken, signInWithEmailLink, updateEmail, User  } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react"
-import { removeToken, setToken } from "./actions";
+import { removeToken, setToken, updateUserPassword } from "./actions";
+import { updatePassword } from "firebase/auth";
 type AuthContextType = {
     currentUser: User | null;
     logout: () => Promise<void>
     loginWithToken: (customToken:string) => Promise<void>;
     customClaims: ParsedToken|null;
+    configPassword:(customToken:string) =>Promise<void>;
 }
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -43,13 +45,20 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const loginWithToken = async(customToken:string) =>{
       await signInWithCustomToken(auth, customToken);
     }
+    const configPassword = async()=>{
+        const tokenResult = await auth?.currentUser?.getIdTokenResult()
+        const token = tokenResult?.token
+        if(!token) return;
+        updateUserPassword(token)
+    }
    return ( 
     <AuthContext.Provider 
         value={{
             currentUser,
             logout,
             customClaims,
-            loginWithToken
+            loginWithToken,
+            configPassword
         }}>
         {children}
         </AuthContext.Provider>

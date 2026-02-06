@@ -2,7 +2,7 @@
 
 import { auth } from "@/app/(firebase)/server";
 import { cookies } from "next/headers";
-
+import {getAuth, updatePassword, User} from "firebase/auth"
 export const removeToken = async () =>{
     const cookieStore = await cookies();
     cookieStore.delete("firebaseAuthToken");
@@ -38,4 +38,17 @@ token,refreshToken
     }catch(e) {
         console.error("Failed to set auth cookies:", e);
     }
+}
+export const updateUserPassword = async(token:string)=>{
+    console.log(token)
+    const verifiedToken = await auth.verifyIdToken(token)
+    const userRecord = await auth.getUser(verifiedToken.uid)
+    if(!userRecord) return;
+    await auth.updateUser(verifiedToken.uid,{
+         password:"123456"
+    }).then((userRecord)=>{
+        console.log('Succesfully updated user',userRecord.toJSON())
+    }).catch((error)=>{
+        console.log(error)
+    })
 }
