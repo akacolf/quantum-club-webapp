@@ -1,103 +1,196 @@
-  "use client";
-import { useDeviceDetection } from "./deviceDetection";
-import { UseRegisterAndAuth } from "./registerAndAuth";
-import { useSafeArea } from "./safeArea";
-import Loader from "../(components)/Loader";
-import { useEffect } from "react";
-import { authenticateUser } from "@/lib/telegramAuth";
-import { encryptData } from "@/app/actions/actions";
-import { useRouter } from "next/navigation";
-import {  useUserContext} from "../(contexts)/UserContext";
-import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
-import { useAuth } from "../(contexts)/auth";
+"use client";
+
+import { useState } from "react";
+import { Icon } from "@iconify/react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 export default function Login() {
-  const auth = useAuth();
-  const router = useRouter();
-  const user = useUserContext();
-  const { setUserRank } = useLeaderboardContext();
-  useEffect(()=>{
-    let isMounted = true;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    
-    const getData = async()=>{
-      if (!isMounted) return;
-      if(typeof window !=="undefined" && window.Telegram && window.Telegram.WebApp){
-        const WebApp = window?.Telegram?.WebApp;
-        if (!WebApp) return;
-        WebApp.ready();
-        const initDataUnsafe = WebApp.initDataUnsafe
-         const authenticated = await authenticateUser();
-        if (authenticated && isMounted) {
-          const encrypedId = await encryptData(initDataUnsafe.user?.id.toString() || "");
-          if(!encrypedId) {
-            if (isMounted) {
-              timeoutId = setTimeout(getData, 100);
-            }
-            return;
-          }
-          const cleanData = encrypedId.toString();
-        const telegramIdEncrypted = cleanData
-          .replace(/['"]+/g, "")
-          .replace(/[^a-zA-Z0-9]/g, "");
-        const uid = String(telegramIdEncrypted);
-        const responseAuth = await fetch("/api/auth/telegram", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId: uid }),
-        });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-        if (!responseAuth.ok) {
-          const errorData = await responseAuth.text();
-          throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
-        }
-        if (!isMounted) return;
-        const { customToken } = await responseAuth.json();
-        await auth?.loginWithToken(customToken)
-        const data =  await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});
-        
-        if (!isMounted) return;
-        
-         if(data.status ==="maintenance"){
-          router.replace('/maintenance');
-          return;
-         }
-         if(data.status ==="error"){
-          timeoutId = setTimeout(getData, 100);
-          return;
-         }
-         if(data.status ==="completed"){
-        user.setTelegramId(data.telegramId);
-        user.SetMainQuantAmount(data.MainQuantAmount);
-        user.setRank(data.rank);
-        setUserRank(data.userRank);
-        user.setDaily(data.daily);
-        user.setUsername(data.username);
-        user.setWalletAddress(data.walletAddress);
-        user.setLastActiveTime(data.lastActiveTime);
-        user.setRemainingSolveToEarn(data.remainingSolveToEarn);
-        router.replace('/home'); 
-        }
-        }
-      }else{
-        // WebApp not ready yet, silently retry
-        if (isMounted) {
-          timeoutId = setTimeout(getData, 100);
-        }
-      }
-      
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    // TODO: Implement email/password authentication
+    console.log("Login with:", { email, password });
+    setTimeout(() => setIsLoading(false), 1000);
+  };
 
-    }
-    getData()
-    
-    return () => {
-      isMounted = false;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  },[])
-  useSafeArea();
-  useDeviceDetection();
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    // TODO: Implement Google authentication
+    console.log("Login with Google");
+    setTimeout(() => setIsLoading(false), 1000);
+  };
 
-  return <Loader />;
+  const handleTelegramLogin = async () => {
+    setIsLoading(true);
+    // TODO: Implement Telegram authentication
+    console.log("Login with Telegram");
+    setTimeout(() => setIsLoading(false), 1000);
+  };
+
+  return (
+    <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <div className={cn("flex flex-col gap-6")}>
+          <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary">
+                <Icon
+                  icon="solar:wallet-bold"
+                  className="size-6 text-primary-foreground"
+                />
+              </div>
+              <CardTitle className="text-xl">Welcome back</CardTitle>
+              <CardDescription>
+                Login to your Quantum Club account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit}>
+                <div className="grid gap-6">
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleGoogleLogin}
+                      disabled={isLoading}
+                    >
+                      <Icon icon="flat-color-icons:google" className="size-5" />
+                      Continue with Google
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleTelegramLogin}
+                      disabled={isLoading}
+                    >
+                      <Icon
+                        icon="logos:telegram"
+                        className="size-5"
+                      />
+                      Continue with Telegram
+                    </Button>
+                  </div>
+
+                  <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+                    <span className="relative z-10 bg-card px-2 text-muted-foreground">
+                      Or continue with email
+                    </span>
+                  </div>
+
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="m@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={isLoading}
+                        autoComplete="email"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <div className="flex items-center">
+                        <Label htmlFor="password">Password</Label>
+                        <a
+                          href="#"
+                          className="ml-auto text-sm text-muted-foreground underline-offset-4 hover:underline"
+                        >
+                          Forgot password?
+                        </a>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          disabled={isLoading}
+                          autoComplete="current-password"
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Icon
+                            icon={showPassword ? "solar:eye-closed-linear" : "solar:eye-linear"}
+                            className="size-5"
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Icon
+                          icon="svg-spinners:ring-resize"
+                          className="size-5"
+                        />
+                      ) : (
+                        "Sign In"
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    Don&apos;t have an account?{" "}
+                    <a
+                      href="#"
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
+                      Sign up
+                    </a>
+                  </div>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <p className="text-balance text-center text-xs text-muted-foreground">
+            By continuing, you agree to our{" "}
+            <a
+              href="#"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a
+              href="#"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
