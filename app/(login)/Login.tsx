@@ -1,4 +1,4 @@
-"use client";
+  "use client";
 import { useDeviceDetection } from "./deviceDetection";
 import { UseRegisterAndAuth } from "./registerAndAuth";
 import { useSafeArea } from "./safeArea";

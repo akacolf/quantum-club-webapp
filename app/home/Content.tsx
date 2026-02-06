@@ -16,7 +16,6 @@ import dynamic from "next/dynamic";
 // Critical above-fold components - load synchronously
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
 import PullToRefresh from "./(components)/PullToRefresh";
-import { useAuth } from "../(contexts)/auth";
 
 // Below-fold / interactive components - lazy load for better FCP/LCP
 const HomeCarousel = dynamic(() => import("@/app/home/(components)/homepagecarousel/Carousel"), {
@@ -817,23 +816,11 @@ const HomeContent = () => {
       toast.error("Failed to refresh");
     }
   }, [telegramId, SetMainQuantAmount, setRemainingSolveToEarn, setDaily]);
-  const [password,setPassword] = useState("")
-  const auth = useAuth()
-  const passwordUpdateFunction=async()=>{
-    const token = await auth?.currentUser?.getIdToken()
-    if(!token) return;
-    const response = auth?.configPassword(token)
-  }
   return (
     <>
       <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen">
 
         <PersonalizedGreeting />
-        <input
-        value={password}
-        onChange={(e)=>setPassword(e.target.value)}
-        />
-        <button onClick={()=>passwordUpdateFunction()}>Click</button>
         <QntmBalance
           MainQuantAmount={MainQuantAmount}
           rank={rank}
