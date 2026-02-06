@@ -22,7 +22,7 @@ import { useAuth } from "@/app/(contexts)/auth";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
 import { UseRegisterAndAuth } from "./registerAndAuth";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import Loader from "@/app/(components)/Loader";
 
@@ -45,7 +45,7 @@ export default function Login() {
     setWalletAddress,
     setLastActiveTime,
     setRemainingSolveToEarn,
-  } = useGameContext();
+  } = useUserContext();
   const { setUserRank } = useLeaderboardContext();
 
   useEffect(() => {
