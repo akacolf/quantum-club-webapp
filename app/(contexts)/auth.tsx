@@ -1,14 +1,14 @@
 "use client"
 
 import { auth } from "@/app/(firebase)/client";
-import { isSignInWithEmailLink, ParsedToken, sendSignInLinkToEmail, signInWithCustomToken, signInWithEmailLink, updateEmail, User  } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, isSignInWithEmailLink, ParsedToken, sendSignInLinkToEmail, signInWithCredential, signInWithCustomToken, signInWithEmailLink, signInWithPopup, signInWithRedirect, updateEmail, User  } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react"
 import { removeToken, setToken, updateUserPassword } from "./actions";
-import { updatePassword } from "firebase/auth";
 type AuthContextType = {
     currentUser: User | null;
     logout: () => Promise<void>
     loginWithToken: (customToken:string) => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
     customClaims: ParsedToken|null;
     configPassword:(customToken:string) =>Promise<void>;
 }
@@ -45,6 +45,25 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const loginWithToken = async(customToken:string) =>{
       await signInWithCustomToken(auth, customToken);
     }
+    const loginWithGoogle = async() =>{
+    const client = window.google.accounts.oauth2.initTokenClient({
+    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/userinfo.profile',
+    callback: (tokenResponse) => {
+      const credential = GoogleAuthProvider.credential(null,tokenResponse.access_token);
+      signInWithCredential(auth, credential)
+        .then((result) => {
+          console.error("Firebase'e giriş yapıldı:", result.user);
+        })
+        .catch((error) => {
+          console.error("Hata:", error);
+        });
+    },
+  });
+
+  // Giriş akışını başlat (Doğrudan Google Popup açar)
+    client.requestAccessToken();
+    }
     const configPassword = async()=>{
         const tokenResult = await auth?.currentUser?.getIdTokenResult()
         const token = tokenResult?.token
@@ -58,6 +77,7 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             logout,
             customClaims,
             loginWithToken,
+            loginWithGoogle,
             configPassword
         }}>
         {children}

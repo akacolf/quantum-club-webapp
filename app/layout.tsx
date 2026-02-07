@@ -36,6 +36,7 @@ export default function RootLayout({
       </head>
       <body className={`${onest.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
+        <Script src="https://accounts.google.com/gsi/client" async defer></Script>
         <AuthProvider>
         <ClientProviders>
           <div className="flex justify-center min-h-screen bg-neutral-100 dark:bg-neutral-900">

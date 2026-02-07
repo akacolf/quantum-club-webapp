@@ -47,7 +47,7 @@ export default function Login() {
     setRemainingSolveToEarn,
   } = useUserContext();
   const { setUserRank } = useLeaderboardContext();
-
+  const auth = useAuth()
   useEffect(() => {
     const timer = setTimeout(() => setIsPageLoading(false), 500);
     return () => clearTimeout(timer);
@@ -66,14 +66,7 @@ export default function Login() {
     setIsLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-      const result = await signInWithPopup(auth, provider);
-      if (result.user) {
-        router.replace("/home");
-      }
+      await auth?.loginWithGoogle()
     } catch (err) {
       console.error("Google sign-in error:", err);
       setError("Failed to sign in with Google. Please try again.");
