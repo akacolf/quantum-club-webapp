@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
 import { toast } from "sonner";
 import { APP_VERSION } from "@/lib/version";
 
@@ -32,6 +34,13 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [displayName, setDisplayName] = useState<string>("Quantum User");
   const [copied, setCopied] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  // Email linking state
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkPassword, setLinkPassword] = useState("");
+  const [isLinkingEmail, setIsLinkingEmail] = useState(false);
+  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
+  const [showLinkForm, setShowLinkForm] = useState(false);
 
   useEffect(() => {
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -87,6 +96,65 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const navigateTo = (path: string) => {
     onOpenChange(false);
     router.push(path);
+  };
+
+  const handleLinkEmail = async () => {
+    if (!linkEmail || !linkPassword) {
+      toast.error("Please enter email and password");
+      return;
+    }
+    if (linkPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    setIsLinkingEmail(true);
+    try {
+      await authContext?.linkEmailToAccount(linkEmail, linkPassword);
+      // Store email in Firestore user doc
+      if (telegramId) {
+        await linkEmailToUserDoc(telegramId, linkEmail);
+      }
+      toast.success("Email linked successfully! Verification email sent.");
+      setLinkEmail("");
+      setLinkPassword("");
+      setShowLinkForm(false);
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message.includes("email-already-in-use")) {
+          toast.error("This email is already linked to another account");
+        } else if (err.message.includes("provider-already-linked")) {
+          toast.error("An email is already linked to this account");
+        } else if (err.message.includes("invalid-email")) {
+          toast.error("Please enter a valid email address");
+        } else if (err.message.includes("weak-password")) {
+          toast.error("Password is too weak");
+        } else {
+          toast.error("Failed to link email. Please try again.");
+        }
+      }
+    } finally {
+      setIsLinkingEmail(false);
+    }
+  };
+
+  const handleLinkGoogle = async () => {
+    setIsLinkingGoogle(true);
+    try {
+      await authContext?.linkGoogleToAccount();
+      toast.success("Google account linked successfully!");
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message.includes("credential-already-in-use")) {
+          toast.error("This Google account is already linked to another account");
+        } else if (err.message.includes("provider-already-linked")) {
+          toast.error("A Google account is already linked");
+        } else {
+          toast.error("Failed to link Google account. Please try again.");
+        }
+      }
+    } finally {
+      setIsLinkingGoogle(false);
+    }
   };
 
   // Auth binding info
@@ -187,13 +255,46 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                 <span className="text-[10px] text-green-400 font-medium">Linked</span>
               ) : (
                 <button
-                  onClick={() => navigateTo("/signup")}
+                  onClick={() => setShowLinkForm(!showLinkForm)}
                   className="text-[10px] text-primary font-medium hover:underline"
                 >
                   Link
                 </button>
               )}
             </div>
+            {/* Email linking form */}
+            {!hasEmail && showLinkForm && (
+              <div className="space-y-2 py-2 px-1">
+                <Input
+                  type="email"
+                  placeholder="Your email address"
+                  value={linkEmail}
+                  onChange={(e) => setLinkEmail(e.target.value)}
+                  className="h-8 text-xs"
+                  disabled={isLinkingEmail}
+                />
+                <Input
+                  type="password"
+                  placeholder="Create a password"
+                  value={linkPassword}
+                  onChange={(e) => setLinkPassword(e.target.value)}
+                  className="h-8 text-xs"
+                  disabled={isLinkingEmail}
+                />
+                <Button
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={handleLinkEmail}
+                  disabled={isLinkingEmail || !linkEmail || !linkPassword}
+                >
+                  {isLinkingEmail ? (
+                    <Icon icon="svg-spinners:ring-resize" className="size-4" />
+                  ) : (
+                    "Link Email"
+                  )}
+                </Button>
+              </div>
+            )}
             {/* Google */}
             <div className="flex items-center gap-3 py-1.5">
               <Icon icon="flat-color-icons:google" className="w-5 h-5" />
@@ -202,13 +303,11 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                 <span className="text-[10px] text-green-400 font-medium">Linked</span>
               ) : (
                 <button
-                  onClick={() => {
-                    onOpenChange(false);
-                    authContext?.loginWithGoogle();
-                  }}
-                  className="text-[10px] text-primary font-medium hover:underline"
+                  onClick={handleLinkGoogle}
+                  disabled={isLinkingGoogle}
+                  className="text-[10px] text-primary font-medium hover:underline disabled:opacity-50"
                 >
-                  Link
+                  {isLinkingGoogle ? "Linking..." : "Link"}
                 </button>
               )}
             </div>

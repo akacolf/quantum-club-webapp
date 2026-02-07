@@ -9,13 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 import { useAuth } from "@/app/(contexts)/auth";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
@@ -315,188 +309,185 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pt-[15vh]">
+    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pt-[12vh] pb-16">
       <div className="w-full max-w-sm">
         <div className={cn("flex flex-col gap-6")}>
-          <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4">
-                <Image
-                  src="/svg/logo-white.svg"
-                  alt="Quantum Club"
-                  width={48}
-                  height={48}
-                  className="dark:block hidden"
-                />
-                <Image
-                  src="/svg/logo-dark.svg"
-                  alt="Quantum Club"
-                  width={48}
-                  height={48}
-                  className="dark:hidden block"
-                />
+          <div className="text-center">
+            <div className="mx-auto mb-4">
+              <Image
+                src="/svg/logo-white.svg"
+                alt="Quantum Club"
+                width={48}
+                height={48}
+                className="dark:block hidden"
+              />
+              <Image
+                src="/svg/logo-dark.svg"
+                alt="Quantum Club"
+                width={48}
+                height={48}
+                className="dark:hidden block"
+              />
+            </div>
+            <h1 className="text-xl font-semibold">Create an account</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Sign up to get started with Quantum Club
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-6">
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignUp}
+                  disabled={isLoading}
+                >
+                  <Icon icon="flat-color-icons:google" className="size-5" />
+                  Continue with Google
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleTelegramSignUp}
+                  disabled={isLoading}
+                >
+                  <Icon icon="logos:telegram" className="size-5" />
+                  Continue with Telegram
+                </Button>
               </div>
-              <CardTitle className="text-xl">Create an account</CardTitle>
-              <CardDescription>
-                Sign up to get started with Quantum Club
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-6">
-                  {error && (
-                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                      {error}
-                    </div>
-                  )}
 
-                  <div className="flex flex-col gap-3">
-                    <Button
+              <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-sm text-muted-foreground">
+                  Or continue with email
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    autoComplete="name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Your email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      autoComplete="new-password"
+                      className="pr-10"
+                    />
+                    <button
                       type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleGoogleSignUp}
-                      disabled={isLoading}
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      <Icon icon="flat-color-icons:google" className="size-5" />
-                      Continue with Google
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleTelegramSignUp}
-                      disabled={isLoading}
-                    >
-                      <Icon icon="logos:telegram" className="size-5" />
-                      Continue with Telegram
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="h-px flex-1 bg-border" />
-                    <span className="text-sm text-muted-foreground">
-                      Or continue with email
-                    </span>
-                    <div className="h-px flex-1 bg-border" />
-                  </div>
-
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Name</Label>
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Your name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        disabled={isLoading}
-                        autoComplete="name"
+                      <Icon
+                        icon={
+                          showPassword
+                            ? "solar:eye-closed-linear"
+                            : "solar:eye-linear"
+                        }
+                        className="size-5"
                       />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Your email address"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={isLoading}
-                        autoComplete="email"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="password">Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Create a password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          disabled={isLoading}
-                          autoComplete="new-password"
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Icon
-                            icon={
-                              showPassword
-                                ? "solar:eye-closed-linear"
-                                : "solar:eye-linear"
-                            }
-                            className="size-5"
-                          />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="confirm-password">Confirm Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirm-password"
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="Confirm your password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          required
-                          disabled={isLoading}
-                          autoComplete="new-password"
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Icon
-                            icon={
-                              showConfirmPassword
-                                ? "solar:eye-closed-linear"
-                                : "solar:eye-linear"
-                            }
-                            className="size-5"
-                          />
-                        </button>
-                      </div>
-                    </div>
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <Icon
-                          icon="svg-spinners:ring-resize"
-                          className="size-5"
-                        />
-                      ) : (
-                        "Create Account"
-                      )}
-                    </Button>
-                  </div>
-
-                  <div className="text-center text-sm text-muted-foreground">
-                    Already have an account?{" "}
-                    <Link
-                      href="/"
-                      className="text-primary underline-offset-4 hover:underline"
-                    >
-                      Sign in
-                    </Link>
+                    </button>
                   </div>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+                <div className="grid gap-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      autoComplete="new-password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Icon
+                        icon={
+                          showConfirmPassword
+                            ? "solar:eye-closed-linear"
+                            : "solar:eye-linear"
+                        }
+                        className="size-5"
+                      />
+                    </button>
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Icon
+                      icon="svg-spinners:ring-resize"
+                      className="size-5"
+                    />
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <Link
+                  href="/"
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  Sign in
+                </Link>
+              </div>
+            </div>
+          </form>
 
           <p className="text-balance text-center text-xs text-muted-foreground">
             By continuing, you agree to our{" "}

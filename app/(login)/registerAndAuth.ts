@@ -134,7 +134,19 @@ export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
 }
 
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/**
+ * Store a linked email on the user's Firestore document.
+ */
+export async function linkEmailToUserDoc(telegramIdEncrypted: string, email: string): Promise<void> {
+  try {
+    const userRef = doc(dbfs, "user", telegramIdEncrypted);
+    await updateDoc(userRef, { email });
+  } catch (error) {
+    console.error("Error linking email to user doc:", error);
+    throw error;
+  }
+}
+
 export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, email }: { telegramIdEncrypted: string, initDataUnsafe: any, email?: string }) {
   try {
     if (!telegramIdEncrypted || !initDataUnsafe) {

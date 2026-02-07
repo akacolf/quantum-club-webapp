@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function TermsOfServicePage() {
@@ -25,8 +24,7 @@ export default function TermsOfServicePage() {
             <p className="text-muted-foreground text-sm">Last updated: January 19, 2026</p>
           </div>
 
-          <ScrollArea className="h-[calc(100vh-280px)] rounded-xl border border-border bg-card p-4">
-            <div className="prose prose-invert prose-sm max-w-none space-y-6">
+          <div className="prose prose-invert prose-sm max-w-none space-y-6">
 
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-2">1. Acceptance of Terms</h2>
@@ -209,8 +207,7 @@ export default function TermsOfServicePage() {
                 </p>
               </section>
 
-            </div>
-          </ScrollArea>
+          </div>
         </motion.div>
       </div>
     </div>
