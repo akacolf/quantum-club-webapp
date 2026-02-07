@@ -22,8 +22,10 @@ import { useAuth } from "@/app/(contexts)/auth";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
 import { UseRegisterAndAuth } from "@/app/(login)/registerAndAuth";
-import { useGameContext } from "@/app/(contexts)/MiningContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
+import { useDeviceDetection } from "@/app/(login)/deviceDetection";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 
 export default function SignUp() {
@@ -48,13 +50,25 @@ export default function SignUp() {
     setWalletAddress,
     setLastActiveTime,
     setRemainingSolveToEarn,
-  } = useGameContext();
+  } = useUserContext();
   const { setUserRank } = useLeaderboardContext();
 
+  // Enable fullscreen mode for Telegram Mini App
+  useDeviceDetection();
+  
+  // Telegram back button to return to login
+  useTelegramBackButton("/");
+
   useEffect(() => {
+    // Prefetch auth-related pages for faster navigation
+    router.prefetch("/");
+    router.prefetch("/legal/terms");
+    router.prefetch("/legal/privacy");
+    router.prefetch("/home");
+    
     const timer = setTimeout(() => setIsPageLoading(false), 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,14 +405,14 @@ export default function SignUp() {
           <p className="text-balance text-center text-xs text-muted-foreground">
             By continuing, you agree to our{" "}
             <Link
-              href="/wallet/settings/terms"
+              href="/legal/terms"
               className="underline underline-offset-4 hover:text-primary"
             >
               Terms of Service
             </Link>{" "}
             and{" "}
             <Link
-              href="/wallet/settings/privacy"
+              href="/legal/privacy"
               className="underline underline-offset-4 hover:text-primary"
             >
               Privacy Policy

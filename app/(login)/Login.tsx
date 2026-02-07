@@ -24,6 +24,7 @@ import { encryptData } from "@/app/actions/actions";
 import { UseRegisterAndAuth } from "./registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
+import { useDeviceDetection } from "./deviceDetection";
 import Loader from "@/app/(components)/Loader";
 
 export default function Login() {
@@ -47,11 +48,21 @@ export default function Login() {
     setRemainingSolveToEarn,
   } = useUserContext();
   const { setUserRank } = useLeaderboardContext();
-  const auth = useAuth()
+
+  // Enable fullscreen mode for Telegram Mini App
+  useDeviceDetection();
+
   useEffect(() => {
+    // Prefetch auth-related pages for faster navigation
+    router.prefetch("/signup");
+    router.prefetch("/forgot-password");
+    router.prefetch("/legal/terms");
+    router.prefetch("/legal/privacy");
+    router.prefetch("/home");
+    
     const timer = setTimeout(() => setIsPageLoading(false), 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +77,7 @@ export default function Login() {
     setIsLoading(true);
     setError(null);
     try {
-      await auth?.loginWithGoogle()
+      await authContext?.loginWithGoogle()
     } catch (err) {
       console.error("Google sign-in error:", err);
       setError("Failed to sign in with Google. Please try again.");
@@ -187,7 +198,7 @@ export default function Login() {
               </div>
               <CardTitle className="text-xl">Welcome back</CardTitle>
               <CardDescription>
-                Login to your Quantum Club account
+                Log in to your Quantum Club account
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -247,12 +258,12 @@ export default function Login() {
                     <div className="grid gap-2">
                       <div className="flex items-center">
                         <Label htmlFor="password">Password</Label>
-                        <a
-                          href="#"
+                        <Link
+                          href="/forgot-password"
                           className="ml-auto text-sm text-muted-foreground underline-offset-4 hover:underline"
                         >
                           Forgot password?
-                        </a>
+                        </Link>
                       </div>
                       <div className="relative">
                         <Input
@@ -315,14 +326,14 @@ export default function Login() {
           <p className="text-balance text-center text-xs text-muted-foreground">
             By continuing, you agree to our{" "}
             <Link
-              href="/wallet/settings/terms"
+              href="/legal/terms"
               className="underline underline-offset-4 hover:text-primary"
             >
               Terms of Service
             </Link>{" "}
             and{" "}
             <Link
-              href="/wallet/settings/privacy"
+              href="/legal/privacy"
               className="underline underline-offset-4 hover:text-primary"
             >
               Privacy Policy

@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
 import { useRouter } from "next/navigation";
-import { useGameContext } from "../(contexts)/MiningContext";
+import { useUserContext } from "../(contexts)/UserContext";
 import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
 import { useAuth } from "../(contexts)/auth";
 export default function TelegramLogin() {
@@ -22,7 +22,7 @@ export default function TelegramLogin() {
     setWalletAddress,
     setLastActiveTime,
     setRemainingSolveToEarn,
-  } = useGameContext();
+  } = useUserContext();
   const { setUserRank } = useLeaderboardContext();
   useEffect(()=>{
     let isMounted = true;
