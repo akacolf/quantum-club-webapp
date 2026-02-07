@@ -6,7 +6,7 @@ import QRCodeStyling from "qr-code-styling";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Share2, Users, X } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const InvitePopup = () => {
   const { telegramId } = useUserContext();
@@ -90,7 +90,7 @@ const InvitePopup = () => {
         onClick={openPopup}
         className="w-full h-12 bg-white text-black hover:bg-gray-200 font-bold rounded-xl text-base shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all active:scale-95"
       >
-        <Users className="mr-2 h-5 w-5" />
+        <Icon icon="lucide:users" className="mr-2 h-5 w-5" />
         Invite frens
       </Button>
 
@@ -123,7 +123,7 @@ const InvitePopup = () => {
                     onClick={closePopup}
                     className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
                   >
-                    <X className="h-5 w-5" />
+                    <Icon icon="lucide:x" className="h-5 w-5" />
                   </Button>
                 </CardHeader>
                 <CardContent className="p-6 flex flex-col gap-4">
@@ -146,7 +146,7 @@ const InvitePopup = () => {
                     onClick={handleCopyLink}
                     className="w-full h-14 bg-white text-black hover:bg-gray-200 font-bold text-base rounded-xl transition-all active:scale-95"
                   >
-                    <Copy className="mr-2 h-5 w-5" />
+                    <Icon icon="lucide:copy" className="mr-2 h-5 w-5" />
                     Copy link
                   </Button>
                   <Button
@@ -156,7 +156,7 @@ const InvitePopup = () => {
                     }}
                     className="w-full h-14 bg-[#2a2a2a] text-white hover:bg-[#333] border border-[#444] font-bold text-base rounded-xl transition-all active:scale-95"
                   >
-                    <Share2 className="mr-2 h-5 w-5" />
+                    <Icon icon="lucide:share-2" className="mr-2 h-5 w-5" />
                     Share link
                   </Button>
                 </CardContent>

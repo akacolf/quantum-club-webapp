@@ -95,7 +95,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10">
+    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pt-[15vh]">
       <div className="w-full max-w-sm">
         <div className={cn("flex flex-col gap-6")}>
           <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
@@ -202,7 +202,7 @@ export default function ForgotPassword() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="m@example.com"
+                          placeholder="Your email address"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required

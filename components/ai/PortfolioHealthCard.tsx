@@ -2,15 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    Sparkles,
-    Heart,
-    AlertTriangle,
-    Lightbulb,
-    Loader2,
-    RefreshCw,
-    ChevronRight,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AIGlowBorder } from "./AIGlow";
@@ -115,9 +107,9 @@ export function PortfolioHealthCard({
                 className="gap-2"
             >
                 {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
                 ) : (
-                    <Sparkles className="w-4 h-4" />
+                    <Icon icon="lucide:sparkles" className="w-4 h-4" />
                 )}
                 AI Health Check
             </Button>
@@ -130,11 +122,11 @@ export function PortfolioHealthCard({
                 <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-red-400 text-sm">
-                            <AlertTriangle className="w-4 h-4" />
+                            <Icon icon="lucide:alert-triangle" className="w-4 h-4" />
                             <span>{error}</span>
                         </div>
                         <Button variant="ghost" size="sm" onClick={analyzePortfolio}>
-                            <RefreshCw className="w-3 h-3" />
+                            <Icon icon="lucide:refresh-cw" className="w-3 h-3" />
                         </Button>
                     </div>
                 </CardContent>
@@ -154,7 +146,7 @@ export function PortfolioHealthCard({
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                    <Heart className="w-5 h-5 text-primary" />
+                                    <Icon icon="lucide:heart" className="w-5 h-5 text-primary" />
                                 </div>
                                 <div className="text-left">
                                     <p className="font-medium text-white">Portfolio Health</p>
@@ -166,9 +158,9 @@ export function PortfolioHealthCard({
                                 </div>
                             </div>
                             {isLoading ? (
-                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-primary" />
                             ) : (
-                                <ChevronRight className="w-5 h-5 text-gray-500" />
+                                <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-500" />
                             )}
                         </button>
                     </CardContent>
@@ -230,7 +222,7 @@ export function PortfolioHealthCard({
                             onClick={analyzePortfolio}
                             disabled={isLoading}
                         >
-                            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                            <Icon icon="lucide:refresh-cw" className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                     </div>
 
@@ -243,7 +235,7 @@ export function PortfolioHealthCard({
                         className="text-xs text-primary flex items-center gap-1"
                     >
                         {showDetails ? "Hide details" : "Show details"}
-                        <ChevronRight className={`w-3 h-3 transition-transform ${showDetails ? "rotate-90" : ""}`} />
+                        <Icon icon="lucide:chevron-right" className={`w-3 h-3 transition-transform ${showDetails ? "rotate-90" : ""}`} />
                     </button>
 
                     {/* Expanded Details */}
@@ -259,7 +251,7 @@ export function PortfolioHealthCard({
                                 {analysis.risks.length > 0 && (
                                     <div>
                                         <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                                            <AlertTriangle className="w-3 h-3" />
+                                            <Icon icon="lucide:alert-triangle" className="w-3 h-3" />
                                             Risks
                                         </p>
                                         <ul className="space-y-1.5 pl-1">
@@ -277,7 +269,7 @@ export function PortfolioHealthCard({
                                 {analysis.opportunities.length > 0 && (
                                     <div>
                                         <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                                            <Lightbulb className="w-3 h-3" />
+                                            <Icon icon="lucide:lightbulb" className="w-3 h-3" />
                                             Opportunities
                                         </p>
                                         <ul className="space-y-1.5 pl-1">

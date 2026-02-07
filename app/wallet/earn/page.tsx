@@ -2,18 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import {
-    TrendingUp,
-    RefreshCw,
-    Info,
-    Sparkles,
-    Shield,
-    Coins,
-    Droplets,
-    ArrowRight,
-    CheckCircle,
-    CircleDollarSign,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -86,9 +75,9 @@ const RISK_COLORS = {
     high: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/20" },
 };
 
-const TYPE_ICONS = {
-    staking: Shield,
-    lp: Droplets,
+const TYPE_ICONS: Record<string, string> = {
+    staking: "lucide:shield",
+    lp: "lucide:droplets",
 };
 
 export default function EarnPage() {
@@ -164,7 +153,7 @@ export default function EarnPage() {
                         disabled={isLoading}
                         className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 active:bg-white/10"
                     >
-                        <RefreshCw className={`w-5 h-5 text-gray-400 ${isLoading ? "animate-spin" : ""}`} />
+                        <Icon icon="lucide:refresh-cw" className={`w-5 h-5 text-gray-400 ${isLoading ? "animate-spin" : ""}`}/>
                     </button>
                 </div>
 
@@ -172,7 +161,7 @@ export default function EarnPage() {
                 <div className="grid grid-cols-2 gap-3">
                     <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                         <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-4 h-4 text-green-500" />
+                            <Icon icon="lucide:trending-up" className="w-4 h-4 text-green-500"/>
                             <span className="text-xs text-gray-500">Best APY</span>
                         </div>
                         <p className="text-2xl font-bold text-green-500">
@@ -181,7 +170,7 @@ export default function EarnPage() {
                     </div>
                     <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                         <div className="flex items-center gap-2 mb-2">
-                            <Coins className="w-4 h-4 text-gray-400" />
+                            <Icon icon="lucide:coins" className="w-4 h-4 text-gray-400"/>
                             <span className="text-xs text-gray-500">Your Balance</span>
                         </div>
                         <p className="text-2xl font-bold text-white">
@@ -195,7 +184,7 @@ export default function EarnPage() {
                 {tonBalanceNum > 0 && bestApy > 0 && (
                     <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-green-500/10 border border-primary/20">
                         <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-4 h-4 text-primary" />
+                            <Icon icon="lucide:sparkles" className="w-4 h-4 text-primary"/>
                             <span className="text-sm font-medium text-white">Potential Earnings</span>
                         </div>
                         <p className="text-sm text-gray-400">
@@ -229,13 +218,13 @@ export default function EarnPage() {
                             className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-primary/10 border border-primary/20 text-left"
                         >
                             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-3">
-                                <CircleDollarSign className="w-5 h-5 text-primary" />
+                                <Icon icon="lucide:circle-dollar-sign" className="w-5 h-5 text-primary"/>
                             </div>
                             <h3 className="font-semibold text-white mb-1">Stake TON</h3>
                             <p className="text-xs text-gray-500">~5% APY · Low Risk</p>
                             <div className="flex items-center gap-1 text-xs text-primary mt-2">
                                 <span>Stake Now</span>
-                                <ArrowRight className="w-3 h-3" />
+                                <Icon icon="lucide:arrow-right" className="w-3 h-3"/>
                             </div>
                         </motion.button>
 
@@ -245,13 +234,13 @@ export default function EarnPage() {
                             className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-blue-500/10 border border-blue-500/20 text-left"
                         >
                             <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
-                                <Droplets className="w-5 h-5 text-blue-500" />
+                                <Icon icon="lucide:droplets" className="w-5 h-5 text-blue-500"/>
                             </div>
                             <h3 className="font-semibold text-white mb-1">Add Liquidity</h3>
                             <p className="text-xs text-gray-500">~12% APY · Med Risk</p>
                             <div className="flex items-center gap-1 text-xs text-blue-500 mt-2">
                                 <span>Start</span>
-                                <ArrowRight className="w-3 h-3" />
+                                <Icon icon="lucide:arrow-right" className="w-3 h-3"/>
                             </div>
                         </motion.button>
                     </div>
@@ -272,7 +261,7 @@ export default function EarnPage() {
                         <div className="space-y-2">
                             {protocols.map((protocol) => {
                                 const riskColors = RISK_COLORS[protocol.riskLevel];
-                                const TypeIcon = TYPE_ICONS[protocol.type];
+                                const typeIcon = TYPE_ICONS[protocol.type];
                                 
                                 return (
                                     <motion.button
@@ -295,7 +284,7 @@ export default function EarnPage() {
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="font-medium text-white">{protocol.name}</h3>
                                                     <Badge variant="secondary" className="text-[10px] h-5 px-1.5 whitespace-nowrap">
-                                                        <TypeIcon className="w-3 h-3 mr-0.5" />
+                                                        <Icon icon={typeIcon} className="w-3 h-3 mr-0.5" />
                                                         {protocol.type}
                                                     </Badge>
                                                 </div>
@@ -313,7 +302,7 @@ export default function EarnPage() {
                                             <div className="text-right flex-shrink-0">
                                                 <p className="text-xl font-bold text-green-500">{protocol.apy.toFixed(1)}%</p>
                                                 <p className="text-xs text-gray-500">APY</p>
-                                                <ArrowRight className="w-4 h-4 text-primary mt-2 ml-auto" />
+                                                <Icon icon="lucide:arrow-right" className="w-4 h-4 text-primary mt-2 ml-auto"/>
                                             </div>
                                         </div>
                                     </motion.button>
@@ -326,7 +315,7 @@ export default function EarnPage() {
                 {/* Info Card */}
                 <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                     <div className="flex gap-3">
-                        <Info className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                        <Icon icon="lucide:info" className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5"/>
                         <div>
                             <p className="text-sm font-medium text-gray-400">
                                 Understanding DeFi Yields
@@ -336,11 +325,11 @@ export default function EarnPage() {
                             </p>
                             <div className="flex flex-wrap gap-2 mt-3">
                                 <div className="flex items-center gap-1 text-[10px] text-gray-500 whitespace-nowrap">
-                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                    <Icon icon="lucide:check-circle" className="w-3 h-3 text-green-500"/>
                                     Low Risk = Staking
                                 </div>
                                 <div className="flex items-center gap-1 text-[10px] text-gray-500 whitespace-nowrap">
-                                    <CheckCircle className="w-3 h-3 text-yellow-500" />
+                                    <Icon icon="lucide:check-circle" className="w-3 h-3 text-yellow-500"/>
                                     Med Risk = Liquidity
                                 </div>
                             </div>

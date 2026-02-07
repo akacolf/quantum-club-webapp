@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/app/(providers)/ThemeProvider";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -22,9 +22,9 @@ export function ThemeToggle() {
           className="h-9 w-9 rounded-full bg-secondary/50 hover:bg-secondary"
         >
           {resolvedTheme === "light" ? (
-            <Sun className="h-4 w-4" />
+            <Icon icon="lucide:sun" className="h-4 w-4" />
           ) : (
-            <Moon className="h-4 w-4" />
+            <Icon icon="lucide:moon" className="h-4 w-4" />
           )}
           <span className="sr-only">Toggle theme</span>
         </Button>
@@ -34,21 +34,21 @@ export function ThemeToggle() {
           onClick={() => setTheme("light")}
           className={theme === "light" ? "bg-accent" : ""}
         >
-          <Sun className="mr-2 h-4 w-4" />
+          <Icon icon="lucide:sun" className="mr-2 h-4 w-4" />
           Light
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme("dark")}
           className={theme === "dark" ? "bg-accent" : ""}
         >
-          <Moon className="mr-2 h-4 w-4" />
+          <Icon icon="lucide:moon" className="mr-2 h-4 w-4" />
           Dark
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme("system")}
           className={theme === "system" ? "bg-accent" : ""}
         >
-          <Monitor className="mr-2 h-4 w-4" />
+          <Icon icon="lucide:monitor" className="mr-2 h-4 w-4" />
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -84,7 +84,7 @@ export function NetworkSelector({
                     <span className="text-sm font-medium text-white">
                         {currentChain.symbol}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                    <Icon icon="lucide:chevron-down" className="w-3.5 h-3.5 text-gray-400" />
                 </Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-3xl bg-[#111] border-[#333] pb-8">

@@ -9,7 +9,7 @@ import Loader from "@/app/(components)/Loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Users, ChevronRight } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 interface GroupItemProps {
     group: Group;
@@ -48,7 +48,7 @@ const GroupItem = memo(function GroupItem({ group, index, onNavigate }: GroupIte
                             </p>
                         </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground" />
                 </CardContent>
             </Card>
         </motion.div>
@@ -92,7 +92,7 @@ export default function GroupsPage() {
                         onClick={handleNavigateToCreate}
                         className="h-11 px-6 bg-white text-black hover:bg-white/90 font-bold rounded-2xl active:scale-95 transition-all"
                     >
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Icon icon="lucide:plus" className="w-4 h-4 mr-1" />
                         Create
                     </Button>
                 </div>
@@ -105,7 +105,7 @@ export default function GroupsPage() {
                         className="flex flex-col items-center justify-center py-16 space-y-4"
                     >
                         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                            <Users className="w-8 h-8 text-muted-foreground" />
+                            <Icon icon="lucide:users" className="w-8 h-8 text-muted-foreground" />
                         </div>
                         <p className="text-muted-foreground text-center">
                             You haven&apos;t joined any groups yet

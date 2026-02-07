@@ -1,10 +1,23 @@
 "use client";
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { UserDataProvider } from "../(contexts)/UserContext";
 import { WalletProvider } from "../wallet/WalletContext";
 import { ThemeProvider } from "./ThemeProvider";
 import { initTelegramAnalytics, analyticsEvents } from "@/lib/telegramAnalytics";
+
+// Shared QueryClient instance — available to all providers and hooks
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 3,
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+            staleTime: 60_000,
+            refetchOnWindowFocus: false,
+        },
+    },
+});
 
 // Lazy load non-critical providers to reduce initial bundle
 const LeaderboardProvider = dynamic(() => import("../(contexts)/LeaderboardContext").then(m => ({ default: m.LeaderboardProvider })));
@@ -32,25 +45,27 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   }, []);
 
   return (
-    <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
-      <UserDataProvider>
-        <WalletProvider>
-          <LeaderboardProvider>
-            <FrensProvider>
-              <ChatProvider>
-                <GroupsProvider>
-                  <TradingProvider>
-                    <OmnistonClientProvider>
-                      {children}
-                      <AIChatDrawer />
-                    </OmnistonClientProvider>
-                  </TradingProvider>
-                </GroupsProvider>
-              </ChatProvider>
-            </FrensProvider>
-          </LeaderboardProvider>
-        </WalletProvider>
-      </UserDataProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
+        <UserDataProvider>
+          <WalletProvider>
+            <LeaderboardProvider>
+              <FrensProvider>
+                <ChatProvider>
+                  <GroupsProvider>
+                    <TradingProvider>
+                      <OmnistonClientProvider>
+                        {children}
+                        <AIChatDrawer />
+                      </OmnistonClientProvider>
+                    </TradingProvider>
+                  </GroupsProvider>
+                </ChatProvider>
+              </FrensProvider>
+            </LeaderboardProvider>
+          </WalletProvider>
+        </UserDataProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

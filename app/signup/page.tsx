@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from "firebase/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { auth } from "@/app/(firebase)/client";
 import { useAuth } from "@/app/(contexts)/auth";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
@@ -88,10 +86,60 @@ export default function SignUp() {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      if (userCredential.user) {
-        router.replace("/home");
+      // Create Firebase account with email verification
+      await authContext?.signUpWithEmail(email, password);
+
+      // Register with TG ID (since we're in TG Mini App)
+      if (
+        typeof window !== "undefined" &&
+        window.Telegram &&
+        window.Telegram.WebApp
+      ) {
+        const WebApp = window.Telegram.WebApp;
+        WebApp.ready();
+        const initDataUnsafe = WebApp.initDataUnsafe;
+
+        const authenticated = await authenticateUser();
+        if (authenticated) {
+          const encryptedId = await encryptData(
+            initDataUnsafe.user?.id.toString() || ""
+          );
+          if (!encryptedId) {
+            throw new Error("Failed to encrypt Telegram ID");
+          }
+
+          const cleanData = encryptedId.toString();
+          const telegramIdEncrypted = cleanData
+            .replace(/['"]+/g, "")
+            .replace(/[^a-zA-Z0-9]/g, "");
+
+          // Store email in the user's Firestore profile
+          const data = await UseRegisterAndAuth({
+            telegramIdEncrypted,
+            initDataUnsafe,
+            email,
+          });
+
+          if (data.status === "maintenance") {
+            router.replace("/maintenance");
+            return;
+          }
+
+          if (data.status === "completed") {
+            setTelegramId(data.telegramId);
+            SetMainQuantAmount(data.MainQuantAmount);
+            setRank(data.rank);
+            setUserRank(data.userRank);
+            setDaily(data.daily);
+            setUsername(data.username);
+            setWalletAddress(data.walletAddress);
+            setLastActiveTime(data.lastActiveTime);
+            setRemainingSolveToEarn(data.remainingSolveToEarn);
+          }
+        }
       }
+
+      router.replace("/home");
     } catch (err) {
       console.error("Sign up error:", err);
       if (err instanceof Error) {
@@ -114,14 +162,62 @@ export default function SignUp() {
     setIsLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-      const result = await signInWithPopup(auth, provider);
-      if (result.user) {
-        router.replace("/home");
+      await authContext?.loginWithGoogle();
+
+      // Get Google email from Firebase auth
+      const { auth: firebaseAuth } = await import("@/app/(firebase)/client");
+      const googleEmail = firebaseAuth.currentUser?.email;
+
+      // Register with TG ID (since we're in TG Mini App)
+      if (
+        typeof window !== "undefined" &&
+        window.Telegram &&
+        window.Telegram.WebApp
+      ) {
+        const WebApp = window.Telegram.WebApp;
+        WebApp.ready();
+        const initDataUnsafe = WebApp.initDataUnsafe;
+
+        const authenticated = await authenticateUser();
+        if (authenticated) {
+          const encryptedId = await encryptData(
+            initDataUnsafe.user?.id.toString() || ""
+          );
+          if (!encryptedId) {
+            throw new Error("Failed to encrypt Telegram ID");
+          }
+
+          const cleanData = encryptedId.toString();
+          const telegramIdEncrypted = cleanData
+            .replace(/['"]+/g, "")
+            .replace(/[^a-zA-Z0-9]/g, "");
+
+          const data = await UseRegisterAndAuth({
+            telegramIdEncrypted,
+            initDataUnsafe,
+            email: googleEmail || undefined,
+          });
+
+          if (data.status === "maintenance") {
+            router.replace("/maintenance");
+            return;
+          }
+
+          if (data.status === "completed") {
+            setTelegramId(data.telegramId);
+            SetMainQuantAmount(data.MainQuantAmount);
+            setRank(data.rank);
+            setUserRank(data.userRank);
+            setDaily(data.daily);
+            setUsername(data.username);
+            setWalletAddress(data.walletAddress);
+            setLastActiveTime(data.lastActiveTime);
+            setRemainingSolveToEarn(data.remainingSolveToEarn);
+          }
+        }
       }
+
+      router.replace("/home");
     } catch (err) {
       console.error("Google sign-up error:", err);
       setError("Failed to sign up with Google. Please try again.");
@@ -219,7 +315,7 @@ export default function SignUp() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10">
+    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pt-[15vh]">
       <div className="w-full max-w-sm">
         <div className={cn("flex flex-col gap-6")}>
           <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
@@ -291,7 +387,7 @@ export default function SignUp() {
                       <Input
                         id="name"
                         type="text"
-                        placeholder="John Doe"
+                        placeholder="Your name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
@@ -304,7 +400,7 @@ export default function SignUp() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="m@example.com"
+                        placeholder="Your email address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required

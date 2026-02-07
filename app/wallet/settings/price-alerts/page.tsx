@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, Bell, BellOff, TrendingUp, TrendingDown, RefreshCw, ChevronDown, Info } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useAllPrices } from "@/app/(hooks)/queries/use-prices";
+import { usePriceAlerts } from "@/app/(hooks)/queries/use-trades";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PriceAlert {
     id: string;
@@ -46,65 +49,24 @@ const SUPPORTED_TOKENS: TokenOption[] = [
 export default function PriceAlertsPage() {
     useTelegramBackButton("/wallet/settings");
     const { telegramId } = useUserContext();
+    const queryClient = useQueryClient();
 
-    const [alerts, setAlerts] = useState<PriceAlert[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: alerts = [], isFetching: isLoading } = usePriceAlerts(telegramId);
+    const { data: pricesData } = useAllPrices();
+    const currentPrices: Record<string, number> = {
+        TON: pricesData?.ton || 0,
+        BTC: pricesData?.btc || 0,
+        ETH: pricesData?.eth || 0,
+        SOL: pricesData?.sol || 0,
+        TRX: pricesData?.trx || 0,
+    };
+
     const [isAdding, setIsAdding] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedToken, setSelectedToken] = useState<TokenOption>(SUPPORTED_TOKENS[0]);
     const [showTokenPicker, setShowTokenPicker] = useState(false);
     const [targetPrice, setTargetPrice] = useState("");
     const [direction, setDirection] = useState<"above" | "below">("above");
-    const [currentPrices, setCurrentPrices] = useState<Record<string, number>>({});
-
-    // Fetch alerts from API
-    const fetchAlerts = useCallback(async () => {
-        if (!telegramId) return;
-        
-        setIsLoading(true);
-        try {
-            const response = await fetch(`/api/price-alerts?telegramId=${telegramId}`, {
-                credentials: "include",
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setAlerts(data.alerts || []);
-            } else {
-                toast.error("Failed to load alerts");
-            }
-        } catch (error) {
-            console.error("Error fetching alerts:", error);
-            toast.error("Failed to load alerts");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [telegramId]);
-
-    // Fetch current prices using DeFiLlama (free, no rate limits)
-    const fetchPrices = useCallback(async () => {
-        try {
-            const { fetchAllPrices } = await import("@/lib/price-api");
-            const prices = await fetchAllPrices();
-            setCurrentPrices({
-                TON: prices.ton || 0,
-                BTC: prices.btc || 0,
-                ETH: prices.eth || 0,
-                SOL: prices.sol || 0,
-                TRX: prices.trx || 0,
-            });
-        } catch (error) {
-            console.error("Failed to fetch prices:", error);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchAlerts();
-        fetchPrices();
-        
-        // Refresh prices every 30s
-        const interval = setInterval(fetchPrices, 30000);
-        return () => clearInterval(interval);
-    }, [fetchAlerts, fetchPrices]);
 
     const handleAdd = async () => {
         const price = parseFloat(targetPrice);
@@ -138,7 +100,7 @@ export default function PriceAlertsPage() {
             const data = await response.json();
 
             if (response.ok) {
-                setAlerts([data.alert, ...alerts]);
+                queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
                 setTargetPrice("");
                 setIsAdding(false);
                 toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
@@ -159,7 +121,7 @@ export default function PriceAlertsPage() {
                     });
                     const retryData = await retryResponse.json();
                     if (retryResponse.ok) {
-                        setAlerts([retryData.alert, ...alerts]);
+                        queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
                         setTargetPrice("");
                         setIsAdding(false);
                         toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
@@ -190,7 +152,7 @@ export default function PriceAlertsPage() {
             );
 
             if (response.ok) {
-                setAlerts(alerts.filter((a) => a.id !== alertId));
+                queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
                 toast.success("Alert removed");
             } else {
                 toast.error("Failed to delete alert");
@@ -231,17 +193,17 @@ export default function PriceAlertsPage() {
                         <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => { fetchAlerts(); fetchPrices(); }}
+                            onClick={() => { queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] }); queryClient.invalidateQueries({ queryKey: ["prices", "all"] }); }}
                             className="h-9 w-9 rounded-xl"
                         >
-                            <RefreshCw className="w-4 h-4" />
+                            <Icon icon="lucide:refresh-cw" className="w-4 h-4" />
                         </Button>
                         <Button
                             size="sm"
                             onClick={() => setIsAdding(true)}
                             className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 rounded-xl px-4 font-semibold shadow-sm"
                         >
-                            <Plus className="w-4 h-4 mr-1" />
+                            <Icon icon="lucide:plus" className="w-4 h-4 mr-1" />
                             Add
                         </Button>
                     </div>
@@ -291,7 +253,7 @@ export default function PriceAlertsPage() {
                                                     {selectedToken.name}
                                                 </span>
                                             </div>
-                                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                            <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground" />
                                         </Button>
 
                                         <AnimatePresence>
@@ -348,7 +310,7 @@ export default function PriceAlertsPage() {
                                                     : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                             }`}
                                         >
-                                            <TrendingUp className="w-4 h-4" />
+                                            <Icon icon="lucide:trending-up" className="w-4 h-4" />
                                             Above
                                         </Button>
                                         <Button
@@ -360,7 +322,7 @@ export default function PriceAlertsPage() {
                                                     : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                             }`}
                                         >
-                                            <TrendingDown className="w-4 h-4" />
+                                            <Icon icon="lucide:trending-down" className="w-4 h-4" />
                                             Below
                                         </Button>
                                     </div>
@@ -422,7 +384,7 @@ export default function PriceAlertsPage() {
 
                 {alerts.length === 0 && !isAdding ? (
                     <div className="text-center py-12">
-                        <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                        <Icon icon="lucide:bell" className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
                         <p className="text-muted-foreground">No price alerts</p>
                         <p className="text-sm text-muted-foreground/50 mt-1">
                             Get notified via Telegram when prices hit your targets
@@ -450,9 +412,9 @@ export default function PriceAlertsPage() {
                                                         }`}
                                                     >
                                                         {alert.direction === "above" ? (
-                                                            <TrendingUp className="w-5 h-5 text-green-500" />
+                                                            <Icon icon="lucide:trending-up" className="w-5 h-5 text-green-500" />
                                                         ) : (
-                                                            <TrendingDown className="w-5 h-5 text-destructive" />
+                                                            <Icon icon="lucide:trending-down" className="w-5 h-5 text-destructive" />
                                                         )}
                                                     </div>
                                                     <div>
@@ -473,7 +435,7 @@ export default function PriceAlertsPage() {
                                                     onClick={() => handleDelete(alert.id)}
                                                     className="text-destructive hover:text-destructive/80 h-8 w-8"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Icon icon="lucide:trash-2" className="w-4 h-4" />
                                                 </Button>
                                             </CardContent>
                                         </Card>
@@ -492,7 +454,7 @@ export default function PriceAlertsPage() {
                                             <CardContent className="p-4 flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 bg-gray-500/20 rounded-full flex items-center justify-center">
-                                                        <BellOff className="w-5 h-5 text-gray-400" />
+                                                        <Icon icon="lucide:bell-off" className="w-5 h-5 text-gray-400" />
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-2">
@@ -512,7 +474,7 @@ export default function PriceAlertsPage() {
                                                     onClick={() => handleDelete(alert.id)}
                                                     className="text-muted-foreground hover:text-foreground h-8 w-8"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Icon icon="lucide:trash-2" className="w-4 h-4" />
                                                 </Button>
                                             </CardContent>
                                         </Card>
@@ -525,7 +487,7 @@ export default function PriceAlertsPage() {
 
                 <div className="mt-6 p-3 bg-primary/10 border border-primary/20 rounded-xl">
                     <p className="text-xs text-primary/80 text-left flex items-center justify-start gap-1.5">
-                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        <Icon icon="lucide:info" className="w-3.5 h-3.5 shrink-0" />
                         Alerts are checked every minute. You&apos;ll receive a Telegram notification when your price target is hit.
                     </p>
                 </div>

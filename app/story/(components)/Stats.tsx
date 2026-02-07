@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trophy, Wallet } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const TelegramSVG = memo(({ className }: { className?: string }) => (
         <svg
@@ -50,7 +50,7 @@ export default function StoryStats() {
                 <CardContent className="p-5 relative z-10">
                     <div className="flex items-start justify-between mb-4">
                         <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                            <Wallet className="w-6 h-6 text-blue-400" />
+                            <Icon icon="lucide:wallet" className="w-6 h-6 text-blue-400" />
                         </div>
                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
                             <TelegramSVG className="w-3 h-3" />
@@ -69,7 +69,7 @@ export default function StoryStats() {
                 <CardContent className="p-5 relative z-10">
                     <div className="flex items-start justify-between mb-4">
                         <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20">
-                            <Trophy className="w-6 h-6 text-purple-400" />
+                            <Icon icon="lucide:trophy" className="w-6 h-6 text-purple-400" />
                         </div>
                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 rounded-lg border border-purple-500/20">
                             <TelegramSVG className="w-3 h-3" />

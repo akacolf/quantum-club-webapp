@@ -5,7 +5,7 @@
  * Fetches trade data from TONAPI across multiple tokens
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCompactNumber } from "@/lib/jetton-operations";
 import { Address } from "@ton/core";
+import { useGlobalTrades } from "@/app/(hooks)/queries/use-trades";
 
 interface GlobalTrade {
     id: string;
@@ -31,161 +32,13 @@ interface GlobalTrade {
 }
 
 export default function GlobalLiveTrades() {
-    const [trades, setTrades] = useState<GlobalTrade[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
     const { tonPrice, isTestnet } = useWallet();
     const { trendingTokens, newTokens } = useTrading();
     const router = useRouter();
 
-    useEffect(() => {
-        const fetchOnChainTrades = async () => {
-            try {
-                // Get tokens with jetton addresses
-                const allTokens = [...trendingTokens, ...newTokens]
-                    .filter((t, i, arr) => 
-                        t.jettonMasterAddress && 
-                        arr.findIndex(x => x.id === t.id) === i
-                    )
-                    .slice(0, 5); // Limit to 5 tokens to avoid rate limits
-
-                if (allTokens.length === 0) {
-                    setIsLoading(false);
-                    return;
-                }
-
-                const { tonApiGet } = await import("@/lib/tonapi-client");
-
-                const allTrades: GlobalTrade[] = [];
-
-                // Fetch trades for each token
-                await Promise.all(
-                    allTokens.map(async (token) => {
-                        try {
-                            const data = await tonApiGet<{ transactions?: Array<{
-                                success?: boolean;
-                                hash?: string;
-                                utime?: number;
-                                in_msg?: {
-                                    op_code?: string;
-                                    value?: number;
-                                    source?: { address?: string };
-                                    decoded_body?: { amount?: string; sender?: string; from_address?: string };
-                                };
-                                out_msgs?: Array<{
-                                    op_code?: string;
-                                    value?: number;
-                                    destination?: { address?: string };
-                                    decoded_body?: { amount?: string };
-                                }>;
-                            }> }>(
-                                `/v2/blockchain/accounts/${token.jettonMasterAddress}/transactions?limit=10`,
-                                { testnet: isTestnet }
-                            );
-
-                            // Parse transactions for buy/sell events
-                            for (const tx of data.transactions || []) {
-                                if (!tx.success) continue;
-
-                                const inMsg = tx.in_msg;
-                                if (!inMsg?.op_code) continue;
-
-                                const timestamp = new Date((tx.utime || 0) * 1000);
-                                const hash = tx.hash || "";
-
-                                // BUY transaction (op::buy = 0xaf750d34)
-                                if (inMsg.op_code === "0xaf750d34") {
-                                    const tonValue = (inMsg.value || 0) / 1e9;
-                                    const senderAddress = inMsg.source?.address || "";
-                                    
-                                    // Look for internal_transfer in out_msgs
-                                    const transferMsg = tx.out_msgs?.find(
-                                        (m: { op_code?: string }) => m.op_code === "0x178d4519"
-                                    );
-                                    
-                                    let tokenAmount = 0;
-                                    if (transferMsg?.decoded_body?.amount) {
-                                        tokenAmount = parseInt(transferMsg.decoded_body.amount) / 1e9;
-                                    }
-
-                                    if (tonValue > 0.01 && tokenAmount > 0) {
-                                        allTrades.push({
-                                            id: hash,
-                                            tokenId: token.id,
-                                            tokenSymbol: token.symbol,
-                                            tokenName: token.name,
-                                            jettonAddress: token.jettonMasterAddress,
-                                            type: "buy",
-                                            walletAddress: senderAddress,
-                                            tonAmount: tonValue,
-                                            tokenAmount,
-                                            timestamp,
-                                            hash,
-                                        });
-                                    }
-                                }
-
-                                // SELL transaction (burn_notification = 0x7bdd97de)
-                                if (inMsg.op_code === "0x7bdd97de") {
-                                    const returnMsg = tx.out_msgs?.find(
-                                        (m: { op_code?: string }) => 
-                                            m.op_code === "0xd53276db" || m.op_code === "0xaf5ececd"
-                                    );
-                                    
-                                    const tonValue = returnMsg ? (returnMsg.value || 0) / 1e9 : 0;
-                                    
-                                    let tokenAmount = 0;
-                                    let sellerAddress = "";
-                                    if (inMsg.decoded_body) {
-                                        if (inMsg.decoded_body.amount) {
-                                            tokenAmount = parseInt(inMsg.decoded_body.amount) / 1e9;
-                                        }
-                                        sellerAddress = inMsg.decoded_body.sender || 
-                                                       inMsg.decoded_body.from_address || 
-                                                       returnMsg?.destination?.address || "";
-                                    }
-
-                                    if (tonValue > 0.01 && tokenAmount > 0) {
-                                        allTrades.push({
-                                            id: hash,
-                                            tokenId: token.id,
-                                            tokenSymbol: token.symbol,
-                                            tokenName: token.name,
-                                            jettonAddress: token.jettonMasterAddress,
-                                            type: "sell",
-                                            walletAddress: sellerAddress,
-                                            tonAmount: tonValue,
-                                            tokenAmount,
-                                            timestamp,
-                                            hash,
-                                        });
-                                    }
-                                }
-                            }
-                        } catch (error) {
-                            console.warn(`Failed to fetch trades for ${token.symbol}:`, error);
-                        }
-                    })
-                );
-
-                // Sort by timestamp descending (newest first)
-                allTrades.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-                setTrades(allTrades.slice(0, 10));
-                setIsLoading(false);
-            } catch (error) {
-                console.error("Error fetching on-chain trades:", error);
-                setIsLoading(false);
-            }
-        };
-
-        if (trendingTokens.length > 0 || newTokens.length > 0) {
-            fetchOnChainTrades();
-        }
-        
-        // Refresh every 20 seconds
-        const interval = setInterval(fetchOnChainTrades, 20000);
-        return () => clearInterval(interval);
-    }, [trendingTokens, newTokens, isTestnet]);
+    const allTokens = useMemo(() => [...trendingTokens, ...newTokens], [trendingTokens, newTokens]);
+    const { data: trades = [], isFetching: isLoading } = useGlobalTrades(allTokens, isTestnet, 20000);
 
     // Auto-rotate through trades every 4 seconds
     useEffect(() => {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, MessageCircle } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function SocialSection() {
     const router = useRouter();
@@ -25,7 +25,7 @@ export default function SocialSection() {
                     <Card className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-blue-500/30 hover:border-blue-400/50 transition-colors cursor-pointer h-full">
                         <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2">
                             <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                                <Users className="w-6 h-6 text-blue-400" />
+                                <Icon icon="lucide:users" className="w-6 h-6 text-blue-400" />
                             </div>
                             <div>
                                 <p className="font-semibold text-white text-sm">Groups</p>
@@ -40,7 +40,7 @@ export default function SocialSection() {
                     <Card className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500/30 hover:border-purple-400/50 transition-colors cursor-pointer h-full">
                         <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2">
                             <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                                <MessageCircle className="w-6 h-6 text-purple-400" />
+                                <Icon icon="lucide:message-circle" className="w-6 h-6 text-purple-400" />
                             </div>
                             <div>
                                 <p className="font-semibold text-white text-sm">Messages</p>

@@ -26,6 +26,7 @@ import SlippageSettings from "@/app/trade/(components)/SlippageSettings";
 import { DEFAULT_GRADUATION_THRESHOLD_TON, DEFAULT_SLIPPAGE } from "@/types/trading";
 import ImageViewer from "@/components/ui/image-viewer";
 import { FEE_CONFIG } from "@/lib/platform-config";
+import { useOnChainStats } from "@/app/(hooks)/queries/use-trades";
 import {
     Popover,
     PopoverContent,
@@ -70,12 +71,12 @@ export default function TokenDetailPage() {
     } | null>(null);
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
     
-    // On-chain stats from TONAPI
-    const [onChainStats, setOnChainStats] = useState<{
-        holders: number;
-        trades: number;
-        volume24h: number;
-    }>({ holders: 0, trades: 0, volume24h: 0 });
+    // On-chain stats from TONAPI via TanStack Query
+    const { data: onChainStats = { holders: 0, trades: 0, volume24h: 0 } } = useOnChainStats(
+        selectedToken?.jettonMasterAddress,
+        isTestnet,
+        30000
+    );
 
     // Load token and refresh balance
     useEffect(() => {
@@ -87,61 +88,6 @@ export default function TokenDetailPage() {
             fetchWalletAssets();
         }
     }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
-    
-    // Fetch on-chain stats from TONAPI via authenticated proxy
-    useEffect(() => {
-        const fetchOnChainStats = async () => {
-            if (!selectedToken?.jettonMasterAddress) return;
-            
-            try {
-                const { tonApiGet } = await import("@/lib/tonapi-client");
-                
-                // Fetch holders count
-                const holdersData = await tonApiGet<{ total?: number }>(
-                    `/v2/jettons/${selectedToken.jettonMasterAddress}/holders?limit=1`,
-                    { testnet: isTestnet }
-                );
-                const holdersCount = holdersData.total || 0;
-                
-                // Fetch recent transactions to count trades and volume
-                const txData = await tonApiGet<{ transactions?: Array<{
-                    success?: boolean;
-                    in_msg?: { op_code?: string; value?: number };
-                    utime?: number;
-                }> }>(
-                    `/v2/blockchain/accounts/${selectedToken.jettonMasterAddress}/transactions?limit=50`,
-                    { testnet: isTestnet }
-                );
-                
-                let tradesCount = 0;
-                let volume24h = 0;
-                const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-                
-                for (const tx of txData.transactions || []) {
-                    if (!tx.success) continue;
-                    const opCode = tx.in_msg?.op_code;
-                    // Buy or Sell
-                    if (opCode === "0xaf750d34" || opCode === "0x7bdd97de") {
-                        tradesCount++;
-                        const txTime = (tx.utime || 0) * 1000;
-                        if (txTime > oneDayAgo) {
-                            const tonValue = (tx.in_msg?.value || 0) / 1e9;
-                            volume24h += tonValue;
-                        }
-                    }
-                }
-                
-                setOnChainStats({ holders: holdersCount, trades: tradesCount, volume24h });
-            } catch (error) {
-                console.warn("Failed to fetch on-chain stats:", error);
-            }
-        };
-        
-        fetchOnChainStats();
-        // Refresh every 30 seconds
-        const interval = setInterval(fetchOnChainStats, 30000);
-        return () => clearInterval(interval);
-    }, [selectedToken?.jettonMasterAddress, isTestnet]);
 
     // Get user position
     const position = getPosition(tokenId);

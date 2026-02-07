@@ -24,7 +24,7 @@ export function useDeviceDetection() {
         if (deviceType === "mobile") {
           WebApp.requestFullscreen();
         }
-        WebApp.BackButton.hide(); //window?.Telegram?.WebApp.BackButton.hide();
+        // BackButton visibility is managed by useTelegramBackButton hook per-page
       };
     } catch (error) {
       console.error("Device detection error:", error);

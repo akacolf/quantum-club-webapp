@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, User, Sparkles, Copy, Check, Trash2, History, Plus, ArrowLeft, MessageSquare } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -57,7 +57,7 @@ const ChatMessage = memo(function ChatMessage({ message }: { message: Message })
             {isUser ? (
                 <Avatar className="h-7 w-7 shrink-0">
                     <AvatarFallback className="bg-primary text-primary-foreground">
-                        <User className="w-3.5 h-3.5" />
+                        <Icon icon="lucide:user" className="w-3.5 h-3.5" />
                     </AvatarFallback>
                 </Avatar>
             ) : (
@@ -89,9 +89,9 @@ const ChatMessage = memo(function ChatMessage({ message }: { message: Message })
                         className="self-start h-auto p-0 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors opacity-0 group-hover:opacity-100"
                     >
                         {copied ? (
-                            <><Check className="w-3 h-3" /> Copied</>
+                            <><Icon icon="lucide:check" className="w-3 h-3" /> Copied</>
                         ) : (
-                            <><Copy className="w-3 h-3" /> Copy</>
+                            <><Icon icon="lucide:copy" className="w-3 h-3" /> Copy</>
                         )}
                     </Button>
                 )}
@@ -149,7 +149,7 @@ const ChatInputForm = memo(function ChatInputForm({
                     {isLoading ? (
                         <ButtonLoader />
                     ) : (
-                        <Send className="w-5 h-5" />
+                        <Icon icon="lucide:send" className="w-5 h-5" />
                     )}
                 </Button>
             </form>
@@ -482,7 +482,7 @@ export default function AIChatDrawer() {
                 animate={{ opacity: 1, scale: 1 }}
                 aria-label="Open Quantum Club AI"
             >
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
+                <Icon icon="lucide:sparkles" className="w-6 h-6 text-primary-foreground" />
             </motion.button>
 
             {/* Chat Drawer */}
@@ -521,7 +521,7 @@ export default function AIChatDrawer() {
                                             className="h-8 w-8 rounded-full"
                                             aria-label="Back to chat"
                                         >
-                                            <ArrowLeft className="w-4 h-4" />
+                                            <Icon icon="lucide:arrow-left" className="w-4 h-4" />
                                         </Button>
                                     ) : (
                                         <Avatar className="h-9 w-9">
@@ -559,7 +559,7 @@ export default function AIChatDrawer() {
                                                 className="h-8 w-8 rounded-full bg-secondary hover:bg-accent"
                                                 aria-label="New chat"
                                             >
-                                                <Plus className="w-4 h-4" />
+                                                <Icon icon="lucide:plus" className="w-4 h-4" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -568,7 +568,7 @@ export default function AIChatDrawer() {
                                                 className="h-8 w-8 rounded-full bg-secondary hover:bg-accent"
                                                 aria-label="Chat history"
                                             >
-                                                <History className="w-4 h-4" />
+                                                <Icon icon="lucide:history" className="w-4 h-4" />
                                             </Button>
                                             {messages.length > 0 && (
                                                 <Button
@@ -578,7 +578,7 @@ export default function AIChatDrawer() {
                                                     className="h-8 w-8 rounded-full bg-secondary hover:bg-destructive/20 hover:text-destructive"
                                                     aria-label="Clear chat"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Icon icon="lucide:trash-2" className="w-4 h-4" />
                                                 </Button>
                                             )}
                                         </>
@@ -590,7 +590,7 @@ export default function AIChatDrawer() {
                                         className="h-8 w-8 rounded-full bg-secondary hover:bg-accent"
                                         aria-label="Close chat"
                                     >
-                                        <X className="w-4 h-4 text-muted-foreground" />
+                                        <Icon icon="lucide:x" className="w-4 h-4 text-muted-foreground" />
                                     </Button>
                                 </div>
                             </div>
@@ -601,11 +601,11 @@ export default function AIChatDrawer() {
                                     <div className="space-y-2">
                                         {sessions.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-                                                <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />
+                                                <Icon icon="lucide:message-square" className="w-12 h-12 text-muted-foreground mb-4" />
                                                 <h3 className="text-lg font-semibold text-foreground mb-2">No conversations yet</h3>
                                                 <p className="text-sm text-muted-foreground mb-4">Start a new chat to begin</p>
                                                 <Button onClick={handleNewChat}>
-                                                    <Plus className="w-4 h-4 mr-2" /> New Chat
+                                                    <Icon icon="lucide:plus" className="w-4 h-4 mr-2" /> New Chat
                                                 </Button>
                                             </div>
                                         ) : (
@@ -621,7 +621,7 @@ export default function AIChatDrawer() {
                                                     onClick={() => handleSelectSession(session.id)}
                                                 >
                                                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                        <MessageSquare className="w-5 h-5 text-muted-foreground shrink-0" />
+                                                        <Icon icon="lucide:message-square" className="w-5 h-5 text-muted-foreground shrink-0" />
                                                         <div className="min-w-0 flex-1">
                                                             <p className="font-medium text-foreground truncate">{session.title}</p>
                                                             <p className="text-xs text-muted-foreground">
@@ -636,7 +636,7 @@ export default function AIChatDrawer() {
                                                         className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive"
                                                         aria-label="Delete chat"
                                                     >
-                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        <Icon icon="lucide:trash-2" className="w-3.5 h-3.5" />
                                                     </Button>
                                                 </motion.div>
                                             ))

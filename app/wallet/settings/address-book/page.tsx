@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, Edit2, Check, X, User, Copy } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -144,7 +144,7 @@ export default function AddressBookPage() {
                         onClick={() => setIsAdding(true)}
                         className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 rounded-xl px-4 font-semibold shadow-sm"
                     >
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Icon icon="lucide:plus" className="w-4 h-4 mr-1" />
                         Add
                     </Button>
                 </div>
@@ -205,7 +205,7 @@ export default function AddressBookPage() {
 
                 {addresses.length === 0 && !isAdding ? (
                     <div className="text-center py-12">
-                        <User className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                        <Icon icon="lucide:user" className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
                         <p className="text-muted-foreground">No saved addresses</p>
                         <p className="text-sm text-muted-foreground/50 mt-1">
                             Add frequently used addresses for quick access
@@ -230,7 +230,7 @@ export default function AddressBookPage() {
                                                 onClick={handleSaveEdit}
                                                 className="text-green-500 hover:text-green-400"
                                             >
-                                                <Check className="w-4 h-4" />
+                                                <Icon icon="lucide:check" className="w-4 h-4" />
                                             </Button>
                                             <Button
                                                 size="icon"
@@ -238,7 +238,7 @@ export default function AddressBookPage() {
                                                 onClick={() => setEditingAddress(null)}
                                                 className="text-muted-foreground hover:text-foreground"
                                             >
-                                                <X className="w-4 h-4" />
+                                                <Icon icon="lucide:x" className="w-4 h-4" />
                                             </Button>
                                         </div>
                                     ) : (
@@ -250,7 +250,7 @@ export default function AddressBookPage() {
                                                     className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono hover:text-foreground transition-colors text-left w-fit"
                                                 >
                                                     {sliceAddress(entry.address)}
-                                                    <Copy className="w-3 h-3 opacity-70" />
+                                                    <Icon icon="lucide:copy" className="w-3 h-3 opacity-70" />
                                                 </button>
                                             </div>
                                             <div className="flex items-center gap-0.5 shrink-0">
@@ -260,7 +260,7 @@ export default function AddressBookPage() {
                                                     onClick={() => handleEdit(entry.address)}
                                                     className="text-muted-foreground hover:text-foreground h-8 w-8"
                                                 >
-                                                    <Edit2 className="w-4 h-4" />
+                                                    <Icon icon="lucide:edit-2" className="w-4 h-4" />
                                                 </Button>
                                                 <Button
                                                     size="icon"
@@ -268,7 +268,7 @@ export default function AddressBookPage() {
                                                     onClick={() => handleDelete(entry.address)}
                                                     className="text-destructive hover:text-destructive/80 h-8 w-8"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Icon icon="lucide:trash-2" className="w-4 h-4" />
                                                 </Button>
                                             </div>
                                         </div>

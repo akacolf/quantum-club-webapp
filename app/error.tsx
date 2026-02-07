@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function Error({ reset }: { reset: () => void }) {
   return (
@@ -14,7 +14,7 @@ export default function Error({ reset }: { reset: () => void }) {
 
       <div className="relative z-10 flex flex-col items-center text-center space-y-6 max-w-md w-full">
         <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center border border-red-500/20 shadow-[0_0_30px_-10px_rgba(239,68,68,0.3)]">
-          <AlertTriangle className="w-12 h-12 text-red-500" />
+          <Icon icon="lucide:alert-triangle" className="w-12 h-12 text-red-500" />
         </div>
         
         <div className="space-y-2">
@@ -29,7 +29,7 @@ export default function Error({ reset }: { reset: () => void }) {
           onClick={() => reset()}
           className="w-full bg-white text-black hover:bg-gray-200 font-medium h-12 rounded-xl transition-all duration-200"
         >
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <Icon icon="lucide:refresh-cw" className="w-4 h-4 mr-2" />
           Try Again
         </Button>
       </div>

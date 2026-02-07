@@ -8,14 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Wallet,
-  Plus,
-  Trash2,
-  Check,
-  Edit2,
-  Copy
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
@@ -97,7 +90,7 @@ export default function ManageWalletsPage() {
           className="text-center space-y-2"
         >
           <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-            <Wallet className="w-7 h-7 text-primary" />
+            <Icon icon="lucide:wallet" className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">Manage Wallets</h1>
           <p className="text-muted-foreground text-sm">Switch between or manage your wallets</p>
@@ -118,7 +111,7 @@ export default function ManageWalletsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${wallet.address === walletAddress ? 'bg-primary/20' : 'bg-muted'}`}>
-                          <Wallet className={`w-5 h-5 ${wallet.address === walletAddress ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <Icon icon="lucide:wallet" className={`w-5 h-5 ${wallet.address === walletAddress ? 'text-primary' : 'text-muted-foreground'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           {editingWallet === wallet.address ? (
@@ -140,7 +133,7 @@ export default function ManageWalletsPage() {
                                 onClick={() => handleSaveRename(wallet.address)}
                                 className="h-8 w-8 shrink-0 text-green-500 hover:bg-green-500/20"
                               >
-                                <Check className="w-4 h-4" />
+                                <Icon icon="lucide:check" className="w-4 h-4" />
                               </Button>
                             </div>
                           ) : (
@@ -163,7 +156,7 @@ export default function ManageWalletsPage() {
                                   onClick={() => handleCopyAddress(wallet.address)}
                                   className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground hover:bg-transparent shrink-0"
                                 >
-                                  <Copy className="w-3.5 h-3.5" />
+                                  <Icon icon="lucide:copy" className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
                             </>
@@ -189,7 +182,7 @@ export default function ManageWalletsPage() {
                             onClick={() => handleStartRename(wallet)}
                             className="h-8 w-8 text-muted-foreground hover:bg-muted"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Icon icon="lucide:edit-2" className="w-4 h-4" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -199,7 +192,7 @@ export default function ManageWalletsPage() {
                                 className="h-8 w-8 text-destructive hover:bg-destructive/20"
                                 disabled={storedWallets.length === 1}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Icon icon="lucide:trash-2" className="w-4 h-4" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent className="bg-card border-border text-foreground">
@@ -232,7 +225,7 @@ export default function ManageWalletsPage() {
           ) : (
             <Card className="bg-card border-border">
               <CardContent className="p-8 text-center">
-                <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <Icon icon="lucide:wallet" className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">No wallets found</p>
                 <p className="text-muted-foreground/60 text-sm mt-1">Create or import a wallet to get started</p>
               </CardContent>
@@ -252,7 +245,7 @@ export default function ManageWalletsPage() {
             className="w-full bg-card border border-border text-foreground hover:bg-muted h-14"
             disabled={storedWallets.length >= 5}
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Icon icon="lucide:plus" className="w-5 h-5 mr-2" />
             Import Another Wallet
           </Button>
         </motion.div>

@@ -2,16 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    Sprout,
-    RefreshCw,
-    Loader2,
-    CheckCircle,
-    Coins,
-    ArrowRight,
-    Gift,
-    Info,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Button } from "@/components/ui/button";
@@ -257,7 +248,7 @@ export default function FarmingPage() {
                                     disabled={isLoading}
                                     className="text-gray-400"
                                 >
-                                    <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                                    <Icon icon="lucide:refresh-cw" className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}/>
                                 </Button>
                             </div>
 
@@ -266,7 +257,7 @@ export default function FarmingPage() {
                                 <Card className="bg-[#111] border-[#222]">
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <Sprout className="w-4 h-4 text-green-500" />
+                                            <Icon icon="lucide:sprout" className="w-4 h-4 text-green-500"/>
                                             <span className="text-xs text-gray-500">Active Farms</span>
                                         </div>
                                         <p className="text-xl font-bold text-white">{farms.length}</p>
@@ -275,7 +266,7 @@ export default function FarmingPage() {
                                 <Card className="bg-[#111] border-[#222]">
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <Gift className="w-4 h-4 text-primary" />
+                                            <Icon icon="lucide:gift" className="w-4 h-4 text-primary"/>
                                             <span className="text-xs text-gray-500">Your Positions</span>
                                         </div>
                                         <p className="text-xl font-bold text-white">{positions.length}</p>
@@ -298,7 +289,7 @@ export default function FarmingPage() {
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center">
-                                                            <Sprout className="w-4 h-4 text-green-500" />
+                                                            <Icon icon="lucide:sprout" className="w-4 h-4 text-green-500"/>
                                                         </div>
                                                         <div>
                                                             <p className="font-medium text-white text-sm">{position.poolName}</p>
@@ -321,7 +312,7 @@ export default function FarmingPage() {
                                                     size="sm"
                                                     className="w-full border-[#333] text-gray-400"
                                                 >
-                                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Unstake & Claim"}
+                                                    {isProcessing ? <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin"/> : "Unstake & Claim"}
                                                 </Button>
                                             </CardContent>
                                         </Card>
@@ -335,12 +326,12 @@ export default function FarmingPage() {
                                 
                                 {isLoading ? (
                                     <div className="flex items-center justify-center py-12">
-                                        <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                                        <Icon icon="lucide:loader-2" className="w-6 h-6 animate-spin text-gray-500"/>
                                     </div>
                                 ) : farms.length === 0 ? (
                                     <Card className="bg-[#111] border-[#222]">
                                         <CardContent className="py-8 text-center">
-                                            <Sprout className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                                            <Icon icon="lucide:sprout" className="w-10 h-10 text-gray-600 mx-auto mb-3"/>
                                             <p className="text-gray-500 text-sm">No farming pools available</p>
                                             <p className="text-gray-600 text-xs mt-1">Check back later</p>
                                         </CardContent>
@@ -356,7 +347,7 @@ export default function FarmingPage() {
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center">
-                                                            <Sprout className="w-5 h-5 text-green-500" />
+                                                            <Icon icon="lucide:sprout" className="w-5 h-5 text-green-500"/>
                                                         </div>
                                                         <div>
                                                             <p className="font-medium text-white text-sm">{farm.poolName}</p>
@@ -367,7 +358,7 @@ export default function FarmingPage() {
                                                                     </Badge>
                                                                 )}
                                                                 <span className="text-xs text-gray-500 flex items-center gap-0.5">
-                                                                    <ArrowRight className="w-3 h-3" /> {farm.rewardTokenSymbol}
+                                                                    <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {farm.rewardTokenSymbol}
                                                                 </span>
                                                             </div>
                                                             {farm.tvl && farm.tvl > 0 && (
@@ -377,7 +368,7 @@ export default function FarmingPage() {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <ArrowRight className="w-4 h-4 text-gray-500" />
+                                                    <Icon icon="lucide:arrow-right" className="w-4 h-4 text-gray-500"/>
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -389,7 +380,7 @@ export default function FarmingPage() {
                             <Card className="bg-primary/5 border-primary/20">
                                 <CardContent className="p-4">
                                     <div className="flex gap-3">
-                                        <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                        <Icon icon="lucide:info" className="w-4 h-4 text-primary shrink-0 mt-0.5"/>
                                         <div className="space-y-1">
                                             <p className="text-sm text-white font-medium">How Farming Works</p>
                                             <p className="text-xs text-gray-400">
@@ -409,7 +400,7 @@ export default function FarmingPage() {
                                 variant="outline"
                                 className="w-full border-[#333] text-gray-400"
                             >
-                                <Coins className="w-4 h-4 mr-2" />
+                                <Icon icon="lucide:coins" className="w-4 h-4 mr-2"/>
                                 Add Liquidity First
                             </Button>
                         </motion.div>
@@ -504,10 +495,10 @@ export default function FarmingPage() {
                                         className="w-full h-12 bg-primary text-black font-semibold rounded-xl"
                                     >
                                         {isProcessing ? (
-                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin"/>
                                         ) : (
                                             <>
-                                                <Sprout className="w-4 h-4 mr-2" />
+                                                <Icon icon="lucide:sprout" className="w-4 h-4 mr-2"/>
                                                 Stake LP Tokens
                                             </>
                                         )}
@@ -517,7 +508,7 @@ export default function FarmingPage() {
 
                             {step === "processing" && (
                                 <div className="flex flex-col items-center justify-center py-16 space-y-4">
-                                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                                    <Icon icon="lucide:loader-2" className="w-12 h-12 text-primary animate-spin"/>
                                     <p className="text-white font-medium">Staking LP tokens...</p>
                                     <p className="text-sm text-gray-500">This may take a few seconds</p>
                                 </div>
@@ -526,7 +517,7 @@ export default function FarmingPage() {
                             {step === "success" && (
                                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                                     <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                                        <CheckCircle className="w-10 h-10 text-green-500" />
+                                        <Icon icon="lucide:check-circle" className="w-10 h-10 text-green-500"/>
                                     </div>
                                     <div className="text-center">
                                         <h3 className="text-xl font-bold text-white">Staked Successfully!</h3>

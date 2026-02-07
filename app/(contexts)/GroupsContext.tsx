@@ -12,6 +12,12 @@ import {
     serverTimestamp,
 } from "firebase/firestore";
 import { useUserContext } from "./UserContext";
+import {
+    useGroupsQuery,
+    useCreateGroup as useCreateGroupMutation,
+    useJoinGroup as useJoinGroupMutation,
+    useLeaveGroup as useLeaveGroupMutation,
+} from "@/app/(hooks)/queries/use-groups";
 
 export interface Group {
     id: string;
@@ -20,8 +26,8 @@ export interface Group {
     createdBy: string;
     createdAt: Date;
     memberCount: number;
-    linkedTokenId?: string; // Optional link to a trading token
-    linkedTokenSymbol?: string; // Token symbol for display
+    linkedTokenId?: string;
+    linkedTokenSymbol?: string;
 }
 
 export interface GroupMember {
@@ -47,172 +53,56 @@ const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
 
 export function GroupsProvider({ children }: { children: React.ReactNode }) {
     const { telegramId, username } = useUserContext();
-    const [groups, setGroups] = useState<Group[]>([]);
-    const [myGroupIds, setMyGroupIds] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState(true);
 
-    // Fetch user's groups
+    // TanStack Query hooks
+    const groupsQuery = useGroupsQuery(telegramId);
+    const createGroupMutation = useCreateGroupMutation(telegramId, username);
+    const joinGroupMutation = useJoinGroupMutation(telegramId, username);
+    const leaveGroupMutation = useLeaveGroupMutation(telegramId);
+
+    const groups = groupsQuery.data?.groups ?? [];
+    const myGroupIds = groupsQuery.data?.memberIds ?? new Set<string>();
+    const loading = groupsQuery.isFetching;
+
     const refreshGroups = useCallback(async () => {
-        if (!telegramId) return;
+        groupsQuery.refetch();
+    }, [groupsQuery]);
 
-        setLoading(true);
-        try {
-            // Get all groups where user is a member
-            const userGroupsRef = collection(dbfs, `user/${telegramId}/groups`);
-            const userGroupsSnapshot = await getDocs(userGroupsRef);
-
-            const groupIds = new Set<string>();
-            const groupPromises: Promise<Group | null>[] = [];
-
-            userGroupsSnapshot.forEach((docSnapshot) => {
-                const groupId = docSnapshot.id;
-                groupIds.add(groupId);
-                groupPromises.push(
-                    (async () => {
-                        const groupRef = doc(dbfs, `groups/${groupId}`);
-                        const groupSnap = await getDoc(groupRef);
-                        if (groupSnap.exists()) {
-                            const data = groupSnap.data();
-                            // Get member count
-                            const membersRef = collection(dbfs, `groups/${groupId}/members`);
-                            const membersSnap = await getDocs(membersRef);
-
-                            return {
-                                id: groupSnap.id,
-                                name: data.name,
-                                description: data.description || "",
-                                createdBy: data.createdBy,
-                                createdAt: data.createdAt?.toDate() || new Date(),
-                                memberCount: membersSnap.size,
-                                linkedTokenId: data.linkedTokenId,
-                                linkedTokenSymbol: data.linkedTokenSymbol,
-                            } as Group;
-                        }
-                        return null;
-                    })()
-                );
-            });
-
-            const groupResults = await Promise.all(groupPromises);
-            const validGroups = groupResults.filter((g): g is Group => g !== null);
-
-            setMyGroupIds(groupIds);
-            setGroups(validGroups);
-        } catch (error) {
-            console.error("Error fetching groups:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [telegramId]);
-
-    // Create a new group (optionally linked to a token)
     const createGroup = useCallback(async (
         name: string,
         description: string,
         tokenId?: string,
         tokenSymbol?: string
     ): Promise<string | null> => {
-        if (!telegramId || !username) return null;
-
         try {
-            const groupId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            const groupRef = doc(dbfs, `groups/${groupId}`);
-
-            await setDoc(groupRef, {
-                name,
-                description,
-                createdBy: telegramId,
-                createdAt: serverTimestamp(),
-                maxMembers: tokenId ? 1000 : 5, // Token groups can have up to 1000 members
-                ...(tokenId && { linkedTokenId: tokenId }),
-                ...(tokenSymbol && { linkedTokenSymbol: tokenSymbol }),
-            });
-
-            // Add creator as admin member
-            const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
-            await setDoc(memberRef, {
-                username: username || "Unknown",
-                role: "admin",
-                joinedAt: serverTimestamp(),
-            });
-
-            // Add group to user's groups
-            const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
-            await setDoc(userGroupRef, {
-                joinedAt: serverTimestamp(),
-            });
-
-            await refreshGroups();
-            return groupId;
+            return await createGroupMutation.mutateAsync({ name, description, tokenId, tokenSymbol });
         } catch (error) {
             console.error("Error creating group:", error);
             return null;
         }
-    }, [telegramId, username, refreshGroups]);
+    }, [createGroupMutation]);
 
-    // Join a group
     const joinGroup = useCallback(async (groupId: string): Promise<boolean> => {
-        if (!telegramId || !username) return false;
-
         try {
-            // Check if group exists and has space
-            const groupRef = doc(dbfs, `groups/${groupId}`);
-            const groupSnap = await getDoc(groupRef);
-
-            if (!groupSnap.exists()) return false;
-
-            const groupData = groupSnap.data();
-            const membersRef = collection(dbfs, `groups/${groupId}/members`);
-            const membersSnap = await getDocs(membersRef);
-
-            if (membersSnap.size >= (groupData.maxMembers || 5)) {
-                return false; // Group is full
-            }
-
-            // Add as member
-            const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
-            await setDoc(memberRef, {
-                username: username || "Unknown",
-                role: "member",
-                joinedAt: serverTimestamp(),
-            });
-
-            // Add to user's groups
-            const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
-            await setDoc(userGroupRef, {
-                joinedAt: serverTimestamp(),
-            });
-
-            await refreshGroups();
+            await joinGroupMutation.mutateAsync(groupId);
             return true;
         } catch (error) {
             console.error("Error joining group:", error);
             return false;
         }
-    }, [telegramId, username, refreshGroups]);
+    }, [joinGroupMutation]);
 
-    // Leave a group
     const leaveGroup = useCallback(async (groupId: string): Promise<boolean> => {
-        if (!telegramId) return false;
-
         try {
-            // Remove from group members
-            const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
-            await deleteDoc(memberRef);
-
-            // Remove from user's groups
-            const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
-            await deleteDoc(userGroupRef);
-
-            await refreshGroups();
+            await leaveGroupMutation.mutateAsync(groupId);
             return true;
         } catch (error) {
             console.error("Error leaving group:", error);
             return false;
         }
-    }, [telegramId, refreshGroups]);
+    }, [leaveGroupMutation]);
 
-    // Get group members
+    // Get group members (not cached via query since it's on-demand)
     const getGroupMembers = useCallback(async (groupId: string): Promise<GroupMember[]> => {
         try {
             const membersRef = collection(dbfs, `groups/${groupId}/members`);
@@ -230,22 +120,13 @@ export function GroupsProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // Check if user is member of group
     const isGroupMember = useCallback((groupId: string): boolean => {
         return myGroupIds.has(groupId);
     }, [myGroupIds]);
 
-    // Get group linked to a specific token
     const getGroupByToken = useCallback((tokenId: string): Group | undefined => {
         return groups.find(g => g.linkedTokenId === tokenId);
     }, [groups]);
-
-    // Initial fetch
-    useEffect(() => {
-        if (telegramId) {
-            refreshGroups();
-        }
-    }, [telegramId, refreshGroups]);
 
     return (
         <GroupsContext.Provider

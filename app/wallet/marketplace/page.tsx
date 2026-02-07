@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-    Loader2,
-    MessageCircle,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     Select,
@@ -96,7 +93,7 @@ export default function MarketplacePage() {
                     <Card className="bg-card border-border">
                         <CardContent className="p-8 text-center space-y-4">
                             <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                                <MessageCircle className="w-8 h-8 text-primary" />
+                                <Icon icon="lucide:message-circle" className="w-8 h-8 text-primary" />
                             </div>
                             <div className="space-y-2">
                                 <h2 className="text-lg font-semibold">Collections are coming soon!</h2>
@@ -120,7 +117,7 @@ export default function MarketplacePage() {
                 {/* Loading indicator */}
                 {isLoading && (
                     <div className="flex justify-center py-4">
-                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                        <Icon icon="lucide:loader-2" className="w-6 h-6 animate-spin text-muted-foreground" />
                     </div>
                 )}
             </div>

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Users } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function CreateGroupPage() {
     useTelegramBackButton("/groups");
@@ -62,7 +62,7 @@ export default function CreateGroupPage() {
                 <Card className="w-full max-w-md border-border bg-card/80 backdrop-blur-sm">
                     <CardHeader className="text-center">
                         <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                            <Users className="w-8 h-8 text-primary" />
+                            <Icon icon="lucide:users" className="w-8 h-8 text-primary" />
                         </div>
                         <CardTitle className="text-2xl font-bold">Create Group</CardTitle>
                         <CardDescription>Max 5 members per group</CardDescription>

@@ -20,7 +20,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { achievements, getUnlockedAchievements, getLockedAchievements, type UserStats, type Achievement } from "@/lib/achievements";
-import { APP_VERSION } from "@/lib/version";
+
 
 export default function ProfilePage() {
     useTelegramBackButton("/home");
@@ -295,97 +295,7 @@ export default function ProfilePage() {
                     </div>
                 </motion.div>
 
-                {/* Legal Links */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="space-y-3"
-                >
-                    <Card className="bg-card/80 backdrop-blur-xl border-border overflow-hidden">
-                        <CardContent className="p-0">
-                            <button
-                                onClick={() => router.push("/wallet/settings/terms")}
-                                className="w-full flex items-center justify-between p-4 hover:bg-muted rounded-none transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
-                                        <Icon icon="solar:file-text-bold" className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="font-medium text-foreground">Terms of Service</p>
-                                        <p className="text-xs text-muted-foreground">Read our terms and conditions</p>
-                                    </div>
-                                </div>
-                                <Icon icon="solar:alt-arrow-right-linear" className="w-5 h-5 text-muted-foreground" />
-                            </button>
-                            <div className="border-t border-border" />
-                            <button
-                                onClick={() => router.push("/wallet/settings/privacy")}
-                                className="w-full flex items-center justify-between p-4 hover:bg-muted rounded-none transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
-                                        <Icon icon="solar:shield-bold" className="w-5 h-5 text-purple-400" />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="font-medium text-foreground">Privacy Policy</p>
-                                        <p className="text-xs text-muted-foreground">How we handle your data</p>
-                                    </div>
-                                </div>
-                                <Icon icon="solar:alt-arrow-right-linear" className="w-5 h-5 text-muted-foreground" />
-                            </button>
-                        </CardContent>
-                    </Card>
 
-                    {/* Support & Community */}
-                    <Card className="bg-card/80 backdrop-blur-xl border-border overflow-hidden">
-                        <CardContent className="p-0">
-                            <a
-                                href="https://t.me/QCSupportBot"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                        <Icon icon="solar:headphones-round-sound-bold" className="w-5 h-5 text-primary" />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="font-medium text-foreground">Get Support</p>
-                                        <p className="text-xs text-muted-foreground">Contact our support team</p>
-                                    </div>
-                                </div>
-                                <Icon icon="solar:arrow-right-up-linear" className="w-5 h-5 text-muted-foreground" />
-                            </a>
-                            <div className="border-t border-border" />
-                            <a
-                                href="https://t.me/quantumclubinc"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center">
-                                        <Icon icon="solar:users-group-rounded-bold" className="w-5 h-5 text-cyan-400" />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="font-medium text-foreground">Community</p>
-                                        <p className="text-xs text-muted-foreground">Join announcements & updates</p>
-                                    </div>
-                                </div>
-                                <Icon icon="solar:arrow-right-up-linear" className="w-5 h-5 text-muted-foreground" />
-                            </a>
-                        </CardContent>
-                    </Card>
-
-                    {/* App Version */}
-                    <div className="text-center pt-2">
-                        <p className="text-xs text-muted-foreground/60">
-                            Quantum Club v{APP_VERSION}
-                        </p>
-                    </div>
-                </motion.div>
             </div>
 
             {/* Achievement Detail Sheet */}

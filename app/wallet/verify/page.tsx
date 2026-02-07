@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,7 +99,7 @@ export default function VerifyPhrasePage() {
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Check className="w-7 h-7 text-primary" />
+              <Icon icon="lucide:check" className="w-7 h-7 text-primary"/>
             </div>
             <h1 className="text-2xl font-bold">Verify Your Phrase</h1>
             <p className="text-muted-foreground text-sm max-w-xs mx-auto">

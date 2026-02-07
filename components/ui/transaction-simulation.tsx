@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, AlertTriangle, CheckCircle, Info, Shield } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -65,12 +65,12 @@ export function TransactionSimulation({
         {/* Header */}
         <div className="p-3 bg-muted/30 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-primary" />
+            <Icon icon="lucide:shield" className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">Transaction Preview</span>
           </div>
           {isSimulated && (
             <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-400 border-green-500/30">
-              <CheckCircle className="w-3 h-3 mr-1" />
+              <Icon icon="lucide:check-circle" className="w-3 h-3 mr-1" />
               Simulated
             </Badge>
           )}
@@ -87,7 +87,7 @@ export function TransactionSimulation({
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
-                <ArrowUpRight className="w-5 h-5 text-red-500" />
+                <Icon icon="lucide:arrow-up-right" className="w-5 h-5 text-red-500" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Send</p>
@@ -120,7 +120,7 @@ export function TransactionSimulation({
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <ArrowDownLeft className="w-5 h-5 text-green-500" />
+                    <Icon icon="lucide:arrow-down-left" className="w-5 h-5 text-green-500" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-green-400">Receive</p>
@@ -151,7 +151,7 @@ export function TransactionSimulation({
             className="flex items-center justify-between text-sm"
           >
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Info className="w-4 h-4" />
+              <Icon icon="lucide:info" className="w-4 h-4" />
               <span>Network fee</span>
             </div>
             <div className="text-right">
@@ -203,7 +203,7 @@ export function TransactionSimulation({
                     transition={{ delay: 0.1 * index }}
                     className="flex items-start gap-2 p-2 bg-yellow-500/10 rounded-lg"
                   >
-                    <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                    <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                     <p className="text-xs text-yellow-400">{warning}</p>
                   </motion.div>
                 ))}

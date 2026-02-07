@@ -2,17 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    Clock,
-    RefreshCw,
-    Info,
-    CheckCircle,
-    Coins,
-    ArrowRight,
-    Loader2,
-    Gift,
-    ArrowUpRight,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -225,7 +215,7 @@ export default function StakingPage() {
                                     disabled={isLoading}
                                     className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 active:bg-white/10"
                                 >
-                                    <RefreshCw className={`w-5 h-5 text-gray-400 ${isLoading ? "animate-spin" : ""}`} />
+                                    <Icon icon="lucide:refresh-cw" className={`w-5 h-5 text-gray-400 ${isLoading ? "animate-spin" : ""}`}/>
                                 </button>
                             </div>
 
@@ -283,14 +273,14 @@ export default function StakingPage() {
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
-                                        <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                                        <Icon icon="lucide:arrow-up-right" className="w-5 h-5 text-gray-400"/>
                                     </div>
                                     <div className="text-left">
                                         <p className="font-medium text-white text-sm">Unstake tsTON</p>
                                         <p className="text-xs text-gray-500">Convert tsTON back to TON</p>
                                     </div>
                                 </div>
-                                <ArrowRight className="w-4 h-4 text-gray-500" />
+                                <Icon icon="lucide:arrow-right" className="w-4 h-4 text-gray-500"/>
                             </button>
 
                             {/* Staking Pools */}
@@ -351,11 +341,11 @@ export default function StakingPage() {
                                                                 {/* Stats Row */}
                                                                 <div className="flex items-center gap-3 text-xs text-gray-500">
                                                                     <span className="flex items-center gap-1">
-                                                                        <Coins className="w-3 h-3" />
+                                                                        <Icon icon="lucide:coins" className="w-3 h-3"/>
                                                                         Min: {pool.minStake} TON
                                                                     </span>
                                                                     <span className="flex items-center gap-1">
-                                                                        <Clock className="w-3 h-3" />
+                                                                        <Icon icon="lucide:clock" className="w-3 h-3"/>
                                                                         {pool.unstakeTime}
                                                                     </span>
                                                                 </div>
@@ -364,7 +354,7 @@ export default function StakingPage() {
                                                                 <p className="text-xl font-bold text-green-500">{pool.liveApy.toFixed(2)}%</p>
                                                                 <p className="text-xs text-gray-500">APY</p>
                                                                 <p className="text-[10px] text-blue-400 mt-1 flex items-center gap-0.5">
-                                                                    <ArrowRight className="w-3 h-3" /> {pool.liquidToken}
+                                                                    <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {pool.liquidToken}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -395,7 +385,7 @@ export default function StakingPage() {
 
                                                         <div className="mt-3 flex items-center justify-center gap-2 text-sm text-primary">
                                                             <span>Stake Now</span>
-                                                            <ArrowRight className="w-4 h-4" />
+                                                            <Icon icon="lucide:arrow-right" className="w-4 h-4"/>
                                                         </div>
                                                     </button>
                                                 </motion.div>
@@ -408,7 +398,7 @@ export default function StakingPage() {
                             {/* Info Card */}
                             <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
                                 <div className="flex gap-3">
-                                    <Info className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                                    <Icon icon="lucide:info" className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5"/>
                                     <div>
                                         <p className="text-sm font-medium text-gray-400">
                                             What is Liquid Staking?
@@ -418,15 +408,15 @@ export default function StakingPage() {
                                         </p>
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                                                <CheckCircle className="w-3 h-3 text-gray-400" />
+                                                <Icon icon="lucide:check-circle" className="w-3 h-3 text-gray-400"/>
                                                 Earn ~5% APY
                                             </div>
                                             <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                                                <CheckCircle className="w-3 h-3 text-gray-400" />
+                                                <Icon icon="lucide:check-circle" className="w-3 h-3 text-gray-400"/>
                                                 Stay liquid
                                             </div>
                                             <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                                                <CheckCircle className="w-3 h-3 text-gray-400" />
+                                                <Icon icon="lucide:check-circle" className="w-3 h-3 text-gray-400"/>
                                                 Auto-compound
                                             </div>
                                         </div>
@@ -564,7 +554,7 @@ export default function StakingPage() {
                                             <Card className="bg-green-500/10 border-green-500/20">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center gap-2 mb-3">
-                                                        <Gift className="w-5 h-5 text-green-500" />
+                                                        <Icon icon="lucide:gift" className="w-5 h-5 text-green-500"/>
                                                         <span className="font-medium text-green-500">Estimated Rewards</span>
                                                     </div>
                                                     <div className="grid grid-cols-4 gap-2 text-center">
@@ -597,7 +587,7 @@ export default function StakingPage() {
                                         >
                                             {isStaking ? (
                                                 <>
-                                                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                                    <Icon icon="lucide:loader-2" className="w-5 h-5 mr-2 animate-spin"/>
                                                     Processing...
                                                 </>
                                             ) : !stakeAmount ? (
@@ -636,7 +626,7 @@ export default function StakingPage() {
                                         className="text-center py-16 space-y-4"
                                     >
                                         <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                                            <CheckCircle className="w-10 h-10 text-green-500" />
+                                            <Icon icon="lucide:check-circle" className="w-10 h-10 text-green-500"/>
                                         </div>
                                         <h2 className="text-xl font-bold text-green-500">Staked Successfully!</h2>
                                         <p className="text-gray-500 text-sm">

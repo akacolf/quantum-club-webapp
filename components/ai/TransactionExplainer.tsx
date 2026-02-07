@@ -2,12 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    Sparkles,
-    Loader2,
-    ChevronDown,
-    ChevronUp,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { AIGlowBorder } from "./AIGlow";
 
@@ -94,9 +89,9 @@ export function TransactionExplainer({
                 className="text-xs gap-1 h-7 px-2 text-primary hover:text-primary"
             >
                 {isLoading ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Icon icon="lucide:loader-2" className="w-3 h-3 animate-spin" />
                 ) : (
-                    <Sparkles className="w-3 h-3" />
+                    <Icon icon="lucide:sparkles" className="w-3 h-3" />
                 )}
                 Explain
             </Button>
@@ -119,13 +114,13 @@ export function TransactionExplainer({
                 className="flex items-center gap-1 text-xs text-primary"
             >
                 {isLoading ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Icon icon="lucide:loader-2" className="w-3 h-3 animate-spin" />
                 ) : (
-                    <Sparkles className="w-3 h-3" />
+                    <Icon icon="lucide:sparkles" className="w-3 h-3" />
                 )}
                 <span>{explanation ? "AI Explanation" : "Explain this transaction"}</span>
                 {explanation && (
-                    isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                    isExpanded ? <Icon icon="lucide:chevron-up" className="w-3 h-3" /> : <Icon icon="lucide:chevron-down" className="w-3 h-3" />
                 )}
             </button>
 

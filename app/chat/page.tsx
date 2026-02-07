@@ -9,7 +9,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Users } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 // Utility function moved outside component to prevent recreation
 const formatTime = (date: Date) => {
@@ -62,7 +62,7 @@ const ChatItem = memo(function ChatItem({ chat, index, telegramId, onNavigate }:
                         <Avatar className="h-12 w-12 border border-white/10">
                             {chat.type === "group" ? (
                                 <AvatarFallback className="bg-white/10 text-white">
-                                    <Users className="w-5 h-5" />
+                                    <Icon icon="lucide:users" className="w-5 h-5" />
                                 </AvatarFallback>
                             ) : (
                                 <>
@@ -138,7 +138,7 @@ export default function ChatListPage() {
                         className="flex flex-col items-center justify-center py-16 space-y-4"
                     >
                         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                            <MessageCircle className="w-8 h-8 text-muted-foreground" />
+                            <Icon icon="lucide:message-circle" className="w-8 h-8 text-muted-foreground" />
                         </div>
                         <p className="text-muted-foreground text-center">
                             No conversations yet

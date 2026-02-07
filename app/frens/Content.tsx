@@ -15,7 +15,7 @@ import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, User, Trophy, UserPlus, Users2, Gift } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -79,7 +79,7 @@ const FrensContent = () => {
         if (sessionStorage.getItem("FrenLoad") == "InviteFren") {
           setErrorMessage(
             <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-              <UserPlus className="w-16 h-16 mb-4 opacity-50" />
+              <Icon icon="lucide:user-plus" className="w-16 h-16 mb-4 opacity-50" />
               <span className="font-semibold text-base">Invite some frens to see them here!</span>
             </div>
           );
@@ -138,7 +138,7 @@ const FrensContent = () => {
           sessionStorage.setItem("FrenLoad", "InviteFren");
           setErrorMessage(
             <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-              <UserPlus className="w-16 h-16 mb-4 opacity-50" />
+              <Icon icon="lucide:user-plus" className="w-16 h-16 mb-4 opacity-50" />
               <span className="font-semibold text-base">Invite some frens to see them here!</span>
             </div>
           );
@@ -249,7 +249,7 @@ const FrensContent = () => {
         sessionStorage.setItem("FrenLoad", "InviteFren");
         setErrorMessage(
           <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-            <Users className="w-16 h-16 mb-4 opacity-50" />
+            <Icon icon="lucide:users" className="w-16 h-16 mb-4 opacity-50" />
             <span className="font-semibold text-base">Invite some frens to see them here!</span>
           </div>
         );
@@ -398,7 +398,7 @@ const FrensContent = () => {
                     {secondTierCount > 0 && (
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
-                          <Users2 className="w-8 h-8 text-gray-400" />
+                          <Icon icon="lucide:users-2" className="w-8 h-8 text-gray-400" />
                           <div className="text-3xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
                             {secondTierCount}
                           </div>
@@ -412,7 +412,7 @@ const FrensContent = () => {
                   <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Gift className="w-5 h-5 text-white" />
+                        <Icon icon="lucide:gift" className="w-5 h-5 text-white" />
                         <div>
                           <div className="text-sm font-medium text-white">Pending Rewards</div>
                           <div className="text-lg font-bold text-white">
@@ -441,7 +441,7 @@ const FrensContent = () => {
 
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-blue-400 font-semibold">
-                <Users className="w-5 h-5" />
+                <Icon icon="lucide:users" className="w-5 h-5" />
                 <span>Your Referrals</span>
               </div>
 
@@ -462,13 +462,13 @@ const FrensContent = () => {
                                 unoptimized
                               />
                             ) : (
-                              <User className="w-5 h-5 text-gray-400" />
+                              <Icon icon="lucide:user" className="w-5 h-5 text-gray-400" />
                             )}
                           </div>
                           <div className="font-medium text-sm text-gray-200">{referral.username}</div>
                         </div>
                         <div className="flex items-center gap-2 bg-[#2a2a2a]/50 px-3 py-1.5 rounded-lg border border-[#333]">
-                          <Trophy className="w-3.5 h-3.5 text-yellow-500" />
+                          <Icon icon="lucide:trophy" className="w-3.5 h-3.5 text-yellow-500" />
                           <span className="font-bold text-sm text-yellow-500">
                             +{((referral.quantamount * 10) / 100).toFixed(0)} QNTM
                           </span>

@@ -5,16 +5,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-    Image as ImageIcon,
-    ExternalLink,
-    Grid3X3,
-    Loader2,
-    Tag,
-    Users,
-    ChevronRight,
-    BadgeCheck,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +99,7 @@ export default function CollectionDetailPage() {
         return (
             <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
                 <Card className="bg-card border-border p-8 text-center">
-                    <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <Icon icon="lucide:image" className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                     <p className="text-lg font-semibold">Collection not found</p>
                     <p className="text-sm text-muted-foreground mt-1">
                         This collection may not exist or is unavailable
@@ -161,7 +152,7 @@ export default function CollectionDetailPage() {
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-muted">
-                                <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                                <Icon icon="lucide:image" className="w-10 h-10 text-muted-foreground" />
                             </div>
                         )}
                     </div>
@@ -171,7 +162,7 @@ export default function CollectionDetailPage() {
                         <div className="flex items-center gap-2">
                             <h1 className="text-2xl font-bold">{collection.name}</h1>
                             {collection.verified && (
-                                <BadgeCheck className="w-6 h-6 text-blue-500 shrink-0" />
+                                <Icon icon="lucide:badge-check" className="w-6 h-6 text-blue-500 shrink-0" />
                             )}
                         </div>
                         {collection.description && (
@@ -185,7 +176,7 @@ export default function CollectionDetailPage() {
                     <div className="grid grid-cols-3 gap-3">
                         <Card className="bg-card border-border">
                             <CardContent className="p-3 text-center">
-                                <Grid3X3 className="w-4 h-4 text-primary mx-auto mb-1" />
+                                <Icon icon="lucide:grid-3x3" className="w-4 h-4 text-primary mx-auto mb-1" />
                                 <p className="text-lg font-bold">{formatItemsCount(collection.itemsCount)}</p>
                                 <p className="text-xs text-muted-foreground">Items</p>
                             </CardContent>
@@ -193,7 +184,7 @@ export default function CollectionDetailPage() {
                         {collection.ownersCount && (
                             <Card className="bg-card border-border">
                                 <CardContent className="p-3 text-center">
-                                    <Users className="w-4 h-4 text-primary mx-auto mb-1" />
+                                    <Icon icon="lucide:users" className="w-4 h-4 text-primary mx-auto mb-1" />
                                     <p className="text-lg font-bold">{collection.ownersCount.toLocaleString()}</p>
                                     <p className="text-xs text-muted-foreground">Owners</p>
                                 </CardContent>
@@ -202,7 +193,7 @@ export default function CollectionDetailPage() {
                         {collection.floorPrice && (
                             <Card className="bg-card border-border">
                                 <CardContent className="p-3 text-center">
-                                    <Tag className="w-4 h-4 text-primary mx-auto mb-1" />
+                                    <Icon icon="lucide:tag" className="w-4 h-4 text-primary mx-auto mb-1" />
                                     <p className="text-lg font-bold">{(collection.floorPrice / 1e9).toFixed(2)}</p>
                                     <p className="text-xs text-muted-foreground">Floor (TON)</p>
                                 </CardContent>
@@ -216,7 +207,7 @@ export default function CollectionDetailPage() {
                         className="w-full"
                         onClick={() => window.open(`${EXPLORER_BASE_URL}/${collectionAddress}`, "_blank")}
                     >
-                        <ExternalLink className="w-4 h-4 mr-2" />
+                        <Icon icon="lucide:external-link" className="w-4 h-4 mr-2" />
                         View on Explorer
                     </Button>
                 </motion.div>
@@ -243,7 +234,7 @@ export default function CollectionDetailPage() {
                         </div>
                     ) : items.length === 0 ? (
                         <Card className="bg-card border-border p-8 text-center">
-                            <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                             <Icon icon="lucide:image" className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                             <p className="text-muted-foreground">No items currently for sale</p>
                         </Card>
                     ) : (
@@ -272,7 +263,7 @@ export default function CollectionDetailPage() {
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                                                        <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                                                        <Icon icon="lucide:image" className="w-10 h-10 text-muted-foreground" />
                                                     </div>
                                                 )}
                                             </div>
@@ -282,7 +273,7 @@ export default function CollectionDetailPage() {
                                                     <p className="text-sm font-bold text-primary">
                                                         {item.sale?.priceFormatted} TON
                                                     </p>
-                                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                                    <Icon icon="lucide:chevron-right" className="w-4 h-4 text-muted-foreground" />
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -294,7 +285,7 @@ export default function CollectionDetailPage() {
 
                     {isLoadingItems && (
                         <div className="flex justify-center py-4">
-                            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                            <Icon icon="lucide:loader-2" className="w-6 h-6 animate-spin text-muted-foreground" />
                         </div>
                     )}
                 </motion.div>

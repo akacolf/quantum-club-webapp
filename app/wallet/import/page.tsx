@@ -3,7 +3,7 @@
 import { useState, ClipboardEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Trash2, ShieldCheck, X, ChevronDown, Sparkles, Info, Lock } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
@@ -207,7 +207,7 @@ export default function ImportWalletPage() {
           {/* Brand Header - Monochrome */}
           <div className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-muted rounded-2xl flex items-center justify-center border border-border backdrop-blur-md shadow-sm">
-              <Lock className="w-8 h-8 text-primary" />
+              <Icon icon="lucide:lock" className="w-8 h-8 text-primary"/>
             </div>
 
             <div className="space-y-2">
@@ -229,7 +229,7 @@ export default function ImportWalletPage() {
               className="space-y-3"
             >
               <div className="flex items-center gap-2 px-1">
-                <Sparkles className="w-4 h-4 text-muted-foreground/40" />
+                <Icon icon="lucide:sparkles" className="w-4 h-4 text-muted-foreground/40"/>
                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   Select Version
                 </Label>
@@ -243,14 +243,14 @@ export default function ImportWalletPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center border border-border group-hover:border-primary/20 transition-colors">
-                        <Info className="w-4 h-4 text-muted-foreground" />
+                        <Icon icon="lucide:info" className="w-4 h-4 text-muted-foreground"/>
                       </div>
                       <div className="flex flex-col items-start gap-0">
                         <span className="font-semibold text-sm">{selectedVersion?.name}</span>
                         <span className="text-[10px] text-muted-foreground tracking-tight">Wallet architecture</span>
                       </div>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"/>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[calc(100vw-32px)] max-w-[512px] bg-popover border-border text-popover-foreground rounded-2xl shadow-2xl p-2">
@@ -267,7 +267,7 @@ export default function ImportWalletPage() {
                       <div className="flex items-center justify-between w-full">
                         <span className="font-bold text-sm tracking-wide">{version.name}</span>
                         {walletVersion === version.id && (
-                          <Check className="w-4 h-4 text-primary" />
+                          <Icon icon="lucide:check" className="w-4 h-4 text-primary"/>
                         )}
                       </div>
                       <span className="text-[11px] text-muted-foreground leading-tight pr-4">
@@ -296,7 +296,7 @@ export default function ImportWalletPage() {
                   onClick={handleClear}
                   className="h-7 px-3 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
                 >
-                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  <Icon icon="lucide:trash-2" className="w-3.5 h-3.5 mr-1.5"/>
                   Clear All
                 </Button>
               </div>
@@ -344,9 +344,9 @@ export default function ImportWalletPage() {
                   <div className="flex items-start gap-4">
                     <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-white/10`}>
                       {isValidPhrase ? (
-                        <Check className="w-5 h-5 text-white" />
+                        <Icon icon="lucide:check" className="w-5 h-5 text-white"/>
                       ) : (
-                        <X className="w-5 h-5 text-white/40" />
+                        <Icon icon="lucide:x" className="w-5 h-5 text-white/40"/>
                       )}
                     </div>
                     <div className="flex-1 space-y-1">
@@ -386,7 +386,7 @@ export default function ImportWalletPage() {
             <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20 space-y-4">
               <div className="flex gap-4">
                 <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shrink-0">
-                  <ShieldCheck className="w-6 h-6 text-primary" />
+                  <Icon icon="lucide:shield-check" className="w-6 h-6 text-primary"/>
                 </div>
                 <div className="space-y-1.5">
                   <h4 className="text-sm font-bold text-foreground tracking-wide">Important Notes</h4>
@@ -398,7 +398,7 @@ export default function ImportWalletPage() {
 
               {!isValidPhrase && (
                 <div className="pt-2 flex items-start gap-3 border-t border-primary/10 mt-2">
-                  <Info className="w-4 h-4 text-primary/50 mt-0.5 shrink-0" />
+                  <Icon icon="lucide:info" className="w-4 h-4 text-primary/50 mt-0.5 shrink-0"/>
                   <p className="text-[11px] text-muted-foreground/70 italic leading-relaxed">
                     If your assets do not appear, try re-importing with a different wallet version above.
                   </p>
@@ -422,7 +422,7 @@ export default function ImportWalletPage() {
                   <ButtonLoader />
                 ) : (
                   <div className="flex items-center gap-2">
-                    {isValidPhrase && <Lock className="w-4 h-4 mr-1" />}
+                    {isValidPhrase && <Icon icon="lucide:lock" className="w-4 h-4 mr-1"/>}
                     Import
                   </div>
                 )}

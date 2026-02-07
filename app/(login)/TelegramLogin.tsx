@@ -108,5 +108,10 @@ export default function TelegramLogin() {
   useSafeArea();
   useDeviceDetection();
 
+  // Hide back button on login screen
+  useEffect(() => {
+    window.Telegram?.WebApp?.BackButton.hide();
+  }, []);
+
   return <Loader />;
 }

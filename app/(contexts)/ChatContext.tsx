@@ -16,6 +16,7 @@ import {
     Timestamp,
 } from "firebase/firestore";
 import { useUserContext } from "./UserContext";
+import { useChatsQuery, useSendMessage as useSendMessageMutation } from "@/app/(hooks)/queries/use-chat";
 
 export interface Message {
     id: string;
@@ -53,51 +54,18 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
     const { telegramId, username } = useUserContext();
-    const [chats, setChats] = useState<Chat[]>([]);
-    const [loading, setLoading] = useState(true);
     const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
 
-    // Fetch user's chats
+    // TanStack Query for chats
+    const chatsQuery = useChatsQuery(telegramId);
+    const sendMessageMutation = useSendMessageMutation(telegramId, username);
+
+    const chats = chatsQuery.data ?? [];
+    const loading = chatsQuery.isFetching;
+
     const refreshChats = useCallback(async () => {
-        if (!telegramId) return;
-
-        setLoading(true);
-        try {
-            const chatsRef = collection(dbfs, "chats");
-            const q = query(
-                chatsRef,
-                where("participants", "array-contains", telegramId),
-                orderBy("lastMessage.timestamp", "desc"),
-                limit(50)
-            );
-            const snapshot = await getDocs(q);
-
-            const chatsList: Chat[] = snapshot.docs.map((docSnap) => {
-                const data = docSnap.data();
-                return {
-                    id: docSnap.id,
-                    type: data.type || "direct",
-                    participants: data.participants || [],
-                    participantNames: data.participantNames || [],
-                    groupId: data.groupId,
-                    groupName: data.groupName,
-                    lastMessage: data.lastMessage ? {
-                        text: data.lastMessage.text,
-                        senderId: data.lastMessage.senderId,
-                        timestamp: data.lastMessage.timestamp instanceof Timestamp
-                            ? data.lastMessage.timestamp.toDate()
-                            : new Date(),
-                    } : undefined,
-                };
-            });
-
-            setChats(chatsList);
-        } catch (error) {
-            console.error("Error fetching chats:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [telegramId]);
+        chatsQuery.refetch();
+    }, [chatsQuery]);
 
     // Start a direct chat with another user
     const startDirectChat = useCallback(async (
@@ -135,36 +103,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // Send a message
     const sendMessage = useCallback(async (chatId: string, text: string): Promise<boolean> => {
         if (!telegramId || !username || !text.trim()) return false;
-
         try {
-            const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            const messageRef = doc(dbfs, `chats/${chatId}/messages/${messageId}`);
-
-            const messageData = {
-                senderId: telegramId,
-                senderName: username || "Unknown",
-                text: text.trim(),
-                timestamp: serverTimestamp(),
-            };
-
-            await setDoc(messageRef, messageData);
-
-            // Update last message on chat
-            const chatRef = doc(dbfs, `chats/${chatId}`);
-            await setDoc(chatRef, {
-                lastMessage: {
-                    text: text.trim(),
-                    senderId: telegramId,
-                    timestamp: serverTimestamp(),
-                },
-            }, { merge: true });
-
+            await sendMessageMutation.mutateAsync({ chatId, text });
             return true;
         } catch (error) {
             console.error("Error sending message:", error);
             return false;
         }
-    }, [telegramId, username]);
+    }, [telegramId, username, sendMessageMutation]);
 
     // Subscribe to chat messages (real-time)
     const subscribeToChat = useCallback((chatId: string) => {
@@ -189,13 +135,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
         return unsubscribe;
     }, []);
-
-    // Initial fetch
-    useEffect(() => {
-        if (telegramId) {
-            refreshChats();
-        }
-    }, [telegramId, refreshChats]);
 
     return (
         <ChatContext.Provider

@@ -4,20 +4,7 @@ import { useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  Settings,
-  HelpCircle,
-  ChevronRight,
-  Trash2,
-  AlertTriangle,
-  FileText,
-  ExternalLink,
-  Wallet,
-  BookUser,
-  Bell,
-  FlaskConical,
-  Link2,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -191,7 +178,7 @@ export default function WalletSettingsPage() {
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Settings className="w-7 h-7 text-primary" />
+              <Icon icon="lucide:settings" className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Wallet Settings</h1>
             <p className="text-muted-foreground text-sm">Manage security and preferences</p>
@@ -210,14 +197,14 @@ export default function WalletSettingsPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-green-400" />
+                      <Icon icon="lucide:file-text" className="w-5 h-5 text-green-400" />
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-medium text-foreground">Backup Recovery Phrase</p>
                       <p className="text-xs text-muted-foreground">View your 24-word seed phrase</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </Button>
 
                 <div className="border-t border-border" />
@@ -229,14 +216,14 @@ export default function WalletSettingsPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
-                      <Wallet className="w-5 h-5 text-blue-400" />
+                      <Icon icon="lucide:wallet" className="w-5 h-5 text-blue-400" />
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-medium text-foreground">Manage Wallets</p>
                       <p className="text-xs text-muted-foreground">Add, switch, or remove wallets</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </Button>
 
                 <div className="border-t border-border" />
@@ -248,14 +235,14 @@ export default function WalletSettingsPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
-                      <BookUser className="w-5 h-5 text-purple-400" />
+                      <Icon icon="lucide:book-user" className="w-5 h-5 text-purple-400" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-foreground">Address Book</p>
                       <p className="text-xs text-muted-foreground">Save frequently used addresses</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </Button>
 
                 <div className="border-t border-border" />
@@ -267,14 +254,14 @@ export default function WalletSettingsPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center">
-                      <Bell className="w-5 h-5 text-yellow-400" />
+                      <Icon icon="lucide:bell" className="w-5 h-5 text-yellow-400" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-foreground">Price Alerts</p>
                       <p className="text-xs text-muted-foreground">Get notified when TON hits a target</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </Button>
 
                 <div className="border-t border-border" />
@@ -286,14 +273,14 @@ export default function WalletSettingsPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center">
-                      <Link2 className="w-5 h-5 text-cyan-400" />
+                      <Icon icon="lucide:link-2" className="w-5 h-5 text-cyan-400" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-foreground">Connected Apps</p>
                       <p className="text-xs text-muted-foreground">Manage TON Connect dApps</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </Button>
               </CardContent>
             </Card>
@@ -326,7 +313,7 @@ export default function WalletSettingsPage() {
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">
-                      <FlaskConical className="w-5 h-5 text-orange-400" />
+                      <Icon icon="lucide:flask-conical" className="w-5 h-5 text-orange-400" />
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-medium text-foreground">TON Testnet Mode</p>
@@ -353,21 +340,21 @@ export default function WalletSettingsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
-                          <Trash2 className="w-5 h-5 text-red-400" />
+                          <Icon icon="lucide:trash-2" className="w-5 h-5 text-red-400" />
                         </div>
                         <div className="text-left">
                           <p className="font-medium text-destructive">Remove Wallet</p>
                           <p className="text-xs text-muted-foreground">Delete wallet from this device</p>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-card border-border text-foreground">
                     <AlertDialogHeader>
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
-                          <AlertTriangle className="w-6 h-6 text-red-400" />
+                          <Icon icon="lucide:alert-triangle" className="w-6 h-6 text-red-400" />
                         </div>
                         <div>
                           <AlertDialogTitle>Remove Wallet?</AlertDialogTitle>
@@ -398,7 +385,7 @@ export default function WalletSettingsPage() {
           {/* FAQ Section */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider ml-1 flex items-center gap-2">
-              <HelpCircle className="w-4 h-4" />
+              <Icon icon="lucide:help-circle" className="w-4 h-4" />
               Frequently Asked Questions
             </h2>
 
@@ -428,7 +415,7 @@ export default function WalletSettingsPage() {
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <ExternalLink className="w-3 h-3" />
+              <Icon icon="lucide:external-link" className="w-3 h-3" />
               Community & Announcements
             </a>
             <a
@@ -437,7 +424,7 @@ export default function WalletSettingsPage() {
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
             >
-              <HelpCircle className="w-3 h-3" />
+              <Icon icon="lucide:help-circle" className="w-3 h-3" />
               Get Support
             </a>
           </div>

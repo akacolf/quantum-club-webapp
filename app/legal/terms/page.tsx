@@ -208,7 +208,7 @@ export default function TermsOfServicePage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-2">17. Contact Information</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                For questions or concerns about these Terms, please contact us on Telegram: @quantumclubinc
+                For questions or concerns about these Terms, please contact us through our support @QCSupportBot
               </p>
             </section>
 

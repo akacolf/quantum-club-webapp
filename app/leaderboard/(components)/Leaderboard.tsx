@@ -1,14 +1,14 @@
 import Image from "next/image";
 import { firstPlaceMedal, secondPlaceMedal, thirdPlaceMedal, logoWhite } from "@/public";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
-import { Trophy } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function LeaderboardList() {
     const { leaderboardContext } = useLeaderboardContext();
     return (
         <div className="mt-6 px-4 pb-24 space-y-4">
             <div className="flex items-center gap-2 mb-2">
-                <Trophy className="w-5 h-5 text-white/40" />
+                <Icon icon="lucide:trophy" className="w-5 h-5 text-white/40" />
                 <span className="text-[10px] text-white/40 uppercase tracking-[0.1em] font-bold">Top Users</span>
             </div>
 

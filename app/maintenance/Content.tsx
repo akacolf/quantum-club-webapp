@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import Lottie from "lottie-react";
 import constructionAnimation from "@/public/lottie/construction-lottie.json";
-import { Users } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const MaintenanceContent = () => {
     const openTelegramGroup = () => {
@@ -43,7 +43,7 @@ const MaintenanceContent = () => {
                     onClick={openTelegramGroup}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-12 rounded-xl transition-all duration-200 shadow-lg shadow-blue-900/20"
                 >
-                    <Users className="w-5 h-5 mr-2" />
+                    <Icon icon="lucide:users" className="w-5 h-5 mr-2" />
                     Check Community
                 </Button>
             </div>

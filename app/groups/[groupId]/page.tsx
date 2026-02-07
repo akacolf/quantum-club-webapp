@@ -10,7 +10,7 @@ import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Users, Crown, LogOut, Copy, Check } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function GroupDetailPage() {
     useTelegramBackButton("/groups");
@@ -106,7 +106,7 @@ export default function GroupDetailPage() {
                         <p className="text-muted-foreground text-center text-sm">{group.description}</p>
                     )}
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="w-4 h-4" />
+                        <Icon icon="lucide:users" className="w-4 h-4" />
                         {members.length} / 5 members
                     </div>
                 </motion.div>
@@ -122,7 +122,7 @@ export default function GroupDetailPage() {
                         variant="outline"
                         className="w-full h-11 px-6 rounded-2xl border-white/10 bg-white/5 text-white hover:bg-white/10 active:scale-95 transition-all"
                     >
-                        {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                        {copied ? <Icon icon="lucide:check" className="w-4 h-4 mr-2" /> : <Icon icon="lucide:copy" className="w-4 h-4 mr-2" />}
                         {copied ? "Copied!" : "Copy Invite Link"}
                     </Button>
                 </motion.div>
@@ -144,7 +144,7 @@ export default function GroupDetailPage() {
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-11 w-11 border border-white/10">
                                         <AvatarFallback className="bg-white/10">
-                                            <Users className="w-5 h-5 text-white" />
+                                            <Icon icon="lucide:users" className="w-5 h-5 text-white" />
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
@@ -156,7 +156,7 @@ export default function GroupDetailPage() {
                                     </div>
                                 </div>
                                 {member.role === "admin" && (
-                                    <Crown className="w-4 h-4 text-white" />
+                                    <Icon icon="lucide:crown" className="w-4 h-4 text-white" />
                                 )}
                             </div>
                         ))}
@@ -176,7 +176,7 @@ export default function GroupDetailPage() {
                             variant="destructive"
                             className="w-full h-11 rounded-2xl font-bold bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 active:scale-95 transition-all"
                         >
-                            <LogOut className="w-4 h-4 mr-2" />
+                            <Icon icon="lucide:log-out" className="w-4 h-4 mr-2" />
                             {leaving ? "Leaving..." : "Leave Group"}
                         </Button>
                     </motion.div>

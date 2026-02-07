@@ -1,19 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useWallet } from "@/app/wallet/WalletContext";
-
-interface TradeEvent {
-    timestamp: number;
-    type: "buy" | "sell";
-    tonAmount: number;
-    tokenAmount: number;
-    price: number;
-    hash: string;
-}
+import { useTradeEvents } from "@/app/(hooks)/queries/use-trades";
 
 interface PriceChartProps {
     currentPrice: string;
@@ -36,133 +28,11 @@ const TIME_RANGES = [
  * No Firebase dependency - truly on-chain!
  */
 export default function PriceChart({ currentPrice, jettonAddress }: PriceChartProps) {
-    const [trades, setTrades] = useState<TradeEvent[]>([]);
     const [timeRangeIndex, setTimeRangeIndex] = useState(2);
-    const [isLoading, setIsLoading] = useState(true);
     const { tonPrice } = useWallet();
+    const { data: trades = [], isFetching: isLoading } = useTradeEvents(jettonAddress, 30000);
 
     const timeRange = TIME_RANGES[timeRangeIndex];
-
-    // Fetch on-chain transactions for the jetton
-    useEffect(() => {
-        if (!jettonAddress) {
-            setIsLoading(false);
-            return;
-        }
-
-        const fetchOnChainTrades = async () => {
-            try {
-                // Fetch recent transactions from TONAPI via authenticated proxy
-                const { tonApiGet } = await import("@/lib/tonapi-client");
-                
-                const data = await tonApiGet<{ transactions?: Array<{
-                    success?: boolean;
-                    hash?: string;
-                    utime?: number;
-                    in_msg?: {
-                        op_code?: string;
-                        value?: number;
-                        raw_body?: string;
-                        decoded_body?: { amount?: string };
-                    };
-                    out_msgs?: Array<{
-                        op_code?: string;
-                        value?: number;
-                        decoded_body?: { amount?: string };
-                    }>;
-                }> }>(
-                    `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=100`,
-                    { testnet: false }
-                );
-
-                const tradeEvents: TradeEvent[] = [];
-
-                // Parse transactions for buy/sell events
-                // Buy: op 0xaf750d34
-                // Sell notification: op 0xb7e76bfd
-                for (const tx of data.transactions || []) {
-                    if (!tx.success) continue;
-
-                    const inMsg = tx.in_msg;
-                    if (!inMsg?.op_code) continue;
-
-                    const timestamp = (tx.utime || 0) * 1000;
-                    const hash = tx.hash || "";
-
-                    // BUY transaction
-                    if (inMsg.op_code === "0xaf750d34") {
-                        const tonValue = (tx.in_msg?.value || 0) / 1e9;
-                        
-                        // Look for internal_transfer in out_msgs to get token amount
-                        const transferMsg = tx.out_msgs?.find(
-                            (m: { op_code?: string }) => m.op_code === "0x178d4519"
-                        );
-                        
-                        let tokenAmount = 0;
-                        if (transferMsg?.decoded_body?.amount) {
-                            tokenAmount = parseInt(transferMsg.decoded_body.amount) / 1e9;
-                        }
-
-                        if (tonValue > 0 && tokenAmount > 0) {
-                            tradeEvents.push({
-                                timestamp,
-                                type: "buy",
-                                tonAmount: tonValue,
-                                tokenAmount,
-                                price: tonValue / tokenAmount,
-                                hash,
-                            });
-                        }
-                    }
-
-                    // SELL transaction (burn notification)
-                    if (inMsg.op_code === "0xb7e76bfd") {
-                        // Sell returns TON to user
-                        const returnMsg = tx.out_msgs?.find(
-                            (m: { op_code?: string }) => m.op_code === "0xaf5ececd" || m.op_code === "0xd53276db"
-                        );
-                        
-                        const tonValue = returnMsg ? (returnMsg.value || 0) / 1e9 : 0;
-                        
-                        // Token amount is in the incoming burn notification
-                        let tokenAmount = 0;
-                        if (inMsg.raw_body) {
-                            // Parse from decoded body if available
-                            const decoded = inMsg.decoded_body;
-                            if (decoded?.amount) {
-                                tokenAmount = parseInt(decoded.amount) / 1e9;
-                            }
-                        }
-
-                        if (tonValue > 0 && tokenAmount > 0) {
-                            tradeEvents.push({
-                                timestamp,
-                                type: "sell",
-                                tonAmount: tonValue,
-                                tokenAmount,
-                                price: tonValue / tokenAmount,
-                                hash,
-                            });
-                        }
-                    }
-                }
-
-                // Sort by timestamp ascending
-                tradeEvents.sort((a, b) => a.timestamp - b.timestamp);
-                setTrades(tradeEvents);
-                setIsLoading(false);
-            } catch (error) {
-                console.error("Error fetching on-chain trades:", error);
-                setIsLoading(false);
-            }
-        };
-
-        fetchOnChainTrades();
-        
-        // Refresh every 30 seconds
-        const interval = setInterval(fetchOnChainTrades, 30000);
-        return () => clearInterval(interval);
-    }, [jettonAddress]);
 
     // Filter data based on time range
     const filteredTrades = useMemo(() => {

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Check, ChevronDown, Wallet, Info, MessageSquare, ExternalLink, AlertTriangle, BookUser, ScanLine, Users, Lock, LockOpen } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1199,7 +1199,7 @@ export default function SendPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">${currentChain.usdValue.toFixed(2)}</span>
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground"/>
                         </div>
                       </Button>
                     </DropdownMenuTrigger>
@@ -1226,7 +1226,7 @@ export default function SendPage() {
                             <div className="text-xs text-muted-foreground">${chain.usdValue.toFixed(2)}</div>
                           </div>
                           {chain.id === selectedChain && (
-                            <Check className="w-4 h-4 text-green-500" />
+                            <Icon icon="lucide:check" className="w-4 h-4 text-green-500"/>
                           )}
                         </DropdownMenuItem>
                       ))}
@@ -1249,9 +1249,9 @@ export default function SendPage() {
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                       {multiChainRecipient && !multiChainAddressError ? (
-                        <Check className="w-4 h-4 text-green-500" />
+                        <Icon icon="lucide:check" className="w-4 h-4 text-green-500"/>
                       ) : (
-                        <Wallet className="w-4 h-4 text-muted-foreground" />
+                        <Icon icon="lucide:wallet" className="w-4 h-4 text-muted-foreground"/>
                       )}
                       <Button
                         type="button"
@@ -1260,13 +1260,13 @@ export default function SendPage() {
                         onClick={openQRScanner}
                         className="w-8 h-8 rounded-lg bg-muted hover:bg-accent"
                       >
-                        <ScanLine className="w-4 h-4" />
+                        <Icon icon="lucide:scan-line" className="w-4 h-4"/>
                       </Button>
                     </div>
                   </div>
                   {multiChainAddressError && (
                     <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                      <Info className="w-3 h-3" />
+                      <Icon icon="lucide:info" className="w-3 h-3"/>
                       {multiChainAddressError}
                     </p>
                   )}
@@ -1343,7 +1343,7 @@ export default function SendPage() {
                 {/* Insufficient Balance Warning */}
                 {parseFloat(multiChainAmount || "0") > currentChain.balance && (
                   <div className="flex items-center gap-2 text-destructive text-sm p-3 bg-destructive/10 rounded-xl">
-                    <AlertTriangle className="w-4 h-4" />
+                    <Icon icon="lucide:alert-triangle" className="w-4 h-4"/>
                     <span>Insufficient {currentChain.symbol} balance</span>
                   </div>
                 )}
@@ -1448,7 +1448,7 @@ export default function SendPage() {
               >
                 <div className="flex flex-col items-center justify-center py-8">
                   <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                    <Check className="w-10 h-10 text-green-500" />
+                    <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
                   </div>
                   <h2 className="text-xl font-bold">Transaction Sent!</h2>
                   <p className="text-muted-foreground text-sm mt-1 text-center">
@@ -1463,7 +1463,7 @@ export default function SendPage() {
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 text-primary text-sm hover:underline"
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <Icon icon="lucide:external-link" className="w-4 h-4"/>
                     View on Explorer
                   </a>
                 )}
@@ -1504,14 +1504,14 @@ export default function SendPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Users className="w-4 h-4 text-primary" />
+                    <Icon icon="lucide:users" className="w-4 h-4 text-primary"/>
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-medium text-foreground">Send to Multiple</p>
                     <p className="text-xs text-muted-foreground">Send TON to multiple recipients at once</p>
                   </div>
                 </div>
-                <ChevronDown className="w-4 h-4 text-primary rotate-[-90deg]" />
+                <Icon icon="lucide:chevron-down" className="w-4 h-4 text-primary rotate-[-90deg]"/>
               </button>
 
               {/* Asset Selection */}
@@ -1536,7 +1536,7 @@ export default function SendPage() {
                           <div className="text-xs text-muted-foreground">Balance: {selectedAsset?.balance}</div>
                         </div>
                       </div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground"/>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-[calc(100vw-2rem)] max-w-md bg-popover border-border text-popover-foreground rounded-2xl p-2 shadow-2xl">
@@ -1588,7 +1588,7 @@ export default function SendPage() {
                         onClick={() => setRecipient(addr.address)}
                         className="flex items-center gap-1.5 h-8 px-3 bg-muted border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg text-xs"
                       >
-                        <BookUser className="w-3 h-3 text-purple-400" />
+                        <Icon icon="lucide:book-user" className="w-3 h-3 text-purple-400"/>
                         <span>{addr.name}</span>
                       </Button>
                     ))}
@@ -1608,9 +1608,9 @@ export default function SendPage() {
                     {isResolvingAddress ? (
                       <ButtonLoader />
                     ) : resolvedAddress ? (
-                      <Check className="w-4 h-4 text-green-500" />
+                      <Icon icon="lucide:check" className="w-4 h-4 text-green-500"/>
                     ) : (
-                      <Wallet className="w-4 h-4 text-muted-foreground" />
+                      <Icon icon="lucide:wallet" className="w-4 h-4 text-muted-foreground"/>
                     )}
                     <Button
                       type="button"
@@ -1619,19 +1619,19 @@ export default function SendPage() {
                       onClick={openQRScanner}
                       className="w-8 h-8 rounded-lg bg-muted hover:bg-accent"
                     >
-                      <ScanLine className="w-4 h-4" />
+                      <Icon icon="lucide:scan-line" className="w-4 h-4"/>
                     </Button>
                   </div>
                 </div>
                 {isDomainAddress && resolvedAddress && (
                   <p className="text-xs text-green-400 ml-1 flex items-center gap-1">
-                    <Check className="w-3 h-3" />
+                    <Icon icon="lucide:check" className="w-3 h-3"/>
                     Resolved to: {resolvedAddress.slice(0, 8)}...{resolvedAddress.slice(-6)}
                   </p>
                 )}
                 {addressError && (
                   <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
+                    <Icon icon="lucide:info" className="w-3 h-3"/>
                     {addressError}
                   </p>
                 )}
@@ -1640,7 +1640,7 @@ export default function SendPage() {
               {/* Comment (Optional) */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground ml-1 flex items-center gap-2">
-                  <MessageSquare className="w-3 h-3" />
+                  <Icon icon="lucide:message-square" className="w-3 h-3"/>
                   Comment (Optional)
                 </Label>
                 <Textarea
@@ -1658,9 +1658,9 @@ export default function SendPage() {
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1.5">
                         {encryptComment ? (
-                          <Lock className="w-3 h-3 text-primary" />
+                          <Icon icon="lucide:lock" className="w-3 h-3 text-primary"/>
                         ) : (
-                          <LockOpen className="w-3 h-3 text-muted-foreground" />
+                          <Icon icon="lucide:lock-open" className="w-3 h-3 text-muted-foreground"/>
                         )}
                         <span className={`text-xs ${encryptComment ? 'text-primary' : 'text-muted-foreground'}`}>
                           {encryptComment ? 'Encrypted' : 'Public'}
@@ -1680,17 +1680,17 @@ export default function SendPage() {
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 leading-relaxed">
                     {encryptComment && canEncrypt ? (
                       <>
-                        <Lock className="w-3 h-3 text-primary shrink-0" />
+                        <Icon icon="lucide:lock" className="w-3 h-3 text-primary shrink-0"/>
                         <span>Only you and the recipient can read this message.</span>
                       </>
                     ) : !canEncrypt ? (
                       <>
-                        <Info className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+                        <Icon icon="lucide:info" className="w-3 h-3 text-muted-foreground/50 shrink-0"/>
                         <span>Encryption unavailable - recipient wallet hasn&apos;t sent any transactions yet.</span>
                       </>
                     ) : (
                       <>
-                        <LockOpen className="w-3 h-3 text-yellow-500 shrink-0" />
+                        <Icon icon="lucide:lock-open" className="w-3 h-3 text-yellow-500 shrink-0"/>
                         <span>This message will be visible publicly on the blockchain.</span>
                       </>
                     )}
@@ -1737,12 +1737,12 @@ export default function SendPage() {
                 </div>
                 {insufficientFunds ? (
                   <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
+                    <Icon icon="lucide:info" className="w-3 h-3"/>
                     Insufficient funds. You have {selectedAsset?.balance} {selectedAsset?.symbol} available.
                   </p>
                 ) : needMinimum ? (
                   <p className="text-xs text-yellow-500 ml-1 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <Icon icon="lucide:alert-triangle" className="w-3.5 h-3.5 shrink-0"/>
                     <span className="mt-[1px]">Min {walletStatus === "active" ? "0.01" : "0.05"} {selectedAsset?.symbol}</span>
                   </p>
                 ) : null}
@@ -1751,7 +1751,7 @@ export default function SendPage() {
               {/* Warning for insufficient TON for jetton gas fees */}
               {insufficientTonForGas && (
                 <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-destructive shrink-0 mt-0.5"/>
                   <div>
                     <p className="text-sm font-medium text-destructive">Insufficient TON for Transaction</p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -1789,7 +1789,7 @@ export default function SendPage() {
             >
               {isTestnet && (
                 <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-3 flex items-center gap-2">
-                  <Info className="w-4 h-4 text-yellow-500 shrink-0" />
+                  <Icon icon="lucide:info" className="w-4 h-4 text-yellow-500 shrink-0"/>
                   <span className="text-xs text-yellow-400 font-medium">Testnet Mode - For testing only</span>
                 </div>
               )}
@@ -1828,7 +1828,7 @@ export default function SendPage() {
                     {comment.trim() && (
                       <div className="flex justify-between items-start">
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MessageSquare className="w-3 h-3" />
+                          <Icon icon="lucide:message-square" className="w-3 h-3"/>
                           Comment
                         </span>
                         <div className="text-right flex-1 pl-8">
@@ -1874,7 +1874,7 @@ export default function SendPage() {
               </Card>
 
               <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                <Icon icon="lucide:info" className="w-5 h-5 text-primary mt-0.5 shrink-0"/>
                 <p className="text-xs text-primary/90 leading-relaxed">
                   Please verify the recipient address carefully. Transactions on the blockchain are irreversible.
                 </p>
@@ -1916,7 +1916,7 @@ export default function SendPage() {
               <div className="relative">
                 <div className="w-20 h-20 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Wallet className="w-8 h-8 text-primary" />
+                  <Icon icon="lucide:wallet" className="w-8 h-8 text-primary"/>
                 </div>
               </div>
               <div className="text-center space-y-2">
@@ -1934,7 +1934,7 @@ export default function SendPage() {
               className="flex flex-col items-center justify-center py-10 space-y-6"
             >
               <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/20">
-                <Check className="w-12 h-12 text-green-500" />
+                <Icon icon="lucide:check" className="w-12 h-12 text-green-500"/>
               </div>
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-foreground">Transaction Sent!</h2>
@@ -1950,7 +1950,7 @@ export default function SendPage() {
                     onClick={() => window.open(`${EXPLORER_BASE_URL}/${lastTxHash}`, "_blank")}
                     className="w-full h-12 bg-card border-border text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl font-medium flex items-center justify-center gap-2"
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <Icon icon="lucide:external-link" className="w-4 h-4"/>
                     View in Explorer
                   </Button>
                 )}

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import Lottie from "lottie-react";
 import sparklesAnimation from "@/public/lottie/sparkles-lottie.json";
 import trophyAnimation from "@/public/lottie/trophy-lottie.json";
-import { Wallet, Trophy } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const TelegramSVG = ({ className }: { className?: string }) => (
   <svg
@@ -61,7 +61,7 @@ const StoryContent = () => {
       title: "Ecosystem Activity",
       value: `${quantValue} QNTM`,
       sub: "Total Earned",
-      icon: <Wallet className="w-8 h-8 text-blue-400" />,
+      icon: <Icon icon="lucide:wallet" className="w-8 h-8 text-blue-400" />,
       lottie: sparklesAnimation,
       gradient: "from-blue-600/20 via-blue-900/20 to-black",
       accent: "bg-blue-500",
@@ -72,7 +72,7 @@ const StoryContent = () => {
       title: "Your Rank",
       value: `${rank}`,
       sub: "Based on Account Age",
-      icon: <Trophy className="w-8 h-8 text-purple-400" />,
+      icon: <Icon icon="lucide:trophy" className="w-8 h-8 text-purple-400" />,
       lottie: trophyAnimation,
       gradient: "from-purple-600/20 via-purple-900/20 to-black",
       accent: "bg-purple-500",

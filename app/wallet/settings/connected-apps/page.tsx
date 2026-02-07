@@ -5,19 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-    Link2,
-    Link2Off,
-    ExternalLink,
-    Trash2,
-    Shield,
-    Clock,
-    QrCode,
-    ScanLine,
-    Check,
-    Loader2,
-    AlertTriangle,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -235,7 +223,7 @@ export default function ConnectedAppsPage() {
 
                 <Card className="bg-yellow-500/10 border-yellow-500/20 mb-6">
                     <CardContent className="p-4 flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+                        <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
                         <div>
                             <h3 className="font-semibold text-foreground text-sm">WalletKit Initializing</h3>
                             <p className="text-xs text-muted-foreground mt-0.5">
@@ -273,12 +261,12 @@ export default function ConnectedAppsPage() {
             >
                 {isProcessing ? (
                     <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        <Icon icon="lucide:loader-2" className="w-5 h-5 mr-2 animate-spin" />
                         Processing...
                     </>
                 ) : (
                     <>
-                        <ScanLine className="w-5 h-5 mr-2" />
+                        <Icon icon="lucide:scan-line" className="w-5 h-5 mr-2" />
                         Scan to Connect
                     </>
                 )}
@@ -288,7 +276,7 @@ export default function ConnectedAppsPage() {
             {error && (
                 <Card className="bg-destructive/10 border-destructive/20 mb-6">
                     <CardContent className="p-4 flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                        <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm text-destructive">{error}</p>
                         </div>
@@ -300,7 +288,7 @@ export default function ConnectedAppsPage() {
             <Card className="bg-primary/5 border-primary/20 mb-6">
                 <CardContent className="p-4 flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Shield className="w-5 h-5 text-primary" />
+                        <Icon icon="lucide:shield" className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-foreground text-sm">TON Connect Ready</h3>
@@ -336,7 +324,7 @@ export default function ConnectedAppsPage() {
                         // Empty state
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                                <Link2Off className="w-10 h-10 text-muted-foreground" />
+                                <Icon icon="lucide:link-2-off" className="w-10 h-10 text-muted-foreground" />
                             </div>
                             <h3 className="text-lg font-semibold text-foreground mb-2">
                                 No Connected Apps
@@ -345,7 +333,7 @@ export default function ConnectedAppsPage() {
                                 Scan the QR code on any TON dApp to connect your wallet
                             </p>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <QrCode className="w-4 h-4" />
+                                <Icon icon="lucide:qr-code" className="w-4 h-4" />
                                 <span>Look for &ldquo;Connect Wallet&rdquo; on dApps</span>
                             </div>
                         </div>
@@ -376,7 +364,7 @@ export default function ConnectedAppsPage() {
                                                                 unoptimized
                                                             />
                                                         ) : (
-                                                            <Link2 className="w-6 h-6 text-muted-foreground" />
+                                                            <Icon icon="lucide:link-2" className="w-6 h-6 text-muted-foreground" />
                                                         )}
                                                     </div>
                                                     
@@ -394,7 +382,7 @@ export default function ConnectedAppsPage() {
                                                             {session.lastActivity && (
                                                                 <>
                                                                     <span>•</span>
-                                                                    <Clock className="w-3 h-3" />
+                                                                    <Icon icon="lucide:clock" className="w-3 h-3" />
                                                                     <span>{formatTimeAgo(new Date(session.lastActivity).getTime())}</span>
                                                                 </>
                                                             )}
@@ -410,7 +398,7 @@ export default function ConnectedAppsPage() {
                                                                 className="h-9 w-9"
                                                                 onClick={() => window.open(session.dAppUrl, "_blank")}
                                                             >
-                                                                <ExternalLink className="w-4 h-4" />
+                                                                <Icon icon="lucide:external-link" className="w-4 h-4" />
                                                             </Button>
                                                         )}
                                                         
@@ -421,7 +409,7 @@ export default function ConnectedAppsPage() {
                                                                     size="icon"
                                                                     className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                                                                 >
-                                                                    <Trash2 className="w-4 h-4" />
+                                                                    <Icon icon="lucide:trash-2" className="w-4 h-4" />
                                                                 </Button>
                                                             </AlertDialogTrigger>
                                                             <AlertDialogContent>
@@ -454,7 +442,7 @@ export default function ConnectedAppsPage() {
                                                 <div className="mt-3 pt-3 border-t border-border">
                                                     <div className="flex flex-wrap gap-2">
                                                         <Badge variant="outline" className="text-[10px]">
-                                                            <Check className="w-3 h-3 mr-1" />
+                                                            <Icon icon="lucide:check" className="w-3 h-3 mr-1" />
                                                             Connected
                                                         </Badge>
                                                     </div>
@@ -473,7 +461,7 @@ export default function ConnectedAppsPage() {
                                             variant="outline"
                                             className="w-full h-12 mt-4 text-destructive border-destructive/30 hover:bg-destructive/10"
                                         >
-                                            <Link2Off className="w-4 h-4 mr-2" />
+                                            <Icon icon="lucide:link-2-off" className="w-4 h-4 mr-2" />
                                             Disconnect All Apps
                                         </Button>
                                     </AlertDialogTrigger>
@@ -531,7 +519,7 @@ export default function ConnectedAppsPage() {
                                     </div>
                                 ) : (
                                     <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <Link2 className="w-7 h-7 text-primary" />
+                                        <Icon icon="lucide:link-2" className="w-7 h-7 text-primary" />
                                     </div>
                                 )}
                                 <div>
@@ -549,11 +537,11 @@ export default function ConnectedAppsPage() {
                                 </p>
                                 <ul className="space-y-2">
                                     <li className="flex items-center gap-2 text-sm text-foreground">
-                                        <Check className="w-4 h-4 text-green-500" />
+                                        <Icon icon="lucide:check" className="w-4 h-4 text-green-500" />
                                         View your wallet address
                                     </li>
                                     <li className="flex items-center gap-2 text-sm text-foreground">
-                                        <Check className="w-4 h-4 text-green-500" />
+                                        <Icon icon="lucide:check" className="w-4 h-4 text-green-500" />
                                         Request transaction approvals
                                     </li>
                                 </ul>

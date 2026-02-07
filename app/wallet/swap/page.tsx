@@ -5,17 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import {
-    ArrowDownUp,
-    ArrowRight,
-    ChevronDown,
-    ExternalLink,
-    AlertTriangle,
-    Info,
-    Check,
-    Zap,
-    Fuel,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -599,7 +589,7 @@ export default function SwapPage() {
 
                     <div className="text-center py-16 space-y-6">
                         <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                            <AlertTriangle className="w-10 h-10 text-primary" />
+                            <Icon icon="lucide:alert-triangle" className="w-10 h-10 text-primary"/>
                         </div>
                         <div className="space-y-2">
                             <h2 className="text-xl font-bold text-foreground">Not Available in Testnet</h2>
@@ -678,7 +668,7 @@ export default function SwapPage() {
                                                     <span className="font-bold">
                                                         {fromAsset?.symbol || "Select"}
                                                     </span>
-                                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                                    <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground"/>
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
@@ -761,7 +751,7 @@ export default function SwapPage() {
                                     onClick={handleToggleDirection}
                                     className="w-10 h-10 bg-card hover:bg-accent active:scale-95 rounded-xl flex items-center justify-center border-[4px] border-background transition-all shadow-lg text-primary hover:text-primary/80"
                                 >
-                                    <ArrowDownUp className="w-5 h-5" />
+                                    <Icon icon="lucide:arrow-down-up" className="w-5 h-5"/>
                                 </Button>
                             </div>
 
@@ -800,7 +790,7 @@ export default function SwapPage() {
                                                     <span className="font-bold">
                                                         {toAsset?.symbol || "Select"}
                                                     </span>
-                                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                                    <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground"/>
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
@@ -877,7 +867,7 @@ export default function SwapPage() {
                                         <div className="flex items-center justify-between text-sm gap-2">
                                             <span className="text-muted-foreground flex items-center gap-1 shrink-0">
                                                 Minimum received
-                                                <Info className="w-3 h-3 text-muted-foreground" />
+                                                <Icon icon="lucide:info" className="w-3 h-3 text-muted-foreground"/>
                                             </span>
                                             <span className="text-foreground text-right truncate min-w-0">
                                                 {formatDisplayNumber(minimumReceived)}{" "}
@@ -889,7 +879,7 @@ export default function SwapPage() {
                                         {resolverName && (
                                             <div className="flex items-center justify-between text-sm gap-2">
                                                 <span className="text-muted-foreground flex items-center gap-1 shrink-0">
-                                                    <Zap className="w-3 h-3" />
+                                                    <Icon icon="lucide:zap" className="w-3 h-3"/>
                                                     Best rate via
                                                 </span>
                                                 <span className="text-primary font-medium text-right truncate min-w-0">
@@ -905,7 +895,7 @@ export default function SwapPage() {
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <Button variant="ghost" size="icon" type="button" className="h-auto w-auto p-0 hover:bg-transparent inline-flex">
-                                                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                                                <Icon icon="lucide:info" className="w-3 h-3 text-muted-foreground cursor-help"/>
                                                             </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent side="top" className="w-56 bg-popover border-border text-popover-foreground p-3">
@@ -949,14 +939,14 @@ export default function SwapPage() {
                                             {/* Gasless swap toggle */}
                                             <div className="flex items-center justify-between text-sm gap-2 pt-2 border-t border-border/50">
                                                 <div className="flex items-center gap-1.5 shrink-0">
-                                                    <Fuel className="w-3 h-3 text-muted-foreground" />
+                                                    <Icon icon="lucide:fuel" className="w-3 h-3 text-muted-foreground"/>
                                                     <Label htmlFor="gasless" className={`text-sm cursor-pointer ${isGasless ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
                                                         Gasless swap
                                                     </Label>
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <Button variant="ghost" size="icon" type="button" className="h-auto w-auto p-0 hover:bg-transparent inline-flex">
-                                                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                                                <Icon icon="lucide:info" className="w-3 h-3 text-muted-foreground cursor-help"/>
                                                             </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent side="top" className="w-56 bg-popover border-border text-popover-foreground p-3">
@@ -989,7 +979,7 @@ export default function SwapPage() {
                             {/* Info: Fee deduction explanation for MAX swaps */}
                             {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && omnistonQuote && swapDetails.hasEnoughForGas && (
                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                                    <Icon icon="lucide:info" className="w-4 h-4 text-primary mt-0.5 shrink-0"/>
                                     <p className="text-xs text-primary/90">
                                         <span className="font-semibold">~{swapDetails.estimatedGas.toFixed(4)} TON</span> network fee will be deducted from your swap amount.
                                     </p>
@@ -999,7 +989,7 @@ export default function SwapPage() {
                             {/* Quote error message */}
                             {quoteError && !isQuoting && (
                                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                                    <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-destructive shrink-0"/>
                                     <p className="text-xs text-destructive/90">
                                         {quoteError}
                                     </p>
@@ -1009,7 +999,7 @@ export default function SwapPage() {
                             {/* Warning: Minimum balance not met */}
                             {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && !swapDetails.hasMinBalance && (
                                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                                    <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0"/>
                                     <p className="text-xs text-yellow-500/90">
                                         You need at least {MIN_TON_BALANCE} TON in your wallet to swap.
                                     </p>
@@ -1019,7 +1009,7 @@ export default function SwapPage() {
                             {/* Warning for low TON balance when swapping jettons */}
                             {fromAsset?.kind === "Jetton" && parseFloat(tonBalance) < MIN_GAS_RESERVE_TON && (
                                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                                    <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0"/>
                                     <p className="text-xs text-yellow-500/90">
                                         You need at least {MIN_GAS_RESERVE_TON} TON to cover network fees for token swaps.
                                     </p>
@@ -1029,7 +1019,7 @@ export default function SwapPage() {
                             {/* Error when not enough balance for both swap and gas */}
                             {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && !swapDetails.isMaxSwap && !swapDetails.hasEnoughForGas && (
                                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                                    <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-destructive mt-0.5 shrink-0"/>
                                     <p className="text-xs text-destructive/90">
                                         Insufficient balance for network fees. Reduce swap amount or use MAX.
                                     </p>
@@ -1101,7 +1091,7 @@ export default function SwapPage() {
                                             <p className="text-gray-400">{fromAsset?.symbol}</p>
                                         </div>
 
-                                        <ArrowRight className="w-6 h-6 text-muted-foreground" />
+                                        <Icon icon="lucide:arrow-right" className="w-6 h-6 text-muted-foreground"/>
 
                                         <div className="text-center">
                                             {toAsset?.imageUrl ? (
@@ -1191,7 +1181,7 @@ export default function SwapPage() {
                             className="flex flex-col items-center justify-center py-8 space-y-6"
                         >
                             <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
-                                <Check className="w-10 h-10 text-green-500" />
+                                <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
                             </div>
                             <div className="text-center space-y-2">
                                 <h2 className="text-2xl font-bold">Swap Sent!</h2>
@@ -1219,7 +1209,7 @@ export default function SwapPage() {
                                         rel="noopener noreferrer"
                                     >
                                         View on Explorer
-                                        <ExternalLink className="w-4 h-4" />
+                                        <Icon icon="lucide:external-link" className="w-4 h-4"/>
                                     </a>
                                 </Button>
                             )}

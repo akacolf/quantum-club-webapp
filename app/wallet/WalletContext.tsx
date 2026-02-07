@@ -7,9 +7,10 @@ import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
-import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, fetchAllMultiChainBalances, ChainType } from "./utils/multichain";
+import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, ChainType } from "./utils/multichain";
 import { useUserContext } from "../(contexts)/UserContext";
 import { getAccountJettons } from "@/lib/tonapi-client";
+import { useWalletAssetsQuery, useNftsQuery, useMultiChainBalancesQuery, useInvalidateWalletQueries } from "@/app/(hooks)/queries/use-wallet";
 
 // Default testnet mode - can be overridden by user preference in localStorage
 const DEFAULT_TESTNET = false;
@@ -393,7 +394,80 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Clear all wallet state on logout
+  // ---- TanStack Query integration ----
+  const invalidateWalletQueries = useInvalidateWalletQueries();
+  const refetchIntervalMs = autoRefreshEnabled ? autoRefreshInterval * 1000 : false;
+
+  const walletAssetsQuery = useWalletAssetsQuery(walletAddress, isTestnet, refetchIntervalMs);
+  const nftsQuery = useNftsQuery(walletAddress, isTestnet);
+  const multiChainQuery = useMultiChainBalancesQuery(
+    { eth: ethAddress, btc: btcAddress, sol: solAddress, trx: trxAddress },
+    hasFetched && !isTestnet
+  );
+
+  // Sync query data → context state
+  useEffect(() => {
+    if (walletAssetsQuery.data) {
+      const d = walletAssetsQuery.data;
+      setTonBalance(d.tonBalance);
+      setTonPrice(d.tonPrice);
+      setTonUsdValue(d.tonUsdValue);
+      setTotalUsdBalance(d.totalUsdBalance);
+      setWalletStatus(d.walletStatus);
+      setJettons(d.jettons);
+      setHasFetched(true);
+    }
+  }, [walletAssetsQuery.data]);
+
+  useEffect(() => {
+    if (nftsQuery.data) {
+      setNfts(nftsQuery.data);
+    }
+  }, [nftsQuery.data]);
+
+  useEffect(() => {
+    if (multiChainQuery.data) {
+      const b = multiChainQuery.data;
+      setEthBalance(b.eth.balance);
+      setEthUsdValue(b.eth.usdValue);
+      setEthPrice(b.eth.price);
+      setBtcBalance(b.btc.balance);
+      setBtcUsdValue(b.btc.usdValue);
+      setBtcPrice(b.btc.price);
+      setSolBalance(b.sol.balance);
+      setSolUsdValue(b.sol.usdValue);
+      setSolPrice(b.sol.price);
+      setTrxBalance(b.trx.balance);
+      setTrxUsdValue(b.trx.usdValue);
+      setTrxPrice(b.trx.price);
+    }
+  }, [multiChainQuery.data]);
+
+  // Sync loading states from queries
+  useEffect(() => {
+    setIsLoadingAssets(walletAssetsQuery.isFetching);
+  }, [walletAssetsQuery.isFetching]);
+
+  useEffect(() => {
+    setIsLoadingNfts(nftsQuery.isFetching);
+  }, [nftsQuery.isFetching]);
+
+  useEffect(() => {
+    setIsLoadingMultiChain(multiChainQuery.isFetching);
+  }, [multiChainQuery.isFetching]);
+
+  // Imperative refetch wrappers (preserve existing context interface)
+  const fetchWalletAssets = useCallback(async () => {
+    await walletAssetsQuery.refetch();
+  }, [walletAssetsQuery]);
+
+  const fetchNfts = useCallback(async () => {
+    await nftsQuery.refetch();
+  }, [nftsQuery]);
+
+  const fetchMultiChainBalances = useCallback(async () => {
+    await multiChainQuery.refetch();
+  }, [multiChainQuery]);
   const clearWallet = useCallback(() => {
     // Clear localStorage
     localStorage.removeItem(`quantum_wallet_address_${telegramId}`);
@@ -431,131 +505,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setTrxUsdValue(0);
   }, []);
 
-  const fetchTonPrice = useCallback(async () => {
-    // On testnet, use a mock price for testing
-    if (isTestnet) {
-      setTonPrice(5.0); // Mock price for testnet
-      return 5.0;
-    }
-
-    try {
-      // Use DeFiLlama for price data (free, no rate limits)
-      const { fetchTonPrice: getTonPrice } = await import("@/lib/price-api");
-      const price = await getTonPrice();
-      if (price > 0) {
-        setTonPrice(price);
-        return price;
-      }
-    } catch (error) {
-      console.error("Failed to fetch TON price:", error);
-    }
-    return tonPrice || 0;
-  }, [isTestnet, tonPrice]);
-
-  // Fetch wallet assets (TON balance + Jettons)
-  const fetchWalletAssets = useCallback(async () => {
-    if (!walletAddress) return;
-
-    setIsLoadingAssets(true);
-    try {
-      // Fetch TON price first
-      const price = await fetchTonPrice();
-      
-      // Use TonAPI for TON balance
-      let tonUsd = 0;
-      try {
-        const { getAccount } = await import("@/lib/tonapi-client");
-        const balanceData = await getAccount(walletAddress, isTestnet);
-        const balanceInTon = fromNano(balanceData.balance || "0");
-        setTonBalance(parseFloat(balanceInTon).toFixed(4));
-        setWalletStatus(balanceData.status);
-        tonUsd = parseFloat(balanceInTon) * price;
-        setTonUsdValue(tonUsd.toFixed(2));
-      } catch (err) {
-        console.error("Failed to fetch balance via TonAPI:", err);
-      }
-
-      // Fetch Jettons (tokens) balance with USD prices via authenticated proxy
-      let jettonsUsdTotal = 0;
-      try {
-        const jettonsData = await getAccountJettons(walletAddress, isTestnet);
-        const jettonBalances: JettonBalance[] = (jettonsData.balances || []).map((jetton) => {
-          const decimals = jetton.jetton?.decimals || 9;
-          const rawBalance = parseFloat(jetton.balance || "0");
-          const actualBalance = rawBalance / Math.pow(10, decimals);
-          const priceUsd = jetton.price?.prices?.USD || 0;
-          const usdValue = actualBalance * priceUsd;
-
-          jettonsUsdTotal += usdValue;
-          return {
-            symbol: jetton.jetton?.symbol || "Unknown",
-            name: jetton.jetton?.name || "Unknown Token",
-            balance: jetton.balance || "0",
-            decimals: decimals,
-            image: jetton.jetton?.image,
-            usdValue: usdValue,
-            priceUsd: priceUsd,
-            jettonAddress: jetton.jetton?.address,
-            walletAddress: jetton.wallet_address?.address,
-          };
-        });
-        setJettons(jettonBalances);
-      } catch (jettonError) {
-        console.error("Failed to fetch jettons:", jettonError);
-      }
-
-
-      // Set total USD balance (TON + all Jettons)
-      setTotalUsdBalance((tonUsd + jettonsUsdTotal).toFixed(2));
-    } catch (error) {
-      console.error("Failed to fetch wallet assets:", error);
-    } finally {
-      setIsLoadingAssets(false);
-      setHasFetched(true);
-    }
-  }, [walletAddress, fetchTonPrice, isTestnet]);
-
-  // Fetch NFTs from TonAPI via authenticated proxy
-  const fetchNfts = useCallback(async () => {
-    if (!walletAddress) return;
-
-    setIsLoadingNfts(true);
-    try {
-      const { getAccountNfts } = await import("@/lib/tonapi-client");
-      const data = await getAccountNfts(walletAddress, isTestnet);
-      
-      const nftItems: NftItem[] = (data.nft_items || []).map((nft) => {
-        // Get the best preview image (prefer 500x500)
-        const preview = nft.previews?.find(p => p.resolution === '500x500')
-          || nft.previews?.find(p => p.resolution === '100x100')
-          || nft.previews?.[0];
-
-        return {
-          address: nft.address,
-          name: nft.metadata?.name || 'Unnamed NFT',
-          description: nft.metadata?.description,
-          image: preview?.url || nft.metadata?.image,
-          collectionName: nft.collection?.name,
-          collectionAddress: nft.collection?.address,
-        };
-      });
-      setNfts(nftItems);
-    } catch (error) {
-      console.error("Failed to fetch NFTs:", error);
-    } finally {
-      setIsLoadingNfts(false);
-    }
-  }, [walletAddress, isTestnet]);
-
   // Derive multi-chain addresses from mnemonic (always mainnet)
-  // Re-derive when wallet address changes (e.g., after import or wallet switch)
   useEffect(() => {
     const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
     if (storedMnemonic && walletAddress) {
       try {
-        // Always re-derive to ensure addresses match current mnemonic
         const eth = deriveEthAddress(storedMnemonic);
-        const btc = deriveBtcAddress(storedMnemonic, false); // Always mainnet (bc1...)
+        const btc = deriveBtcAddress(storedMnemonic, false);
         const sol = deriveSolAddress(storedMnemonic);
         const trx = deriveTronAddress(storedMnemonic);
         setEthAddress(eth);
@@ -568,47 +524,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [walletAddress]);
 
-  // Fetch multi-chain balances (always mainnet)
-  const fetchMultiChainBalances = useCallback(async () => {
-    if (!ethAddress || !btcAddress || !solAddress || !trxAddress) return;
-
-    setIsLoadingMultiChain(true);
-    try {
-      const balances = await fetchAllMultiChainBalances(ethAddress, btcAddress, solAddress, trxAddress, false);
-
-      setEthBalance(balances.eth.balance);
-      setEthUsdValue(balances.eth.usdValue);
-      setEthPrice(balances.eth.price);
-
-      setBtcBalance(balances.btc.balance);
-      setBtcUsdValue(balances.btc.usdValue);
-      setBtcPrice(balances.btc.price);
-
-      setSolBalance(balances.sol.balance);
-      setSolUsdValue(balances.sol.usdValue);
-      setSolPrice(balances.sol.price);
-
-      setTrxBalance(balances.trx.balance);
-      setTrxUsdValue(balances.trx.usdValue);
-      setTrxPrice(balances.trx.price);
-    } catch (error) {
-      console.error("Failed to fetch multi-chain balances:", error);
-    } finally {
-      setIsLoadingMultiChain(false);
-    }
-  }, [ethAddress, btcAddress, solAddress, trxAddress]);
-
-  // Auto-fetch multi-chain balances when addresses are ready
-  useEffect(() => {
-    if (ethAddress && btcAddress && solAddress && trxAddress && hasFetched) {
-      fetchMultiChainBalances();
-    }
-  }, [ethAddress, btcAddress, solAddress, trxAddress, hasFetched, fetchMultiChainBalances]);
-
   // Handle wallet address changes - reset state and refetch
   const handleSetWalletAddress = useCallback((address: string) => {
     if (address !== walletAddress) {
-      // Reset all data when wallet changes
       if (!address) {
         setTonBalance("0");
         setTonUsdValue("0.00");
@@ -629,33 +547,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
-
-  useEffect(() => {
-    if (walletAddress && !hasFetched) {
-      fetchWalletAssets();
-    }
-  }, [walletAddress, hasFetched, fetchWalletAssets]);
-
-  // Auto-refresh effect
-  useEffect(() => {
-    if (!autoRefreshEnabled || !walletAddress || !hasFetched) {
-      return;
-    }
-
-    const intervalMs = autoRefreshInterval * 1000;
-    
-    const refreshInterval = setInterval(() => {
-      // Only refresh if the page is visible
-      if (document.visibilityState === "visible") {
-        fetchWalletAssets();
-        if (!isTestnet) {
-          fetchMultiChainBalances();
-        }
-      }
-    }, intervalMs);
-
-    return () => clearInterval(refreshInterval);
-  }, [autoRefreshEnabled, autoRefreshInterval, walletAddress, hasFetched, isTestnet, fetchWalletAssets, fetchMultiChainBalances]);
 
   // Send transaction using QC Wallet credentials
   const sendTransaction = useCallback(async (params: {
@@ -800,7 +691,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
 
       setTimeout(() => {
-        fetchWalletAssets();
+        invalidateWalletQueries(walletAddress);
       }, 3000);
 
       return { success: true, txHash: `${seqno}` };
@@ -811,7 +702,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         error: error instanceof Error ? error.message : "Transaction failed"
       };
     }
-  }, [isTestnet, fetchWalletAssets]);
+  }, [isTestnet, invalidateWalletQueries, walletAddress]);
 
   return (
     <WalletContext.Provider value={{

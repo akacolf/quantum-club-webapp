@@ -2,17 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    Sparkles,
-    Shield,
-    TrendingUp,
-    TrendingDown,
-    AlertTriangle,
-    Loader2,
-    RefreshCw,
-    ChevronDown,
-    ChevronUp,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,11 +97,11 @@ export function TokenAnalysisCard({
     const getSentimentIcon = (sentiment: string) => {
         switch (sentiment) {
             case "BULLISH":
-                return <TrendingUp className="w-4 h-4 text-green-400" />;
+                return <Icon icon="lucide:trending-up" className="w-4 h-4 text-green-400" />;
             case "BEARISH":
-                return <TrendingDown className="w-4 h-4 text-red-400" />;
+                return <Icon icon="lucide:trending-down" className="w-4 h-4 text-red-400" />;
             default:
-                return <Shield className="w-4 h-4 text-gray-400" />;
+                return <Icon icon="lucide:shield" className="w-4 h-4 text-gray-400" />;
         }
     };
 
@@ -121,7 +111,7 @@ export function TokenAnalysisCard({
                 <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-red-400 text-sm">
-                            <AlertTriangle className="w-4 h-4" />
+                            <Icon icon="lucide:alert-triangle" className="w-4 h-4" />
                             <span>{error}</span>
                         </div>
                         <Button
@@ -130,7 +120,7 @@ export function TokenAnalysisCard({
                             onClick={analyzeToken}
                             className="h-8 text-xs"
                         >
-                            <RefreshCw className="w-3 h-3 mr-1" />
+                            <Icon icon="lucide:refresh-cw" className="w-3 h-3 mr-1" />
                             Retry
                         </Button>
                     </div>
@@ -150,7 +140,7 @@ export function TokenAnalysisCard({
                     >
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                <Sparkles className="w-4 h-4 text-primary" />
+                                <Icon icon="lucide:sparkles" className="w-4 h-4 text-primary" />
                             </div>
                             <div className="text-left">
                                 <p className="text-sm font-medium text-white">AI Analysis</p>
@@ -163,16 +153,16 @@ export function TokenAnalysisCard({
                         </div>
                         <div className="flex items-center gap-2">
                             {isLoading ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin text-primary" />
                             ) : analysis ? (
                                 <>
                                     <Badge className={getRiskBadge(analysis.riskScore).className}>
                                         {getRiskBadge(analysis.riskScore).label}
                                     </Badge>
                                     {isExpanded ? (
-                                        <ChevronUp className="w-4 h-4 text-gray-500" />
+                                        <Icon icon="lucide:chevron-up" className="w-4 h-4 text-gray-500" />
                                     ) : (
-                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                        <Icon icon="lucide:chevron-down" className="w-4 h-4 text-gray-500" />
                                     )}
                                 </>
                             ) : null}
@@ -217,7 +207,7 @@ export function TokenAnalysisCard({
                                             }}
                                             className="h-8"
                                         >
-                                            <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
+                                            <Icon icon="lucide:refresh-cw" className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
                                         </Button>
                                     </div>
 
@@ -236,7 +226,7 @@ export function TokenAnalysisCard({
                                                     key={i}
                                                     className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-500/10 rounded-lg p-2"
                                                 >
-                                                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                                                    <Icon icon="lucide:alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />
                                                     <span>{warning}</span>
                                                 </div>
                                             ))}

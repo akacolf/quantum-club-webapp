@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Check, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -100,7 +100,7 @@ export default function ViewRecoveryPhrasePage() {
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <ShieldAlert className="w-7 h-7 text-primary" />
+              <Icon icon="lucide:shield-alert" className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Recovery Phrase</h1>
             <p className="text-muted-foreground text-sm max-w-xs mx-auto">
@@ -135,7 +135,7 @@ export default function ViewRecoveryPhrasePage() {
                   variant="secondary"
                   className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl"
                 >
-                  <Eye className="w-4 h-4 mr-2" />
+                  <Icon icon="lucide:eye" className="w-4 h-4 mr-2" />
                   Reveal Phrase
                 </Button>
               </div>
@@ -148,7 +148,7 @@ export default function ViewRecoveryPhrasePage() {
                 onClick={() => setIsRevealed(false)}
                 className="absolute -top-3 -right-3 text-muted-foreground hover:text-foreground h-8 w-8 p-0 bg-card rounded-full border border-border shadow-sm"
               >
-                <EyeOff className="w-3 h-3" />
+                <Icon icon="lucide:eye-off" className="w-3 h-3" />
               </Button>
             )}
           </div>
@@ -160,7 +160,7 @@ export default function ViewRecoveryPhrasePage() {
               variant="outline"
               className="w-full bg-card border-border text-foreground hover:bg-muted h-12 transition-colors"
             >
-              {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
+              {copied ? <Icon icon="lucide:check" className="w-4 h-4 mr-2 text-green-500" /> : <Icon icon="lucide:copy" className="w-4 h-4 mr-2" />}
               {copied ? "Copied to Clipboard" : "Copy to Clipboard"}
             </Button>
           </div>

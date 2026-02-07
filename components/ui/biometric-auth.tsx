@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Fingerprint, KeyRound, X, ShieldCheck, AlertCircle } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/client";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -273,10 +273,10 @@ export function BiometricAuth({
                 className="absolute right-2 top-2 h-8 w-8 rounded-full"
                 onClick={onCancel}
               >
-                <X className="h-4 w-4" />
+                <Icon icon="lucide:x" className="h-4 w-4" />
               </Button>
               <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                <ShieldCheck className="w-7 h-7 text-primary" />
+                <Icon icon="lucide:shield-check" className="w-7 h-7 text-primary" />
               </div>
               <CardTitle className="text-lg font-bold">{title}</CardTitle>
               <CardDescription className="text-sm">
@@ -298,7 +298,7 @@ export function BiometricAuth({
                       }}
                     >
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Fingerprint className="w-5 h-5 text-primary" />
+                        <Icon icon="lucide:fingerprint" className="w-5 h-5 text-primary" />
                       </div>
                       <div className="text-left">
                         <div className="font-semibold">Biometrics</div>
@@ -315,7 +315,7 @@ export function BiometricAuth({
                     onClick={() => setAuthMethod("pin")}
                   >
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <KeyRound className="w-5 h-5 text-primary" />
+                      <Icon icon="lucide:key-round" className="w-5 h-5 text-primary" />
                     </div>
                     <div className="text-left">
                       <div className="font-semibold">PIN Code</div>
@@ -333,7 +333,7 @@ export function BiometricAuth({
                   {isAuthenticating ? (
                     <>
                       <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
-                        <Fingerprint className="w-10 h-10 text-primary" />
+                         <Icon icon="lucide:fingerprint" className="w-10 h-10 text-primary" />
                       </div>
                       <p className="text-sm text-muted-foreground">
                         Waiting for authentication...
@@ -343,7 +343,7 @@ export function BiometricAuth({
                     <>
                       {pinError && (
                         <div className="flex items-center gap-2 text-destructive text-sm justify-center">
-                          <AlertCircle className="w-4 h-4" />
+                          <Icon icon="lucide:alert-circle" className="w-4 h-4" />
                           {pinError}
                         </div>
                       )}
@@ -388,7 +388,7 @@ export function BiometricAuth({
                     />
                     {pinError && (
                       <div className="flex items-center gap-2 text-destructive text-sm">
-                        <AlertCircle className="w-4 h-4" />
+                        <Icon icon="lucide:alert-circle" className="w-4 h-4" />
                         {pinError}
                       </div>
                     )}

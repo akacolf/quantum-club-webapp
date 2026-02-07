@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Shield } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Shield className="w-7 h-7 text-primary" />
+              <Icon icon="lucide:shield" className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Privacy Policy</h1>
             <p className="text-muted-foreground text-sm">Last updated: January 19, 2026</p>
@@ -157,7 +157,7 @@ export default function PrivacyPolicyPage() {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-2">12. Contact Us</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  For questions about this Privacy Policy or to exercise your rights, please contact us through our Telegram channel: @quantumclubinc
+                  For questions about this Privacy Policy or to exercise your rights, please contact us through our support @QCSupportBot
                 </p>
               </section>
 

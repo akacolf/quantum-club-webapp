@@ -2,16 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import {
-    Globe,
-    Star,
-    TrendingUp,
-    Droplets,
-    Gamepad2,
-    LayoutGrid,
-    Shield,
-    ExternalLink,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Image from "next/image";
 
@@ -97,12 +88,12 @@ const POPULAR_DAPPS: DApp[] = [
 ];
 
 const CATEGORIES = [
-    { id: "all", name: "All", icon: LayoutGrid },
-    { id: "exchange", name: "DEX", icon: TrendingUp },
-    { id: "defi", name: "DeFi", icon: Droplets },
-    { id: "nft", name: "NFT", icon: Star },
-    { id: "gaming", name: "Gaming", icon: Gamepad2 },
-    { id: "tools", name: "Tools", icon: Shield },
+    { id: "all", name: "All", icon: "lucide:layout-grid" },
+    { id: "exchange", name: "DEX", icon: "lucide:trending-up" },
+    { id: "defi", name: "DeFi", icon: "lucide:droplets" },
+    { id: "nft", name: "NFT", icon: "lucide:star" },
+    { id: "gaming", name: "Gaming", icon: "lucide:gamepad-2" },
+    { id: "tools", name: "Tools", icon: "lucide:shield" },
 ];
 
 // App icon with fallback
@@ -122,20 +113,20 @@ function AppIcon({ app }: { app: DApp }) {
 
     const getCategoryIcon = (category: string) => {
         switch (category) {
-            case "exchange": return TrendingUp;
-            case "defi": return Droplets;
-            case "nft": return Star;
-            case "gaming": return Gamepad2;
-            case "tools": return Shield;
-            default: return Globe;
+            case "exchange": return "lucide:trending-up";
+            case "defi": return "lucide:droplets";
+            case "nft": return "lucide:star";
+            case "gaming": return "lucide:gamepad-2";
+            case "tools": return "lucide:shield";
+            default: return "lucide:globe";
         }
     };
 
     if (hasError || !app.icon) {
-        const Icon = getCategoryIcon(app.category);
+        const iconName = getCategoryIcon(app.category);
         return (
             <div className={`w-full h-full flex items-center justify-center ${getCategoryColor(app.category)}`}>
-                <Icon className="w-5 h-5" />
+                <Icon icon={iconName} className="w-5 h-5" />
             </div>
         );
     }
@@ -235,7 +226,6 @@ export default function ExplorePage() {
                 {/* Category Tabs */}
                 <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
                     {CATEGORIES.map((category) => {
-                        const Icon = category.icon;
                         const isActive = selectedCategory === category.id;
                         return (
                             <motion.button
@@ -248,7 +238,7 @@ export default function ExplorePage() {
                                         : "bg-white/5 text-gray-400 active:bg-white/10 border border-white/10"
                                 }`}
                             >
-                                <Icon className="w-4 h-4" />
+                                <Icon icon={category.icon} className="w-4 h-4" />
                                 {category.name}
                             </motion.button>
                         );
@@ -279,7 +269,7 @@ export default function ExplorePage() {
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-medium text-white">{app.name}</h3>
                                         {app.featured && (
-                                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                            <Icon icon="lucide:star" className="w-3 h-3 text-yellow-500 fill-yellow-500"/>
                                         )}
                                     </div>
                                     <p className="text-sm text-gray-500 truncate">{app.description}</p>
@@ -288,7 +278,7 @@ export default function ExplorePage() {
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getCategoryBadgeColor(app.category)}`}>
                                         {app.category}
                                     </span>
-                                    <ExternalLink className="w-4 h-4 text-gray-500" />
+                                    <Icon icon="lucide:external-link" className="w-4 h-4 text-gray-500"/>
                                 </div>
                             </motion.button>
                         ))}

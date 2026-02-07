@@ -1,6 +1,6 @@
 "use client"
 import { dbfs } from "@/app/(firebase)/client";
-import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
 
 import { getMaintenance } from "@/lib/getMaintenance";
 
@@ -17,9 +17,125 @@ const userData = {
   status: "",
 }
 
+/**
+ * Look up a user's QC ID (encrypted TG ID) by their email.
+ * Returns the QC ID if found, null otherwise.
+ */
+export async function lookupUserByEmail(email: string): Promise<string | null> {
+  try {
+    const usersRef = collection(dbfs, "user");
+    const q = query(usersRef, where("email", "==", email), limit(1));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      return snapshot.docs[0].id; // doc ID is the encrypted TG ID (QC ID)
+    }
+    return null;
+  } catch (error) {
+    console.error("Error looking up user by email:", error);
+    return null;
+  }
+}
+
+/**
+ * Load existing user data by QC ID (for email/Google login without Telegram).
+ * Returns the same userData shape as UseRegisterAndAuth.
+ */
+export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
+  const result = { ...userData, telegramId: telegramIdEncrypted, status: "" };
+  try {
+    localStorage.setItem("telegramId", telegramIdEncrypted);
+
+    const [maintenance] = await Promise.all([getMaintenance()]);
+    sessionStorage.setItem("maintenance", maintenance);
+    if (process.env.NODE_ENV === "production" && maintenance) {
+      result.status = "maintenance";
+      return result;
+    }
+
+    const userRef = doc(dbfs, "user", telegramIdEncrypted);
+    const valueData = doc(dbfs, "user", telegramIdEncrypted, "miningData", "values");
+    const [userSnapshot, valueDataSnapshot] = await Promise.all([
+      getDoc(userRef),
+      getDoc(valueData),
+    ]);
+
+    if (!userSnapshot.exists()) {
+      result.status = "error";
+      return result;
+    }
+
+    const userDocData = userSnapshot.data();
+    const username = userDocData.username || "Quantum User";
+    result.username = username;
+
+    // Determine rank from userArray
+    const userArray = userDocData.userArray || "";
+    const rankMatch = userArray.match(/rank=(\w+)/);
+    result.rank = rankMatch ? rankMatch[1] : "";
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`rank_${telegramIdEncrypted}`, result.rank);
+    }
+
+    // Load QUANT amount
+    if (valueDataSnapshot.exists()) {
+      const data = valueDataSnapshot.data();
+      const Amount = Number(data.QuantAmount);
+      const remainingSolveToEarn = data.remainingSolveToEarn;
+      result.remainingSolveToEarn = remainingSolveToEarn;
+      const firstQuant = Number(data.firstQuant);
+      const formattedAmount = Amount.toLocaleString("en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+      const formattedfirstQuant = firstQuant.toLocaleString("en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+      result.MainQuantAmount = formattedAmount;
+      sessionStorage.setItem("firstQuant", formattedfirstQuant);
+      localStorage.setItem(`QAmount_${telegramIdEncrypted}`, formattedAmount);
+
+      // Load user rank
+      const userRankRef = doc(dbfs, "userRanks", telegramIdEncrypted);
+      const rankSnapshot = await getDoc(userRankRef);
+      if (rankSnapshot.exists()) {
+        result.userRank = rankSnapshot.data().rank;
+      }
+    }
+
+    // Load daily
+    const dailyRef = doc(dbfs, "user", telegramIdEncrypted, "miningData", "checkTime");
+    const snapshotDaily = await getDoc(dailyRef);
+    if (snapshotDaily.exists()) {
+      const daily = snapshotDaily.data()?.daily;
+      result.daily = daily || 1;
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`daily_${telegramIdEncrypted}`, String(result.daily));
+      }
+    }
+
+    // Load wallet
+    const lastActiveTime = Date.now();
+    if (typeof window !== "undefined") {
+      localStorage.setItem("lastactivetime", `${lastActiveTime}`);
+    }
+    result.lastActiveTime = `${lastActiveTime}`;
+
+    const savedWalletAddress = typeof window !== "undefined"
+      ? localStorage.getItem(`walletAddress_${telegramIdEncrypted}`)
+      : null;
+    result.walletAddress = savedWalletAddress || "";
+    result.status = "completed";
+  } catch (error) {
+    console.error("Error loading user data:", error);
+    result.status = "error";
+  }
+  return result;
+}
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }: { telegramIdEncrypted: string, initDataUnsafe: any }) {
+export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, email }: { telegramIdEncrypted: string, initDataUnsafe: any, email?: string }) {
   try {
     if (!telegramIdEncrypted || !initDataUnsafe) {
       userData.status = "error";
@@ -103,6 +219,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
           {
             userArray: userArray,
             username: username,
+            ...(email && { email }),
           },
           { merge: true }
         );
@@ -266,10 +383,15 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
         const userSnapshot = await getDoc(userRef);
         if (userSnapshot.exists()) {
           const dataUsername = userSnapshot.data().username;
+          const updates: Record<string, string> = {};
           if (username !== dataUsername) {
-            await updateDoc(userRef, {
-              username: username,
-            });
+            updates.username = username;
+          }
+          if (email && !userSnapshot.data().email) {
+            updates.email = email;
+          }
+          if (Object.keys(updates).length > 0) {
+            await updateDoc(userRef, updates);
           }
         }
 

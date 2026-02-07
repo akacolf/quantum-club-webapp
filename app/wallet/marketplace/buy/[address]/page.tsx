@@ -4,16 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import {
-    Image as ImageIcon,
-    Loader2,
-    CheckCircle2,
-    XCircle,
-    ShoppingCart,
-    ArrowRight,
-    Info,
-    Sparkles,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -274,7 +265,7 @@ export default function BuyNftPage() {
         return (
             <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
                 <Card className="bg-card border-border p-8 text-center max-w-sm">
-                    <XCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+                    <Icon icon="lucide:x-circle" className="w-16 h-16 text-destructive mx-auto mb-4" />
                     <p className="text-lg font-semibold">Not Available</p>
                     <p className="text-sm text-muted-foreground mt-2">
                         {error || "This NFT is not for sale"}
@@ -301,7 +292,7 @@ export default function BuyNftPage() {
                     className="text-center space-y-6"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                        <Icon icon="lucide:loader-2" className="w-10 h-10 text-primary animate-spin" />
                     </div>
                     <div>
                         <h2 className="text-xl font-bold">Processing Purchase</h2>
@@ -324,7 +315,7 @@ export default function BuyNftPage() {
                     className="text-center space-y-6 max-w-sm"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
-                        <CheckCircle2 className="w-10 h-10 text-green-500" />
+                        <Icon icon="lucide:check-circle-2" className="w-10 h-10 text-green-500" />
                     </div>
                     <div>
                         <h2 className="text-xl font-bold">Purchase Complete!</h2>
@@ -374,7 +365,7 @@ export default function BuyNftPage() {
                     className="text-center space-y-6 max-w-sm"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
-                        <XCircle className="w-10 h-10 text-destructive" />
+                        <Icon icon="lucide:x-circle" className="w-10 h-10 text-destructive" />
                     </div>
                     <div>
                         <h2 className="text-xl font-bold">Purchase Failed</h2>
@@ -420,7 +411,7 @@ export default function BuyNftPage() {
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="w-16 h-16 text-muted-foreground" />
+                                <Icon icon="lucide:image" className="w-16 h-16 text-muted-foreground" />
                             </div>
                         )}
                     </div>
@@ -442,7 +433,7 @@ export default function BuyNftPage() {
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1">
                                 Platform Fee ({MARKETPLACE_FEE_PERCENT}%)
-                                <Info className="w-3 h-3" />
+                                <Icon icon="lucide:info" className="w-3 h-3" />
                             </span>
                             <span className="text-muted-foreground">{priceInfo.platformFeeFormatted} TON</span>
                         </div>
@@ -459,7 +450,7 @@ export default function BuyNftPage() {
                 {hasInsufficientBalance && (
                     <Card className="bg-destructive/10 border-destructive/30">
                         <CardContent className="p-4 flex items-center gap-3">
-                            <XCircle className="w-5 h-5 text-destructive shrink-0" />
+                            <Icon icon="lucide:x-circle" className="w-5 h-5 text-destructive shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold text-destructive">Insufficient Balance</p>
                                 <p className="text-xs text-muted-foreground">
@@ -474,7 +465,7 @@ export default function BuyNftPage() {
                 {nft.sale.market === "QC Marketplace" ? (
                     <Card className="bg-primary/5 border-primary/20">
                         <CardContent className="p-3 flex items-center gap-2 text-xs">
-                            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                            <Icon icon="lucide:sparkles" className="w-4 h-4 text-primary shrink-0" />
                             <span className="text-primary font-medium">
                                 QC Marketplace • Only {QC_MARKETPLACE_FEE_PERCENT}% fee
                             </span>
@@ -483,7 +474,7 @@ export default function BuyNftPage() {
                 ) : nft.sale.market ? (
                     <Card className="bg-muted/50 border-border">
                         <CardContent className="p-3 flex items-center gap-2 text-xs text-muted-foreground">
-                            <Info className="w-4 h-4 shrink-0" />
+                            <Icon icon="lucide:info" className="w-4 h-4 shrink-0" />
                             <span>Listed on {nft.sale.market}. You may be redirected to complete the purchase.</span>
                         </CardContent>
                     </Card>
@@ -531,11 +522,11 @@ export default function BuyNftPage() {
                     disabled={hasInsufficientBalance}
                     className="w-full h-14 rounded-xl font-bold text-lg bg-green-600 hover:bg-green-700"
                 >
-                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    <Icon icon="lucide:shopping-cart" className="w-5 h-5 mr-2" />
                     {paymentMethod === "TON" 
                         ? `Buy for ${priceInfo.totalPriceFormatted} TON`
                         : `Buy for ${starsAmount || "..."} Stars`}
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    <Icon icon="lucide:arrow-right" className="w-5 h-5 ml-2" />
                 </Button>
             </motion.div>
 

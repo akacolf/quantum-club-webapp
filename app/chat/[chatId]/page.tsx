@@ -10,7 +10,7 @@ import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, User } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function ChatPage() {
     useTelegramBackButton("/chat");
@@ -81,7 +81,7 @@ export default function ChatPage() {
                     <Avatar className="h-10 w-10 border border-white/10">
                         <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getOtherName()}`} />
                         <AvatarFallback className="bg-white/10">
-                            <User className="w-5 h-5 text-white" />
+                            <Icon icon="lucide:user" className="w-5 h-5 text-white" />
                         </AvatarFallback>
                     </Avatar>
                     <h1 className="font-semibold text-foreground">{getOtherName()}</h1>
@@ -129,7 +129,7 @@ export default function ChatPage() {
                         className="px-4"
                         size="icon"
                     >
-                        <Send className="w-4 h-4" />
+                        <Icon icon="lucide:send" className="w-4 h-4" />
                     </Button>
                 </div>
             </div>

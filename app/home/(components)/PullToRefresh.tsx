@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, ReactNode } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { RefreshCw } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 interface PullToRefreshProps {
   children: ReactNode;
@@ -105,7 +105,7 @@ export default function PullToRefresh({
             animate={isRefreshing ? { rotate: 360 } : undefined}
             transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: "linear" } : undefined}
           >
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? "text-purple-400" : "text-gray-400"}`} />
+            <Icon icon="lucide:refresh-cw" className={`w-5 h-5 ${isRefreshing ? "text-purple-400" : "text-gray-400"}`} />
           </motion.div>
         </motion.div>
       </motion.div>

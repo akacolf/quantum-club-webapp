@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { FileQuestion, Home } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function NotFound() {
   return (
@@ -13,7 +13,7 @@ export default function NotFound() {
 
       <div className="relative z-10 flex flex-col items-center text-center space-y-6 max-w-md w-full">
         <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center border border-blue-500/20 shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]">
-          <FileQuestion className="w-12 h-12 text-blue-500" />
+          <Icon icon="lucide:file-question" className="w-12 h-12 text-blue-500" />
         </div>
         
         <div className="space-y-2">
@@ -28,7 +28,7 @@ export default function NotFound() {
             <Button 
             className="w-full bg-white text-black hover:bg-gray-200 font-medium h-12 rounded-xl transition-all duration-200"
             >
-            <Home className="w-4 h-4 mr-2" />
+            <Icon icon="lucide:home" className="w-4 h-4 mr-2" />
             Back Home
             </Button>
         </Link>

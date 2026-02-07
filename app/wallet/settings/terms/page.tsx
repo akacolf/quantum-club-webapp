@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
@@ -19,7 +19,7 @@ export default function TermsOfServicePage() {
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <FileText className="w-7 h-7 text-primary" />
+              <Icon icon="lucide:file-text" className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Terms of Service</h1>
             <p className="text-muted-foreground text-sm">Last updated: January 19, 2026</p>
@@ -205,7 +205,7 @@ export default function TermsOfServicePage() {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-2">17. Contact Information</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  For questions or concerns about these Terms, please contact us on Telegram: @quantumclubinc
+                  For questions or concerns about these Terms, please contact us through our support @QCSupportBot
                 </p>
               </section>
 

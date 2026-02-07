@@ -160,7 +160,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-2">12. Contact Us</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                For questions about this Privacy Policy or to exercise your rights, please contact us through our Telegram channel: @quantumclubinc
+                For questions about this Privacy Policy or to exercise your rights, please contact us through our support @QCSupportBot
               </p>
             </section>
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Copy, Check, ShieldAlert, Share2, ChevronRight, Search } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -115,7 +115,7 @@ export default function ReceivePage() {
 
         {/* Search Bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Icon icon="lucide:search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
           <Input
             placeholder="Search assets..."
             className="pl-9 bg-muted border-border h-11 rounded-xl"
@@ -159,7 +159,7 @@ export default function ReceivePage() {
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground/30" />
+                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground/30"/>
                 </CardContent>
               </Card>
             );
@@ -198,7 +198,7 @@ export default function ReceivePage() {
 
               {/* Warning */}
               <Alert variant="warning" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-500">
-                <ShieldAlert className="w-4 h-4" />
+                <Icon icon="lucide:shield-alert" className="w-4 h-4"/>
                 <AlertTitle className="text-xs font-bold uppercase tracking-wide opacity-80">Warning</AlertTitle>
                 <AlertDescription className="text-xs leading-relaxed opacity-90 mt-1">
                   {CHAIN_INFO[selectedChain].warningText}
@@ -226,14 +226,14 @@ export default function ReceivePage() {
                   onClick={copyAddress}
                   className="bg-white text-black hover:bg-gray-200 h-12 rounded-xl font-bold shadow-lg shadow-white/5 active:scale-[0.98] transition-transform"
                 >
-                  {copied ? <><Check className="w-4 h-4 mr-2" /> Copied</> : <><Copy className="w-4 h-4 mr-2" /> Copy</>}
+                  {copied ? <><Icon icon="lucide:check" className="w-4 h-4 mr-2"/> Copied</> : <><Icon icon="lucide:copy" className="w-4 h-4 mr-2"/> Copy</>}
                 </Button>
                 <Button
                   onClick={handleShare}
                   variant="outline"
                   className="bg-[#161616] border-[#222] text-white hover:bg-[#222] h-12 rounded-xl font-bold active:scale-[0.98] transition-transform"
                 >
-                  <Share2 className="w-4 h-4 mr-2" /> Share
+                  <Icon icon="lucide:share-2" className="w-4 h-4 mr-2"/> Share
                 </Button>
               </div>
             </div>

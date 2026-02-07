@@ -2,16 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Users,
-  Plus,
-  Trash2,
-  ArrowRight,
-  AlertTriangle,
-  CheckCircle,
-  Loader2,
-  Send,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -336,7 +327,7 @@ export default function SendMultiplePage() {
                             onClick={() => removeRecipient(recipient.id)}
                             className="p-1 text-red-500 hover:bg-red-500/10 rounded"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Icon icon="lucide:trash-2" className="w-4 h-4"/>
                           </button>
                         )}
                       </div>
@@ -386,7 +377,7 @@ export default function SendMultiplePage() {
                     onClick={addRecipient}
                     className="w-full py-3 border border-dashed border-[#333] rounded-xl text-sm text-gray-400 flex items-center justify-center gap-2 hover:bg-white/5"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Icon icon="lucide:plus" className="w-4 h-4"/>
                     Add Recipient
                   </button>
                 )}
@@ -426,7 +417,7 @@ export default function SendMultiplePage() {
                 validationResult.errors.length > 0 && (
                   <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+                      <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 shrink-0"/>
                       <div className="space-y-1">
                         {validationResult.errors.map((error, i) => (
                           <p key={i} className="text-xs text-yellow-400">
@@ -454,7 +445,7 @@ export default function SendMultiplePage() {
                 className="w-full h-12 bg-primary text-black font-semibold rounded-xl"
               >
                 Continue
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <Icon icon="lucide:arrow-right" className="w-4 h-4 ml-2"/>
               </Button>
             </motion.div>
           )}
@@ -470,7 +461,7 @@ export default function SendMultiplePage() {
               <Card className="bg-[#111] border-[#222]">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Users className="w-5 h-5 text-primary" />
+                    <Icon icon="lucide:users" className="w-5 h-5 text-primary"/>
                     Confirm {validRecipients.length} Transfers
                   </CardTitle>
                 </CardHeader>
@@ -506,10 +497,10 @@ export default function SendMultiplePage() {
                 className="w-full h-12 bg-primary text-black font-semibold rounded-xl"
               >
                 {isSending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin"/>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 mr-2" />
+                    <Icon icon="lucide:send" className="w-4 h-4 mr-2"/>
                     Send
                   </>
                 )}
@@ -524,7 +515,7 @@ export default function SendMultiplePage() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center justify-center py-16 space-y-4"
             >
-              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+              <Icon icon="lucide:loader-2" className="w-12 h-12 text-primary animate-spin"/>
               <p className="text-white font-medium">
                 Processing batch transaction...
               </p>
@@ -542,7 +533,7 @@ export default function SendMultiplePage() {
               className="flex flex-col items-center justify-center py-12 space-y-4"
             >
               <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-green-500" />
+                <Icon icon="lucide:check-circle" className="w-10 h-10 text-green-500"/>
               </div>
               <div className="text-center">
                 <h3 className="text-xl font-bold text-white">
@@ -577,7 +568,7 @@ export default function SendMultiplePage() {
                   }}
                   className="text-sm text-primary flex items-center gap-1"
                 >
-                  View on Explorer <ArrowRight className="w-4 h-4" />
+                  View on Explorer <Icon icon="lucide:arrow-right" className="w-4 h-4"/>
                 </button>
               )}
 

@@ -2,39 +2,38 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Wallet, ArrowLeftRight, Globe, Droplets, Settings } from "lucide-react";
-
+import { Icon } from "@iconify/react";
 const navTabs = [
   { 
     id: "home", 
     href: "/wallet", 
     label: "Home", 
-    icon: Wallet,
+    icon: "lucide:wallet",
     exact: true 
   },
   { 
     id: "swap", 
     href: "/wallet/swap", 
     label: "Swap", 
-    icon: ArrowLeftRight 
+    icon: "lucide:arrow-left-right" 
   },
   { 
     id: "browser", 
     href: "/wallet/browser", 
     label: "Explore", 
-    icon: Globe 
+    icon: "lucide:globe" 
   },
   { 
     id: "liquidity", 
     href: "/wallet/liquidity", 
     label: "Liquidity", 
-    icon: Droplets 
+    icon: "lucide:droplets" 
   },
   { 
     id: "settings", 
     href: "/wallet/settings", 
     label: "Settings", 
-    icon: Settings 
+    icon: "lucide:settings" 
   },
 ];
 
@@ -65,7 +64,6 @@ const WalletNavigation = () => {
       <nav className="grid h-full grid-cols-5 items-center relative">
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          const Icon = tab.icon;
           return (
             <Link
               key={tab.id}
@@ -85,7 +83,7 @@ const WalletNavigation = () => {
                 }`}
               >
                 <div className="scale-100">
-                  <Icon style={{ width: '1.5em', height: '1.5em' }} />
+                  <Icon icon={tab.icon} style={{ width: '1.5em', height: '1.5em' }} />
                 </div>
               </div>
               <span

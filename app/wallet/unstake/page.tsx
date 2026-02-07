@@ -2,16 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    RefreshCw,
-    Loader2,
-    AlertTriangle,
-    CheckCircle,
-    Zap,
-    Clock,
-    Info,
-    Wallet,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -213,7 +204,7 @@ export default function UnstakePage() {
                         disabled={isLoading}
                         className="text-gray-400"
                     >
-                        <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                        <Icon icon="lucide:refresh-cw" className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}/>
                     </Button>
                 </div>
 
@@ -231,7 +222,7 @@ export default function UnstakePage() {
                                 <CardContent className="p-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <Wallet className="w-4 h-4 text-gray-400" />
+                                            <Icon icon="lucide:wallet" className="w-4 h-4 text-gray-400"/>
                                             <span className="text-sm text-gray-400">Your tsTON</span>
                                         </div>
                                         <div className="text-right">
@@ -251,7 +242,7 @@ export default function UnstakePage() {
                                 <Card className="bg-yellow-500/5 border-yellow-500/20">
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2 mb-3">
-                                            <Clock className="w-4 h-4 text-yellow-500" />
+                                            <Icon icon="lucide:clock" className="w-4 h-4 text-yellow-500"/>
                                             <span className="text-sm font-medium text-yellow-400">
                                                 Pending Withdrawals
                                             </span>
@@ -278,9 +269,9 @@ export default function UnstakePage() {
                                                 : "bg-[#111] border-[#222] hover:border-[#333]"
                                         }`}
                                     >
-                                        <Clock className={`w-5 h-5 mb-2 ${
+                                        <Icon icon="lucide:clock" className={`w-5 h-5 mb-2 ${
                                             unstakeMode === "best-rate" ? "text-primary" : "text-gray-500"
-                                        }`} />
+                                        }`}/>
                                         <p className={`font-medium text-sm ${
                                             unstakeMode === "best-rate" ? "text-white" : "text-gray-400"
                                         }`}>Best Rate</p>
@@ -294,9 +285,9 @@ export default function UnstakePage() {
                                                 : "bg-[#111] border-[#222] hover:border-[#333]"
                                         }`}
                                     >
-                                        <Zap className={`w-5 h-5 mb-2 ${
+                                        <Icon icon="lucide:zap" className={`w-5 h-5 mb-2 ${
                                             unstakeMode === "instant" ? "text-primary" : "text-gray-500"
-                                        }`} />
+                                        }`}/>
                                         <p className={`font-medium text-sm ${
                                             unstakeMode === "instant" ? "text-white" : "text-gray-400"
                                         }`}>Instant</p>
@@ -351,7 +342,7 @@ export default function UnstakePage() {
                                         {unstakeMode === "best-rate" && (
                                             <div className="mt-3 pt-3 border-t border-[#222]">
                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                    <Clock className="w-3 h-3" />
+                                                    <Icon icon="lucide:clock" className="w-3 h-3"/>
                                                     <span>Available in approximately 18-36 hours</span>
                                                 </div>
                                             </div>
@@ -364,7 +355,7 @@ export default function UnstakePage() {
                             {tsTonBalance < 0.1 && (
                                 <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                                     <div className="flex gap-2">
-                                        <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+                                        <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 shrink-0"/>
                                         <p className="text-xs text-yellow-400">
                                             You don&apos;t have any tsTON to unstake. Stake TON first to receive tsTON.
                                         </p>
@@ -376,7 +367,7 @@ export default function UnstakePage() {
                             <Card className="bg-primary/5 border-primary/20">
                                 <CardContent className="p-4">
                                     <div className="flex gap-3">
-                                        <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                        <Icon icon="lucide:info" className="w-4 h-4 text-primary shrink-0 mt-0.5"/>
                                         <p className="text-xs text-gray-400">
                                             <strong className="text-white">Best Rate</strong> gives you full value but takes 18-36 hours. 
                                             <strong className="text-white"> Instant</strong> is immediate but has a small fee.
@@ -392,13 +383,13 @@ export default function UnstakePage() {
                                 className="w-full h-12 bg-primary text-black font-semibold rounded-xl"
                             >
                                 {isProcessing ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin"/>
                                 ) : (
                                     <>
                                         {unstakeMode === "instant" ? (
-                                            <Zap className="w-4 h-4 mr-2" />
+                                            <Icon icon="lucide:zap" className="w-4 h-4 mr-2"/>
                                         ) : (
-                                            <Clock className="w-4 h-4 mr-2" />
+                                            <Icon icon="lucide:clock" className="w-4 h-4 mr-2"/>
                                         )}
                                         {unstakeMode === "instant" ? "Instant Unstake" : "Unstake"}
                                     </>
@@ -414,7 +405,7 @@ export default function UnstakePage() {
                             animate={{ opacity: 1 }}
                             className="flex flex-col items-center justify-center py-16 space-y-4"
                         >
-                            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                            <Icon icon="lucide:loader-2" className="w-12 h-12 text-primary animate-spin"/>
                             <p className="text-white font-medium">
                                 {unstakeMode === "instant" ? "Unstaking instantly..." : "Initiating unstake..."}
                             </p>
@@ -430,7 +421,7 @@ export default function UnstakePage() {
                             className="flex flex-col items-center justify-center py-12 space-y-4"
                         >
                             <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                                <CheckCircle className="w-10 h-10 text-green-500" />
+                                <Icon icon="lucide:check-circle" className="w-10 h-10 text-green-500"/>
                             </div>
                             <div className="text-center">
                                 <h3 className="text-xl font-bold text-white">

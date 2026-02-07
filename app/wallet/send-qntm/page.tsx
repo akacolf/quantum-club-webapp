@@ -4,7 +4,7 @@ import { useState, ChangeEvent, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, User, Info, ArrowRight, Copy } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -228,11 +228,11 @@ export default function SendQNTMPage() {
                     className={`bg-card border-border h-14 pl-4 pr-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all ${qcIdError ? 'border-destructive focus:border-destructive' : 'focus:border-primary/50'
                       }`}
                   />
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Icon icon="lucide:user" className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
                 </div>
                 {qcIdError ? (
                   <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
+                    <Icon icon="lucide:info" className="w-3 h-3"/>
                     {qcIdError}
                   </p>
                 ) : (
@@ -251,7 +251,7 @@ export default function SendQNTMPage() {
                     className={`h-auto p-0 flex items-center gap-1 text-xs transition-colors hover:bg-transparent ${qcIdCopied ? 'text-green-500 hover:text-green-500' : 'text-primary hover:text-primary/80'
                       }`}
                   >
-                    {qcIdCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {qcIdCopied ? <Icon icon="lucide:check" className="w-3 h-3"/> : <Icon icon="lucide:copy" className="w-3 h-3"/>}
                     {qcIdCopied ? 'Copied!' : 'Copy'}
                   </Button>
                 </div>
@@ -290,7 +290,7 @@ export default function SendQNTMPage() {
                 </div>
                 {insufficientFunds && (
                   <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
+                    <Icon icon="lucide:info" className="w-3 h-3"/>
                     Insufficient funds. You have {MainQuantAmount} QNTM available.
                   </p>
                 )}
@@ -333,14 +333,14 @@ export default function SendQNTMPage() {
                   <div className="flex items-center justify-center gap-4 py-4">
                     <div className="text-center">
                       <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                        <User className="w-6 h-6 text-muted-foreground" />
+                        <Icon icon="lucide:user" className="w-6 h-6 text-muted-foreground"/>
                       </div>
                       <span className="text-xs text-muted-foreground truncate max-w-[80px]">{username || "You"}</span>
                     </div>
-                    <ArrowRight className="w-6 h-6 text-primary" />
+                    <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary"/>
                     <div className="text-center">
                       <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <User className="w-6 h-6 text-primary" />
+                        <Icon icon="lucide:user" className="w-6 h-6 text-primary"/>
                       </div>
                       <span className="text-xs text-muted-foreground truncate max-w-[80px]">{recipientUsername || "Recipient"}</span>
                     </div>
@@ -363,7 +363,7 @@ export default function SendQNTMPage() {
               </Card>
 
               <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                <Icon icon="lucide:info" className="w-5 h-5 text-primary mt-0.5 shrink-0"/>
                 <p className="text-xs text-primary/90 leading-relaxed">
                   QNTM transfers between Quantum Club users are instant and free. Please verify the recipient&apos;s QC ID carefully.
                 </p>
@@ -425,7 +425,7 @@ export default function SendQNTMPage() {
               className="flex flex-col items-center justify-center py-16 space-y-6"
             >
               <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
-                <Check className="w-10 h-10 text-green-500" />
+                <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
               </div>
               <div className="text-center space-y-2">
                 <h3 className="text-xl font-bold text-foreground">Transfer Complete!</h3>

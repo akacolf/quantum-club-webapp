@@ -5,22 +5,9 @@ import {
     OmnistonProvider,
     WebSocketTransport,
 } from "@ston-fi/omniston-sdk-react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useMemo, useEffect, useState, useRef } from "react";
 
 const OMNISTON_WS_URL = "wss://omni-ws.ston.fi";
-
-// Create a stable QueryClient instance
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: 3,
-            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-            staleTime: 10000,
-            refetchOnWindowFocus: false,
-        },
-    },
-});
 
 export function OmnistonClientProvider({
     children,
@@ -73,10 +60,8 @@ export function OmnistonClientProvider({
     }
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <OmnistonProvider omniston={omniston}>
-                {children}
-            </OmnistonProvider>
-        </QueryClientProvider>
+        <OmnistonProvider omniston={omniston}>
+            {children}
+        </OmnistonProvider>
     );
 }

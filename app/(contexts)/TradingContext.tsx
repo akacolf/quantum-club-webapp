@@ -29,6 +29,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { Address, toNano, Cell } from "@ton/core";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUserContext } from "./UserContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import {
@@ -54,6 +55,13 @@ import {
 import { uploadTokenImage } from "@/lib/upload-image";
 import { FEE_CONFIG } from "@/lib/platform-config";
 import { getBalance, isContractActive } from "@/lib/ton-api";
+import {
+  useTrendingTokens,
+  useNewTokens,
+  useGraduatedTokens,
+  useMyTokens,
+  useInvalidateTokenQueries,
+} from "@/app/(hooks)/queries/use-trading";
 
 // =====================================================
 // Types
@@ -136,18 +144,28 @@ const TradingContext = createContext<TradingContextType | undefined>(undefined);
 export function TradingProvider({ children }: { children: React.ReactNode }) {
   const { telegramId } = useUserContext();
   const { walletAddress, sendTransaction } = useWallet();
+  const queryClient = useQueryClient();
 
   // State
-  const [trendingTokens, setTrendingTokens] = useState<Token[]>([]);
-  const [newTokens, setNewTokens] = useState<Token[]>([]);
-  const [graduatedTokens, setGraduatedTokens] = useState<Token[]>([]);
-  const [myTokens, setMyTokens] = useState<Token[]>([]);
   const [searchResults, setSearchResults] = useState<Token[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
   const [positions, setPositions] = useState<HolderPosition[]>([]);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+
+  // TanStack Query hooks for token data
+  const trendingQuery = useTrendingTokens();
+  const newQuery = useNewTokens();
+  const graduatedQuery = useGraduatedTokens();
+  const myTokensQuery = useMyTokens(telegramId, walletAddress);
+  const invalidateTokenQueries = useInvalidateTokenQueries();
+
+  const trendingTokens = trendingQuery.data ?? [];
+  const newTokens = newQuery.data ?? [];
+  const graduatedTokens = graduatedQuery.data ?? [];
+  const myTokens = myTokensQuery.data ?? [];
+  const isLoading = isSearching || trendingQuery.isFetching || newQuery.isFetching || graduatedQuery.isFetching;
 
   // Contract adapter for on-chain queries - uses TonAPI
   const [contractAdapter, setContractAdapter] = useState(() => getContractAdapter(false)); // Always mainnet
@@ -231,46 +249,11 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
   );
 
   // =====================================================
-  // Fetch tokens (from cache/index)
+  // Fetch tokens (via TanStack Query)
   // =====================================================
   const fetchTokens = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Trending = highest volume (only confirmed on-chain tokens)
-      const trendingQuery = query(
-        collection(dbfs, "tokens"),
-        where("isOnChain", "==", true),
-        orderBy("volume24h", "desc"),
-        limit(20)
-      );
-      const trendingSnapshot = await getDocs(trendingQuery);
-      setTrendingTokens(trendingSnapshot.docs.map(docToToken));
-
-      // New = recently created (only show tokens with confirmed on-chain contracts)
-      const newQuery = query(
-        collection(dbfs, "tokens"),
-        where("isOnChain", "==", true),
-        orderBy("createdAt", "desc"),
-        limit(20)
-      );
-      const newSnapshot = await getDocs(newQuery);
-      setNewTokens(newSnapshot.docs.map(docToToken));
-
-      // Graduated = tokens migrated to DEX (STON.fi)
-      const graduatedQuery = query(
-        collection(dbfs, "tokens"),
-        where("isGraduated", "==", true),
-        orderBy("graduatedAt", "desc"),
-        limit(20)
-      );
-      const graduatedSnapshot = await getDocs(graduatedQuery);
-      setGraduatedTokens(graduatedSnapshot.docs.map(docToToken));
-    } catch (error) {
-      console.error("Error fetching tokens:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [docToToken]);
+    invalidateTokenQueries();
+  }, [invalidateTokenQueries]);
 
   // =====================================================
   // Refresh tokens with on-chain data (price, supply, etc.)
@@ -315,76 +298,27 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    // Update trending tokens with on-chain data
+    // Update query cache with on-chain data
     if (enrichedUpdates.length > 0) {
-      setTrendingTokens((prev) =>
-        prev.map((token) => {
+      const updateTokenList = (tokens: Token[] | undefined) => {
+        if (!tokens) return tokens;
+        return tokens.map((token) => {
           const update = enrichedUpdates.find((u) => u.id === token.id);
           return update ? { ...token, ...update.data } : token;
-        })
-      );
+        });
+      };
 
-      setNewTokens((prev) =>
-        prev.map((token) => {
-          const update = enrichedUpdates.find((u) => u.id === token.id);
-          return update ? { ...token, ...update.data } : token;
-        })
-      );
+      queryClient.setQueryData<Token[]>(["tokens", "trending"], updateTokenList);
+      queryClient.setQueryData<Token[]>(["tokens", "new"], updateTokenList);
     }
-  }, [trendingTokens, newTokens, contractAdapter]);
+  }, [trendingTokens, newTokens, contractAdapter, queryClient]);
 
   // =====================================================
-  // Fetch MY tokens (created by current user, including pending)
+  // Fetch MY tokens (via TanStack Query)
   // =====================================================
   const fetchMyTokens = useCallback(async () => {
-    if (!telegramId && !walletAddress) {
-      setMyTokens([]);
-      return;
-    }
-
-    try {
-      const tokenMap = new Map<string, Token>();
-
-      // Query by telegramId (creatorUserId)
-      if (telegramId) {
-        const byUserIdQuery = query(
-          collection(dbfs, "tokens"),
-          where("creatorUserId", "==", telegramId),
-          orderBy("createdAt", "desc"),
-          limit(50)
-        );
-        const userIdSnapshot = await getDocs(byUserIdQuery);
-        userIdSnapshot.docs.forEach((doc) => {
-          tokenMap.set(doc.id, docToToken(doc));
-        });
-      }
-
-      // Also query by wallet address (creatorAddress) for reliability
-      if (walletAddress) {
-        const byAddressQuery = query(
-          collection(dbfs, "tokens"),
-          where("creatorAddress", "==", walletAddress),
-          orderBy("createdAt", "desc"),
-          limit(50)
-        );
-        const addressSnapshot = await getDocs(byAddressQuery);
-        addressSnapshot.docs.forEach((doc) => {
-          tokenMap.set(doc.id, docToToken(doc));
-        });
-      }
-
-      // Convert map to array, sorted by creation date (newest first)
-      const tokens = Array.from(tokenMap.values()).sort((a, b) => {
-        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return bTime - aTime;
-      });
-
-      setMyTokens(tokens);
-    } catch (error) {
-      console.error("Error fetching my tokens:", error);
-    }
-  }, [telegramId, walletAddress, docToToken]);
+    myTokensQuery.refetch();
+  }, [myTokensQuery]);
 
   // =====================================================
   // Retry deploy token (for failed deployments)
@@ -536,7 +470,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      setIsLoading(true);
+      setIsSearching(true);
       try {
         const q = searchQuery.toLowerCase();
         const searchQ = query(
@@ -552,7 +486,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Search error:", error);
       } finally {
-        setIsLoading(false);
+        setIsSearching(false);
       }
     },
     [docToToken]
@@ -1324,29 +1258,17 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
   // Effects
   // =====================================================
   useEffect(() => {
-    fetchTokens();
-  }, [fetchTokens]);
-
-  useEffect(() => {
     if (walletAddress) {
       refreshPositions();
     }
   }, [walletAddress, refreshPositions]);
 
-  useEffect(() => {
-    if (telegramId || walletAddress) {
-      fetchMyTokens();
-    }
-  }, [telegramId, walletAddress, fetchMyTokens]);
-
   // Refresh on-chain data for displayed tokens periodically
   useEffect(() => {
-    // Initial on-chain refresh after tokens load
     if (trendingTokens.length > 0 || newTokens.length > 0) {
       refreshTokensOnChain();
     }
 
-    // Refresh every 30 seconds
     const interval = setInterval(() => {
       refreshTokensOnChain();
     }, 30000);

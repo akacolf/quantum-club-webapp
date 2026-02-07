@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +16,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { auth } from "@/app/(firebase)/client";
 import { useAuth } from "@/app/(contexts)/auth";
 import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
-import { UseRegisterAndAuth } from "./registerAndAuth";
+import { UseRegisterAndAuth, lookupUserByEmail, LoadExistingUserByQCId } from "./registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "./deviceDetection";
@@ -52,6 +50,18 @@ export default function Login() {
   // Enable fullscreen mode for Telegram Mini App
   useDeviceDetection();
 
+  // Hide back button on login screen
+  useEffect(() => {
+    window.Telegram?.WebApp?.BackButton.hide();
+  }, []);
+
+  // Auto-redirect if user is already signed in
+  useEffect(() => {
+    if (authContext?.currentUser) {
+      router.replace("/home");
+    }
+  }, [authContext?.currentUser, router]);
+
   useEffect(() => {
     // Prefetch auth-related pages for faster navigation
     router.prefetch("/signup");
@@ -68,16 +78,137 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    // TODO: Implement email/password authentication
-    console.log("Login with:", { email, password });
-    setTimeout(() => setIsLoading(false), 1000);
+    try {
+      await authContext?.loginWithEmail(email, password);
+
+      // Look up existing QC account by email (independent of Telegram session)
+      const existingQCId = await lookupUserByEmail(email);
+      if (existingQCId) {
+        // Load existing user data using their stored QC ID
+        const data = await LoadExistingUserByQCId(existingQCId);
+
+        if (data.status === "maintenance") {
+          router.replace("/maintenance");
+          return;
+        }
+
+        if (data.status === "completed") {
+          setTelegramId(data.telegramId);
+          SetMainQuantAmount(data.MainQuantAmount);
+          setRank(data.rank);
+          setUserRank(data.userRank);
+          setDaily(data.daily);
+          setUsername(data.username);
+          setWalletAddress(data.walletAddress);
+          setLastActiveTime(data.lastActiveTime);
+          setRemainingSolveToEarn(data.remainingSolveToEarn);
+        }
+      }
+      // If no existing QC account found by email, user still gets logged into Firebase
+      // They may need to link their Telegram account from settings
+
+      router.replace("/home");
+    } catch (err) {
+      console.error("Login error:", err);
+      if (err instanceof Error) {
+        if (err.message.includes("user-not-found") || err.message.includes("invalid-credential")) {
+          setError("Invalid email or password");
+        } else if (err.message.includes("wrong-password")) {
+          setError("Invalid email or password");
+        } else if (err.message.includes("too-many-requests")) {
+          setError("Too many failed attempts. Please try again later.");
+        } else {
+          setError("Failed to sign in. Please try again.");
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      await authContext?.loginWithGoogle()
+      await authContext?.loginWithGoogle();
+
+      // Get the Google user's email from Firebase auth
+      const { auth: firebaseAuth } = await import("@/app/(firebase)/client");
+      const googleEmail = firebaseAuth.currentUser?.email;
+
+      if (googleEmail) {
+        // Check if user already has a QC account linked to this email
+        const existingQCId = await lookupUserByEmail(googleEmail);
+        if (existingQCId) {
+          const data = await LoadExistingUserByQCId(existingQCId);
+
+          if (data.status === "maintenance") {
+            router.replace("/maintenance");
+            return;
+          }
+
+          if (data.status === "completed") {
+            setTelegramId(data.telegramId);
+            SetMainQuantAmount(data.MainQuantAmount);
+            setRank(data.rank);
+            setUserRank(data.userRank);
+            setDaily(data.daily);
+            setUsername(data.username);
+            setWalletAddress(data.walletAddress);
+            setLastActiveTime(data.lastActiveTime);
+            setRemainingSolveToEarn(data.remainingSolveToEarn);
+          }
+        } else {
+          // New Google user — register with TG ID from the Mini App
+          if (
+            typeof window !== "undefined" &&
+            window.Telegram &&
+            window.Telegram.WebApp
+          ) {
+            const WebApp = window.Telegram.WebApp;
+            WebApp.ready();
+            const initDataUnsafe = WebApp.initDataUnsafe;
+
+            const authenticated = await authenticateUser();
+            if (authenticated) {
+              const encryptedId = await encryptData(
+                initDataUnsafe.user?.id.toString() || ""
+              );
+              if (encryptedId) {
+                const cleanData = encryptedId.toString();
+                const telegramIdEncrypted = cleanData
+                  .replace(/['"]+/g, "")
+                  .replace(/[^a-zA-Z0-9]/g, "");
+
+                const data = await UseRegisterAndAuth({
+                  telegramIdEncrypted,
+                  initDataUnsafe,
+                  email: googleEmail,
+                });
+
+                if (data.status === "maintenance") {
+                  router.replace("/maintenance");
+                  return;
+                }
+
+                if (data.status === "completed") {
+                  setTelegramId(data.telegramId);
+                  SetMainQuantAmount(data.MainQuantAmount);
+                  setRank(data.rank);
+                  setUserRank(data.userRank);
+                  setDaily(data.daily);
+                  setUsername(data.username);
+                  setWalletAddress(data.walletAddress);
+                  setLastActiveTime(data.lastActiveTime);
+                  setRemainingSolveToEarn(data.remainingSolveToEarn);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      router.replace("/home");
     } catch (err) {
       console.error("Google sign-in error:", err);
       setError("Failed to sign in with Google. Please try again.");
@@ -175,7 +306,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10">
+    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pt-[15vh]">
       <div className="w-full max-w-sm">
         <div className={cn("flex flex-col gap-6")}>
           <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
@@ -247,7 +378,7 @@ export default function Login() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="m@example.com"
+                        placeholder="Your email address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Wallet, Info, AlertTriangle, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -337,7 +337,7 @@ export default function SendNftPage() {
                                             <Image src={nft.image} alt={nft.name} width={80} height={80} className="w-full h-full object-cover" unoptimized />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
-                                                <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                                                <Icon icon="lucide:image" className="w-8 h-8 text-muted-foreground" />
                                             </div>
                                         )}
                                     </div>
@@ -365,21 +365,21 @@ export default function SendNftPage() {
                                         {isResolvingAddress ? (
                                             <ButtonLoader />
                                         ) : resolvedAddress ? (
-                                            <Check className="w-4 h-4 text-green-500" />
+                                            <Icon icon="lucide:check" className="w-4 h-4 text-green-500" />
                                         ) : (
-                                            <Wallet className="w-4 h-4 text-muted-foreground" />
+                                            <Icon icon="lucide:wallet" className="w-4 h-4 text-muted-foreground" />
                                         )}
                                     </div>
                                 </div>
                                 {isDomainAddress && resolvedAddress && (
                                     <p className="text-xs text-green-400 ml-1 flex items-center gap-1">
-                                        <Check className="w-3 h-3" />
+                                        <Icon icon="lucide:check" className="w-3 h-3" />
                                         Resolved: {resolvedAddress.slice(0, 8)}...{resolvedAddress.slice(-6)}
                                     </p>
                                 )}
                                 {addressError && (
                                     <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                                        <Info className="w-3 h-3" />
+                                        <Icon icon="lucide:info" className="w-3 h-3" />
                                         {addressError}
                                     </p>
                                 )}
@@ -388,7 +388,7 @@ export default function SendNftPage() {
                             {/* TON Warning */}
                             {insufficientTonForGas && (
                                 <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                                    <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                                     <div>
                                         <p className="text-sm font-medium text-destructive-foreground">Insufficient TON</p>
                                         <p className="text-xs text-muted-foreground mt-1">
@@ -425,7 +425,7 @@ export default function SendNftPage() {
                                                 <Image src={nft.image} alt={nft.name} width={96} height={96} className="w-full h-full object-cover" unoptimized />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center">
-                                                    <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                                                <Icon icon="lucide:image" className="w-10 h-10 text-muted-foreground" />
                                                 </div>
                                             )}
                                         </div>
@@ -498,7 +498,7 @@ export default function SendNftPage() {
                             className="text-center py-12"
                         >
                             <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
-                                <Check className="w-10 h-10 text-green-500" />
+                                <Icon icon="lucide:check" className="w-10 h-10 text-green-500" />
                             </div>
                             <h2 className="text-2xl font-bold text-white mb-2">NFT Sent!</h2>
                             <p className="text-gray-400 mb-8">Your NFT has been transferred</p>
@@ -510,7 +510,7 @@ export default function SendNftPage() {
                                         onClick={() => window.open(`${EXPLORER_BASE_URL}/${lastTxHash}`, "_blank")}
                                         className="w-full h-12 bg-card border-border text-foreground hover:bg-muted rounded-xl"
                                     >
-                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                        <Icon icon="lucide:external-link" className="w-4 h-4 mr-2" />
                                         View on Explorer
                                     </Button>
                                 )}

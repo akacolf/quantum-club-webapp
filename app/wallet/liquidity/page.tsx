@@ -5,16 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import {
-  Plus,
-  Minus,
-  ChevronDown,
-  AlertTriangle,
-  Info,
-  Droplets,
-  ArrowRight,
-  Check,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -824,7 +815,7 @@ export default function LiquidityPage() {
 
           <div className="text-center py-16 space-y-6">
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-10 h-10 text-primary" />
+              <Icon icon="lucide:alert-triangle" className="w-10 h-10 text-primary"/>
             </div>
             <div className="space-y-2">
               <h2 className="text-xl font-bold text-foreground">
@@ -869,21 +860,21 @@ export default function LiquidityPage() {
               value="positions"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
             >
-              <Droplets className="w-4 h-4 mr-2" />
+              <Icon icon="lucide:droplets" className="w-4 h-4 mr-2"/>
               Positions
             </TabsTrigger>
             <TabsTrigger
               value="add"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Icon icon="lucide:plus" className="w-4 h-4 mr-2"/>
               Add
             </TabsTrigger>
             <TabsTrigger
               value="remove"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
             >
-              <Minus className="w-4 h-4 mr-2" />
+              <Icon icon="lucide:minus" className="w-4 h-4 mr-2"/>
               Remove
             </TabsTrigger>
           </TabsList>
@@ -898,7 +889,7 @@ export default function LiquidityPage() {
               <Card className="bg-card/80 border-border rounded-2xl">
                 <CardContent className="p-8 text-center space-y-4">
                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-                    <Droplets className="w-8 h-8 text-muted-foreground" />
+                    <Icon icon="lucide:droplets" className="w-8 h-8 text-muted-foreground"/>
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">No LP Positions</h3>
@@ -910,7 +901,7 @@ export default function LiquidityPage() {
                     onClick={() => setTab("add")}
                     className="bg-primary text-primary-foreground"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Icon icon="lucide:plus" className="w-4 h-4 mr-2"/>
                     Add Liquidity
                   </Button>
                 </CardContent>
@@ -966,7 +957,7 @@ export default function LiquidityPage() {
                           }}
                         >
                           Manage
-                          <ArrowRight className="w-4 h-4 ml-1" />
+                          <Icon icon="lucide:arrow-right" className="w-4 h-4 ml-1"/>
                         </Button>
                       </div>
                     </CardContent>
@@ -1023,7 +1014,7 @@ export default function LiquidityPage() {
                               <span className="font-bold">
                                 {tokenA?.symbol || "Select"}
                               </span>
-                              <ChevronDown className="w-4 h-4" />
+                              <Icon icon="lucide:chevron-down" className="w-4 h-4"/>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
@@ -1091,7 +1082,7 @@ export default function LiquidityPage() {
                   {/* Plus Icon */}
                   <div className="flex justify-center -my-2 relative z-10">
                     <div className="w-10 h-10 bg-card border-4 border-background rounded-xl flex items-center justify-center">
-                      <Plus className="w-5 h-5 text-muted-foreground" />
+                      <Icon icon="lucide:plus" className="w-5 h-5 text-muted-foreground"/>
                     </div>
                   </div>
 
@@ -1131,7 +1122,7 @@ export default function LiquidityPage() {
                               <span className="font-bold">
                                 {tokenB?.symbol || "Select"}
                               </span>
-                              <ChevronDown className="w-4 h-4" />
+                              <Icon icon="lucide:chevron-down" className="w-4 h-4"/>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
@@ -1223,7 +1214,7 @@ export default function LiquidityPage() {
                           <Label htmlFor="single-sided" className="text-sm">
                             Single-sided deposit
                           </Label>
-                          <Info className="w-3 h-3 text-muted-foreground" />
+                          <Icon icon="lucide:info" className="w-3 h-3 text-muted-foreground"/>
                         </div>
                         <Switch
                           id="single-sided"
@@ -1321,7 +1312,7 @@ export default function LiquidityPage() {
                   className="text-center py-16 space-y-4"
                 >
                   <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                    <Check className="w-10 h-10 text-green-500" />
+                    <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
                   </div>
                   <h2 className="text-xl font-bold text-green-500">
                     Liquidity Added!
@@ -1368,7 +1359,7 @@ export default function LiquidityPage() {
                   className="text-center py-16 space-y-4"
                 >
                   <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                    <Check className="w-10 h-10 text-green-500" />
+                    <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
                   </div>
                   <h2 className="text-xl font-bold text-green-500">
                     Liquidity Removed!
@@ -1393,7 +1384,7 @@ export default function LiquidityPage() {
                   <Card className="bg-card/80 border-border rounded-2xl">
                     <CardContent className="p-8 text-center space-y-4">
                       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-                        <Minus className="w-8 h-8 text-muted-foreground" />
+                        <Icon icon="lucide:minus" className="w-8 h-8 text-muted-foreground"/>
                       </div>
                       <div>
                         <h3 className="font-bold text-lg">
@@ -1462,7 +1453,7 @@ export default function LiquidityPage() {
                             ) : (
                               "Select a position"
                             )}
-                            <ChevronDown className="w-4 h-4" />
+                            <Icon icon="lucide:chevron-down" className="w-4 h-4"/>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-full">

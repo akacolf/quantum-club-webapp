@@ -1,30 +1,12 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import {
-  RefreshCw,
-  FlaskConical,
-  Copy,
-  Check,
-  LogOut,
-  Eye,
-  EyeOff,
-  Send,
-  ArrowDownLeft,
-  Plus,
-  Download,
-  Image as ImageIcon,
-  X,
-  ChevronRight,
-  PieChart,
-  History,
-  TrendingUp,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,6 +36,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
+import { useLivePrice } from "@/app/(hooks)/queries/use-trades";
 
 // Asset detail types
 interface PricePoint {
@@ -396,66 +379,32 @@ export default function WalletPage() {
     }
   }, [selectedAsset, chartPeriod, fetchPriceHistory]);
 
-  // Live price updates for selected asset (every 5 seconds)
+  // Live price updates for selected asset via TanStack Query (5s polling)
+  const { data: livePrice } = useLivePrice(selectedAsset?.symbol, 5000);
+
   useEffect(() => {
-    if (!selectedAsset) return;
+    if (!selectedAsset || livePrice == null) return;
+    if (livePrice !== selectedAsset.priceUsd) {
+      setSelectedAsset(prev => prev ? { ...prev, priceUsd: livePrice } : null);
 
-    const updateLivePrice = async () => {
-      try {
-        // Fetch latest price from DeFiLlama
-        const coinId = (() => {
-          switch (selectedAsset.symbol) {
-            case 'TON': return 'coingecko:the-open-network';
-            case 'ETH': return 'coingecko:ethereum';
-            case 'BTC': return 'coingecko:bitcoin';
-            case 'SOL': return 'coingecko:solana';
-            case 'TRX': return 'coingecko:tron';
-            default: return null;
+      // Update chart data with new price point for real-time visualization
+      if (priceHistory.length > 0 && chartPeriod === '1H') {
+        setPriceHistory(prev => {
+          const updated = [...prev];
+          if (updated.length > 0) {
+            updated[updated.length - 1] = { ...updated[updated.length - 1], price: livePrice };
           }
-        })();
-
-        if (!coinId) return;
-
-        const response = await fetch(`https://coins.llama.fi/prices/current/${coinId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const newPrice = data.coins?.[coinId]?.price;
-          if (newPrice && newPrice !== selectedAsset.priceUsd) {
-            setSelectedAsset(prev => prev ? { ...prev, priceUsd: newPrice } : null);
-            
-            // Update chart data with new price point for real-time visualization
-            if (priceHistory.length > 0 && chartPeriod === '1H') {
-              setPriceHistory(prev => {
-                const updated = [...prev];
-                // Update the last point with the new price
-                if (updated.length > 0) {
-                  updated[updated.length - 1] = { ...updated[updated.length - 1], price: newPrice };
-                }
-                return updated;
-              });
-            }
-          }
-        }
-      } catch {
-        // Silently fail - price will update on next interval
+          return updated;
+        });
       }
-    };
+    }
+  }, [livePrice, selectedAsset?.symbol, chartPeriod, priceHistory.length]);
 
-    // Initial fetch
-    updateLivePrice();
-
-    // Update every 5 seconds for more responsive real-time feel
-    const interval = setInterval(updateLivePrice, 5000);
-    
-    // Also refresh full chart data every 30 seconds when viewing 1H chart
-    const chartRefreshInterval = chartPeriod === '1H' 
-      ? setInterval(() => fetchPriceHistory(selectedAsset, chartPeriod), 30000)
-      : null;
-    
-    return () => {
-      clearInterval(interval);
-      if (chartRefreshInterval) clearInterval(chartRefreshInterval);
-    };
+  // Refresh full chart data every 30 seconds when viewing 1H chart
+  useEffect(() => {
+    if (!selectedAsset || chartPeriod !== '1H') return;
+    const chartRefreshInterval = setInterval(() => fetchPriceHistory(selectedAsset, chartPeriod), 30000);
+    return () => clearInterval(chartRefreshInterval);
   }, [selectedAsset?.symbol, chartPeriod, fetchPriceHistory]);
 
   // Price chart tooltip
@@ -622,7 +571,7 @@ export default function WalletPage() {
                 <ButtonLoader />
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Icon icon="lucide:plus" className="w-4 h-4 mr-2"/>
                   Create new wallet
                 </>
               )}
@@ -633,7 +582,7 @@ export default function WalletPage() {
               onClick={() => router.push("/wallet/import")}
               className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] border-[#333] h-12 rounded-xl font-semibold text-base"
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Icon icon="lucide:download" className="w-4 h-4 mr-2"/>
               Import existing wallet
             </Button>
           </div>
@@ -677,9 +626,9 @@ export default function WalletPage() {
                       className="ml-1 h-5 w-5 p-0 text-gray-500 hover:text-white hover:bg-transparent"
                     >
                       {copied ? (
-                        <Check className="w-3 h-3 text-green-500" />
+                        <Icon icon="lucide:check" className="w-3 h-3 text-green-500"/>
                       ) : (
-                        <Copy className="w-3 h-3" />
+                        <Icon icon="lucide:copy" className="w-3 h-3"/>
                       )}
                     </Button>
                   </div>
@@ -692,7 +641,7 @@ export default function WalletPage() {
                     disabled={isRefreshing}
                     className="size-9 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white rounded-full disabled:opacity-50 transition-all active:scale-90"
                   >
-                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <Icon icon="lucide:refresh-cw" className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
                   </Button>
                   <Button
                     variant="ghost"
@@ -700,7 +649,7 @@ export default function WalletPage() {
                     onClick={() => walletExit()}
                     className="size-9 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-full transition-all active:scale-90"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <Icon icon="lucide:log-out" className="w-4 h-4"/>
                   </Button>
                 </div>
               </div>
@@ -710,7 +659,7 @@ export default function WalletPage() {
                   <span className="text-gray-400 text-sm">Total Balance</span>
                   {isTestnet && (
                     <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/20 text-[10px] py-0 px-1.5 h-5">
-                      <FlaskConical className="w-3 h-3 mr-1" />
+                      <Icon icon="lucide:flask-conical" className="w-3 h-3 mr-1"/>
                       TESTNET
                     </Badge>
                   )}
@@ -721,9 +670,9 @@ export default function WalletPage() {
                     className="h-8 w-8 text-gray-500 hover:text-gray-300 hover:bg-transparent transition-colors"
                   >
                     {hideBalance ? (
-                      <EyeOff className="w-3.5 h-3.5" />
+                      <Icon icon="lucide:eye-off" className="w-3.5 h-3.5"/>
                     ) : (
-                      <Eye className="w-3.5 h-3.5" />
+                      <Icon icon="lucide:eye" className="w-3.5 h-3.5"/>
                     )}
                   </Button>
                 </div>
@@ -759,10 +708,10 @@ export default function WalletPage() {
               {/* Action Grid */}
               <div className="grid grid-cols-4 gap-3 mt-8">
                 {[
-                  { icon: <Send className="w-5 h-5" />, label: "Send", path: "/wallet/send", disabled: false },
-                  { icon: <ArrowDownLeft className="w-5 h-5" />, label: "Receive", path: "/wallet/receive", disabled: false },
-                  { icon: <History className="w-5 h-5" />, label: "History", path: "/wallet/history", disabled: false },
-                  { icon: <PieChart className="w-5 h-5" />, label: "Portfolio", path: "/wallet/analytics", disabled: false },
+                  { icon: <Icon icon="lucide:send" className="w-5 h-5"/>, label: "Send", path: "/wallet/send", disabled: false },
+                  { icon: <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>, label: "Receive", path: "/wallet/receive", disabled: false },
+                  { icon: <Icon icon="lucide:history" className="w-5 h-5"/>, label: "History", path: "/wallet/history", disabled: false },
+                  { icon: <Icon icon="lucide:pie-chart" className="w-5 h-5"/>, label: "Portfolio", path: "/wallet/analytics", disabled: false },
                 ].map((action, i) => (
                   <Button
                     key={i}
@@ -820,7 +769,7 @@ export default function WalletPage() {
                 onClick={() => router.push("/wallet/send-qntm")}
                 className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold transform-none hover:transform-none transition-opacity duration-200 hover:opacity-80 border-0 focus:ring-0 focus-visible:ring-0"
               >
-                <Send className="w-4 h-4 mr-2" />
+                <Icon icon="lucide:send" className="w-4 h-4 mr-2"/>
                 Send QNTM
               </Button>
             </CardContent>
@@ -856,12 +805,12 @@ export default function WalletPage() {
                     </div>
                     <div className="flex items-center gap-1 text-sm text-primary font-medium">
                       <span>Start earning</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
                     </div>
                   </div>
                   {/* Right side - Icon */}
                   <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-8 h-8 text-primary" />
+                    <Icon icon="lucide:trending-up" className="w-8 h-8 text-primary"/>
                   </div>
                   {/* Decorative blur */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
@@ -882,12 +831,12 @@ export default function WalletPage() {
                     </div>
                     <div className="flex items-center gap-1 text-sm text-white/70 font-medium">
                       <span>Browse NFTs</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
                     </div>
                   </div>
                   {/* Right side - Icon */}
                   <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
-                    <ImageIcon className="w-8 h-8 text-white/70" />
+                    <Icon icon="lucide:image" className="w-8 h-8 text-white/70"/>
                   </div>
                   {/* Decorative blur */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
@@ -923,7 +872,7 @@ export default function WalletPage() {
 
         {isTestnet ? (
           <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
-            <FlaskConical className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+            <Icon icon="lucide:flask-conical" className="w-4 h-4 text-blue-400 mt-0.5 shrink-0"/>
             <p className="text-xs text-blue-400/90 leading-relaxed">
               You&apos;re on TON Testnet. Assets here have no real value. Switch to mainnet in settings for real transactions.
             </p>
@@ -1002,7 +951,7 @@ export default function WalletPage() {
                       </>
                     )}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                  <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
                 </div>
               </CardContent>
             </Card>
@@ -1077,7 +1026,7 @@ export default function WalletPage() {
                         <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
                         <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-500" />
+                      <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
                     </div>
                   </CardContent>
                 </Card>
@@ -1135,7 +1084,7 @@ export default function WalletPage() {
                         </>
                       )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                    <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
                   </div>
                 </CardContent>
               </Card>
@@ -1181,7 +1130,7 @@ export default function WalletPage() {
                         </>
                       )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                    <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
                   </div>
                 </CardContent>
               </Card>
@@ -1227,7 +1176,7 @@ export default function WalletPage() {
                         </>
                       )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                    <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
                   </div>
                 </CardContent>
               </Card>
@@ -1273,7 +1222,7 @@ export default function WalletPage() {
                         </>
                       )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                    <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
                   </div>
                 </CardContent>
               </Card>
@@ -1297,7 +1246,7 @@ export default function WalletPage() {
 
             {!isLoadingNfts && nfts.length === 0 && (
               <div className="py-8 text-center bg-[#111] rounded-2xl border border-[#222] border-dashed">
-                <ImageIcon className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                <Icon icon="lucide:image" className="w-8 h-8 text-gray-600 mx-auto mb-2"/>
                 <p className="text-sm text-gray-500">No NFTs found</p>
                 <p className="text-xs text-gray-600 mt-1">Your collectibles will appear here</p>
               </div>
@@ -1319,7 +1268,7 @@ export default function WalletPage() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon className="w-8 h-8 text-gray-600" />
+                            <Icon icon="lucide:image" className="w-8 h-8 text-gray-600"/>
                           </div>
                         )}
                       </div>
@@ -1392,7 +1341,7 @@ export default function WalletPage() {
                     onClick={() => setSelectedAsset(null)}
                     className="w-8 h-8 bg-[#222] rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#333] transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <Icon icon="lucide:x" className="w-4 h-4"/>
                   </Button>
                 </div>
 

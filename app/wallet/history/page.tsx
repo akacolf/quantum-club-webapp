@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ArrowRight, Clock, Layers, ExternalLink, Image as ImageIcon, Search, X, Filter, Tag, Pencil } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { fromNano, Address } from "@ton/core";
 import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -579,7 +579,7 @@ export default function HistoryPage() {
       {/* Search and Filter Bar */}
       <div className="mb-4 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Icon icon="lucide:search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -593,7 +593,7 @@ export default function HistoryPage() {
               onClick={() => setSearchQuery("")}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
             >
-              <X className="w-4 h-4" />
+              <Icon icon="lucide:x" className="w-4 h-4"/>
             </Button>
           )}
         </div>
@@ -606,7 +606,7 @@ export default function HistoryPage() {
             onClick={() => setShowFilters(!showFilters)}
             className={`h-8 px-3 rounded-lg ${showFilters ? 'bg-primary text-primary-foreground' : ''}`}
           >
-            <Filter className="w-3.5 h-3.5 mr-1.5" />
+            <Icon icon="lucide:filter" className="w-3.5 h-3.5 mr-1.5"/>
             Filters
             {activeFilter !== "all" && (
               <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">1</Badge>
@@ -713,9 +713,9 @@ export default function HistoryPage() {
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
                     {searchQuery || activeFilter !== "all" ? (
-                      <Search className="w-8 h-8 text-muted-foreground" />
+                      <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
                     ) : (
-                      <Clock className="w-8 h-8 text-muted-foreground" />
+                      <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
                     )}
                   </div>
                   <p>
@@ -751,12 +751,12 @@ export default function HistoryPage() {
                       >
                         {txLabels[tx.event_id] ? (
                           <>
-                            <Pencil className="w-3 h-3 mr-1" />
+                            <Icon icon="lucide:pencil" className="w-3 h-3 mr-1"/>
                             Edit label
                           </>
                         ) : (
                           <>
-                            <Tag className="w-3 h-3 mr-1" />
+                            <Icon icon="lucide:tag" className="w-3 h-3 mr-1"/>
                             Add label
                           </>
                         )}
@@ -792,15 +792,15 @@ export default function HistoryPage() {
                                 tx.isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
                             }`}>
                             {tx.type === 'Deploy' ? (
-                              <Layers className="w-4 h-4" />
+                              <Icon icon="lucide:layers" className="w-4 h-4"/>
                             ) : tx.isSwap ? (
-                              <ArrowLeftRight className="w-4 h-4" />
+                              <Icon icon="lucide:arrow-left-right" className="w-4 h-4"/>
                             ) : tx.symbol === 'NFT' ? (
-                              <ImageIcon className="w-4 h-4" />
+                              <Icon icon="lucide:image" className="w-4 h-4"/>
                             ) : tx.isIncoming ? (
-                              <ArrowDownLeft className="w-4 h-4" />
+                              <Icon icon="lucide:arrow-down-left" className="w-4 h-4"/>
                             ) : (
-                              <ArrowUpRight className="w-4 h-4" />
+                              <Icon icon="lucide:arrow-up-right" className="w-4 h-4"/>
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -808,7 +808,7 @@ export default function HistoryPage() {
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               {tx.isSwap ? (
                                 <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400 truncate flex items-center gap-1">
-                                  {tx.fromSymbol} <ArrowRight className="w-3 h-3" /> {tx.toSymbol}
+                                  {tx.fromSymbol} <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {tx.toSymbol}
                                 </span>
                               ) : (
                                 <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground truncate">
@@ -837,7 +837,7 @@ export default function HistoryPage() {
                             )}
                             <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{tx.formattedDate} • {tx.formattedTime}</p>
                           </div>
-                          <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <Icon icon="lucide:external-link" className="w-4 h-4 text-muted-foreground shrink-0"/>
                         </div>
                       </div>
                     </CardContent>
@@ -883,9 +883,9 @@ export default function HistoryPage() {
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
                     {searchQuery || activeFilter !== "all" ? (
-                      <Search className="w-8 h-8 text-muted-foreground" />
+                      <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
                     ) : (
-                      <Clock className="w-8 h-8 text-muted-foreground" />
+                      <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
                     )}
                   </div>
                   <p>
@@ -931,9 +931,9 @@ export default function HistoryPage() {
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'
                             }`}>
                             {isIncoming ? (
-                              <ArrowDownLeft className="w-5 h-5" />
+                              <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>
                             ) : (
-                              <ArrowUpRight className="w-5 h-5" />
+                              <Icon icon="lucide:arrow-up-right" className="w-5 h-5"/>
                             )}
                           </div>
                           <div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, ExternalLink, Image as ImageIcon, Send, ShoppingCart, Tag, Loader2, DollarSign, X, Info } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -238,7 +238,7 @@ export default function NftDetailPage() {
         return (
             <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
                 <div className="text-center space-y-4 max-w-sm">
-                    <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto" />
+                    <Icon icon="lucide:image" className="w-16 h-16 text-muted-foreground mx-auto" />
                     <p className="text-muted-foreground">NFT not found</p>
                     {error && <p className="text-xs text-destructive">{error}</p>}
                     <p className="text-xs text-muted-foreground break-all font-mono px-4">Address: {nftAddress}</p>
@@ -276,12 +276,12 @@ export default function NftDetailPage() {
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="w-16 h-16 text-muted-foreground" />
+                                <Icon icon="lucide:image" className="w-16 h-16 text-muted-foreground" />
                             </div>
                         )}
                         {nft.sale && (
                             <Badge className="absolute top-3 right-3 bg-green-600">
-                                <Tag className="w-3 h-3 mr-1" />
+                                <Icon icon="lucide:tag" className="w-3 h-3 mr-1" />
                                 For Sale
                             </Badge>
                         )}
@@ -311,10 +311,10 @@ export default function NftDetailPage() {
                                         className="h-12 px-6 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
                                     >
                                         {isBuying ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
                                         ) : (
                                             <>
-                                                <ShoppingCart className="w-4 h-4 mr-2" />
+                                                <Icon icon="lucide:shopping-cart" className="w-4 h-4 mr-2" />
                                                 Buy Now
                                             </>
                                         )}
@@ -388,9 +388,9 @@ export default function NftDetailPage() {
                                 >
                                     <p className="text-xs text-muted-foreground font-mono break-all">{formatFriendlyAddress(nftAddress)}</p>
                                     {copied ? (
-                                        <Check className="w-4 h-4 text-green-500 shrink-0" />
+                                        <Icon icon="lucide:check" className="w-4 h-4 text-green-500 shrink-0" />
                                     ) : (
-                                        <Copy className="w-4 h-4 text-muted-foreground shrink-0" />
+                                        <Icon icon="lucide:copy" className="w-4 h-4 text-muted-foreground shrink-0" />
                                     )}
                                 </div>
                             </div>
@@ -411,7 +411,7 @@ export default function NftDetailPage() {
                                                 return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
                                             })()}
                                         </p>
-                                        <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                                        <Icon icon="lucide:external-link" className="w-4 h-4 text-muted-foreground shrink-0" />
                                     </Button>
                                 </div>
                             )}
@@ -426,7 +426,7 @@ export default function NftDetailPage() {
                             onClick={() => setShowListingModal(true)}
                             className="w-full bg-green-600 hover:bg-green-700 text-white h-12 rounded-xl font-bold"
                         >
-                            <DollarSign className="w-4 h-4 mr-2" />
+                            <Icon icon="lucide:dollar-sign" className="w-4 h-4 mr-2" />
                             List for Sale
                         </Button>
                     )}
@@ -442,7 +442,7 @@ export default function NftDetailPage() {
                             onClick={() => router.push(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`)}
                             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 rounded-xl font-bold"
                         >
-                            <Send className="w-4 h-4 mr-2" />
+                            <Icon icon="lucide:send" className="w-4 h-4 mr-2" />
                             Send NFT
                         </Button>
                     )}
@@ -451,7 +451,7 @@ export default function NftDetailPage() {
                         variant="outline"
                         className="w-full bg-card border-border text-foreground hover:bg-muted h-12 rounded-xl font-bold"
                     >
-                        <ExternalLink className="w-4 h-4 mr-2" />
+                        <Icon icon="lucide:external-link" className="w-4 h-4 mr-2" />
                         View on Explorer
                     </Button>
                 </div>
@@ -484,7 +484,7 @@ export default function NftDetailPage() {
                                     disabled={isListing}
                                     className="h-8 w-8"
                                 >
-                                    <X className="w-4 h-4" />
+                                    <Icon icon="lucide:x" className="w-4 h-4" />
                                 </Button>
                             </div>
 
@@ -504,7 +504,7 @@ export default function NftDetailPage() {
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
-                                                <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                                <Icon icon="lucide:image" className="w-6 h-6 text-muted-foreground" />
                                             </div>
                                         )}
                                     </div>
@@ -539,7 +539,7 @@ export default function NftDetailPage() {
                                 {listingPrice && parseFloat(listingPrice) >= 0.1 && listingFeePreview && (
                                     <div className="bg-muted rounded-xl p-3 space-y-2 text-sm">
                                         <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                                            <Info className="w-4 h-4" />
+                                            <Icon icon="lucide:info" className="w-4 h-4" />
                                             <span>Fee Breakdown</span>
                                         </div>
                                         <div className="flex justify-between">
@@ -575,10 +575,10 @@ export default function NftDetailPage() {
                                     className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
                                 >
                                     {isListing ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
                                     ) : (
                                         <>
-                                            <Tag className="w-4 h-4 mr-2" />
+                                            <Icon icon="lucide:tag" className="w-4 h-4 mr-2" />
                                             List for {listingPrice || "0"} TON
                                         </>
                                     )}

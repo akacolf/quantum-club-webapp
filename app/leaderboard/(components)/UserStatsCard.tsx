@@ -3,7 +3,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { SvgProps } from "@/types/svg";
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trophy } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const Logo = React.memo(({ width = "2.5em", height = "2.5em" }: SvgProps) => (
   <svg
@@ -28,7 +28,7 @@ export default function UserStatsCard() {
   return (
     <div className="flex flex-col mt-6 px-4">
       <div className="flex items-center gap-2 mb-3">
-        <Trophy className="w-5 h-5 text-yellow-500" />
+        <Icon icon="lucide:trophy" className="w-5 h-5 text-yellow-500" />
         <span className="font-semibold text-white">Your Ranking</span>
       </div>
 

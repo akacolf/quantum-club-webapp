@@ -4,13 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  PieChart as PieChartIcon,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  Wallet,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -278,7 +272,7 @@ export default function AnalyticsPage() {
           <Card className="bg-gradient-to-br from-[#0c0c0c] to-black border-white/5 rounded-2xl">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Wallet className="w-4 h-4 text-gray-400" />
+                <Icon icon="lucide:wallet" className="w-4 h-4 text-gray-400"/>
                 <span className="text-gray-400 text-sm">Total Portfolio Value</span>
               </div>
               {isLoadingAssets ? (
@@ -300,9 +294,9 @@ export default function AnalyticsPage() {
                       } text-xs`}
                   >
                     {change24h >= 0 ? (
-                      <ArrowUpRight className="w-3 h-3 mr-1" />
+                      <Icon icon="lucide:arrow-up-right" className="w-3 h-3 mr-1"/>
                     ) : (
-                      <ArrowDownRight className="w-3 h-3 mr-1" />
+                      <Icon icon="lucide:arrow-down-right" className="w-3 h-3 mr-1"/>
                     )}
                     {hideBalance ? "••" : `${change24h >= 0 ? "+" : ""}${change24h.toFixed(2)}%`} 24h
                   </Badge>
@@ -316,9 +310,9 @@ export default function AnalyticsPage() {
                       } text-xs`}
                   >
                     {change7d >= 0 ? (
-                      <ArrowUpRight className="w-3 h-3 mr-1" />
+                      <Icon icon="lucide:arrow-up-right" className="w-3 h-3 mr-1"/>
                     ) : (
-                      <ArrowDownRight className="w-3 h-3 mr-1" />
+                      <Icon icon="lucide:arrow-down-right" className="w-3 h-3 mr-1"/>
                     )}
                     {hideBalance ? "••" : `${change7d >= 0 ? "+" : ""}${change7d.toFixed(2)}%`} 7d
                   </Badge>
@@ -357,7 +351,7 @@ export default function AnalyticsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <PieChartIcon className="w-4 h-4 text-blue-400" />
+                  <Icon icon="lucide:pie-chart-icon" className="w-4 h-4 text-blue-400"/>
                 </div>
               </div>
               <p className="text-gray-400 text-xs mb-1">Assets</p>
@@ -371,7 +365,7 @@ export default function AnalyticsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-purple-400" />
+                  <Icon icon="lucide:bar-chart-3" className="w-4 h-4 text-purple-400"/>
                 </div>
               </div>
               <p className="text-gray-400 text-xs mb-1">Largest Holding</p>
@@ -395,14 +389,14 @@ export default function AnalyticsPage() {
                 value="allocation"
                 className="flex-1 h-full rounded-lg text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
-                <PieChartIcon className="w-3.5 h-3.5 mr-1.5" />
+                <Icon icon="lucide:pie-chart-icon" className="w-3.5 h-3.5 mr-1.5"/>
                 Allocation
               </TabsTrigger>
               <TabsTrigger
                 value="holdings"
                 className="flex-1 h-full rounded-lg text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
-                <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+                <Icon icon="lucide:bar-chart-3" className="w-3.5 h-3.5 mr-1.5"/>
                 Holdings
               </TabsTrigger>
             </TabsList>
