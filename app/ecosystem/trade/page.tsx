@@ -19,7 +19,7 @@ import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
-import { useUserContext } from "../(contexts)/UserContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 
 // Lazy load Lottie (large library)
 const Lottie = dynamic(() => import("lottie-react"), {
@@ -28,7 +28,7 @@ const Lottie = dynamic(() => import("lottie-react"), {
 });
 
 // Lazy load GlobalLiveTrades (below-fold content)
-const GlobalLiveTrades = dynamic(() => import("@/app/trade/(components)/GlobalLiveTrades"), {
+const GlobalLiveTrades = dynamic(() => import("@/app/ecosystem/trade/(components)/GlobalLiveTrades"), {
   ssr: false,
   loading: () => <Skeleton className="h-40" />
 });
@@ -85,7 +85,7 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.05 }}
         >
-        <Link href={`/trade/${token.id}`} prefetch={true}>
+        <Link href={`/ecosystem/trade/${token.id}`} prefetch={true}>
             <Card
                 className="bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden group relative shadow-md hover:shadow-lg hover:bg-white/10"
             >
@@ -288,10 +288,10 @@ export default function TradePage() {
 
     // Prefetch trade routes
     useEffect(() => {
-        router.prefetch("/trade/create");
+        router.prefetch("/ecosystem/trade/create");
         // Prefetch first few token pages
         trendingTokens.slice(0, 5).forEach(token => {
-            router.prefetch(`/trade/${token.id}`);
+            router.prefetch(`/ecosystem/trade/${token.id}`);
         });
     }, [router, trendingTokens]);
 
@@ -329,7 +329,7 @@ export default function TradePage() {
                             <p className="text-xs text-muted-foreground font-medium tracking-wide">Token Launchpad on TON</p>
                         </div>
                         <Button
-                            onClick={() => router.push("/trade/create")}
+                            onClick={() => router.push("/ecosystem/trade/create")}
                             className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all rounded-full px-5 h-10"
                         >
                             <Icon icon="solar:rocket-bold" className="w-5 h-5" />
@@ -523,7 +523,7 @@ export default function TradePage() {
                                     Launch your own token and start building your community
                                 </p>
                                 <Button
-                                    onClick={() => router.push("/trade/create")}
+                                    onClick={() => router.push("/ecosystem/trade/create")}
                                     className="bg-white hover:bg-white/90 text-black gap-2 font-bold rounded-full px-5"
                                 >
                                     <Icon icon="solar:rocket-bold" className="w-4 h-4" />

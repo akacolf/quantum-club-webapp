@@ -394,12 +394,13 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
         const userRef = doc(dbfs, "user", telegramIdEncrypted);
         const userSnapshot = await getDoc(userRef);
         if (userSnapshot.exists()) {
-          const dataUsername = userSnapshot.data().username;
+          const userData2 = userSnapshot.data();
+          const dataUsername = userData2?.username;
           const updates: Record<string, string> = {};
           if (username !== dataUsername) {
             updates.username = username;
           }
-          if (email && !userSnapshot.data().email) {
+          if (email && !userData2?.email) {
             updates.email = email;
           }
           if (Object.keys(updates).length > 0) {

@@ -15,6 +15,7 @@ import { auth } from "@/app/(firebase)/client";
 import { useDeviceDetection } from "@/app/(login)/deviceDetection";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -89,11 +90,11 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pt-[12vh]">
+    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10">
       <div className="w-full max-w-sm">
         <div className={cn("flex flex-col gap-6")}>
           <div className="text-center">
-            <div className="mx-auto mb-4">
+            <div className="flex justify-center mb-4">
               <Image
                 src="/svg/logo-white.svg"
                 alt="Quantum Club"
@@ -159,10 +160,7 @@ export default function ForgotPassword() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Icon
-                    icon="svg-spinners:ring-resize"
-                    className="size-5"
-                  />
+                  <ButtonLoader size="sm" />
                 ) : (
                   <>
                     <Icon icon="solar:refresh-linear" className="size-5" />
@@ -210,10 +208,7 @@ export default function ForgotPassword() {
                     disabled={isLoading || !email}
                   >
                     {isLoading ? (
-                      <Icon
-                        icon="svg-spinners:ring-resize"
-                        className="size-5"
-                      />
+                      <ButtonLoader size="sm" />
                     ) : (
                       <>
                         <Icon icon="solar:letter-linear" className="size-5" />

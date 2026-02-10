@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -288,7 +289,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                   disabled={isLinkingEmail || !linkEmail || !linkPassword}
                 >
                   {isLinkingEmail ? (
-                    <Icon icon="svg-spinners:ring-resize" className="size-4" />
+                    <ButtonLoader size="sm" />
                   ) : (
                     "Link Email"
                   )}

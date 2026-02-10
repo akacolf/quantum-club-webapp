@@ -538,8 +538,12 @@ export default function LiquidityPage() {
       if (parseFloat(amountB) > balanceB) return false;
     }
 
-    // Check TON for gas
-    if (parseFloat(tonBalance) < 0.5) return false;
+    // Check TON for gas — account for TON being deposited
+    const tonBal = parseFloat(tonBalance);
+    let tonNeededForDeposit = 0;
+    if (tokenA.kind === "Ton") tonNeededForDeposit += parseFloat(amountA);
+    if (!isSingleSided && tokenB?.kind === "Ton" && amountB) tonNeededForDeposit += parseFloat(amountB);
+    if (tonBal - tonNeededForDeposit < 0.5) return false;
 
     return true;
   }, [
@@ -1276,7 +1280,13 @@ export default function LiquidityPage() {
                       "Select tokens"
                     ) : !amountA || parseFloat(amountA) <= 0 ? (
                       "Enter amount"
-                    ) : parseFloat(tonBalance) < 0.5 ? (
+                    ) : (() => {
+                      const tonBal = parseFloat(tonBalance);
+                      let tonForDeposit = 0;
+                      if (tokenA?.kind === "Ton") tonForDeposit += parseFloat(amountA || "0");
+                      if (!isSingleSided && tokenB?.kind === "Ton" && amountB) tonForDeposit += parseFloat(amountB);
+                      return tonBal - tonForDeposit < 0.5;
+                    })() ? (
                       "Insufficient TON for gas"
                     ) : !simulationResult ? (
                       "Calculating..."

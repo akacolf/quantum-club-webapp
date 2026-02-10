@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { removeToken, setToken } from "./actions";
 type AuthContextType = {
     currentUser: User | null;
+    authLoading: boolean;
     logout: () => Promise<void>
     loginWithToken: (customToken:string) => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<User>;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [authLoading, setAuthLoading] = useState(true);
     const [customClaims,setCustomClaims] = useState<ParsedToken | null>(null)
     useEffect(() =>{
         const unsubscribe = auth.onAuthStateChanged(async(user) => {
@@ -37,6 +39,7 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             }else{
                 await removeToken();
             }
+            setAuthLoading(false);
         });
 
         return () =>unsubscribe();
@@ -96,13 +99,11 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
       });
       client.requestAccessToken();
     }
-    const configPassword = async()=>{
-        // Password configuration handled via Firebase password reset email
-    }
    return ( 
     <AuthContext.Provider 
         value={{
             currentUser,
+            authLoading,
             logout,
             customClaims,
             loginWithToken,

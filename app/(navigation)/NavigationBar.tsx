@@ -33,12 +33,13 @@ const EarnIcon = React.memo(() => (
 ));
 EarnIcon.displayName = "EarnIcon";
 
-const TradeIcon = React.memo(() => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
-	<path fill="none" stroke="currentColor" strokeLinecap="square" strokeWidth="2" d="M21 14.5H4l5 5m-6-10h17l-5-5" />
-</svg>
+const EcosystemIcon = React.memo(() => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 16 16">
+    <path fill="currentColor" d="M11 8a2.64 2.64 0 0 0-.53-1.59l1.33-1.32a2.2 2.2 0 0 0 .82.17a1.94 1.94 0 0 0 2-1.88a2 2 0 0 0-4 0a1.76 1.76 0 0 0 .24.88L9.53 5.59A3.14 3.14 0 0 0 8 5.19a3 3 0 0 0-2.93 2.19h-.69A2 2 0 0 0 2.5 6.13A1.94 1.94 0 0 0 .5 8a1.94 1.94 0 0 0 2 1.88a2 2 0 0 0 1.88-1.25h.69A3 3 0 0 0 8 10.82A2.91 2.91 0 0 0 11 8m1.62-5.24a.69.69 0 0 1 .75.62a.76.76 0 0 1-1.5 0a.7.7 0 0 1 .75-.62M2.5 8.63A.7.7 0 0 1 1.75 8a.7.7 0 0 1 .75-.62a.7.7 0 0 1 .75.62a.7.7 0 0 1-.75.63m5.5.94A1.67 1.67 0 0 1 6.25 8A1.66 1.66 0 0 1 8 6.44A1.67 1.67 0 0 1 9.75 8A1.68 1.68 0 0 1 8 9.57" />
+    <path fill="currentColor" d="M2.5 4.38a2 2 0 0 0 .82-.17L5.08 6A3.7 3.7 0 0 1 6 5.13L4.26 3.38a1.76 1.76 0 0 0 .24-.88a1.94 1.94 0 0 0-2-1.87a1.94 1.94 0 0 0-2 1.87a1.94 1.94 0 0 0 2 1.88m0-2.5a.7.7 0 0 1 .75.62a.7.7 0 0 1-.75.63a.7.7 0 0 1-.75-.63a.7.7 0 0 1 .75-.62m11 9.75a2 2 0 0 0-.82.17L10.92 10a3.7 3.7 0 0 1-.93.84l1.74 1.74a1.75 1.75 0 0 0-.23.88a2 2 0 0 0 4 0a1.94 1.94 0 0 0-2-1.83m0 2.5a.7.7 0 0 1-.75-.63a.76.76 0 0 1 1.5 0a.7.7 0 0 1-.75.63" />
+  </svg>
 ));
-TradeIcon.displayName = "TradeIcon";
+EcosystemIcon.displayName = "EcosystemIcon";
 
 const FrensIcon = React.memo(() => (
   <svg
@@ -77,7 +78,7 @@ WalletIcon.displayName = "WalletIcon";
 const navTabs = [
   { id: "home", href: "/home", label: "Home", icon: <HomeIcon /> },
   { id: "earn", href: "/earn", label: "Earn", icon: <EarnIcon /> },
-  { id: "trade", href: "/trade", label: "Trade", icon: <TradeIcon /> },
+  { id: "ecosystem", href: "/ecosystem", label: "Ecosystem", icon: <EcosystemIcon /> },
   { id: "frens", href: "/frens", label: "Frens", icon: <FrensIcon /> },
   {
     id: "wallet",
@@ -92,7 +93,7 @@ const NavigationBar = () => {
 
   let activeTab = "home";
   if (pathname.includes("/earn")) activeTab = "earn";
-  else if (pathname.includes("/trade")) activeTab = "trade";
+  else if (pathname.includes("/ecosystem")) activeTab = "ecosystem";
   else if (pathname.includes("/frens")) activeTab = "frens";
   else if (pathname.includes("/wallet")) activeTab = "wallet";
 

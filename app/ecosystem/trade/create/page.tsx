@@ -33,7 +33,7 @@ export default function CreateTokenPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { telegramId } = useUserContext();
     // Telegram back button
-    useTelegramBackButton("/trade");
+    useTelegramBackButton("/ecosystem/trade");
 
     // Check for wallet from localStorage directly to handle SSR timing issues
     const [effectiveWalletAddress, setEffectiveWalletAddress] = useState<string>("");
@@ -61,7 +61,7 @@ export default function CreateTokenPage() {
 
     // Prefetch trade page for faster navigation after creation
     useEffect(() => {
-        router.prefetch("/trade");
+        router.prefetch("/ecosystem/trade");
     }, [router]);
 
     const [isLoading, setIsLoading] = useState(false);
@@ -343,7 +343,7 @@ export default function CreateTokenPage() {
             });
 
             refreshTokens();
-            router.push(`/trade/${token.id}`);
+            router.push(`/ecosystem/trade/${token.id}`);
         } catch (err) {
             console.error("Token creation error:", err);
             const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";

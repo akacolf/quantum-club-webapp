@@ -122,7 +122,7 @@ export default function GlobalLiveTrades() {
     return (
         <Card
             className="bg-white/5 border-white/10 mb-4 overflow-hidden cursor-pointer hover:bg-white/[0.07] transition-colors"
-            onClick={() => router.push(`/trade/${currentTrade.tokenId}`)}
+            onClick={() => router.push(`/ecosystem/trade/${currentTrade.tokenId}`)}
         >
             <CardContent className="p-3">
                 <div className="flex items-center gap-3">

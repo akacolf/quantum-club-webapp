@@ -16,13 +16,13 @@ import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { toast } from "sonner";
-import TokenChat from "@/app/trade/(components)/TokenChat";
-import LiveTrades from "@/app/trade/(components)/LiveTrades";
-import PriceChart from "@/app/trade/(components)/PriceChart";
-import GraduatedTrading from "@/app/trade/(components)/GraduatedTrading";
-import GraduationProgress from "@/app/trade/(components)/GraduationProgress";
-import SupplyInfo from "@/app/trade/(components)/SupplyInfo";
-import SlippageSettings from "@/app/trade/(components)/SlippageSettings";
+import TokenChat from "@/app/ecosystem/trade/(components)/TokenChat";
+import LiveTrades from "@/app/ecosystem/trade/(components)/LiveTrades";
+import PriceChart from "@/app/ecosystem/trade/(components)/PriceChart";
+import GraduatedTrading from "@/app/ecosystem/trade/(components)/GraduatedTrading";
+import GraduationProgress from "@/app/ecosystem/trade/(components)/GraduationProgress";
+import SupplyInfo from "@/app/ecosystem/trade/(components)/SupplyInfo";
+import SlippageSettings from "@/app/ecosystem/trade/(components)/SlippageSettings";
 import { DEFAULT_GRADUATION_THRESHOLD_TON, DEFAULT_SLIPPAGE } from "@/types/trading";
 import ImageViewer from "@/components/ui/image-viewer";
 import { FEE_CONFIG } from "@/lib/platform-config";
@@ -56,7 +56,7 @@ export default function TokenDetailPage() {
     const tokenGroup = getGroupByToken(tokenId);
 
     // Telegram back button
-    useTelegramBackButton("/trade");
+    useTelegramBackButton("/ecosystem/trade");
 
     const [activeTab, setActiveTab] = useState("buy");
     const [amount, setAmount] = useState("");

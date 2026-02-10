@@ -56,7 +56,7 @@ const GroupItem = memo(function GroupItem({ group, index, onNavigate }: GroupIte
 });
 
 export default function GroupsPage() {
-    useTelegramBackButton("/trade");
+    useTelegramBackButton("/ecosystem/trade");
     const router = useRouter();
     const { groups, loading } = useGroups();
 

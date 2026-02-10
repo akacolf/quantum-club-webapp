@@ -17,7 +17,7 @@ export default function TradeLayout({
 
     useEffect(() => {
         // Skip check for waitlist page
-        if (pathname === "/trade/waitlist") {
+        if (pathname === "/ecosystem/trade/waitlist") {
             setIsChecking(false);
             setHasAccess(true);
             return;
@@ -47,7 +47,7 @@ export default function TradeLayout({
                 }
 
                 // Access denied - redirect to waitlist
-                router.replace("/trade/waitlist");
+                router.replace("/ecosystem/trade/waitlist");
             } catch (error) {
                 console.error("Beta access check failed:", error);
                 // On error, allow access (fail open)

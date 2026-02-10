@@ -19,6 +19,7 @@ import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "@/app/(login)/deviceDetection";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function SignUp() {
   const [name, setName] = useState("");
@@ -231,12 +232,23 @@ export default function SignUp() {
       ) {
         const WebApp = window.Telegram.WebApp;
         WebApp.ready();
+
+        // Wait for initDataUnsafe.user to be available (up to 3s)
+        let retries = 0;
+        while (!WebApp.initDataUnsafe?.user?.id && retries < 30) {
+          await new Promise((r) => setTimeout(r, 100));
+          retries++;
+        }
+
         const initDataUnsafe = WebApp.initDataUnsafe;
+        if (!initDataUnsafe?.user?.id) {
+          throw new Error("Telegram user data not available. Please try again.");
+        }
 
         const authenticated = await authenticateUser();
         if (authenticated) {
           const encryptedId = await encryptData(
-            initDataUnsafe.user?.id.toString() || ""
+            initDataUnsafe.user.id.toString()
           );
           if (!encryptedId) {
             throw new Error("Failed to encrypt Telegram ID");
@@ -309,11 +321,11 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pt-[12vh] pb-16">
+    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10 pb-16">
       <div className="w-full max-w-sm">
         <div className={cn("flex flex-col gap-6")}>
           <div className="text-center">
-            <div className="mx-auto mb-4">
+            <div className="flex justify-center mb-4">
               <Image
                 src="/svg/logo-white.svg"
                 alt="Quantum Club"
@@ -467,10 +479,7 @@ export default function SignUp() {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Icon
-                      icon="svg-spinners:ring-resize"
-                      className="size-5"
-                    />
+                    <ButtonLoader size="sm" />
                   ) : (
                     "Create Account"
                   )}

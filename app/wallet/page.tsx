@@ -124,7 +124,7 @@ export default function WalletPage() {
   const { telegramId } = useUserContext();
   
   // Back button to return to main app
-  useTelegramBackButton("/trade");
+  useTelegramBackButton("/home");
 
   const [hasWallet, setHasWallet] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
