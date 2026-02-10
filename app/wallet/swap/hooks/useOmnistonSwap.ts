@@ -15,8 +15,8 @@ import { Address as TonAddress } from "@ton/core";
 
 export interface OmnistonAsset {
     address: string;
-    blockchain: number;
-    kind: "Ton" | "Jetton";
+    blockchain: number; // 607 = TON, 195 = TRON
+    kind: "Ton" | "Jetton" | "Trc20";
     symbol: string;
     displayName: string;
     imageUrl?: string;
@@ -49,7 +49,12 @@ export interface UseOmnistonSwapReturn {
     buildAndExecute: (
         quote: Quote,
         walletAddress: string,
-        sendTransaction: (params: { to: string; value: bigint; body: string }) => Promise<void>
+        sendTransaction: (params: { to: string; value: bigint; body: string }) => Promise<void>,
+        options?: {
+            sourceBlockchain?: number;
+            destinationAddress?: string;
+            destinationBlockchain?: number;
+        }
     ) => Promise<string | null>;
     isBuilding: boolean;
     unsubscribe: () => void;
@@ -76,11 +81,11 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
         return {
             settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
             bidAssetAddress: {
-                blockchain: Blockchain.TON,
+                blockchain: params.fromAsset.blockchain as Blockchain,
                 address: params.fromAsset.address,
             },
             askAssetAddress: {
-                blockchain: Blockchain.TON,
+                blockchain: params.toAsset.blockchain as Blockchain,
                 address: params.toAsset.address,
             },
             amount: {
@@ -155,7 +160,12 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
     const buildAndExecute = useCallback(async (
         quoteToExecute: Quote,
         walletAddress: string,
-        sendTransaction: (params: { to: string; value: bigint; body: string }) => Promise<void>
+        sendTransaction: (params: { to: string; value: bigint; body: string }) => Promise<void>,
+        options?: {
+            sourceBlockchain?: number;
+            destinationAddress?: string;
+            destinationBlockchain?: number;
+        }
     ): Promise<string | null> => {
         if (!isConnected) {
             throw new Error("Not connected to swap service");
@@ -163,20 +173,24 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
 
         setIsBuilding(true);
 
+        const srcBlockchain = (options?.sourceBlockchain ?? Blockchain.TON) as Blockchain;
+        const dstBlockchain = (options?.destinationBlockchain ?? srcBlockchain) as Blockchain;
+        const dstAddress = options?.destinationAddress ?? walletAddress;
+
         try {
             // Build the transaction using Omniston
             const transaction = await omniston.buildTransfer({
                 quote: quoteToExecute,
                 sourceAddress: {
-                    blockchain: Blockchain.TON,
+                    blockchain: srcBlockchain,
                     address: walletAddress,
                 },
                 destinationAddress: {
-                    blockchain: Blockchain.TON,
-                    address: walletAddress,
+                    blockchain: dstBlockchain,
+                    address: dstAddress,
                 },
                 gasExcessAddress: {
-                    blockchain: Blockchain.TON,
+                    blockchain: srcBlockchain,
                     address: walletAddress,
                 },
                 useRecommendedSlippage: true,

@@ -57,6 +57,9 @@ export default function Login() {
     }
   }, [authContext?.currentUser, authContext?.authLoading, router]);
 
+  // Show loader while auth is resolving, but not indefinitely for currentUser redirect
+  const showLoader = isPageLoading || authContext?.authLoading;
+
   useEffect(() => {
     // Prefetch auth-related pages for faster navigation
     router.prefetch("/signup");
@@ -307,7 +310,7 @@ export default function Login() {
     }
   };
 
-  if (isPageLoading || authContext?.authLoading || authContext?.currentUser) {
+  if (showLoader) {
     return <Loader />;
   }
 

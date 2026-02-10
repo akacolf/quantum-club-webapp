@@ -42,7 +42,13 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             setAuthLoading(false);
         });
 
-        return () =>unsubscribe();
+        // Safety timeout: if onAuthStateChanged never fires, stop loading after 5s
+        const timeout = setTimeout(() => setAuthLoading(false), 5000);
+
+        return () => {
+            unsubscribe();
+            clearTimeout(timeout);
+        };
     },[])
 
     const logout = async () =>{

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
+    "@evaafi/sdk": "^0.9.5",
     "@google/genai": "^1.33.0",
     "@hipo-finance/sdk": "^2.0.1",
     "@iconify/react": "^6.0.2",

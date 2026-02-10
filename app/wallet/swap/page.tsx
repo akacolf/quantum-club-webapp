@@ -79,6 +79,8 @@ function formatDisplayNumber(value: string | number, maxDecimals: number = 4): s
     return num.toFixed(maxDecimals);
 }
 
+const CHAIN_ID = { TON: 607, TRON: 195 } as const;
+
 export default function SwapPage() {
     useTelegramBackButton("/wallet");
     const { telegramId } = useUserContext();
@@ -118,6 +120,12 @@ export default function SwapPage() {
     const [preferGasless, setPreferGasless] = useState(false); // Gasless swap toggle
     const [confirmedQuote, setConfirmedQuote] = useState<typeof omnistonQuote>(null); // Store quote for confirm step
 
+    // Cross-chain state
+    const [fromChain, setFromChain] = useState<"TON" | "TRON">("TON");
+    const [toChain, setToChain] = useState<"TON" | "TRON">("TON");
+    const [tronDestAddress, setTronDestAddress] = useState("");
+    const isCrossChain = fromChain !== toChain;
+
     // Debounce the amount for quote requests (500ms)
     const debouncedAmount = useDebounce(amount, 500);
 
@@ -132,7 +140,7 @@ export default function SwapPage() {
         return {
             fromAsset: {
                 address: fromAsset.contractAddress,
-                blockchain: 607,
+                blockchain: CHAIN_ID[fromChain],
                 kind: fromAsset.kind,
                 symbol: fromAsset.symbol,
                 displayName: fromAsset.displayName,
@@ -141,8 +149,8 @@ export default function SwapPage() {
             },
             toAsset: {
                 address: toAsset.contractAddress,
-                blockchain: 607,
-                kind: toAsset.kind,
+                blockchain: CHAIN_ID[toChain],
+                kind: toAsset.kind as "Ton" | "Jetton" | "Trc20",
                 symbol: toAsset.symbol,
                 displayName: toAsset.displayName,
                 imageUrl: toAsset.imageUrl,
@@ -152,7 +160,7 @@ export default function SwapPage() {
             slippageBps: Math.round(parseFloat(slippage) * 100), // Convert % to basis points
             preferGasless, // Pass gasless preference
         };
-    }, [fromAsset, toAsset, debouncedAmount, slippage, preferGasless]);
+    }, [fromAsset, toAsset, debouncedAmount, slippage, preferGasless, fromChain, toChain]);
 
     // Omniston hook for quotes and execution
     const {
@@ -266,11 +274,15 @@ export default function SwapPage() {
         [tonBalance, jettons]
     );
 
-    // Handle swap direction toggle
+    // Handle swap direction toggle (only if it won't set TRON as source)
     const handleToggleDirection = () => {
+        if (toChain === "TRON") return;
         const temp = fromAsset;
         setFromAsset(toAsset);
         setToAsset(temp);
+        const tempChain = fromChain;
+        setFromChain(toChain);
+        setToChain(tempChain);
         setAmount("");
     };
 
@@ -376,6 +388,10 @@ export default function SwapPage() {
             return false;
         if (!omnistonQuote) return false;
 
+        // Cross-chain: require valid TRON destination address
+        if (isCrossChain && toChain === "TRON" && !tronDestAddress.match(/^T[1-9A-HJ-NP-Za-km-z]{33}$/))
+            return false;
+
         const balance = parseFloat(getAssetBalance(fromAsset));
         const sendAmount = parseFloat(amount);
 
@@ -395,7 +411,7 @@ export default function SwapPage() {
             return false;
 
         return true;
-    }, [fromAsset, toAsset, amount, omnistonQuote, getAssetBalance, tonBalance, swapDetails]);
+    }, [fromAsset, toAsset, amount, omnistonQuote, getAssetBalance, tonBalance, swapDetails, isCrossChain, toChain, tronDestAddress]);
 
     // Handle continue to confirm
     const handleContinue = () => {
@@ -534,7 +550,11 @@ export default function SwapPage() {
             };
 
             // Execute via Omniston
-            await buildAndExecute(confirmedQuote, walletAddress, sendTransaction);
+            await buildAndExecute(confirmedQuote, walletAddress, sendTransaction, {
+                sourceBlockchain: CHAIN_ID[fromChain],
+                destinationBlockchain: CHAIN_ID[toChain],
+                destinationAddress: isCrossChain && toChain === "TRON" ? tronDestAddress : walletAddress,
+            });
 
             setLastTxHash(walletAddress || "");
             setStep("success");
@@ -615,7 +635,7 @@ export default function SwapPage() {
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Powered by <span className="font-semibold text-foreground">STON.fi</span>
+                        {isCrossChain ? "Cross-chain swap" : "Same-chain swap"} powered by <span className="font-semibold text-foreground">STON.fi Omniston</span>
                     </p>
                 </div>
 
@@ -628,6 +648,55 @@ export default function SwapPage() {
                             exit={{ opacity: 0, x: 20 }}
                             className="space-y-4"
                         >
+                            {/* Cross-chain Selector */}
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="flex-1 flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">From</span>
+                                    <Button
+                                        variant={fromChain === "TON" ? "default" : "outline"}
+                                        size="sm"
+                                        className="h-7 text-xs rounded-lg px-2.5"
+                                        onClick={() => { setFromChain("TON"); setFromAsset(null); setAmount(""); }}
+                                    >
+                                        <Icon icon="cryptocurrency-color:ton" className="w-3.5 h-3.5 mr-1" />
+                                        TON
+                                    </Button>
+                                    <Button
+                                        variant={fromChain === "TRON" ? "default" : "outline"}
+                                        size="sm"
+                                        className="h-7 text-xs rounded-lg px-2.5"
+                                        onClick={() => { setFromChain("TRON"); setFromAsset(null); setAmount(""); }}
+                                        disabled
+                                        title="TRON as source coming soon"
+                                    >
+                                        <Icon icon="cryptocurrency-color:trx" className="w-3.5 h-3.5 mr-1" />
+                                        TRON
+                                    </Button>
+                                </div>
+                                <Icon icon="lucide:arrow-right" className="w-4 h-4 text-muted-foreground" />
+                                <div className="flex-1 flex items-center justify-end gap-2">
+                                    <span className="text-xs text-muted-foreground">To</span>
+                                    <Button
+                                        variant={toChain === "TON" ? "default" : "outline"}
+                                        size="sm"
+                                        className="h-7 text-xs rounded-lg px-2.5"
+                                        onClick={() => { setToChain("TON"); setToAsset(null); setTronDestAddress(""); }}
+                                    >
+                                        <Icon icon="cryptocurrency-color:ton" className="w-3.5 h-3.5 mr-1" />
+                                        TON
+                                    </Button>
+                                    <Button
+                                        variant={toChain === "TRON" ? "default" : "outline"}
+                                        size="sm"
+                                        className="h-7 text-xs rounded-lg px-2.5"
+                                        onClick={() => { setToChain("TRON"); setToAsset(null); }}
+                                    >
+                                        <Icon icon="cryptocurrency-color:trx" className="w-3.5 h-3.5 mr-1" />
+                                        TRON
+                                    </Button>
+                                </div>
+                            </div>
+
                             {/* From Asset */}
                             <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden relative group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -852,6 +921,26 @@ export default function SwapPage() {
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            {/* TRON Destination Address (cross-chain) */}
+                            {isCrossChain && toChain === "TRON" && (
+                                <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden">
+                                    <CardContent className="p-4">
+                                        <Label className="text-xs text-muted-foreground mb-2 block">
+                                            TRON destination address
+                                        </Label>
+                                        <Input
+                                            placeholder="T... (your TRON address)"
+                                            value={tronDestAddress}
+                                            onChange={(e) => setTronDestAddress(e.target.value.trim())}
+                                            className="bg-transparent border-border text-sm"
+                                        />
+                                        {tronDestAddress && !tronDestAddress.match(/^T[1-9A-HJ-NP-Za-km-z]{33}$/) && (
+                                            <p className="text-xs text-destructive mt-1">Invalid TRON address format</p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
 
                             {/* Swap Details */}
                             {omnistonQuote && (

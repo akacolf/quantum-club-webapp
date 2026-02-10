@@ -842,6 +842,29 @@ export default function WalletPage() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
                 </button>
               </CarouselItem>
+
+              {/* Lending Card */}
+              <CarouselItem className="pl-4 pr-4">
+                <button
+                  onClick={() => router.push("/wallet/lending")}
+                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-all hover:border-white/20 relative overflow-hidden"
+                >
+                  <div className="flex flex-col items-start justify-between h-full z-10">
+                    <div className="text-left">
+                      <h4 className="font-bold text-white text-lg leading-tight">Lending</h4>
+                      <p className="text-sm text-gray-400">Supply & borrow on EVAA</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-white/70 font-medium">
+                      <span>Earn Interest</span>
+                      <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
+                    </div>
+                  </div>
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                    <Icon icon="lucide:landmark" className="w-8 h-8 text-white/70"/>
+                  </div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                </button>
+              </CarouselItem>
             </CarouselContent>
           </Carousel>
 
