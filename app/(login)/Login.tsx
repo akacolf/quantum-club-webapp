@@ -51,14 +51,16 @@ export default function Login() {
   }, []);
 
   // Auto-redirect if user is already signed in
+  const [isRedirecting, setIsRedirecting] = useState(false);
   useEffect(() => {
     if (!authContext?.authLoading && authContext?.currentUser) {
+      setIsRedirecting(true);
       router.replace("/home");
     }
   }, [authContext?.currentUser, authContext?.authLoading, router]);
 
-  // Show loader while auth is resolving, but not indefinitely for currentUser redirect
-  const showLoader = isPageLoading || authContext?.authLoading;
+  // Show loader while auth is resolving or redirecting authenticated user
+  const showLoader = isPageLoading || authContext?.authLoading || isRedirecting;
 
   useEffect(() => {
     // Prefetch auth-related pages for faster navigation

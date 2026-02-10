@@ -697,6 +697,25 @@ export default function SwapPage() {
                                 </TabsList>
                             </Tabs>
 
+                            {/* Cross-chain coming soon */}
+                            {isCrossChain ? (
+                                <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden">
+                                    <CardContent className="py-16 text-center space-y-4">
+                                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                                            <Icon icon="lucide:globe" className="w-8 h-8 text-primary" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-foreground">Cross-Chain Swaps</h3>
+                                            <p className="text-sm text-muted-foreground mt-1">Coming soon</p>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground max-w-[260px] mx-auto">
+                                            Cross-chain liquidity bridging via STON.fi Omniston is not yet available. Stay tuned for updates.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                            <>
+
                             {/* From Asset */}
                             <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden relative group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -922,26 +941,6 @@ export default function SwapPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* TRON Destination Address (cross-chain) */}
-                            {isCrossChain && toChain === "TRON" && (
-                                <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden">
-                                    <CardContent className="p-4">
-                                        <Label className="text-xs text-muted-foreground mb-2 block">
-                                            TRON destination address
-                                        </Label>
-                                        <Input
-                                            placeholder="T... (your TRON address)"
-                                            value={tronDestAddress}
-                                            onChange={(e) => setTronDestAddress(e.target.value.trim())}
-                                            className="bg-transparent border-border text-sm"
-                                        />
-                                        {tronDestAddress && !tronDestAddress.match(/^T[1-9A-HJ-NP-Za-km-z]{33}$/) && (
-                                            <p className="text-xs text-destructive mt-1">Invalid TRON address format</p>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )}
-
                             {/* Swap Details */}
                             {omnistonQuote && (
                                 <Card className="bg-muted/50 border-border rounded-xl overflow-hidden">
@@ -1145,6 +1144,8 @@ export default function SwapPage() {
                                     "Continue"
                                 )}
                             </Button>
+                            </>
+                            )}
                         </motion.div>
                     )}
 
