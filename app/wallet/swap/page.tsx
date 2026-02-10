@@ -24,6 +24,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -165,8 +166,8 @@ export default function SwapPage() {
     // Omniston hook for quotes and execution
     const {
         quote: omnistonQuote,
-        isQuoting,
-        quoteError,
+        isQuoting: isQuotingRaw,
+        quoteError: quoteErrorRaw,
         resolverName,
         resolverId: _resolverId, // Reserved for future RFQ analytics
         isGasless,
@@ -178,6 +179,23 @@ export default function SwapPage() {
         params: quoteParams,
         enabled: step === "input", // Only fetch quotes on input step
     });
+
+    // Quote timeout: if quoting takes more than 10s, show error
+    const [quoteTimedOut, setQuoteTimedOut] = useState(false);
+    useEffect(() => {
+        if (isQuotingRaw) {
+            setQuoteTimedOut(false);
+            const timer = setTimeout(() => setQuoteTimedOut(true), 10000);
+            return () => clearTimeout(timer);
+        } else {
+            setQuoteTimedOut(false);
+        }
+    }, [isQuotingRaw, quoteParams]);
+
+    const isQuoting = isQuotingRaw && !quoteTimedOut;
+    const quoteError = quoteTimedOut
+        ? (isCrossChain ? "Cross-chain quotes not available for this pair" : "No quote available. Try a different pair.")
+        : quoteErrorRaw;
 
     // Suppress unused variable warnings for reserved fields
     void _resolverId;
@@ -632,10 +650,10 @@ export default function SwapPage() {
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pt-6">
             <div className="max-w-md mx-auto">
-                <div className="mb-8 text-center">
+                <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        {isCrossChain ? "Cross-chain swap" : "Same-chain swap"} powered by <span className="font-semibold text-foreground">STON.fi Omniston</span>
+                        Powered by <span className="font-semibold text-foreground">STON.fi</span>
                     </p>
                 </div>
 
@@ -648,54 +666,36 @@ export default function SwapPage() {
                             exit={{ opacity: 0, x: 20 }}
                             className="space-y-4"
                         >
-                            {/* Cross-chain Selector */}
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="flex-1 flex items-center gap-2">
-                                    <span className="text-xs text-muted-foreground">From</span>
-                                    <Button
-                                        variant={fromChain === "TON" ? "default" : "outline"}
-                                        size="sm"
-                                        className="h-7 text-xs rounded-lg px-2.5"
-                                        onClick={() => { setFromChain("TON"); setFromAsset(null); setAmount(""); }}
-                                    >
-                                        <Icon icon="cryptocurrency-color:ton" className="w-3.5 h-3.5 mr-1" />
-                                        TON
-                                    </Button>
-                                    <Button
-                                        variant={fromChain === "TRON" ? "default" : "outline"}
-                                        size="sm"
-                                        className="h-7 text-xs rounded-lg px-2.5"
-                                        onClick={() => { setFromChain("TRON"); setFromAsset(null); setAmount(""); }}
-                                        disabled
-                                        title="TRON as source coming soon"
-                                    >
-                                        <Icon icon="cryptocurrency-color:trx" className="w-3.5 h-3.5 mr-1" />
-                                        TRON
-                                    </Button>
-                                </div>
-                                <Icon icon="lucide:arrow-right" className="w-4 h-4 text-muted-foreground" />
-                                <div className="flex-1 flex items-center justify-end gap-2">
-                                    <span className="text-xs text-muted-foreground">To</span>
-                                    <Button
-                                        variant={toChain === "TON" ? "default" : "outline"}
-                                        size="sm"
-                                        className="h-7 text-xs rounded-lg px-2.5"
-                                        onClick={() => { setToChain("TON"); setToAsset(null); setTronDestAddress(""); }}
-                                    >
-                                        <Icon icon="cryptocurrency-color:ton" className="w-3.5 h-3.5 mr-1" />
-                                        TON
-                                    </Button>
-                                    <Button
-                                        variant={toChain === "TRON" ? "default" : "outline"}
-                                        size="sm"
-                                        className="h-7 text-xs rounded-lg px-2.5"
-                                        onClick={() => { setToChain("TRON"); setToAsset(null); }}
-                                    >
-                                        <Icon icon="cryptocurrency-color:trx" className="w-3.5 h-3.5 mr-1" />
-                                        TRON
-                                    </Button>
-                                </div>
-                            </div>
+                            {/* Swap Mode Tabs */}
+                            <Tabs
+                                value={isCrossChain ? "cross-chain" : "ton"}
+                                onValueChange={(val) => {
+                                    if (val === "cross-chain") {
+                                        setFromChain("TON");
+                                        setToChain("TRON");
+                                        setToAsset(null);
+                                        setAmount("");
+                                    } else {
+                                        setFromChain("TON");
+                                        setToChain("TON");
+                                        setToAsset(null);
+                                        setTronDestAddress("");
+                                        setAmount("");
+                                    }
+                                }}
+                                className="mb-2"
+                            >
+                                <TabsList className="w-full">
+                                    <TabsTrigger value="ton" className="flex-1 gap-1.5">
+                                        <Icon icon="cryptocurrency-color:ton" className="w-4 h-4" />
+                                        TON Swap
+                                    </TabsTrigger>
+                                    <TabsTrigger value="cross-chain" className="flex-1 gap-1.5">
+                                        <Icon icon="lucide:arrow-left-right" className="w-4 h-4" />
+                                        Cross-Chain
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
 
                             {/* From Asset */}
                             <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden relative group">

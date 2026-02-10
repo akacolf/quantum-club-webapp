@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
@@ -33,8 +33,36 @@ import { ContractAdapter } from "@ton-api/ton-adapter";
 
 type ViewMode = "markets" | "supply" | "withdraw";
 
+const TOKEN_ICONS: Record<string, { type: "svg" | "iconify"; value: string }> = {
+    TON: { type: "svg", value: "/svg/ton-logo.svg" },
+    USDT: { type: "iconify", value: "cryptocurrency-color:usdt" },
+    jUSDT: { type: "iconify", value: "cryptocurrency-color:usdt" },
+    jUSDC: { type: "iconify", value: "token-branded:usdc" },
+    stTON: { type: "svg", value: "/svg/ton-logo.svg" },
+    tsTON: { type: "svg", value: "/svg/ton-logo.svg" },
+    USDe: { type: "iconify", value: "token-branded:usde" },
+    tsUSDe: { type: "iconify", value: "token-branded:usde" },
+};
+
+function TokenIcon({ name, size = 32 }: { name: string; size?: number }) {
+    const icon = TOKEN_ICONS[name];
+    if (icon?.type === "svg") {
+        return <Image src={icon.value} alt={name} width={size} height={size} className="rounded-full" />;
+    }
+    if (icon?.type === "iconify") {
+        return <Icon icon={icon.value} width={size} height={size} />;
+    }
+    return (
+        <div className="rounded-full bg-primary/10 flex items-center justify-center" style={{ width: size, height: size }}>
+            <span className="text-xs font-bold text-primary">{name.slice(0, 3)}</span>
+        </div>
+    );
+}
+
+// Gas reserve for TON supply: keep enough for future transactions
+const TON_GAS_RESERVE = 0.5;
+
 export default function LendingPage() {
-    useTelegramBackButton("/wallet");
     const router = useRouter();
     const { telegramId } = useUserContext();
 
@@ -66,6 +94,29 @@ export default function LendingPage() {
     const [selectedAsset, setSelectedAsset] = useState<LendingAsset | null>(null);
     const [amount, setAmount] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // Telegram back button: go to markets if in supply/withdraw, else go to wallet
+    useEffect(() => {
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        tg?.BackButton.show();
+
+        const handleBack = () => {
+            if (viewMode !== "markets") {
+                setViewMode("markets");
+                setSelectedAsset(null);
+                setAmount("");
+            } else {
+                router.push("/wallet");
+            }
+        };
+
+        tg?.BackButton.onClick(handleBack);
+        return () => {
+            tg?.BackButton.offClick(handleBack);
+            tg?.BackButton.hide();
+        };
+    }, [router, viewMode]);
 
     const loadMarketData = useCallback(async () => {
         try {
@@ -335,9 +386,7 @@ export default function LendingPage() {
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                                <Icon icon="lucide:coins" className="w-4 h-4 text-primary" />
-                                                            </div>
+                                                            <TokenIcon name={pos.assetName} size={32} />
                                                             <span className="font-bold">{pos.assetName}</span>
                                                         </div>
                                                         <Badge variant="outline" className="text-xs">
@@ -395,11 +444,7 @@ export default function LendingPage() {
                                     <CardContent className="p-4">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                                    <span className="text-xs font-bold text-primary">
-                                                        {asset.symbol.slice(0, 3)}
-                                                    </span>
-                                                </div>
+                                                <TokenIcon name={asset.name} size={40} />
                                                 <div>
                                                     <p className="font-bold">{asset.symbol}</p>
                                                     <p className="text-xs text-muted-foreground">
@@ -467,25 +512,11 @@ export default function LendingPage() {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-4"
                         >
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setViewMode("markets"); setSelectedAsset(null); setAmount(""); }}
-                                className="mb-2"
-                            >
-                                <Icon icon="lucide:arrow-left" className="w-4 h-4 mr-1" />
-                                Back to Markets
-                            </Button>
-
                             <Card className="bg-card/80 backdrop-blur-xl border-border rounded-2xl">
                                 <CardContent className="p-5">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <span className="text-xs font-bold text-primary">
-                                                    {selectedAsset.symbol.slice(0, 3)}
-                                                </span>
-                                            </div>
+                                            <TokenIcon name={selectedAsset.name} size={40} />
                                             <div>
                                                 <p className="font-bold text-lg">{selectedAsset.symbol}</p>
                                                 <p className="text-xs text-muted-foreground">
@@ -508,20 +539,23 @@ export default function LendingPage() {
                                                     className="h-auto p-0 text-xs text-primary"
                                                     onClick={() => {
                                                         if (viewMode === "supply") {
-                                                            const bal = getWalletBalance(selectedAsset.name);
+                                                            const bal = parseFloat(getWalletBalance(selectedAsset.name));
                                                             if (selectedAsset.name === "TON") {
-                                                                const max = Math.max(0, parseFloat(bal) - 0.5);
-                                                                setAmount(max.toFixed(4));
+                                                                const max = Math.max(0, bal - TON_GAS_RESERVE);
+                                                                setAmount(max > 0 ? max.toFixed(4) : "0");
                                                             } else {
-                                                                setAmount(bal);
+                                                                setAmount(bal > 0 ? bal.toFixed(4) : "0");
                                                             }
                                                         } else {
-                                                            setAmount(getUserSupplied(selectedAsset.name));
+                                                            const supplied = parseFloat(getUserSupplied(selectedAsset.name));
+                                                            setAmount(supplied > 0 ? supplied.toFixed(4) : "0");
                                                         }
                                                     }}
                                                 >
                                                     MAX: {viewMode === "supply"
-                                                        ? getWalletBalance(selectedAsset.name)
+                                                        ? (selectedAsset.name === "TON"
+                                                            ? Math.max(0, parseFloat(getWalletBalance(selectedAsset.name)) - TON_GAS_RESERVE).toFixed(4)
+                                                            : getWalletBalance(selectedAsset.name))
                                                         : getUserSupplied(selectedAsset.name)}
                                                 </Button>
                                             </div>
@@ -542,7 +576,7 @@ export default function LendingPage() {
 
                                         {viewMode === "supply" && selectedAsset.name === "TON" && (
                                             <p className="text-xs text-muted-foreground">
-                                                A minimum of 0.3 TON will be reserved for gas fees.
+                                                {TON_GAS_RESERVE} TON will be reserved for gas fees.
                                             </p>
                                         )}
 

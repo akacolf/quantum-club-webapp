@@ -227,75 +227,81 @@ export default function Login() {
         const WebApp = window.Telegram.WebApp;
         WebApp.ready();
 
-        // Wait for initDataUnsafe.user to be available (up to 3s)
-        let retries = 0;
-        while (!WebApp.initDataUnsafe?.user?.id && retries < 30) {
-          await new Promise((r) => setTimeout(r, 100));
-          retries++;
-        }
-
         const initDataUnsafe = WebApp.initDataUnsafe;
         if (!initDataUnsafe?.user?.id) {
-          throw new Error("Telegram user data not available. Please try again.");
+          // Retry briefly if data not ready
+          let retries = 0;
+          while (!WebApp.initDataUnsafe?.user?.id && retries < 15) {
+            await new Promise((r) => setTimeout(r, 100));
+            retries++;
+          }
+          if (!WebApp.initDataUnsafe?.user?.id) {
+            throw new Error("Telegram user data not available. Please try again.");
+          }
         }
 
-        const authenticated = await authenticateUser();
-        if (authenticated) {
-          const encryptedId = await encryptData(
-            initDataUnsafe.user.id.toString()
-          );
-          if (!encryptedId) {
-            throw new Error("Failed to encrypt Telegram ID");
-          }
+        const encryptedId = await encryptData(
+          WebApp.initDataUnsafe.user!.id.toString()
+        );
+        if (!encryptedId) {
+          throw new Error("Failed to encrypt Telegram ID");
+        }
 
-          const cleanData = encryptedId.toString();
-          const telegramIdEncrypted = cleanData
-            .replace(/['"]+/g, "")
-            .replace(/[^a-zA-Z0-9]/g, "");
-          const uid = String(telegramIdEncrypted);
+        const cleanData = encryptedId.toString();
+        const telegramIdEncrypted = cleanData
+          .replace(/['"]+/g, "")
+          .replace(/[^a-zA-Z0-9]/g, "");
+        const uid = String(telegramIdEncrypted);
 
-          const responseAuth = await fetch("/api/auth/telegram", {
+        // Authenticate via WebApp initData first
+        const initData = WebApp.initData;
+        if (initData) {
+          await fetch("/api/auth", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ telegramId: uid }),
+            body: JSON.stringify({ initData }),
           });
+        }
 
-          if (!responseAuth.ok) {
-            const errorData = await responseAuth.text();
-            throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
-          }
+        const responseAuth = await fetch("/api/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId: uid }),
+        });
 
-          const { customToken } = await responseAuth.json();
-          await authContext?.loginWithToken(customToken);
+        if (!responseAuth.ok) {
+          const errorData = await responseAuth.text();
+          throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
+        }
 
-          const data = await UseRegisterAndAuth({
-            telegramIdEncrypted,
-            initDataUnsafe,
-          });
+        const { customToken } = await responseAuth.json();
+        await authContext?.loginWithToken(customToken);
 
-          if (data.status === "maintenance") {
-            router.replace("/maintenance");
-            return;
-          }
+        const data = await UseRegisterAndAuth({
+          telegramIdEncrypted,
+          initDataUnsafe: WebApp.initDataUnsafe,
+        });
 
-          if (data.status === "error") {
-            throw new Error("Failed to register/authenticate");
-          }
+        if (data.status === "maintenance") {
+          router.replace("/maintenance");
+          return;
+        }
 
-          if (data.status === "completed") {
-            setTelegramId(data.telegramId);
-            SetMainQuantAmount(data.MainQuantAmount);
-            setRank(data.rank);
-            setUserRank(data.userRank);
-            setDaily(data.daily);
-            setUsername(data.username);
-            setWalletAddress(data.walletAddress);
-            setLastActiveTime(data.lastActiveTime);
-            setRemainingSolveToEarn(data.remainingSolveToEarn);
-            router.replace("/home");
-          }
-        } else {
-          throw new Error("Telegram authentication failed");
+        if (data.status === "error") {
+          throw new Error("Failed to register/authenticate");
+        }
+
+        if (data.status === "completed") {
+          setTelegramId(data.telegramId);
+          SetMainQuantAmount(data.MainQuantAmount);
+          setRank(data.rank);
+          setUserRank(data.userRank);
+          setDaily(data.daily);
+          setUsername(data.username);
+          setWalletAddress(data.walletAddress);
+          setLastActiveTime(data.lastActiveTime);
+          setRemainingSolveToEarn(data.remainingSolveToEarn);
+          router.replace("/home");
         }
       } else {
         setError("Telegram WebApp is not available. Please open this app from Telegram.");
