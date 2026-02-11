@@ -21,6 +21,55 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
     };
   }
 
+  // Check if it's a .qc domain (QC Wallet domain)
+  if (trimmedInput.toLowerCase().endsWith(".qc")) {
+    try {
+      const domain = trimmedInput.toLowerCase();
+      const name = domain.replace(/\.qc$/, '');
+
+      const response = await fetch(`/api/qc-domain?name=${encodeURIComponent(name)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.resolved && data.address) {
+          try {
+            const parsed = Address.parse(data.address);
+            return {
+              address: parsed.toString({ bounceable: false }),
+              isValid: true,
+              isDomain: true,
+              originalInput: input
+            };
+          } catch {
+            return {
+              address: "",
+              isValid: false,
+              isDomain: true,
+              originalInput: input,
+              error: "Invalid address format from QC domain"
+            };
+          }
+        }
+      }
+
+      return {
+        address: "",
+        isValid: false,
+        isDomain: true,
+        originalInput: input,
+        error: "QC domain not found or no wallet associated"
+      };
+    } catch (error) {
+      return {
+        address: "",
+        isValid: false,
+        isDomain: true,
+        originalInput: input,
+        error: error instanceof Error ? error.message : "Failed to resolve QC domain"
+      };
+    }
+  }
+
   // Check if it's a .ton domain
   if (trimmedInput.toLowerCase().endsWith(".ton")) {
     try {
@@ -117,6 +166,11 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
 
 export function isValidTonAddressOrDomain(input: string): boolean {
   const trimmed = input.trim();
+
+  // Check if it's a .qc domain format
+  if (trimmed.toLowerCase().endsWith(".qc")) {
+    return trimmed.length > 3 && /^[a-z0-9][a-z0-9-]*[a-z0-9]\.qc$/i.test(trimmed);
+  }
   
   // Check if it's a .ton domain format
   if (trimmed.toLowerCase().endsWith(".ton")) {

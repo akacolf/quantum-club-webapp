@@ -25,8 +25,13 @@ export async function POST(request:NextRequest) {
         })
     
 
-        return NextResponse.json({message:'Authentication succesful'})
+        return NextResponse.json({message:'Authentication succesful'}, {
+            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
+        })
     } else{
-        return NextResponse.json({message:validationResult.message,user:validationResult.user},{status:401})
+        return NextResponse.json({message:validationResult.message,user:validationResult.user},{
+            status:401,
+            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
+        })
     }
 }

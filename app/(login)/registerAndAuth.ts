@@ -11,6 +11,7 @@ const userData = {
   daily: 0,
   username: "",
   walletAddress: "",
+  qcUsername: "",
   lastActiveTime: "",
   remainingSolveToEarn: 0,
   userRank: 0,
@@ -125,6 +126,12 @@ export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
       ? localStorage.getItem(`walletAddress_${telegramIdEncrypted}`)
       : null;
     result.walletAddress = savedWalletAddress || "";
+
+    const savedQcUsername = typeof window !== "undefined"
+      ? localStorage.getItem(`qcUsername_${telegramIdEncrypted}`)
+      : null;
+    result.qcUsername = savedQcUsername || "";
+
     result.status = "completed";
   } catch (error) {
     console.error("Error loading user data:", error);

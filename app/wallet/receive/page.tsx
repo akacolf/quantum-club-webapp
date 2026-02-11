@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Loader from "@/app/(components)/Loader";
 import { useWallet } from "../WalletContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CHAIN_INFO, ChainType } from "../utils/multichain";
@@ -39,6 +40,29 @@ export default function ReceivePage() {
   const [selectedChain, setSelectedChain] = useState<ChainType | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { qcUsername } = useUserContext();
+  const [qcDomain, setQcDomain] = useState<string | null>(null);
+
+  // Use qcUsername if available, otherwise try API lookup
+  useEffect(() => {
+    if (qcUsername) {
+      setQcDomain(`${qcUsername}.qc`);
+      return;
+    }
+    const fetchDomain = async () => {
+      if (!walletAddress) return;
+      try {
+        const res = await fetch(`/api/qc-domain?address=${encodeURIComponent(walletAddress)}`);
+        const data = await res.json();
+        if (data.resolved && data.domain) {
+          setQcDomain(data.domain);
+        }
+      } catch {
+        // No domain, that's fine
+      }
+    };
+    fetchDomain();
+  }, [walletAddress, qcUsername]);
 
   // Filter available chains based on testnet mode and search query
   const availableChains = (Object.keys(CHAIN_INFO) as ChainType[]).filter(chainKey => {
@@ -204,6 +228,32 @@ export default function ReceivePage() {
                   {CHAIN_INFO[selectedChain].warningText}
                 </AlertDescription>
               </Alert>
+
+              {/* QC Domain (TON only) */}
+              {selectedChain === "ton" && qcDomain && (
+                <div className="w-full space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold ml-1">
+                    Your QC Domain
+                  </Label>
+                  <div
+                    onClick={() => {
+                      navigator.clipboard.writeText(qcDomain);
+                      toast.success("QC domain copied!");
+                    }}
+                    className="w-full bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 active:border-violet-500/50 rounded-xl p-4 cursor-pointer transition-colors hover:from-violet-500/15 hover:to-cyan-500/15"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-base font-bold text-foreground">
+                        {qcDomain}
+                      </p>
+                      <Icon icon="solar:copy-bold" className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Others can send TON to this address
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Address Box */}
               <div className="w-full space-y-2">

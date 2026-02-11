@@ -26,6 +26,8 @@ interface UserContextType {
   setRemainingSolveToEarn: (value: number) => void;
   walletAddress: string | null;
   setWalletAddress: (value: string | null) => void;
+  qcUsername: string | null;
+  setQcUsername: (value: string | null) => void;
 }
 
 const userContext = createContext<UserContextType>({} as UserContextType);
@@ -99,6 +101,13 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     return null;
   });
 
+  const [qcUsername, setQcUsername] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(`qcUsername_${telegramId}`);
+    }
+    return null;
+  });
+
   const [miningTimestamp, setMiningTimestamp] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("miningTime");
@@ -118,6 +127,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     setDaily(0);
     setRemainingSolveToEarn(0);
     setWalletAddress(null);
+    setQcUsername(null);
   };
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
@@ -145,10 +155,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     setRemainingSolveToEarn,
     walletAddress,
     setWalletAddress,
+    qcUsername,
+    setQcUsername,
     resetContext,
   }), [
     username, telegramId, miningActive, lastActiveTime, miningTimestamp,
-    MainQuantAmount, jointext, rank, telegramIdNM, daily, remainingSolveToEarn, walletAddress
+    MainQuantAmount, jointext, rank, telegramIdNM, daily, remainingSolveToEarn, walletAddress, qcUsername
   ]);
     
   return (

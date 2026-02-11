@@ -29,7 +29,7 @@ interface ProfileSidebarProps {
 export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarProps) {
   const router = useRouter();
   const authContext = useAuth();
-  const { telegramId, username, MainQuantAmount, daily } = useUserContext();
+  const { telegramId, username, MainQuantAmount, daily, qcUsername, setQcUsername, walletAddress } = useUserContext();
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("Quantum User");
@@ -41,6 +41,15 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [linkPassword, setLinkPassword] = useState("");
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [emailJustLinked, setEmailJustLinked] = useState(false);
+
+  // QC Username state
+  const [showUsernameForm, setShowUsernameForm] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isRegisteringUsername, setIsRegisteringUsername] = useState(false);
+  const [usernameAvailability, setUsernameAvailability] = useState<"available" | "taken" | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
 
   useEffect(() => {
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -68,6 +77,24 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
     }
   }, [username]);
 
+  // Load QC username on mount
+  useEffect(() => {
+    if (!telegramId || qcUsername) return;
+    const loadUsername = async () => {
+      try {
+        const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(telegramId)}`);
+        const data = await res.json();
+        if (data.username) {
+          setQcUsername(data.username);
+          localStorage.setItem(`qcUsername_${telegramId}`, data.username);
+        }
+      } catch {
+        // No username yet
+      }
+    };
+    loadUsername();
+  }, [telegramId, qcUsername, setQcUsername]);
+
   const handleCopyId = async () => {
     if (!telegramId) return;
     try {
@@ -77,6 +104,65 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Failed to copy ID");
+    }
+  };
+
+  // Username validation
+  const USERNAME_MIN = 3;
+  const USERNAME_MAX = 20;
+  const USERNAME_REGEX = /^[a-z0-9][a-z0-9._]*[a-z0-9]$/;
+  const validateUsername = (val: string): string | null => {
+    if (!val) return null;
+    if (val.length < USERNAME_MIN) return `Min ${USERNAME_MIN} characters`;
+    if (val.length > USERNAME_MAX) return `Max ${USERNAME_MAX} characters`;
+    if (!USERNAME_REGEX.test(val)) return "Letters, numbers, dots & underscores only";
+    return null;
+  };
+
+  const checkUsernameAvailability = async () => {
+    if (!newUsername || validateUsername(newUsername)) return;
+    setIsCheckingUsername(true);
+    setUsernameAvailability(null);
+    setUsernameError(null);
+    try {
+      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(newUsername)}`);
+      const data = await res.json();
+      setUsernameAvailability(data.available ? "available" : "taken");
+    } catch {
+      setUsernameError("Failed to check");
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const handleRegisterUsername = async () => {
+    if (!newUsername || !telegramId || usernameAvailability !== "available") return;
+    setIsRegisteringUsername(true);
+    try {
+      const res = await fetch("/api/qc-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: newUsername,
+          qcId: telegramId,
+          address: walletAddress || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setQcUsername(newUsername);
+        localStorage.setItem(`qcUsername_${telegramId}`, newUsername);
+        toast.success(`You're now @${newUsername}!`);
+        setShowUsernameForm(false);
+        setNewUsername("");
+        setUsernameAvailability(null);
+      } else {
+        toast.error(data.error || "Failed to register username");
+      }
+    } catch {
+      toast.error("Failed to register username");
+    } finally {
+      setIsRegisteringUsername(false);
     }
   };
 
@@ -116,10 +202,11 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
       if (telegramId) {
         await linkEmailToUserDoc(telegramId, linkEmail);
       }
-      toast.success("Email linked successfully! Verification email sent.");
+      toast.success("Email linked! Verification pending.");
       setLinkEmail("");
       setLinkPassword("");
       setShowLinkForm(false);
+      setEmailJustLinked(true);
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("email-already-in-use")) {
@@ -142,6 +229,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   // Auth binding info
   const currentUser = authContext?.currentUser;
   const hasEmail = !!currentUser?.email;
+  const isEmailVerified = currentUser?.emailVerified ?? false;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -162,11 +250,27 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
             </Avatar>
             <div className="text-center">
               <SheetTitle className="text-lg">{displayName}</SheetTitle>
+              {qcUsername ? (
+                <>
+                  <p className="text-sm text-primary font-medium mt-0.5">@{qcUsername}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {qcUsername}.qc
+                  </p>
+                </>
+              ) : (
+                <button
+                  onClick={() => setShowUsernameForm(!showUsernameForm)}
+                  className="text-[10px] text-primary/70 hover:text-primary transition-colors mt-1 flex items-center gap-1 mx-auto"
+                >
+                  <Icon icon="solar:pen-bold" className="w-3 h-3" />
+                  Claim your @username
+                </button>
+              )}
               <button
                 onClick={handleCopyId}
                 className="flex items-center gap-1.5 mx-auto mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <span className="font-mono">QC ID: {telegramId?.slice(0, 8)}...</span>
+                <span className="font-mono text-muted-foreground">QC ID: {telegramId?.slice(0, 8)}...</span>
                 <Icon
                   icon={copied ? "solar:check-circle-bold" : "solar:copy-bold"}
                   className={`w-3 h-3 ${copied ? "text-green-400" : ""}`}
@@ -175,6 +279,73 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
             </div>
           </div>
         </SheetHeader>
+
+        {/* Username Creation Form (inline) */}
+        {!qcUsername && showUsernameForm && (
+          <div className="px-5 py-3 space-y-2 bg-muted/30">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">@</span>
+                <Input
+                  placeholder="username"
+                  value={newUsername}
+                  onChange={(e) => {
+                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, "");
+                    setNewUsername(val);
+                    setUsernameAvailability(null);
+                    setUsernameError(null);
+                  }}
+                  maxLength={USERNAME_MAX}
+                  className="h-8 text-xs pl-7 font-mono"
+                  disabled={isRegisteringUsername}
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-[10px] px-2.5 shrink-0"
+                onClick={checkUsernameAvailability}
+                disabled={!newUsername || !!validateUsername(newUsername) || isCheckingUsername}
+              >
+                {isCheckingUsername ? <ButtonLoader size="sm" /> : "Check"}
+              </Button>
+            </div>
+            {/* Validation / availability feedback */}
+            {newUsername && validateUsername(newUsername) && (
+              <p className="text-[10px] text-destructive">{validateUsername(newUsername)}</p>
+            )}
+            {usernameAvailability === "available" && (
+              <p className="text-[10px] text-green-400 flex items-center gap-1">
+                <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
+                @{newUsername} is available!
+              </p>
+            )}
+            {usernameAvailability === "taken" && (
+              <p className="text-[10px] text-destructive flex items-center gap-1">
+                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                @{newUsername} is taken
+              </p>
+            )}
+            {usernameError && (
+              <p className="text-[10px] text-destructive">{usernameError}</p>
+            )}
+            {usernameAvailability === "available" && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-muted-foreground">
+                  Your domain will be <span className="text-foreground font-medium">{newUsername}.qc</span>
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={handleRegisterUsername}
+                  disabled={isRegisteringUsername}
+                >
+                  {isRegisteringUsername ? <ButtonLoader size="sm" /> : `Claim @${newUsername}`}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
         <Separator />
 
@@ -233,7 +404,19 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                 {hasEmail ? currentUser?.email : "Email"}
               </span>
               {hasEmail ? (
-                <span className="text-[10px] text-green-400 font-medium">Linked</span>
+                isEmailVerified ? (
+                  <span className="text-[10px] text-green-400 font-medium">Verified</span>
+                ) : (
+                  <span className="text-[10px] text-yellow-400 font-medium flex items-center gap-1">
+                    <Icon icon="solar:clock-circle-bold" className="w-3 h-3" />
+                    Pending
+                  </span>
+                )
+              ) : emailJustLinked ? (
+                <span className="text-[10px] text-yellow-400 font-medium flex items-center gap-1">
+                  <Icon icon="solar:clock-circle-bold" className="w-3 h-3" />
+                  Pending
+                </span>
               ) : (
                 <button
                   onClick={() => setShowLinkForm(!showLinkForm)}

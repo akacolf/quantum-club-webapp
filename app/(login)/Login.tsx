@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,6 +27,7 @@ export default function Login() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasRedirected = useRef(false);
 
   const router = useRouter();
   const authContext = useAuth();
@@ -37,6 +38,7 @@ export default function Login() {
     setDaily,
     setUsername,
     setWalletAddress,
+    setQcUsername,
     setLastActiveTime,
     setRemainingSolveToEarn,
   } = useUserContext();
@@ -51,8 +53,10 @@ export default function Login() {
   }, []);
 
   // Auto-redirect if user is already signed in (keepLoggedIn handled in auth context)
+  // Uses a ref to prevent multiple redirects / redirect loops
   useEffect(() => {
-    if (!authContext?.authLoading && authContext?.currentUser) {
+    if (!authContext?.authLoading && authContext?.currentUser && !hasRedirected.current) {
+      hasRedirected.current = true;
       router.replace("/home");
     }
   }, [authContext?.currentUser, authContext?.authLoading, router]);
@@ -100,6 +104,7 @@ export default function Login() {
           setDaily(data.daily);
           setUsername(data.username);
           setWalletAddress(data.walletAddress);
+          if (data.qcUsername) setQcUsername(data.qcUsername);
           setLastActiveTime(data.lastActiveTime);
           setRemainingSolveToEarn(data.remainingSolveToEarn);
         }
@@ -213,6 +218,7 @@ export default function Login() {
           setDaily(data.daily);
           setUsername(data.username);
           setWalletAddress(data.walletAddress);
+          if (data.qcUsername) setQcUsername(data.qcUsername);
           setLastActiveTime(data.lastActiveTime);
           setRemainingSolveToEarn(data.remainingSolveToEarn);
           router.replace("/home");

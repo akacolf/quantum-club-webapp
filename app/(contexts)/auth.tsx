@@ -1,7 +1,7 @@
 "use client"
 
 import { auth } from "@/app/(firebase)/client";
-import { GoogleAuthProvider, EmailAuthProvider, ParsedToken, signInWithCredential, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, linkWithCredential, User } from "firebase/auth";
+import { GoogleAuthProvider, EmailAuthProvider, ParsedToken, signInWithCredential, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, User } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react"
 import { removeToken, setToken } from "./actions";
 type AuthContextType = {
@@ -95,7 +95,7 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     }
     const signUpWithEmail = async(email: string, password: string): Promise<User> => {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(result.user);
+      // Note: verification email is not sent — email verification service is not ready yet.
       return result.user;
     }
     const loginWithGoogle = async() =>{
@@ -122,7 +122,8 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
       if (!user) throw new Error("No user signed in");
       const credential = EmailAuthProvider.credential(email, password);
       await linkWithCredential(user, credential);
-      await sendEmailVerification(user);
+      // Note: verification email is not sent yet — email verification service is not ready.
+      // The UI shows "Pending Verification" status for linked but unverified emails.
     }
     const linkGoogleToAccount = async(): Promise<void> => {
       const user = auth.currentUser;

@@ -19,6 +19,7 @@ export default function TelegramLogin() {
     setDaily,
     setUsername,
     setWalletAddress,
+    setQcUsername,
     setLastActiveTime,
     setRemainingSolveToEarn,
   } = useUserContext();
@@ -106,6 +107,7 @@ export default function TelegramLogin() {
         setDaily(data.daily);
         setUsername(data.username);
         setWalletAddress(data.walletAddress);
+        if (data.qcUsername) setQcUsername(data.qcUsername);
         setLastActiveTime(data.lastActiveTime);
         setRemainingSolveToEarn(data.remainingSolveToEarn);
         router.replace('/home'); 
