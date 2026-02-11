@@ -97,6 +97,16 @@ export default function SignUp() {
         const initDataUnsafe = WebApp.initDataUnsafe;
 
         if (initDataUnsafe?.user?.id) {
+          // Authenticate via WebApp initData FIRST to set session cookie
+          const initData = WebApp.initData;
+          if (initData) {
+            await fetch("/api/auth", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ initData }),
+            });
+          }
+
           const encryptedId = await encryptData(
             initDataUnsafe.user.id.toString()
           );
@@ -105,16 +115,6 @@ export default function SignUp() {
             const telegramIdEncrypted = cleanData
               .replace(/['"]+/g, "")
               .replace(/[^a-zA-Z0-9]/g, "");
-
-            // Authenticate via WebApp initData
-            const initData = WebApp.initData;
-            if (initData) {
-              await fetch("/api/auth", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ initData }),
-              });
-            }
 
             // Store email in the user's Firestore profile
             const data = await UseRegisterAndAuth({
@@ -186,6 +186,19 @@ export default function SignUp() {
           throw new Error("Telegram user data not available. Please try again.");
         }
 
+        // Authenticate via WebApp initData FIRST to set session cookie
+        const initData = WebApp.initData;
+        if (initData) {
+          const authRes = await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData }),
+          });
+          if (!authRes.ok) {
+            throw new Error("Telegram session authentication failed");
+          }
+        }
+
         const encryptedId = await encryptData(
           initDataUnsafe.user.id.toString()
         );
@@ -198,16 +211,6 @@ export default function SignUp() {
           .replace(/['"]+/g, "")
           .replace(/[^a-zA-Z0-9]/g, "");
         const uid = String(telegramIdEncrypted);
-
-        // Authenticate via WebApp initData first
-        const initData = WebApp.initData;
-        if (initData) {
-          await fetch("/api/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
-          });
-        }
 
         const responseAuth = await fetch("/api/auth/telegram", {
           method: "POST",

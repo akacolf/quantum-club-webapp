@@ -42,6 +42,22 @@ export default function TelegramLogin() {
           return;
         }
 
+        // Authenticate via WebApp initData FIRST to set session cookie
+        const initData = WebApp.initData;
+        if (initData) {
+          const authRes = await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData }),
+          });
+          if (!authRes.ok) {
+            if (isMounted) {
+              timeoutId = setTimeout(getData, 100);
+            }
+            return;
+          }
+        }
+
         const encrypedId = await encryptData(initDataUnsafe.user.id.toString());
         if(!encrypedId) {
           if (isMounted) {
@@ -54,16 +70,6 @@ export default function TelegramLogin() {
           .replace(/['"]+/g, "")
           .replace(/[^a-zA-Z0-9]/g, "");
         const uid = String(telegramIdEncrypted);
-
-        // Authenticate via WebApp initData first
-        const initData = WebApp.initData;
-        if (initData) {
-          await fetch("/api/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
-          });
-        }
 
         const responseAuth = await fetch("/api/auth/telegram", {
           method: "POST",
