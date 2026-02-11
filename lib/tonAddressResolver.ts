@@ -24,11 +24,11 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
   }
 
   // Check if it's a @username (QC username)
-  if (trimmedInput.startsWith("@") || /^[a-z0-9][a-z0-9._]*[a-z0-9]$/i.test(trimmedInput) && !trimmedInput.includes(".ton")) {
+  if (trimmedInput.startsWith("@") || /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/i.test(trimmedInput) && !trimmedInput.includes(".ton")) {
     const username = trimmedInput.replace(/^@/, '').toLowerCase();
     
     // Must be at least 3 chars to be a valid username
-    if (username.length >= 3 && /^[a-z0-9][a-z0-9._]*[a-z0-9]$/.test(username)) {
+    if (username.length >= 3 && /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/i.test(username)) {
       try {
         const response = await fetch(`/api/qc-username?username=${encodeURIComponent(username)}`);
         

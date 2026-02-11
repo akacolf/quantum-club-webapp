@@ -23,7 +23,10 @@ Logo.displayName = "Logo";
 
 export default function UserStatsCard() {
   const { userRank } = useLeaderboardContext();
-  const { MainQuantAmount, username } = useUserContext();
+  const { MainQuantAmount, username, qcUsername } = useUserContext();
+
+  // Display name priority: QC username > TG username > fallback
+  const displayName = qcUsername ? `@${qcUsername}` : username || "Quantum User";
 
   return (
     <div className="flex flex-col mt-6 px-4">
@@ -43,7 +46,7 @@ export default function UserStatsCard() {
               </div>
               <div>
                 <div className="text-white font-bold text-lg leading-tight">
-                  {username ? username : "Quantum User"}
+                  {displayName}
                 </div>
                 <div className="text-white/60 text-sm font-medium">
                   {MainQuantAmount} QNTM

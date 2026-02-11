@@ -7,7 +7,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -15,7 +15,6 @@ import dynamic from "next/dynamic";
 
 // Critical above-fold components - load synchronously
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
-import PullToRefresh from "./(components)/PullToRefresh";
 
 // Below-fold / interactive components - lazy load for better FCP/LCP
 const HomeCarousel = dynamic(() => import("@/app/home/(components)/homepagecarousel/Carousel"), {
@@ -751,99 +750,31 @@ const HomeContent = () => {
     return <div>{remainingTime}</div>;
   };
 
-  // Refresh function for pull-to-refresh
-  const handleRefresh = useCallback(async () => {
-    try {
-      // Refresh QNTM balance
-      if (telegramId) {
-        const valueRef = doc(dbfs, "user", telegramId, "miningData", "values");
-        const snapshotValue = await getDoc(valueRef);
-        if (snapshotValue.exists()) {
-          const quant = snapshotValue.data().QuantAmount;
-          const formattedAmount = quant.toLocaleString("en-US", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          });
-          SetMainQuantAmount(formattedAmount);
-          localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-
-          // Also refresh solve to earn
-          const remainingSTE = snapshotValue.data().remainingSolveToEarn;
-          if (remainingSTE != null) {
-            setRemainingSolveToEarn(remainingSTE);
-            sessionStorage.setItem("remainingSolveToEarn", `${remainingSTE}`);
-          }
-        }
-
-        // Refresh daily check-in status
-        const checkTimeRef = doc(dbfs, "user", telegramId, "miningData", "checkTime");
-        const snapshot = await getDoc(checkTimeRef);
-        if (snapshot.exists()) {
-          const checktime = snapshot.data().checktime;
-          const dailyDay = snapshot.data().daily;
-          if (checktime) {
-            const formattedDate = new Intl.DateTimeFormat("en-US", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              timeZone: "UTC",
-            }).format(new Date());
-            const [month, day, year] = formattedDate.split("/");
-            const formattedDateISO = `${year}-${month}-${day}`;
-            const diffInMs = Math.abs(
-              new Date(formattedDateISO).getTime() -
-              new Date(checktime).getTime()
-            );
-            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-            if (diffInDays >= 1 && diffInDays < 2) {
-              setIsclaimDay(false);
-            } else if (diffInDays >= 2) {
-              setDaily(1);
-              setIsclaimDay(false);
-            } else {
-              setIsclaimDay(true);
-            }
-            if (dailyDay) {
-              setDaily(dailyDay);
-            }
-          }
-        }
-      }
-
-      // No toast on success - visual animation is enough
-    } catch (error) {
-      console.error("Refresh error:", error);
-      toast.error("Failed to refresh");
-    }
-  }, [telegramId, SetMainQuantAmount, setRemainingSolveToEarn, setDaily]);
   return (
-    <>
-      <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen">
+      <PersonalizedGreeting />
+      <QntmBalance
+        MainQuantAmount={MainQuantAmount}
+        rank={rank}
+        getRankIcon={getRankIcon}
+      />
+      {/*daily check-in*/}
+      <DailyCheckIn
+        loadingButtonDay={loadingButtonDay}
+        daily={daily}
+        isClaimDay={isClaimDay}
+        loadingDay={loadingDay}
+        ClaimDaily={ClaimDaily}
+        TaskTimer={TaskTimer}
+      />
 
-        <PersonalizedGreeting />
-        <QntmBalance
-          MainQuantAmount={MainQuantAmount}
-          rank={rank}
-          getRankIcon={getRankIcon}
-        />
-        {/*daily check-in*/}
-        <DailyCheckIn
-          loadingButtonDay={loadingButtonDay}
-          daily={daily}
-          isClaimDay={isClaimDay}
-          loadingDay={loadingDay}
-          ClaimDaily={ClaimDaily}
-          TaskTimer={TaskTimer}
-        />
+      <HomeCarousel />
 
-        <HomeCarousel />
-
-        <SolveToEarnCard
-          remainingSolveToEarn={remainingSolveToEarn}
-          goToSolveToEarn={goToSolveToEarn}
-        />
-      </PullToRefresh>
-    </>
+      <SolveToEarnCard
+        remainingSolveToEarn={remainingSolveToEarn}
+        goToSolveToEarn={goToSolveToEarn}
+      />
+    </div>
   );
 };
 export default HomeContent;

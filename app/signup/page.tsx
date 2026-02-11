@@ -22,7 +22,6 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function SignUp() {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -94,8 +93,6 @@ export default function SignUp() {
         return;
       }
 
-      // Enable keepLoggedIn since user is actively signing up
-      authContext?.setKeepLoggedIn(true);
       // Create Firebase account with email verification
       await authContext?.signUpWithEmail(email, password);
 
@@ -354,19 +351,6 @@ export default function SignUp() {
               </div>
 
               <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    autoComplete="name"
-                  />
-                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input

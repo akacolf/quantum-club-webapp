@@ -110,12 +110,12 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   // Username validation
   const USERNAME_MIN = 3;
   const USERNAME_MAX = 20;
-  const USERNAME_REGEX = /^[a-z0-9][a-z0-9._]*[a-z0-9]$/;
+  const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
   const validateUsername = (val: string): string | null => {
     if (!val) return null;
     if (val.length < USERNAME_MIN) return `Min ${USERNAME_MIN} characters`;
     if (val.length > USERNAME_MAX) return `Max ${USERNAME_MAX} characters`;
-    if (!USERNAME_REGEX.test(val)) return "Letters, numbers, dots & underscores only";
+    if (!USERNAME_REGEX.test(val)) return "Letters, numbers, dots, underscores & hyphens only";
     return null;
   };
 
@@ -257,7 +257,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
               ) : (
                 <button
                   onClick={() => setShowUsernameForm(!showUsernameForm)}
-                  className="text-[10px] text-primary/70 hover:text-primary transition-colors mt-1 flex items-center gap-1 mx-auto"
+                  className="text-[10px] text-primary/70 hover:text-primary transition-colors mt-1 flex items-center gap-1 mx-auto outline-none focus:outline-none focus-visible:outline-none"
                 >
                   <Icon icon="solar:pen-bold" className="w-3 h-3" />
                   Claim your @username
@@ -279,7 +279,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
 
         {/* Username Creation Form (inline) */}
         {!qcUsername && showUsernameForm && (
-          <div className="px-5 py-3 space-y-2 bg-muted/30">
+          <div className="px-5 py-3 space-y-2">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">@</span>
@@ -287,20 +287,20 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                   placeholder="username"
                   value={newUsername}
                   onChange={(e) => {
-                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, "");
+                    const val = e.target.value.replace(/[^a-zA-Z0-9._-]/g, "");
                     setNewUsername(val);
                     setUsernameAvailability(null);
                     setUsernameError(null);
                   }}
                   maxLength={USERNAME_MAX}
-                  className="h-8 text-xs pl-7 font-mono"
+                  className="h-8 text-xs pl-7 font-mono rounded-full"
                   disabled={isRegisteringUsername}
                 />
               </div>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 text-[10px] px-2.5 shrink-0"
+                className="h-8 text-[10px] px-2.5 shrink-0 rounded-full"
                 onClick={checkUsernameAvailability}
                 disabled={!newUsername || !!validateUsername(newUsername) || isCheckingUsername}
               >
@@ -372,13 +372,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
           >
             <Icon icon="solar:user-bold" className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm font-medium">Profile & Achievements</span>
-          </button>
-          <button
-            onClick={() => navigateTo("/wallet/settings")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors"
-          >
-            <Icon icon="solar:wallet-bold" className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm font-medium">Wallet Settings</span>
           </button>
 
           <Separator className="my-2" />
@@ -457,23 +450,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
               </div>
             )}
           </div>
-
-          <Separator className="my-2" />
-
-          <button
-            onClick={() => navigateTo("/wallet/settings/terms")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors"
-          >
-            <Icon icon="solar:file-text-bold" className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm font-medium">Terms of Service</span>
-          </button>
-          <button
-            onClick={() => navigateTo("/wallet/settings/privacy")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors"
-          >
-            <Icon icon="solar:shield-bold" className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm font-medium">Privacy Policy</span>
-          </button>
 
           <Separator className="my-2" />
 

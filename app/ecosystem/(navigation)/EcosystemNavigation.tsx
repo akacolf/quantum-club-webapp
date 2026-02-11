@@ -11,6 +11,12 @@ const navTabs = [
     label: "Trade",
     icon: "lucide:arrow-left-right",
   },
+  {
+    id: "chat",
+    href: "/ecosystem/chat",
+    label: "QC Chat",
+    icon: "solar:chat-round-dots-bold",
+  },
 ];
 
 const EcosystemNavigation = () => {

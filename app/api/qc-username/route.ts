@@ -17,7 +17,8 @@ const USERNAMES_COLLECTION = 'qcUsernames';
 // Validation rules
 const USERNAME_MIN_LENGTH = 3;
 const USERNAME_MAX_LENGTH = 20;
-const USERNAME_REGEX = /^[a-z0-9][a-z0-9._]*[a-z0-9]$/;
+// Username validation — case-insensitive storage, allow input with capitals and limited special chars
+const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
 const RESERVED_USERNAMES = [
   'admin', 'support', 'help', 'quantum', 'quantumclub', 'qc', 'system',
   'root', 'official', 'team', 'mod', 'moderator', 'bot', 'wallet',
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
 
       const doc = snapshot.docs[0];
       return NextResponse.json({
-        username: doc.id,
+        username: doc.data().displayUsername || doc.id,
         address: doc.data().address || null,
       }, { headers: CACHE_HEADERS });
     }
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
 
       const doc = snapshot.docs[0];
       return NextResponse.json({
-        username: doc.id,
+        username: doc.data().displayUsername || doc.id,
         address: doc.data().address,
       }, { headers: CACHE_HEADERS });
     }
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     const username = rawUsername.toLowerCase().replace(/^@/, '').trim();
+    const displayUsername = rawUsername.replace(/^@/, '').trim();
 
     // Validate
     if (username.length < USERNAME_MIN_LENGTH) {
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
     if (!USERNAME_REGEX.test(username)) {
       return NextResponse.json(
-        { error: 'Only lowercase letters, numbers, dots, and underscores allowed (no leading/trailing special chars)' },
+        { error: 'Letters, numbers, dots, underscores, and hyphens only (no leading/trailing special chars)' },
         { status: 400, headers: CACHE_HEADERS }
       );
     }
@@ -172,22 +174,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Register username
+    // Register username (lowercase key, preserve display casing)
     await db.collection(USERNAMES_COLLECTION).doc(username).set({
       qcId,
+      displayUsername,
       address: address || null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     // Store on user document for quick lookup
     await db.doc(`user/${qcId}`).set(
-      { qcUsername: username },
+      { qcUsername: displayUsername },
       { merge: true }
     );
 
     return NextResponse.json({
       success: true,
-      username,
+      username: displayUsername,
     }, { headers: CACHE_HEADERS });
   } catch (error) {
     console.error('Error registering QC username:', error);

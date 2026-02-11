@@ -81,8 +81,6 @@ export default function Login() {
     setIsLoading(true);
     setError(null);
     try {
-      // Enable keepLoggedIn since user is actively signing in
-      authContext?.setKeepLoggedIn(true);
       await authContext?.loginWithEmail(email, password);
 
       // Look up existing QC account by email (independent of Telegram session)
@@ -191,8 +189,6 @@ export default function Login() {
           throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
         }
 
-        // Enable keepLoggedIn since user is actively signing in
-        authContext?.setKeepLoggedIn(true);
         const { customToken } = await responseAuth.json();
         await authContext?.loginWithToken(customToken);
 

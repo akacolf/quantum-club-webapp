@@ -31,7 +31,7 @@ export default function QCDomainPage() {
   // Validation rules
   const MIN_LENGTH = 3;
   const MAX_LENGTH = 20;
-  const USERNAME_REGEX = /^[a-z0-9][a-z0-9._]*[a-z0-9]$/;
+  const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
   const RESERVED = [
     'admin', 'support', 'help', 'quantum', 'quantumclub', 'qc', 'system',
     'root', 'official', 'team', 'mod', 'moderator', 'bot', 'wallet',
@@ -63,8 +63,8 @@ export default function QCDomainPage() {
     if (!name) return null;
     if (name.length < MIN_LENGTH) return `Minimum ${MIN_LENGTH} characters`;
     if (name.length > MAX_LENGTH) return `Maximum ${MAX_LENGTH} characters`;
-    if (!USERNAME_REGEX.test(name)) return "Only lowercase letters, numbers, dots & underscores";
-    if (RESERVED.includes(name)) return "This username is reserved";
+    if (!USERNAME_REGEX.test(name)) return "Letters, numbers, dots, underscores & hyphens only";
+    if (RESERVED.includes(name.toLowerCase())) return "This username is reserved";
     return null;
   };
 
@@ -165,8 +165,8 @@ export default function QCDomainPage() {
         >
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="mx-auto w-14 h-14 bg-gradient-to-br from-violet-500/20 to-cyan-500/20 rounded-full flex items-center justify-center ring-1 ring-violet-500/30">
-              <Icon icon="solar:user-id-bold" className="w-7 h-7 text-violet-400" />
+            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
+              <Icon icon="solar:user-id-bold" className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Username</h1>
             <p className="text-muted-foreground text-sm">
@@ -182,7 +182,7 @@ export default function QCDomainPage() {
               className="space-y-3"
             >
               {/* Username Card */}
-              <Card className="bg-gradient-to-br from-violet-500/10 to-cyan-500/10 border-violet-500/20 overflow-hidden">
+              <Card className="bg-primary/5 border-primary/20 overflow-hidden">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function QCDomainPage() {
                           placeholder="yourname"
                           value={newUsername}
                           onChange={(e) => {
-                            const val = e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, "");
+                            const val = e.target.value.replace(/[^a-zA-Z0-9._-]/g, "");
                             setNewUsername(val);
                             setAvailability(null);
                           }}
@@ -357,7 +357,7 @@ export default function QCDomainPage() {
             <Card className="bg-card border-border">
               <CardContent className="p-5 space-y-4">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-violet-400" />
+                  <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-primary" />
                   How It Works
                 </h3>
 
