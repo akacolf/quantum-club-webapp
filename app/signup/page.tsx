@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/app/(contexts)/auth";
 import { encryptData } from "@/app/actions/actions";
-import { UseRegisterAndAuth } from "@/app/(login)/registerAndAuth";
+import { UseRegisterAndAuth, lookupUserByEmail, LoadExistingUserByQCId } from "@/app/(login)/registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "@/app/(login)/deviceDetection";
@@ -81,6 +81,14 @@ export default function SignUp() {
     }
 
     try {
+      // Check if email is already linked to an existing QC account
+      const existingQCId = await lookupUserByEmail(email);
+      if (existingQCId) {
+        setError("An account with this email already exists. Please sign in instead.");
+        setIsLoading(false);
+        return;
+      }
+
       // Enable keepLoggedIn since user is actively signing up
       authContext?.setKeepLoggedIn(true);
       // Create Firebase account with email verification
@@ -211,6 +219,14 @@ export default function SignUp() {
           .replace(/['"]+/g, "")
           .replace(/[^a-zA-Z0-9]/g, "");
         const uid = String(telegramIdEncrypted);
+
+        // Check if this Telegram user already has an account
+        const existingData = await LoadExistingUserByQCId(telegramIdEncrypted);
+        if (existingData.status === "completed") {
+          setError("You already have an account. Please sign in instead.");
+          setIsLoading(false);
+          return;
+        }
 
         const responseAuth = await fetch("/api/auth/telegram", {
           method: "POST",

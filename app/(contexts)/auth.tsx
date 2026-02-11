@@ -49,25 +49,27 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             if (user && !shouldKeep) {
                 // User chose not to stay logged in — sign them out
                 await auth.signOut();
-                await removeToken();
+                try { await removeToken(); } catch {}
                 setCurrentUser(null);
                 setAuthLoading(false);
                 return;
             }
             setCurrentUser(user ?? null);
             if(user){
-                const tokenResult = await user.getIdTokenResult();
-                const token = tokenResult.token;
-                const refreshToken = user.refreshToken;
-                const claims = tokenResult.claims;
-                setCustomClaims(claims ?? null);
-                if(token &&refreshToken){
-                    await setToken({
-                        token,refreshToken
-                    });
+                try {
+                    const tokenResult = await user.getIdTokenResult();
+                    const token = tokenResult.token;
+                    const refreshToken = user.refreshToken;
+                    const claims = tokenResult.claims;
+                    setCustomClaims(claims ?? null);
+                    if(token && refreshToken){
+                        await setToken({ token, refreshToken });
+                    }
+                } catch {
+                    // Token verification may fail on preview — don't block auth
                 }
             }else{
-                await removeToken();
+                try { await removeToken(); } catch {}
             }
             setAuthLoading(false);
         });
