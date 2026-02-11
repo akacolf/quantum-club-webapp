@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/app/(contexts)/auth";
 import { encryptData } from "@/app/actions/actions";
-import { UseRegisterAndAuth, lookupUserByEmail, LoadExistingUserByQCId } from "@/app/(login)/registerAndAuth";
+import { UseRegisterAndAuth } from "@/app/(login)/registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "@/app/(login)/deviceDetection";
@@ -82,8 +82,13 @@ export default function SignUp() {
 
     try {
       // Check if email is already linked to an existing QC account
-      const existingQCId = await lookupUserByEmail(email);
-      if (existingQCId) {
+      const checkRes = await fetch("/api/check-existing-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const { exists } = await checkRes.json();
+      if (exists) {
         setError("An account with this email already exists. Please sign in instead.");
         setIsLoading(false);
         return;
@@ -221,8 +226,13 @@ export default function SignUp() {
         const uid = String(telegramIdEncrypted);
 
         // Check if this Telegram user already has an account
-        const existingData = await LoadExistingUserByQCId(telegramIdEncrypted);
-        if (existingData.status === "completed") {
+        const checkRes = await fetch("/api/check-existing-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ qcId: telegramIdEncrypted }),
+        });
+        const { exists } = await checkRes.json();
+        if (exists) {
           setError("You already have an account. Please sign in instead.");
           setIsLoading(false);
           return;

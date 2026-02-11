@@ -65,7 +65,7 @@ export async function updateSession(request:NextRequest) {
         value:  await encrypt(parsed),
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "strict",
         path: "/",
         expires: new Date(parsed.expires), // explicitly stating the date of the parsed session //
     })

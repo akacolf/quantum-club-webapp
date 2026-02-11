@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, updateSession } from "@/utils/session";
+import { updateSession } from "@/utils/session";
 
 // OFAC sanctioned countries (ISO 3166-1 alpha-2 codes)
 // This list should be kept up-to-date with current sanctions
@@ -70,12 +70,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/unsupported-region", request.url));
   }
 
-  const session = await getSession();
-  if (!session) {
+  // Check for either auth system: session cookie (Telegram initData) or Firebase auth token
+  const hasSession = request.cookies.get("session")?.value;
+  const hasFirebaseToken = request.cookies.get("firebaseAuthToken")?.value;
+
+  if (!hasSession && !hasFirebaseToken) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return updateSession(request);
+  // If we have a session cookie, try to update/extend it
+  if (hasSession) {
+    return updateSession(request);
+  }
+
+  return NextResponse.next();
 }
 
 // paths middleware would work in //
