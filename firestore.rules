@@ -146,11 +146,5 @@ service cloud.firestore {
       allow read: if true; // Anyone can check username availability / resolve
       allow write: if false; // Only API routes with Admin SDK can write
     }
-    
-    // QC Domains - public read for domain resolution, write via Admin SDK only
-    match /qcDomains/{domainId} {
-      allow read: if true; // Anyone can resolve domains
-      allow write: if false; // Only API routes with Admin SDK can write
-    }
   }
 }

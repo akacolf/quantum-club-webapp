@@ -41,28 +41,6 @@ export default function ReceivePage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { qcUsername } = useUserContext();
-  const [qcDomain, setQcDomain] = useState<string | null>(null);
-
-  // Use qcUsername if available, otherwise try API lookup
-  useEffect(() => {
-    if (qcUsername) {
-      setQcDomain(`${qcUsername}.qc`);
-      return;
-    }
-    const fetchDomain = async () => {
-      if (!walletAddress) return;
-      try {
-        const res = await fetch(`/api/qc-domain?address=${encodeURIComponent(walletAddress)}`);
-        const data = await res.json();
-        if (data.resolved && data.domain) {
-          setQcDomain(data.domain);
-        }
-      } catch {
-        // No domain, that's fine
-      }
-    };
-    fetchDomain();
-  }, [walletAddress, qcUsername]);
 
   // Filter available chains based on testnet mode and search query
   const availableChains = (Object.keys(CHAIN_INFO) as ChainType[]).filter(chainKey => {
@@ -229,27 +207,27 @@ export default function ReceivePage() {
                 </AlertDescription>
               </Alert>
 
-              {/* QC Domain (TON only) */}
-              {selectedChain === "ton" && qcDomain && (
+              {/* QC Username (TON only) */}
+              {selectedChain === "ton" && qcUsername && (
                 <div className="w-full space-y-2">
                   <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold ml-1">
-                    Your QC Domain
+                    Your QC Username
                   </Label>
                   <div
                     onClick={() => {
-                      navigator.clipboard.writeText(qcDomain);
-                      toast.success("QC domain copied!");
+                      navigator.clipboard.writeText(`@${qcUsername}`);
+                      toast.success("Username copied!");
                     }}
                     className="w-full bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 active:border-violet-500/50 rounded-xl p-4 cursor-pointer transition-colors hover:from-violet-500/15 hover:to-cyan-500/15"
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-base font-bold text-foreground">
-                        {qcDomain}
+                        @{qcUsername}
                       </p>
                       <Icon icon="solar:copy-bold" className="w-4 h-4 text-violet-400" />
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Others can send TON to this address
+                      Others can send TON to your @username
                     </p>
                   </div>
                 </div>

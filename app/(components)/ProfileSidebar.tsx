@@ -253,9 +253,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
               {qcUsername ? (
                 <>
                   <p className="text-sm text-primary font-medium mt-0.5">@{qcUsername}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {qcUsername}.qc
-                  </p>
                 </>
               ) : (
                 <button
@@ -332,7 +329,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
             {usernameAvailability === "available" && (
               <div className="space-y-1.5">
                 <p className="text-[10px] text-muted-foreground">
-                  Your domain will be <span className="text-foreground font-medium">{newUsername}.qc</span>
+                  Your username will be <span className="text-foreground font-medium">@{newUsername}</span>
                 </p>
                 <Button
                   size="sm"

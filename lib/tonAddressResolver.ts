@@ -4,6 +4,7 @@ export interface ResolvedAddress {
   address: string;
   isValid: boolean;
   isDomain: boolean;
+  isUsername: boolean;
   originalInput: string;
   error?: string;
 }
@@ -16,57 +17,64 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
       address: "",
       isValid: false,
       isDomain: false,
+      isUsername: false,
       originalInput: input,
       error: "Address is required"
     };
   }
 
-  // Check if it's a .qc domain (QC Wallet domain)
-  if (trimmedInput.toLowerCase().endsWith(".qc")) {
-    try {
-      const domain = trimmedInput.toLowerCase();
-      const name = domain.replace(/\.qc$/, '');
-
-      const response = await fetch(`/api/qc-domain?name=${encodeURIComponent(name)}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.resolved && data.address) {
-          try {
-            const parsed = Address.parse(data.address);
-            return {
-              address: parsed.toString({ bounceable: false }),
-              isValid: true,
-              isDomain: true,
-              originalInput: input
-            };
-          } catch {
-            return {
-              address: "",
-              isValid: false,
-              isDomain: true,
-              originalInput: input,
-              error: "Invalid address format from QC domain"
-            };
+  // Check if it's a @username (QC username)
+  if (trimmedInput.startsWith("@") || /^[a-z0-9][a-z0-9._]*[a-z0-9]$/i.test(trimmedInput) && !trimmedInput.includes(".ton")) {
+    const username = trimmedInput.replace(/^@/, '').toLowerCase();
+    
+    // Must be at least 3 chars to be a valid username
+    if (username.length >= 3 && /^[a-z0-9][a-z0-9._]*[a-z0-9]$/.test(username)) {
+      try {
+        const response = await fetch(`/api/qc-username?username=${encodeURIComponent(username)}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.resolved && data.address) {
+            try {
+              const parsed = Address.parse(data.address);
+              return {
+                address: parsed.toString({ bounceable: false }),
+                isValid: true,
+                isDomain: false,
+                isUsername: true,
+                originalInput: input
+              };
+            } catch {
+              return {
+                address: "",
+                isValid: false,
+                isDomain: false,
+                isUsername: true,
+                originalInput: input,
+                error: "Invalid address linked to this username"
+              };
+            }
           }
         }
-      }
 
-      return {
-        address: "",
-        isValid: false,
-        isDomain: true,
-        originalInput: input,
-        error: "QC domain not found or no wallet associated"
-      };
-    } catch (error) {
-      return {
-        address: "",
-        isValid: false,
-        isDomain: true,
-        originalInput: input,
-        error: error instanceof Error ? error.message : "Failed to resolve QC domain"
-      };
+        return {
+          address: "",
+          isValid: false,
+          isDomain: false,
+          isUsername: true,
+          originalInput: input,
+          error: "Username not found or no wallet linked"
+        };
+      } catch (error) {
+        return {
+          address: "",
+          isValid: false,
+          isDomain: false,
+          isUsername: true,
+          originalInput: input,
+          error: error instanceof Error ? error.message : "Failed to resolve username"
+        };
+      }
     }
   }
 
@@ -110,6 +118,7 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
           address: "",
           isValid: false,
           isDomain: true,
+          isUsername: false,
           originalInput: input,
           error: "Domain not found or no wallet associated"
         };
@@ -122,6 +131,7 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
           address: parsed.toString({ bounceable: false }),
           isValid: true,
           isDomain: true,
+          isUsername: false,
           originalInput: input
         };
       } catch {
@@ -129,6 +139,7 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
           address: "",
           isValid: false,
           isDomain: true,
+          isUsername: false,
           originalInput: input,
           error: "Invalid address format from domain"
         };
@@ -138,6 +149,7 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
         address: "",
         isValid: false,
         isDomain: true,
+        isUsername: false,
         originalInput: input,
         error: error instanceof Error ? error.message : "Failed to resolve domain"
       };
@@ -151,6 +163,7 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
       address: parsed.toString({ bounceable: false }),
       isValid: true,
       isDomain: false,
+      isUsername: false,
       originalInput: input
     };
   } catch {
@@ -158,6 +171,7 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
       address: "",
       isValid: false,
       isDomain: false,
+      isUsername: false,
       originalInput: input,
       error: "Invalid TON address format"
     };
@@ -167,14 +181,14 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
 export function isValidTonAddressOrDomain(input: string): boolean {
   const trimmed = input.trim();
 
-  // Check if it's a .qc domain format
-  if (trimmed.toLowerCase().endsWith(".qc")) {
-    return trimmed.length > 3 && /^[a-z0-9][a-z0-9-]*[a-z0-9]\.qc$/i.test(trimmed);
+  // Check if it's an @username format
+  if (trimmed.startsWith("@")) {
+    const username = trimmed.slice(1).toLowerCase();
+    return username.length >= 3 && /^[a-z0-9][a-z0-9._]*[a-z0-9]$/.test(username);
   }
   
   // Check if it's a .ton domain format
   if (trimmed.toLowerCase().endsWith(".ton")) {
-    // Basic domain validation: at least one character before .ton
     return trimmed.length > 4 && /^[a-zA-Z0-9-]+\.ton$/i.test(trimmed);
   }
   

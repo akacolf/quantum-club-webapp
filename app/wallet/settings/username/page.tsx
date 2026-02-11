@@ -143,14 +143,7 @@ export default function QCDomainPage() {
     }
   };
 
-  // Copy domain
-  const copyDomain = () => {
-    if (qcUsername) {
-      navigator.clipboard.writeText(`${qcUsername}.qc`);
-      toast.success("Domain copied!");
-    }
-  };
-
+  // Copy username
   const copyUsername = () => {
     if (qcUsername) {
       navigator.clipboard.writeText(`@${qcUsername}`);
@@ -175,7 +168,7 @@ export default function QCDomainPage() {
             <div className="mx-auto w-14 h-14 bg-gradient-to-br from-violet-500/20 to-cyan-500/20 rounded-full flex items-center justify-center ring-1 ring-violet-500/30">
               <Icon icon="solar:user-id-bold" className="w-7 h-7 text-violet-400" />
             </div>
-            <h1 className="text-2xl font-bold">Username & Domain</h1>
+            <h1 className="text-2xl font-bold">Username</h1>
             <p className="text-muted-foreground text-sm">
               Your unique identity on Quantum Club
             </p>
@@ -213,25 +206,6 @@ export default function QCDomainPage() {
                       Tap to copy username
                     </p>
                   </button>
-
-                  <Separator className="my-3 opacity-30" />
-
-                  {/* Domain */}
-                  <div className="space-y-2">
-                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                      Your .qc Domain
-                    </Label>
-                    <button
-                      onClick={copyDomain}
-                      className="w-full bg-background/30 rounded-lg p-3 hover:bg-background/50 transition-colors flex items-center justify-between"
-                    >
-                      <span className="text-base font-bold text-foreground">{qcUsername}.qc</span>
-                      <Icon icon="solar:copy-bold" className="w-4 h-4 text-violet-400" />
-                    </button>
-                    <p className="text-[10px] text-muted-foreground">
-                      Others can send funds to this address instead of your wallet address
-                    </p>
-                  </div>
 
                   <Separator className="my-3 opacity-30" />
 
@@ -332,17 +306,14 @@ export default function QCDomainPage() {
                     )}
                   </div>
 
-                  {/* Username + Domain preview */}
+                  {/* Username preview */}
                   {newUsername && !validationError && (
                     <div className="bg-muted/50 rounded-xl p-4 text-center space-y-1">
                       <p className="text-lg font-bold text-foreground">
                         @{newUsername}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        Domain: <span className="text-foreground font-medium">{newUsername}.qc</span>
-                      </p>
                       <p className="text-[10px] text-muted-foreground">
-                        Others can send funds to your .qc address
+                        Others can send funds to your @username
                       </p>
                     </div>
                   )}
@@ -398,14 +369,9 @@ export default function QCDomainPage() {
                       desc: "Your identity across Quantum Club",
                     },
                     {
-                      icon: "solar:global-bold",
-                      title: "Get a .qc domain automatically",
-                      desc: "@windblown becomes windblown.qc",
-                    },
-                    {
                       icon: "solar:transfer-horizontal-bold",
                       title: "Receive funds easily",
-                      desc: "Others send to windblown.qc instead of a long address",
+                      desc: "Others send to @windblown instead of a long address",
                     },
                     {
                       icon: "solar:lock-keyhole-bold",

@@ -102,7 +102,7 @@ export default function WalletSettingsPage() {
     router.prefetch("/wallet/settings/recovery-phrase");
     router.prefetch("/wallet/settings/wallets");
     router.prefetch("/wallet/settings/address-book");
-    router.prefetch("/wallet/settings/qc-domain");
+    router.prefetch("/wallet/settings/username");
     router.prefetch("/wallet/settings/price-alerts");
     router.prefetch("/wallet/settings/connected-apps");
     router.prefetch("/wallet/settings/terms");
@@ -250,7 +250,7 @@ export default function WalletSettingsPage() {
 
                 <Button
                   variant="ghost"
-                  onClick={() => router.push("/wallet/settings/qc-domain")}
+                  onClick={() => router.push("/wallet/settings/username")}
                   className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
                 >
                   <div className="flex items-center gap-3">
@@ -258,8 +258,8 @@ export default function WalletSettingsPage() {
                       <Icon icon="solar:global-bold" className="w-5 h-5 text-violet-400" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-foreground">Username & Domain</p>
-                      <p className="text-xs text-muted-foreground">Claim your @username & .qc domain</p>
+                      <p className="font-medium text-foreground">Username</p>
+                      <p className="text-xs text-muted-foreground">Claim your unique @username</p>
                     </div>
                   </div>
                   <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
