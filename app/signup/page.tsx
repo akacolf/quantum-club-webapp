@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/app/(contexts)/auth";
-import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
 import { UseRegisterAndAuth } from "@/app/(login)/registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -81,6 +81,8 @@ export default function SignUp() {
     }
 
     try {
+      // Enable keepLoggedIn since user is actively signing up
+      authContext?.setKeepLoggedIn(true);
       // Create Firebase account with email verification
       await authContext?.signUpWithEmail(email, password);
 
@@ -94,42 +96,49 @@ export default function SignUp() {
         WebApp.ready();
         const initDataUnsafe = WebApp.initDataUnsafe;
 
-        const authenticated = await authenticateUser();
-        if (authenticated) {
+        if (initDataUnsafe?.user?.id) {
           const encryptedId = await encryptData(
-            initDataUnsafe.user?.id.toString() || ""
+            initDataUnsafe.user.id.toString()
           );
-          if (!encryptedId) {
-            throw new Error("Failed to encrypt Telegram ID");
-          }
+          if (encryptedId) {
+            const cleanData = encryptedId.toString();
+            const telegramIdEncrypted = cleanData
+              .replace(/['"]+/g, "")
+              .replace(/[^a-zA-Z0-9]/g, "");
 
-          const cleanData = encryptedId.toString();
-          const telegramIdEncrypted = cleanData
-            .replace(/['"]+/g, "")
-            .replace(/[^a-zA-Z0-9]/g, "");
+            // Authenticate via WebApp initData
+            const initData = WebApp.initData;
+            if (initData) {
+              await fetch("/api/auth", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ initData }),
+              });
+            }
 
-          // Store email in the user's Firestore profile
-          const data = await UseRegisterAndAuth({
-            telegramIdEncrypted,
-            initDataUnsafe,
-            email,
-          });
+            // Store email in the user's Firestore profile
+            const data = await UseRegisterAndAuth({
+              telegramIdEncrypted,
+              initDataUnsafe,
+              email,
+            });
 
-          if (data.status === "maintenance") {
-            router.replace("/maintenance");
-            return;
-          }
+            if (data.status === "maintenance") {
+              router.replace("/maintenance");
+              return;
+            }
 
-          if (data.status === "completed") {
-            setTelegramId(data.telegramId);
-            SetMainQuantAmount(data.MainQuantAmount);
-            setRank(data.rank);
-            setUserRank(data.userRank);
-            setDaily(data.daily);
-            setUsername(data.username);
-            setWalletAddress(data.walletAddress);
-            setLastActiveTime(data.lastActiveTime);
-            setRemainingSolveToEarn(data.remainingSolveToEarn);
+            if (data.status === "completed") {
+              setTelegramId(data.telegramId);
+              SetMainQuantAmount(data.MainQuantAmount);
+              setRank(data.rank);
+              setUserRank(data.userRank);
+              setDaily(data.daily);
+              setUsername(data.username);
+              setWalletAddress(data.walletAddress);
+              setLastActiveTime(data.lastActiveTime);
+              setRemainingSolveToEarn(data.remainingSolveToEarn);
+            }
           }
         }
       }
@@ -148,74 +157,6 @@ export default function SignUp() {
           setError("Failed to create account. Please try again.");
         }
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await authContext?.loginWithGoogle();
-
-      // Get Google email from Firebase auth
-      const { auth: firebaseAuth } = await import("@/app/(firebase)/client");
-      const googleEmail = firebaseAuth.currentUser?.email;
-
-      // Register with TG ID (since we're in TG Mini App)
-      if (
-        typeof window !== "undefined" &&
-        window.Telegram &&
-        window.Telegram.WebApp
-      ) {
-        const WebApp = window.Telegram.WebApp;
-        WebApp.ready();
-        const initDataUnsafe = WebApp.initDataUnsafe;
-
-        const authenticated = await authenticateUser();
-        if (authenticated) {
-          const encryptedId = await encryptData(
-            initDataUnsafe.user?.id.toString() || ""
-          );
-          if (!encryptedId) {
-            throw new Error("Failed to encrypt Telegram ID");
-          }
-
-          const cleanData = encryptedId.toString();
-          const telegramIdEncrypted = cleanData
-            .replace(/['"]+/g, "")
-            .replace(/[^a-zA-Z0-9]/g, "");
-
-          const data = await UseRegisterAndAuth({
-            telegramIdEncrypted,
-            initDataUnsafe,
-            email: googleEmail || undefined,
-          });
-
-          if (data.status === "maintenance") {
-            router.replace("/maintenance");
-            return;
-          }
-
-          if (data.status === "completed") {
-            setTelegramId(data.telegramId);
-            SetMainQuantAmount(data.MainQuantAmount);
-            setRank(data.rank);
-            setUserRank(data.userRank);
-            setDaily(data.daily);
-            setUsername(data.username);
-            setWalletAddress(data.walletAddress);
-            setLastActiveTime(data.lastActiveTime);
-            setRemainingSolveToEarn(data.remainingSolveToEarn);
-          }
-        }
-      }
-
-      router.replace("/home");
-    } catch (err) {
-      console.error("Google sign-up error:", err);
-      setError("Failed to sign up with Google. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -245,63 +186,70 @@ export default function SignUp() {
           throw new Error("Telegram user data not available. Please try again.");
         }
 
-        const authenticated = await authenticateUser();
-        if (authenticated) {
-          const encryptedId = await encryptData(
-            initDataUnsafe.user.id.toString()
-          );
-          if (!encryptedId) {
-            throw new Error("Failed to encrypt Telegram ID");
-          }
+        const encryptedId = await encryptData(
+          initDataUnsafe.user.id.toString()
+        );
+        if (!encryptedId) {
+          throw new Error("Failed to encrypt Telegram ID");
+        }
 
-          const cleanData = encryptedId.toString();
-          const telegramIdEncrypted = cleanData
-            .replace(/['"]+/g, "")
-            .replace(/[^a-zA-Z0-9]/g, "");
-          const uid = String(telegramIdEncrypted);
+        const cleanData = encryptedId.toString();
+        const telegramIdEncrypted = cleanData
+          .replace(/['"]+/g, "")
+          .replace(/[^a-zA-Z0-9]/g, "");
+        const uid = String(telegramIdEncrypted);
 
-          const responseAuth = await fetch("/api/auth/telegram", {
+        // Authenticate via WebApp initData first
+        const initData = WebApp.initData;
+        if (initData) {
+          await fetch("/api/auth", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ telegramId: uid }),
+            body: JSON.stringify({ initData }),
           });
+        }
 
-          if (!responseAuth.ok) {
-            const errorData = await responseAuth.text();
-            throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
-          }
+        const responseAuth = await fetch("/api/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId: uid }),
+        });
 
-          const { customToken } = await responseAuth.json();
-          await authContext?.loginWithToken(customToken);
+        if (!responseAuth.ok) {
+          const errorData = await responseAuth.text();
+          throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
+        }
 
-          const data = await UseRegisterAndAuth({
-            telegramIdEncrypted,
-            initDataUnsafe,
-          });
+        // Enable keepLoggedIn since user is actively signing up
+        authContext?.setKeepLoggedIn(true);
+        const { customToken } = await responseAuth.json();
+        await authContext?.loginWithToken(customToken);
 
-          if (data.status === "maintenance") {
-            router.replace("/maintenance");
-            return;
-          }
+        const data = await UseRegisterAndAuth({
+          telegramIdEncrypted,
+          initDataUnsafe,
+        });
 
-          if (data.status === "error") {
-            throw new Error("Failed to register/authenticate");
-          }
+        if (data.status === "maintenance") {
+          router.replace("/maintenance");
+          return;
+        }
 
-          if (data.status === "completed") {
-            setTelegramId(data.telegramId);
-            SetMainQuantAmount(data.MainQuantAmount);
-            setRank(data.rank);
-            setUserRank(data.userRank);
-            setDaily(data.daily);
-            setUsername(data.username);
-            setWalletAddress(data.walletAddress);
-            setLastActiveTime(data.lastActiveTime);
-            setRemainingSolveToEarn(data.remainingSolveToEarn);
-            router.replace("/home");
-          }
-        } else {
-          throw new Error("Telegram authentication failed");
+        if (data.status === "error") {
+          throw new Error("Failed to register/authenticate");
+        }
+
+        if (data.status === "completed") {
+          setTelegramId(data.telegramId);
+          SetMainQuantAmount(data.MainQuantAmount);
+          setRank(data.rank);
+          setUserRank(data.userRank);
+          setDaily(data.daily);
+          setUsername(data.username);
+          setWalletAddress(data.walletAddress);
+          setLastActiveTime(data.lastActiveTime);
+          setRemainingSolveToEarn(data.remainingSolveToEarn);
+          router.replace("/home");
         }
       } else {
         setError("Telegram WebApp is not available. Please open this app from Telegram.");
@@ -356,16 +304,6 @@ export default function SignUp() {
               )}
 
               <div className="flex flex-col gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleGoogleSignUp}
-                  disabled={isLoading}
-                >
-                  <Icon icon="flat-color-icons:google" className="size-5" />
-                  Continue with Google
-                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -473,6 +411,19 @@ export default function SignUp() {
                     </button>
                   </div>
                 </div>
+
+                {/* Keep me logged in */}
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="keepLoggedIn"
+                    checked={authContext?.keepLoggedIn ?? true}
+                    onCheckedChange={(checked) => authContext?.setKeepLoggedIn(!!checked)}
+                  />
+                  <Label htmlFor="keepLoggedIn" className="text-sm font-normal cursor-pointer">
+                    Keep me logged in
+                  </Label>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full"

@@ -40,7 +40,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [linkEmail, setLinkEmail] = useState("");
   const [linkPassword, setLinkPassword] = useState("");
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
-  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
 
   useEffect(() => {
@@ -84,6 +83,8 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
+      // Clear keepLoggedIn so user sees auth page on next visit
+      authContext?.setKeepLoggedIn(false);
       await authContext?.logout();
       onOpenChange(false);
       router.replace("/");
@@ -138,30 +139,9 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
     }
   };
 
-  const handleLinkGoogle = async () => {
-    setIsLinkingGoogle(true);
-    try {
-      await authContext?.linkGoogleToAccount();
-      toast.success("Google account linked successfully!");
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message.includes("credential-already-in-use")) {
-          toast.error("This Google account is already linked to another account");
-        } else if (err.message.includes("provider-already-linked")) {
-          toast.error("A Google account is already linked");
-        } else {
-          toast.error("Failed to link Google account. Please try again.");
-        }
-      }
-    } finally {
-      setIsLinkingGoogle(false);
-    }
-  };
-
   // Auth binding info
   const currentUser = authContext?.currentUser;
   const hasEmail = !!currentUser?.email;
-  const hasGoogle = currentUser?.providerData?.some(p => p.providerId === "google.com");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -296,22 +276,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                 </Button>
               </div>
             )}
-            {/* Google */}
-            <div className="flex items-center gap-3 py-1.5">
-              <Icon icon="flat-color-icons:google" className="w-5 h-5" />
-              <span className="text-sm flex-1">Google</span>
-              {hasGoogle ? (
-                <span className="text-[10px] text-green-400 font-medium">Linked</span>
-              ) : (
-                <button
-                  onClick={handleLinkGoogle}
-                  disabled={isLinkingGoogle}
-                  className="text-[10px] text-primary font-medium hover:underline disabled:opacity-50"
-                >
-                  {isLinkingGoogle ? "Linking..." : "Link"}
-                </button>
-              )}
-            </div>
           </div>
 
           <Separator className="my-2" />

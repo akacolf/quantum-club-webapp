@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { useAuth } from "@/app/(contexts)/auth";
-import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
 import { UseRegisterAndAuth, lookupUserByEmail, LoadExistingUserByQCId } from "./registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -50,17 +50,15 @@ export default function Login() {
     window.Telegram?.WebApp?.BackButton.hide();
   }, []);
 
-  // Auto-redirect if user is already signed in
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  // Auto-redirect if user is already signed in (keepLoggedIn handled in auth context)
   useEffect(() => {
     if (!authContext?.authLoading && authContext?.currentUser) {
-      setIsRedirecting(true);
       router.replace("/home");
     }
   }, [authContext?.currentUser, authContext?.authLoading, router]);
 
-  // Show loader while auth is resolving or redirecting authenticated user
-  const showLoader = isPageLoading || authContext?.authLoading || isRedirecting;
+  // Show loader while auth is resolving
+  const showLoader = isPageLoading || authContext?.authLoading;
 
   useEffect(() => {
     // Prefetch auth-related pages for faster navigation
@@ -79,6 +77,8 @@ export default function Login() {
     setIsLoading(true);
     setError(null);
     try {
+      // Enable keepLoggedIn since user is actively signing in
+      authContext?.setKeepLoggedIn(true);
       await authContext?.loginWithEmail(email, password);
 
       // Look up existing QC account by email (independent of Telegram session)
@@ -104,8 +104,6 @@ export default function Login() {
           setRemainingSolveToEarn(data.remainingSolveToEarn);
         }
       }
-      // If no existing QC account found by email, user still gets logged into Firebase
-      // They may need to link their Telegram account from settings
 
       router.replace("/home");
     } catch (err) {
@@ -121,97 +119,6 @@ export default function Login() {
           setError("Failed to sign in. Please try again.");
         }
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await authContext?.loginWithGoogle();
-
-      // Get the Google user's email from Firebase auth
-      const { auth: firebaseAuth } = await import("@/app/(firebase)/client");
-      const googleEmail = firebaseAuth.currentUser?.email;
-
-      if (googleEmail) {
-        // Check if user already has a QC account linked to this email
-        const existingQCId = await lookupUserByEmail(googleEmail);
-        if (existingQCId) {
-          const data = await LoadExistingUserByQCId(existingQCId);
-
-          if (data.status === "maintenance") {
-            router.replace("/maintenance");
-            return;
-          }
-
-          if (data.status === "completed") {
-            setTelegramId(data.telegramId);
-            SetMainQuantAmount(data.MainQuantAmount);
-            setRank(data.rank);
-            setUserRank(data.userRank);
-            setDaily(data.daily);
-            setUsername(data.username);
-            setWalletAddress(data.walletAddress);
-            setLastActiveTime(data.lastActiveTime);
-            setRemainingSolveToEarn(data.remainingSolveToEarn);
-          }
-        } else {
-          // New Google user — register with TG ID from the Mini App
-          if (
-            typeof window !== "undefined" &&
-            window.Telegram &&
-            window.Telegram.WebApp
-          ) {
-            const WebApp = window.Telegram.WebApp;
-            WebApp.ready();
-            const initDataUnsafe = WebApp.initDataUnsafe;
-
-            const authenticated = await authenticateUser();
-            if (authenticated) {
-              const encryptedId = await encryptData(
-                initDataUnsafe.user?.id.toString() || ""
-              );
-              if (encryptedId) {
-                const cleanData = encryptedId.toString();
-                const telegramIdEncrypted = cleanData
-                  .replace(/['"]+/g, "")
-                  .replace(/[^a-zA-Z0-9]/g, "");
-
-                const data = await UseRegisterAndAuth({
-                  telegramIdEncrypted,
-                  initDataUnsafe,
-                  email: googleEmail,
-                });
-
-                if (data.status === "maintenance") {
-                  router.replace("/maintenance");
-                  return;
-                }
-
-                if (data.status === "completed") {
-                  setTelegramId(data.telegramId);
-                  SetMainQuantAmount(data.MainQuantAmount);
-                  setRank(data.rank);
-                  setUserRank(data.userRank);
-                  setDaily(data.daily);
-                  setUsername(data.username);
-                  setWalletAddress(data.walletAddress);
-                  setLastActiveTime(data.lastActiveTime);
-                  setRemainingSolveToEarn(data.remainingSolveToEarn);
-                }
-              }
-            }
-          }
-        }
-      }
-
-      router.replace("/home");
-    } catch (err) {
-      console.error("Google sign-in error:", err);
-      setError("Failed to sign in with Google. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -276,6 +183,8 @@ export default function Login() {
           throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
         }
 
+        // Enable keepLoggedIn since user is actively signing in
+        authContext?.setKeepLoggedIn(true);
         const { customToken } = await responseAuth.json();
         await authContext?.loginWithToken(customToken);
 
@@ -322,6 +231,11 @@ export default function Login() {
     return <Loader />;
   }
 
+  // If user is already signed in, show loader while redirecting
+  if (authContext?.currentUser) {
+    return <Loader />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10">
       <div className="w-full max-w-sm">
@@ -358,16 +272,6 @@ export default function Login() {
               )}
 
               <div className="flex flex-col gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                >
-                  <Icon icon="flat-color-icons:google" className="size-5" />
-                  Continue with Google
-                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -440,6 +344,19 @@ export default function Login() {
                     </button>
                   </div>
                 </div>
+
+                {/* Keep me logged in */}
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="keepLoggedIn"
+                    checked={authContext?.keepLoggedIn ?? true}
+                    onCheckedChange={(checked) => authContext?.setKeepLoggedIn(!!checked)}
+                  />
+                  <Label htmlFor="keepLoggedIn" className="text-sm font-normal cursor-pointer">
+                    Keep me logged in
+                  </Label>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full"

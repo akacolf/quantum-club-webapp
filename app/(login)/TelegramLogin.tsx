@@ -4,7 +4,6 @@ import { UseRegisterAndAuth } from "./registerAndAuth";
 import { useSafeArea } from "./safeArea";
 import Loader from "../(components)/Loader";
 import { useEffect } from "react";
-import { authenticateUser } from "@/lib/telegramAuth";
 import { encryptData } from "@/app/actions/actions";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "../(contexts)/UserContext";
@@ -34,21 +33,38 @@ export default function TelegramLogin() {
         const WebApp = window?.Telegram?.WebApp;
         if (!WebApp) return;
         WebApp.ready();
-        const initDataUnsafe = WebApp.initDataUnsafe
-         const authenticated = await authenticateUser();
-        if (authenticated && isMounted) {
-          const encrypedId = await encryptData(initDataUnsafe.user?.id.toString() || "");
-          if(!encrypedId) {
-            if (isMounted) {
-              timeoutId = setTimeout(getData, 100);
-            }
-            return;
+        const initDataUnsafe = WebApp.initDataUnsafe;
+
+        if (!initDataUnsafe?.user?.id) {
+          if (isMounted) {
+            timeoutId = setTimeout(getData, 100);
           }
-          const cleanData = encrypedId.toString();
+          return;
+        }
+
+        const encrypedId = await encryptData(initDataUnsafe.user.id.toString());
+        if(!encrypedId) {
+          if (isMounted) {
+            timeoutId = setTimeout(getData, 100);
+          }
+          return;
+        }
+        const cleanData = encrypedId.toString();
         const telegramIdEncrypted = cleanData
           .replace(/['"]+/g, "")
           .replace(/[^a-zA-Z0-9]/g, "");
         const uid = String(telegramIdEncrypted);
+
+        // Authenticate via WebApp initData first
+        const initData = WebApp.initData;
+        if (initData) {
+          await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData }),
+          });
+        }
+
         const responseAuth = await fetch("/api/auth/telegram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -60,9 +76,11 @@ export default function TelegramLogin() {
           throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
         }
         if (!isMounted) return;
+        // Enable keepLoggedIn for Telegram auto-login
+        auth?.setKeepLoggedIn(true);
         const { customToken } = await responseAuth.json();
-        await auth?.loginWithToken(customToken)
-        const data =  await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});
+        await auth?.loginWithToken(customToken);
+        const data = await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});
         
         if (!isMounted) return;
         
@@ -86,15 +104,12 @@ export default function TelegramLogin() {
         setRemainingSolveToEarn(data.remainingSolveToEarn);
         router.replace('/home'); 
         }
-        }
       }else{
         // WebApp not ready yet, silently retry
         if (isMounted) {
           timeoutId = setTimeout(getData, 100);
         }
       }
-      
-
     }
     getData()
     

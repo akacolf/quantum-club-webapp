@@ -15,6 +15,8 @@ type AuthContextType = {
     linkEmailToAccount: (email: string, password: string) => Promise<void>;
     linkGoogleToAccount: () => Promise<void>;
     customClaims: ParsedToken|null;
+    keepLoggedIn: boolean;
+    setKeepLoggedIn: (value: boolean) => void;
 }
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -22,8 +24,36 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [authLoading, setAuthLoading] = useState(true);
     const [customClaims,setCustomClaims] = useState<ParsedToken | null>(null)
+    const [keepLoggedIn, setKeepLoggedInState] = useState(true);
+
+    const setKeepLoggedIn = (value: boolean) => {
+        setKeepLoggedInState(value);
+        if (typeof window !== "undefined") {
+            localStorage.setItem("keepLoggedIn", JSON.stringify(value));
+        }
+    };
+
     useEffect(() =>{
+        // Load keepLoggedIn preference from localStorage
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("keepLoggedIn");
+            if (stored !== null) {
+                setKeepLoggedInState(JSON.parse(stored));
+            }
+        }
+
+        const storedKeep = typeof window !== "undefined" ? localStorage.getItem("keepLoggedIn") : null;
+        const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
+
         const unsubscribe = auth.onAuthStateChanged(async(user) => {
+            if (user && !shouldKeep) {
+                // User chose not to stay logged in — sign them out
+                await auth.signOut();
+                await removeToken();
+                setCurrentUser(null);
+                setAuthLoading(false);
+                return;
+            }
             setCurrentUser(user ?? null);
             if(user){
                 const tokenResult = await user.getIdTokenResult();
@@ -118,6 +148,8 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             loginWithGoogle,
             linkEmailToAccount,
             linkGoogleToAccount,
+            keepLoggedIn,
+            setKeepLoggedIn,
         }}>
         {children}
         </AuthContext.Provider>
