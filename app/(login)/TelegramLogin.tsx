@@ -107,7 +107,11 @@ export default function TelegramLogin() {
         setDaily(data.daily);
         setUsername(data.username);
         setWalletAddress(data.walletAddress);
-        if (data.qcUsername) setQcUsername(data.qcUsername);
+        if (data.qcUsername) {
+          setQcUsername(data.qcUsername);
+          localStorage.setItem(`qcUsername_${data.telegramId}`, data.qcUsername);
+        }
+        if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
         setLastActiveTime(data.lastActiveTime);
         setRemainingSolveToEarn(data.remainingSolveToEarn);
         router.replace('/home'); 

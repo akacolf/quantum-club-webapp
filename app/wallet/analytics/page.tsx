@@ -351,7 +351,7 @@ export default function AnalyticsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <Icon icon="lucide:pie-chart-icon" className="w-4 h-4 text-blue-400"/>
+                  <Icon icon="lucide:pie-chart" className="w-4 h-4 text-blue-400"/>
                 </div>
               </div>
               <p className="text-gray-400 text-xs mb-1">Assets</p>
@@ -389,7 +389,7 @@ export default function AnalyticsPage() {
                 value="allocation"
                 className="flex-1 h-full rounded-lg text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
-                <Icon icon="lucide:pie-chart-icon" className="w-3.5 h-3.5 mr-1.5"/>
+                <Icon icon="lucide:pie-chart" className="w-3.5 h-3.5 mr-1.5"/>
                 Allocation
               </TabsTrigger>
               <TabsTrigger

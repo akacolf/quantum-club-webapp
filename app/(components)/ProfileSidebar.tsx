@@ -473,6 +473,23 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
             <span className="text-sm font-medium">Community</span>
             <Icon icon="solar:arrow-right-up-linear" className="w-4 h-4 text-muted-foreground ml-auto" />
           </a>
+
+          <Separator className="my-2" />
+
+          <button
+            onClick={() => { onOpenChange(false); router.push("/legal/terms"); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors"
+          >
+            <Icon icon="solar:document-text-bold" className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm font-medium">Terms of Service</span>
+          </button>
+          <button
+            onClick={() => { onOpenChange(false); router.push("/legal/privacy"); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors"
+          >
+            <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm font-medium">Privacy Policy</span>
+          </button>
         </nav>
 
         {/* Footer: Sign Out + Version */}

@@ -143,6 +143,7 @@ export default function SignUp() {
               SetMainQuantAmount(data.MainQuantAmount);
               setRank(data.rank);
               setUserRank(data.userRank);
+              if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
               setDaily(data.daily);
               setUsername(data.username);
               setWalletAddress(data.walletAddress);
@@ -270,6 +271,7 @@ export default function SignUp() {
           SetMainQuantAmount(data.MainQuantAmount);
           setRank(data.rank);
           setUserRank(data.userRank);
+          if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
           setDaily(data.daily);
           setUsername(data.username);
           setWalletAddress(data.walletAddress);
