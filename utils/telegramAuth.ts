@@ -28,8 +28,9 @@ export function validateTelegramWebAppData(telegramInitData:string) {
     return { message: 'auth_date is missing from initData', validatedData: null, user: {} };
   }
   
-  // Security: Validate auth_date is not too old (5 minutes max)
-  const MAX_AUTH_AGE_SECONDS = 300; // 5 minutes
+  // Telegram initData may legitimately be reused within the same app session.
+  // Keep a bounded window to reduce false negatives while preserving replay protection.
+  const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60; // 24 hours
   const authTimestamp = parseInt(authDate, 10);
   const currentTimestamp = Math.floor(Date.now() / 1000);
   

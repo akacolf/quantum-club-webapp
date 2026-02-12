@@ -1,7 +1,9 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
+import { doc, getDoc } from "firebase/firestore";
+import { dbfs } from "@/app/(firebase)/client";
 
 const TelegramSVG = memo(({ className }: { className?: string }) => (
         <svg
@@ -35,13 +37,47 @@ const TelegramSVG = memo(({ className }: { className?: string }) => (
 
 export default function StoryStats() {
   
-  const { rank } = useUserContext();
-      const [quantValue] = useState(() => {
-        if (typeof window !== "undefined") {
-          return sessionStorage.getItem("firstQuant");
-        }
-        return "0";
-      });
+  const { rank, telegramId } = useUserContext();
+  const [fetchedFirstQuant, setFetchedFirstQuant] = useState<string | null>(null);
+
+  const quantValue = useMemo(() => {
+    if (fetchedFirstQuant) return fetchedFirstQuant;
+    if (typeof window === "undefined") return "0";
+    return (
+      sessionStorage.getItem("firstQuant") ||
+      (telegramId ? localStorage.getItem(`firstQuant_${telegramId}`) : null) ||
+      "0"
+    );
+  }, [fetchedFirstQuant, telegramId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("firstQuant")) return;
+    if (!telegramId) return;
+
+    let cancelled = false;
+    const loadFirstQuant = async () => {
+      try {
+        const snapshot = await getDoc(doc(dbfs, `user/${telegramId}/miningData/values`));
+        if (!snapshot.exists() || cancelled) return;
+        const firstQuant = Number(snapshot.data()?.firstQuant || 0);
+        const formattedAmount = firstQuant.toLocaleString("en-US", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        });
+        setFetchedFirstQuant(formattedAmount);
+        sessionStorage.setItem("firstQuant", formattedAmount);
+        localStorage.setItem(`firstQuant_${telegramId}`, formattedAmount);
+      } catch (error) {
+        console.error("Failed to load story firstQuant:", error);
+      }
+    };
+
+    loadFirstQuant();
+    return () => {
+      cancelled = true;
+    };
+  }, [telegramId]);
 
     return (
         <div className="grid gap-4 px-4">

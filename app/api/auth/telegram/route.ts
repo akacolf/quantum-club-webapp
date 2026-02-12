@@ -1,6 +1,9 @@
 import admin from 'firebase-admin';
-import { NextRequest } from 'next/server';
-import { decrypt } from '@/utils/session';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import { decrypt, encrypt, SESSION_DURATION } from '@/utils/session';
+import { validateTelegramWebAppData } from '@/utils/telegramAuth';
+import { createCipheriv } from 'node:crypto';
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -12,32 +15,76 @@ if (!admin.apps.length) {
     }); 
 }
 
+function encryptTelegramId(telegramId: string): string {
+    const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64');
+    const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
+    const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
+    let encrypted = cipher.update(telegramId, 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+    return encrypted.replace(/['"]+/g, "").replace(/[^a-zA-Z0-9]/g, "");
+}
+
 export async function POST(req:NextRequest) {
     try {
-        // Validate session
+        let rawTelegramId: string | null = null;
+        let sessionSetFromInitData = false;
+
+        const body = await req.json().catch(() => ({}));
+        const initData = typeof body?.initData === "string" ? body.initData : "";
+
+        // 1) Preferred: existing session cookie
         const sessionCookie = req.cookies.get('session')?.value;
-        if (!sessionCookie) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+        if (sessionCookie) {
+            try {
+                const sessionData = await decrypt(sessionCookie);
+                rawTelegramId = String(sessionData.user.telegramId);
+            } catch {
+                rawTelegramId = null;
+            }
         }
 
-        let sessionData;
-        try {
-            sessionData = await decrypt(sessionCookie);
-        } catch {
-            return new Response(JSON.stringify({ error: 'Invalid session' }), { status: 401 });
+        // 2) Fallback: validate initData directly and bootstrap session
+        if (!rawTelegramId && initData) {
+            const validationResult = validateTelegramWebAppData(initData);
+            const user = validationResult.user as { id?: string | number };
+            if (!validationResult.validatedData || user?.id == null) {
+                return NextResponse.json(
+                    { error: validationResult.message || "Invalid Telegram initData" },
+                    { status: 401 }
+                );
+            }
+            rawTelegramId = String(user.id);
+
+            const expires = new Date(Date.now() + SESSION_DURATION);
+            const session = await encrypt({ user: { telegramId: rawTelegramId }, expires });
+            const cookieStore = await cookies();
+            cookieStore.set("session", session, {
+                expires,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+            });
+            sessionSetFromInitData = true;
         }
 
-        // Get the authenticated telegramId from session (source of truth)
-        const telegramId = String(sessionData.user.telegramId);
-        if (!telegramId) {
-            return new Response(JSON.stringify({ error: 'User not authenticated' }), { status: 401 });
+        if (!rawTelegramId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Create custom token using the validated telegramId from session
-        const customToken = await admin.auth().createCustomToken(telegramId);
-        return new Response(JSON.stringify({ customToken }), { status: 200 });
+        // Create token from validated raw Telegram ID and return deterministic QC ID
+        const customToken = await admin.auth().createCustomToken(rawTelegramId);
+        const telegramIdEncrypted = encryptTelegramId(rawTelegramId);
+
+        return NextResponse.json(
+            { customToken, telegramIdEncrypted, sessionSetFromInitData },
+            {
+                status: 200,
+                headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+            }
+        );
     } catch (error) {
         console.error('Error creating custom token:', error);
-        return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

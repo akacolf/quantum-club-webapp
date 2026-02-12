@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useAuth } from "@/app/(contexts)/auth";
-import { encryptData } from "@/app/actions/actions";
 import { UseRegisterAndAuth, lookupUserByEmail, LoadExistingUserByQCId } from "./registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
@@ -143,57 +142,47 @@ export default function Login() {
         const WebApp = window.Telegram.WebApp;
         WebApp.ready();
 
+        // Retry briefly if Telegram payload is not ready yet
+        let retries = 0;
+        while (
+          (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
+          retries < 20
+        ) {
+          await new Promise((r) => setTimeout(r, 100));
+          retries++;
+        }
+
         const initDataUnsafe = WebApp.initDataUnsafe;
-        if (!initDataUnsafe?.user?.id) {
-          // Retry briefly if data not ready
-          let retries = 0;
-          while (!WebApp.initDataUnsafe?.user?.id && retries < 15) {
-            await new Promise((r) => setTimeout(r, 100));
-            retries++;
-          }
-          if (!WebApp.initDataUnsafe?.user?.id) {
-            throw new Error("Telegram user data not available. Please try again.");
-          }
-        }
-
-        // Authenticate via WebApp initData FIRST to set session cookie
         const initData = WebApp.initData;
-        if (initData) {
-          const authRes = await fetch("/api/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
-          });
-          if (!authRes.ok) {
-            throw new Error("Telegram session authentication failed");
-          }
+        if (!initDataUnsafe?.user?.id || !initData) {
+          throw new Error(
+            "Telegram auth data is not available. Please reopen the app from Telegram and try again."
+          );
         }
-
-        const encryptedId = await encryptData(
-          WebApp.initDataUnsafe.user!.id.toString()
-        );
-        if (!encryptedId) {
-          throw new Error("Failed to encrypt Telegram ID");
-        }
-
-        const cleanData = encryptedId.toString();
-        const telegramIdEncrypted = cleanData
-          .replace(/['"]+/g, "")
-          .replace(/[^a-zA-Z0-9]/g, "");
-        const uid = String(telegramIdEncrypted);
 
         const responseAuth = await fetch("/api/auth/telegram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId: uid }),
+          body: JSON.stringify({ initData }),
         });
 
         if (!responseAuth.ok) {
-          const errorData = await responseAuth.text();
-          throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
+          const errorData = await responseAuth
+            .json()
+            .catch(() => ({ error: "Authentication failed" }));
+          throw new Error(
+            errorData.error ||
+              `Authentication failed (HTTP ${responseAuth.status})`
+          );
         }
 
-        const { customToken } = await responseAuth.json();
+        const { customToken, telegramIdEncrypted } = await responseAuth.json();
+        if (!customToken || !telegramIdEncrypted) {
+          throw new Error("Telegram authentication response is incomplete.");
+        }
+
+        // User is explicitly signing in now; persist session across reloads.
+        authContext?.setKeepLoggedIn(true);
         await authContext?.loginWithToken(customToken);
 
         const data = await UseRegisterAndAuth({

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,6 +9,8 @@ import Lottie from "lottie-react";
 import sparklesAnimation from "@/public/lottie/sparkles-lottie.json";
 import trophyAnimation from "@/public/lottie/trophy-lottie.json";
 import { Icon } from "@iconify/react";
+import { doc, getDoc } from "firebase/firestore";
+import { dbfs } from "@/app/(firebase)/client";
 
 const TelegramSVG = ({ className }: { className?: string }) => (
   <svg
@@ -39,21 +41,67 @@ const TelegramSVG = ({ className }: { className?: string }) => (
   </svg>
 );
 
+function normalizePositiveAmount(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const numeric = Number(trimmed.replace(/,/g, ""));
+  if (!Number.isNaN(numeric) && numeric <= 0) return null;
+  return trimmed;
+}
+
+function getCachedStoryAmount(telegramId: string | null): string | null {
+  if (typeof window === "undefined") return null;
+  return (
+    normalizePositiveAmount(sessionStorage.getItem("firstQuant")) ||
+    normalizePositiveAmount(
+      telegramId ? localStorage.getItem(`firstQuant_${telegramId}`) : null
+    )
+  );
+}
+
 const StoryContent = () => {
   useTelegramBackButton();
   const router = useRouter();
-  const { rank } = useUserContext();
-  const [quantValue, setQuantValue] = useState("0");
+  const { rank, telegramId } = useUserContext();
+  const [fetchedQuantValue, setFetchedQuantValue] = useState<string | null>(null);
   const [currentStory, setCurrentStory] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  const quantValue = useMemo(
+    () => fetchedQuantValue || getCachedStoryAmount(telegramId) || "0",
+    [fetchedQuantValue, telegramId]
+  );
+
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const val = sessionStorage.getItem("firstQuant");
-      if (val) setQuantValue(val);
-    }
-  }, []);
+    if (typeof window === "undefined") return;
+    if (getCachedStoryAmount(telegramId)) return;
+    if (!telegramId) return;
+
+    let cancelled = false;
+    const loadQuantFromFirestore = async () => {
+      try {
+        const snapshot = await getDoc(doc(dbfs, `user/${telegramId}/miningData/values`));
+        if (!snapshot.exists() || cancelled) return;
+        const firstQuantAmount = Number(snapshot.data()?.firstQuant || 0);
+        const formattedAmount = firstQuantAmount.toLocaleString("en-US", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        });
+        setFetchedQuantValue(formattedAmount);
+        sessionStorage.setItem("firstQuant", formattedAmount);
+        localStorage.setItem(`firstQuant_${telegramId}`, formattedAmount);
+      } catch (error) {
+        console.error("Failed to load story QNTM amount:", error);
+      }
+    };
+
+    loadQuantFromFirestore();
+    return () => {
+      cancelled = true;
+    };
+  }, [telegramId]);
 
   const stories = [
     {
@@ -112,7 +160,10 @@ const StoryContent = () => {
 
   useEffect(() => {
     if (progress >= 100) {
-      handleNext();
+      const timer = setTimeout(() => {
+        handleNext();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [progress, handleNext]);
 

@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/app/(contexts)/auth";
-import { encryptData } from "@/app/actions/actions";
 import { UseRegisterAndAuth } from "@/app/(login)/registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
@@ -104,52 +103,57 @@ export default function SignUp() {
       ) {
         const WebApp = window.Telegram.WebApp;
         WebApp.ready();
-        const initDataUnsafe = WebApp.initDataUnsafe;
 
-        if (initDataUnsafe?.user?.id) {
-          // Authenticate via WebApp initData FIRST to set session cookie
-          const initData = WebApp.initData;
-          if (initData) {
-            await fetch("/api/auth", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ initData }),
-            });
+        let retries = 0;
+        while (
+          (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
+          retries < 20
+        ) {
+          await new Promise((r) => setTimeout(r, 100));
+          retries++;
+        }
+
+        const initDataUnsafe = WebApp.initDataUnsafe;
+        const initData = WebApp.initData;
+        if (initDataUnsafe?.user?.id && initData) {
+          const authRes = await fetch("/api/auth/telegram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData }),
+          });
+
+          if (!authRes.ok) {
+            throw new Error("Telegram session authentication failed");
           }
 
-          const encryptedId = await encryptData(
-            initDataUnsafe.user.id.toString()
-          );
-          if (encryptedId) {
-            const cleanData = encryptedId.toString();
-            const telegramIdEncrypted = cleanData
-              .replace(/['"]+/g, "")
-              .replace(/[^a-zA-Z0-9]/g, "");
+          const { telegramIdEncrypted } = await authRes.json();
+          if (!telegramIdEncrypted) {
+            throw new Error("Failed to resolve Telegram ID");
+          }
 
-            // Store email in the user's Firestore profile
-            const data = await UseRegisterAndAuth({
-              telegramIdEncrypted,
-              initDataUnsafe,
-              email,
-            });
+          // Store email in the user's Firestore profile
+          const data = await UseRegisterAndAuth({
+            telegramIdEncrypted,
+            initDataUnsafe,
+            email,
+          });
 
-            if (data.status === "maintenance") {
-              router.replace("/maintenance");
-              return;
-            }
+          if (data.status === "maintenance") {
+            router.replace("/maintenance");
+            return;
+          }
 
-            if (data.status === "completed") {
-              setTelegramId(data.telegramId);
-              SetMainQuantAmount(data.MainQuantAmount);
-              setRank(data.rank);
-              setUserRank(data.userRank);
-              if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
-              setDaily(data.daily);
-              setUsername(data.username);
-              setWalletAddress(data.walletAddress);
-              setLastActiveTime(data.lastActiveTime);
-              setRemainingSolveToEarn(data.remainingSolveToEarn);
-            }
+          if (data.status === "completed") {
+            setTelegramId(data.telegramId);
+            SetMainQuantAmount(data.MainQuantAmount);
+            setRank(data.rank);
+            setUserRank(data.userRank);
+            if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
+            setDaily(data.daily);
+            setUsername(data.username);
+            setWalletAddress(data.walletAddress);
+            setLastActiveTime(data.lastActiveTime);
+            setRemainingSolveToEarn(data.remainingSolveToEarn);
           }
         }
       }
@@ -187,41 +191,40 @@ export default function SignUp() {
 
         // Wait for initDataUnsafe.user to be available (up to 3s)
         let retries = 0;
-        while (!WebApp.initDataUnsafe?.user?.id && retries < 30) {
+        while (
+          (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
+          retries < 30
+        ) {
           await new Promise((r) => setTimeout(r, 100));
           retries++;
         }
 
         const initDataUnsafe = WebApp.initDataUnsafe;
-        if (!initDataUnsafe?.user?.id) {
+        const initData = WebApp.initData;
+        if (!initDataUnsafe?.user?.id || !initData) {
           throw new Error("Telegram user data not available. Please try again.");
         }
 
-        // Authenticate via WebApp initData FIRST to set session cookie
-        const initData = WebApp.initData;
-        if (initData) {
-          const authRes = await fetch("/api/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
-          });
-          if (!authRes.ok) {
-            throw new Error("Telegram session authentication failed");
-          }
+        const responseAuth = await fetch("/api/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData }),
+        });
+
+        if (!responseAuth.ok) {
+          const errorData = await responseAuth
+            .json()
+            .catch(() => ({ error: "Authentication failed" }));
+          throw new Error(
+            errorData.error ||
+              `Authentication failed (HTTP ${responseAuth.status})`
+          );
         }
 
-        const encryptedId = await encryptData(
-          initDataUnsafe.user.id.toString()
-        );
-        if (!encryptedId) {
-          throw new Error("Failed to encrypt Telegram ID");
+        const { customToken, telegramIdEncrypted } = await responseAuth.json();
+        if (!customToken || !telegramIdEncrypted) {
+          throw new Error("Telegram authentication response is incomplete.");
         }
-
-        const cleanData = encryptedId.toString();
-        const telegramIdEncrypted = cleanData
-          .replace(/['"]+/g, "")
-          .replace(/[^a-zA-Z0-9]/g, "");
-        const uid = String(telegramIdEncrypted);
 
         // Check if this Telegram user already has an account
         const checkRes = await fetch("/api/check-existing-user", {
@@ -236,20 +239,8 @@ export default function SignUp() {
           return;
         }
 
-        const responseAuth = await fetch("/api/auth/telegram", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId: uid }),
-        });
-
-        if (!responseAuth.ok) {
-          const errorData = await responseAuth.text();
-          throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
-        }
-
         // Enable keepLoggedIn since user is actively signing up
         authContext?.setKeepLoggedIn(true);
-        const { customToken } = await responseAuth.json();
         await authContext?.loginWithToken(customToken);
 
         const data = await UseRegisterAndAuth({

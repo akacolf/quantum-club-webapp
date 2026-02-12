@@ -19,6 +19,8 @@ const LeaderboardContent = () => {
   const {
     leaderboardContext,
     setLeaderboardContext,
+    userRank,
+    setUserRank,
     setTotalUsers,
     setTotalQuant,
   } = useLeaderboardContext();
@@ -53,7 +55,8 @@ const LeaderboardContent = () => {
   useEffect(() => {
       const fetchData = async () => {
         try {
-          if (leaderboardContext.length === 0) {
+          const shouldRefresh = leaderboardContext.length === 0 || !userRank || userRank < 1;
+          if (shouldRefresh) {
             const userRankRef = doc(dbfs, `userRanks/${telegramId}`);
             const rankSnapshot = await getDoc(userRankRef);
             if (rankSnapshot.exists()) {
@@ -74,6 +77,10 @@ const LeaderboardContent = () => {
             }
             const data = await response.json();
             setLeaderboardContext(data.allValues);
+            if (typeof data.rank === "number") {
+              setUserRank(data.rank);
+              sessionStorage.setItem("userLeaderRank", String(data.rank));
+            }
             const totalquant: number = data.totalAmount;
             setTotalUsers(data.userCount);
             sessionStorage.setItem(
@@ -93,7 +100,7 @@ const LeaderboardContent = () => {
       };
 
       fetchData();
-  }, [formattedAmount, leaderboardContext, setLeaderboardContext, setTotalQuant, setTotalUsers, telegramId]);
+  }, [formattedAmount, leaderboardContext, setLeaderboardContext, setTotalQuant, setTotalUsers, setUserRank, telegramId, userRank]);
 
   return (
     pageLoading ? (

@@ -4,7 +4,6 @@ import { UseRegisterAndAuth } from "./registerAndAuth";
 import { useSafeArea } from "./safeArea";
 import Loader from "../(components)/Loader";
 import { useEffect } from "react";
-import { encryptData } from "@/app/actions/actions";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "../(contexts)/UserContext";
 import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
@@ -35,57 +34,37 @@ export default function TelegramLogin() {
         if (!WebApp) return;
         WebApp.ready();
         const initDataUnsafe = WebApp.initDataUnsafe;
-
-        if (!initDataUnsafe?.user?.id) {
-          if (isMounted) {
-            timeoutId = setTimeout(getData, 100);
-          }
-          return;
-        }
-
-        // Authenticate via WebApp initData FIRST to set session cookie
         const initData = WebApp.initData;
-        if (initData) {
-          const authRes = await fetch("/api/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
-          });
-          if (!authRes.ok) {
-            if (isMounted) {
-              timeoutId = setTimeout(getData, 100);
-            }
-            return;
-          }
-        }
 
-        const encrypedId = await encryptData(initDataUnsafe.user.id.toString());
-        if(!encrypedId) {
+        if (!initDataUnsafe?.user?.id || !initData) {
           if (isMounted) {
             timeoutId = setTimeout(getData, 100);
           }
           return;
         }
-        const cleanData = encrypedId.toString();
-        const telegramIdEncrypted = cleanData
-          .replace(/['"]+/g, "")
-          .replace(/[^a-zA-Z0-9]/g, "");
-        const uid = String(telegramIdEncrypted);
 
         const responseAuth = await fetch("/api/auth/telegram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId: uid }),
+          body: JSON.stringify({ initData }),
         });
 
         if (!responseAuth.ok) {
-          const errorData = await responseAuth.text();
-          throw new Error(`API Error: ${responseAuth.status} - ${errorData}`);
+          if (isMounted) {
+            timeoutId = setTimeout(getData, 100);
+          }
+          return;
         }
         if (!isMounted) return;
         // Enable keepLoggedIn for Telegram auto-login
         auth?.setKeepLoggedIn(true);
-        const { customToken } = await responseAuth.json();
+        const { customToken, telegramIdEncrypted } = await responseAuth.json();
+        if (!customToken || !telegramIdEncrypted) {
+          if (isMounted) {
+            timeoutId = setTimeout(getData, 100);
+          }
+          return;
+        }
         await auth?.loginWithToken(customToken);
         const data = await UseRegisterAndAuth({telegramIdEncrypted,initDataUnsafe});
         
