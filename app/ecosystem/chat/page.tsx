@@ -348,9 +348,9 @@ export default function QCChatListPage() {
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               Enter a QC username to start a direct conversation. The other person must have claimed a username in Wallet Settings.
             </p>
-            <div className="flex items-center gap-1 pt-0.5">
-              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
-              <span className="text-[10px] text-green-400">All chats are end-to-end encrypted</span>
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+              <span className="text-[10px] text-green-400 leading-none">All chats are end-to-end encrypted</span>
             </div>
           </div>
         )}

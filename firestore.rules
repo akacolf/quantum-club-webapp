@@ -141,6 +141,22 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
     
+    // QC Chat - end-to-end encrypted messaging
+    // Auth required; participant filtering is app-level (encrypted IDs ≠ Firebase UIDs)
+    // Message confidentiality enforced by AES-256-GCM E2E encryption
+    match /qc-chats/{chatId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false; // Chats cannot be deleted by clients
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if false; // Messages are immutable
+      }
+    }
+
     // QC Usernames - public read for lookups, write via Admin SDK only
     match /qcUsernames/{usernameId} {
       allow read: if true; // Anyone can check username availability / resolve
