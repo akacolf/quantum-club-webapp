@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   collection,
@@ -69,6 +70,71 @@ function formatLastTime(timestamp: Timestamp | null): string {
   if (hours < 24) return `${hours}h`;
   if (days < 7) return `${days}d`;
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function ChatListItem({
+  chat,
+  telegramId,
+  onNavigate,
+}: {
+  chat: ChatConversation;
+  telegramId: string;
+  onNavigate: (chatId: string) => void;
+}) {
+  const isSelfChat = chat.participants.length === 1 && chat.participants[0] === telegramId;
+  const otherParticipantId = chat.participants.find((p) => p !== telegramId) ?? null;
+  const photoUrl = useProfilePhoto(isSelfChat ? telegramId : otherParticipantId);
+
+  const displayName = (() => {
+    if (chat.isGroup && chat.groupName) return chat.groupName;
+    if (isSelfChat) return "Saved Messages";
+    if (otherParticipantId && chat.participantNames[otherParticipantId]) {
+      return chat.participantNames[otherParticipantId];
+    }
+    return "Unknown User";
+  })();
+
+  const initial = getInitials(displayName);
+  const avatarColor = getAvatarColor(displayName);
+  const isLastMsgByMe = chat.lastMessageBy === telegramId;
+
+  return (
+    <button
+      onClick={() => onNavigate(chat.id)}
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left"
+    >
+      <div className="relative shrink-0">
+        <Avatar className="h-12 w-12">
+          {photoUrl ? <AvatarImage src={photoUrl} /> : null}
+          <AvatarFallback className={`${avatarColor} text-white text-sm font-semibold`}>
+            {initial}
+          </AvatarFallback>
+        </Avatar>
+        {chat.isGroup && (
+          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
+            <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-foreground truncate">
+            {displayName}
+          </span>
+          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+            {formatLastTime(chat.lastMessageAt)}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
+          {isLastMsgByMe && (
+            <span className="text-foreground/50">You: </span>
+          )}
+          {chat.lastMessage || "No messages yet"}
+        </p>
+      </div>
+    </button>
+  );
 }
 
 export default function QCChatListPage() {
@@ -393,50 +459,14 @@ export default function QCChatListPage() {
           </div>
         ) : (
           <div className="divide-y divide-border/30">
-            {filteredConversations.map((chat) => {
-              const displayName = getChatDisplayName(chat);
-              const initial = getInitials(displayName);
-              const avatarColor = getAvatarColor(displayName);
-              const isLastMsgByMe = chat.lastMessageBy === telegramId;
-
-              return (
-                <button
-                  key={chat.id}
-                  onClick={() => router.push(`/ecosystem/chat/${chat.id}`)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left"
-                >
-                  <div className="relative shrink-0">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className={`${avatarColor} text-white text-sm font-semibold`}>
-                        {initial}
-                      </AvatarFallback>
-                    </Avatar>
-                    {chat.isGroup && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
-                        <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground truncate">
-                        {displayName}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
-                        {formatLastTime(chat.lastMessageAt)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
-                      {isLastMsgByMe && (
-                        <span className="text-foreground/50">You: </span>
-                      )}
-                      {chat.lastMessage || "No messages yet"}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
+            {filteredConversations.map((chat) => (
+              <ChatListItem
+                key={chat.id}
+                chat={chat}
+                telegramId={telegramId || ""}
+                onNavigate={(chatId) => router.push(`/ecosystem/chat/${chatId}`)}
+              />
+            ))}
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { getApps, initializeApp } from "firebase/app";
 import { Auth, getAuth } from 'firebase/auth';
-import { Firestore, getFirestore } from "firebase/firestore";
+import { Firestore, initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { Database, getDatabase } from "firebase/database";
 import { getAnalytics, Analytics } from "firebase/analytics";
 import { getPerformance, FirebasePerformance } from "firebase/performance";
@@ -27,7 +27,9 @@ let perf: FirebasePerformance | undefined;
 if (!currentApps.length) {
   const app = initializeApp(firebaseConfig);
   auth = getAuth(app);
-  dbfs = getFirestore(app);
+  dbfs = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  });
   database = getDatabase(app);
   storage = getStorage(app);
   analytics = typeof window !== "undefined" ? getAnalytics(app) : undefined;

@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   encryptMessage,
@@ -108,6 +109,11 @@ export default function ChatConversationPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isAtBottomRef = useRef(true);
+
+  // Get the other participant's telegramId for profile photo
+  const otherParticipantId = chatMeta?.participants.find((p) => p !== telegramId) ?? null;
+  const myPhoto = useProfilePhoto(telegramId);
+  const otherPhoto = useProfilePhoto(otherParticipantId);
 
   // Track scroll position
   const handleScroll = useCallback(() => {
@@ -305,6 +311,9 @@ export default function ChatConversationPage() {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         <div className="relative shrink-0">
           <Avatar className="h-10 w-10">
+            {otherPhoto || (isSelfChat && myPhoto) ? (
+              <AvatarImage src={(isSelfChat ? myPhoto : otherPhoto) || undefined} />
+            ) : null}
             <AvatarFallback className={`${isSelfChat ? "bg-primary" : headerAvatarColor} text-white text-xs font-semibold`}>
               {isSelfChat ? (
                 <Icon icon="solar:bookmark-bold" className="w-5 h-5" />
@@ -325,10 +334,10 @@ export default function ChatConversationPage() {
             {isSelfChat ? "Saved Messages" : `@${headerName}`}
           </h1>
           <div className="flex items-center gap-1">
-            <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
-            <p className="text-[11px] text-green-400">
+            <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+            <span className="text-[11px] text-green-400 leading-none">
               {isSelfChat ? "Encrypted personal notes" : "End-to-end encrypted"}
-            </p>
+            </span>
           </div>
         </div>
       </div>
@@ -343,12 +352,12 @@ export default function ChatConversationPage() {
         {!isLoading && (
           <div className="flex justify-center py-3 pb-1">
             <div className="bg-muted/50 rounded-full px-3 py-1 flex items-center gap-1.5">
-              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-muted-foreground" />
-              <p className="text-[10px] text-muted-foreground">
+              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-muted-foreground shrink-0" />
+              <span className="text-[10px] text-muted-foreground leading-none">
                 {isSelfChat
                   ? "Your saved messages are encrypted. Only you can read them."
                   : `Messages are end-to-end encrypted. Only you and @${headerName} can read them.`}
-              </p>
+              </span>
             </div>
           </div>
         )}
@@ -389,12 +398,26 @@ export default function ChatConversationPage() {
                 )}
 
                 <div
-                  className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} ${
+                  className={`flex items-end gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
                     consecutive ? "mt-0.5" : "mt-2.5"
                   }`}
                 >
+                  {/* Sender avatar for received messages */}
+                  {!isOwnMessage && !consecutive && (
+                    <Avatar className="h-7 w-7 shrink-0">
+                      {(() => {
+                        const senderPhoto = msg.senderId === telegramId ? myPhoto : otherPhoto;
+                        return senderPhoto ? <AvatarImage src={senderPhoto} /> : null;
+                      })()}
+                      <AvatarFallback className={`${getAvatarColor(msg.senderName)} text-white text-[10px] font-semibold`}>
+                        {getInitials(msg.senderName)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  {!isOwnMessage && consecutive && <div className="w-7 shrink-0" />}
+
                   <div
-                    className={`max-w-[80%] ${
+                    className={`max-w-[75%] ${
                       isOwnMessage
                         ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
                         : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
@@ -427,7 +450,7 @@ export default function ChatConversationPage() {
       </div>
 
       {/* Message Input */}
-      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5 pb-safe">
+      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5" style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}>
         {!telegramId ? (
           <div className="flex items-center justify-center py-2">
             <p className="text-xs text-muted-foreground">Sign in to chat</p>
@@ -454,7 +477,7 @@ export default function ChatConversationPage() {
               {isSending ? (
                 <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
-                <Icon icon="solar:plain-bold" className="w-5 h-5 text-primary-foreground -rotate-45" />
+                <Icon icon="material-symbols:send-rounded" className="w-5 h-5 text-primary-foreground" />
               )}
             </button>
           </div>
