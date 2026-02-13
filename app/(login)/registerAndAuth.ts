@@ -127,10 +127,19 @@ export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
       : null;
     result.walletAddress = savedWalletAddress || "";
 
-    const savedQcUsername = typeof window !== "undefined"
-      ? localStorage.getItem(`qcUsername_${telegramIdEncrypted}`)
-      : null;
-    result.qcUsername = savedQcUsername || "";
+    // Load qcUsername from Firestore first, then fallback to localStorage
+    const firestoreQcUsername = userSnapshot.exists() ? userSnapshot.data()?.qcUsername : null;
+    if (firestoreQcUsername) {
+      result.qcUsername = firestoreQcUsername;
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`qcUsername_${telegramIdEncrypted}`, firestoreQcUsername);
+      }
+    } else {
+      const savedQcUsername = typeof window !== "undefined"
+        ? localStorage.getItem(`qcUsername_${telegramIdEncrypted}`)
+        : null;
+      result.qcUsername = savedQcUsername || "";
+    }
 
     result.status = "completed";
   } catch (error) {
@@ -412,6 +421,13 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
           }
           if (Object.keys(updates).length > 0) {
             await updateDoc(userRef, updates);
+          }
+          // Load qcUsername from Firestore for existing users
+          if (userData2?.qcUsername) {
+            userData.qcUsername = userData2.qcUsername;
+            if (typeof window !== "undefined") {
+              localStorage.setItem(`qcUsername_${telegramIdEncrypted}`, userData2.qcUsername);
+            }
           }
         }
 

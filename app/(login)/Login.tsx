@@ -190,30 +190,43 @@ export default function Login() {
           initDataUnsafe: WebApp.initDataUnsafe,
         });
 
-        if (data.status === "maintenance") {
+        // Retry up to 2 more times on error with backoff
+        let finalData = data;
+        if (data.status === "error") {
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            await new Promise((r) => setTimeout(r, 1500 * attempt));
+            finalData = await UseRegisterAndAuth({
+              telegramIdEncrypted,
+              initDataUnsafe: WebApp.initDataUnsafe,
+            });
+            if (finalData.status !== "error") break;
+          }
+        }
+
+        if (finalData.status === "maintenance") {
           router.replace("/maintenance");
           return;
         }
 
-        if (data.status === "error") {
+        if (finalData.status === "error") {
           throw new Error("Failed to register/authenticate");
         }
 
-        if (data.status === "completed") {
-          setTelegramId(data.telegramId);
-          SetMainQuantAmount(data.MainQuantAmount);
-          setRank(data.rank);
-          setUserRank(data.userRank);
-          setDaily(data.daily);
-          setUsername(data.username);
-          setWalletAddress(data.walletAddress);
-          if (data.qcUsername) {
-            setQcUsername(data.qcUsername);
-            localStorage.setItem(`qcUsername_${data.telegramId}`, data.qcUsername);
+        if (finalData.status === "completed") {
+          setTelegramId(finalData.telegramId);
+          SetMainQuantAmount(finalData.MainQuantAmount);
+          setRank(finalData.rank);
+          setUserRank(finalData.userRank);
+          setDaily(finalData.daily);
+          setUsername(finalData.username);
+          setWalletAddress(finalData.walletAddress);
+          if (finalData.qcUsername) {
+            setQcUsername(finalData.qcUsername);
+            localStorage.setItem(`qcUsername_${finalData.telegramId}`, finalData.qcUsername);
           }
-          if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
-          setLastActiveTime(data.lastActiveTime);
-          setRemainingSolveToEarn(data.remainingSolveToEarn);
+          if (finalData.userRank != null) sessionStorage.setItem("userLeaderRank", String(finalData.userRank));
+          setLastActiveTime(finalData.lastActiveTime);
+          setRemainingSolveToEarn(finalData.remainingSolveToEarn);
           router.replace("/home");
         }
       } else {

@@ -37,7 +37,7 @@ export default function BetaWaitlistPage() {
                         <Icon icon="solar:users-group-rounded-bold" className="w-6 h-6 text-amber-400" />
                         <div>
                             <span className="text-amber-400 font-semibold text-lg">Beta is Currently Full</span>
-                            <p className="text-sm text-muted-foreground">All 100 spots have been claimed</p>
+                            <p className="text-sm text-muted-foreground">All 500 spots have been claimed</p>
                         </div>
                     </CardContent>
                 </Card>

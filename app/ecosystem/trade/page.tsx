@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 // Lazy load Lottie (large library)
 const Lottie = dynamic(() => import("lottie-react"), {
@@ -245,6 +246,7 @@ function EmptyState({ message }: { message: string }) {
 
 export default function TradePage() {
     const router = useRouter();
+    useTelegramBackButton("/home");
     const { trendingTokens, newTokens, graduatedTokens, searchResults, isLoading, searchTokens, clearSearch, positions, myTokens, retryDeployToken } = useTrading();
     const { walletAddress } = useWallet();
     const [searchQuery, setSearchQuery] = useState("");

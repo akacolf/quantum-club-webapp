@@ -42,7 +42,7 @@ export async function GET() {
         }
 
         const currentCount = config.currentCount || 0;
-        const maxUsers = config.maxUsers || 100;
+        const maxUsers = config.maxUsers || 500;
 
         if (currentCount >= maxUsers) {
             return NextResponse.json({ 
@@ -97,7 +97,7 @@ export async function POST() {
         if (!configDoc.exists) {
             // Create default config and grant access
             await configRef.set({
-                maxUsers: 100,
+                maxUsers: 500,
                 currentCount: 1,
                 enabled: true,
                 createdAt: FieldValue.serverTimestamp()
@@ -124,7 +124,7 @@ export async function POST() {
         }
 
         const currentCount = config.currentCount || 0;
-        const maxUsers = config.maxUsers || 100;
+        const maxUsers = config.maxUsers || 500;
 
         if (currentCount >= maxUsers) {
             return NextResponse.json(

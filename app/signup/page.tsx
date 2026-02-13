@@ -92,6 +92,51 @@ export default function SignUp() {
         return;
       }
 
+      // Also check if the Telegram user already has an account (prevent duplicate via email)
+      if (
+        typeof window !== "undefined" &&
+        window.Telegram &&
+        window.Telegram.WebApp
+      ) {
+        const WebApp = window.Telegram.WebApp;
+        WebApp.ready();
+
+        let retries = 0;
+        while (
+          (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
+          retries < 20
+        ) {
+          await new Promise((r) => setTimeout(r, 100));
+          retries++;
+        }
+
+        const initData = WebApp.initData;
+        if (initData) {
+          const authRes = await fetch("/api/auth/telegram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData }),
+          });
+
+          if (authRes.ok) {
+            const { telegramIdEncrypted } = await authRes.json();
+            if (telegramIdEncrypted) {
+              const tgCheckRes = await fetch("/api/check-existing-user", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ qcId: telegramIdEncrypted }),
+              });
+              const { exists: tgExists } = await tgCheckRes.json();
+              if (tgExists) {
+                setError("You already have an account. Please sign in instead.");
+                setIsLoading(false);
+                return;
+              }
+            }
+          }
+        }
+      }
+
       // Create Firebase account with email verification
       await authContext?.signUpWithEmail(email, password);
 
@@ -248,26 +293,39 @@ export default function SignUp() {
           initDataUnsafe,
         });
 
-        if (data.status === "maintenance") {
+        // Retry up to 2 more times on error with backoff
+        let finalData = data;
+        if (data.status === "error") {
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            await new Promise((r) => setTimeout(r, 1500 * attempt));
+            finalData = await UseRegisterAndAuth({
+              telegramIdEncrypted,
+              initDataUnsafe,
+            });
+            if (finalData.status !== "error") break;
+          }
+        }
+
+        if (finalData.status === "maintenance") {
           router.replace("/maintenance");
           return;
         }
 
-        if (data.status === "error") {
+        if (finalData.status === "error") {
           throw new Error("Failed to register/authenticate");
         }
 
-        if (data.status === "completed") {
-          setTelegramId(data.telegramId);
-          SetMainQuantAmount(data.MainQuantAmount);
-          setRank(data.rank);
-          setUserRank(data.userRank);
-          if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
-          setDaily(data.daily);
-          setUsername(data.username);
-          setWalletAddress(data.walletAddress);
-          setLastActiveTime(data.lastActiveTime);
-          setRemainingSolveToEarn(data.remainingSolveToEarn);
+        if (finalData.status === "completed") {
+          setTelegramId(finalData.telegramId);
+          SetMainQuantAmount(finalData.MainQuantAmount);
+          setRank(finalData.rank);
+          setUserRank(finalData.userRank);
+          if (finalData.userRank != null) sessionStorage.setItem("userLeaderRank", String(finalData.userRank));
+          setDaily(finalData.daily);
+          setUsername(finalData.username);
+          setWalletAddress(finalData.walletAddress);
+          setLastActiveTime(finalData.lastActiveTime);
+          setRemainingSolveToEarn(finalData.remainingSolveToEarn);
           router.replace("/home");
         }
       } else {

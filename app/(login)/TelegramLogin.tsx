@@ -26,6 +26,12 @@ export default function TelegramLogin() {
   useEffect(()=>{
     let isMounted = true;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let authRetries = 0;
+    let registerRetries = 0;
+    const MAX_AUTH_RETRIES = 3;
+    const MAX_REGISTER_RETRIES = 3;
+    
+    const getBackoffDelay = (attempt: number) => Math.min(1000 * Math.pow(2, attempt), 8000);
     
     const getData = async()=>{
       if (!isMounted) return;
@@ -50,8 +56,14 @@ export default function TelegramLogin() {
         });
 
         if (!responseAuth.ok) {
+          authRetries++;
+          if (authRetries >= MAX_AUTH_RETRIES) {
+            console.error("Telegram auth failed after max retries, redirecting to login");
+            if (isMounted) router.replace('/');
+            return;
+          }
           if (isMounted) {
-            timeoutId = setTimeout(getData, 100);
+            timeoutId = setTimeout(getData, getBackoffDelay(authRetries));
           }
           return;
         }
@@ -60,8 +72,14 @@ export default function TelegramLogin() {
         auth?.setKeepLoggedIn(true);
         const { customToken, telegramIdEncrypted } = await responseAuth.json();
         if (!customToken || !telegramIdEncrypted) {
+          authRetries++;
+          if (authRetries >= MAX_AUTH_RETRIES) {
+            console.error("Telegram auth incomplete after max retries, redirecting to login");
+            if (isMounted) router.replace('/');
+            return;
+          }
           if (isMounted) {
-            timeoutId = setTimeout(getData, 100);
+            timeoutId = setTimeout(getData, getBackoffDelay(authRetries));
           }
           return;
         }
@@ -75,7 +93,15 @@ export default function TelegramLogin() {
           return;
          }
          if(data.status ==="error"){
-          timeoutId = setTimeout(getData, 100);
+          registerRetries++;
+          if (registerRetries >= MAX_REGISTER_RETRIES) {
+            console.error("Registration failed after max retries, redirecting to login");
+            if (isMounted) router.replace('/');
+            return;
+          }
+          if (isMounted) {
+            timeoutId = setTimeout(getData, getBackoffDelay(registerRetries));
+          }
           return;
          }
          if(data.status ==="completed"){
