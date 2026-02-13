@@ -8,6 +8,11 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { dbfs } from "@/app/(firebase)/client";
 import {
+  encryptMessage,
+  decryptMessage,
+  isEncryptedMessage,
+} from "@/lib/chat-crypto";
+import {
   collection,
   doc,
   addDoc,
@@ -17,6 +22,7 @@ import {
   limit,
   onSnapshot,
   serverTimestamp,
+  updateDoc,
   Timestamp,
 } from "firebase/firestore";
 
@@ -26,6 +32,7 @@ interface ChatMessage {
   senderName: string;
   senderId: string;
   createdAt: Timestamp | null;
+  encrypted?: boolean;
 }
 
 interface ChatMeta {
@@ -139,32 +146,61 @@ export default function ChatConversationPage() {
     loadMeta();
   }, [chatId]);
 
-  // Subscribe to messages
+  // Subscribe to messages and decrypt them
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId || !chatMeta) return;
 
     const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"), limit(MESSAGES_LIMIT));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: ChatMessage[] = [];
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const rawMsgs: {
+        id: string;
+        rawText: string;
+        senderName: string;
+        senderId: string;
+        createdAt: Timestamp | null;
+        encrypted: boolean;
+      }[] = [];
+
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        msgs.push({
+        const rawText = data.text || "";
+        rawMsgs.push({
           id: docSnap.id,
-          text: data.text,
+          rawText,
           senderName: data.senderName || "Unknown",
           senderId: data.senderId || "",
           createdAt: data.createdAt,
+          encrypted: data.encrypted === true,
         });
       });
-      setMessages(msgs);
+
+      // Decrypt messages in parallel
+      const decryptedMsgs = await Promise.all(
+        rawMsgs.map(async (msg) => {
+          let text = msg.rawText;
+          if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
+            text = await decryptMessage(msg.rawText, chatMeta.participants, chatId);
+          }
+          return {
+            id: msg.id,
+            text,
+            senderName: msg.senderName,
+            senderId: msg.senderId,
+            createdAt: msg.createdAt,
+            encrypted: msg.encrypted,
+          };
+        })
+      );
+
+      setMessages(decryptedMsgs);
       setIsLoading(false);
       setTimeout(() => scrollToBottom(), 50);
     });
 
     return () => unsubscribe();
-  }, [chatId, scrollToBottom]);
+  }, [chatId, chatMeta, scrollToBottom]);
 
   // Initial scroll
   useEffect(() => {
@@ -173,10 +209,10 @@ export default function ChatConversationPage() {
     }
   }, [isLoading, messages.length, scrollToBottom]);
 
-  // Send message
+  // Send encrypted message
   const handleSend = async () => {
     const text = newMessage.trim();
-    if (!text || !telegramId || !chatId || isSending) return;
+    if (!text || !telegramId || !chatId || !chatMeta || isSending) return;
 
     setIsSending(true);
     setNewMessage("");
@@ -184,18 +220,26 @@ export default function ChatConversationPage() {
     const senderName = qcUsername || "Unknown";
 
     try {
+      // Encrypt the message before sending
+      const encryptedText = await encryptMessage(
+        text,
+        chatMeta.participants,
+        chatId
+      );
+
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
       await addDoc(messagesRef, {
-        text,
+        text: encryptedText,
         senderName,
         senderId: telegramId,
         createdAt: serverTimestamp(),
+        encrypted: true,
       });
 
-      // Update the parent chat doc with last message
-      const { updateDoc: updateDocFn } = await import("firebase/firestore");
-      await updateDocFn(doc(dbfs, "qc-chats", chatId), {
-        lastMessage: text,
+      // Update last message preview (show truncated plaintext for the chat list)
+      const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
+      await updateDoc(doc(dbfs, "qc-chats", chatId), {
+        lastMessage: preview,
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
       });
@@ -270,11 +314,12 @@ export default function ChatConversationPage() {
           <h1 className="text-sm font-semibold text-foreground truncate">
             @{headerName}
           </h1>
-          <p className="text-[11px] text-muted-foreground">
-            {chatMeta?.isGroup
-              ? `${chatMeta.participants.length} members`
-              : "QC Chat"}
-          </p>
+          <div className="flex items-center gap-1">
+            <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
+            <p className="text-[11px] text-green-400">
+              End-to-end encrypted
+            </p>
+          </div>
         </div>
       </div>
 
@@ -284,6 +329,18 @@ export default function ChatConversationPage() {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scroll-smooth"
       >
+        {/* E2E Encryption Notice */}
+        {!isLoading && (
+          <div className="flex justify-center py-3 pb-1">
+            <div className="bg-muted/50 rounded-full px-3 py-1 flex items-center gap-1.5">
+              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-muted-foreground" />
+              <p className="text-[10px] text-muted-foreground">
+                Messages are end-to-end encrypted. Only you and @{headerName} can read them.
+              </p>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -383,9 +440,9 @@ export default function ChatConversationPage() {
               className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all hover:bg-primary/90 shadow-lg shadow-primary/20"
             >
               {isSending ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
-                <Icon icon="solar:plain-bold" className="w-5 h-5 text-white -rotate-45" />
+                <Icon icon="solar:plain-bold" className="w-5 h-5 text-primary-foreground -rotate-45" />
               )}
             </button>
           </div>

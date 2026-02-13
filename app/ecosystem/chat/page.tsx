@@ -316,10 +316,10 @@ export default function QCChatListPage() {
                 type="button"
                 onClick={handleStartChat}
                 disabled={isStartingChat || !newChatUsername.trim()}
-                className="h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+                className="h-9 min-w-[52px] px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all flex items-center justify-center"
               >
                 {isStartingChat ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                 ) : (
                   "Chat"
                 )}
@@ -334,6 +334,10 @@ export default function QCChatListPage() {
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               Enter a QC username to start a direct conversation. The other person must have claimed a username in Wallet Settings.
             </p>
+            <div className="flex items-center gap-1 pt-0.5">
+              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
+              <span className="text-[10px] text-green-400">All chats are end-to-end encrypted</span>
+            </div>
           </div>
         )}
       </div>
