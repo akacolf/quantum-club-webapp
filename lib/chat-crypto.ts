@@ -122,7 +122,7 @@ export async function decryptMessage(
 
     return new TextDecoder().decode(decrypted);
   } catch {
-    return "⚠️ Unable to decrypt message";
+    return "Unable to decrypt message";
   }
 }
 
