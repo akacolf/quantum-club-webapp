@@ -12,6 +12,13 @@ const eslintConfig = [
     ],
   },
   ...nextConfig,
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/purity": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

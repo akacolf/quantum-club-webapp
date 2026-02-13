@@ -10,7 +10,10 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   collection,
+  doc,
   query,
+  setDoc,
+  serverTimestamp,
   where,
   orderBy,
   onSnapshot,
@@ -73,6 +76,10 @@ export default function QCChatListPage() {
   const { telegramId, qcUsername } = useUserContext();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [newChatUsername, setNewChatUsername] = useState("");
+  const [showNewChatForm, setShowNewChatForm] = useState(false);
+  const [isStartingChat, setIsStartingChat] = useState(false);
+  const [newChatError, setNewChatError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Subscribe to user's conversations
@@ -135,6 +142,102 @@ export default function QCChatListPage() {
     return displayName.includes(searchQuery.toLowerCase());
   });
 
+  const handleStartChat = async () => {
+    const normalizedUsername = newChatUsername.trim().replace(/^@+/, "").toLowerCase();
+
+    if (!telegramId) {
+      setNewChatError("Please sign in to start a chat.");
+      return;
+    }
+
+    if (!normalizedUsername) {
+      setNewChatError("Enter a QC username.");
+      return;
+    }
+
+    setIsStartingChat(true);
+    setNewChatError(null);
+
+    try {
+      const resolveRes = await fetch(
+        `/api/qc-username?username=${encodeURIComponent(normalizedUsername)}`,
+        { cache: "no-store" }
+      );
+      const resolveData = await resolveRes.json().catch(() => ({}));
+
+      if (!resolveRes.ok || !resolveData?.resolved || !resolveData?.owner) {
+        setNewChatError("Username not found.");
+        return;
+      }
+
+      const otherUserId = String(resolveData.owner);
+      if (otherUserId === telegramId) {
+        setNewChatError("You can’t start a chat with yourself.");
+        return;
+      }
+
+      const existingDirectChat = conversations.find(
+        (chat) =>
+          !chat.isGroup &&
+          chat.participants.length === 2 &&
+          chat.participants.includes(telegramId) &&
+          chat.participants.includes(otherUserId)
+      );
+
+      if (existingDirectChat) {
+        setShowNewChatForm(false);
+        setNewChatUsername("");
+        router.push(`/ecosystem/chat/${existingDirectChat.id}`);
+        return;
+      }
+
+      let otherDisplayName = normalizedUsername;
+      try {
+        const profileRes = await fetch(
+          `/api/qc-username?qcId=${encodeURIComponent(otherUserId)}`,
+          { cache: "no-store" }
+        );
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData?.username && typeof profileData.username === "string") {
+            otherDisplayName = profileData.username.replace(/^@+/, "").trim() || otherDisplayName;
+          }
+        }
+      } catch {
+        // Fallback to normalized username if lookup fails.
+      }
+
+      const selfDisplayName = qcUsername?.replace(/^@+/, "").trim() || "Unknown";
+      const chatId = [telegramId, otherUserId].sort().join("_");
+
+      await setDoc(
+        doc(dbfs, "qc-chats", chatId),
+        {
+          participants: [telegramId, otherUserId],
+          participantNames: {
+            [telegramId]: selfDisplayName,
+            [otherUserId]: otherDisplayName,
+          },
+          isGroup: false,
+          lastMessage: "",
+          lastMessageBy: "",
+          lastMessageAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setShowNewChatForm(false);
+      setNewChatUsername("");
+      router.push(`/ecosystem/chat/${chatId}`);
+    } catch (error) {
+      console.error("Failed to start direct chat:", error);
+      setNewChatError("Could not start chat. Please try again.");
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100dvh-70px)] bg-background">
       {/* Header */}
@@ -153,6 +256,19 @@ export default function QCChatListPage() {
               )}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowNewChatForm((prev) => !prev);
+              setNewChatError(null);
+            }}
+            disabled={!telegramId}
+            className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+            aria-label="Start new chat"
+            title="Start new chat"
+          >
+            <Icon icon="lucide:plus" className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Search */}
@@ -168,6 +284,40 @@ export default function QCChatListPage() {
             className="pl-9 h-9 rounded-xl bg-muted/50 border-border/50 text-sm"
           />
         </div>
+
+        {showNewChatForm && (
+          <div className="mt-3 p-3 rounded-xl border border-border/60 bg-card/60 space-y-2">
+            <div className="flex gap-2">
+              <Input
+                value={newChatUsername}
+                onChange={(e) => setNewChatUsername(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleStartChat();
+                  }
+                }}
+                placeholder="Enter QC username (e.g. @alice)"
+                className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
+                disabled={isStartingChat}
+              />
+              <button
+                type="button"
+                onClick={handleStartChat}
+                disabled={isStartingChat}
+                className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isStartingChat ? "Starting..." : "Start"}
+              </button>
+            </div>
+            {newChatError && (
+              <p className="text-[11px] text-red-400">{newChatError}</p>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Search filters existing chats. Use + to start a new direct chat by QC username.
+            </p>
+          </div>
+        )}
       </div>
 
       <Separator className="opacity-50" />
