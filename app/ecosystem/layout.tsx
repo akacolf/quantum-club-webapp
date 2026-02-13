@@ -4,6 +4,8 @@ import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import EcosystemNavigation from "./(navigation)/EcosystemNavigation";
 import Loader from "@/app/(components)/Loader";
+import { useUserContext } from "@/app/(contexts)/UserContext";
+import { usePresence } from "@/app/(hooks)/usePresence";
 
 // Track client-side mount without triggering effect lint warnings
 const emptySubscribe = () => () => {};
@@ -16,7 +18,11 @@ export default function EcosystemLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const { telegramId } = useUserContext();
   const isMounted = useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
+
+  // Track user presence (online/offline) for the ecosystem
+  usePresence(telegramId);
 
   // Telegram back button navigates to home
   useEffect(() => {

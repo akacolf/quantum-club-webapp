@@ -157,6 +157,12 @@ service cloud.firestore {
       }
     }
 
+    // QC Presence - user online/offline status
+    match /qc-presence/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
     // QC Usernames - public read for lookups, write via Admin SDK only
     match /qcUsernames/{usernameId} {
       allow read: if true; // Anyone can check username availability / resolve

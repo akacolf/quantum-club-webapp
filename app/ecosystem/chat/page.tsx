@@ -6,9 +6,11 @@ import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useUserPresence } from "@/app/(hooks)/usePresence";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   collection,
@@ -39,6 +41,7 @@ interface ChatConversation {
   groupName?: string;
   joinCode?: string;
   memberCount?: number;
+  unreadCount?: number;
 }
 
 function getInitials(name: string): string {
@@ -99,6 +102,9 @@ function ChatListItem({
   const photoUrl = useProfilePhoto(
     chat.isGroup || chat.isGlobal ? null : isSelfChat ? telegramId : otherParticipantId
   );
+  const otherPresence = useUserPresence(
+    !chat.isGroup && !chat.isGlobal && !isSelfChat ? otherParticipantId : null
+  );
 
   const displayName = (() => {
     if (chat.isGlobal) return "QC Global";
@@ -113,6 +119,22 @@ function ChatListItem({
   const initial = getInitials(displayName);
   const avatarColor = getAvatarColor(displayName);
   const isLastMsgByMe = chat.lastMessageBy === telegramId;
+  const unread = chat.unreadCount || 0;
+
+  // Show sender's own preview from localStorage, others see "Encrypted message"
+  const previewText = (() => {
+    if (!chat.lastMessage) return "No messages yet";
+    if (chat.lastMessage === "Encrypted message" || chat.lastMessage === "🔒 Encrypted message") {
+      if (isLastMsgByMe) {
+        try {
+          const cached = localStorage.getItem(`qc-preview-${chat.id}`);
+          if (cached) return cached;
+        } catch {}
+      }
+      return "Encrypted message";
+    }
+    return chat.lastMessage;
+  })();
 
   return (
     <button
@@ -138,7 +160,11 @@ function ChatListItem({
             </AvatarFallback>
           )}
         </Avatar>
-        {(chat.isGroup || chat.isGlobal) && !chat.isGlobal && (
+        {/* Online indicator dot for DMs */}
+        {!chat.isGroup && !chat.isGlobal && !isSelfChat && otherPresence?.isOnline && (
+          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-card" />
+        )}
+        {chat.isGroup && !chat.isGlobal && (
           <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
             <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
           </div>
@@ -155,9 +181,16 @@ function ChatListItem({
               <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
-            {formatLastTime(chat.lastMessageAt)}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+            <span className="text-[10px] text-muted-foreground">
+              {formatLastTime(chat.lastMessageAt)}
+            </span>
+            {unread > 0 && (
+              <Badge className="h-5 min-w-5 px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground border-0 flex items-center justify-center">
+                {unread > 99 ? "99+" : unread}
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           {(chat.isGroup || chat.isGlobal) && chat.memberCount && (
@@ -165,11 +198,11 @@ function ChatListItem({
               {chat.memberCount} members ·{" "}
             </span>
           )}
-          <p className="text-xs text-muted-foreground truncate leading-relaxed">
+          <p className={`text-xs truncate leading-relaxed ${unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
             {isLastMsgByMe && (
               <span className="text-foreground/50">You: </span>
             )}
-            {chat.lastMessage || "No messages yet"}
+            {previewText}
           </p>
         </div>
       </div>
@@ -224,11 +257,17 @@ export default function QCChatListPage() {
         });
       } else {
         const data = globalSnap.data();
+        const updates: Record<string, unknown> = {};
         if (!data.participants?.includes(telegramId)) {
-          await updateDoc(globalRef, {
-            participants: arrayUnion(telegramId),
-            [`participantNames.${telegramId}`]: selfName,
-          });
+          updates.participants = arrayUnion(telegramId);
+          updates[`participantNames.${telegramId}`] = selfName;
+        }
+        // Fix legacy globe emoji in existing global chats
+        if (data.lastMessage?.includes("🌍")) {
+          updates.lastMessage = data.lastMessage.replace(/\s*🌍/, "");
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateDoc(globalRef, updates);
         }
       }
     };
@@ -253,6 +292,7 @@ export default function QCChatListPage() {
           isGlobal: true,
           groupName: "QC Global",
           memberCount: data.participants?.length || 0,
+          unreadCount: data.unreadCounts?.[telegramId || ""] || 0,
         });
       }
     });
@@ -293,6 +333,7 @@ export default function QCChatListPage() {
             groupName: data.groupName,
             joinCode: data.joinCode,
             memberCount: data.isGroup ? data.participants?.length : undefined,
+            unreadCount: data.unreadCounts?.[telegramId] || 0,
           });
         });
         setConversations(chats);

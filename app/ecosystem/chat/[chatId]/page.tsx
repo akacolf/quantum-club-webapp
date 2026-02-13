@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { usePresence, useUserPresence, formatLastSeen } from "@/app/(hooks)/usePresence";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   encryptMessage,
@@ -19,13 +20,15 @@ import {
   collection,
   doc,
   addDoc,
-  getDoc,
   query,
   orderBy,
   limit,
   onSnapshot,
   serverTimestamp,
   updateDoc,
+  setDoc,
+  deleteField,
+  increment,
   Timestamp,
 } from "firebase/firestore";
 
@@ -46,9 +49,12 @@ interface ChatMeta {
   groupName?: string;
   joinCode?: string;
   createdBy?: string;
+  readPositions?: Record<string, Timestamp>;
+  typing?: Record<string, Timestamp>;
 }
 
 const MESSAGES_LIMIT = 100;
+const TYPING_TIMEOUT_MS = 3000;
 
 function getInitials(name: string): string {
   if (!name) return "?";
@@ -101,7 +107,6 @@ export default function ChatConversationPage() {
   const chatId = params.chatId as string;
   const { telegramId, qcUsername } = useUserContext();
 
-  // Telegram back button navigates back to chat list
   useTelegramBackButton("/ecosystem/chat");
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -109,16 +114,50 @@ export default function ChatConversationPage() {
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showJoinCode, setShowJoinCode] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isAtBottomRef = useRef(true);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
 
-  // Get the other participant's telegramId for profile photo
   const otherParticipantId = chatMeta?.participants.find((p) => p !== telegramId) ?? null;
   const myPhoto = useProfilePhoto(telegramId);
   const otherPhoto = useProfilePhoto(otherParticipantId);
+
+  // Presence: track which chat we're viewing
+  const { setCurrentChat } = usePresence(null); // presence managed by layout, just get setCurrentChat
+  const otherPresence = useUserPresence(
+    !chatMeta?.isGroup && !chatMeta?.isGlobal ? otherParticipantId : null
+  );
+
+  // Set current chat for presence tracking + mark as read
+  useEffect(() => {
+    if (!telegramId || !chatId) return;
+    setCurrentChat(chatId);
+
+    // Reset unread count and update read position
+    const chatRef = doc(dbfs, "qc-chats", chatId);
+    updateDoc(chatRef, {
+      [`unreadCounts.${telegramId}`]: 0,
+      [`readPositions.${telegramId}`]: serverTimestamp(),
+    }).catch(() => {});
+
+    return () => {
+      setCurrentChat(null);
+      // Clear typing on leave
+      updateDoc(chatRef, {
+        [`typing.${telegramId}`]: deleteField(),
+      }).catch(() => {});
+      // Clear pending typing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, [telegramId, chatId, setCurrentChat]);
 
   // Track scroll position
   const handleScroll = useCallback(() => {
@@ -133,31 +172,27 @@ export default function ChatConversationPage() {
     }
   }, []);
 
-  // Load chat metadata
+  // Subscribe to chat metadata (real-time for typing + readPositions)
   useEffect(() => {
     if (!chatId) return;
-
-    const loadMeta = async () => {
-      try {
-        const chatDoc = await getDoc(doc(dbfs, "qc-chats", chatId));
-        if (chatDoc.exists()) {
-          const data = chatDoc.data();
-          setChatMeta({
-            participants: data.participants || [],
-            participantNames: data.participantNames || {},
-            isGroup: data.isGroup || false,
-            isGlobal: data.isGlobal || false,
-            groupName: data.groupName,
-            joinCode: data.joinCode,
-            createdBy: data.createdBy,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading chat meta:", error);
+    const chatRef = doc(dbfs, "qc-chats", chatId);
+    const unsub = onSnapshot(chatRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setChatMeta({
+          participants: data.participants || [],
+          participantNames: data.participantNames || {},
+          isGroup: data.isGroup || false,
+          isGlobal: data.isGlobal || false,
+          groupName: data.groupName,
+          joinCode: data.joinCode,
+          createdBy: data.createdBy,
+          readPositions: data.readPositions || {},
+          typing: data.typing || {},
+        });
       }
-    };
-
-    loadMeta();
+    });
+    return () => unsub();
   }, [chatId]);
 
   // Subscribe to messages and decrypt them
@@ -165,6 +200,9 @@ export default function ChatConversationPage() {
 
   useEffect(() => {
     if (!chatId || !chatMeta) return;
+
+    // Capture participants at effect start to avoid stale closures during decryption
+    const participants = [...chatMeta.participants];
 
     const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"), limit(MESSAGES_LIMIT));
@@ -181,10 +219,9 @@ export default function ChatConversationPage() {
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const rawText = data.text || "";
         rawMsgs.push({
           id: docSnap.id,
-          rawText,
+          rawText: data.text || "",
           senderName: data.senderName || "Unknown",
           senderId: data.senderId || "",
           createdAt: data.createdAt,
@@ -192,12 +229,11 @@ export default function ChatConversationPage() {
         });
       });
 
-      // Decrypt messages in parallel
       const decryptedMsgs = await Promise.all(
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, chatMeta.participants, chatId);
+            text = await decryptMessage(msg.rawText, participants, chatId);
           }
           return {
             id: msg.id,
@@ -213,10 +249,18 @@ export default function ChatConversationPage() {
       setMessages(decryptedMsgs);
       setIsLoading(false);
       setTimeout(() => scrollToBottom(), 50);
+
+      // Update read position on new messages
+      if (telegramId) {
+        updateDoc(doc(dbfs, "qc-chats", chatId), {
+          [`unreadCounts.${telegramId}`]: 0,
+          [`readPositions.${telegramId}`]: serverTimestamp(),
+        }).catch(() => {});
+      }
     });
 
     return () => unsubscribe();
-  }, [chatId, chatMeta, scrollToBottom]);
+  }, [chatId, chatMeta?.participants?.join(","), scrollToBottom, telegramId]);
 
   // Initial scroll
   useEffect(() => {
@@ -225,6 +269,32 @@ export default function ChatConversationPage() {
     }
   }, [isLoading, messages.length, scrollToBottom]);
 
+  // Typing indicator: set/clear typing status
+  const setTyping = useCallback(
+    (typing: boolean) => {
+      if (!telegramId || !chatId) return;
+      if (typing === isTypingRef.current) return;
+      isTypingRef.current = typing;
+
+      const chatRef = doc(dbfs, "qc-chats", chatId);
+      if (typing) {
+        updateDoc(chatRef, { [`typing.${telegramId}`]: serverTimestamp() }).catch(() => {});
+      } else {
+        updateDoc(chatRef, { [`typing.${telegramId}`]: deleteField() }).catch(() => {});
+      }
+    },
+    [telegramId, chatId]
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+
+    // Set typing indicator
+    setTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => setTyping(false), TYPING_TIMEOUT_MS);
+  };
+
   // Send encrypted message
   const handleSend = async () => {
     const text = newMessage.trim();
@@ -232,16 +302,12 @@ export default function ChatConversationPage() {
 
     setIsSending(true);
     setNewMessage("");
+    setTyping(false);
 
     const senderName = qcUsername || "Unknown";
 
     try {
-      // Encrypt the message before sending
-      const encryptedText = await encryptMessage(
-        text,
-        chatMeta.participants,
-        chatId
-      );
+      const encryptedText = await encryptMessage(text, chatMeta.participants, chatId);
 
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
       await addDoc(messagesRef, {
@@ -252,12 +318,24 @@ export default function ChatConversationPage() {
         encrypted: true,
       });
 
-      // Update last message preview (encrypted — no plaintext leaks)
-      await updateDoc(doc(dbfs, "qc-chats", chatId), {
-        lastMessage: "🔒 Encrypted message",
+      // Cache preview locally so sender can see it in chat list
+      const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
+      try { localStorage.setItem(`qc-preview-${chatId}`, preview); } catch {}
+
+      // Build unread increment for all other participants
+      const updates: Record<string, unknown> = {
+        lastMessage: "Encrypted message",
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
-      });
+        [`readPositions.${telegramId}`]: serverTimestamp(),
+        [`unreadCounts.${telegramId}`]: 0,
+      };
+      for (const pid of chatMeta.participants) {
+        if (pid !== telegramId) {
+          updates[`unreadCounts.${pid}`] = increment(1);
+        }
+      }
+      await updateDoc(doc(dbfs, "qc-chats", chatId), updates);
 
       scrollToBottom(true);
     } catch (error) {
@@ -293,19 +371,16 @@ export default function ChatConversationPage() {
     );
   };
 
-  // Get display name for the header
+  // Header display name
   const getHeaderName = (): string => {
     if (!chatMeta) return "Chat";
     if (chatMeta.isGlobal) return "QC Global";
     if (chatMeta.isGroup && chatMeta.groupName) return chatMeta.groupName;
-    // Self-chat (Saved Messages)
     if (!chatMeta.isGroup && chatMeta.participants.length === 1 && chatMeta.participants[0] === telegramId) {
       return "Saved Messages";
     }
-    const otherParticipant = chatMeta.participants.find((p) => p !== telegramId);
-    if (otherParticipant && chatMeta.participantNames[otherParticipant]) {
-      return chatMeta.participantNames[otherParticipant];
-    }
+    const other = chatMeta.participants.find((p) => p !== telegramId);
+    if (other && chatMeta.participantNames[other]) return chatMeta.participantNames[other];
     return "Chat";
   };
 
@@ -315,13 +390,76 @@ export default function ChatConversationPage() {
   const headerName = getHeaderName();
   const headerInitials = getInitials(headerName);
   const headerAvatarColor = getAvatarColor(headerName);
-
-  // For self-chat avatar, use the user's own name instead of "Saved Messages"
   const selfName = qcUsername || "Me";
   const selfInitials = getInitials(selfName);
   const selfAvatarColor = getAvatarColor(selfName);
 
-  const [showJoinCode, setShowJoinCode] = useState(false);
+  // Typing indicator: who is typing (exclude self)
+  const typingUsers = chatMeta?.typing
+    ? Object.entries(chatMeta.typing)
+        .filter(([uid, ts]) => {
+          if (uid === telegramId) return false;
+          if (!ts || typeof ts.toDate !== "function") return false;
+          return Date.now() - ts.toDate().getTime() < 5000;
+        })
+        .map(([uid]) => chatMeta.participantNames?.[uid] || "Someone")
+    : [];
+
+  // Read receipt status for own messages (DM only)
+  const getMessageStatus = (msg: ChatMessage): "sent" | "delivered" | "read" => {
+    if (!chatMeta || isSelfChat || isGroupChat) return "sent";
+    const otherId = chatMeta.participants.find((p) => p !== telegramId);
+    if (!otherId) return "sent";
+
+    // Read: other user's readPosition >= this message's createdAt
+    const otherReadPos = chatMeta.readPositions?.[otherId];
+    if (otherReadPos && msg.createdAt) {
+      if (otherReadPos.toDate() >= msg.createdAt.toDate()) return "read";
+    }
+
+    // Delivered: other user is online
+    if (otherPresence?.isOnline) return "delivered";
+
+    return "sent";
+  };
+
+  // Header subtitle text
+  const getSubtitle = (): { text: string; color: string } => {
+    // Typing takes priority
+    if (typingUsers.length > 0) {
+      const names = typingUsers.length <= 2
+        ? typingUsers.join(" and ")
+        : `${typingUsers.length} people`;
+      return {
+        text: isGroupChat ? `${names} typing...` : "typing...",
+        color: "text-primary",
+      };
+    }
+
+    if (isGroupChat) {
+      return {
+        text: `${chatMeta?.participants.length || 0} members · Encrypted`,
+        color: "text-green-400",
+      };
+    }
+
+    if (isSelfChat) {
+      return { text: "Encrypted personal notes", color: "text-green-400" };
+    }
+
+    // DM: show online/last seen
+    const presenceText = formatLastSeen(otherPresence);
+    if (presenceText === "online") {
+      return { text: "online", color: "text-green-400" };
+    }
+    if (presenceText) {
+      return { text: presenceText, color: "text-muted-foreground" };
+    }
+
+    return { text: "End-to-end encrypted", color: "text-green-400" };
+  };
+
+  const subtitle = getSubtitle();
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-background">
@@ -349,6 +487,10 @@ export default function ChatConversationPage() {
               </AvatarFallback>
             )}
           </Avatar>
+          {/* Online indicator dot for DMs */}
+          {!isGroupChat && !isSelfChat && otherPresence?.isOnline && (
+            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-card" />
+          )}
           {isGroupChat && !chatMeta?.isGlobal && (
             <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
               <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
@@ -365,21 +507,14 @@ export default function ChatConversationPage() {
               <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
             )}
           </div>
-          {isGroupChat ? (
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1">
+            {subtitle.color === "text-green-400" && typingUsers.length === 0 && (
               <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
-              <span className="text-[11px] text-green-400 leading-none">
-                {chatMeta?.participants.length || 0} members · Encrypted
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
-              <span className="text-[11px] text-green-400 leading-none">
-                {isSelfChat ? "Encrypted personal notes" : "End-to-end encrypted"}
-              </span>
-            </div>
-          )}
+            )}
+            <span className={`text-[11px] ${subtitle.color} leading-none truncate`}>
+              {subtitle.text}
+            </span>
+          </div>
         </div>
 
         {/* Group actions: share join code */}
@@ -424,7 +559,7 @@ export default function ChatConversationPage() {
               />
               <span className="text-[10px] text-muted-foreground leading-none">
                 {chatMeta?.isGlobal
-                  ? "Welcome to QC Global! Everyone can chat here."
+                  ? "Welcome to QC Global. Everyone can chat here."
                   : isGroupChat
                   ? `Group chat · ${chatMeta?.participants.length || 0} members`
                   : isSelfChat
@@ -458,6 +593,7 @@ export default function ChatConversationPage() {
             const isOwnMessage = msg.senderId === telegramId;
             const consecutive = isConsecutive(i);
             const showDate = shouldShowDateDivider(i);
+            const status = isOwnMessage && !isSystemMsg ? getMessageStatus(msg) : null;
 
             return (
               <div key={msg.id}>
@@ -471,7 +607,6 @@ export default function ChatConversationPage() {
                   </div>
                 )}
 
-                {/* System messages (joined, created, etc.) */}
                 {isSystemMsg ? (
                   <div className="flex justify-center my-1.5">
                     <span className="text-[10px] text-muted-foreground bg-muted/40 rounded-full px-3 py-0.5">
@@ -484,7 +619,6 @@ export default function ChatConversationPage() {
                     consecutive ? "mt-0.5" : "mt-2.5"
                   }`}
                 >
-                  {/* Sender avatar for received messages */}
                   {!isOwnMessage && !consecutive && (
                     <Avatar className="h-7 w-7 shrink-0">
                       {(() => {
@@ -505,7 +639,6 @@ export default function ChatConversationPage() {
                         : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
                     } px-3 py-2`}
                   >
-                    {/* Show sender name for group chats and non-consecutive messages */}
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-[11px] font-semibold text-primary">
@@ -518,8 +651,20 @@ export default function ChatConversationPage() {
                       <p className="text-[13px] text-foreground leading-snug break-words whitespace-pre-wrap flex-1">
                         {msg.text}
                       </p>
-                      <span className="text-[9px] text-muted-foreground shrink-0 self-end pb-0.5">
-                        {formatTime(msg.createdAt)}
+                      <span className="flex items-center gap-0.5 shrink-0 self-end pb-0.5">
+                        <span className="text-[9px] text-muted-foreground">
+                          {formatTime(msg.createdAt)}
+                        </span>
+                        {/* Read/delivered checkmarks for own messages */}
+                        {status && (
+                          <span className={status === "read" ? "text-primary" : "text-muted-foreground"}>
+                            {status === "sent" ? (
+                              <Icon icon="lucide:check" className="w-3 h-3" />
+                            ) : (
+                              <Icon icon="lucide:check-check" className="w-3 h-3" />
+                            )}
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -531,6 +676,24 @@ export default function ChatConversationPage() {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Typing indicator */}
+      {typingUsers.length > 0 && (
+        <div className="px-4 py-1.5 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
+            </div>
+            <span className="text-[11px] text-muted-foreground italic">
+              {isGroupChat
+                ? `${typingUsers.join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing...`
+                : "typing..."}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Message Input */}
       <div
@@ -547,7 +710,7 @@ export default function ChatConversationPage() {
               ref={inputRef}
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               maxLength={500}
