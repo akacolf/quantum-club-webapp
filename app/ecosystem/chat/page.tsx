@@ -122,7 +122,7 @@ function ChatListItem({
         <Avatar className="h-12 w-12">
           {chat.isGlobal ? (
             <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
-              <Icon icon="solar:global-bold" className="w-6 h-6" />
+              <Icon icon="uiw:global" className="w-6 h-6" />
             </AvatarFallback>
           ) : photoUrl ? (
             <>
@@ -216,7 +216,7 @@ export default function QCChatListPage() {
           participants: [telegramId],
           participantNames: { [telegramId]: selfName },
           createdBy: "system",
-          lastMessage: "Welcome to QC Global! 🌍",
+          lastMessage: "Welcome to QC Global!",
           lastMessageBy: "system",
           lastMessageAt: serverTimestamp(),
           createdAt: serverTimestamp(),

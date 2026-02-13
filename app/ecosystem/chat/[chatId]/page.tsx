@@ -160,7 +160,7 @@ export default function ChatConversationPage() {
     loadMeta();
   }, [chatId]);
 
-  // Subscribe to messages and decrypt them (skip encryption for groups)
+  // Subscribe to messages and decrypt them
   const isGroupChat = chatMeta?.isGroup || chatMeta?.isGlobal;
 
   useEffect(() => {
@@ -192,11 +192,11 @@ export default function ChatConversationPage() {
         });
       });
 
-      // Decrypt messages in parallel (skip for group chats)
+      // Decrypt messages in parallel
       const decryptedMsgs = await Promise.all(
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
-          if (!isGroupChat && msg.encrypted && isEncryptedMessage(msg.rawText)) {
+          if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
             text = await decryptMessage(msg.rawText, chatMeta.participants, chatId);
           }
           return {
@@ -225,7 +225,7 @@ export default function ChatConversationPage() {
     }
   }, [isLoading, messages.length, scrollToBottom]);
 
-  // Send message (encrypted for DMs, plaintext for groups)
+  // Send encrypted message
   const handleSend = async () => {
     const text = newMessage.trim();
     if (!text || !telegramId || !chatId || !chatMeta || isSending) return;
@@ -236,18 +236,20 @@ export default function ChatConversationPage() {
     const senderName = qcUsername || "Unknown";
 
     try {
-      // Encrypt only for DMs, not groups
-      const messageText = isGroupChat
-        ? text
-        : await encryptMessage(text, chatMeta.participants, chatId);
+      // Encrypt the message before sending
+      const encryptedText = await encryptMessage(
+        text,
+        chatMeta.participants,
+        chatId
+      );
 
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
       await addDoc(messagesRef, {
-        text: messageText,
+        text: encryptedText,
         senderName,
         senderId: telegramId,
         createdAt: serverTimestamp(),
-        encrypted: !isGroupChat,
+        encrypted: true,
       });
 
       // Update last message preview
@@ -295,9 +297,10 @@ export default function ChatConversationPage() {
   // Get display name for the header
   const getHeaderName = (): string => {
     if (!chatMeta) return "Chat";
+    if (chatMeta.isGlobal) return "QC Global";
     if (chatMeta.isGroup && chatMeta.groupName) return chatMeta.groupName;
     // Self-chat (Saved Messages)
-    if (chatMeta.participants.length === 1 && chatMeta.participants[0] === telegramId) {
+    if (!chatMeta.isGroup && chatMeta.participants.length === 1 && chatMeta.participants[0] === telegramId) {
       return "Saved Messages";
     }
     const otherParticipant = chatMeta.participants.find((p) => p !== telegramId);
@@ -307,7 +310,8 @@ export default function ChatConversationPage() {
     return "Chat";
   };
 
-  const isSelfChat = chatMeta?.participants.length === 1 && chatMeta.participants[0] === telegramId;
+  const isSelfChat = !chatMeta?.isGroup && !chatMeta?.isGlobal &&
+    chatMeta?.participants.length === 1 && chatMeta.participants[0] === telegramId;
 
   const headerName = getHeaderName();
   const headerInitials = getInitials(headerName);
@@ -331,7 +335,7 @@ export default function ChatConversationPage() {
           <Avatar className="h-10 w-10">
             {chatMeta?.isGlobal ? (
               <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                <Icon icon="solar:global-bold" className="w-5 h-5" />
+                <Icon icon="uiw:global" className="w-5 h-5" />
               </AvatarFallback>
             ) : (isSelfChat ? myPhoto : !isGroupChat ? otherPhoto : null) ? (
               <>
@@ -363,9 +367,12 @@ export default function ChatConversationPage() {
             )}
           </div>
           {isGroupChat ? (
-            <span className="text-[11px] text-muted-foreground leading-none">
-              {chatMeta?.participants.length || 0} members
-            </span>
+            <div className="flex items-center gap-1">
+              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+              <span className="text-[11px] text-green-400 leading-none">
+                {chatMeta?.participants.length || 0} members · Encrypted
+              </span>
+            </div>
           ) : (
             <div className="flex items-center gap-1">
               <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />

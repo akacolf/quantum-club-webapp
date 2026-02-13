@@ -22,7 +22,8 @@ const navTabs = [
     id: "social",
     href: "/ecosystem/social",
     label: "QC Social",
-    icon: "solar:global-bold",
+    icon: "tabler:social",
+    iconClassName: "[&>svg]:stroke-[1.5]",
     comingSoon: true,
   },
 ];
@@ -67,6 +68,7 @@ const EcosystemNavigation = () => {
                   <div className="scale-100">
                     <Icon
                       icon={tab.icon}
+                      className={("iconClassName" in tab && tab.iconClassName) || ""}
                       style={{ width: "1.5em", height: "1.5em" }}
                     />
                   </div>
@@ -104,6 +106,7 @@ const EcosystemNavigation = () => {
                 <div className="scale-100">
                   <Icon
                     icon={tab.icon}
+                    className={("iconClassName" in tab && tab.iconClassName) || ""}
                     style={{ width: "1.5em", height: "1.5em" }}
                   />
                 </div>
