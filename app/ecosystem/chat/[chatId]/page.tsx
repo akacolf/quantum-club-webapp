@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { usePresence, useUserPresence, formatLastSeen } from "@/app/(hooks)/usePresence";
@@ -106,6 +107,8 @@ export default function ChatConversationPage() {
   const params = useParams();
   const chatId = params.chatId as string;
   const { telegramId, qcUsername } = useUserContext();
+  const authCtx = useAuth();
+  const currentUser = authCtx?.currentUser ?? null;
 
   useTelegramBackButton("/ecosystem/chat");
 
@@ -135,7 +138,7 @@ export default function ChatConversationPage() {
 
   // Set current chat for presence tracking + mark as read
   useEffect(() => {
-    if (!telegramId || !chatId) return;
+    if (!currentUser || !telegramId || !chatId) return;
     setCurrentChat(chatId);
 
     // Reset unread count and update read position
@@ -157,7 +160,7 @@ export default function ChatConversationPage() {
         typingTimeoutRef.current = null;
       }
     };
-  }, [telegramId, chatId, setCurrentChat]);
+  }, [currentUser, telegramId, chatId, setCurrentChat]);
 
   // Track scroll position
   const handleScroll = useCallback(() => {
@@ -174,7 +177,7 @@ export default function ChatConversationPage() {
 
   // Subscribe to chat metadata (real-time for typing + readPositions)
   useEffect(() => {
-    if (!chatId) return;
+    if (!currentUser || !chatId) return;
     const chatRef = doc(dbfs, "qc-chats", chatId);
     const unsub = onSnapshot(chatRef, (snap) => {
       if (snap.exists()) {
@@ -191,15 +194,17 @@ export default function ChatConversationPage() {
           typing: data.typing || {},
         });
       }
+    }, (error) => {
+      console.error("Chat meta listener error:", error);
     });
     return () => unsub();
-  }, [chatId]);
+  }, [currentUser, chatId]);
 
   // Subscribe to messages and decrypt them
   const isGroupChat = chatMeta?.isGroup || chatMeta?.isGlobal;
 
   useEffect(() => {
-    if (!chatId || !chatMeta) return;
+    if (!currentUser || !chatId || !chatMeta) return;
 
     // Capture participants at effect start to avoid stale closures during decryption
     const participants = [...chatMeta.participants];
@@ -260,7 +265,7 @@ export default function ChatConversationPage() {
     });
 
     return () => unsubscribe();
-  }, [chatId, chatMeta?.participants?.join(","), scrollToBottom, telegramId]);
+  }, [currentUser, chatId, chatMeta?.participants?.join(","), scrollToBottom, telegramId]);
 
   // Initial scroll
   useEffect(() => {
@@ -324,7 +329,7 @@ export default function ChatConversationPage() {
 
       // Build unread increment for all other participants
       const updates: Record<string, unknown> = {
-        lastMessage: "Encrypted message",
+        lastMessage: encryptedText,
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
         [`readPositions.${telegramId}`]: serverTimestamp(),

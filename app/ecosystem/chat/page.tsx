@@ -9,9 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useAuth } from "@/app/(contexts)/auth";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { useUserPresence } from "@/app/(hooks)/usePresence";
 import { dbfs } from "@/app/(firebase)/client";
+import {
+  decryptMessage,
+  isEncryptedMessage,
+} from "@/lib/chat-crypto";
 import {
   collection,
   doc,
@@ -121,20 +126,42 @@ function ChatListItem({
   const isLastMsgByMe = chat.lastMessageBy === telegramId;
   const unread = chat.unreadCount || 0;
 
-  // Show sender's own preview from localStorage, others see "Encrypted message"
-  const previewText = (() => {
-    if (!chat.lastMessage) return "No messages yet";
+  // Decrypt lastMessage preview — works for both sender and receiver
+  const [decryptedPreview, setDecryptedPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!chat.lastMessage) {
+      setDecryptedPreview("No messages yet");
+      return;
+    }
+    // Legacy plaintext markers — can't decrypt these
     if (chat.lastMessage === "Encrypted message" || chat.lastMessage === "🔒 Encrypted message") {
+      // Try sender's localStorage cache as fallback
       if (isLastMsgByMe) {
         try {
           const cached = localStorage.getItem(`qc-preview-${chat.id}`);
-          if (cached) return cached;
+          if (cached) { setDecryptedPreview(cached); return; }
         } catch {}
       }
-      return "Encrypted message";
+      setDecryptedPreview("Encrypted message");
+      return;
     }
-    return chat.lastMessage;
-  })();
+    // If it's actual encrypted ciphertext, decrypt it
+    if (isEncryptedMessage(chat.lastMessage)) {
+      let cancelled = false;
+      decryptMessage(chat.lastMessage, chat.participants, chat.id).then((text) => {
+        if (!cancelled) {
+          const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
+          setDecryptedPreview(preview);
+        }
+      });
+      return () => { cancelled = true; };
+    }
+    // Plain system message
+    setDecryptedPreview(chat.lastMessage);
+  }, [chat.lastMessage, chat.id, chat.participants, isLastMsgByMe]);
+
+  const previewText = decryptedPreview ?? "Encrypted message";
 
   return (
     <button
@@ -215,6 +242,8 @@ type FormMode = "none" | "dm" | "group" | "join";
 export default function QCChatListPage() {
   const router = useRouter();
   const { telegramId, qcUsername } = useUserContext();
+  const authCtx = useAuth();
+  const currentUser = authCtx?.currentUser ?? null;
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [globalChat, setGlobalChat] = useState<ChatConversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -234,7 +263,7 @@ export default function QCChatListPage() {
 
   // Ensure global chat exists and user is a participant
   useEffect(() => {
-    if (!telegramId || !qcUsername) return;
+    if (!currentUser || !telegramId || !qcUsername) return;
 
     const ensureGlobalChat = async () => {
       const globalRef = doc(dbfs, "qc-chats", GLOBAL_CHAT_ID);
@@ -273,10 +302,11 @@ export default function QCChatListPage() {
     };
 
     ensureGlobalChat().catch(console.error);
-  }, [telegramId, qcUsername]);
+  }, [currentUser, telegramId, qcUsername]);
 
   // Subscribe to global chat separately
   useEffect(() => {
+    if (!currentUser) return;
     const globalRef = doc(dbfs, "qc-chats", GLOBAL_CHAT_ID);
     const unsubscribe = onSnapshot(globalRef, (snap) => {
       if (snap.exists()) {
@@ -295,13 +325,15 @@ export default function QCChatListPage() {
           unreadCount: data.unreadCounts?.[telegramId || ""] || 0,
         });
       }
+    }, (error) => {
+      console.error("Global chat listener error:", error);
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser, telegramId]);
 
   // Subscribe to user's conversations (DMs + groups)
   useEffect(() => {
-    if (!telegramId) {
+    if (!currentUser || !telegramId) {
       setIsLoading(false);
       return;
     }
@@ -346,7 +378,7 @@ export default function QCChatListPage() {
     );
 
     return () => unsubscribe();
-  }, [telegramId]);
+  }, [currentUser, telegramId]);
 
   // Get display name for a chat
   const getChatDisplayName = (chat: ChatConversation): string => {

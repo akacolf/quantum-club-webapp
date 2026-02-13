@@ -18,9 +18,13 @@
 const SALT = new TextEncoder().encode("qc-chat-e2e-v1");
 const IV_LENGTH = 12;
 
+// In-memory cache for derived keys to avoid repeated PBKDF2 (100k iterations)
+const keyCache = new Map<string, CryptoKey>();
+
 /**
  * Derive a per-conversation AES-256-GCM key from participant IDs.
  * Both sides derive the same key independently.
+ * Keys are cached in memory so PBKDF2 runs only once per conversation per session.
  */
 async function deriveKey(
   participantIds: string[],
@@ -28,6 +32,9 @@ async function deriveKey(
 ): Promise<CryptoKey> {
   const sorted = [...participantIds].sort();
   const material = `${sorted.join(":")}:${chatId}`;
+
+  const cached = keyCache.get(material);
+  if (cached) return cached;
 
   const rawKey = await crypto.subtle.importKey(
     "raw",
@@ -37,7 +44,7 @@ async function deriveKey(
     ["deriveKey"]
   );
 
-  return crypto.subtle.deriveKey(
+  const key = await crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
       salt: SALT,
@@ -49,6 +56,9 @@ async function deriveKey(
     false,
     ["encrypt", "decrypt"]
   );
+
+  keyCache.set(material, key);
+  return key;
 }
 
 /** Convert ArrayBuffer to base64 string */

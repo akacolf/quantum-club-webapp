@@ -85,6 +85,8 @@ export function useUserPresence(telegramId: string | null): PresenceData | null 
           currentChatId: d.currentChatId || null,
         });
       }
+    }, () => {
+      // Silently handle permission errors (e.g. auth not yet ready)
     });
     return () => unsub();
   }, [telegramId]);

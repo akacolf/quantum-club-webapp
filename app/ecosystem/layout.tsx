@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import EcosystemNavigation from "./(navigation)/EcosystemNavigation";
 import Loader from "@/app/(components)/Loader";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useAuth } from "@/app/(contexts)/auth";
 import { usePresence } from "@/app/(hooks)/usePresence";
 
 // Track client-side mount without triggering effect lint warnings
@@ -19,10 +20,11 @@ export default function EcosystemLayout({
 }) {
   const router = useRouter();
   const { telegramId } = useUserContext();
+  const authCtx = useAuth();
   const isMounted = useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
 
-  // Track user presence (online/offline) for the ecosystem
-  usePresence(telegramId);
+  // Track user presence (online/offline) — only after Firebase auth is ready
+  usePresence(authCtx?.currentUser ? telegramId : null);
 
   // Telegram back button navigates to home
   useEffect(() => {
