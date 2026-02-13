@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
@@ -12,14 +13,19 @@ import { dbfs } from "@/app/(firebase)/client";
 import {
   collection,
   doc,
+  getDoc,
   query,
   setDoc,
+  updateDoc,
+  arrayUnion,
   serverTimestamp,
   where,
   orderBy,
   onSnapshot,
   Timestamp,
 } from "firebase/firestore";
+
+const GLOBAL_CHAT_ID = "qc-global";
 
 interface ChatConversation {
   id: string;
@@ -29,8 +35,10 @@ interface ChatConversation {
   lastMessageBy: string;
   lastMessageAt: Timestamp | null;
   isGroup: boolean;
+  isGlobal?: boolean;
   groupName?: string;
-  unreadCount?: number;
+  joinCode?: string;
+  memberCount?: number;
 }
 
 function getInitials(name: string): string {
@@ -72,6 +80,10 @@ function formatLastTime(timestamp: Timestamp | null): string {
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+function generateJoinCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 function ChatListItem({
   chat,
   telegramId,
@@ -83,9 +95,12 @@ function ChatListItem({
 }) {
   const isSelfChat = chat.participants.length === 1 && chat.participants[0] === telegramId;
   const otherParticipantId = chat.participants.find((p) => p !== telegramId) ?? null;
-  const photoUrl = useProfilePhoto(isSelfChat ? telegramId : otherParticipantId);
+  const photoUrl = useProfilePhoto(
+    chat.isGroup || chat.isGlobal ? null : isSelfChat ? telegramId : otherParticipantId
+  );
 
   const displayName = (() => {
+    if (chat.isGlobal) return "QC Global";
     if (chat.isGroup && chat.groupName) return chat.groupName;
     if (isSelfChat) return "Saved Messages";
     if (otherParticipantId && chat.participantNames[otherParticipantId]) {
@@ -105,12 +120,24 @@ function ChatListItem({
     >
       <div className="relative shrink-0">
         <Avatar className="h-12 w-12">
-          {photoUrl ? <AvatarImage src={photoUrl} /> : null}
-          <AvatarFallback className={`${avatarColor} text-white text-sm font-semibold`}>
-            {initial}
-          </AvatarFallback>
+          {chat.isGlobal ? (
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
+              <Icon icon="solar:global-bold" className="w-6 h-6" />
+            </AvatarFallback>
+          ) : photoUrl ? (
+            <>
+              <AvatarImage src={photoUrl} />
+              <AvatarFallback className={`${avatarColor} text-white text-sm font-semibold`}>
+                {initial}
+              </AvatarFallback>
+            </>
+          ) : (
+            <AvatarFallback className={`${avatarColor} text-white text-sm font-semibold`}>
+              {initial}
+            </AvatarFallback>
+          )}
         </Avatar>
-        {chat.isGroup && (
+        {(chat.isGroup || chat.isGlobal) && !chat.isGlobal && (
           <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
             <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
           </div>
@@ -119,36 +146,119 @@ function ChatListItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-foreground truncate">
-            {displayName}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-semibold text-foreground truncate">
+              {displayName}
+            </span>
+            {chat.isGlobal && (
+              <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
+            )}
+          </div>
           <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
             {formatLastTime(chat.lastMessageAt)}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
-          {isLastMsgByMe && (
-            <span className="text-foreground/50">You: </span>
+        <div className="flex items-center gap-1 mt-0.5">
+          {(chat.isGroup || chat.isGlobal) && chat.memberCount && (
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {chat.memberCount} members ·{" "}
+            </span>
           )}
-          {chat.lastMessage || "No messages yet"}
-        </p>
+          <p className="text-xs text-muted-foreground truncate leading-relaxed">
+            {isLastMsgByMe && (
+              <span className="text-foreground/50">You: </span>
+            )}
+            {chat.lastMessage || "No messages yet"}
+          </p>
+        </div>
       </div>
     </button>
   );
 }
 
+type FormMode = "none" | "dm" | "group" | "join";
+
 export default function QCChatListPage() {
   const router = useRouter();
   const { telegramId, qcUsername } = useUserContext();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [globalChat, setGlobalChat] = useState<ChatConversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [newChatUsername, setNewChatUsername] = useState("");
-  const [showNewChatForm, setShowNewChatForm] = useState(false);
-  const [isStartingChat, setIsStartingChat] = useState(false);
-  const [newChatError, setNewChatError] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<FormMode>("none");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Subscribe to user's conversations
+  // DM form state
+  const [newChatUsername, setNewChatUsername] = useState("");
+  const [isStartingChat, setIsStartingChat] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Group form state
+  const [groupName, setGroupName] = useState("");
+
+  // Join group state
+  const [joinCode, setJoinCode] = useState("");
+
+  // Ensure global chat exists and user is a participant
+  useEffect(() => {
+    if (!telegramId || !qcUsername) return;
+
+    const ensureGlobalChat = async () => {
+      const globalRef = doc(dbfs, "qc-chats", GLOBAL_CHAT_ID);
+      const globalSnap = await getDoc(globalRef);
+
+      const selfName = qcUsername.replace(/^@+/, "").trim() || "Unknown";
+
+      if (!globalSnap.exists()) {
+        await setDoc(globalRef, {
+          isGroup: true,
+          isGlobal: true,
+          groupName: "QC Global",
+          participants: [telegramId],
+          participantNames: { [telegramId]: selfName },
+          createdBy: "system",
+          lastMessage: "Welcome to QC Global! 🌍",
+          lastMessageBy: "system",
+          lastMessageAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        });
+      } else {
+        const data = globalSnap.data();
+        if (!data.participants?.includes(telegramId)) {
+          await updateDoc(globalRef, {
+            participants: arrayUnion(telegramId),
+            [`participantNames.${telegramId}`]: selfName,
+          });
+        }
+      }
+    };
+
+    ensureGlobalChat().catch(console.error);
+  }, [telegramId, qcUsername]);
+
+  // Subscribe to global chat separately
+  useEffect(() => {
+    const globalRef = doc(dbfs, "qc-chats", GLOBAL_CHAT_ID);
+    const unsubscribe = onSnapshot(globalRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setGlobalChat({
+          id: snap.id,
+          participants: data.participants || [],
+          participantNames: data.participantNames || {},
+          lastMessage: data.lastMessage || "",
+          lastMessageBy: data.lastMessageBy || "",
+          lastMessageAt: data.lastMessageAt,
+          isGroup: true,
+          isGlobal: true,
+          groupName: "QC Global",
+          memberCount: data.participants?.length || 0,
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Subscribe to user's conversations (DMs + groups)
   useEffect(() => {
     if (!telegramId) {
       setIsLoading(false);
@@ -166,17 +276,22 @@ export default function QCChatListPage() {
       q,
       (snapshot) => {
         const chats: ChatConversation[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
+        snapshot.forEach((docSnap) => {
+          // Skip global chat — it's shown separately
+          if (docSnap.id === GLOBAL_CHAT_ID) return;
+          const data = docSnap.data();
           chats.push({
-            id: doc.id,
+            id: docSnap.id,
             participants: data.participants || [],
             participantNames: data.participantNames || {},
             lastMessage: data.lastMessage || "",
             lastMessageBy: data.lastMessageBy || "",
             lastMessageAt: data.lastMessageAt,
             isGroup: data.isGroup || false,
+            isGlobal: false,
             groupName: data.groupName,
+            joinCode: data.joinCode,
+            memberCount: data.isGroup ? data.participants?.length : undefined,
           });
         });
         setConversations(chats);
@@ -193,8 +308,8 @@ export default function QCChatListPage() {
 
   // Get display name for a chat
   const getChatDisplayName = (chat: ChatConversation): string => {
+    if (chat.isGlobal) return "QC Global";
     if (chat.isGroup && chat.groupName) return chat.groupName;
-    // Self-chat (Saved Messages)
     if (chat.participants.length === 1 && chat.participants[0] === telegramId) {
       return "Saved Messages";
     }
@@ -212,21 +327,36 @@ export default function QCChatListPage() {
     return displayName.includes(searchQuery.toLowerCase());
   });
 
+  // Show global chat in search results too
+  const showGlobalChat =
+    globalChat &&
+    (!searchQuery.trim() ||
+      "qc global".includes(searchQuery.toLowerCase()));
+
+  const toggleForm = useCallback((mode: FormMode) => {
+    setFormMode((prev) => (prev === mode ? "none" : mode));
+    setFormError(null);
+    setNewChatUsername("");
+    setGroupName("");
+    setJoinCode("");
+  }, []);
+
+  // Start DM
   const handleStartChat = async () => {
     const normalizedUsername = newChatUsername.trim().replace(/^@+/, "").toLowerCase();
 
     if (!telegramId) {
-      setNewChatError("Please sign in to start a chat.");
+      setFormError("Please sign in to start a chat.");
       return;
     }
 
     if (!normalizedUsername) {
-      setNewChatError("Enter a QC username.");
+      setFormError("Enter a QC username.");
       return;
     }
 
     setIsStartingChat(true);
-    setNewChatError(null);
+    setFormError(null);
 
     try {
       const resolveRes = await fetch(
@@ -236,14 +366,13 @@ export default function QCChatListPage() {
       const resolveData = await resolveRes.json().catch(() => ({}));
 
       if (!resolveRes.ok || !resolveData?.resolved || !resolveData?.owner) {
-        setNewChatError("Username not found.");
+        setFormError("Username not found.");
         return;
       }
 
       const otherUserId = String(resolveData.owner);
       const isSelfChat = otherUserId === telegramId;
 
-      // Check for existing chat
       const existingChat = conversations.find(
         (chat) =>
           !chat.isGroup &&
@@ -255,7 +384,7 @@ export default function QCChatListPage() {
       );
 
       if (existingChat) {
-        setShowNewChatForm(false);
+        setFormMode("none");
         setNewChatUsername("");
         router.push(`/ecosystem/chat/${existingChat.id}`);
         return;
@@ -275,7 +404,7 @@ export default function QCChatListPage() {
             }
           }
         } catch {
-          // Fallback to normalized username if lookup fails.
+          // Fallback to normalized username
         }
       }
 
@@ -307,12 +436,118 @@ export default function QCChatListPage() {
         { merge: true }
       );
 
-      setShowNewChatForm(false);
+      setFormMode("none");
       setNewChatUsername("");
       router.push(`/ecosystem/chat/${chatId}`);
     } catch (error) {
       console.error("Failed to start direct chat:", error);
-      setNewChatError("Could not start chat. Please try again.");
+      setFormError("Could not start chat. Please try again.");
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
+  // Create group
+  const handleCreateGroup = async () => {
+    const name = groupName.trim();
+    if (!telegramId || !name) {
+      setFormError(name ? "Please sign in." : "Enter a group name.");
+      return;
+    }
+
+    setIsStartingChat(true);
+    setFormError(null);
+
+    try {
+      const selfDisplayName = qcUsername?.replace(/^@+/, "").trim() || "Unknown";
+      const code = generateJoinCode();
+      const chatId = `group_${telegramId}_${Date.now()}`;
+
+      await setDoc(doc(dbfs, "qc-chats", chatId), {
+        isGroup: true,
+        isGlobal: false,
+        groupName: name,
+        participants: [telegramId],
+        participantNames: { [telegramId]: selfDisplayName },
+        createdBy: telegramId,
+        joinCode: code,
+        lastMessage: `${selfDisplayName} created the group`,
+        lastMessageBy: "system",
+        lastMessageAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      });
+
+      setFormMode("none");
+      setGroupName("");
+      router.push(`/ecosystem/chat/${chatId}`);
+    } catch (error) {
+      console.error("Failed to create group:", error);
+      setFormError("Could not create group. Please try again.");
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
+  // Join group by code
+  const handleJoinGroup = async () => {
+    const code = joinCode.trim().toUpperCase();
+    if (!telegramId || !code) {
+      setFormError(code ? "Please sign in." : "Enter a join code.");
+      return;
+    }
+
+    setIsStartingChat(true);
+    setFormError(null);
+
+    try {
+      // Check local conversations first
+      const localMatch = conversations.find(
+        (c) => c.joinCode?.toUpperCase() === code
+      );
+      if (localMatch) {
+        setFormMode("none");
+        setJoinCode("");
+        router.push(`/ecosystem/chat/${localMatch.id}`);
+        return;
+      }
+
+      // Query Firestore for the join code
+      const chatsRef = collection(dbfs, "qc-chats");
+      const { getDocs, query: fsQuery } = await import("firebase/firestore");
+      const q = fsQuery(chatsRef, where("joinCode", "==", code));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        setFormError("Invalid join code. No group found.");
+        return;
+      }
+
+      const groupDoc = snap.docs[0];
+      const groupData = groupDoc.data();
+
+      if (groupData.participants?.includes(telegramId)) {
+        setFormMode("none");
+        setJoinCode("");
+        router.push(`/ecosystem/chat/${groupDoc.id}`);
+        return;
+      }
+
+      const selfDisplayName = qcUsername?.replace(/^@+/, "").trim() || "Unknown";
+
+      await updateDoc(doc(dbfs, "qc-chats", groupDoc.id), {
+        participants: arrayUnion(telegramId),
+        [`participantNames.${telegramId}`]: selfDisplayName,
+        lastMessage: `${selfDisplayName} joined the group`,
+        lastMessageBy: "system",
+        lastMessageAt: serverTimestamp(),
+      });
+
+      setFormMode("none");
+      setJoinCode("");
+      router.push(`/ecosystem/chat/${groupDoc.id}`);
+    } catch (error) {
+      console.error("Failed to join group:", error);
+      setFormError("Could not join group. Please try again.");
     } finally {
       setIsStartingChat(false);
     }
@@ -321,7 +556,7 @@ export default function QCChatListPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-70px)] bg-background">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3">
+      <div className="px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/30">
@@ -336,19 +571,15 @@ export default function QCChatListPage() {
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setShowNewChatForm((prev) => !prev);
-              setNewChatError(null);
-            }}
+          <Button
+            size="icon"
+            onClick={() => toggleForm(formMode === "none" ? "dm" : "none")}
             disabled={!telegramId}
-            className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
-            aria-label="Start new chat"
-            title="Start new chat"
+            className="w-9 h-9 rounded-full"
+            aria-label="New conversation"
           >
-            <Icon icon="lucide:plus" className="w-4 h-4" />
-          </button>
+            <Icon icon={formMode === "none" ? "lucide:plus" : "lucide:x"} className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Search */}
@@ -365,59 +596,156 @@ export default function QCChatListPage() {
           />
         </div>
 
-        {showNewChatForm && (
+        {/* New Chat / Create Group / Join Group forms */}
+        {formMode !== "none" && (
           <div className="mt-3 p-4 rounded-xl border border-border/60 bg-card/60 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Icon icon="proicons:chat" className="w-4 h-4 text-primary" />
-              <span className="text-xs font-semibold text-foreground">New Conversation</span>
-            </div>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-                <Input
-                  value={newChatUsername}
-                  onChange={(e) => {
-                    setNewChatUsername(e.target.value.replace(/^@+/, ""));
-                    setNewChatError(null);
+            {/* Tabs */}
+            <div className="flex gap-1 p-0.5 rounded-lg bg-muted/50">
+              {(["dm", "group", "join"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setFormMode(mode);
+                    setFormError(null);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleStartChat();
-                    }
-                  }}
-                  placeholder="username"
-                  className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
-                  disabled={isStartingChat}
-                  autoFocus
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleStartChat}
-                disabled={isStartingChat || !newChatUsername.trim()}
-                className="h-9 min-w-[52px] px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all flex items-center justify-center"
-              >
-                {isStartingChat ? (
-                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                ) : (
-                  "Chat"
-                )}
-              </button>
+                  className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all ${
+                    formMode === mode
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {mode === "dm" ? "New Chat" : mode === "group" ? "Create Group" : "Join Group"}
+                </button>
+              ))}
             </div>
-            {newChatError && (
+
+            {/* DM Form */}
+            {formMode === "dm" && (
+              <>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                    <Input
+                      value={newChatUsername}
+                      onChange={(e) => {
+                        setNewChatUsername(e.target.value.replace(/^@+/, ""));
+                        setFormError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleStartChat(); }
+                      }}
+                      placeholder="username"
+                      className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
+                      disabled={isStartingChat}
+                      autoFocus
+                    />
+                  </div>
+                  <Button
+                    onClick={handleStartChat}
+                    disabled={isStartingChat || !newChatUsername.trim()}
+                    size="sm"
+                    className="h-9 px-4 rounded-lg"
+                  >
+                    {isStartingChat ? (
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    ) : (
+                      "Chat"
+                    )}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Enter a QC username to start a direct conversation.
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+                  <span className="text-[10px] text-green-400 leading-none">Direct chats are end-to-end encrypted</span>
+                </div>
+              </>
+            )}
+
+            {/* Create Group Form */}
+            {formMode === "group" && (
+              <>
+                <div className="flex gap-2">
+                  <Input
+                    value={groupName}
+                    onChange={(e) => {
+                      setGroupName(e.target.value);
+                      setFormError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); handleCreateGroup(); }
+                    }}
+                    placeholder="Group name"
+                    maxLength={50}
+                    className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm"
+                    disabled={isStartingChat}
+                    autoFocus
+                  />
+                  <Button
+                    onClick={handleCreateGroup}
+                    disabled={isStartingChat || !groupName.trim()}
+                    size="sm"
+                    className="h-9 px-4 rounded-lg"
+                  >
+                    {isStartingChat ? (
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    ) : (
+                      "Create"
+                    )}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Create a group and share the join code with others to invite them.
+                </p>
+              </>
+            )}
+
+            {/* Join Group Form */}
+            {formMode === "join" && (
+              <>
+                <div className="flex gap-2">
+                  <Input
+                    value={joinCode}
+                    onChange={(e) => {
+                      setJoinCode(e.target.value.toUpperCase());
+                      setFormError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); handleJoinGroup(); }
+                    }}
+                    placeholder="Enter join code"
+                    maxLength={6}
+                    className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm font-mono tracking-widest text-center uppercase"
+                    disabled={isStartingChat}
+                    autoFocus
+                  />
+                  <Button
+                    onClick={handleJoinGroup}
+                    disabled={isStartingChat || !joinCode.trim()}
+                    size="sm"
+                    className="h-9 px-4 rounded-lg"
+                  >
+                    {isStartingChat ? (
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    ) : (
+                      "Join"
+                    )}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Enter a 6-character join code to join an existing group.
+                </p>
+              </>
+            )}
+
+            {formError && (
               <p className="text-[11px] text-red-400 flex items-center gap-1">
                 <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                {newChatError}
+                {formError}
               </p>
             )}
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Enter a QC username to start a direct conversation. The other person must have claimed a username in Wallet Settings.
-            </p>
-            <div className="flex items-center gap-1.5 pt-0.5">
-              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
-              <span className="text-[10px] text-green-400 leading-none">All chats are end-to-end encrypted</span>
-            </div>
           </div>
         )}
       </div>
@@ -441,32 +769,43 @@ export default function QCChatListPage() {
               Log in with your Telegram account to start chatting.
             </p>
           </div>
-        ) : filteredConversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="proicons:chat" className="w-8 h-8 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {searchQuery ? "No chats found" : "No conversations yet"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {searchQuery
-                  ? "Try a different search term"
-                  : "Start a conversation by searching for a QC username"}
-              </p>
-            </div>
-          </div>
         ) : (
           <div className="divide-y divide-border/30">
-            {filteredConversations.map((chat) => (
+            {/* Global Chat — always pinned at top */}
+            {showGlobalChat && globalChat && (
               <ChatListItem
-                key={chat.id}
-                chat={chat}
+                chat={globalChat}
                 telegramId={telegramId || ""}
                 onNavigate={(chatId) => router.push(`/ecosystem/chat/${chatId}`)}
               />
-            ))}
+            )}
+
+            {filteredConversations.length === 0 && !showGlobalChat ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+                  <Icon icon="proicons:chat" className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {searchQuery ? "No chats found" : "No conversations yet"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {searchQuery
+                      ? "Try a different search term"
+                      : "Start a conversation or create a group"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              filteredConversations.map((chat) => (
+                <ChatListItem
+                  key={chat.id}
+                  chat={chat}
+                  telegramId={telegramId || ""}
+                  onNavigate={(chatId) => router.push(`/ecosystem/chat/${chatId}`)}
+                />
+              ))
+            )}
           </div>
         )}
       </div>

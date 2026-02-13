@@ -42,7 +42,10 @@ interface ChatMeta {
   participants: string[];
   participantNames: Record<string, string>;
   isGroup: boolean;
+  isGlobal?: boolean;
   groupName?: string;
+  joinCode?: string;
+  createdBy?: string;
 }
 
 const MESSAGES_LIMIT = 100;
@@ -143,7 +146,10 @@ export default function ChatConversationPage() {
             participants: data.participants || [],
             participantNames: data.participantNames || {},
             isGroup: data.isGroup || false,
+            isGlobal: data.isGlobal || false,
             groupName: data.groupName,
+            joinCode: data.joinCode,
+            createdBy: data.createdBy,
           });
         }
       } catch (error) {
@@ -154,7 +160,9 @@ export default function ChatConversationPage() {
     loadMeta();
   }, [chatId]);
 
-  // Subscribe to messages and decrypt them
+  // Subscribe to messages and decrypt them (skip encryption for groups)
+  const isGroupChat = chatMeta?.isGroup || chatMeta?.isGlobal;
+
   useEffect(() => {
     if (!chatId || !chatMeta) return;
 
@@ -184,11 +192,11 @@ export default function ChatConversationPage() {
         });
       });
 
-      // Decrypt messages in parallel
+      // Decrypt messages in parallel (skip for group chats)
       const decryptedMsgs = await Promise.all(
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
-          if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
+          if (!isGroupChat && msg.encrypted && isEncryptedMessage(msg.rawText)) {
             text = await decryptMessage(msg.rawText, chatMeta.participants, chatId);
           }
           return {
@@ -217,7 +225,7 @@ export default function ChatConversationPage() {
     }
   }, [isLoading, messages.length, scrollToBottom]);
 
-  // Send encrypted message
+  // Send message (encrypted for DMs, plaintext for groups)
   const handleSend = async () => {
     const text = newMessage.trim();
     if (!text || !telegramId || !chatId || !chatMeta || isSending) return;
@@ -228,23 +236,21 @@ export default function ChatConversationPage() {
     const senderName = qcUsername || "Unknown";
 
     try {
-      // Encrypt the message before sending
-      const encryptedText = await encryptMessage(
-        text,
-        chatMeta.participants,
-        chatId
-      );
+      // Encrypt only for DMs, not groups
+      const messageText = isGroupChat
+        ? text
+        : await encryptMessage(text, chatMeta.participants, chatId);
 
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
       await addDoc(messagesRef, {
-        text: encryptedText,
+        text: messageText,
         senderName,
         senderId: telegramId,
         createdAt: serverTimestamp(),
-        encrypted: true,
+        encrypted: !isGroupChat,
       });
 
-      // Update last message preview (show truncated plaintext for the chat list)
+      // Update last message preview
       const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
       await updateDoc(doc(dbfs, "qc-chats", chatId), {
         lastMessage: preview,
@@ -312,23 +318,35 @@ export default function ChatConversationPage() {
   const selfInitials = getInitials(selfName);
   const selfAvatarColor = getAvatarColor(selfName);
 
+  const [showJoinCode, setShowJoinCode] = useState(false);
+
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-background">
       {/* Chat Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
-        style={{ paddingTop: "max(0.75rem, var(--tg-safe-area-inset-top, 0px))" }}
+        style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <div className="relative shrink-0">
           <Avatar className="h-10 w-10">
-            {(isSelfChat ? myPhoto : otherPhoto) ? (
-              <AvatarImage src={(isSelfChat ? myPhoto : otherPhoto) || undefined} />
-            ) : null}
-            <AvatarFallback className={`${isSelfChat ? selfAvatarColor : headerAvatarColor} text-white text-xs font-semibold`}>
-              {isSelfChat ? selfInitials : headerInitials}
-            </AvatarFallback>
+            {chatMeta?.isGlobal ? (
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                <Icon icon="solar:global-bold" className="w-5 h-5" />
+              </AvatarFallback>
+            ) : (isSelfChat ? myPhoto : !isGroupChat ? otherPhoto : null) ? (
+              <>
+                <AvatarImage src={(isSelfChat ? myPhoto : otherPhoto) || undefined} />
+                <AvatarFallback className={`${isSelfChat ? selfAvatarColor : headerAvatarColor} text-white text-xs font-semibold`}>
+                  {isSelfChat ? selfInitials : headerInitials}
+                </AvatarFallback>
+              </>
+            ) : (
+              <AvatarFallback className={`${isSelfChat ? selfAvatarColor : headerAvatarColor} text-white text-xs font-semibold`}>
+                {isSelfChat ? selfInitials : headerInitials}
+              </AvatarFallback>
+            )}
           </Avatar>
-          {chatMeta?.isGroup && (
+          {isGroupChat && !chatMeta?.isGlobal && (
             <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
               <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
             </div>
@@ -336,17 +354,53 @@ export default function ChatConversationPage() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-semibold text-foreground truncate">
-            {isSelfChat ? "Saved Messages" : `@${headerName}`}
-          </h1>
-          <div className="flex items-center gap-1">
-            <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
-            <span className="text-[11px] text-green-400 leading-none">
-              {isSelfChat ? "Encrypted personal notes" : "End-to-end encrypted"}
-            </span>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-sm font-semibold text-foreground truncate">
+              {isSelfChat ? "Saved Messages" : isGroupChat ? headerName : `@${headerName}`}
+            </h1>
+            {chatMeta?.isGlobal && (
+              <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
+            )}
           </div>
+          {isGroupChat ? (
+            <span className="text-[11px] text-muted-foreground leading-none">
+              {chatMeta?.participants.length || 0} members
+            </span>
+          ) : (
+            <div className="flex items-center gap-1">
+              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+              <span className="text-[11px] text-green-400 leading-none">
+                {isSelfChat ? "Encrypted personal notes" : "End-to-end encrypted"}
+              </span>
+            </div>
+          )}
         </div>
+
+        {/* Group actions: share join code */}
+        {isGroupChat && chatMeta?.joinCode && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-9 h-9 rounded-full shrink-0"
+            onClick={() => {
+              navigator.clipboard.writeText(chatMeta.joinCode!);
+              setShowJoinCode(true);
+              setTimeout(() => setShowJoinCode(false), 2000);
+            }}
+          >
+            <Icon icon={showJoinCode ? "lucide:check" : "lucide:share-2"} className="w-4 h-4" />
+          </Button>
+        )}
       </div>
+
+      {/* Join code toast */}
+      {showJoinCode && chatMeta?.joinCode && (
+        <div className="px-4 py-2 bg-primary/10 text-center shrink-0">
+          <span className="text-xs text-primary font-semibold">
+            Join code copied: {chatMeta.joinCode}
+          </span>
+        </div>
+      )}
 
       {/* Messages */}
       <div
@@ -354,13 +408,20 @@ export default function ChatConversationPage() {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scroll-smooth"
       >
-        {/* E2E Encryption Notice */}
+        {/* Chat Notice */}
         {!isLoading && (
           <div className="flex justify-center py-3 pb-1">
             <div className="bg-muted/50 rounded-full px-3 py-1 flex items-center gap-1.5">
-              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-muted-foreground shrink-0" />
+              <Icon
+                icon={isGroupChat ? "solar:users-group-rounded-bold" : "solar:lock-keyhole-bold"}
+                className="w-3 h-3 text-muted-foreground shrink-0"
+              />
               <span className="text-[10px] text-muted-foreground leading-none">
-                {isSelfChat
+                {chatMeta?.isGlobal
+                  ? "Welcome to QC Global! Everyone can chat here."
+                  : isGroupChat
+                  ? `Group chat · ${chatMeta?.participants.length || 0} members`
+                  : isSelfChat
                   ? "Your saved messages are encrypted. Only you can read them."
                   : `Messages are end-to-end encrypted. Only you and @${headerName} can read them.`}
               </span>
@@ -387,6 +448,7 @@ export default function ChatConversationPage() {
           </div>
         ) : (
           messages.map((msg, i) => {
+            const isSystemMsg = msg.senderId === "system";
             const isOwnMessage = msg.senderId === telegramId;
             const consecutive = isConsecutive(i);
             const showDate = shouldShowDateDivider(i);
@@ -403,6 +465,14 @@ export default function ChatConversationPage() {
                   </div>
                 )}
 
+                {/* System messages (joined, created, etc.) */}
+                {isSystemMsg ? (
+                  <div className="flex justify-center my-1.5">
+                    <span className="text-[10px] text-muted-foreground bg-muted/40 rounded-full px-3 py-0.5">
+                      {msg.text}
+                    </span>
+                  </div>
+                ) : (
                 <div
                   className={`flex items-end gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
                     consecutive ? "mt-0.5" : "mt-2.5"
@@ -430,7 +500,7 @@ export default function ChatConversationPage() {
                     } px-3 py-2`}
                   >
                     {/* Show sender name for group chats and non-consecutive messages */}
-                    {!isOwnMessage && !consecutive && chatMeta?.isGroup && (
+                    {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-[11px] font-semibold text-primary">
                           @{msg.senderName}
@@ -448,6 +518,7 @@ export default function ChatConversationPage() {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             );
           })
