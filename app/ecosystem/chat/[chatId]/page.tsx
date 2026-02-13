@@ -252,10 +252,9 @@ export default function ChatConversationPage() {
         encrypted: true,
       });
 
-      // Update last message preview
-      const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
+      // Update last message preview (encrypted — no plaintext leaks)
       await updateDoc(doc(dbfs, "qc-chats", chatId), {
-        lastMessage: preview,
+        lastMessage: "🔒 Encrypted message",
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
       });

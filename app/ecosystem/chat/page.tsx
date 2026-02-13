@@ -93,7 +93,8 @@ function ChatListItem({
   telegramId: string;
   onNavigate: (chatId: string) => void;
 }) {
-  const isSelfChat = chat.participants.length === 1 && chat.participants[0] === telegramId;
+  const isSelfChat = !chat.isGroup && !chat.isGlobal &&
+    chat.participants.length === 1 && chat.participants[0] === telegramId;
   const otherParticipantId = chat.participants.find((p) => p !== telegramId) ?? null;
   const photoUrl = useProfilePhoto(
     chat.isGroup || chat.isGlobal ? null : isSelfChat ? telegramId : otherParticipantId
