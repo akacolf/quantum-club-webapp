@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
@@ -305,21 +307,25 @@ export default function ChatConversationPage() {
   const headerInitials = getInitials(headerName);
   const headerAvatarColor = getAvatarColor(headerName);
 
+  // For self-chat avatar, use the user's own name instead of "Saved Messages"
+  const selfName = qcUsername || "Me";
+  const selfInitials = getInitials(selfName);
+  const selfAvatarColor = getAvatarColor(selfName);
+
   return (
-    <div className="flex flex-col h-dvh bg-background">
+    <div className="fixed inset-0 z-40 flex flex-col bg-background">
       {/* Chat Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm">
+      <div
+        className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
+        style={{ paddingTop: "max(0.75rem, var(--tg-safe-area-inset-top, 0px))" }}
+      >
         <div className="relative shrink-0">
           <Avatar className="h-10 w-10">
-            {otherPhoto || (isSelfChat && myPhoto) ? (
+            {(isSelfChat ? myPhoto : otherPhoto) ? (
               <AvatarImage src={(isSelfChat ? myPhoto : otherPhoto) || undefined} />
             ) : null}
-            <AvatarFallback className={`${isSelfChat ? "bg-primary" : headerAvatarColor} text-white text-xs font-semibold`}>
-              {isSelfChat ? (
-                <Icon icon="solar:bookmark-bold" className="w-5 h-5" />
-              ) : (
-                headerInitials
-              )}
+            <AvatarFallback className={`${isSelfChat ? selfAvatarColor : headerAvatarColor} text-white text-xs font-semibold`}>
+              {isSelfChat ? selfInitials : headerInitials}
             </AvatarFallback>
           </Avatar>
           {chatMeta?.isGroup && (
@@ -450,36 +456,38 @@ export default function ChatConversationPage() {
       </div>
 
       {/* Message Input */}
-      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5" style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}>
+      <div
+        className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5 shrink-0"
+        style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}
+      >
         {!telegramId ? (
           <div className="flex items-center justify-center py-2">
             <p className="text-xs text-muted-foreground">Sign in to chat</p>
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                maxLength={500}
-                className="w-full bg-background border border-border/50 rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
-              />
-            </div>
-            <button
+            <Input
+              ref={inputRef}
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              maxLength={500}
+              className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
+            />
+            <Button
               onClick={handleSend}
               disabled={!newMessage.trim() || isSending}
-              className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all hover:bg-primary/90 shadow-lg shadow-primary/20"
+              size="icon"
+              className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
             >
               {isSending ? (
                 <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
-                <Icon icon="material-symbols:send-rounded" className="w-5 h-5 text-primary-foreground" />
+                <Icon icon="material-symbols:send-rounded" className="w-5 h-5" />
               )}
-            </button>
+            </Button>
           </div>
         )}
       </div>
