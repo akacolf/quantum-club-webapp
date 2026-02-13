@@ -286,35 +286,53 @@ export default function QCChatListPage() {
         </div>
 
         {showNewChatForm && (
-          <div className="mt-3 p-3 rounded-xl border border-border/60 bg-card/60 space-y-2">
+          <div className="mt-3 p-4 rounded-xl border border-border/60 bg-card/60 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Icon icon="proicons:chat" className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-foreground">New Conversation</span>
+            </div>
             <div className="flex gap-2">
-              <Input
-                value={newChatUsername}
-                onChange={(e) => setNewChatUsername(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleStartChat();
-                  }
-                }}
-                placeholder="Enter QC username (e.g. @alice)"
-                className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
-                disabled={isStartingChat}
-              />
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                <Input
+                  value={newChatUsername}
+                  onChange={(e) => {
+                    setNewChatUsername(e.target.value.replace(/^@+/, ""));
+                    setNewChatError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleStartChat();
+                    }
+                  }}
+                  placeholder="username"
+                  className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
+                  disabled={isStartingChat}
+                  autoFocus
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleStartChat}
-                disabled={isStartingChat}
-                className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isStartingChat || !newChatUsername.trim()}
+                className="h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
               >
-                {isStartingChat ? "Starting..." : "Start"}
+                {isStartingChat ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  "Chat"
+                )}
               </button>
             </div>
             {newChatError && (
-              <p className="text-[11px] text-red-400">{newChatError}</p>
+              <p className="text-[11px] text-red-400 flex items-center gap-1">
+                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                {newChatError}
+              </p>
             )}
-            <p className="text-[11px] text-muted-foreground">
-              Search filters existing chats. Use + to start a new direct chat by QC username.
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Enter a QC username to start a direct conversation. The other person must have claimed a username in Wallet Settings.
             </p>
           </div>
         )}

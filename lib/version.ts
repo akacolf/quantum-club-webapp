@@ -11,6 +11,6 @@
  * - PATCH: Bug fixes, small improvements
  */
 
-export const APP_VERSION = "3.3.3";
+export const APP_VERSION = "3.3.0";
 export const APP_NAME = "Quantum Club";
 export const APP_BUILD_DATE = "2026-02-13";

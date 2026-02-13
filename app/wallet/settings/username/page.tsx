@@ -371,7 +371,7 @@ export default function QCDomainPage() {
                     {
                       icon: "solar:transfer-horizontal-bold",
                       title: "Receive funds easily",
-                      desc: "Others send to @windblown instead of a long address",
+                      desc: `Others send to @${qcUsername || "yourusername"} instead of a long address`,
                     },
                     {
                       icon: "solar:lock-keyhole-bold",
