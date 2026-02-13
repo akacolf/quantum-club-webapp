@@ -3,8 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * API endpoint to fetch a Telegram user's profile photo URL.
- * Uses the Telegram Bot API's getUserProfilePhotos and getFile methods.
+ * API endpoint to fetch a Telegram user's profile photo.
+ * Proxies the image through the server to avoid exposing the bot token.
+ * Returns the image as base64 data URI or null.
  */
 export async function POST(req: NextRequest) {
     const botToken = process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
@@ -40,17 +41,14 @@ export async function POST(req: NextRequest) {
         const photosData = await photosResponse.json();
 
         if (!photosData.ok || !photosData.result?.photos?.length) {
-            // User has no profile photo
             return NextResponse.json({ photoUrl: null });
         }
 
-        // Get the smallest photo (first in the array is smallest)
         const photo = photosData.result.photos[0];
         if (!photo || photo.length === 0) {
             return NextResponse.json({ photoUrl: null });
         }
 
-        // Get the file_id of the smallest size (good for thumbnails)
         const fileId = photo[0].file_id;
 
         // Step 2: Get file path from file_id
@@ -67,8 +65,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ photoUrl: null });
         }
 
-        // Step 3: Construct the full photo URL
-        const photoUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+        // Step 3: Fetch the image server-side (bot token stays on server)
+        const imageUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+        const imageResponse = await fetch(imageUrl);
+
+        if (!imageResponse.ok) {
+            return NextResponse.json({ photoUrl: null });
+        }
+
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+        const base64 = Buffer.from(imageBuffer).toString("base64");
+        const photoUrl = `data:${contentType};base64,${base64}`;
 
         return NextResponse.json({ photoUrl });
     } catch (error) {

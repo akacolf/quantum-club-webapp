@@ -122,8 +122,7 @@ export async function decryptMessage(
 
     return new TextDecoder().decode(decrypted);
   } catch {
-    // If decryption fails (e.g. legacy unencrypted message), return as-is
-    return encryptedBase64;
+    return "⚠️ Unable to decrypt message";
   }
 }
 
