@@ -282,12 +282,18 @@ export default function ChatConversationPage() {
   const getHeaderName = (): string => {
     if (!chatMeta) return "Chat";
     if (chatMeta.isGroup && chatMeta.groupName) return chatMeta.groupName;
+    // Self-chat (Saved Messages)
+    if (chatMeta.participants.length === 1 && chatMeta.participants[0] === telegramId) {
+      return "Saved Messages";
+    }
     const otherParticipant = chatMeta.participants.find((p) => p !== telegramId);
     if (otherParticipant && chatMeta.participantNames[otherParticipant]) {
       return chatMeta.participantNames[otherParticipant];
     }
     return "Chat";
   };
+
+  const isSelfChat = chatMeta?.participants.length === 1 && chatMeta.participants[0] === telegramId;
 
   const headerName = getHeaderName();
   const headerInitials = getInitials(headerName);
@@ -299,8 +305,12 @@ export default function ChatConversationPage() {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         <div className="relative shrink-0">
           <Avatar className="h-10 w-10">
-            <AvatarFallback className={`${headerAvatarColor} text-white text-xs font-semibold`}>
-              {headerInitials}
+            <AvatarFallback className={`${isSelfChat ? "bg-primary" : headerAvatarColor} text-white text-xs font-semibold`}>
+              {isSelfChat ? (
+                <Icon icon="solar:bookmark-bold" className="w-5 h-5" />
+              ) : (
+                headerInitials
+              )}
             </AvatarFallback>
           </Avatar>
           {chatMeta?.isGroup && (
@@ -312,12 +322,12 @@ export default function ChatConversationPage() {
 
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-semibold text-foreground truncate">
-            @{headerName}
+            {isSelfChat ? "Saved Messages" : `@${headerName}`}
           </h1>
           <div className="flex items-center gap-1">
             <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
             <p className="text-[11px] text-green-400">
-              End-to-end encrypted
+              {isSelfChat ? "Encrypted personal notes" : "End-to-end encrypted"}
             </p>
           </div>
         </div>
@@ -335,7 +345,9 @@ export default function ChatConversationPage() {
             <div className="bg-muted/50 rounded-full px-3 py-1 flex items-center gap-1.5">
               <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-muted-foreground" />
               <p className="text-[10px] text-muted-foreground">
-                Messages are end-to-end encrypted. Only you and @{headerName} can read them.
+                {isSelfChat
+                  ? "Your saved messages are encrypted. Only you can read them."
+                  : `Messages are end-to-end encrypted. Only you and @${headerName} can read them.`}
               </p>
             </div>
           </div>

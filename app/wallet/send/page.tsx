@@ -504,6 +504,21 @@ export default function SendPage() {
       return false;
     }
 
+    // Prevent self-send
+    if (walletAddress) {
+      try {
+        const { Address } = require("@ton/core");
+        const senderAddr = Address.parse(walletAddress).toString({ bounceable: false });
+        const recipientAddr = Address.parse(resolvedAddress).toString({ bounceable: false });
+        if (senderAddr === recipientAddr) {
+          toast.error("You cannot send funds to yourself");
+          return false;
+        }
+      } catch {
+        // If address parsing fails, continue with other validations
+      }
+    }
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return false;

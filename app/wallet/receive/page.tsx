@@ -218,13 +218,16 @@ export default function ReceivePage() {
                       navigator.clipboard.writeText(`@${qcUsername}`);
                       toast.success("Username copied!");
                     }}
-                    className="w-full bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 active:border-violet-500/50 rounded-xl p-4 cursor-pointer transition-colors hover:from-violet-500/15 hover:to-cyan-500/15"
+                    className="w-full bg-[#161616] border border-[#222] active:border-primary/50 rounded-xl p-4 cursor-pointer transition-colors hover:bg-[#1a1a1a]"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-base font-bold text-foreground">
-                        @{qcUsername}
-                      </p>
-                      <Icon icon="solar:copy-bold" className="w-4 h-4 text-violet-400" />
+                      <div className="flex items-center gap-2">
+                        <Icon icon="solar:user-id-bold" className="w-4 h-4 text-primary" />
+                        <p className="text-base font-bold text-foreground">
+                          @{qcUsername}
+                        </p>
+                      </div>
+                      <Icon icon="solar:copy-bold" className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Others can send TON to your @username

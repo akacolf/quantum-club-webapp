@@ -27,6 +27,27 @@ const RESERVED_USERNAMES = [
 
 const CACHE_HEADERS = { 'Cache-Control': 'no-store, no-cache, must-revalidate' };
 
+// Rate limiting (in-memory, per serverless instance)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 30; // max requests per window per IP
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+// Input validation helpers
+const MAX_INPUT_LENGTH = 100;
+const QC_ID_REGEX = /^[a-zA-Z0-9_-]{1,100}$/;
+const TON_ADDRESS_REGEX = /^(EQ|UQ|0:|kQ)[a-zA-Z0-9_-]{46,48}$/;
+
 /**
  * GET /api/qc-username?username=windblown — Check availability or resolve username → address
  * GET /api/qc-username?qcId=abc123 — Reverse lookup: get a user's username
@@ -34,6 +55,15 @@ const CACHE_HEADERS = { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limit
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: CACHE_HEADERS }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const usernameParam = searchParams.get('username')?.toLowerCase().replace(/^@/, '');
     const qcId = searchParams.get('qcId');
@@ -113,12 +143,37 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: CACHE_HEADERS }
+      );
+    }
+
     const body = await request.json();
     const { username: rawUsername, qcId, address } = body;
 
     if (!rawUsername || !qcId) {
       return NextResponse.json(
         { error: 'username and qcId are required' },
+        { status: 400, headers: CACHE_HEADERS }
+      );
+    }
+
+    // Validate qcId format
+    if (typeof qcId !== 'string' || qcId.length > MAX_INPUT_LENGTH || !QC_ID_REGEX.test(qcId)) {
+      return NextResponse.json(
+        { error: 'Invalid qcId format' },
+        { status: 400, headers: CACHE_HEADERS }
+      );
+    }
+
+    // Validate address format if provided
+    if (address && (typeof address !== 'string' || address.length > MAX_INPUT_LENGTH || !TON_ADDRESS_REGEX.test(address))) {
+      return NextResponse.json(
+        { error: 'Invalid wallet address format' },
         { status: 400, headers: CACHE_HEADERS }
       );
     }
@@ -207,12 +262,35 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    // Rate limit
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: CACHE_HEADERS }
+      );
+    }
+
     const body = await request.json();
     const { qcId, address } = body;
 
     if (!qcId || !address) {
       return NextResponse.json(
         { error: 'qcId and address are required' },
+        { status: 400, headers: CACHE_HEADERS }
+      );
+    }
+
+    // Validate input formats
+    if (typeof qcId !== 'string' || qcId.length > MAX_INPUT_LENGTH || !QC_ID_REGEX.test(qcId)) {
+      return NextResponse.json(
+        { error: 'Invalid qcId format' },
+        { status: 400, headers: CACHE_HEADERS }
+      );
+    }
+    if (typeof address !== 'string' || address.length > MAX_INPUT_LENGTH || !TON_ADDRESS_REGEX.test(address)) {
+      return NextResponse.json(
+        { error: 'Invalid wallet address format' },
         { status: 400, headers: CACHE_HEADERS }
       );
     }

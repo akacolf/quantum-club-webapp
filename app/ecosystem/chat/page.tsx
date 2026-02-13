@@ -125,9 +125,13 @@ export default function QCChatListPage() {
     return () => unsubscribe();
   }, [telegramId]);
 
-  // Get display name for a 1:1 chat (the other person)
+  // Get display name for a chat
   const getChatDisplayName = (chat: ChatConversation): string => {
     if (chat.isGroup && chat.groupName) return chat.groupName;
+    // Self-chat (Saved Messages)
+    if (chat.participants.length === 1 && chat.participants[0] === telegramId) {
+      return "Saved Messages";
+    }
     const otherParticipant = chat.participants.find((p) => p !== telegramId);
     if (otherParticipant && chat.participantNames[otherParticipant]) {
       return chat.participantNames[otherParticipant];
@@ -171,54 +175,64 @@ export default function QCChatListPage() {
       }
 
       const otherUserId = String(resolveData.owner);
-      if (otherUserId === telegramId) {
-        setNewChatError("You can’t start a chat with yourself.");
-        return;
-      }
+      const isSelfChat = otherUserId === telegramId;
 
-      const existingDirectChat = conversations.find(
+      // Check for existing chat
+      const existingChat = conversations.find(
         (chat) =>
           !chat.isGroup &&
-          chat.participants.length === 2 &&
-          chat.participants.includes(telegramId) &&
-          chat.participants.includes(otherUserId)
+          (isSelfChat
+            ? chat.participants.length === 1 && chat.participants[0] === telegramId
+            : chat.participants.length === 2 &&
+              chat.participants.includes(telegramId) &&
+              chat.participants.includes(otherUserId))
       );
 
-      if (existingDirectChat) {
+      if (existingChat) {
         setShowNewChatForm(false);
         setNewChatUsername("");
-        router.push(`/ecosystem/chat/${existingDirectChat.id}`);
+        router.push(`/ecosystem/chat/${existingChat.id}`);
         return;
       }
 
       let otherDisplayName = normalizedUsername;
-      try {
-        const profileRes = await fetch(
-          `/api/qc-username?qcId=${encodeURIComponent(otherUserId)}`,
-          { cache: "no-store" }
-        );
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          if (profileData?.username && typeof profileData.username === "string") {
-            otherDisplayName = profileData.username.replace(/^@+/, "").trim() || otherDisplayName;
+      if (!isSelfChat) {
+        try {
+          const profileRes = await fetch(
+            `/api/qc-username?qcId=${encodeURIComponent(otherUserId)}`,
+            { cache: "no-store" }
+          );
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            if (profileData?.username && typeof profileData.username === "string") {
+              otherDisplayName = profileData.username.replace(/^@+/, "").trim() || otherDisplayName;
+            }
           }
+        } catch {
+          // Fallback to normalized username if lookup fails.
         }
-      } catch {
-        // Fallback to normalized username if lookup fails.
       }
 
       const selfDisplayName = qcUsername?.replace(/^@+/, "").trim() || "Unknown";
-      const chatId = [telegramId, otherUserId].sort().join("_");
+      const chatId = isSelfChat
+        ? `${telegramId}_saved`
+        : [telegramId, otherUserId].sort().join("_");
+
+      const participants = isSelfChat ? [telegramId] : [telegramId, otherUserId];
+      const participantNames: Record<string, string> = {
+        [telegramId]: selfDisplayName,
+      };
+      if (!isSelfChat) {
+        participantNames[otherUserId] = otherDisplayName;
+      }
 
       await setDoc(
         doc(dbfs, "qc-chats", chatId),
         {
-          participants: [telegramId, otherUserId],
-          participantNames: {
-            [telegramId]: selfDisplayName,
-            [otherUserId]: otherDisplayName,
-          },
+          participants,
+          participantNames,
           isGroup: false,
+          isSelfChat,
           lastMessage: "",
           lastMessageBy: "",
           lastMessageAt: serverTimestamp(),
