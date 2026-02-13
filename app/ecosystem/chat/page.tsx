@@ -1,326 +1,256 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   collection,
-  addDoc,
   query,
+  where,
   orderBy,
-  limit,
   onSnapshot,
-  serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
 
-interface ChatMessage {
+interface ChatConversation {
   id: string;
-  text: string;
-  username: string;
-  rank: string;
-  telegramId: string;
-  createdAt: Timestamp | null;
+  participants: string[];
+  participantNames: Record<string, string>;
+  lastMessage: string;
+  lastMessageBy: string;
+  lastMessageAt: Timestamp | null;
+  isGroup: boolean;
+  groupName?: string;
+  unreadCount?: number;
 }
 
-const MESSAGES_LIMIT = 100;
+function getInitials(name: string): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
-function formatTime(timestamp: Timestamp | null): string {
+function getAvatarColor(name: string): string {
+  const colors = [
+    "bg-blue-600", "bg-violet-600", "bg-emerald-600",
+    "bg-rose-600", "bg-amber-600", "bg-cyan-600",
+    "bg-pink-600", "bg-indigo-600", "bg-teal-600",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function formatLastTime(timestamp: Timestamp | null): string {
   if (!timestamp) return "";
   const date = timestamp.toDate();
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-function formatDateDivider(timestamp: Timestamp | null): string {
-  if (!timestamp) return "";
-  const date = timestamp.toDate();
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) return "Today";
-  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
-
-  return date.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-    year:
-      date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
-  });
-}
-
-function getRankColor(rank: string): string {
-  if (!rank) return "text-muted-foreground";
-  const r = rank.toLowerCase();
-  if (r === "diamond" || r === "legendary") return "text-cyan-400";
-  if (r === "gold") return "text-yellow-400";
-  if (r === "silver") return "text-gray-300";
-  if (r === "bronze") return "text-amber-600";
-  return "text-muted-foreground";
-}
-
-function getRankIcon(rank: string): string {
-  if (!rank) return "";
-  const r = rank.toLowerCase();
-  if (r === "diamond" || r === "legendary") return "💎";
-  if (r === "gold") return "🥇";
-  if (r === "silver") return "🥈";
-  if (r === "bronze") return "🥉";
-  return "⚡";
-}
-
-export default function QCChatPage() {
-  const { telegramId, username, rank } = useUserContext();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
+export default function QCChatListPage() {
+  const router = useRouter();
+  const { telegramId, qcUsername } = useUserContext();
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const isAtBottomRef = useRef(true);
 
-  // Track if the user is scrolled near the bottom
-  const handleScroll = useCallback(() => {
-    if (!chatContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 80;
-  }, []);
-
-  // Auto-scroll to bottom when new messages arrive (if user is at bottom)
-  const scrollToBottom = useCallback((force = false) => {
-    if (force || isAtBottomRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, []);
-
-  // Subscribe to real-time messages
+  // Subscribe to user's conversations
   useEffect(() => {
-    const messagesRef = collection(dbfs, "ecosystem-chat", "global", "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"), limit(MESSAGES_LIMIT));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: ChatMessage[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        msgs.push({
-          id: doc.id,
-          text: data.text,
-          username: data.username || "Quantum User",
-          rank: data.rank || "",
-          telegramId: data.telegramId || "",
-          createdAt: data.createdAt,
-        });
-      });
-      setMessages(msgs);
+    if (!telegramId) {
       setIsLoading(false);
-      // Auto-scroll after new messages are rendered
-      setTimeout(() => scrollToBottom(), 50);
-    });
+      return;
+    }
+
+    const chatsRef = collection(dbfs, "qc-chats");
+    const q = query(
+      chatsRef,
+      where("participants", "array-contains", telegramId),
+      orderBy("lastMessageAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const chats: ChatConversation[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          chats.push({
+            id: doc.id,
+            participants: data.participants || [],
+            participantNames: data.participantNames || {},
+            lastMessage: data.lastMessage || "",
+            lastMessageBy: data.lastMessageBy || "",
+            lastMessageAt: data.lastMessageAt,
+            isGroup: data.isGroup || false,
+            groupName: data.groupName,
+          });
+        });
+        setConversations(chats);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("Chat list error:", error);
+        setIsLoading(false);
+      }
+    );
 
     return () => unsubscribe();
-  }, [scrollToBottom]);
+  }, [telegramId]);
 
-  // Initial scroll to bottom
-  useEffect(() => {
-    if (!isLoading && messages.length > 0) {
-      scrollToBottom(true);
+  // Get display name for a 1:1 chat (the other person)
+  const getChatDisplayName = (chat: ChatConversation): string => {
+    if (chat.isGroup && chat.groupName) return chat.groupName;
+    const otherParticipant = chat.participants.find((p) => p !== telegramId);
+    if (otherParticipant && chat.participantNames[otherParticipant]) {
+      return chat.participantNames[otherParticipant];
     }
-  }, [isLoading, messages.length, scrollToBottom]);
-
-  // Send a message
-  const handleSend = async () => {
-    const text = newMessage.trim();
-    if (!text || !telegramId || isSending) return;
-
-    setIsSending(true);
-    setNewMessage("");
-
-    try {
-      const messagesRef = collection(dbfs, "ecosystem-chat", "global", "messages");
-      await addDoc(messagesRef, {
-        text,
-        username: username || "Quantum User",
-        rank: rank || "",
-        telegramId,
-        createdAt: serverTimestamp(),
-      });
-      scrollToBottom(true);
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      setNewMessage(text); // Restore the message on failure
-    } finally {
-      setIsSending(false);
-      inputRef.current?.focus();
-    }
+    return "Unknown User";
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  // Check if we need a date divider
-  const shouldShowDateDivider = (index: number): boolean => {
-    if (index === 0) return true;
-    const current = messages[index].createdAt;
-    const prev = messages[index - 1].createdAt;
-    if (!current || !prev) return false;
-    return current.toDate().toDateString() !== prev.toDate().toDateString();
-  };
-
-  // Check if this is a consecutive message from the same user
-  const isConsecutive = (index: number): boolean => {
-    if (index === 0) return false;
-    return messages[index].telegramId === messages[index - 1].telegramId
-      && !shouldShowDateDivider(index);
-  };
+  // Filter conversations by search
+  const filteredConversations = conversations.filter((chat) => {
+    if (!searchQuery.trim()) return true;
+    const displayName = getChatDisplayName(chat).toLowerCase();
+    return displayName.includes(searchQuery.toLowerCase());
+  });
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-64px)] bg-background">
+    <div className="flex flex-col h-[calc(100dvh-70px)] bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm">
-        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/30">
-          <Icon icon="solar:chat-round-dots-bold" className="w-5 h-5 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm font-semibold">QC Global Chat</h1>
-            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary px-1.5 py-0">
-              Live
-            </Badge>
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/30">
+              <Icon icon="proicons:chat" className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold leading-tight">QC Chat</h1>
+              {qcUsername && (
+                <p className="text-[11px] text-muted-foreground">
+                  @{qcUsername}
+                </p>
+              )}
+            </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            {messages.length} messages • Quantum Club Community
-          </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] text-muted-foreground">Online</span>
+
+        {/* Search */}
+        <div className="relative">
+          <Icon
+            icon="solar:magnifer-linear"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+          />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search conversations..."
+            className="pl-9 h-9 rounded-xl bg-muted/50 border-border/50 text-sm"
+          />
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div
-        ref={chatContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scroll-smooth"
-      >
+      <Separator className="opacity-50" />
+
+      {/* Chat list */}
+      <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <p className="text-xs text-muted-foreground">Loading messages...</p>
+            <p className="text-xs text-muted-foreground">Loading chats...</p>
           </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="solar:chat-round-dots-bold" className="w-7 h-7 text-primary" />
+        ) : !telegramId ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+              <Icon icon="proicons:chat" className="w-8 h-8 text-primary" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Sign in to chat</p>
+            <p className="text-xs text-muted-foreground">
+              Log in with your Telegram account to start chatting.
+            </p>
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+              <Icon icon="proicons:chat" className="w-8 h-8 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">No messages yet</p>
+              <p className="text-sm font-medium text-foreground">
+                {searchQuery ? "No chats found" : "No conversations yet"}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Be the first to say something in QC Global Chat!
+                {searchQuery
+                  ? "Try a different search term"
+                  : "Start a conversation by searching for a QC username"}
               </p>
             </div>
           </div>
         ) : (
-          messages.map((msg, i) => {
-            const isOwnMessage = msg.telegramId === telegramId;
-            const consecutive = isConsecutive(i);
-            const showDate = shouldShowDateDivider(i);
+          <div className="divide-y divide-border/30">
+            {filteredConversations.map((chat) => {
+              const displayName = getChatDisplayName(chat);
+              const initial = getInitials(displayName);
+              const avatarColor = getAvatarColor(displayName);
+              const isLastMsgByMe = chat.lastMessageBy === telegramId;
 
-            return (
-              <div key={msg.id}>
-                {/* Date divider */}
-                {showDate && (
-                  <div className="flex items-center gap-3 py-3">
-                    <div className="flex-1 h-px bg-border/40" />
-                    <span className="text-[10px] text-muted-foreground font-medium px-2">
-                      {formatDateDivider(msg.createdAt)}
-                    </span>
-                    <div className="flex-1 h-px bg-border/40" />
-                  </div>
-                )}
-
-                {/* Message */}
-                <div
-                  className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} ${
-                    consecutive ? "mt-0.5" : "mt-2.5"
-                  }`}
+              return (
+                <button
+                  key={chat.id}
+                  onClick={() => router.push(`/ecosystem/chat/${chat.id}`)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left"
                 >
-                  <div
-                    className={`max-w-[80%] ${
-                      isOwnMessage
-                        ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
-                        : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
-                    } px-3 py-2`}
-                  >
-                    {/* Username + rank (only show for non-consecutive messages from others) */}
-                    {!isOwnMessage && !consecutive && (
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[11px] font-semibold text-foreground">
-                          {msg.username}
-                        </span>
-                        {msg.rank && (
-                          <span className={`text-[10px] ${getRankColor(msg.rank)}`}>
-                            {getRankIcon(msg.rank)} {msg.rank}
-                          </span>
-                        )}
+                  <div className="relative shrink-0">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className={`${avatarColor} text-white text-sm font-semibold`}>
+                        {initial}
+                      </AvatarFallback>
+                    </Avatar>
+                    {chat.isGroup && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
+                        <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
                       </div>
                     )}
+                  </div>
 
-                    <div className="flex items-end gap-2">
-                      <p className="text-[13px] text-foreground leading-snug break-words whitespace-pre-wrap flex-1">
-                        {msg.text}
-                      </p>
-                      <span className="text-[9px] text-muted-foreground shrink-0 self-end pb-0.5">
-                        {formatTime(msg.createdAt)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground truncate">
+                        {displayName}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                        {formatLastTime(chat.lastMessageAt)}
                       </span>
                     </div>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
+                      {isLastMsgByMe && (
+                        <span className="text-foreground/50">You: </span>
+                      )}
+                      {chat.lastMessage || "No messages yet"}
+                    </p>
                   </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Message Input */}
-      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5 pb-safe">
-        {!telegramId ? (
-          <div className="flex items-center justify-center py-2">
-            <p className="text-xs text-muted-foreground">Sign in to chat</p>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                maxLength={500}
-                className="w-full bg-background border border-border/50 rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
-              />
-            </div>
-            <button
-              onClick={handleSend}
-              disabled={!newMessage.trim() || isSending}
-              className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all hover:bg-primary/90 shadow-lg shadow-primary/20"
-            >
-              {isSending ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Icon icon="solar:plain-bold" className="w-5 h-5 text-white -rotate-45" />
-              )}
-            </button>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

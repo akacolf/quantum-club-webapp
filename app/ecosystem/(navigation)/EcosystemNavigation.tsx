@@ -3,6 +3,7 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { Badge } from "@/components/ui/badge";
 
 const navTabs = [
   {
@@ -15,12 +16,24 @@ const navTabs = [
     id: "chat",
     href: "/ecosystem/chat",
     label: "QC Chat",
-    icon: "solar:chat-round-dots-bold",
+    icon: "proicons:chat",
+  },
+  {
+    id: "social",
+    href: "/ecosystem/social",
+    label: "QC Social",
+    icon: "solar:global-bold",
+    comingSoon: true,
   },
 ];
 
 const EcosystemNavigation = () => {
   const pathname = usePathname();
+
+  // Hide navbar when inside an individual chat conversation
+  if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
+    return null;
+  }
 
   const getActiveTab = () => {
     for (const tab of navTabs) {
@@ -42,6 +55,34 @@ const EcosystemNavigation = () => {
       >
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
+          const isComingSoon = "comingSoon" in tab && tab.comingSoon;
+
+          if (isComingSoon) {
+            return (
+              <div
+                key={tab.id}
+                className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10 opacity-50 cursor-default"
+              >
+                <div className="text-muted-foreground">
+                  <div className="scale-100">
+                    <Icon
+                      icon={tab.icon}
+                      style={{ width: "1.5em", height: "1.5em" }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <span className="text-[10px] font-medium tracking-wide text-muted-foreground">
+                    {tab.label}
+                  </span>
+                  <Badge className="text-[7px] px-1 py-0 h-3 bg-primary/20 text-primary border-0 leading-none">
+                    Soon
+                  </Badge>
+                </div>
+              </div>
+            );
+          }
+
           return (
             <Link
               key={tab.id}
