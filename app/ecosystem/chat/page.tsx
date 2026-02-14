@@ -134,6 +134,11 @@ function ChatListItem({
       setDecryptedPreview("No messages yet");
       return;
     }
+    // System messages (group creation, join, etc.) are never encrypted
+    if (chat.lastMessageBy === "system") {
+      setDecryptedPreview(chat.lastMessage);
+      return;
+    }
     // Legacy plaintext markers — can't decrypt these
     if (chat.lastMessage === "Encrypted message" || chat.lastMessage === "🔒 Encrypted message") {
       // Try sender's localStorage cache as fallback
@@ -159,7 +164,7 @@ function ChatListItem({
     }
     // Plain system message
     setDecryptedPreview(chat.lastMessage);
-  }, [chat.lastMessage, chat.id, chat.participants, isLastMsgByMe]);
+  }, [chat.lastMessage, chat.lastMessageBy, chat.id, chat.participants, isLastMsgByMe]);
 
   const previewText = decryptedPreview ?? "Encrypted message";
 
@@ -226,7 +231,7 @@ function ChatListItem({
             </span>
           )}
           <p className={`text-xs truncate leading-relaxed ${unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-            {isLastMsgByMe && (
+            {isLastMsgByMe && chat.lastMessageBy !== "system" && (
               <span className="text-foreground/50">You: </span>
             )}
             {previewText}
@@ -260,6 +265,20 @@ export default function QCChatListPage() {
 
   // Join group state
   const [joinCode, setJoinCode] = useState("");
+
+  // Handle deep link join: startapp=join_JOINCODE
+  useEffect(() => {
+    if (!currentUser || !telegramId || !qcUsername) return;
+    try {
+      const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+      if (!startParam || !startParam.startsWith("join_")) return;
+      const code = startParam.replace("join_", "").toUpperCase();
+      if (!code) return;
+      // Auto-fill join form
+      setJoinCode(code);
+      setFormMode("join");
+    } catch {}
+  }, [currentUser, telegramId, qcUsername]);
 
   // Ensure global chat exists and user is a participant
   useEffect(() => {

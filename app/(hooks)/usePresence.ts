@@ -64,6 +64,30 @@ export function usePresence(telegramId: string | null) {
     []
   );
 
+  return { setCurrentChat, presenceRef };
+}
+
+/**
+ * Get setCurrentChat for a user whose presence is managed elsewhere (e.g. layout).
+ * Does not start heartbeat — just provides a way to update currentChatId.
+ */
+export function usePresenceActions(telegramId: string | null) {
+  const presenceRef = useRef<ReturnType<typeof doc> | null>(null);
+
+  useEffect(() => {
+    if (!telegramId) return;
+    presenceRef.current = doc(dbfs, "qc-presence", telegramId);
+    return () => { presenceRef.current = null; };
+  }, [telegramId]);
+
+  const setCurrentChat = useCallback(
+    (chatId: string | null) => {
+      if (!presenceRef.current) return;
+      setDoc(presenceRef.current, { currentChatId: chatId }, { merge: true }).catch(() => {});
+    },
+    []
+  );
+
   return { setCurrentChat };
 }
 

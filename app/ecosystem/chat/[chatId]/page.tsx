@@ -6,11 +6,18 @@ import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
-import { usePresence, useUserPresence, formatLastSeen } from "@/app/(hooks)/usePresence";
+import { usePresenceActions, useUserPresence, formatLastSeen } from "@/app/(hooks)/usePresence";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   encryptMessage,
@@ -117,7 +124,8 @@ export default function ChatConversationPage() {
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showJoinCode, setShowJoinCode] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -130,8 +138,8 @@ export default function ChatConversationPage() {
   const myPhoto = useProfilePhoto(telegramId);
   const otherPhoto = useProfilePhoto(otherParticipantId);
 
-  // Presence: track which chat we're viewing
-  const { setCurrentChat } = usePresence(null); // presence managed by layout, just get setCurrentChat
+  // Presence: track which chat we're viewing (heartbeat managed by layout)
+  const { setCurrentChat } = usePresenceActions(telegramId);
   const otherPresence = useUserPresence(
     !chatMeta?.isGroup && !chatMeta?.isGlobal ? otherParticipantId : null
   );
@@ -410,9 +418,12 @@ export default function ChatConversationPage() {
         .map(([uid]) => chatMeta.participantNames?.[uid] || "Someone")
     : [];
 
-  // Read receipt status for own messages (DM only)
+  // Read receipt status for own messages
   const getMessageStatus = (msg: ChatMessage): "sent" | "delivered" | "read" => {
-    if (!chatMeta || isSelfChat || isGroupChat) return "sent";
+    if (!chatMeta) return "sent";
+    // Self-chat: always read (you're both sender and reader)
+    if (isSelfChat) return "read";
+    if (isGroupChat) return "sent";
     const otherId = chatMeta.participants.find((p) => p !== telegramId);
     if (!otherId) return "sent";
 
@@ -522,30 +533,82 @@ export default function ChatConversationPage() {
           </div>
         </div>
 
-        {/* Group actions: share join code */}
+        {/* Group actions: share */}
         {isGroupChat && chatMeta?.joinCode && (
           <Button
             size="icon"
             variant="ghost"
             className="w-9 h-9 rounded-full shrink-0"
-            onClick={() => {
-              navigator.clipboard.writeText(chatMeta.joinCode!);
-              setShowJoinCode(true);
-              setTimeout(() => setShowJoinCode(false), 2000);
-            }}
+            onClick={() => setShowShareModal(true)}
           >
-            <Icon icon={showJoinCode ? "lucide:check" : "lucide:share-2"} className="w-4 h-4" />
+            <Icon icon="lucide:share-2" className="w-4 h-4" />
           </Button>
         )}
       </div>
 
-      {/* Join code toast */}
-      {showJoinCode && chatMeta?.joinCode && (
-        <div className="px-4 py-2 bg-primary/10 text-center shrink-0">
-          <span className="text-xs text-primary font-semibold">
-            Join code copied: {chatMeta.joinCode}
-          </span>
-        </div>
+      {/* Share Modal */}
+      {isGroupChat && chatMeta?.joinCode && (
+        <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+          <DialogContent className="max-w-[340px] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-center">Share Group</DialogTitle>
+              <DialogDescription className="text-center text-xs">
+                Invite others to join {headerName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-1">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-2">
+                  <Icon icon="solar:users-group-rounded-bold" className="w-7 h-7 text-primary" />
+                </div>
+                <p className="text-sm font-semibold">{headerName}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {chatMeta.participants.length} members
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-center">
+                <p className="text-[10px] text-muted-foreground mb-1">Join Code</p>
+                <p className="text-lg font-mono font-bold tracking-[0.3em] text-foreground">
+                  {chatMeta.joinCode}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 gap-2 rounded-xl"
+                  onClick={() => {
+                    const inviteLink = `https://t.me/QuantumClubBot/app?startapp=join_${chatMeta.joinCode}`;
+                    const text = `Join "${headerName}" on QC Chat! 🔒`;
+                    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(text)}`;
+                    try {
+                      window.Telegram?.WebApp?.openTelegramLink(shareUrl);
+                    } catch {
+                      window.open(shareUrl, "_blank");
+                    }
+                    setShowShareModal(false);
+                  }}
+                >
+                  <Icon icon="ic:baseline-telegram" className="w-4 h-4" />
+                  Share via Telegram
+                </Button>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full gap-2 rounded-xl"
+                onClick={() => {
+                  navigator.clipboard.writeText(chatMeta.joinCode!);
+                  setCodeCopied(true);
+                  setTimeout(() => setCodeCopied(false), 1500);
+                }}
+              >
+                <Icon icon={codeCopied ? "lucide:check" : "lucide:copy"} className="w-4 h-4" />
+                {codeCopied ? "Copied!" : "Copy Join Code"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Messages */}

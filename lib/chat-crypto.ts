@@ -138,13 +138,18 @@ export async function decryptMessage(
 
 /**
  * Check if a string looks like an encrypted message (base64 with sufficient length).
+ * Rejects plaintext by checking for spaces and non-base64 characters.
  */
 export function isEncryptedMessage(text: string): boolean {
-  if (!text || text.length < 20) return false;
+  if (!text || text.length < 40) return false;
+  // Encrypted base64 never contains spaces (system messages do)
+  if (/\s/.test(text)) return false;
+  // Must be valid base64
+  if (!/^[A-Za-z0-9+/]+=*$/.test(text)) return false;
   try {
     const decoded = atob(text);
-    // Encrypted messages have at least IV (12 bytes) + some ciphertext
-    return decoded.length > IV_LENGTH;
+    // AES-GCM: IV (12) + ciphertext (min 1 char + 16 tag) = 29+ bytes
+    return decoded.length >= 29;
   } catch {
     return false;
   }
