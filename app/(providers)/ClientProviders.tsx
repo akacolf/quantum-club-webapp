@@ -27,12 +27,6 @@ const GroupsProvider = dynamic(() => import("../(contexts)/GroupsContext").then(
 const TradingProvider = dynamic(() => import("../(contexts)/TradingContext").then(m => ({ default: m.TradingProvider })));
 const OmnistonClientProvider = dynamic(() => import("./OmnistonProvider").then(m => ({ default: m.OmnistonClientProvider })), { ssr: false });
 
-// Lazy load AI Chat Drawer - it's hidden by default and not needed for initial render
-const AIChatDrawer = dynamic(() => import("../(components)/AIChatDrawer"), {
-  ssr: false,
-  loading: () => null,
-});
-
 // Initialize analytics before render
 if (typeof window !== "undefined") {
   initTelegramAnalytics();
@@ -56,7 +50,6 @@ export default function ClientProviders({ children }: { children: React.ReactNod
                     <TradingProvider>
                       <OmnistonClientProvider>
                         {children}
-                        <AIChatDrawer />
                       </OmnistonClientProvider>
                     </TradingProvider>
                   </GroupsProvider>

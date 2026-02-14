@@ -1,8 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { WalletProvider } from "./WalletContext";
 import { WalletKitProvider } from "@/lib/walletkit-provider";
 import WalletNavigation from "./(navigation)/WalletNavigation";
+
+const AIChatDrawer = dynamic(() => import("@/app/(components)/AIChatDrawer"), { ssr: false });
 
 export default function WalletLayout({
   children,
@@ -18,6 +21,7 @@ export default function WalletLayout({
         <div className="wallet-app">
           {children}
           <WalletNavigation />
+          <AIChatDrawer />
         </div>
       </WalletKitProvider>
     </WalletProvider>

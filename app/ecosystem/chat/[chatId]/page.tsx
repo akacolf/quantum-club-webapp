@@ -47,6 +47,11 @@ interface ChatMessage {
   senderId: string;
   createdAt: Timestamp | null;
   encrypted?: boolean;
+  replyTo?: {
+    id: string;
+    text: string;
+    senderName: string;
+  };
 }
 
 interface ChatMeta {
@@ -133,6 +138,12 @@ export default function ChatConversationPage() {
   const isAtBottomRef = useRef(true);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
+  const participantsRef = useRef<string[]>([]);
+
+  // Reply state
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  // Swipe state for reply gesture
+  const swipeRef = useRef<{ startX: number; startY: number; msgId: string | null }>({ startX: 0, startY: 0, msgId: null });
 
   const otherParticipantId = chatMeta?.participants.find((p) => p !== telegramId) ?? null;
   const myPhoto = useProfilePhoto(telegramId);
@@ -190,8 +201,10 @@ export default function ChatConversationPage() {
     const unsub = onSnapshot(chatRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
+        const participants = data.participants || [];
+        participantsRef.current = participants;
         setChatMeta({
-          participants: data.participants || [],
+          participants,
           participantNames: data.participantNames || {},
           isGroup: data.isGroup || false,
           isGlobal: data.isGlobal || false,
@@ -210,17 +223,24 @@ export default function ChatConversationPage() {
 
   // Subscribe to messages and decrypt them
   const isGroupChat = chatMeta?.isGroup || chatMeta?.isGlobal;
+  // Track whether we've set up the messages subscription (only needs chatId + auth)
+  const [messagesReady, setMessagesReady] = useState(false);
+
+  // Wait for initial chatMeta to arrive before subscribing to messages
+  useEffect(() => {
+    if (chatMeta && !messagesReady) setMessagesReady(true);
+  }, [chatMeta, messagesReady]);
 
   useEffect(() => {
-    if (!currentUser || !chatId || !chatMeta) return;
-
-    // Capture participants at effect start to avoid stale closures during decryption
-    const participants = [...chatMeta.participants];
+    if (!currentUser || !chatId || !messagesReady) return;
 
     const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"), limit(MESSAGES_LIMIT));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
+      // Use participantsRef for latest participants (avoids stale closure)
+      const participants = [...participantsRef.current];
+
       const rawMsgs: {
         id: string;
         rawText: string;
@@ -228,6 +248,7 @@ export default function ChatConversationPage() {
         senderId: string;
         createdAt: Timestamp | null;
         encrypted: boolean;
+        replyTo?: { id: string; text: string; senderName: string };
       }[] = [];
 
       snapshot.forEach((docSnap) => {
@@ -239,6 +260,7 @@ export default function ChatConversationPage() {
           senderId: data.senderId || "",
           createdAt: data.createdAt,
           encrypted: data.encrypted === true,
+          replyTo: data.replyTo || undefined,
         });
       });
 
@@ -248,6 +270,12 @@ export default function ChatConversationPage() {
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
             text = await decryptMessage(msg.rawText, participants, chatId);
           }
+          // Decrypt reply preview if present
+          let replyData = msg.replyTo;
+          if (replyData?.text && isEncryptedMessage(replyData.text)) {
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId);
+            replyData = { ...replyData, text: decryptedReply };
+          }
           return {
             id: msg.id,
             text,
@@ -255,6 +283,7 @@ export default function ChatConversationPage() {
             senderId: msg.senderId,
             createdAt: msg.createdAt,
             encrypted: msg.encrypted,
+            replyTo: replyData,
           };
         })
       );
@@ -273,7 +302,7 @@ export default function ChatConversationPage() {
     });
 
     return () => unsubscribe();
-  }, [currentUser, chatId, chatMeta?.participants?.join(","), scrollToBottom, telegramId]);
+  }, [currentUser, chatId, messagesReady, scrollToBottom, telegramId]);
 
   // Initial scroll
   useEffect(() => {
@@ -316,20 +345,41 @@ export default function ChatConversationPage() {
     setIsSending(true);
     setNewMessage("");
     setTyping(false);
+    const currentReply = replyTo;
+    setReplyTo(null);
 
     const senderName = qcUsername || "Unknown";
 
     try {
-      const encryptedText = await encryptMessage(text, chatMeta.participants, chatId);
+      // Use participantsRef for latest participants
+      const participants = participantsRef.current;
+      const encryptedText = await encryptMessage(text, participants, chatId);
 
-      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
-      await addDoc(messagesRef, {
+      // Build message doc
+      const messageDoc: Record<string, unknown> = {
         text: encryptedText,
         senderName,
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-      });
+      };
+
+      // Add reply reference if replying
+      if (currentReply) {
+        // Store encrypted version of reply text for security
+        const replyText = currentReply.text.length > 80
+          ? currentReply.text.slice(0, 80) + "…"
+          : currentReply.text;
+        const encryptedReplyText = await encryptMessage(replyText, participants, chatId);
+        messageDoc.replyTo = {
+          id: currentReply.id,
+          text: encryptedReplyText,
+          senderName: currentReply.senderName,
+        };
+      }
+
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      await addDoc(messagesRef, messageDoc);
 
       // Cache preview locally so sender can see it in chat list
       const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
@@ -343,7 +393,7 @@ export default function ChatConversationPage() {
         [`readPositions.${telegramId}`]: serverTimestamp(),
         [`unreadCounts.${telegramId}`]: 0,
       };
-      for (const pid of chatMeta.participants) {
+      for (const pid of participants) {
         if (pid !== telegramId) {
           updates[`unreadCounts.${pid}`] = increment(1);
         }
@@ -439,19 +489,8 @@ export default function ChatConversationPage() {
     return "sent";
   };
 
-  // Header subtitle text
+  // Header subtitle text — no typing indicator here (shown as bubble below)
   const getSubtitle = (): { text: string; color: string } => {
-    // Typing takes priority
-    if (typingUsers.length > 0) {
-      const names = typingUsers.length <= 2
-        ? typingUsers.join(" and ")
-        : `${typingUsers.length} people`;
-      return {
-        text: isGroupChat ? `${names} typing...` : "typing...",
-        color: "text-primary",
-      };
-    }
-
     if (isGroupChat) {
       return {
         text: `${chatMeta?.participants.length || 0} members · Encrypted`,
@@ -487,9 +526,7 @@ export default function ChatConversationPage() {
         <div className="relative shrink-0">
           <Avatar className="h-10 w-10">
             {chatMeta?.isGlobal ? (
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                <Icon icon="uiw:global" className="w-5 h-5" />
-              </AvatarFallback>
+              <AvatarImage src="/png/qc-global-logo.png" alt="QC Global" />
             ) : (isSelfChat ? myPhoto : !isGroupChat ? otherPhoto : null) ? (
               <>
                 <AvatarImage src={(isSelfChat ? myPhoto : otherPhoto) || undefined} />
@@ -686,6 +723,22 @@ export default function ChatConversationPage() {
                   className={`flex items-end gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
                     consecutive ? "mt-0.5" : "mt-2.5"
                   }`}
+                  onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    swipeRef.current = { startX: touch.clientX, startY: touch.clientY, msgId: msg.id };
+                  }}
+                  onTouchEnd={(e) => {
+                    if (swipeRef.current.msgId !== msg.id) return;
+                    const touch = e.changedTouches[0];
+                    const dx = touch.clientX - swipeRef.current.startX;
+                    const dy = Math.abs(touch.clientY - swipeRef.current.startY);
+                    // Swipe right to reply (min 60px horizontal, max 40px vertical drift)
+                    if (dx > 60 && dy < 40) {
+                      setReplyTo(msg);
+                      inputRef.current?.focus();
+                    }
+                    swipeRef.current = { startX: 0, startY: 0, msgId: null };
+                  }}
                 >
                   {!isOwnMessage && !consecutive && (
                     <Avatar className="h-7 w-7 shrink-0">
@@ -712,6 +765,18 @@ export default function ChatConversationPage() {
                         <span className="text-[11px] font-semibold text-primary">
                           @{msg.senderName}
                         </span>
+                      </div>
+                    )}
+
+                    {/* Reply preview inside bubble */}
+                    {msg.replyTo && (
+                      <div className="border-l-2 border-primary/50 pl-2 mb-1.5 py-0.5">
+                        <p className="text-[10px] font-semibold text-primary">
+                          {msg.replyTo.senderName === qcUsername ? "You" : `@${msg.replyTo.senderName}`}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+                          {msg.replyTo.text}
+                        </p>
                       </div>
                     )}
 
@@ -742,24 +807,50 @@ export default function ChatConversationPage() {
             );
           })
         )}
+
+        {/* Typing indicator as chat bubble */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-end gap-2 justify-start mt-2">
+            <Avatar className="h-7 w-7 shrink-0">
+              <AvatarFallback className={`${getAvatarColor(typingUsers[0])} text-white text-[10px] font-semibold`}>
+                {getInitials(typingUsers[0])}
+              </AvatarFallback>
+            </Avatar>
+            <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-4 py-3">
+              {isGroupChat && (
+                <p className="text-[10px] font-semibold text-primary mb-1">
+                  {typingUsers.join(", ")}
+                </p>
+              )}
+              <div className="flex gap-1">
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Typing indicator */}
-      {typingUsers.length > 0 && (
-        <div className="px-4 py-1.5 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
-            </div>
-            <span className="text-[11px] text-muted-foreground italic">
-              {isGroupChat
-                ? `${typingUsers.join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing...`
-                : "typing..."}
-            </span>
+      {/* Reply preview bar */}
+      {replyTo && (
+        <div className="px-3 py-2 border-t border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
+          <div className="flex-1 min-w-0 border-l-2 border-primary pl-2">
+            <p className="text-[11px] font-semibold text-primary truncate">
+              {replyTo.senderName === qcUsername ? "You" : `@${replyTo.senderName}`}
+            </p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {replyTo.text}
+            </p>
           </div>
+          <button
+            onClick={() => setReplyTo(null)}
+            className="shrink-0 p-1 rounded-full hover:bg-muted/50 transition-colors outline-none"
+          >
+            <Icon icon="lucide:x" className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       )}
 
@@ -780,7 +871,7 @@ export default function ChatConversationPage() {
               value={newMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
+              placeholder={replyTo ? "Reply..." : "Type a message..."}
               maxLength={500}
               className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
             />

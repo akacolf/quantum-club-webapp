@@ -184,9 +184,7 @@ function ChatListItem({
       <div className="relative shrink-0">
         <Avatar className="h-12 w-12">
           {chat.isGlobal ? (
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
-              <Icon icon="uiw:global" className="w-6 h-6" />
-            </AvatarFallback>
+            <AvatarImage src="/png/qc-global-logo.png" alt="QC Global" />
           ) : photoUrl ? (
             <>
               <AvatarImage src={photoUrl} />
@@ -254,7 +252,7 @@ type FormMode = "none" | "dm" | "group" | "join";
 
 export default function QCChatListPage() {
   const router = useRouter();
-  const { telegramId, qcUsername } = useUserContext();
+  const { telegramId, qcUsername, setQcUsername, walletAddress } = useUserContext();
   const authCtx = useAuth();
   const currentUser = authCtx?.currentUser ?? null;
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -273,6 +271,61 @@ export default function QCChatListPage() {
 
   // Join group state
   const [joinCode, setJoinCode] = useState("");
+
+  // Username creation state (for users without a QC username)
+  const [usernameInput, setUsernameInput] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isRegisteringUsername, setIsRegisteringUsername] = useState(false);
+  const [usernameAvailability, setUsernameAvailability] = useState<"available" | "taken" | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
+  const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
+
+  const checkUsernameAvailability = async () => {
+    const val = usernameInput.trim();
+    if (!val || val.length < 3 || val.length > 20 || !USERNAME_REGEX.test(val)) {
+      setUsernameError(val.length < 3 ? "Min 3 characters" : val.length > 20 ? "Max 20 characters" : "Letters, numbers, dots, underscores & hyphens only");
+      return;
+    }
+    setIsCheckingUsername(true);
+    setUsernameAvailability(null);
+    setUsernameError(null);
+    try {
+      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(val)}`);
+      const data = await res.json();
+      setUsernameAvailability(data.available ? "available" : "taken");
+    } catch {
+      setUsernameError("Failed to check availability");
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const handleRegisterUsername = async () => {
+    const val = usernameInput.trim();
+    if (!val || !telegramId || usernameAvailability !== "available") return;
+    setIsRegisteringUsername(true);
+    try {
+      const res = await fetch("/api/qc-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: val, qcId: telegramId, address: walletAddress || undefined }),
+      });
+      if (res.ok) {
+        setQcUsername(val);
+        localStorage.setItem(`qcUsername_${telegramId}`, val);
+        setUsernameInput("");
+        setUsernameAvailability(null);
+      } else {
+        const data = await res.json();
+        setUsernameError(data.error || "Failed to register username");
+      }
+    } catch {
+      setUsernameError("Failed to register username");
+    } finally {
+      setIsRegisteringUsername(false);
+    }
+  };
 
   // Handle deep link join: startapp=join_JOINCODE
   useEffect(() => {
@@ -664,7 +717,12 @@ export default function QCChatListPage() {
               <Icon icon="proicons:chat" className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-bold leading-tight">QC Chat</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-lg font-bold leading-tight">QC Chat</h1>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md">
+                  Beta
+                </Badge>
+              </div>
               {qcUsername && (
                 <p className="text-[11px] text-muted-foreground">
                   @{qcUsername}
@@ -675,13 +733,94 @@ export default function QCChatListPage() {
           <Button
             size="icon"
             onClick={() => toggleForm(formMode === "none" ? "dm" : "none")}
-            disabled={!telegramId}
+            disabled={!telegramId || !qcUsername}
             className="w-9 h-9 rounded-full"
             aria-label="New conversation"
           >
             <Icon icon={formMode === "none" ? "lucide:plus" : "lucide:x"} className="w-4 h-4" />
           </Button>
         </div>
+
+        {/* Username creation prompt */}
+        {telegramId && !qcUsername && (
+          <div className="mb-3 p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Icon icon="solar:user-id-bold" className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Create your username</p>
+                <p className="text-[10px] text-muted-foreground">You need a QC username to use QC Chat</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                <Input
+                  value={usernameInput}
+                  onChange={(e) => {
+                    setUsernameInput(e.target.value.replace(/^@+/, "").replace(/\s/g, ""));
+                    setUsernameAvailability(null);
+                    setUsernameError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (usernameAvailability === "available") handleRegisterUsername();
+                      else checkUsernameAvailability();
+                    }
+                  }}
+                  placeholder="username"
+                  className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
+                  disabled={isRegisteringUsername}
+                  maxLength={20}
+                />
+              </div>
+              {usernameAvailability === "available" ? (
+                <Button
+                  onClick={handleRegisterUsername}
+                  disabled={isRegisteringUsername}
+                  size="sm"
+                  className="h-9 px-4 rounded-lg"
+                >
+                  {isRegisteringUsername ? (
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : "Claim"}
+                </Button>
+              ) : (
+                <Button
+                  onClick={checkUsernameAvailability}
+                  disabled={isCheckingUsername || !usernameInput.trim()}
+                  size="sm"
+                  variant="secondary"
+                  className="h-9 px-4 rounded-lg"
+                >
+                  {isCheckingUsername ? (
+                    <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                  ) : "Check"}
+                </Button>
+              )}
+            </div>
+            {usernameAvailability === "available" && (
+              <p className="text-[10px] text-green-400 flex items-center gap-1">
+                <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
+                @{usernameInput} is available!
+              </p>
+            )}
+            {usernameAvailability === "taken" && (
+              <p className="text-[10px] text-red-400 flex items-center gap-1">
+                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                @{usernameInput} is already taken
+              </p>
+            )}
+            {usernameError && (
+              <p className="text-[10px] text-red-400 flex items-center gap-1">
+                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                {usernameError}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative">
