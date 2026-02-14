@@ -148,7 +148,7 @@ function ChatListItem({
           if (cached) { setDecryptedPreview(cached); return; }
         } catch {}
       }
-      setDecryptedPreview("Encrypted message");
+      setDecryptedPreview("New message");
       return;
     }
     // If it's actual encrypted ciphertext, decrypt it
@@ -156,9 +156,17 @@ function ChatListItem({
       let cancelled = false;
       decryptMessage(chat.lastMessage, chat.participants, chat.id).then((text) => {
         if (!cancelled) {
-          const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
-          setDecryptedPreview(preview);
+          // If decryption failed, show sender info instead of error
+          if (text === "Unable to decrypt message") {
+            const senderName = chat.lastMessageBy && chat.participantNames[chat.lastMessageBy];
+            setDecryptedPreview(senderName ? `${senderName} sent a message` : "New message");
+          } else {
+            const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
+            setDecryptedPreview(preview);
+          }
         }
+      }).catch(() => {
+        if (!cancelled) setDecryptedPreview("New message");
       });
       return () => { cancelled = true; };
     }
@@ -166,7 +174,7 @@ function ChatListItem({
     setDecryptedPreview(chat.lastMessage);
   }, [chat.lastMessage, chat.lastMessageBy, chat.id, chat.participants, isLastMsgByMe]);
 
-  const previewText = decryptedPreview ?? "Encrypted message";
+  const previewText = decryptedPreview ?? "New message";
 
   return (
     <button
@@ -325,7 +333,7 @@ export default function QCChatListPage() {
 
   // Subscribe to global chat separately
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !telegramId) return;
     const globalRef = doc(dbfs, "qc-chats", GLOBAL_CHAT_ID);
     const unsubscribe = onSnapshot(globalRef, (snap) => {
       if (snap.exists()) {
@@ -341,7 +349,7 @@ export default function QCChatListPage() {
           isGlobal: true,
           groupName: "QC Global",
           memberCount: data.participants?.length || 0,
-          unreadCount: data.unreadCounts?.[telegramId || ""] || 0,
+          unreadCount: data.unreadCounts?.[telegramId] || 0,
         });
       }
     }, (error) => {

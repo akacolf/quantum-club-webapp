@@ -265,7 +265,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
               )}
               <button
                 onClick={handleCopyId}
-                className="flex items-center gap-1.5 mx-auto mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1.5 mx-auto mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors outline-none focus:outline-none focus-visible:outline-none"
               >
                 <span className="font-mono text-muted-foreground">QC ID: {telegramId?.slice(0, 8)}...</span>
                 <Icon

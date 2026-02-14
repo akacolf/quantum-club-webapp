@@ -579,7 +579,7 @@ export default function ChatConversationPage() {
                   className="flex-1 gap-2 rounded-xl"
                   onClick={() => {
                     const inviteLink = `https://t.me/QuantumClubBot/app?startapp=join_${chatMeta.joinCode}`;
-                    const text = `Join "${headerName}" on QC Chat! 🔒`;
+                    const text = `Join "${headerName}" on QC Chat!`;
                     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(text)}`;
                     try {
                       window.Telegram?.WebApp?.openTelegramLink(shareUrl);
@@ -592,20 +592,20 @@ export default function ChatConversationPage() {
                   <Icon icon="ic:baseline-telegram" className="w-4 h-4" />
                   Share via Telegram
                 </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2 rounded-xl"
+                  onClick={() => {
+                    const inviteLink = `https://t.me/QuantumClubBot/app?startapp=join_${chatMeta.joinCode}`;
+                    navigator.clipboard.writeText(inviteLink);
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 1500);
+                  }}
+                >
+                  <Icon icon={codeCopied ? "lucide:check" : "lucide:link"} className="w-4 h-4" />
+                  {codeCopied ? "Copied!" : "Copy Link"}
+                </Button>
               </div>
-
-              <Button
-                variant="outline"
-                className="w-full gap-2 rounded-xl"
-                onClick={() => {
-                  navigator.clipboard.writeText(chatMeta.joinCode!);
-                  setCodeCopied(true);
-                  setTimeout(() => setCodeCopied(false), 1500);
-                }}
-              >
-                <Icon icon={codeCopied ? "lucide:check" : "lucide:copy"} className="w-4 h-4" />
-                {codeCopied ? "Copied!" : "Copy Join Code"}
-              </Button>
             </div>
           </DialogContent>
         </Dialog>
