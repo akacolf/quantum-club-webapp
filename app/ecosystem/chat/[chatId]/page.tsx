@@ -217,6 +217,7 @@ export default function ChatConversationPage() {
       }
     }, (error) => {
       console.error("Chat meta listener error:", error);
+      // Firestore SDK auto-reconnects for persistent cache, but log for debugging
     });
     return () => unsub();
   }, [currentUser, chatId]);
@@ -366,7 +367,6 @@ export default function ChatConversationPage() {
 
       // Add reply reference if replying
       if (currentReply) {
-        // Store encrypted version of reply text for security
         const replyText = currentReply.text.length > 80
           ? currentReply.text.slice(0, 80) + "…"
           : currentReply.text;
@@ -378,6 +378,7 @@ export default function ChatConversationPage() {
         };
       }
 
+      // Critical write: add the message
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
       await addDoc(messagesRef, messageDoc);
 
@@ -385,7 +386,8 @@ export default function ChatConversationPage() {
       const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
       try { localStorage.setItem(`qc-preview-${chatId}`, preview); } catch {}
 
-      // Build unread increment for all other participants
+      // Non-blocking: update chat metadata (lastMessage, unreadCounts)
+      // This is fire-and-forget so a failed metadata update doesn't block future sends
       const updates: Record<string, unknown> = {
         lastMessage: encryptedText,
         lastMessageBy: telegramId,
@@ -398,7 +400,9 @@ export default function ChatConversationPage() {
           updates[`unreadCounts.${pid}`] = increment(1);
         }
       }
-      await updateDoc(doc(dbfs, "qc-chats", chatId), updates);
+      updateDoc(doc(dbfs, "qc-chats", chatId), updates).catch((err) => {
+        console.warn("Chat metadata update failed (message was sent):", err);
+      });
 
       scrollToBottom(true);
     } catch (error) {
@@ -720,7 +724,7 @@ export default function ChatConversationPage() {
                   </div>
                 ) : (
                 <div
-                  className={`flex items-end gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
+                  className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
                     consecutive ? "mt-0.5" : "mt-2.5"
                   }`}
                   onTouchStart={(e) => {
@@ -741,7 +745,7 @@ export default function ChatConversationPage() {
                   }}
                 >
                   {!isOwnMessage && !consecutive && (
-                    <Avatar className="h-7 w-7 shrink-0">
+                    <Avatar className="h-7 w-7 shrink-0 mt-0.5">
                       {(() => {
                         const senderPhoto = msg.senderId === telegramId ? myPhoto : otherPhoto;
                         return senderPhoto ? <AvatarImage src={senderPhoto} /> : null;
