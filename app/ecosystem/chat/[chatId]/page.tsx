@@ -41,6 +41,9 @@ import {
   Timestamp,
   arrayUnion,
   arrayRemove,
+  limitToLast,
+  limit,
+  startAfter,
 } from "firebase/firestore";
 import {
   Popover,
@@ -156,6 +159,10 @@ export default function ChatConversationPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
 
+  // Pagination state
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+
   // Reaction picker state
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   // Search state
@@ -176,6 +183,7 @@ export default function ChatConversationPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isAtBottomRef = useRef(true);
+  const lastMessageIdRef = useRef<string | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
   const participantsRef = useRef<string[]>([]);
@@ -290,7 +298,7 @@ export default function ChatConversationPage() {
     if (!currentUser || !chatId || !messagesReady) return;
 
     const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"));
+    const q = query(messagesRef, orderBy("createdAt", "asc"), limitToLast(50));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       // Use participantsRef for latest participants (avoids stale closure)
@@ -352,9 +360,27 @@ export default function ChatConversationPage() {
         })
       );
 
-      setMessages(decryptedMsgs);
+      // Merge with any previously loaded older messages
+      setMessages((prev) => {
+        if (prev.length === 0) return decryptedMsgs;
+        // Find the oldest message from the snapshot
+        const oldestSnapshotId = decryptedMsgs[0]?.id;
+        // Keep any older messages that are not in the snapshot
+        const olderMessages = prev.filter(
+          (m) => !decryptedMsgs.some((dm) => dm.id === m.id) &&
+            m.createdAt && decryptedMsgs[0]?.createdAt &&
+            m.createdAt.toMillis() < decryptedMsgs[0].createdAt.toMillis()
+        );
+        return [...olderMessages, ...decryptedMsgs];
+      });
       setIsLoading(false);
-      setTimeout(() => scrollToBottom(), 50);
+
+      // Only scroll to bottom when a NEW message arrives (last message ID changed)
+      const newLastId = decryptedMsgs[decryptedMsgs.length - 1]?.id;
+      if (newLastId && newLastId !== lastMessageIdRef.current) {
+        lastMessageIdRef.current = newLastId;
+        setTimeout(() => scrollToBottom(), 50);
+      }
 
       // Update read position on new messages
       if (telegramId) {
@@ -373,7 +399,102 @@ export default function ChatConversationPage() {
     if (!isLoading && messages.length > 0) {
       scrollToBottom(true);
     }
-  }, [isLoading, messages.length, scrollToBottom]);
+  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load older messages when scrolling to top
+  const loadOlderMessages = useCallback(async () => {
+    if (loadingOlder || !hasMoreMessages || !chatId || messages.length === 0) return;
+    const oldestMsg = messages[0];
+    if (!oldestMsg?.createdAt) return;
+
+    setLoadingOlder(true);
+    try {
+      const participants = [...participantsRef.current];
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      const olderQuery = query(
+        messagesRef,
+        orderBy("createdAt", "desc"),
+        startAfter(oldestMsg.createdAt),
+        limit(50)
+      );
+      const snapshot = await getDocs(olderQuery);
+
+      if (snapshot.size < 50) setHasMoreMessages(false);
+      if (snapshot.empty) {
+        setLoadingOlder(false);
+        return;
+      }
+
+      const rawMsgs = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          rawText: data.text || "",
+          senderName: data.senderName || "Unknown",
+          senderId: data.senderId || "",
+          createdAt: data.createdAt,
+          encrypted: data.encrypted === true,
+          reactions: data.reactions || undefined,
+          replyTo: data.replyTo || undefined,
+          forwarded: data.forwarded || undefined,
+          expiresAt: data.expiresAt || undefined,
+        };
+      });
+
+      const olderDecrypted = await Promise.all(
+        rawMsgs.map(async (msg) => {
+          let text = msg.rawText;
+          if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
+            text = await decryptMessage(msg.rawText, participants, chatId);
+          }
+          let replyData = msg.replyTo;
+          if (replyData?.text && isEncryptedMessage(replyData.text)) {
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId);
+            replyData = { ...replyData, text: decryptedReply };
+          }
+          return {
+            id: msg.id,
+            text,
+            senderName: msg.senderName,
+            senderId: msg.senderId,
+            createdAt: msg.createdAt,
+            encrypted: msg.encrypted,
+            reactions: msg.reactions,
+            replyTo: replyData,
+            forwarded: msg.forwarded,
+            expiresAt: msg.expiresAt,
+          };
+        })
+      );
+
+      // Reverse since we queried desc
+      olderDecrypted.reverse();
+
+      const container = chatContainerRef.current;
+      const prevHeight = container?.scrollHeight ?? 0;
+
+      setMessages((prev) => [...olderDecrypted, ...prev]);
+
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight - prevHeight;
+        }
+      });
+    } catch (err) {
+      console.error("Failed to load older messages:", err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [loadingOlder, hasMoreMessages, chatId, messages]);
+
+  // Scroll handler: detect scrolling to top for pagination
+  const handleScrollForPagination = useCallback(() => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop } = chatContainerRef.current;
+    if (scrollTop <= 50 && !loadingOlder && hasMoreMessages) {
+      loadOlderMessages();
+    }
+  }, [loadOlderMessages, loadingOlder, hasMoreMessages]);
 
   // Typing indicator: set/clear typing status
   const setTyping = useCallback(
@@ -626,8 +747,10 @@ export default function ChatConversationPage() {
     const el = messageRefs.current[msgId];
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("ring-2", "ring-primary/50");
-      setTimeout(() => el.classList.remove("ring-2", "ring-primary/50"), 1500);
+      el.style.animation = "none";
+      // Force reflow
+      void el.offsetHeight;
+      el.style.animation = "highlightMessage 2s ease-in-out";
     }
   }, []);
 
@@ -780,6 +903,14 @@ export default function ChatConversationPage() {
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-background">
+      <style>{`
+        @keyframes highlightMessage {
+          0% { background-color: transparent; }
+          15% { background-color: hsl(var(--primary) / 0.12); }
+          85% { background-color: hsl(var(--primary) / 0.12); }
+          100% { background-color: transparent; }
+        }
+      `}</style>
       {/* Chat Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
@@ -898,7 +1029,7 @@ export default function ChatConversationPage() {
       {isGroupChat && chatMeta?.joinCode && (
         <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
           <DialogContent hideClose className="max-w-[340px] rounded-2xl">
-            <DialogHeader>
+            <DialogHeader className="text-center items-center">
               <DialogTitle className="text-center">Share Group</DialogTitle>
               <DialogDescription className="text-center text-xs">
                 Invite others to join {headerName}
@@ -962,7 +1093,7 @@ export default function ChatConversationPage() {
       {/* Forward Dialog */}
       <Dialog open={showForwardDialog} onOpenChange={(open) => { setShowForwardDialog(open); if (!open) setForwardMsgId(null); }}>
         <DialogContent hideClose className="max-w-[340px] rounded-2xl">
-          <DialogHeader>
+          <DialogHeader className="text-center items-center">
             <DialogTitle className="text-center">Forward Message</DialogTitle>
             <DialogDescription className="text-center text-xs">
               Select a chat to forward to
@@ -1068,9 +1199,20 @@ export default function ChatConversationPage() {
       {/* Messages */}
       <div
         ref={chatContainerRef}
-        onScroll={handleScroll}
+        onScroll={(e) => { handleScroll(); handleScrollForPagination(); }}
         className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scroll-smooth"
       >
+        {/* Load older indicator */}
+        {!isLoading && messages.length > 0 && (
+          <div className="flex justify-center py-2">
+            {loadingOlder ? (
+              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            ) : !hasMoreMessages ? (
+              <span className="text-[10px] text-muted-foreground">No more messages</span>
+            ) : null}
+          </div>
+        )}
+
         {/* Chat Notice */}
         {!isLoading && (
           <div className="flex justify-center py-3 pb-1">
@@ -1224,11 +1366,11 @@ export default function ChatConversationPage() {
                     )}
 
                     <div
-                      className={`${
+                      className={`relative ${
                         isOwnMessage
                           ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
                           : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
-                      } px-3 py-1.5`}
+                      } px-2.5 py-1.5`}
                     >
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1.5 mb-0.5">
@@ -1257,25 +1399,25 @@ export default function ChatConversationPage() {
                       </div>
                     )}
 
-                    <span className="text-[13px] text-foreground leading-relaxed break-words whitespace-pre-wrap">
+                    <span className="text-[13.5px] text-foreground leading-[1.4] break-words whitespace-pre-wrap">
                       {msg.text}
                     </span>
-                    {/* Invisible spacer to prevent text overlapping time+ticks */}
-                    <span className={`inline-block ${status ? "w-[4.5rem]" : msg.expiresAt ? "w-[4.5rem]" : "w-[3.25rem]"}`} />
-                    {/* Time + ticks anchored bottom-right */}
-                    <span className="float-right flex items-center gap-0.5 mt-1 ml-2 translate-y-[-2px]">
+                    {/* Invisible spacer reserves space for time+ticks so they don't overlap text */}
+                    <span className="inline-block w-[70px] h-[1px]" aria-hidden="true" />
+                    {/* Time + ticks positioned at bottom-right */}
+                    <span className="absolute bottom-[5px] right-[8px] flex items-center gap-0.5">
                       {msg.expiresAt && (
-                        <Icon icon="lucide:timer" className="w-3 h-3 text-muted-foreground/70 shrink-0" />
+                        <Icon icon="lucide:timer" className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
                       )}
-                      <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap leading-none">
+                      <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap leading-none">
                         {formatTime(msg.createdAt)}
                       </span>
                       {status && (
-                        <span className={`inline-flex shrink-0 transition-all duration-300 ${status === "read" ? "text-primary" : "text-muted-foreground/70"}`}>
+                        <span className={`inline-flex shrink-0 transition-all duration-300 ${status === "read" ? "text-primary" : "text-muted-foreground/60"}`}>
                           {status === "sent" ? (
-                            <Icon icon="lucide:check" className="w-[14px] h-[14px]" />
+                            <Icon icon="lucide:check" className="w-[13px] h-[13px]" />
                           ) : (
-                            <Icon icon="lucide:check-check" className="w-[14px] h-[14px]" />
+                            <Icon icon="lucide:check-check" className="w-[13px] h-[13px]" />
                           )}
                         </span>
                       )}
