@@ -60,7 +60,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [MainQuantAmount, SetMainQuantAmount] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const amount = localStorage.getItem(`QAmount`+`_${telegramId}`);
-      return amount ? `${amount}` : "0";
+      if (amount) {
+        const num = Number(amount.replace(/,/g, ""));
+        return isNaN(num) ? amount : num.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      }
+      return "0";
     }
     return "0";
   });
