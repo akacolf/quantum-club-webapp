@@ -269,7 +269,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
           { merge: true }
         );
         sessionStorage.setItem("firstQuant", formattedQuant);
-        localStorage.setItem(`QAmount_${telegramIdEncrypted}`, String(quantValue));
+        localStorage.setItem(`QAmount_${telegramIdEncrypted}`, formattedQuant);
         if (referrerID) {
           if (referrerID != telegramIdEncrypted) {
             const userReference = doc(

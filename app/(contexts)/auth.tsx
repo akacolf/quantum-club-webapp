@@ -1,6 +1,7 @@
 "use client"
 
-import { auth } from "@/app/(firebase)/client";
+import { auth, dbfs } from "@/app/(firebase)/client";
+import { doc, getDoc } from "firebase/firestore";
 import { GoogleAuthProvider, EmailAuthProvider, ParsedToken, signInWithCredential, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, User } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react"
 import { removeToken, setToken } from "./actions";
@@ -54,6 +55,36 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                 setAuthLoading(false);
                 return;
             }
+
+            // Force re-auth check: compare remote version with local
+            if (user) {
+                try {
+                    const settingsRef = doc(dbfs, "set", "settings");
+                    const settingsSnap = await getDoc(settingsRef);
+                    const remoteVersion = settingsSnap.data()?.forceAuthVersion;
+                    const localVersion = localStorage.getItem("forceAuthVersion");
+                    if (remoteVersion && String(remoteVersion) !== localVersion) {
+                        localStorage.setItem("forceAuthVersion", String(remoteVersion));
+                        // Clear all user session data
+                        const keys = Object.keys(localStorage);
+                        for (const key of keys) {
+                            if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
+                                key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
+                                key === "username" || key === "telegramId" || key === "telegramIdNM" ||
+                                key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
+                                localStorage.removeItem(key);
+                            }
+                        }
+                        sessionStorage.clear();
+                        await auth.signOut();
+                        try { await removeToken(); } catch {}
+                        setCurrentUser(null);
+                        setAuthLoading(false);
+                        return;
+                    }
+                } catch {}
+            }
+
             setCurrentUser(user ?? null);
             if(user){
                 try {

@@ -1,5 +1,7 @@
 "use client";
-import React, { createContext, useState, useContext, ReactNode, useMemo } from "react";
+import React, { createContext, useState, useContext, useEffect, useRef, ReactNode, useMemo } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { dbfs } from "@/app/(firebase)/client";
 
 interface UserContextType {
   username: string | null;
@@ -118,6 +120,33 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     }
     return null;
   });
+
+  // Real-time Firestore listener for QuantAmount — keeps balance always up to date
+  const quantListenerRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!telegramId) return;
+    // Clean up previous listener
+    if (quantListenerRef.current) quantListenerRef.current();
+
+    const valueRef = doc(dbfs, "user", telegramId, "miningData", "values");
+    const unsub = onSnapshot(valueRef, (snap) => {
+      if (!snap.exists()) return;
+      const raw = snap.data()?.QuantAmount;
+      if (raw == null) return;
+      const num = Number(raw);
+      if (isNaN(num)) return;
+      const formatted = num.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      SetMainQuantAmount(formatted);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`QAmount_${telegramId}`, formatted);
+      }
+    }, () => {
+      // Silently ignore snapshot errors (permission denied, etc.)
+    });
+    quantListenerRef.current = unsub;
+    return () => unsub();
+  }, [telegramId]);
+
   const resetContext = () => {
     setUsername(null);
     setTelegramId(null);
