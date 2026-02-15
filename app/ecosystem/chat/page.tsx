@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -327,19 +327,67 @@ export default function QCChatListPage() {
     }
   };
 
-  // Handle deep link join: startapp=join_JOINCODE
+  // Handle deep link join: startapp=join_JOINCODE — auto-join the group
+  const deepLinkHandledRef = useRef(false);
   useEffect(() => {
-    if (!currentUser || !telegramId || !qcUsername) return;
+    if (!currentUser || !telegramId || !qcUsername || deepLinkHandledRef.current) return;
     try {
       const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
       if (!startParam || !startParam.startsWith("join_")) return;
       const code = startParam.replace("join_", "").toUpperCase();
       if (!code) return;
-      // Auto-fill join form
-      setJoinCode(code);
-      setFormMode("join");
+      deepLinkHandledRef.current = true;
+
+      // Auto-join: directly execute the join logic
+      (async () => {
+        setIsStartingChat(true);
+        try {
+          // Check if already in the group
+          const localMatch = conversations.find(
+            (c) => c.joinCode?.toUpperCase() === code
+          );
+          if (localMatch) {
+            router.push(`/ecosystem/chat/${localMatch.id}`);
+            return;
+          }
+
+          const chatsRef = collection(dbfs, "qc-chats");
+          const { getDocs, query: fsQuery } = await import("firebase/firestore");
+          const q = fsQuery(chatsRef, where("joinCode", "==", code));
+          const snap = await getDocs(q);
+
+          if (snap.empty) return;
+
+          const groupDoc = snap.docs[0];
+          const groupData = groupDoc.data();
+
+          if (groupData.participants?.includes(telegramId)) {
+            router.push(`/ecosystem/chat/${groupDoc.id}`);
+            return;
+          }
+
+          const selfDisplayName = qcUsername?.replace(/^@+/, "").trim() || "Unknown";
+
+          await updateDoc(doc(dbfs, "qc-chats", groupDoc.id), {
+            participants: arrayUnion(telegramId),
+            [`participantNames.${telegramId}`]: selfDisplayName,
+            lastMessage: `${selfDisplayName} joined the group`,
+            lastMessageBy: "system",
+            lastMessageAt: serverTimestamp(),
+          });
+
+          router.push(`/ecosystem/chat/${groupDoc.id}`);
+        } catch (err) {
+          console.error("Deep link auto-join failed:", err);
+          // Fallback: show join form with pre-filled code
+          setJoinCode(code);
+          setFormMode("join");
+        } finally {
+          setIsStartingChat(false);
+        }
+      })();
     } catch {}
-  }, [currentUser, telegramId, qcUsername]);
+  }, [currentUser, telegramId, qcUsername, conversations, router]);
 
   // Sync wallet address to QC username if missing
   useEffect(() => {

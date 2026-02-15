@@ -33,7 +33,7 @@ export default function LeaderboardList() {
                                         {item.username}
                                     </div>
                                     <div className="font-medium text-xs text-gray-500">
-                                        {item.QuantAmount} QNTM
+                                        {Number(item.QuantAmount).toLocaleString("en-US", { maximumFractionDigits: 0 })} QNTM
                                     </div>
                                 </div>
                             </div>
