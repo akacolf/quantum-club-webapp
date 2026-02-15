@@ -341,6 +341,26 @@ export default function QCChatListPage() {
     } catch {}
   }, [currentUser, telegramId, qcUsername]);
 
+  // Sync wallet address to QC username if missing
+  useEffect(() => {
+    if (!qcUsername || !walletAddress || !telegramId) return;
+    const syncKey = `qcAddr_synced_${telegramId}`;
+    if (sessionStorage.getItem(syncKey)) return; // Only once per session
+    sessionStorage.setItem(syncKey, "1");
+    fetch(`/api/qc-username?username=${encodeURIComponent(qcUsername)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.exists && !data.address) {
+          fetch("/api/qc-username", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ qcId: telegramId, address: walletAddress }),
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, [qcUsername, walletAddress, telegramId]);
+
   // Ensure global chat exists and user is a participant
   useEffect(() => {
     if (!currentUser || !telegramId || !qcUsername) return;

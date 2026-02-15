@@ -30,7 +30,7 @@ import {
   addDoc,
   query,
   orderBy,
-  limit,
+  limitToLast,
   onSnapshot,
   serverTimestamp,
   updateDoc,
@@ -236,7 +236,7 @@ export default function ChatConversationPage() {
     if (!currentUser || !chatId || !messagesReady) return;
 
     const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"), limit(MESSAGES_LIMIT));
+    const q = query(messagesRef, orderBy("createdAt", "asc"), limitToLast(MESSAGES_LIMIT));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       // Use participantsRef for latest participants (avoids stale closure)

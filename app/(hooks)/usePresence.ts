@@ -93,26 +93,52 @@ export function usePresenceActions(telegramId: string | null) {
 
 /**
  * Subscribe to another user's presence data.
+ * Treats a user as offline if lastSeen is stale (>130s old),
+ * since the heartbeat fires every 60s.
  */
+const HEARTBEAT_STALE_MS = 130_000; // 2× heartbeat + buffer
+
 export function useUserPresence(telegramId: string | null): PresenceData | null {
   const [presence, setPresence] = useState<PresenceData | null>(null);
 
   useEffect(() => {
     if (!telegramId) return;
     const ref = doc(dbfs, "qc-presence", telegramId);
+
+    const evaluatePresence = (d: Record<string, unknown>) => {
+      let isOnline = (d.isOnline as boolean) || false;
+      const lastSeen: Timestamp | null = (d.lastSeen as Timestamp) || null;
+
+      // If lastSeen is stale, override isOnline to false
+      if (isOnline && lastSeen && typeof lastSeen.toDate === "function") {
+        const age = Date.now() - lastSeen.toDate().getTime();
+        if (age > HEARTBEAT_STALE_MS) isOnline = false;
+      }
+
+      return {
+        isOnline,
+        lastSeen,
+        currentChatId: (d.currentChatId as string) || null,
+      };
+    };
+
+    let latestData: Record<string, unknown> | null = null;
+
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        const d = snap.data();
-        setPresence({
-          isOnline: d.isOnline || false,
-          lastSeen: d.lastSeen || null,
-          currentChatId: d.currentChatId || null,
-        });
+        latestData = snap.data();
+        setPresence(evaluatePresence(latestData));
       }
     }, () => {
-      // Silently handle permission errors (e.g. auth not yet ready)
+      // Silently handle permission errors
     });
-    return () => unsub();
+
+    // Re-evaluate staleness every 30s (heartbeat may not trigger a snapshot update)
+    const interval = setInterval(() => {
+      if (latestData) setPresence(evaluatePresence(latestData));
+    }, 30_000);
+
+    return () => { unsub(); clearInterval(interval); };
   }, [telegramId]);
 
   return presence;

@@ -1,9 +1,13 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { Badge } from "@/components/ui/badge";
+import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useAuth } from "@/app/(contexts)/auth";
+import { dbfs } from "@/app/(firebase)/client";
+import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 
 const navTabs = [
   {
@@ -30,6 +34,30 @@ const navTabs = [
 
 const EcosystemNavigation = () => {
   const pathname = usePathname();
+  const { telegramId } = useUserContext();
+  const authCtx = useAuth();
+  const currentUser = authCtx?.currentUser ?? null;
+  const [totalUnread, setTotalUnread] = useState(0);
+
+  // Subscribe to total unread count across all chats
+  useEffect(() => {
+    if (!currentUser || !telegramId) return;
+    const chatsRef = collection(dbfs, "qc-chats");
+    const q = query(
+      chatsRef,
+      where("participants", "array-contains", telegramId),
+      orderBy("lastMessageAt", "desc")
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      let count = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        count += data.unreadCounts?.[telegramId] || 0;
+      });
+      setTotalUnread(count);
+    }, () => {});
+    return () => unsub();
+  }, [currentUser, telegramId]);
 
   // Hide navbar when inside an individual chat conversation
   if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
@@ -97,7 +125,7 @@ const EcosystemNavigation = () => {
               className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
             >
               <div
-                className={`transition-all duration-300 ${
+                className={`relative transition-all duration-300 ${
                   isActive
                     ? "text-primary scale-110"
                     : "text-muted-foreground group-hover:text-foreground"
@@ -110,6 +138,11 @@ const EcosystemNavigation = () => {
                     style={{ width: "1.5em", height: "1.5em" }}
                   />
                 </div>
+                {tab.id === "chat" && totalUnread > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 h-4 min-w-4 px-1 text-[9px] font-bold rounded-full bg-red-500 text-white flex items-center justify-center leading-none">
+                    {totalUnread > 99 ? "99+" : totalUnread}
+                  </span>
+                )}
               </div>
               <span
                 className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${
