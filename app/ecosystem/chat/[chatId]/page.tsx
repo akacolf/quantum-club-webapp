@@ -588,7 +588,17 @@ export default function ChatConversationPage() {
       {/* Share Modal */}
       {isGroupChat && chatMeta?.joinCode && (
         <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-          <DialogContent className="max-w-[340px] rounded-2xl">
+          <DialogContent className="max-w-[340px] rounded-2xl [&>button:last-child]:hidden">
+            <div className="flex justify-end -mb-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-7 h-7 rounded-full"
+                onClick={() => setShowShareModal(false)}
+              >
+                <Icon icon="lucide:x" className="w-4 h-4" />
+              </Button>
+            </div>
             <DialogHeader>
               <DialogTitle className="text-center">Share Group</DialogTitle>
               <DialogDescription className="text-center text-xs">
@@ -782,25 +792,23 @@ export default function ChatConversationPage() {
                       </div>
                     )}
 
-                    <div>
-                      <p className="text-[13px] text-foreground leading-snug break-words whitespace-pre-wrap inline">
-                        {msg.text}
-                      </p>
-                      <span className="inline-flex items-center gap-0.5 align-bottom ml-1.5 translate-y-[1px]">
-                        <span className="text-[9px] text-muted-foreground whitespace-nowrap">
-                          {formatTime(msg.createdAt)}
-                        </span>
-                        {/* Read/delivered checkmarks for own messages */}
-                        {status && (
-                          <span className={`inline-flex shrink-0 ${status === "read" ? "text-primary" : "text-muted-foreground"}`}>
-                            {status === "sent" ? (
-                              <Icon icon="lucide:check" className="w-3.5 h-3.5" />
-                            ) : (
-                              <Icon icon="lucide:check-check" className="w-3.5 h-3.5" />
-                            )}
-                          </span>
-                        )}
+                    <p className="text-[13px] text-foreground leading-snug break-words whitespace-pre-wrap pb-3">
+                      {msg.text}
+                    </p>
+                    {/* Time + ticks bottom-right inside bubble */}
+                    <div className="flex items-center gap-0.5 justify-end -mt-2.5">
+                      <span className="text-[9px] text-muted-foreground/70 whitespace-nowrap">
+                        {formatTime(msg.createdAt)}
                       </span>
+                      {status && (
+                        <span className={`inline-flex shrink-0 ${status === "read" ? "text-primary" : "text-muted-foreground/70"}`}>
+                          {status === "sent" ? (
+                            <Icon icon="lucide:check" className="w-3.5 h-3.5" />
+                          ) : (
+                            <Icon icon="lucide:check-check" className="w-3.5 h-3.5" />
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
