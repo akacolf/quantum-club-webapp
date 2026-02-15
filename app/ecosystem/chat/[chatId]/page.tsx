@@ -30,7 +30,6 @@ import {
   addDoc,
   query,
   orderBy,
-  limitToLast,
   onSnapshot,
   serverTimestamp,
   updateDoc,
@@ -66,7 +65,6 @@ interface ChatMeta {
   typing?: Record<string, Timestamp>;
 }
 
-const MESSAGES_LIMIT = 100;
 const TYPING_TIMEOUT_MS = 3000;
 
 function getInitials(name: string): string {
@@ -236,7 +234,7 @@ export default function ChatConversationPage() {
     if (!currentUser || !chatId || !messagesReady) return;
 
     const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"), limitToLast(MESSAGES_LIMIT));
+    const q = query(messagesRef, orderBy("createdAt", "asc"));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       // Use participantsRef for latest participants (avoids stale closure)
@@ -784,21 +782,21 @@ export default function ChatConversationPage() {
                       </div>
                     )}
 
-                    <div className="flex items-end gap-2">
-                      <p className="text-[13px] text-foreground leading-snug break-words whitespace-pre-wrap flex-1">
+                    <div>
+                      <p className="text-[13px] text-foreground leading-snug break-words whitespace-pre-wrap inline">
                         {msg.text}
                       </p>
-                      <span className="flex items-center gap-0.5 shrink-0 self-end pb-0.5">
-                        <span className="text-[9px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-0.5 align-bottom ml-1.5 translate-y-[1px]">
+                        <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                           {formatTime(msg.createdAt)}
                         </span>
                         {/* Read/delivered checkmarks for own messages */}
                         {status && (
-                          <span className={status === "read" ? "text-primary" : "text-muted-foreground"}>
+                          <span className={`inline-flex shrink-0 ${status === "read" ? "text-primary" : "text-muted-foreground"}`}>
                             {status === "sent" ? (
-                              <Icon icon="lucide:check" className="w-3 h-3" />
+                              <Icon icon="lucide:check" className="w-3.5 h-3.5" />
                             ) : (
-                              <Icon icon="lucide:check-check" className="w-3 h-3" />
+                              <Icon icon="lucide:check-check" className="w-3.5 h-3.5" />
                             )}
                           </span>
                         )}
@@ -849,12 +847,14 @@ export default function ChatConversationPage() {
               {replyTo.text}
             </p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setReplyTo(null)}
-            className="shrink-0 p-1 rounded-full hover:bg-muted/50 transition-colors outline-none"
+            className="shrink-0 w-7 h-7 rounded-full"
           >
             <Icon icon="lucide:x" className="w-4 h-4 text-muted-foreground" />
-          </button>
+          </Button>
         </div>
       )}
 

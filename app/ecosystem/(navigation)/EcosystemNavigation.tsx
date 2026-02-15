@@ -139,7 +139,7 @@ const EcosystemNavigation = () => {
                   />
                 </div>
                 {tab.id === "chat" && totalUnread > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 h-4 min-w-4 px-1 text-[9px] font-bold rounded-full bg-red-500 text-white flex items-center justify-center leading-none">
+                  <span className="absolute -top-1 -right-2 h-[18px] min-w-[18px] px-[5px] text-[11px] font-semibold rounded-full bg-red-500 text-white flex items-center justify-center leading-none shadow-sm">
                     {totalUnread > 99 ? "99+" : totalUnread}
                   </span>
                 )}
