@@ -30,6 +30,8 @@ import {
   addDoc,
   query,
   orderBy,
+  where,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   updateDoc,
@@ -37,7 +39,14 @@ import {
   deleteField,
   increment,
   Timestamp,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface ChatMessage {
   id: string;
@@ -46,11 +55,17 @@ interface ChatMessage {
   senderId: string;
   createdAt: Timestamp | null;
   encrypted?: boolean;
+  reactions?: Record<string, string[]>;
   replyTo?: {
     id: string;
     text: string;
     senderName: string;
   };
+  forwarded?: {
+    from: string;
+    originalChatId: string;
+  };
+  expiresAt?: any;
 }
 
 interface ChatMeta {
@@ -63,9 +78,20 @@ interface ChatMeta {
   createdBy?: string;
   readPositions?: Record<string, Timestamp>;
   typing?: Record<string, Timestamp>;
+  pinnedMessage?: { id: string; senderName: string };
+  disappearAfter?: number;
 }
 
 const TYPING_TIMEOUT_MS = 3000;
+
+const REACTION_EMOJIS = [
+  { key: "thumbs-up", icon: "twemoji:thumbs-up" },
+  { key: "red-heart", icon: "twemoji:red-heart" },
+  { key: "face-with-tears-of-joy", icon: "twemoji:face-with-tears-of-joy" },
+  { key: "hushed-face", icon: "twemoji:hushed-face" },
+  { key: "crying-face", icon: "twemoji:crying-face" },
+  { key: "folded-hands", icon: "twemoji:folded-hands" },
+] as const;
 
 function getInitials(name: string): string {
   if (!name) return "?";
@@ -130,6 +156,22 @@ export default function ChatConversationPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
 
+  // Reaction picker state
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
+  // Search state
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatchIndex, setSearchMatchIndex] = useState(-1);
+
+  // Forward state
+  const [forwardMsgId, setForwardMsgId] = useState<string | null>(null);
+  const [forwardChats, setForwardChats] = useState<any[]>([]);
+  const [showForwardDialog, setShowForwardDialog] = useState(false);
+  const [isForwarding, setIsForwarding] = useState(false);
+
+  // Disappearing messages timer popover
+  const [timerPopoverOpen, setTimerPopoverOpen] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +179,18 @@ export default function ChatConversationPage() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
   const participantsRef = useRef<string[]>([]);
+
+  // Long-press & double-tap refs for reactions
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTapRef = useRef<{ time: number; msgId: string | null }>({ time: 0, msgId: null });
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Cleanup long-press timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
 
   // Reply state
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -211,6 +265,8 @@ export default function ChatConversationPage() {
           createdBy: data.createdBy,
           readPositions: data.readPositions || {},
           typing: data.typing || {},
+          pinnedMessage: data.pinnedMessage || undefined,
+          disappearAfter: data.disappearAfter || 0,
         });
       }
     }, (error) => {
@@ -247,7 +303,10 @@ export default function ChatConversationPage() {
         senderId: string;
         createdAt: Timestamp | null;
         encrypted: boolean;
+        reactions?: Record<string, string[]>;
         replyTo?: { id: string; text: string; senderName: string };
+        forwarded?: { from: string; originalChatId: string };
+        expiresAt?: any;
       }[] = [];
 
       snapshot.forEach((docSnap) => {
@@ -259,7 +318,10 @@ export default function ChatConversationPage() {
           senderId: data.senderId || "",
           createdAt: data.createdAt,
           encrypted: data.encrypted === true,
+          reactions: data.reactions || undefined,
           replyTo: data.replyTo || undefined,
+          forwarded: data.forwarded || undefined,
+          expiresAt: data.expiresAt || undefined,
         });
       });
 
@@ -282,7 +344,10 @@ export default function ChatConversationPage() {
             senderId: msg.senderId,
             createdAt: msg.createdAt,
             encrypted: msg.encrypted,
+            reactions: msg.reactions,
             replyTo: replyData,
+            forwarded: msg.forwarded,
+            expiresAt: msg.expiresAt,
           };
         })
       );
@@ -363,6 +428,11 @@ export default function ChatConversationPage() {
         encrypted: true,
       };
 
+      // Add expiresAt if disappearing messages enabled
+      if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
+        messageDoc.expiresAt = Timestamp.fromMillis(Date.now() + chatMeta.disappearAfter);
+      }
+
       // Add reply reference if replying
       if (currentReply) {
         const replyText = currentReply.text.length > 80
@@ -418,6 +488,196 @@ export default function ChatConversationPage() {
       handleSend();
     }
   };
+
+  // Reaction toggle: add or remove reaction
+  const toggleReaction = useCallback(
+    async (msgId: string, emojiKey: string) => {
+      if (!telegramId || !chatId) return;
+      const msgRef = doc(dbfs, "qc-chats", chatId, "messages", msgId);
+      const msg = messages.find((m) => m.id === msgId);
+      const alreadyReacted = msg?.reactions?.[emojiKey]?.includes(telegramId);
+      try {
+        await updateDoc(msgRef, {
+          [`reactions.${emojiKey}`]: alreadyReacted
+            ? arrayRemove(telegramId)
+            : arrayUnion(telegramId),
+        });
+      } catch (err) {
+        console.error("Failed to toggle reaction:", err);
+      }
+      setReactionPickerMsgId(null);
+    },
+    [telegramId, chatId, messages]
+  );
+
+  // Pin message (groups only) — store only ID + senderName to avoid leaking plaintext
+  const handlePinMessage = useCallback(
+    async (msg: ChatMessage) => {
+      if (!chatId) return;
+      const chatRef = doc(dbfs, "qc-chats", chatId);
+      try {
+        await updateDoc(chatRef, {
+          pinnedMessage: { id: msg.id, senderName: msg.senderName },
+        });
+      } catch (err) {
+        console.error("Failed to pin message:", err);
+      }
+      setReactionPickerMsgId(null);
+    },
+    [chatId]
+  );
+
+  // Forward: open dialog with user's chats
+  const handleForwardStart = useCallback(
+    async (msgId: string) => {
+      if (!telegramId) return;
+      setForwardMsgId(msgId);
+      setReactionPickerMsgId(null);
+      try {
+        const chatsRef = collection(dbfs, "qc-chats");
+        const q2 = query(chatsRef, where("participants", "array-contains", telegramId));
+        const snap = await getDocs(q2);
+        const chats: any[] = [];
+        snap.forEach((d) => {
+          if (d.id !== chatId) {
+            const data = d.data();
+            chats.push({ id: d.id, ...data });
+          }
+        });
+        setForwardChats(chats);
+        setShowForwardDialog(true);
+      } catch (err) {
+        console.error("Failed to fetch chats for forwarding:", err);
+      }
+    },
+    [telegramId, chatId]
+  );
+
+  // Forward: send message to destination chat
+  const handleForwardTo = useCallback(
+    async (destChat: any) => {
+      if (!forwardMsgId || !telegramId) return;
+      const msg = messages.find((m) => m.id === forwardMsgId);
+      if (!msg) return;
+      setIsForwarding(true);
+      try {
+        const destParticipants: string[] = destChat.participants || [];
+        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id);
+        const senderName = qcUsername || "Unknown";
+
+        const fwdDoc: Record<string, unknown> = {
+          text: encryptedText,
+          senderName,
+          senderId: telegramId,
+          createdAt: serverTimestamp(),
+          encrypted: true,
+          forwarded: { from: msg.senderName, originalChatId: chatId },
+        };
+
+        // If destination has disappearing messages, add expiresAt
+        if (destChat.disappearAfter && destChat.disappearAfter > 0) {
+          fwdDoc.expiresAt = Timestamp.fromMillis(Date.now() + destChat.disappearAfter);
+        }
+
+        const destMsgsRef = collection(dbfs, "qc-chats", destChat.id, "messages");
+        await addDoc(destMsgsRef, fwdDoc);
+
+        // Update destination chat metadata
+        const updates: Record<string, unknown> = {
+          lastMessage: encryptedText,
+          lastMessageBy: telegramId,
+          lastMessageAt: serverTimestamp(),
+          [`readPositions.${telegramId}`]: serverTimestamp(),
+          [`unreadCounts.${telegramId}`]: 0,
+        };
+        for (const pid of destParticipants) {
+          if (pid !== telegramId) {
+            updates[`unreadCounts.${pid}`] = increment(1);
+          }
+        }
+        updateDoc(doc(dbfs, "qc-chats", destChat.id), updates).catch(() => {});
+      } catch (err) {
+        console.error("Failed to forward message:", err);
+      } finally {
+        setIsForwarding(false);
+        setShowForwardDialog(false);
+        setForwardMsgId(null);
+      }
+    },
+    [forwardMsgId, messages, telegramId, qcUsername, chatId]
+  );
+
+  // Disappearing messages: update setting
+  const handleSetDisappearAfter = useCallback(
+    async (ms: number) => {
+      if (!chatId) return;
+      try {
+        await updateDoc(doc(dbfs, "qc-chats", chatId), { disappearAfter: ms });
+      } catch (err) {
+        console.error("Failed to update disappearing messages:", err);
+      }
+      setTimerPopoverOpen(false);
+    },
+    [chatId]
+  );
+
+  // Scroll to a specific message by ID
+  const scrollToMessage = useCallback((msgId: string) => {
+    const el = messageRefs.current[msgId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary/50");
+      setTimeout(() => el.classList.remove("ring-2", "ring-primary/50"), 1500);
+    }
+  }, []);
+
+  // Search matches
+  const searchMatches = showSearch && searchQuery.trim()
+    ? messages
+        .map((m, i) => ({ idx: i, msg: m }))
+        .filter(({ msg }) => msg.text.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
+
+  // Scroll to first match when search changes
+  useEffect(() => {
+    if (searchMatches.length > 0 && searchMatchIndex < 0) {
+      setSearchMatchIndex(0);
+      scrollToMessage(searchMatches[0].msg.id);
+    }
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close reaction picker on outside tap
+  useEffect(() => {
+    if (!reactionPickerMsgId) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-reaction-picker]")) {
+        setReactionPickerMsgId(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [reactionPickerMsgId]);
+
+  // Disappearing messages: periodically filter expired messages from UI
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessages((prev) => {
+        const now = Date.now();
+        const filtered = prev.filter((m) => {
+          if (!m.expiresAt) return true;
+          const expiry = m.expiresAt?.toMillis?.() ?? m.expiresAt ?? Infinity;
+          return expiry > now;
+        });
+        return filtered.length === prev.length ? prev : filtered;
+      });
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Date divider logic
   const shouldShowDateDivider = (index: number): boolean => {
@@ -561,6 +821,9 @@ export default function ChatConversationPage() {
             {chatMeta?.isGlobal && (
               <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
             )}
+            {!!chatMeta?.disappearAfter && chatMeta.disappearAfter > 0 && (
+              <Icon icon="lucide:timer" className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            )}
           </div>
           <div className="flex items-center gap-1">
             {subtitle.color === "text-green-400" && typingUsers.length === 0 && (
@@ -571,6 +834,52 @@ export default function ChatConversationPage() {
             </span>
           </div>
         </div>
+
+        {/* Disappearing messages timer */}
+        <Popover open={timerPopoverOpen} onOpenChange={setTimerPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="w-9 h-9 rounded-full shrink-0"
+            >
+              <Icon icon="lucide:timer" className={`w-4 h-4 ${chatMeta?.disappearAfter ? "text-primary" : ""}`} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-48 p-1">
+            <p className="text-[11px] font-semibold text-muted-foreground px-2 py-1.5">Disappearing messages</p>
+            {[
+              { label: "Off", ms: 0 },
+              { label: "5 minutes", ms: 5 * 60 * 1000 },
+              { label: "1 hour", ms: 60 * 60 * 1000 },
+              { label: "24 hours", ms: 24 * 60 * 60 * 1000 },
+              { label: "7 days", ms: 7 * 24 * 60 * 60 * 1000 },
+            ].map((opt) => (
+              <button
+                key={opt.ms}
+                onClick={() => handleSetDisappearAfter(opt.ms)}
+                className={`w-full text-left px-2 py-1.5 text-sm rounded-md hover:bg-muted/60 transition-colors flex items-center justify-between ${
+                  (chatMeta?.disappearAfter || 0) === opt.ms ? "text-primary font-medium" : "text-foreground"
+                }`}
+              >
+                {opt.label}
+                {(chatMeta?.disappearAfter || 0) === opt.ms && (
+                  <Icon icon="lucide:check" className="w-3.5 h-3.5" />
+                )}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        {/* Search button */}
+        <Button
+          size="icon"
+          variant="ghost"
+          className="w-9 h-9 rounded-full shrink-0"
+          onClick={() => { setShowSearch((v) => !v); setSearchQuery(""); setSearchMatchIndex(-1); }}
+        >
+          <Icon icon="lucide:search" className="w-4 h-4" />
+        </Button>
 
         {/* Group actions: share */}
         {isGroupChat && chatMeta?.joinCode && (
@@ -588,17 +897,7 @@ export default function ChatConversationPage() {
       {/* Share Modal */}
       {isGroupChat && chatMeta?.joinCode && (
         <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-          <DialogContent className="max-w-[340px] rounded-2xl [&>button:last-child]:hidden">
-            <div className="flex justify-end -mb-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-7 h-7 rounded-full"
-                onClick={() => setShowShareModal(false)}
-              >
-                <Icon icon="lucide:x" className="w-4 h-4" />
-              </Button>
-            </div>
+          <DialogContent hideClose className="max-w-[340px] rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-center">Share Group</DialogTitle>
               <DialogDescription className="text-center text-xs">
@@ -659,6 +958,112 @@ export default function ChatConversationPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Forward Dialog */}
+      <Dialog open={showForwardDialog} onOpenChange={(open) => { setShowForwardDialog(open); if (!open) setForwardMsgId(null); }}>
+        <DialogContent hideClose className="max-w-[340px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center">Forward Message</DialogTitle>
+            <DialogDescription className="text-center text-xs">
+              Select a chat to forward to
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[300px] overflow-y-auto -mx-2">
+            {forwardChats.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No other chats found</p>
+            ) : (
+              forwardChats.map((fc) => {
+                const fcName = fc.isGroup || fc.isGlobal
+                  ? fc.groupName || "Group"
+                  : fc.participants?.find((p: string) => p !== telegramId)
+                    ? fc.participantNames?.[fc.participants.find((p: string) => p !== telegramId)!] || "Chat"
+                    : "Saved Messages";
+                return (
+                  <button
+                    key={fc.id}
+                    disabled={isForwarding}
+                    onClick={() => handleForwardTo(fc)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 rounded-lg transition-colors text-left"
+                  >
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarFallback className={`${getAvatarColor(fcName)} text-white text-xs font-semibold`}>
+                        {getInitials(fcName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{fcName}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {fc.isGroup || fc.isGlobal ? `${fc.participants?.length || 0} members` : "Direct message"}
+                      </p>
+                    </div>
+                    {isForwarding && (
+                      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Search bar */}
+      {showSearch && (
+        <div className="px-3 py-2 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
+          <Icon icon="lucide:search" className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Input
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setSearchMatchIndex(-1); }}
+            placeholder="Search messages..."
+            className="flex-1 h-8 text-sm rounded-lg bg-background border-border/50"
+          />
+          {searchMatches.length > 0 && (
+            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+              {searchMatchIndex + 1}/{searchMatches.length}
+            </span>
+          )}
+          {searchMatches.length > 1 && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="w-7 h-7 rounded-full shrink-0"
+              onClick={() => {
+                const next = (searchMatchIndex + 1) % searchMatches.length;
+                setSearchMatchIndex(next);
+                scrollToMessage(searchMatches[next].msg.id);
+              }}
+            >
+              <Icon icon="lucide:chevron-down" className="w-4 h-4" />
+            </Button>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-7 h-7 rounded-full shrink-0"
+            onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchMatchIndex(-1); }}
+          >
+            <Icon icon="lucide:x" className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Pinned message banner */}
+      {chatMeta?.pinnedMessage && (() => {
+        const pinnedMsg = messages.find(m => m.id === chatMeta.pinnedMessage!.id);
+        return (
+          <button
+            onClick={() => scrollToMessage(chatMeta.pinnedMessage!.id)}
+            className="w-full px-3 py-2 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2 text-left hover:bg-muted/30 transition-colors"
+          >
+            <Icon icon="lucide:pin" className="w-4 h-4 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold text-primary">{chatMeta.pinnedMessage.senderName}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{pinnedMsg?.text || "Pinned message"}</p>
+            </div>
+          </button>
+        );
+      })()}
 
       {/* Messages */}
       <div
@@ -732,25 +1137,43 @@ export default function ChatConversationPage() {
                   </div>
                 ) : (
                 <div
+                  ref={(el) => { messageRefs.current[msg.id] = el; }}
                   className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
                     consecutive ? "mt-0.5" : "mt-2.5"
                   }`}
                   onTouchStart={(e) => {
                     const touch = e.touches[0];
                     swipeRef.current = { startX: touch.clientX, startY: touch.clientY, msgId: msg.id };
+                    // Long-press detection (500ms)
+                    longPressTimerRef.current = setTimeout(() => {
+                      setReactionPickerMsgId(msg.id);
+                    }, 500);
+                  }}
+                  onTouchMove={() => {
+                    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
                   }}
                   onTouchEnd={(e) => {
+                    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+                    // Double-tap detection
+                    const now = Date.now();
+                    if (lastTapRef.current.msgId === msg.id && now - lastTapRef.current.time < 300) {
+                      setReactionPickerMsgId(msg.id);
+                      lastTapRef.current = { time: 0, msgId: null };
+                    } else {
+                      lastTapRef.current = { time: now, msgId: msg.id };
+                    }
+                    // Swipe-to-reply
                     if (swipeRef.current.msgId !== msg.id) return;
                     const touch = e.changedTouches[0];
                     const dx = touch.clientX - swipeRef.current.startX;
                     const dy = Math.abs(touch.clientY - swipeRef.current.startY);
-                    // Swipe right to reply (min 60px horizontal, max 40px vertical drift)
                     if (dx > 60 && dy < 40) {
                       setReplyTo(msg);
                       inputRef.current?.focus();
                     }
                     swipeRef.current = { startX: 0, startY: 0, msgId: null };
                   }}
+                  onDoubleClick={() => setReactionPickerMsgId(msg.id)}
                 >
                   {!isOwnMessage && !consecutive && (
                     <Avatar className="h-7 w-7 shrink-0 mt-0.5">
@@ -765,19 +1188,61 @@ export default function ChatConversationPage() {
                   )}
                   {!isOwnMessage && consecutive && <div className="w-7 shrink-0" />}
 
-                  <div
-                    className={`max-w-[75%] ${
-                      isOwnMessage
-                        ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
-                        : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
-                    } px-3 py-2`}
-                  >
+                  <div className="relative max-w-[75%]">
+                    {/* Reaction picker */}
+                    {reactionPickerMsgId === msg.id && (
+                      <div
+                        data-reaction-picker
+                        className={`absolute ${isOwnMessage ? "right-0" : "left-0"} bottom-full mb-1 z-50 flex items-center gap-1 px-2 py-1.5 bg-popover border border-border rounded-xl shadow-lg`}
+                      >
+                        {REACTION_EMOJIS.map((emoji) => (
+                          <button
+                            key={emoji.key}
+                            onClick={() => toggleReaction(msg.id, emoji.key)}
+                            className={`p-1 rounded-lg hover:bg-muted/60 transition-colors ${
+                              msg.reactions?.[emoji.key]?.includes(telegramId || "") ? "bg-primary/15" : ""
+                            }`}
+                          >
+                            <Icon icon={emoji.icon} className="w-5 h-5" />
+                          </button>
+                        ))}
+                        {isGroupChat && (
+                          <button
+                            onClick={() => handlePinMessage(msg)}
+                            className="p-1 rounded-lg hover:bg-muted/60 transition-colors border-l border-border ml-0.5 pl-1.5"
+                          >
+                            <Icon icon="lucide:pin" className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleForwardStart(msg.id)}
+                          className="p-1 rounded-lg hover:bg-muted/60 transition-colors border-l border-border ml-0.5 pl-1.5"
+                        >
+                          <Icon icon="lucide:forward" className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </div>
+                    )}
+
+                    <div
+                      className={`${
+                        isOwnMessage
+                          ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
+                          : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
+                      } px-3 py-1.5`}
+                    >
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-[11px] font-semibold text-primary">
                           @{msg.senderName}
                         </span>
                       </div>
+                    )}
+
+                    {/* Forwarded label */}
+                    {msg.forwarded && (
+                      <p className="text-[10px] text-muted-foreground italic mb-0.5">
+                        Forwarded from @{msg.forwarded.from}
+                      </p>
                     )}
 
                     {/* Reply preview inside bubble */}
@@ -792,24 +1257,57 @@ export default function ChatConversationPage() {
                       </div>
                     )}
 
-                    <p className="text-[13px] text-foreground leading-snug break-words whitespace-pre-wrap pb-3">
+                    <span className="text-[13px] text-foreground leading-relaxed break-words whitespace-pre-wrap">
                       {msg.text}
-                    </p>
-                    {/* Time + ticks bottom-right inside bubble */}
-                    <div className="flex items-center gap-0.5 justify-end -mt-2.5">
-                      <span className="text-[9px] text-muted-foreground/70 whitespace-nowrap">
+                    </span>
+                    {/* Invisible spacer to prevent text overlapping time+ticks */}
+                    <span className={`inline-block ${status ? "w-[4.5rem]" : msg.expiresAt ? "w-[4.5rem]" : "w-[3.25rem]"}`} />
+                    {/* Time + ticks anchored bottom-right */}
+                    <span className="float-right flex items-center gap-0.5 mt-1 ml-2 translate-y-[-2px]">
+                      {msg.expiresAt && (
+                        <Icon icon="lucide:timer" className="w-3 h-3 text-muted-foreground/70 shrink-0" />
+                      )}
+                      <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap leading-none">
                         {formatTime(msg.createdAt)}
                       </span>
                       {status && (
-                        <span className={`inline-flex shrink-0 ${status === "read" ? "text-primary" : "text-muted-foreground/70"}`}>
+                        <span className={`inline-flex shrink-0 transition-all duration-300 ${status === "read" ? "text-primary" : "text-muted-foreground/70"}`}>
                           {status === "sent" ? (
-                            <Icon icon="lucide:check" className="w-3.5 h-3.5" />
+                            <Icon icon="lucide:check" className="w-[14px] h-[14px]" />
                           ) : (
-                            <Icon icon="lucide:check-check" className="w-3.5 h-3.5" />
+                            <Icon icon="lucide:check-check" className="w-[14px] h-[14px]" />
                           )}
                         </span>
                       )}
+                    </span>
                     </div>
+
+                    {/* Reaction pills */}
+                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                      <div className={`flex flex-wrap gap-1 mt-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+                        {Object.entries(msg.reactions)
+                          .filter(([, users]) => users.length > 0)
+                          .map(([emojiKey, users]) => {
+                            const emoji = REACTION_EMOJIS.find((e) => e.key === emojiKey);
+                            if (!emoji) return null;
+                            const iReacted = users.includes(telegramId || "");
+                            return (
+                              <button
+                                key={emojiKey}
+                                onClick={() => toggleReaction(msg.id, emojiKey)}
+                                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] border transition-colors ${
+                                  iReacted
+                                    ? "bg-primary/15 border-primary/30 text-primary"
+                                    : "bg-muted/40 border-border/50 text-muted-foreground"
+                                }`}
+                              >
+                                <Icon icon={emoji.icon} className="w-3.5 h-3.5" />
+                                <span>{users.length}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    )}
                   </div>
                 </div>
                 )}
