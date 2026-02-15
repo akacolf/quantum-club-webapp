@@ -406,10 +406,12 @@ export default function ChatConversationPage() {
     return () => unsubscribe();
   }, [currentUser, chatId, messagesReady, scrollToBottom, telegramId]);
 
-  // Initial scroll
+  // Initial scroll — wait for DOM paint
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
-      scrollToBottom(true);
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      });
     }
   }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1230,7 +1232,7 @@ export default function ChatConversationPage() {
       <div
         ref={chatContainerRef}
         onScroll={(e) => { handleScroll(); handleScrollForPagination(); }}
-        className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scroll-smooth"
+        className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5"
       >
         {/* Load older indicator */}
         {!isLoading && messages.length > 0 && (
