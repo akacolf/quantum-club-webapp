@@ -13,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -184,6 +191,7 @@ export default function ChatConversationPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const isAtBottomRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
+  const initialLoadDoneRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
   const participantsRef = useRef<string[]>([]);
@@ -250,7 +258,7 @@ export default function ChatConversationPage() {
 
   const scrollToBottom = useCallback((force = false) => {
     if (force || isAtBottomRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: force ? "auto" : "smooth" });
     }
   }, []);
 
@@ -375,9 +383,13 @@ export default function ChatConversationPage() {
       });
       setIsLoading(false);
 
-      // Only scroll to bottom when a NEW message arrives (last message ID changed)
+      // Only scroll to bottom when a NEW message arrives after initial load
       const newLastId = decryptedMsgs[decryptedMsgs.length - 1]?.id;
-      if (newLastId && newLastId !== lastMessageIdRef.current) {
+      if (!initialLoadDoneRef.current) {
+        // First snapshot — just record the ID, don't scroll (isLoading effect handles it)
+        lastMessageIdRef.current = newLastId || null;
+        initialLoadDoneRef.current = true;
+      } else if (newLastId && newLastId !== lastMessageIdRef.current) {
         lastMessageIdRef.current = newLastId;
         setTimeout(() => scrollToBottom(), 50);
       }
@@ -747,10 +759,12 @@ export default function ChatConversationPage() {
     const el = messageRefs.current[msgId];
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.style.animation = "none";
-      // Force reflow
-      void el.offsetHeight;
-      el.style.animation = "highlightMessage 2s ease-in-out";
+      // Apply highlight to the bubble div (the one with .relative inside the wrapper)
+      const bubble = el.querySelector("[data-bubble]") as HTMLElement | null;
+      const target = bubble || el;
+      target.style.animation = "none";
+      void target.offsetHeight;
+      target.style.animation = "highlightMessage 2s ease-in-out";
     }
   }, []);
 
@@ -905,10 +919,10 @@ export default function ChatConversationPage() {
     <div className="fixed inset-0 z-40 flex flex-col bg-background">
       <style>{`
         @keyframes highlightMessage {
-          0% { background-color: transparent; }
-          15% { background-color: hsl(var(--primary) / 0.12); }
-          85% { background-color: hsl(var(--primary) / 0.12); }
-          100% { background-color: transparent; }
+          0% { box-shadow: 0 0 0 0 transparent; }
+          15% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4); background-color: hsl(var(--primary) / 0.08); }
+          85% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4); background-color: hsl(var(--primary) / 0.08); }
+          100% { box-shadow: 0 0 0 0 transparent; }
         }
       `}</style>
       {/* Chat Header */}
@@ -1025,17 +1039,17 @@ export default function ChatConversationPage() {
         )}
       </div>
 
-      {/* Share Modal */}
+      {/* Share Drawer (bottom sheet) */}
       {isGroupChat && chatMeta?.joinCode && (
-        <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-          <DialogContent hideClose className="max-w-[340px] rounded-2xl">
-            <DialogHeader className="text-center items-center">
-              <DialogTitle className="text-center">Share Group</DialogTitle>
-              <DialogDescription className="text-center text-xs">
+        <Drawer open={showShareModal} onOpenChange={setShowShareModal}>
+          <DrawerContent>
+            <DrawerHeader className="text-center items-center">
+              <DrawerTitle>Share Group</DrawerTitle>
+              <DrawerDescription className="text-xs">
                 Invite others to join {headerName}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-1">
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-6">
               <div className="text-center">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-2">
                   <Icon icon="solar:users-group-rounded-bold" className="w-7 h-7 text-primary" />
@@ -1086,8 +1100,8 @@ export default function ChatConversationPage() {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* Forward Dialog */}
@@ -1183,16 +1197,32 @@ export default function ChatConversationPage() {
       {chatMeta?.pinnedMessage && (() => {
         const pinnedMsg = messages.find(m => m.id === chatMeta.pinnedMessage!.id);
         return (
-          <button
-            onClick={() => scrollToMessage(chatMeta.pinnedMessage!.id)}
-            className="w-full px-3 py-2 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2 text-left hover:bg-muted/30 transition-colors"
-          >
-            <Icon icon="lucide:pin" className="w-4 h-4 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold text-primary">{chatMeta.pinnedMessage.senderName}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{pinnedMsg?.text || "Pinned message"}</p>
-            </div>
-          </button>
+          <div className="w-full px-3 py-2 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
+            <button
+              onClick={() => scrollToMessage(chatMeta.pinnedMessage!.id)}
+              className="flex items-center gap-2 flex-1 min-w-0 text-left"
+            >
+              <Icon icon="lucide:pin" className="w-4 h-4 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold text-primary">{chatMeta.pinnedMessage.senderName}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{pinnedMsg?.text || "Pinned message"}</p>
+              </div>
+            </button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="w-6 h-6 rounded-full shrink-0"
+              onClick={async () => {
+                try {
+                  await updateDoc(doc(dbfs, "qc-chats", chatId), { pinnedMessage: deleteField() });
+                } catch (err) {
+                  console.error("Failed to unpin:", err);
+                }
+              }}
+            >
+              <Icon icon="lucide:x" className="w-3 h-3" />
+            </Button>
+          </div>
         );
       })()}
 
@@ -1366,6 +1396,7 @@ export default function ChatConversationPage() {
                     )}
 
                     <div
+                      data-bubble
                       className={`relative ${
                         isOwnMessage
                           ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
@@ -1403,7 +1434,7 @@ export default function ChatConversationPage() {
                       {msg.text}
                     </span>
                     {/* Invisible spacer reserves space for time+ticks so they don't overlap text */}
-                    <span className="inline-block w-[70px] h-[1px]" aria-hidden="true" />
+                    <span className={`inline-block ${status ? "w-[4.5rem]" : "w-[3.5rem]"} h-[1px]`} aria-hidden="true" />
                     {/* Time + ticks positioned at bottom-right */}
                     <span className="absolute bottom-[5px] right-[8px] flex items-center gap-0.5">
                       {msg.expiresAt && (
