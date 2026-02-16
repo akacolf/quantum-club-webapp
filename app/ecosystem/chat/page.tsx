@@ -241,10 +241,10 @@ function ChatListItem({
               <span className="text-foreground/50">You: </span>
             )}
             {previewText.startsWith("📊") ? (
-              <span className="inline-flex items-center gap-1">
-                <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 shrink-0 inline" />
-                {previewText.slice(2)}
-              </span>
+              <>
+                <Icon icon="mdi:poll" className="w-3.5 h-3.5 shrink-0 inline-block align-text-bottom" />
+                <span>{" "}{previewText.slice(2)}</span>
+              </>
             ) : previewText}
           </p>
         </div>

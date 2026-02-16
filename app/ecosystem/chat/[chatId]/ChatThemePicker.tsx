@@ -96,7 +96,7 @@ export default function ChatThemePicker({
               {currentTheme === theme.value && (
                 <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
                   <Icon
-                    icon="solar:check-circle-bold"
+                    icon="lucide:check"
                     className="w-2.5 h-2.5 text-primary-foreground"
                   />
                 </div>

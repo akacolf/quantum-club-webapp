@@ -50,7 +50,7 @@ export default function PollMessage({ msgId, poll, telegramId, chatId, isOwnMess
   return (
     <div className="space-y-2 min-w-[200px]">
       <div className="flex items-center gap-1.5 mb-1">
-        <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-primary shrink-0" />
+        <Icon icon="mdi:poll" className="w-4 h-4 text-primary shrink-0" />
         <span className="text-[13px] font-semibold text-foreground leading-tight">
           {poll.question}
         </span>
@@ -79,7 +79,7 @@ export default function PollMessage({ msgId, poll, telegramId, chatId, isOwnMess
             />
             <div className="relative flex items-center justify-between gap-2">
               <span className={`text-[12px] leading-tight ${isMyVote ? "font-semibold text-primary" : "text-foreground"}`}>
-                {isMyVote && <Icon icon="solar:check-read-bold" className="w-3 h-3 inline mr-1" />}
+                {isMyVote && <Icon icon="lucide:check" className="w-3 h-3 inline mr-1" />}
                 {option}
               </span>
               <span className="text-[10px] text-muted-foreground shrink-0">

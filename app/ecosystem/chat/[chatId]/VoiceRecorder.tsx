@@ -177,7 +177,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
               className="flex items-center gap-1.5 flex-1 justify-center"
               animate={{ opacity: slideX > 30 ? 0.3 : 0.7 }}
             >
-              <Icon icon="solar:arrow-left-linear" className="w-4 h-4 text-muted-foreground" />
+              <Icon icon="lucide:arrow-left" className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Slide to cancel</span>
             </motion.div>
 
@@ -188,7 +188,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
               className="w-9 h-9 rounded-full shrink-0"
               onClick={handleCancel}
             >
-              <Icon icon="solar:trash-bin-trash-bold" className="w-4.5 h-4.5 text-red-500" />
+              <Icon icon="lucide:trash-2" className="w-4.5 h-4.5 text-red-500" />
             </Button>
 
             {/* Send button */}
@@ -197,7 +197,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
               className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
               onClick={handleSendVoice}
             >
-              <Icon icon="solar:plain-bold" className="w-5 h-5" />
+              <Icon icon="material-symbols:send-rounded" className="w-5 h-5" />
             </Button>
           </motion.div>
         )}
@@ -210,7 +210,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
           className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
           onClick={startRecording}
         >
-          <Icon icon="solar:microphone-3-bold" className="w-5 h-5" />
+          <Icon icon="material-symbols:mic" className="w-5 h-5" />
         </Button>
       )}
     </>
