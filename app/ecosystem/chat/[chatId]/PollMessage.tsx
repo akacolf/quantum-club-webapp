@@ -48,10 +48,10 @@ export default function PollMessage({ msgId, poll, telegramId, chatId, isOwnMess
   }
 
   return (
-    <div className="space-y-2 min-w-[200px]">
-      <div className="flex items-center gap-1.5 mb-1">
-        <Icon icon="mdi:poll" className="w-4 h-4 text-primary shrink-0" />
-        <span className="text-[13px] font-semibold text-foreground leading-tight">
+    <div className="space-y-2.5 min-w-[200px] py-1">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon icon="mdi:poll" className="w-4.5 h-4.5 text-primary shrink-0" />
+        <span className="text-[13px] font-semibold text-foreground leading-snug">
           {poll.question}
         </span>
       </div>
@@ -66,7 +66,7 @@ export default function PollMessage({ msgId, poll, telegramId, chatId, isOwnMess
           <button
             key={i}
             onClick={() => handleVote(i)}
-            className={`w-full text-left rounded-lg px-2.5 py-1.5 relative overflow-hidden transition-colors border ${
+            className={`w-full text-left rounded-lg px-3 py-2 relative overflow-hidden transition-colors border ${
               isMyVote
                 ? "border-primary/40 bg-primary/5"
                 : "border-border/50 bg-background/50 hover:bg-muted/40"
@@ -90,7 +90,7 @@ export default function PollMessage({ msgId, poll, telegramId, chatId, isOwnMess
         );
       })}
 
-      <p className="text-[10px] text-muted-foreground text-center pt-0.5">
+      <p className="text-[10px] text-muted-foreground text-center pt-1">
         {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
       </p>
     </div>

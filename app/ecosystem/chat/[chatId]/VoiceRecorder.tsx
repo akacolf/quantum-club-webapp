@@ -187,6 +187,8 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
               size="icon"
               className="w-9 h-9 rounded-full shrink-0"
               onClick={handleCancel}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
             >
               <Icon icon="lucide:trash-2" className="w-4.5 h-4.5 text-red-500" />
             </Button>
@@ -196,6 +198,8 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
               size="icon"
               className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
               onClick={handleSendVoice}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
             >
               <Icon icon="material-symbols:send-rounded" className="w-5 h-5" />
             </Button>

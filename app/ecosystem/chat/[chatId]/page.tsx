@@ -691,12 +691,18 @@ export default function ChatConversationPage() {
   const handleSendVoice = async (blob: Blob, durationSec: number) => {
     if (!telegramId || !chatId || !chatMeta) return;
 
+    if (!currentUser) {
+      toast.error("Not authenticated. Please re-open the app.");
+      console.error("Voice send blocked: Firebase Auth currentUser is null");
+      return;
+    }
+
     const senderName = qcUsername || "Unknown";
     const msgId = `voice_${Date.now()}_${telegramId}`;
 
     try {
       const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.webm`);
-      await uploadBytes(fileRef, blob, { contentType: blob.type });
+      await uploadBytes(fileRef, blob, { contentType: blob.type || "audio/webm" });
       const url = await getDownloadURL(fileRef);
 
       const participants = participantsRef.current;
@@ -1670,10 +1676,10 @@ export default function ChatConversationPage() {
                   {!isOwnMessage && consecutive && <div className="w-7 shrink-0" />}
 
                   <div className="relative max-w-[75%] group/msg">
-                    {/* Hover reply button (desktop) */}
+                    {/* Hover reply button */}
                     <button
                       onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
-                      className={`absolute top-1 ${isOwnMessage ? "-left-8" : "-right-8"} z-20 w-6 h-6 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover/msg:opacity-100 transition-opacity hidden sm:flex`}
+                      className={`absolute top-1 ${isOwnMessage ? "-left-8" : "-right-8"} z-20 w-6 h-6 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover/msg:opacity-100 transition-opacity`}
                     >
                       <Icon icon="lucide:reply" className="w-3.5 h-3.5" />
                     </button>
