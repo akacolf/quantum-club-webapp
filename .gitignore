@@ -60,6 +60,7 @@ web-build/
 .agent/
 .gemini/
 .claude/
+CLAUDE.md
 
 # GitHub Copilot Instructions
 .github/

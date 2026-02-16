@@ -71,7 +71,10 @@ export default function GroupMembersPanel({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[300px] sm:w-[340px] p-0 flex flex-col">
-        <SheetHeader className="px-4 pt-5 pb-3">
+        <SheetHeader
+          className="px-4 pb-3"
+          style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 1.25rem)" }}
+        >
           <SheetTitle className="text-base">Members</SheetTitle>
           <SheetDescription className="text-xs text-muted-foreground">
             {chatMeta.participants.length} member{chatMeta.participants.length !== 1 ? "s" : ""}

@@ -67,6 +67,7 @@ import PollMessage from "./PollMessage";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceMessage from "./VoiceMessage";
 import GroupMembersPanel from "./GroupMembersPanel";
+import { toast } from "sonner";
 
 interface ChatMessage {
   id: string;
@@ -740,6 +741,7 @@ export default function ChatConversationPage() {
       scrollToBottom(true);
     } catch (error) {
       console.error("Failed to send voice message:", error);
+      toast.error("Failed to send voice message");
     }
   };
 
@@ -1775,9 +1777,9 @@ export default function ChatConversationPage() {
                       {status && (
                         <span className={`inline-flex shrink-0 transition-all duration-300 ${status === "read" ? "text-primary" : "text-muted-foreground/60"}`}>
                           {status === "sent" ? (
-                            <Icon icon="lucide:check" className="w-[13px] h-[13px]" />
+                            <Icon icon="mdi:check" className="w-[14px] h-[14px]" />
                           ) : (
-                            <Icon icon="lucide:check-check" className="w-[13px] h-[13px]" />
+                            <Icon icon="mdi:check-all" className="w-[14px] h-[14px]" />
                           )}
                         </span>
                       )}
