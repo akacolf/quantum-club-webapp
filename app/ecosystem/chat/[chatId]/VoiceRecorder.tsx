@@ -154,7 +154,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: cancelled ? -80 : 40, scale: cancelled ? 0.9 : 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute inset-0 flex items-center gap-2 px-3 bg-card/95 backdrop-blur-sm z-10"
+            className="absolute inset-0 flex items-center gap-2 px-3 bg-card/95 backdrop-blur-sm z-10 rounded-full"
             onMouseMove={(e) => handlePointerMove(e.clientX)}
             onMouseDown={(e) => handlePointerDown(e.clientX)}
             onTouchMove={(e) => handlePointerMove(e.touches[0].clientX)}

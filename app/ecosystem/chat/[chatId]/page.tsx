@@ -1669,7 +1669,14 @@ export default function ChatConversationPage() {
                   )}
                   {!isOwnMessage && consecutive && <div className="w-7 shrink-0" />}
 
-                  <div className="relative max-w-[75%]">
+                  <div className="relative max-w-[75%] group/msg">
+                    {/* Hover reply button (desktop) */}
+                    <button
+                      onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+                      className={`absolute top-1 ${isOwnMessage ? "-left-8" : "-right-8"} z-20 w-6 h-6 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover/msg:opacity-100 transition-opacity hidden sm:flex`}
+                    >
+                      <Icon icon="lucide:reply" className="w-3.5 h-3.5" />
+                    </button>
                     {/* Reaction picker */}
                     {reactionPickerMsgId === msg.id && (
                       <div
