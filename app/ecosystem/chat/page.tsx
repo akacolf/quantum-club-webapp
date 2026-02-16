@@ -240,7 +240,12 @@ function ChatListItem({
             {isLastMsgByMe && chat.lastMessageBy !== "system" && (
               <span className="text-foreground/50">You: </span>
             )}
-            {previewText}
+            {previewText.startsWith("📊") ? (
+              <span className="inline-flex items-center gap-1">
+                <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 shrink-0 inline" />
+                {previewText.slice(2)}
+              </span>
+            ) : previewText}
           </p>
         </div>
       </div>

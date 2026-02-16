@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface VoiceRecorderProps {
   onSend: (blob: Blob, durationSec: number) => void;
@@ -64,7 +65,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     mediaRecorder.current = null;
   }, [cleanup, onSend]);
 
-  const startRecording = useCallback(async (clientX: number) => {
+  const startRecording = useCallback(async () => {
     if (disabled) return;
 
     try {
@@ -86,7 +87,6 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
 
       recorder.start(100);
       startTime.current = Date.now();
-      startX.current = clientX;
       setRecording(true);
       setCancelled(false);
       setSlideX(0);
@@ -103,35 +103,41 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     }
   }, [disabled, stopRecording]);
 
-  const handleMove = useCallback((clientX: number) => {
+  const handleCancel = useCallback(() => {
+    cancelledRef.current = true;
+    setCancelled(true);
+    stopRecording(false);
+  }, [stopRecording]);
+
+  const handleSendVoice = useCallback(() => {
+    if (cancelledRef.current) return;
+    stopRecording(true);
+  }, [stopRecording]);
+
+  // Slide-to-cancel touch/mouse tracking on the recording bar
+  const handlePointerMove = useCallback((clientX: number) => {
     if (!recording) return;
+    if (!startX.current) return;
     const delta = startX.current - clientX;
     setSlideX(Math.max(0, delta));
     if (delta > CANCEL_SLIDE_PX && !cancelledRef.current) {
-      cancelledRef.current = true;
-      setCancelled(true);
-      stopRecording(false);
+      handleCancel();
     }
-  }, [recording, stopRecording]);
+  }, [recording, handleCancel]);
 
-  const handleEnd = useCallback(() => {
-    if (!recording || cancelledRef.current) return;
-    stopRecording(true);
-  }, [recording, stopRecording]);
+  const handlePointerDown = useCallback((clientX: number) => {
+    startX.current = clientX;
+  }, []);
 
   // Escape key to cancel
   useEffect(() => {
     if (!recording) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        cancelledRef.current = true;
-        setCancelled(true);
-        stopRecording(false);
-      }
+      if (e.key === "Escape") handleCancel();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [recording, stopRecording]);
+  }, [recording, handleCancel]);
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
@@ -139,40 +145,74 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  if (recording) {
-    return (
-      <div
-        className="flex items-center gap-3 flex-1 select-none"
-        onMouseMove={(e) => handleMove(e.clientX)}
-        onMouseUp={handleEnd}
-        onTouchMove={(e) => handleMove(e.touches[0].clientX)}
-        onTouchEnd={handleEnd}
-      >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-          <span className="text-sm font-mono text-red-500 tabular-nums">
-            {formatTime(elapsed)}
-          </span>
-          <span
-            className="text-xs text-muted-foreground transition-opacity"
-            style={{ opacity: slideX > 30 ? 0.3 : 1 }}
-          >
-            ← Slide to cancel
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <Button
-      size="icon"
-      disabled={disabled}
-      className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
-      onMouseDown={(e) => { e.preventDefault(); startRecording(e.clientX); }}
-      onTouchStart={(e) => { e.preventDefault(); startRecording(e.touches[0].clientX); }}
-    >
-      <Icon icon="material-symbols:mic" className="w-5 h-5" />
-    </Button>
+    <>
+      <AnimatePresence>
+        {recording && (
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: cancelled ? -80 : 40, scale: cancelled ? 0.9 : 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="absolute inset-0 flex items-center gap-2 px-3 bg-card/95 backdrop-blur-sm z-10"
+            onMouseMove={(e) => handlePointerMove(e.clientX)}
+            onMouseDown={(e) => handlePointerDown(e.clientX)}
+            onTouchMove={(e) => handlePointerMove(e.touches[0].clientX)}
+            onTouchStart={(e) => handlePointerDown(e.touches[0].clientX)}
+          >
+            {/* Recording indicator + timer */}
+            <div className="flex items-center gap-2 min-w-0">
+              <motion.span
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ repeat: Infinity, duration: 1.2 }}
+                className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0"
+              />
+              <span className="text-sm font-mono text-red-500 tabular-nums">
+                {formatTime(elapsed)}
+              </span>
+            </div>
+
+            {/* Slide to cancel */}
+            <motion.div
+              className="flex items-center gap-1.5 flex-1 justify-center"
+              animate={{ opacity: slideX > 30 ? 0.3 : 0.7 }}
+            >
+              <Icon icon="solar:arrow-left-linear" className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Slide to cancel</span>
+            </motion.div>
+
+            {/* Cancel button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-9 h-9 rounded-full shrink-0"
+              onClick={handleCancel}
+            >
+              <Icon icon="solar:trash-bin-trash-bold" className="w-4.5 h-4.5 text-red-500" />
+            </Button>
+
+            {/* Send button */}
+            <Button
+              size="icon"
+              className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
+              onClick={handleSendVoice}
+            >
+              <Icon icon="solar:plain-bold" className="w-5 h-5" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!recording && (
+        <Button
+          size="icon"
+          disabled={disabled}
+          className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
+          onClick={startRecording}
+        >
+          <Icon icon="solar:microphone-3-bold" className="w-5 h-5" />
+        </Button>
+      )}
+    </>
   );
 }

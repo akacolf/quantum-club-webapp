@@ -41,7 +41,7 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
       <DialogContent className="max-w-[340px] rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-sm flex items-center gap-2">
-            <Icon icon="mdi:poll" className="w-5 h-5 text-primary" />
+            <Icon icon="solar:chart-2-bold" className="w-5 h-5 text-primary" />
             Create Poll
           </DialogTitle>
         </DialogHeader>
@@ -76,7 +76,7 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
                     className="w-7 h-7 shrink-0"
                     onClick={() => setOptions(options.filter((_, j) => j !== i))}
                   >
-                    <Icon icon="lucide:x" className="w-3.5 h-3.5 text-muted-foreground" />
+                    <Icon icon="solar:close-circle-bold" className="w-3.5 h-3.5 text-muted-foreground" />
                   </Button>
                 )}
               </div>
@@ -90,7 +90,7 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
               className="w-full text-xs text-muted-foreground"
               onClick={() => setOptions([...options, ""])}
             >
-              <Icon icon="lucide:plus" className="w-3.5 h-3.5 mr-1" />
+              <Icon icon="solar:add-circle-linear" className="w-3.5 h-3.5 mr-1" />
               Add option
             </Button>
           )}

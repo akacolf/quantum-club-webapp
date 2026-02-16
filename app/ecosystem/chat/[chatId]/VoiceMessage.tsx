@@ -76,7 +76,7 @@ export default function VoiceMessage({ audioUrl, durationSec, isMine }: VoiceMes
         }`}
       >
         <Icon
-          icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
+          icon={playing ? "solar:pause-bold" : "solar:play-bold"}
           className={`w-5 h-5 ${isMine ? "text-primary-foreground" : "text-primary"}`}
         />
       </Button>
