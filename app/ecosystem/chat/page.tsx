@@ -361,6 +361,13 @@ export default function QCChatListPage() {
           const groupDoc = snap.docs[0];
           const groupData = groupDoc.data();
 
+          // Check if user is banned
+          if (groupData.bannedUsers?.includes(telegramId)) {
+            setFormError("You are banned from this group.");
+            setFormMode("join");
+            return;
+          }
+
           if (groupData.participants?.includes(telegramId)) {
             router.push(`/ecosystem/chat/${groupDoc.id}`);
             return;
@@ -746,6 +753,12 @@ export default function QCChatListPage() {
 
       const groupDoc = snap.docs[0];
       const groupData = groupDoc.data();
+
+      // Check if user is banned
+      if (groupData.bannedUsers?.includes(telegramId)) {
+        setFormError("You are banned from this group.");
+        return;
+      }
 
       if (groupData.participants?.includes(telegramId)) {
         setFormMode("none");

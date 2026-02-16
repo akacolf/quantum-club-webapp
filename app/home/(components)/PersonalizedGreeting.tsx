@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import ProfileSidebar from "@/app/(components)/ProfileSidebar";
 
 export default function PersonalizedGreeting() {
-  const { username } = useUserContext();
+  const { username, telegramId } = useUserContext();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -20,26 +20,25 @@ export default function PersonalizedGreeting() {
   useEffect(() => {
     setMounted(true);
 
-    // Get user info from Telegram WebApp directly
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     
-    // Set display name from Telegram or context
-    if (tgUser?.username) {
+    // Prefer DB-stored username (works for email login from different TG account)
+    if (username) {
+      setDisplayName(username);
+    } else if (tgUser?.username) {
       setDisplayName(tgUser.username);
     } else if (tgUser?.first_name) {
       setDisplayName(tgUser.first_name);
-    } else if (username) {
-      setDisplayName(username);
     }
 
-    // Get user photo
+    // Get user photo — use DB telegramId as fallback over initDataUnsafe
     if (tgUser?.photo_url) {
       setPhotoUrl(tgUser.photo_url);
-    } else if (tgUser?.id) {
+    } else if (telegramId) {
       fetch('/api/get-profile-photo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: tgUser.id })
+        body: JSON.stringify({ telegramId })
       })
         .then(res => res.json())
         .then(data => {
@@ -49,7 +48,7 @@ export default function PersonalizedGreeting() {
     }
 
     router.prefetch('/home/profile');
-  }, [router, username]);
+  }, [router, username, telegramId]);
 
   if (!mounted) return null;
 
