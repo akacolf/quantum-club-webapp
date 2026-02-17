@@ -666,6 +666,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       let success = false;
       let lastError = "";
+      let messageHash = "";
+
+      // Compute the BOC hash as fallback tx identifier
+      const bocHash = bocCell.hash().toString("hex");
 
       // Use TonAPI for transaction broadcasting
       for (let attempt = 1; attempt <= 3; attempt++) {
@@ -676,8 +680,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         try {
           // Send via TonAPI proxy
           const { sendBlockchainMessage } = await import("@/lib/tonapi-client");
-          await sendBlockchainMessage(bocBase64, isTestnet);
-          
+          const result = await sendBlockchainMessage(bocBase64, isTestnet);
+          messageHash = result?.hash || bocHash;
+
           success = true;
           break;
         } catch (err) {
@@ -694,7 +699,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         invalidateWalletQueries(walletAddress);
       }, 3000);
 
-      return { success: true, txHash: `${seqno}` };
+      return { success: true, txHash: messageHash };
     } catch (error) {
       console.error("Transaction failed:", error);
       return {

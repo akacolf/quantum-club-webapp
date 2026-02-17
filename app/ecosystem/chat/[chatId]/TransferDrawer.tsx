@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -106,7 +106,7 @@ export default function TransferDrawer({
         <div className="mx-auto w-full max-w-md px-4 pb-6">
           <DrawerHeader className="px-0">
             <DrawerTitle className="text-base flex items-center gap-2">
-              <Icon icon="token:ton" className="w-5 h-5 text-[#0098EA]" />
+              <Image src="/svg/ton-logo.svg" alt="TON" width={20} height={20} />
               Send TON
             </DrawerTitle>
             <DrawerDescription className="text-xs">

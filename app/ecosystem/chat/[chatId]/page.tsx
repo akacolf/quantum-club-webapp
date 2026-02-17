@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -2076,7 +2077,7 @@ export default function ChatConversationPage() {
                 className="w-9 h-9 rounded-full shrink-0"
                 onClick={() => setShowTransferDrawer(true)}
               >
-                <Icon icon="token:ton" className="w-5 h-5 text-muted-foreground" />
+                <Image src="/svg/ton-logo.svg" alt="TON" width={20} height={20} className="opacity-60" />
               </Button>
             )}
             <Input
