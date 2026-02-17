@@ -18,6 +18,7 @@ export default function VoiceMessage({ audioUrl, durationSec, isMine }: VoiceMes
 
   useEffect(() => {
     const audio = new Audio(audioUrl);
+    audio.preload = "auto";
     audioRef.current = audio;
 
     audio.addEventListener("timeupdate", () => {

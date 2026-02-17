@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
 
         // Format message
         const message = isGroup
-          ? `💬 ${senderName} in ${chatName}: New message`
-          : `💬 @${senderName}: New message`;
+          ? `${senderName} in ${chatName}: New message`
+          : `${senderName}: New message`;
 
         await sendNotification(numericalId, message);
       } catch (err) {
