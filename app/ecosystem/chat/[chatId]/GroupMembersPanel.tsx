@@ -133,7 +133,7 @@ export default function GroupMembersPanel({
                         title="Unmute"
                         onClick={() => onAction("unmute", userId)}
                       >
-                        <Icon icon="solar:volume-bold" className="w-4 h-4 text-green-500" />
+                        <Icon icon="solar:microphone-large-bold" className="w-4 h-4 text-green-500" />
                       </Button>
                     ) : (
                       <Button
@@ -143,7 +143,7 @@ export default function GroupMembersPanel({
                         title="Mute"
                         onClick={() => onAction("mute", userId)}
                       >
-                        <Icon icon="solar:volume-cross-bold" className="w-4 h-4 text-orange-500" />
+                        <Icon icon="solar:microphone-large-cross-bold" className="w-4 h-4 text-orange-500" />
                       </Button>
                     )}
                     <Button
@@ -153,7 +153,7 @@ export default function GroupMembersPanel({
                       title="Kick"
                       onClick={() => onAction("kick", userId)}
                     >
-                      <Icon icon="solar:logout-3-bold" className="w-4 h-4 text-yellow-500" />
+                      <Icon icon="solar:user-minus-bold" className="w-4 h-4 text-yellow-500" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -162,7 +162,7 @@ export default function GroupMembersPanel({
                       title="Ban"
                       onClick={() => onAction("ban", userId)}
                     >
-                      <Icon icon="solar:forbidden-circle-bold" className="w-4 h-4 text-red-500" />
+                      <Icon icon="solar:shield-cross-bold" className="w-4 h-4 text-red-500" />
                     </Button>
                   </div>
                 )}
@@ -184,7 +184,7 @@ export default function GroupMembersPanel({
                   const name = chatMeta.participantNames[userId] || userId;
                   return (
                     <div key={userId} className="flex items-center gap-2 px-2 py-1.5 rounded-lg">
-                      <Icon icon="solar:forbidden-circle-bold" className="w-4 h-4 text-red-500 shrink-0" />
+                      <Icon icon="solar:shield-cross-bold" className="w-4 h-4 text-red-500 shrink-0" />
                       <span className="text-sm text-muted-foreground truncate flex-1">
                         @{name}
                       </span>

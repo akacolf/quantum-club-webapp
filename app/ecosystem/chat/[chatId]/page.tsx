@@ -1716,7 +1716,7 @@ export default function ChatConversationPage() {
                             <Icon icon={emoji.icon} className="w-5 h-5" />
                           </button>
                         ))}
-                        {isGroupChat && (
+                        {msg.senderId !== "system" && (
                           <button
                             onClick={() => handlePinMessage(msg)}
                             className="p-1 rounded-lg hover:bg-muted/60 transition-colors border-l border-border ml-0.5 pl-1.5"
