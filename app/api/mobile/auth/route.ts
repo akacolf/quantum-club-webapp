@@ -26,9 +26,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "create-custom-token") {
-      // Create custom token for mobile app authentication
-      if (!uid) {
-        return NextResponse.json({ error: "UID required" }, { status: 400 });
+      // Create custom token — requires a valid Firebase ID token proving ownership of the UID
+      if (!uid || !idToken) {
+        return NextResponse.json({ error: "UID and idToken required" }, { status: 400 });
+      }
+
+      try {
+        const decoded = await adminAuth.verifyIdToken(idToken);
+        if (decoded.uid !== uid) {
+          return NextResponse.json({ error: "UID mismatch" }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
       }
 
       const customToken = await adminAuth.createCustomToken(uid);

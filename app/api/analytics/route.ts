@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decrypt } from "@/utils/session";
 
-const SDK_AUTH_TOKEN = "eyJhcHBfbmFtZSI6InFudG1fY2x1YiIsImFwcF91cmwiOiJodHRwczovL3QubWUvUXVhbnR1bUNsdWJCb3QiLCJhcHBfZG9tYWluIjoiaHR0cHM6Ly9xdWFudHVtY2x1Yi5zcGFjZS8ifQ==!WjIA5nO87o5qYCowGzsEH+ip9PqI9jDgAiwWgAmsFLQ=";
+const SDK_AUTH_TOKEN = process.env.TGA_AUTH_TOKEN || "";
 const APP_NAME = "qntm_club";
 const APP_DOMAIN = "https://quantumclub.space";
 
@@ -24,6 +25,21 @@ interface EventPayload {
 
 export async function POST(req: NextRequest) {
     try {
+        // Validate session
+        const sessionCookie = req.cookies.get("session")?.value;
+        if (!sessionCookie) {
+            return NextResponse.json({ success: false }, { status: 401 });
+        }
+        try {
+            await decrypt(sessionCookie);
+        } catch {
+            return NextResponse.json({ success: false }, { status: 401 });
+        }
+
+        if (!SDK_AUTH_TOKEN) {
+            return NextResponse.json({ success: false }, { status: 200 });
+        }
+
         const body = await req.json();
         const { eventName, userId, sessionId, isPremium, platform, locale, options } = body;
 

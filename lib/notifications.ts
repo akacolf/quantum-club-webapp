@@ -119,9 +119,8 @@ export async function sendTransactionConfirmation(
 ): Promise<NotificationResult> {
   const { type, amount, symbol, txHash, success, toAddress, fromAddress, usdValue } = params;
   
-  const emoji = success ? "✅" : "❌";
   const statusText = success ? "Confirmed" : "Failed";
-  
+
   const typeLabels: Record<string, string> = {
     send: "Sent",
     receive: "Received",
@@ -131,29 +130,29 @@ export async function sendTransactionConfirmation(
     buy: "Bought",
     sell: "Sold",
   };
-  
-  let message = `${emoji} <b>Transaction ${statusText}</b>\n\n`;
-  message += `📝 <b>Type:</b> ${typeLabels[type] || type}\n`;
-  message += `💰 <b>Amount:</b> ${amount} ${symbol}`;
-  
+
+  let message = `<b>Transaction ${statusText}</b>\n\n`;
+  message += `<b>Type:</b> ${typeLabels[type] || type}\n`;
+  message += `<b>Amount:</b> ${amount} ${symbol}`;
+
   if (usdValue) {
     message += ` (~$${usdValue})`;
   }
   message += "\n";
-  
+
   if (toAddress && type === "send") {
     const shortAddr = `${toAddress.slice(0, 6)}...${toAddress.slice(-4)}`;
-    message += `📤 <b>To:</b> <code>${shortAddr}</code>\n`;
+    message += `<b>To:</b> <code>${shortAddr}</code>\n`;
   }
-  
+
   if (fromAddress && type === "receive") {
     const shortAddr = `${fromAddress.slice(0, 6)}...${fromAddress.slice(-4)}`;
-    message += `📥 <b>From:</b> <code>${shortAddr}</code>\n`;
+    message += `<b>From:</b> <code>${shortAddr}</code>\n`;
   }
-  
+
   if (txHash) {
     const shortHash = `${txHash.slice(0, 8)}...${txHash.slice(-6)}`;
-    message += `🔗 <b>Hash:</b> <code>${shortHash}</code>\n`;
+    message += `<b>Hash:</b> <code>${shortHash}</code>\n`;
     message += `\n<a href="https://tonviewer.com/transaction/${txHash}">View on TON Viewer</a>`;
   }
 
@@ -180,18 +179,15 @@ export async function sendTradeNotification(
 ): Promise<NotificationResult> {
   const { type, tokenSymbol, tokenAmount, tonAmount, success, txHash, pricePerToken } = params;
   
-  const emoji = success 
-    ? (type === "buy" ? "🟢" : "🔴") 
-    : "❌";
   const statusText = success ? "Completed" : "Failed";
   const actionText = type === "buy" ? "Bought" : "Sold";
-  
-  let message = `${emoji} <b>Trade ${statusText}</b>\n\n`;
-  message += `📊 ${actionText} <b>${tokenAmount} ${tokenSymbol}</b>\n`;
-  message += `💎 For <b>${tonAmount} TON</b>\n`;
-  
+
+  let message = `<b>Trade ${statusText}</b>\n\n`;
+  message += `${actionText} <b>${tokenAmount} ${tokenSymbol}</b>\n`;
+  message += `For <b>${tonAmount} TON</b>\n`;
+
   if (pricePerToken) {
-    message += `📈 Price: ${pricePerToken} TON per token\n`;
+    message += `Price: ${pricePerToken} TON per token\n`;
   }
   
   if (txHash) {
@@ -218,14 +214,13 @@ export async function sendPriceAlertNotification(
 ): Promise<NotificationResult> {
   const { symbol, direction, targetPrice, currentPrice } = params;
   
-  const emoji = direction === "above" ? "📈" : "📉";
   const directionText = direction === "above" ? "above" : "below";
-  
-  const message = 
-    `${emoji} <b>Price Alert Triggered!</b>\n\n` +
+
+  const message =
+    `<b>Price Alert Triggered!</b>\n\n` +
     `<b>${symbol}</b> is now ${directionText} your target.\n\n` +
-    `🎯 Target: $${targetPrice.toFixed(2)}\n` +
-    `💵 Current: $${currentPrice.toFixed(2)}\n\n` +
+    `Target: $${targetPrice.toFixed(2)}\n` +
+    `Current: $${currentPrice.toFixed(2)}\n\n` +
     `<i>Open Quantum Club wallet to manage your alerts.</i>`;
 
   return sendNotification(telegramId, message);
@@ -248,12 +243,12 @@ export async function sendStakingRewardNotification(
 ): Promise<NotificationResult> {
   const { amount, symbol, pool, newTotal } = params;
   
-  let message = `🎉 <b>Staking Reward Received!</b>\n\n`;
-  message += `💰 <b>+${amount} ${symbol}</b>\n`;
-  message += `📊 Pool: ${pool}\n`;
-  
+  let message = `<b>Staking Reward Received!</b>\n\n`;
+  message += `<b>+${amount} ${symbol}</b>\n`;
+  message += `Pool: ${pool}\n`;
+
   if (newTotal) {
-    message += `\n💎 Total Staked: ${newTotal} ${symbol}`;
+    message += `\nTotal Staked: ${newTotal} ${symbol}`;
   }
 
   return sendNotification(telegramId, message);
@@ -276,15 +271,15 @@ export async function sendReferralBonusNotification(
 ): Promise<NotificationResult> {
   const { amount, symbol, referralName, tier } = params;
   
-  let message = `🎁 <b>Referral Bonus Earned!</b>\n\n`;
-  message += `💰 <b>+${amount} ${symbol}</b>\n`;
-  
+  let message = `<b>Referral Bonus Earned!</b>\n\n`;
+  message += `<b>+${amount} ${symbol}</b>\n`;
+
   if (referralName) {
-    message += `👤 From: ${referralName}\n`;
+    message += `From: ${referralName}\n`;
   }
-  
+
   if (tier) {
-    message += `📊 Tier ${tier} commission\n`;
+    message += `Tier ${tier} commission\n`;
   }
   
   message += `\n<i>Invite more friends to earn more!</i>`;
@@ -304,7 +299,7 @@ export async function sendSystemNotification(
   title: string,
   body: string
 ): Promise<NotificationResult> {
-  const message = `📢 <b>${title}</b>\n\n${body}`;
+  const message = `<b>${title}</b>\n\n${body}`;
   return sendNotification(telegramId, message);
 }
 

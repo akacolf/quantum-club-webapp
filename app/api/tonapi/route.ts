@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decrypt } from "@/utils/session";
 
 // Allowed API path prefixes to prevent SSRF attacks
 const ALLOWED_PATH_PREFIXES = [
@@ -33,6 +34,17 @@ function isValidPath(path: string): boolean {
  * This keeps the API key secure on the server side
  */
 export async function GET(request: NextRequest) {
+    // Validate session
+    const sessionCookie = request.cookies.get("session")?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    try {
+        await decrypt(sessionCookie);
+    } catch {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path");
     const testnet = searchParams.get("testnet") === "true";
@@ -88,6 +100,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    // Validate session
+    const sessionCookie = request.cookies.get("session")?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    try {
+        await decrypt(sessionCookie);
+    } catch {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path");
     const testnet = searchParams.get("testnet") === "true";

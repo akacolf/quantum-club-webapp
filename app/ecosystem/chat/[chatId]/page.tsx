@@ -744,6 +744,22 @@ export default function ChatConversationPage() {
         console.warn("Chat metadata update failed (voice was sent):", err);
       });
 
+      // Push notification to offline participants (fire-and-forget)
+      const recipientIds = participants.filter((p) => p !== telegramId);
+      if (recipientIds.length > 0) {
+        fetch("/api/chat-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientIds,
+            senderName,
+            chatId,
+            chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
+            isGroup: !!isGroupChat,
+          }),
+        }).catch(() => {});
+      }
+
       scrollToBottom(true);
     } catch (error) {
       console.error("Failed to send voice message:", error);

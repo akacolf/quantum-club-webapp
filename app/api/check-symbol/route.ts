@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
+import { decrypt } from "@/utils/session";
 
 // Rate limiting to prevent symbol scraping
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -20,6 +21,17 @@ function getRateLimitKey(request: NextRequest): string {
  */
 export async function GET(request: NextRequest) {
     try {
+        // Validate session
+        const sessionCookie = request.cookies.get("session")?.value;
+        if (!sessionCookie) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        try {
+            await decrypt(sessionCookie);
+        } catch {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         // Rate limiting
         const rateLimitKey = getRateLimitKey(request);
         const now = Date.now();

@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decrypt } from "@/utils/session";
 
 export async function POST(req:NextRequest) {
+  // Validate session
+  const sessionCookie = req.cookies.get("session")?.value;
+  if (!sessionCookie) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    await decrypt(sessionCookie);
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const botToken = process.env.BOT_TOKEN;
 
   if (!botToken) {
