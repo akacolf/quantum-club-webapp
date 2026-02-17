@@ -808,8 +808,8 @@ export default function ChatConversationPage() {
   };
 
   // Send transfer message (after successful TON transaction)
-  const handleSendTransfer = async (amount: string, txHash: string) => {
-    if (!telegramId || !chatId || !chatMeta || !walletAddress || !recipientWalletAddress) return;
+  const handleSendTransfer = async (amount: string, txHash: string, toAddress: string) => {
+    if (!telegramId || !chatId || !chatMeta || !walletAddress) return;
 
     const senderName = qcUsername || "Unknown";
     try {
@@ -827,7 +827,7 @@ export default function ChatConversationPage() {
         transfer: {
           amount,
           senderAddress: walletAddress,
-          recipientAddress: recipientWalletAddress,
+          recipientAddress: toAddress,
           txHash,
           status: "sent",
         },
@@ -2055,8 +2055,6 @@ export default function ChatConversationPage() {
                 size="icon"
                 className="w-9 h-9 rounded-full shrink-0"
                 onClick={() => setShowTransferDrawer(true)}
-                disabled={!recipientWalletAddress}
-                title={recipientWalletAddress ? "Send TON" : "Recipient has no QC Wallet"}
               >
                 <Icon icon="token:ton" className="w-5 h-5 text-muted-foreground" />
               </Button>
@@ -2097,11 +2095,11 @@ export default function ChatConversationPage() {
         onCreatePoll={handleCreatePoll}
       />
 
-      {!isGroupChat && recipientWalletAddress && (
+      {!isGroupChat && chatMeta && (
         <TransferDrawer
           open={showTransferDrawer}
           onOpenChange={setShowTransferDrawer}
-          recipientName={chatMeta?.participantNames[chatMeta.participants.find((p) => p !== telegramId) || ""] || "Unknown"}
+          recipientName={chatMeta.participantNames[chatMeta.participants.find((p) => p !== telegramId) || ""] || "Unknown"}
           recipientAddress={recipientWalletAddress}
           onSend={handleSendTransfer}
           onFailed={handleTransferFailed}

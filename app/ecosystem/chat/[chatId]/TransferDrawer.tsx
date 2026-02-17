@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,16 +12,25 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { useWallet } from "@/app/wallet/WalletContext";
-import { toNano } from "@ton/core";
+import { toNano, Address } from "@ton/core";
 import { toast } from "sonner";
 
 interface TransferDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   recipientName: string;
-  recipientAddress: string;
-  onSend: (amount: string, txHash: string) => void;
+  recipientAddress: string | null;
+  onSend: (amount: string, txHash: string, recipientAddress: string) => void;
   onFailed: (amount: string, error: string) => void;
+}
+
+function isValidTonAddress(addr: string): boolean {
+  try {
+    Address.parse(addr);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export default function TransferDrawer({
@@ -34,7 +43,18 @@ export default function TransferDrawer({
 }: TransferDrawerProps) {
   const { tonBalance, tonPrice, sendTransaction, walletAddress } = useWallet();
   const [amount, setAmount] = useState("");
+  const [manualAddress, setManualAddress] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  // Reset fields when drawer opens
+  useEffect(() => {
+    if (open) {
+      setAmount("");
+      setManualAddress("");
+    }
+  }, [open]);
+
+  const resolvedAddress = recipientAddress || (isValidTonAddress(manualAddress) ? manualAddress : null);
 
   const numericBalance = parseFloat(tonBalance) || 0;
   const FEE_RESERVE = 0.05;
@@ -48,18 +68,19 @@ export default function TransferDrawer({
   };
 
   const handleSend = async () => {
-    if (!isValidAmount || isSending || !walletAddress) return;
+    if (!isValidAmount || isSending || !walletAddress || !resolvedAddress) return;
 
     setIsSending(true);
     try {
       const result = await sendTransaction({
-        to: recipientAddress,
+        to: resolvedAddress,
         value: toNano(amount).toString(),
       });
 
       if (result.success && result.txHash) {
-        onSend(amount, result.txHash);
+        onSend(amount, result.txHash, resolvedAddress);
         setAmount("");
+        setManualAddress("");
         onOpenChange(false);
       } else {
         const errorMsg = result.error || "Transaction failed";
@@ -75,10 +96,9 @@ export default function TransferDrawer({
     }
   };
 
-  const truncatedAddress =
-    recipientAddress.length > 12
-      ? `${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}`
-      : recipientAddress;
+  const truncatedAddress = resolvedAddress && resolvedAddress.length > 12
+    ? `${resolvedAddress.slice(0, 6)}...${resolvedAddress.slice(-4)}`
+    : resolvedAddress;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -99,7 +119,22 @@ export default function TransferDrawer({
             <div className="rounded-xl bg-muted/50 p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">To</p>
               <p className="text-sm font-medium">@{recipientName}</p>
-              <p className="text-[11px] text-muted-foreground font-mono">{truncatedAddress}</p>
+              {recipientAddress ? (
+                <p className="text-[11px] text-muted-foreground font-mono">{truncatedAddress}</p>
+              ) : (
+                <div className="mt-1.5">
+                  <Input
+                    type="text"
+                    value={manualAddress}
+                    onChange={(e) => setManualAddress(e.target.value)}
+                    placeholder="Paste TON address (EQ/UQ...)"
+                    className="text-xs h-9 rounded-lg font-mono"
+                  />
+                  {manualAddress && !isValidTonAddress(manualAddress) && (
+                    <p className="text-[10px] text-red-500 mt-1">Invalid TON address</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Amount input */}
@@ -149,7 +184,7 @@ export default function TransferDrawer({
             {/* Send button */}
             <Button
               onClick={handleSend}
-              disabled={!isValidAmount || isSending}
+              disabled={!isValidAmount || isSending || !resolvedAddress}
               className="w-full h-11 rounded-xl font-semibold"
             >
               {isSending ? (

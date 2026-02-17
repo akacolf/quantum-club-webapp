@@ -193,9 +193,6 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
               <Icon icon="lucide:trash-2" className="w-4.5 h-4.5 text-red-500" />
             </Button>
 
-            {/* Spacer to push send button to the right */}
-            <div className="flex-1" />
-
             {/* Send button */}
             <Button
               size="icon"
