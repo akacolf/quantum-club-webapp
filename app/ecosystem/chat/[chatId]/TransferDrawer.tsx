@@ -128,7 +128,7 @@ export default function TransferDrawer({
                     value={manualAddress}
                     onChange={(e) => setManualAddress(e.target.value)}
                     placeholder="Paste TON address (EQ/UQ...)"
-                    className="text-xs h-9 rounded-lg font-mono"
+                    className="text-base h-9 rounded-lg font-mono"
                   />
                   {manualAddress && !isValidTonAddress(manualAddress) && (
                     <p className="text-[10px] text-red-500 mt-1">Invalid TON address</p>

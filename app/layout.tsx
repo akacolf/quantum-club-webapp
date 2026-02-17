@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
+import IOSViewportFix from "./(components)/IOSViewportFix";
 
 
 const onest = Onest({
@@ -50,6 +51,7 @@ export default function RootLayout({
             </div>
           </div>
           <Toaster />
+          <IOSViewportFix />
         </ClientProviders>
         </AuthProvider>
       </body>

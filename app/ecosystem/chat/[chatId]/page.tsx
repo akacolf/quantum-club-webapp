@@ -254,6 +254,26 @@ export default function ChatConversationPage() {
     };
   }, []);
 
+  // iOS keyboard: resize chat container when virtual keyboard opens/closes
+  const chatRootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      if (chatRootRef.current) {
+        chatRootRef.current.style.height = `${vv.height}px`;
+      }
+    };
+
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+    };
+  }, []);
+
   // Reply state
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   // Swipe state for reply gesture
@@ -1307,7 +1327,7 @@ export default function ChatConversationPage() {
   const subtitle = getSubtitle();
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-background">
+    <div ref={chatRootRef} className="fixed inset-x-0 top-0 z-40 flex flex-col bg-background" style={{ height: "100dvh" }}>
       <style>{`
         @keyframes highlightMessage {
           0% { box-shadow: 0 0 0 0 transparent; }
@@ -1609,7 +1629,7 @@ export default function ChatConversationPage() {
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setSearchMatchIndex(-1); }}
             placeholder="Search messages..."
-            className="flex-1 h-8 text-sm rounded-lg bg-background border-border/50"
+            className="flex-1 h-8 text-base rounded-lg bg-background border-border/50"
           />
           {searchMatches.length > 0 && (
             <span className="text-[11px] text-muted-foreground whitespace-nowrap">
@@ -2067,7 +2087,7 @@ export default function ChatConversationPage() {
               onKeyDown={handleKeyDown}
               placeholder={replyTo ? "Reply..." : "Type a message..."}
               maxLength={500}
-              className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
+              className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-base placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
             />
             {newMessage.trim() ? (
               <Button
