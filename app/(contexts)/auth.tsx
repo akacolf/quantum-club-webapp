@@ -43,10 +43,11 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             }
         }
 
-        const storedKeep = typeof window !== "undefined" ? localStorage.getItem("keepLoggedIn") : null;
-        const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
-
         const unsubscribe = auth.onAuthStateChanged(async(user) => {
+            // Read keepLoggedIn inside the callback to always get the latest value
+            const storedKeep = typeof window !== "undefined" ? localStorage.getItem("keepLoggedIn") : null;
+            const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
+
             if (user && !shouldKeep) {
                 // User chose not to stay logged in — sign them out
                 await auth.signOut();
@@ -63,7 +64,11 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                     const settingsSnap = await getDoc(settingsRef);
                     const remoteVersion = settingsSnap.data()?.forceAuthVersion;
                     const localVersion = localStorage.getItem("forceAuthVersion");
-                    if (remoteVersion && String(remoteVersion) !== localVersion) {
+                    // First login: just store the version without forcing re-auth
+                    if (remoteVersion && localVersion === null) {
+                        localStorage.setItem("forceAuthVersion", String(remoteVersion));
+                    }
+                    if (remoteVersion && localVersion !== null && String(remoteVersion) !== localVersion) {
                         localStorage.setItem("forceAuthVersion", String(remoteVersion));
                         // Clear all user session data
                         const keys = Object.keys(localStorage);
@@ -118,7 +123,8 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
         await auth.signOut();
     }
     const loginWithToken = async(customToken:string) =>{
-      await signInWithCustomToken(auth, customToken);
+      const cred = await signInWithCustomToken(auth, customToken);
+      await cred.user.getIdToken(true);
     }
     const loginWithEmail = async(email: string, password: string): Promise<User> => {
       const result = await signInWithEmailAndPassword(auth, email, password);

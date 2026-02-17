@@ -72,12 +72,12 @@ export default function VoiceMessage({ audioUrl, durationSec, isMine }: VoiceMes
         className={`w-9 h-9 rounded-full shrink-0 ${
           isMine
             ? "bg-primary-foreground/20 hover:bg-primary-foreground/30"
-            : "bg-primary/15 hover:bg-primary/25"
+            : "bg-primary/60 hover:bg-primary/70"
         }`}
       >
         <Icon
           icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
-          className={`w-5 h-5 ${isMine ? "text-primary-foreground" : "text-primary"}`}
+          className="w-5 h-5 text-white"
         />
       </Button>
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
