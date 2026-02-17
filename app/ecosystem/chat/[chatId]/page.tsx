@@ -67,6 +67,9 @@ import PollMessage from "./PollMessage";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceMessage from "./VoiceMessage";
 import GroupMembersPanel from "./GroupMembersPanel";
+import TransferMessage from "./TransferMessage";
+import TransferDrawer from "./TransferDrawer";
+import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
 
 interface ChatMessage {
@@ -87,7 +90,7 @@ interface ChatMessage {
     originalChatId: string;
   };
   expiresAt?: any;
-  type?: "text" | "poll" | "voice";
+  type?: "text" | "poll" | "voice" | "transfer";
   poll?: {
     question: string;
     options: string[];
@@ -97,6 +100,13 @@ interface ChatMessage {
   voice?: {
     url: string;
     durationSec: number;
+  };
+  transfer?: {
+    amount: string;
+    senderAddress: string;
+    recipientAddress: string;
+    txHash?: string;
+    status: "sent" | "failed";
   };
 }
 
@@ -216,6 +226,12 @@ export default function ChatConversationPage() {
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(false);
 
+  // Transfer state
+  const [showTransferDrawer, setShowTransferDrawer] = useState(false);
+  const [recipientWalletAddress, setRecipientWalletAddress] = useState<string | null>(null);
+
+  const { walletAddress, isTestnet } = useWallet();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -331,6 +347,25 @@ export default function ChatConversationPage() {
     return () => unsub();
   }, [currentUser, chatId]);
 
+  // Resolve recipient's wallet address for DM transfers
+  useEffect(() => {
+    if (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId) return;
+    const recipientId = chatMeta.participants.find((p) => p !== telegramId);
+    if (!recipientId) return;
+
+    let cancelled = false;
+    fetch(`/api/qc-username?qcId=${encodeURIComponent(recipientId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.address) {
+          setRecipientWalletAddress(data.address);
+        }
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [chatMeta, telegramId]);
+
   // Subscribe to messages and decrypt them
   const isGroupChat = chatMeta?.isGroup || chatMeta?.isGlobal;
   // Track whether we've set up the messages subscription (only needs chatId + auth)
@@ -365,6 +400,7 @@ export default function ChatConversationPage() {
         type?: string;
         poll?: ChatMessage["poll"];
         voice?: ChatMessage["voice"];
+        transfer?: ChatMessage["transfer"];
       }[] = [];
 
       snapshot.forEach((docSnap) => {
@@ -383,6 +419,7 @@ export default function ChatConversationPage() {
           type: data.type || undefined,
           poll: data.poll || undefined,
           voice: data.voice || undefined,
+          transfer: data.transfer || undefined,
         });
       });
 
@@ -412,6 +449,7 @@ export default function ChatConversationPage() {
             type: msg.type as ChatMessage["type"],
             poll: msg.poll,
             voice: msg.voice,
+            transfer: msg.transfer,
           };
         })
       );
@@ -503,6 +541,7 @@ export default function ChatConversationPage() {
           type: data.type || undefined,
           poll: data.poll || undefined,
           voice: data.voice || undefined,
+          transfer: data.transfer || undefined,
         };
       });
 
@@ -531,6 +570,7 @@ export default function ChatConversationPage() {
             type: msg.type as ChatMessage["type"],
             poll: msg.poll,
             voice: msg.voice,
+            transfer: msg.transfer,
           };
         })
       );
@@ -765,6 +805,84 @@ export default function ChatConversationPage() {
       console.error("Failed to send voice message:", error);
       toast.error("Failed to send voice message");
     }
+  };
+
+  // Send transfer message (after successful TON transaction)
+  const handleSendTransfer = async (amount: string, txHash: string) => {
+    if (!telegramId || !chatId || !chatMeta || !walletAddress || !recipientWalletAddress) return;
+
+    const senderName = qcUsername || "Unknown";
+    try {
+      const participants = participantsRef.current;
+      const previewText = `Sent ${amount} TON`;
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId);
+
+      const messageDoc: Record<string, unknown> = {
+        text: encryptedPreview,
+        senderName,
+        senderId: telegramId,
+        createdAt: serverTimestamp(),
+        encrypted: true,
+        type: "transfer",
+        transfer: {
+          amount,
+          senderAddress: walletAddress,
+          recipientAddress: recipientWalletAddress,
+          txHash,
+          status: "sent",
+        },
+      };
+
+      if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
+        messageDoc.expiresAt = Timestamp.fromMillis(Date.now() + chatMeta.disappearAfter);
+      }
+
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      await addDoc(messagesRef, messageDoc);
+
+      try { localStorage.setItem(`qc-preview-${chatId}`, previewText); } catch {}
+
+      const updates: Record<string, unknown> = {
+        lastMessage: encryptedPreview,
+        lastMessageBy: telegramId,
+        lastMessageAt: serverTimestamp(),
+        [`readPositions.${telegramId}`]: serverTimestamp(),
+        [`unreadCounts.${telegramId}`]: 0,
+      };
+      for (const pid of participants) {
+        if (pid !== telegramId) {
+          updates[`unreadCounts.${pid}`] = increment(1);
+        }
+      }
+      updateDoc(doc(dbfs, "qc-chats", chatId), updates).catch((err) => {
+        console.warn("Chat metadata update failed (transfer was sent):", err);
+      });
+
+      // Push notification
+      const recipientIds = participants.filter((p) => p !== telegramId);
+      if (recipientIds.length > 0) {
+        fetch("/api/chat-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientIds,
+            senderName,
+            chatId,
+            chatName: senderName,
+            isGroup: false,
+          }),
+        }).catch(() => {});
+      }
+
+      scrollToBottom(true);
+    } catch (error) {
+      console.error("Failed to send transfer message:", error);
+    }
+  };
+
+  const handleTransferFailed = async (amount: string, _error: string) => {
+    // Failed transfers only show a toast (already shown by TransferDrawer)
+    // No message posted to chat for failed transfers
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1782,6 +1900,14 @@ export default function ChatConversationPage() {
                         chatId={chatId}
                         isOwnMessage={isOwnMessage}
                       />
+                    ) : msg.type === "transfer" && msg.transfer ? (
+                      <TransferMessage
+                        amount={msg.transfer.amount}
+                        status={msg.transfer.status}
+                        txHash={msg.transfer.txHash}
+                        isMine={isOwnMessage}
+                        isTestnet={isTestnet}
+                      />
                     ) : (
                       <span className={`text-[13.5px] leading-[1.4] break-words whitespace-pre-wrap ${
                         msg.text === "Unable to decrypt message"
@@ -1923,6 +2049,18 @@ export default function ChatConversationPage() {
                 <Icon icon="mdi:poll" className="w-5 h-5 text-muted-foreground" />
               </Button>
             )}
+            {!isGroupChat && walletAddress && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-9 h-9 rounded-full shrink-0"
+                onClick={() => setShowTransferDrawer(true)}
+                disabled={!recipientWalletAddress}
+                title={recipientWalletAddress ? "Send TON" : "Recipient has no QC Wallet"}
+              >
+                <Icon icon="token:ton" className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            )}
             <Input
               ref={inputRef}
               type="text"
@@ -1958,6 +2096,17 @@ export default function ChatConversationPage() {
         onOpenChange={setShowPollCreator}
         onCreatePoll={handleCreatePoll}
       />
+
+      {!isGroupChat && recipientWalletAddress && (
+        <TransferDrawer
+          open={showTransferDrawer}
+          onOpenChange={setShowTransferDrawer}
+          recipientName={chatMeta?.participantNames[chatMeta.participants.find((p) => p !== telegramId) || ""] || "Unknown"}
+          recipientAddress={recipientWalletAddress}
+          onSend={handleSendTransfer}
+          onFailed={handleTransferFailed}
+        />
+      )}
     </div>
   );
 }
