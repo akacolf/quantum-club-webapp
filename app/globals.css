@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Prevent pinch zoom and double-tap zoom */
+/* Telegram WKWebView: prevent double-tap zoom and overscroll bounce */
 html {
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
@@ -18,16 +18,9 @@ body {
   overscroll-behavior: none;
 }
 
-/* Prevent iOS auto-zoom on input focus (requires >= 16px font-size) */
+/* WKWebView auto-zooms inputs with font-size < 16px */
 input, textarea, select {
   font-size: 16px !important;
-}
-
-/* iOS keyboard: keep fixed layouts visible above keyboard via visualViewport */
-@supports (height: 1dvh) {
-  .chat-viewport {
-    height: 100dvh;
-  }
 }
 
 .main-content {
