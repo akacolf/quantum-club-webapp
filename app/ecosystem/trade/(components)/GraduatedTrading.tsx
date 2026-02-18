@@ -45,6 +45,8 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
         const isBuying = activeTab === "buy";
         const units = toUnits(amount, 9);
 
+        const referralAddress = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS;
+
         const timer = setTimeout(() => {
             setQuoteParams({
                 fromAsset: isBuying
@@ -54,6 +56,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                     ? { address: token.jettonMasterAddress!, blockchain: 607, kind: "Jetton", symbol: token.symbol || "???", displayName: token.name || "Token", decimals: 9 }
                     : { address: TON_ADDRESS, blockchain: 607, kind: "Ton", symbol: "TON", displayName: "Toncoin", decimals: 9 },
                 amount: units,
+                ...(referralAddress ? { referrerAddress: referralAddress, referrerFeeBps: 10 } : {}),
             });
         }, 500);
 
