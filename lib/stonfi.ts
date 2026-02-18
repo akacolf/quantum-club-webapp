@@ -102,7 +102,7 @@ export async function simulateSwap(
     offerUnits: string,
     slippageTolerance: string = "0.01",
     referralFeeBps: string = "10", // 0.1% referral fee (matches FEE_CONFIG.referralFeePercent)
-    referralAddress?: string // TON address to receive referral fees (set via NEXT_PUBLIC_REFERRAL_ADDRESS)
+    referralAddress?: string // TON address to receive referral fees (set via NEXT_PUBLIC_PLATFORM_WALLET)
 ): Promise<SwapSimulation> {
     const client = createStonApiClient();
 

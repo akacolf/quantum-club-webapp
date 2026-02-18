@@ -45,7 +45,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
         const isBuying = activeTab === "buy";
         const units = toUnits(amount, 9);
 
-        const referralAddress = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS;
+        const referralAddress = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
 
         const timer = setTimeout(() => {
             setQuoteParams({
