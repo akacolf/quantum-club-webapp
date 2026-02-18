@@ -78,6 +78,7 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
             };
         }
 
+        // TODO: Add referral fee when Omniston SDK supports referralFeeBps in QuoteRequest
         return {
             settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
             bidAssetAddress: {

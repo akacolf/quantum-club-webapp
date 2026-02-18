@@ -2,11 +2,20 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Voice messages: authenticated users can upload/read
+    // Supports both unencrypted (audio/*) and encrypted (application/octet-stream) voice messages
     match /voice-messages/{chatId}/{messageId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
                    && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('audio/.*');
+                   && (request.resource.contentType.matches('audio/.*')
+                       || request.resource.contentType == 'application/octet-stream');
+    }
+
+    // Chat files (images, documents): authenticated users can upload/read
+    match /chat-files/{chatId}/{messageId}/{filename} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024;
     }
 
     // Default: deny all

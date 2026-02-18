@@ -27,15 +27,7 @@ import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
 import { AnimatedPrice } from "@/components/ui/animated-price";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from "recharts";
+import { WalletPriceChart } from "./WalletPriceChart";
 import { useLivePrice } from "@/app/(hooks)/queries/use-trades";
 
 // Asset detail types
@@ -406,18 +398,6 @@ export default function WalletPage() {
     const chartRefreshInterval = setInterval(() => fetchPriceHistory(selectedAsset, chartPeriod), 30000);
     return () => clearInterval(chartRefreshInterval);
   }, [selectedAsset?.symbol, chartPeriod, fetchPriceHistory]);
-
-  // Price chart tooltip
-  const PriceTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-white font-bold">${payload[0].value.toFixed(2)}</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   useEffect(() => {
     const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
@@ -1408,37 +1388,10 @@ export default function WalletPage() {
                         <Skeleton className="w-full h-full bg-[#222]" />
                       </div>
                     ) : priceHistory.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={priceHistory}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                          <XAxis
-                            dataKey="time"
-                            stroke="#555"
-                            tick={{ fill: '#555', fontSize: 10 }}
-                            tickLine={false}
-                            axisLine={false}
-                            interval="preserveStartEnd"
-                          />
-                          <YAxis
-                            stroke="#555"
-                            tick={{ fill: '#555', fontSize: 10 }}
-                            tickLine={false}
-                            axisLine={false}
-                            domain={['dataMin', 'dataMax']}
-                            tickFormatter={(value) => `$${value.toFixed(2)}`}
-                            width={50}
-                          />
-                          <Tooltip content={<PriceTooltip />} />
-                          <Line
-                            type="monotone"
-                            dataKey="price"
-                            stroke={selectedAsset.color}
-                            strokeWidth={2}
-                            dot={false}
-                            activeDot={{ r: 4, fill: selectedAsset.color }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      <WalletPriceChart
+                        data={priceHistory}
+                        color={selectedAsset.color}
+                      />
                     ) : (
                       <div className="h-full flex items-center justify-center text-gray-500 text-sm">
                         No price data available

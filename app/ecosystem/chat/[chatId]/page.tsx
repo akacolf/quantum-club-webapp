@@ -38,6 +38,7 @@ import {
   encryptMessage,
   decryptMessage,
   isEncryptedMessage,
+  encryptBlob,
 } from "@/lib/chat-crypto";
 import {
   collection,
@@ -67,6 +68,7 @@ import PollCreator from "./PollCreator";
 import PollMessage from "./PollMessage";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceMessage from "./VoiceMessage";
+import FileMessage from "./FileMessage";
 import GroupMembersPanel from "./GroupMembersPanel";
 import TransferMessage from "./TransferMessage";
 import TransferDrawer from "./TransferDrawer";
@@ -91,7 +93,7 @@ interface ChatMessage {
     originalChatId: string;
   };
   expiresAt?: any;
-  type?: "text" | "poll" | "voice" | "transfer";
+  type?: "text" | "poll" | "voice" | "transfer" | "file";
   poll?: {
     question: string;
     options: string[];
@@ -101,6 +103,16 @@ interface ChatMessage {
   voice?: {
     url: string;
     durationSec: number;
+    encrypted?: boolean;
+  };
+  file?: {
+    url: string;
+    name: string;
+    size: number;
+    mimeType: string;
+    encrypted?: boolean;
+    width?: number;
+    height?: number;
   };
   transfer?: {
     amount: string;
@@ -762,11 +774,17 @@ export default function ChatConversationPage() {
     const msgId = `voice_${Date.now()}_${telegramId}`;
 
     try {
-      const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.webm`);
-      await uploadBytes(fileRef, blob, { contentType: blob.type || "audio/webm" });
+      const participants = participantsRef.current;
+
+      // Encrypt the audio blob before uploading
+      const audioBuffer = await blob.arrayBuffer();
+      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId);
+      const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
+
+      const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.enc.webm`);
+      await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
       const url = await getDownloadURL(fileRef);
 
-      const participants = participantsRef.current;
       const previewText = "🎤 Voice message";
       const encryptedPreview = await encryptMessage(previewText, participants, chatId);
 
@@ -777,7 +795,7 @@ export default function ChatConversationPage() {
         createdAt: serverTimestamp(),
         encrypted: true,
         type: "voice",
-        voice: { url, durationSec },
+        voice: { url, durationSec, encrypted: true },
       };
 
       if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
@@ -825,6 +843,124 @@ export default function ChatConversationPage() {
     } catch (error) {
       console.error("Failed to send voice message:", error);
       toast.error("Failed to send voice message");
+    }
+  };
+
+  // Send file/image message (encrypted)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSendingFile, setIsSendingFile] = useState(false);
+
+  const handleSendFile = async (file: File) => {
+    if (!telegramId || !chatId || !chatMeta) return;
+
+    if (!currentUser) {
+      toast.error("Not authenticated. Please re-open the app.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 10 MB.");
+      return;
+    }
+
+    const senderName = qcUsername || "Unknown";
+    const msgId = `file_${Date.now()}_${telegramId}`;
+    setIsSendingFile(true);
+
+    try {
+      const participants = participantsRef.current;
+
+      // Read file and encrypt
+      const fileBuffer = await file.arrayBuffer();
+      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId);
+      const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
+
+      // Get image dimensions if applicable
+      let width: number | undefined;
+      let height: number | undefined;
+      if (file.type.startsWith("image/")) {
+        try {
+          const img = await createImageBitmap(file);
+          width = img.width;
+          height = img.height;
+          img.close();
+        } catch {}
+      }
+
+      const fileRef = storageRef(storage, `chat-files/${chatId}/${msgId}/${file.name}.enc`);
+      await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
+      const url = await getDownloadURL(fileRef);
+
+      const isImage = file.type.startsWith("image/");
+      const previewText = isImage ? "Sent an image" : `Sent a file`;
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId);
+
+      const messageDoc: Record<string, unknown> = {
+        text: encryptedPreview,
+        senderName,
+        senderId: telegramId,
+        createdAt: serverTimestamp(),
+        encrypted: true,
+        type: "file",
+        file: {
+          url,
+          name: file.name,
+          size: file.size,
+          mimeType: file.type,
+          encrypted: true,
+          ...(width && height ? { width, height } : {}),
+        },
+      };
+
+      if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
+        messageDoc.expiresAt = Timestamp.fromMillis(Date.now() + chatMeta.disappearAfter);
+      }
+
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      await addDoc(messagesRef, messageDoc);
+
+      try { localStorage.setItem(`qc-preview-${chatId}`, previewText); } catch {}
+
+      const updates: Record<string, unknown> = {
+        lastMessage: encryptedPreview,
+        lastMessageBy: telegramId,
+        lastMessageAt: serverTimestamp(),
+        [`readPositions.${telegramId}`]: serverTimestamp(),
+        [`unreadCounts.${telegramId}`]: 0,
+      };
+      for (const pid of participants) {
+        if (pid !== telegramId) {
+          updates[`unreadCounts.${pid}`] = increment(1);
+        }
+      }
+      updateDoc(doc(dbfs, "qc-chats", chatId), updates).catch((err) => {
+        console.warn("Chat metadata update failed (file was sent):", err);
+      });
+
+      // Push notification
+      const recipientIds = participants.filter((p) => p !== telegramId);
+      if (recipientIds.length > 0) {
+        fetch("/api/chat-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientIds,
+            senderName,
+            chatId,
+            chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
+            isGroup: !!isGroupChat,
+          }),
+        }).catch(() => {});
+      }
+
+      scrollToBottom(true);
+    } catch (error) {
+      console.error("Failed to send file:", error);
+      toast.error("Failed to send file");
+    } finally {
+      setIsSendingFile(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -1912,6 +2048,9 @@ export default function ChatConversationPage() {
                         audioUrl={msg.voice.url}
                         durationSec={msg.voice.durationSec}
                         isMine={isOwnMessage}
+                        encrypted={msg.voice.encrypted}
+                        participantIds={chatMeta?.participants}
+                        chatId={chatId}
                       />
                     ) : msg.type === "poll" && msg.poll ? (
                       <PollMessage
@@ -1920,6 +2059,13 @@ export default function ChatConversationPage() {
                         telegramId={telegramId || ""}
                         chatId={chatId}
                         isOwnMessage={isOwnMessage}
+                      />
+                    ) : msg.type === "file" && msg.file ? (
+                      <FileMessage
+                        file={msg.file}
+                        isMine={isOwnMessage}
+                        participantIds={chatMeta?.participants}
+                        chatId={chatId}
                       />
                     ) : msg.type === "transfer" && msg.transfer ? (
                       <TransferMessage
@@ -2080,6 +2226,29 @@ export default function ChatConversationPage() {
                 <Image src="/svg/ton-logo.svg" alt="TON" width={20} height={20} className="opacity-60" />
               </Button>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf,.doc,.docx,.txt"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleSendFile(file);
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-9 h-9 rounded-full shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isSendingFile}
+            >
+              {isSendingFile ? (
+                <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+              ) : (
+                <Icon icon="solar:paperclip-linear" className="w-5 h-5 text-muted-foreground" />
+              )}
+            </Button>
             <Input
               ref={inputRef}
               type="text"

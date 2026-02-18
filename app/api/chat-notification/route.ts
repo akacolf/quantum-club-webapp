@@ -40,6 +40,19 @@ function extractNumericalTelegramId(userArray: string): string | null {
   return match ? match[1] : null;
 }
 
+function resolveTelegramId(userData: admin.firestore.DocumentData): string | null {
+  // Primary: dedicated field (most reliable)
+  if (userData.numericalTelegramId) {
+    return String(userData.numericalTelegramId);
+  }
+  // Fallback: extract from userArray string
+  const userArray = userData.userArray;
+  if (typeof userArray === "string") {
+    return extractNumericalTelegramId(userArray);
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Validate session
@@ -80,21 +93,54 @@ export async function POST(req: NextRequest) {
 
         // Look up numerical Telegram ID from user doc
         const userSnap = await db.doc(`user/${encryptedId}`).get();
-        if (!userSnap.exists) return;
+        if (!userSnap.exists) {
+          console.warn(`[chat-notification] No user doc for ${encryptedId}`);
+          return;
+        }
 
         const userData = userSnap.data();
-        const userArray = userData?.userArray;
-        if (typeof userArray !== "string") return;
+        if (!userData) {
+          console.warn(`[chat-notification] Empty user data for ${encryptedId}`);
+          return;
+        }
 
-        const numericalId = extractNumericalTelegramId(userArray);
-        if (!numericalId) return;
+        const numericalId = resolveTelegramId(userData);
+        if (!numericalId) {
+          console.warn(`[chat-notification] No telegramId resolved for ${encryptedId}`);
+          return;
+        }
 
-        // Format message
+        // Read unread count from chat doc for richer message content
+        let unreadCount = 1;
+        try {
+          const chatSnap = await db.doc(`qc-chats/${chatId}`).get();
+          if (chatSnap.exists) {
+            const chatData = chatSnap.data();
+            const count = chatData?.unreadCounts?.[encryptedId];
+            if (typeof count === "number" && count > 0) {
+              unreadCount = count;
+            }
+          }
+        } catch {
+          // Non-critical, use default count
+        }
+
+        // Format message with unread count
+        const countText = unreadCount === 1
+          ? "new message"
+          : `${unreadCount} new messages`;
         const message = isGroup
-          ? `${senderName} in ${chatName}: New message`
-          : `${senderName}: New message`;
+          ? `<b>${senderName}</b> in <b>${chatName}</b>\nYou have ${countText}`
+          : `You have ${countText} from <b>${senderName}</b>`;
 
-        await sendNotification(numericalId, message);
+        // Build deep link button to open the chat directly
+        const botUsername = process.env.BOT_USERNAME || "QuantumClubBot";
+        const deepLinkUrl = `https://t.me/${botUsername}/app?startapp=chat_${chatId}`;
+        const replyMarkup = {
+          inline_keyboard: [[{ text: "Open Chat", url: deepLinkUrl }]],
+        };
+
+        await sendNotification(numericalId, message, { replyMarkup });
       } catch (err) {
         console.error(`[chat-notification] Failed for ${encryptedId}:`, err);
       }

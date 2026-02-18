@@ -3,42 +3,96 @@
 import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
+import { decryptBlob } from "@/lib/chat-crypto";
 
 interface VoiceMessageProps {
   audioUrl: string;
   durationSec: number;
   isMine: boolean;
+  encrypted?: boolean;
+  participantIds?: string[];
+  chatId?: string;
 }
 
-export default function VoiceMessage({ audioUrl, durationSec, isMine }: VoiceMessageProps) {
+// Cache decrypted blob URLs to avoid re-decrypting on replay
+const decryptedUrlCache = new Map<string, string>();
+
+export default function VoiceMessage({
+  audioUrl,
+  durationSec,
+  isMine,
+  encrypted,
+  participantIds,
+  chatId,
+}: VoiceMessageProps) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [decryptError, setDecryptError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = new Audio(audioUrl);
-    audio.preload = "auto";
-    audioRef.current = audio;
+    let cancelled = false;
 
-    audio.addEventListener("timeupdate", () => {
-      if (audio.duration && isFinite(audio.duration)) {
-        setProgress(audio.currentTime / audio.duration);
-        setCurrentTime(audio.currentTime);
+    const initAudio = async () => {
+      let src = audioUrl;
+
+      // Decrypt encrypted voice messages
+      if (encrypted && participantIds && chatId) {
+        const cached = decryptedUrlCache.get(audioUrl);
+        if (cached) {
+          src = cached;
+        } else {
+          setIsDecrypting(true);
+          try {
+            const response = await fetch(audioUrl);
+            const encryptedData = await response.arrayBuffer();
+            const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
+            if (cancelled) return;
+            const blob = new Blob([decryptedData], { type: "audio/webm" });
+            src = URL.createObjectURL(blob);
+            decryptedUrlCache.set(audioUrl, src);
+          } catch (err) {
+            console.error("Failed to decrypt voice message:", err);
+            if (!cancelled) setDecryptError(true);
+            setIsDecrypting(false);
+            return;
+          }
+          if (!cancelled) setIsDecrypting(false);
+        }
       }
-    });
 
-    audio.addEventListener("ended", () => {
-      setPlaying(false);
-      setProgress(0);
-      setCurrentTime(0);
-    });
+      if (cancelled) return;
+
+      const audio = new Audio(src);
+      audio.preload = "auto";
+      audioRef.current = audio;
+
+      audio.addEventListener("timeupdate", () => {
+        if (audio.duration && isFinite(audio.duration)) {
+          setProgress(audio.currentTime / audio.duration);
+          setCurrentTime(audio.currentTime);
+        }
+      });
+
+      audio.addEventListener("ended", () => {
+        setPlaying(false);
+        setProgress(0);
+        setCurrentTime(0);
+      });
+    };
+
+    initAudio();
 
     return () => {
-      audio.pause();
-      audio.src = "";
+      cancelled = true;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
     };
-  }, [audioUrl]);
+  }, [audioUrl, encrypted, participantIds, chatId]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -64,22 +118,36 @@ export default function VoiceMessage({ audioUrl, durationSec, isMine }: VoiceMes
     ? formatTime(currentTime)
     : formatTime(durationSec);
 
+  if (decryptError) {
+    return (
+      <div className="flex items-center gap-2 min-w-[180px] max-w-[240px] py-0.5 opacity-50">
+        <Icon icon="solar:lock-keyhole-bold" className="w-4 h-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Unable to decrypt</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2.5 min-w-[180px] max-w-[240px] py-0.5">
       <Button
         variant="ghost"
         size="icon"
         onClick={togglePlay}
+        disabled={isDecrypting}
         className={`w-9 h-9 rounded-full shrink-0 ${
           isMine
             ? "bg-primary-foreground/20 hover:bg-primary-foreground/30"
             : "bg-primary/60 hover:bg-primary/70"
         }`}
       >
-        <Icon
-          icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
-          className="w-5 h-5 text-white"
-        />
+        {isDecrypting ? (
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          <Icon
+            icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
+            className="w-5 h-5 text-white"
+          />
+        )}
       </Button>
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <div className="w-full h-1 rounded-full bg-muted-foreground/20 overflow-hidden">
@@ -91,7 +159,7 @@ export default function VoiceMessage({ audioUrl, durationSec, isMine }: VoiceMes
           />
         </div>
         <span className="text-[10px] text-muted-foreground/70 tabular-nums leading-none">
-          {displayTime}
+          {isDecrypting ? "Decrypting..." : displayTime}
         </span>
       </div>
     </div>

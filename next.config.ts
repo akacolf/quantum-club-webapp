@@ -100,6 +100,7 @@ const nextConfig: import('next').NextConfig = {
       'lottie-react',
       'framer-motion',
       'recharts',
+      'lightweight-charts',
       'date-fns',
       'firebase',
       '@ton/core',

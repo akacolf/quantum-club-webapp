@@ -337,13 +337,25 @@ export default function QCChatListPage() {
     }
   };
 
-  // Handle deep link join: startapp=join_JOINCODE — auto-join the group
+  // Handle deep links: startapp=join_JOINCODE or startapp=chat_CHATID
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
     if (!currentUser || !telegramId || !qcUsername || deepLinkHandledRef.current) return;
     try {
       const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-      if (!startParam || !startParam.startsWith("join_")) return;
+      if (!startParam) return;
+
+      // Handle chat deep link: navigate directly to chat
+      if (startParam.startsWith("chat_")) {
+        deepLinkHandledRef.current = true;
+        const targetChatId = startParam.replace("chat_", "");
+        if (targetChatId) {
+          router.push(`/ecosystem/chat/${targetChatId}`);
+        }
+        return;
+      }
+
+      if (!startParam.startsWith("join_")) return;
       const code = startParam.replace("join_", "").toUpperCase();
       if (!code) return;
       deepLinkHandledRef.current = true;

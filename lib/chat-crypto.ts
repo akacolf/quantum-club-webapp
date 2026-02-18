@@ -137,6 +137,55 @@ export async function decryptMessage(
 }
 
 /**
+ * Encrypt a binary blob (e.g. audio, image, file).
+ * Returns an ArrayBuffer containing IV + ciphertext.
+ * Unlike encryptMessage, this operates on raw binary data without text encoding/base64.
+ */
+export async function encryptBlob(
+  data: ArrayBuffer,
+  participantIds: string[],
+  chatId: string
+): Promise<ArrayBuffer> {
+  const key = await deriveKey(participantIds, chatId);
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    data
+  );
+
+  // Prepend IV to ciphertext
+  const combined = new Uint8Array(IV_LENGTH + ciphertext.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(ciphertext), IV_LENGTH);
+
+  return combined.buffer;
+}
+
+/**
+ * Decrypt a binary blob.
+ * Expects an ArrayBuffer containing IV + ciphertext.
+ */
+export async function decryptBlob(
+  encryptedData: ArrayBuffer,
+  participantIds: string[],
+  chatId: string
+): Promise<ArrayBuffer> {
+  const key = await deriveKey(participantIds, chatId);
+  const combined = new Uint8Array(encryptedData);
+
+  const iv = combined.slice(0, IV_LENGTH);
+  const ciphertext = combined.slice(IV_LENGTH);
+
+  return crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    ciphertext
+  );
+}
+
+/**
  * Check if a string looks like an encrypted message (base64 with sufficient length).
  * Rejects plaintext by checking for spaces and non-base64 characters.
  */

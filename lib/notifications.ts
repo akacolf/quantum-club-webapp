@@ -37,6 +37,7 @@ interface SendMessageOptions {
   parseMode?: "HTML" | "Markdown" | "MarkdownV2";
   disableNotification?: boolean;
   disableWebPagePreview?: boolean;
+  replyMarkup?: Record<string, unknown>;
 }
 
 /**
@@ -71,6 +72,7 @@ export async function sendNotification(
           parse_mode: options.parseMode || "HTML",
           disable_notification: options.disableNotification || false,
           disable_web_page_preview: options.disableWebPagePreview !== false,
+          ...(options.replyMarkup && { reply_markup: options.replyMarkup }),
         }),
       }
     );
