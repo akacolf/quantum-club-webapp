@@ -120,8 +120,6 @@ const EcosystemNavigation = () => {
           if (tab.id === "trade") {
             const isOnTradePage = pathname.startsWith("/ecosystem/trade");
             const isOnSpot = pathname.startsWith("/ecosystem/trade/spot");
-            const tradeIcon = isOnSpot ? "solar:chart-2-bold" : "solar:rocket-bold";
-            const tradeLabel = isOnSpot ? "Spot" : "Trade";
 
             const tabContent = (
               <>
@@ -134,17 +132,22 @@ const EcosystemNavigation = () => {
                 >
                   <div className="scale-100">
                     <Icon
-                      icon={tradeIcon}
+                      icon={tradePopoverOpen ? "lucide:x" : tab.icon}
+                      className={("iconClassName" in tab && tab.iconClassName) || ""}
                       style={{ width: "1.5em", height: "1.5em" }}
                     />
                   </div>
+                  {/* Small dot indicator on upper-right to hint at dropdown */}
+                  {isOnTradePage && !tradePopoverOpen && (
+                    <div className="absolute -top-0.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
                 </div>
                 <span
                   className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  {tradeLabel}
+                  {tab.label}
                 </span>
               </>
             );
@@ -169,27 +172,33 @@ const EcosystemNavigation = () => {
                   >
                     <button
                       onClick={() => { setTradePopoverOpen(false); router.push("/ecosystem/trade"); }}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors"
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${!isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
                         <Icon icon="solar:rocket-bold" className="w-4 h-4 text-primary" />
                       </div>
-                      <div className="text-left">
+                      <div className="flex-1 text-left">
                         <p className="text-sm font-semibold text-white">QC RocketStart</p>
                         <p className="text-[10px] text-muted-foreground">Token Launchpad</p>
                       </div>
+                      {!isOnSpot && (
+                        <Icon icon="lucide:check" className="w-4 h-4 text-primary" />
+                      )}
                     </button>
                     <button
                       onClick={() => { setTradePopoverOpen(false); router.push("/ecosystem/trade/spot"); }}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors"
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
                         <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
                       </div>
-                      <div className="text-left">
+                      <div className="flex-1 text-left">
                         <p className="text-sm font-semibold text-white">Spot Trading</p>
                         <p className="text-[10px] text-muted-foreground">Trade DEX tokens</p>
                       </div>
+                      {isOnSpot && (
+                        <Icon icon="lucide:check" className="w-4 h-4 text-green-400" />
+                      )}
                     </button>
                   </PopoverContent>
                 </Popover>

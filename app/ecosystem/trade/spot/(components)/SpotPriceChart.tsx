@@ -14,10 +14,11 @@ import {
     ColorType,
     CrosshairMode,
 } from "lightweight-charts";
-import { useSpotTokenChart, type ChartTimeframe, type OHLCVCandle } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokenChart, useSpotTokenDyorChart, type ChartTimeframe, type OHLCVCandle } from "@/app/(hooks)/queries/use-spot-trading";
 
 interface SpotPriceChartProps {
     poolAddress?: string;
+    tokenAddress?: string;
     tokenSymbol: string;
 }
 
@@ -38,10 +39,22 @@ function formatChartPrice(price: number): string {
     return price.toFixed(10);
 }
 
-export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceChartProps) {
+export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol }: SpotPriceChartProps) {
     const [timeframe, setTimeframe] = useState<ChartTimeframe>("1h");
     const [chartMode, setChartMode] = useState<ChartMode>("candle");
-    const { data: candles, isLoading } = useSpotTokenChart(poolAddress, timeframe);
+
+    // Primary: GeckoTerminal (requires pool address)
+    const { data: geckoCandles, isLoading: geckoLoading } = useSpotTokenChart(poolAddress, timeframe);
+    // Fallback: DYOR (uses token address directly, only when gecko has no data)
+    const useDyorFallback = !poolAddress || (!geckoLoading && (!geckoCandles || geckoCandles.length === 0));
+    const { data: dyorCandles, isLoading: dyorLoading } = useSpotTokenDyorChart(tokenAddress, timeframe, useDyorFallback);
+
+    const candles = (geckoCandles && geckoCandles.length > 0) ? geckoCandles : dyorCandles;
+    const isLoading = geckoLoading || (useDyorFallback && dyorLoading);
+    const isDyorData = !(geckoCandles && geckoCandles.length > 0) && (dyorCandles && dyorCandles.length > 0);
+
+    // Force area mode for DYOR data (no OHLCV)
+    const effectiveMode = isDyorData ? "area" : chartMode;
 
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
@@ -110,7 +123,7 @@ export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceCh
 
         chartRef.current = chart;
 
-        if (chartMode === "candle") {
+        if (effectiveMode === "candle") {
             const series = chart.addSeries(CandlestickSeries, {
                 upColor: "#22c55e",
                 downColor: "#ef4444",
@@ -187,20 +200,7 @@ export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceCh
             seriesRef.current = null;
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [candles, chartMode]);
-
-    if (!poolAddress) {
-        return (
-            <Card className="bg-[#111] border-[#222]">
-                <CardContent className="p-4">
-                    <div className="h-[220px] flex flex-col items-center justify-center text-center">
-                        <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-gray-700 mb-2" />
-                        <p className="text-xs text-gray-500">No pool data available</p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
+    }, [candles, effectiveMode]);
 
     return (
         <Card className="bg-[#111] border-[#222] overflow-hidden">
@@ -219,15 +219,17 @@ export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceCh
                             </span>
                         )}
                     </div>
-                    <button
-                        onClick={() => setChartMode(chartMode === "candle" ? "area" : "candle")}
-                        className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-                    >
-                        <Icon
-                            icon={chartMode === "candle" ? "solar:chart-2-linear" : "solar:chart-bold"}
-                            className="w-4 h-4"
-                        />
-                    </button>
+                    {!isDyorData && (
+                        <button
+                            onClick={() => setChartMode(chartMode === "candle" ? "area" : "candle")}
+                            className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                            <Icon
+                                icon={chartMode === "candle" ? "solar:chart-2-linear" : "solar:chart-bold"}
+                                className="w-4 h-4"
+                            />
+                        </button>
+                    )}
                 </div>
 
                 {/* Timeframe selector */}

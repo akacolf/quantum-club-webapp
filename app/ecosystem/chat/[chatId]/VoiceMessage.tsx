@@ -156,14 +156,10 @@ export default function VoiceMessage({
             : "bg-primary/60 hover:bg-primary/70"
         }`}
       >
-        {isDecrypting ? (
-          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-        ) : (
-          <Icon
-            icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
-            className="w-5 h-5 text-white"
-          />
-        )}
+        <Icon
+          icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
+          className="w-5 h-5 text-white"
+        />
       </Button>
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <div className="w-full h-1 rounded-full bg-muted-foreground/20 overflow-hidden">
@@ -175,7 +171,7 @@ export default function VoiceMessage({
           />
         </div>
         <span className="text-[10px] text-muted-foreground/70 tabular-nums leading-none">
-          {isDecrypting ? "Decrypting..." : displayTime}
+          {displayTime}
         </span>
       </div>
     </div>

@@ -3,7 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchSwappableAssets, createStonApiClient, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
 import { tonApiGet } from "@/lib/tonapi-client";
+import { Address } from "@ton/core";
 import type { SpotToken } from "@/types/spot-trading";
+
+function normalizeAddress(addr: string): string {
+    try { return Address.parse(addr).toRawString(); } catch { return addr.toLowerCase(); }
+}
 
 // ─── GeckoTerminal helpers ────────────────────────────────────────────
 
@@ -71,16 +76,16 @@ export function useSpotTokens() {
                     data: { id: string; attributes: GeckoTokenAttributes }[];
                 }>(`/networks/ton/tokens/multi/${encodeURIComponent(addresses)}`);
 
-                // Build address → gecko data map
+                // Build address → gecko data map (normalize for format mismatch)
                 const geckoMap = new Map<string, GeckoTokenAttributes>();
                 if (gecko?.data) {
                     for (const item of gecko.data) {
-                        geckoMap.set(item.attributes.address, item.attributes);
+                        geckoMap.set(normalizeAddress(item.attributes.address), item.attributes);
                     }
                 }
 
                 for (const a of batch) {
-                    const g = geckoMap.get(a.contractAddress);
+                    const g = geckoMap.get(normalizeAddress(a.contractAddress));
                     enriched.push({
                         ...a,
                         priceUsd: g?.price_usd ? parseFloat(g.price_usd) : (a.dexPriceUsd ? parseFloat(a.dexPriceUsd) : undefined),
@@ -223,6 +228,53 @@ export function useSpotTokenChart(poolAddress: string | undefined, timeframe: Ch
                 .sort((a, b) => a.time - b.time);
         },
         enabled: !!poolAddress,
+        staleTime: 30_000,
+        gcTime: 60_000,
+        refetchInterval: 60_000,
+    });
+}
+
+// ─── DYOR chart fallback ─────────────────────────────────────────────
+
+const DYOR_TIMEFRAME_MAP: Record<ChartTimeframe, { resolution: string; hours: number }> = {
+    "15m": { resolution: "min15", hours: 24 * 7 },
+    "1h":  { resolution: "hour1", hours: 24 * 30 },
+    "4h":  { resolution: "hour1", hours: 24 * 30 },
+    "1d":  { resolution: "day1", hours: 24 * 365 },
+};
+
+/**
+ * Fetch chart data from DYOR API as fallback when GeckoTerminal has no pool data.
+ * Returns line-chart points mapped to OHLCV format (area chart only).
+ */
+export function useSpotTokenDyorChart(tokenAddress: string | undefined, timeframe: ChartTimeframe = "1h", enabled: boolean = true) {
+    return useQuery<OHLCVCandle[]>({
+        queryKey: ["spot-token-dyor-chart", tokenAddress, timeframe],
+        queryFn: async () => {
+            if (!tokenAddress) throw new Error("No address");
+            const cfg = DYOR_TIMEFRAME_MAP[timeframe];
+            const to = new Date().toISOString();
+            const from = new Date(Date.now() - cfg.hours * 3600_000).toISOString();
+
+            const data = await dyorFetch<{
+                points: { value: { value: string; decimals: number }; time: string }[];
+            }>(`/jettons/${encodeURIComponent(tokenAddress)}/price/chart?resolution=${cfg.resolution}&from=${from}&to=${to}&currency=usd`);
+
+            if (!data?.points?.length) return [];
+
+            return data.points.map((p) => {
+                const price = parseDyorDecimal(p.value) ?? 0;
+                return {
+                    time: Math.floor(new Date(p.time).getTime() / 1000),
+                    open: price,
+                    high: price,
+                    low: price,
+                    close: price,
+                    volume: 0,
+                };
+            }).sort((a, b) => a.time - b.time);
+        },
+        enabled: !!tokenAddress && enabled,
         staleTime: 30_000,
         gcTime: 60_000,
         refetchInterval: 60_000,

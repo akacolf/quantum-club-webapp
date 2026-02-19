@@ -11,6 +11,8 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Address } from "@ton/core";
 import SpotTokenCard from "./(components)/SpotTokenCard";
 
+type SpotTab = "tokens" | "positions";
+
 function TokenListSkeleton() {
     return (
         <div className="space-y-2">
@@ -35,9 +37,10 @@ function TokenListSkeleton() {
 export default function SpotTradingPage() {
     useTelegramBackButton("/ecosystem/trade");
     const { data: tokens, isLoading } = useSpotTokens();
-    const { jettons } = useWallet();
+    const { jettons, tonPrice } = useWallet();
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedQuery, setDebouncedQuery] = useState("");
+    const [activeTab, setActiveTab] = useState<SpotTab>("tokens");
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
@@ -80,6 +83,24 @@ export default function SpotTradingPage() {
         });
     }, [tokens, debouncedQuery, holdingsMap]);
 
+    // Positions: tokens user holds that match spot tokens
+    const positions = useMemo(() => {
+        if (!tokens) return [];
+        return tokens
+            .map((t) => {
+                const rawAddr = normalizeAddress(t.contractAddress);
+                const rawBalance = holdingsMap.get(rawAddr);
+                if (!rawBalance || rawBalance === "0") return null;
+                const balance = parseFloat(rawBalance) / Math.pow(10, t.decimals);
+                if (balance <= 0) return null;
+                const valueUsd = t.priceUsd ? balance * t.priceUsd : undefined;
+                return { token: t, balance, valueUsd };
+            })
+            .filter(Boolean) as { token: typeof tokens[0]; balance: number; valueUsd?: number }[];
+    }, [tokens, holdingsMap]);
+
+    const totalPositionValue = positions.reduce((sum, p) => sum + (p.valueUsd || 0), 0);
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
             {/* Header */}
@@ -99,59 +120,120 @@ export default function SpotTradingPage() {
                         </div>
                     </div>
 
-                    {/* Search */}
-                    <div className="relative group">
-                        <Icon
-                            icon="solar:magnifer-linear"
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-white transition-colors z-10"
-                        />
-                        <Input
-                            type="text"
-                            placeholder="Search tokens..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 h-11 bg-white/5 border-white/5 text-white placeholder:text-muted-foreground focus:bg-white/10 focus:border-white/20 transition-all rounded-xl backdrop-blur-sm"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery("")}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white p-1 rounded-full hover:bg-white/10"
-                            >
-                                <Icon icon="solar:close-circle-bold" className="w-4 h-4" />
-                            </button>
-                        )}
+                    {/* Tabs */}
+                    <div className="flex gap-1 mb-3 bg-white/5 p-1 rounded-xl">
+                        <button
+                            onClick={() => setActiveTab("tokens")}
+                            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                                activeTab === "tokens" ? "bg-white/10 text-white" : "text-muted-foreground"
+                            }`}
+                        >
+                            All Tokens
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("positions")}
+                            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                                activeTab === "positions" ? "bg-white/10 text-white" : "text-muted-foreground"
+                            }`}
+                        >
+                            Positions {positions.length > 0 && `(${positions.length})`}
+                        </button>
                     </div>
+
+                    {/* Search (only for tokens tab) */}
+                    {activeTab === "tokens" && (
+                        <div className="relative group">
+                            <Icon
+                                icon="solar:magnifer-linear"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-white transition-colors z-10"
+                            />
+                            <Input
+                                type="text"
+                                placeholder="Search tokens..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 h-11 bg-white/5 border-white/5 text-white placeholder:text-muted-foreground focus:bg-white/10 focus:border-white/20 transition-all rounded-xl backdrop-blur-sm"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white p-1 rounded-full hover:bg-white/10"
+                                >
+                                    <Icon icon="solar:close-circle-bold" className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Content */}
             <div className="px-4 py-3 space-y-2">
-                {isLoading ? (
-                    <TokenListSkeleton />
-                ) : filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                            <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground" />
-                        </div>
-                        <p className="text-muted-foreground">
-                            {debouncedQuery
-                                ? `No tokens found for "${debouncedQuery}"`
-                                : "No tokens available"}
-                        </p>
-                    </div>
+                {activeTab === "tokens" ? (
+                    <>
+                        {isLoading ? (
+                            <TokenListSkeleton />
+                        ) : filtered.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                                    <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground" />
+                                </div>
+                                <p className="text-muted-foreground">
+                                    {debouncedQuery
+                                        ? `No tokens found for "${debouncedQuery}"`
+                                        : "No tokens available"}
+                                </p>
+                            </div>
+                        ) : (
+                            filtered.map((token, index) => {
+                                const rawAddr = normalizeAddress(token.contractAddress);
+                                const balance = holdingsMap.get(rawAddr);
+                                return (
+                                    <SpotTokenCard
+                                        key={token.contractAddress}
+                                        token={token}
+                                        index={index}
+                                        userBalance={balance}
+                                    />
+                                );
+                            })
+                        )}
+                    </>
                 ) : (
-                    filtered.map((token, index) => {
-                        const rawAddr = normalizeAddress(token.contractAddress);
-                        const balance = holdingsMap.get(rawAddr);
-                        return (
-                            <SpotTokenCard
-                                key={token.contractAddress}
-                                token={token}
-                                index={index}
-                                userBalance={balance}
-                            />
-                        );
-                    })
+                    <>
+                        {/* Portfolio Summary */}
+                        {positions.length > 0 && (
+                            <Card className="bg-white/5 border-white/5 mb-3">
+                                <CardContent className="p-4">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Portfolio Value</p>
+                                    <p className="text-2xl font-bold text-white">
+                                        {totalPositionValue > 0 ? `$${totalPositionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "--"}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {positions.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                                    <Icon icon="solar:wallet-bold" className="w-8 h-8 text-muted-foreground" />
+                                </div>
+                                <p className="text-muted-foreground">No positions yet</p>
+                                <p className="text-xs text-muted-foreground/60 mt-1">Buy tokens to see them here</p>
+                            </div>
+                        ) : (
+                            positions.map((pos, index) => (
+                                <SpotTokenCard
+                                    key={pos.token.contractAddress}
+                                    token={pos.token}
+                                    index={index}
+                                    userBalance={pos.balance.toString()}
+                                    showBalance={pos.balance}
+                                    showValue={pos.valueUsd}
+                                />
+                            ))
+                        )}
+                    </>
                 )}
             </div>
         </div>

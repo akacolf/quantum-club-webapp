@@ -74,6 +74,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
 
                 <SpotPriceChart
                     poolAddress={market?.poolAddress}
+                    tokenAddress={token.contractAddress}
                     tokenSymbol={token.symbol}
                 />
             </div>

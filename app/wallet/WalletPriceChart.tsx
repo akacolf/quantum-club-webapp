@@ -123,7 +123,7 @@ export function WalletPriceChart({ data, color }: WalletPriceChartProps) {
 
     return (
         <div className="relative w-full h-full">
-            <div ref={containerRef} className="w-full h-full" />
+            <div ref={containerRef} className="w-full h-full [&_a[href*='tradingview']]:!hidden" />
             {tooltip?.visible && (
                 <div
                     className="absolute bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"

@@ -12,9 +12,11 @@ interface SpotTokenCardProps {
     token: SpotToken;
     index: number;
     userBalance?: string;
+    showBalance?: number;
+    showValue?: number;
 }
 
-export default function SpotTokenCard({ token, index, userBalance }: SpotTokenCardProps) {
+export default function SpotTokenCard({ token, index, userBalance, showBalance, showValue }: SpotTokenCardProps) {
     const priceUsd = token.priceUsd;
     const change = token.priceChange24h;
     const mcap = token.marketCapUsd;
@@ -51,20 +53,30 @@ export default function SpotTokenCard({ token, index, userBalance }: SpotTokenCa
                                     <h3 className="font-bold text-white text-sm leading-tight truncate">
                                         {token.symbol}
                                     </h3>
-                                    {userBalance && (
+                                    {userBalance && !showBalance && (
                                         <Badge className="bg-primary/20 text-primary text-[9px] px-1.5 py-0 h-4 border-0 flex-shrink-0">
                                             Held
                                         </Badge>
                                     )}
                                 </div>
-                                <span className="text-[10px] text-muted-foreground">
-                                    {mcap ? `MCap: ${formatCompactUsd(mcap)}` : token.displayName}
-                                </span>
+                                {showBalance !== undefined ? (
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {showBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {token.symbol}
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {mcap ? `MCap: ${formatCompactUsd(mcap)}` : token.displayName}
+                                    </span>
+                                )}
                             </div>
 
                             {/* Price + Change */}
                             <div className="text-right flex-shrink-0">
-                                {priceUsd !== undefined && priceUsd > 0 ? (
+                                {showValue !== undefined ? (
+                                    <div className="font-semibold text-white text-sm tracking-tight">
+                                        ${showValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                ) : priceUsd !== undefined && priceUsd > 0 ? (
                                     <div className="font-semibold text-white text-sm tracking-tight">
                                         {formatUsdPrice(priceUsd)}
                                     </div>
@@ -95,7 +107,7 @@ function formatUsdPrice(price: number): string {
     if (match) {
         const zeroCount = match[1].length;
         const significant = match[2].slice(0, 5);
-        const subscripts = "₀₁₂₃₄₅₆₇₈₉";
+        const subscripts = "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089";
         const sub = String(zeroCount).split("").map(d => subscripts[parseInt(d)]).join("");
         return `$0.0${sub}${significant}`;
     }

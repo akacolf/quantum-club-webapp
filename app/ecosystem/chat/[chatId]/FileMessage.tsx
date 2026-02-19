@@ -160,9 +160,9 @@ export default function FileMessage({
     return (
       <>
         <div ref={containerRef} className="max-w-[220px] rounded-lg overflow-hidden">
-          {isDecrypting ? (
+          {!decryptedUrl && !decryptError ? (
             <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg">
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <Icon icon="solar:gallery-bold" className="w-6 h-6 text-muted-foreground/50" />
             </div>
           ) : decryptedUrl ? (
             <button onClick={() => setShowLightbox(true)} className="block w-full">
@@ -223,11 +223,7 @@ export default function FileMessage({
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
         isMine ? "bg-primary-foreground/20" : "bg-primary/20"
       }`}>
-        {isDecrypting ? (
-          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-        ) : (
-          <Icon icon={getFileIcon(file.mimeType)} className="w-5 h-5 text-white/70" />
-        )}
+        <Icon icon={getFileIcon(file.mimeType)} className="w-5 h-5 text-white/70" />
       </div>
       <div className="flex-1 min-w-0 text-left">
         <p className="text-xs font-medium text-white truncate">{file.name}</p>

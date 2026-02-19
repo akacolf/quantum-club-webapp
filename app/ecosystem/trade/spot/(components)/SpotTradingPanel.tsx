@@ -51,7 +51,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
         setQuoteParams(null);
     }, [activeTab]);
 
-    // Find user's balance for this token
+    // Find user's balance for this token (convert from raw units)
     const userTokenBalance = (() => {
         try {
             const rawAddr = Address.parse(token.contractAddress).toRawString();
@@ -63,7 +63,8 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
                     return false;
                 }
             });
-            return holding?.balance || "0";
+            if (!holding?.balance || holding.balance === "0") return "0";
+            return fromUnits(holding.balance, token.decimals);
         } catch {
             return "0";
         }
