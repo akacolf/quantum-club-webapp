@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { dbfs } from "@/app/(firebase)/client";
@@ -34,10 +35,12 @@ const navTabs = [
 
 const EcosystemNavigation = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { telegramId } = useUserContext();
   const authCtx = useAuth();
   const currentUser = authCtx?.currentUser ?? null;
   const [totalUnread, setTotalUnread] = useState(0);
+  const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
 
   // Subscribe to total unread count across all chats
   useEffect(() => {
@@ -110,6 +113,100 @@ const EcosystemNavigation = () => {
                   </Badge>
                 </div>
               </div>
+            );
+          }
+
+          // Trade tab: show popover when already on a trade page
+          if (tab.id === "trade") {
+            const isOnTradePage = pathname.startsWith("/ecosystem/trade");
+
+            const tabContent = (
+              <>
+                <div
+                  className={`relative transition-all duration-300 ${
+                    isActive
+                      ? "text-primary scale-110"
+                      : "text-muted-foreground group-hover:text-foreground"
+                  }`}
+                >
+                  <div className="scale-100">
+                    <Icon
+                      icon={tab.icon}
+                      className={("iconClassName" in tab && tab.iconClassName) || ""}
+                      style={{ width: "1.5em", height: "1.5em" }}
+                    />
+                  </div>
+                </div>
+                <span
+                  className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </span>
+              </>
+            );
+
+            if (isOnTradePage) {
+              return (
+                <Popover key={tab.id} open={tradePopoverOpen} onOpenChange={setTradePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      id={`ecosystem-nav-${tab.id}`}
+                      className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
+                      onContextMenu={(e) => e.preventDefault()}
+                    >
+                      {tabContent}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="start"
+                    sideOffset={12}
+                    className="w-52 p-1.5 bg-[#1a1a1a] border-white/10 rounded-xl"
+                  >
+                    <button
+                      onClick={() => { setTradePopoverOpen(false); router.push("/ecosystem/trade"); }}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                        <Icon icon="solar:rocket-bold" className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-white">QC RocketStart</p>
+                        <p className="text-[10px] text-muted-foreground">Token Launchpad</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => { setTradePopoverOpen(false); router.push("/ecosystem/trade/spot"); }}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-white">Spot Trading</p>
+                        <p className="text-[10px] text-muted-foreground">Trade DEX tokens</p>
+                      </div>
+                    </button>
+                  </PopoverContent>
+                </Popover>
+              );
+            }
+
+            // Not on trade page: normal link
+            return (
+              <Link
+                key={tab.id}
+                id={`ecosystem-nav-${tab.id}`}
+                href={tab.href}
+                prefetch={true}
+                onContextMenu={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.button === 1 && e.preventDefault()}
+                className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
+              >
+                {tabContent}
+              </Link>
             );
           }
 
