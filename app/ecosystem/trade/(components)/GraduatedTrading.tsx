@@ -385,10 +385,6 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                         </TabsContent>
                     </Tabs>
 
-                    <p className="text-[10px] text-center text-muted-foreground mt-4">
-                        Powered by STON.fi DEX via Omniston
-                        {resolverName && <span> &middot; {resolverName}</span>}
-                    </p>
                 </CardContent>
             </Card>
         </div>

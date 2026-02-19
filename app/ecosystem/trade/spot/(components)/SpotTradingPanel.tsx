@@ -239,7 +239,6 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
                 <SheetHeader className="mb-4">
                     <SheetTitle className="text-white flex items-center gap-2">
                         Trade {token.symbol}
-                        <span className="text-xs text-muted-foreground font-normal">via STON.fi</span>
                     </SheetTitle>
                 </SheetHeader>
 
@@ -368,10 +367,6 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
                     </TabsContent>
                 </Tabs>
 
-                <p className="text-[10px] text-center text-muted-foreground mt-4">
-                    Powered by STON.fi DEX via Omniston
-                    {resolverName && <span> &middot; {resolverName}</span>}
-                </p>
             </SheetContent>
         </Sheet>
     );

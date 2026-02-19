@@ -30,6 +30,14 @@ const TIMEFRAMES: { label: string; value: ChartTimeframe }[] = [
     { label: "1D", value: "1d" },
 ];
 
+function formatChartPrice(price: number): string {
+    if (price >= 1) return price.toFixed(price >= 100 ? 2 : 4);
+    if (price >= 0.01) return price.toFixed(4);
+    if (price >= 0.0001) return price.toFixed(6);
+    if (price >= 0.00000001) return price.toFixed(8);
+    return price.toFixed(10);
+}
+
 export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceChartProps) {
     const [timeframe, setTimeframe] = useState<ChartTimeframe>("1h");
     const [chartMode, setChartMode] = useState<ChartMode>("candle");
@@ -202,7 +210,7 @@ export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceCh
                     <div className="flex items-center gap-3">
                         {lastPrice !== undefined && (
                             <span className="text-sm font-semibold text-white">
-                                ${lastPrice < 0.01 ? lastPrice.toExponential(2) : lastPrice.toFixed(lastPrice >= 1 ? 2 : 4)}
+                                ${formatChartPrice(lastPrice)}
                             </span>
                         )}
                         {priceChange !== null && (
@@ -246,7 +254,7 @@ export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceCh
                     </div>
                 ) : candles && candles.length > 0 ? (
                     <div className="relative h-[220px] px-2 pb-1">
-                        <div ref={containerRef} className="w-full h-full" />
+                        <div ref={containerRef} className="w-full h-full [&_a[href*='tradingview']]:!hidden" />
                         {tooltip && (
                             <div
                                 className="absolute bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"
@@ -257,7 +265,7 @@ export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceCh
                             >
                                 <p className="text-[10px] text-gray-500 mb-0.5">{tooltip.time}</p>
                                 <p className="text-sm font-semibold text-white">
-                                    ${tooltip.price < 0.01 ? tooltip.price.toExponential(2) : tooltip.price.toFixed(4)}
+                                    ${formatChartPrice(tooltip.price)}
                                 </p>
                                 <p className={`text-[10px] font-semibold ${parseFloat(tooltip.change) >= 0 ? "text-green-400" : "text-red-400"}`}>
                                     Chg: {parseFloat(tooltip.change) >= 0 ? "+" : ""}{tooltip.change}%

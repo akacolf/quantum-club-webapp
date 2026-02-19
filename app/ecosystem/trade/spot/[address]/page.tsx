@@ -3,7 +3,7 @@
 import React, { useState, use } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket, useSpotTokenDyor } from "@/app/(hooks)/queries/use-spot-trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import SpotTokenDetail from "../(components)/SpotTokenDetail";
@@ -17,14 +17,14 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
 
     const { tonPrice } = useWallet();
     const { data: tokens, isLoading: isLoadingTokens } = useSpotTokens();
+    const token = tokens?.find((t) => t.contractAddress === decodedAddress);
     const { data: detail, isLoading: isLoadingDetail } = useSpotTokenDetail(decodedAddress);
-    const { data: priceData } = useSpotTokenPrice(decodedAddress, undefined);
+    const { data: priceData } = useSpotTokenPrice(decodedAddress, token?.decimals);
     const { data: market, isLoading: isLoadingMarket } = useSpotTokenMarket(decodedAddress);
+    const { data: dyor } = useSpotTokenDyor(decodedAddress);
 
     const [tradingOpen, setTradingOpen] = useState(false);
     const [tradingTab, setTradingTab] = useState<"buy" | "sell">("buy");
-
-    const token = tokens?.find((t) => t.contractAddress === decodedAddress);
 
     if (isLoadingTokens) {
         return (
@@ -65,6 +65,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                     token={token}
                     detail={detail}
                     market={market}
+                    dyor={dyor}
                     priceTon={priceData?.priceTon}
                     tonPrice={tonPrice}
                     isLoadingDetail={isLoadingDetail}

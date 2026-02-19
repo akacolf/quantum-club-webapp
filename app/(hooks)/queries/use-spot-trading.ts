@@ -229,16 +229,111 @@ export function useSpotTokenChart(poolAddress: string | undefined, timeframe: Ch
     });
 }
 
+// ─── DYOR API helpers ────────────────────────────────────────────────
+
+const DYOR_BASE = "https://api.dyor.io/v1";
+
+async function dyorFetch<T>(path: string): Promise<T | null> {
+    try {
+        const res = await fetch(`${DYOR_BASE}${path}`, {
+            headers: { Accept: "application/json" },
+        });
+        if (!res.ok) return null;
+        return res.json();
+    } catch {
+        return null;
+    }
+}
+
+function parseDyorDecimal(val: { value: string; decimals: number } | undefined | null): number | undefined {
+    if (!val?.value) return undefined;
+    return parseInt(val.value) * Math.pow(10, -val.decimals);
+}
+
+interface DyorJettonResponse {
+    address: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    image: string;
+    description: string;
+    price: { value: string; decimals: number };
+    priceUsd: { value: string; decimals: number };
+    holdersCount: number;
+    mcap: { value: string; decimals: number };
+    fdmc: { value: string; decimals: number };
+    liquidityUsd: { value: string; decimals: number };
+    trustScore: number;
+    totalSupply: { value: string; decimals: number };
+    circulatingSupply: { value: string; decimals: number };
+    verification: string;
+}
+
+interface DyorStatsResponse {
+    address: string;
+    priceChange: {
+        usd: Record<string, { changePercent: string; previous: { value: string; decimals: number }; current: { value: string; decimals: number } }>;
+        ton: Record<string, { changePercent: string }>;
+    };
+    volume: {
+        usd: Record<string, { changePercent: string; current: { value: string; decimals: number } }>;
+    };
+    traders: Record<string, { changePercent: string; current: { value: string; decimals: number } }>;
+    transactions: Record<string, { changePercent: string; current: { value: string; decimals: number } }>;
+}
+
+/**
+ * Fetch enriched token data from DYOR API (metrics + stats).
+ * Provides trust score, reliable 24h stats, and trading activity.
+ */
+export function useSpotTokenDyor(address: string | undefined) {
+    return useQuery({
+        queryKey: ["spot-token-dyor", address],
+        queryFn: async () => {
+            if (!address) throw new Error("No address");
+
+            const [detail, stats] = await Promise.all([
+                dyorFetch<DyorJettonResponse>(`/jettons/${encodeURIComponent(address)}`),
+                dyorFetch<DyorStatsResponse>(`/jettons/${encodeURIComponent(address)}/stats`),
+            ]);
+
+            const priceChangeDay = stats?.priceChange?.usd?.day1
+                ?? stats?.priceChange?.usd?.day;
+            const volumeDay = stats?.volume?.usd?.day1
+                ?? stats?.volume?.usd?.day;
+            const tradersDay = stats?.traders?.day1
+                ?? stats?.traders?.day;
+
+            return {
+                priceUsd: parseDyorDecimal(detail?.priceUsd),
+                priceTon: parseDyorDecimal(detail?.price),
+                holdersCount: detail?.holdersCount,
+                marketCapUsd: parseDyorDecimal(detail?.mcap),
+                fdmcUsd: parseDyorDecimal(detail?.fdmc),
+                liquidityUsd: parseDyorDecimal(detail?.liquidityUsd),
+                trustScore: detail?.trustScore,
+                priceChange24h: priceChangeDay ? parseFloat(priceChangeDay.changePercent) : undefined,
+                volume24hUsd: volumeDay ? parseDyorDecimal(volumeDay.current) : undefined,
+                traders24h: tradersDay ? parseDyorDecimal(tradersDay.current) : undefined,
+                description: detail?.description,
+            };
+        },
+        enabled: !!address,
+        staleTime: 15_000,
+        gcTime: 30_000,
+    });
+}
+
 // ─── Price simulation hook ───────────────────────────────────────────
 
 /**
  * Get the current price of a token by simulating a 1 TON swap.
  */
-export function useSpotTokenPrice(address: string | undefined, decimals: number = 9) {
+export function useSpotTokenPrice(address: string | undefined, decimals: number | undefined) {
     return useQuery({
-        queryKey: ["spot-token-price", address],
+        queryKey: ["spot-token-price", address, decimals],
         queryFn: async () => {
-            if (!address) throw new Error("No address");
+            if (!address || decimals === undefined) throw new Error("No address or decimals");
             const client = createStonApiClient();
             const result = await client.simulateSwap({
                 offerAddress: TON_ADDRESS,
@@ -254,7 +349,7 @@ export function useSpotTokenPrice(address: string | undefined, decimals: number 
                 swapRate: result.swapRate,
             };
         },
-        enabled: !!address,
+        enabled: !!address && decimals !== undefined,
         staleTime: 10_000,
         gcTime: 20_000,
         refetchInterval: 15_000,

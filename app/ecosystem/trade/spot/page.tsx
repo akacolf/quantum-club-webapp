@@ -94,7 +94,7 @@ export default function SpotTradingPage() {
                                 Spot Trading
                             </h1>
                             <p className="text-[10px] text-muted-foreground font-medium tracking-wide">
-                                Trade TON Jettons on STON.fi
+                                Trade TON Jettons
                             </p>
                         </div>
                     </div>

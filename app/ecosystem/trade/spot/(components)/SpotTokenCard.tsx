@@ -99,7 +99,7 @@ function formatUsdPrice(price: number): string {
         const sub = String(zeroCount).split("").map(d => subscripts[parseInt(d)]).join("");
         return `$0.0${sub}${significant}`;
     }
-    return `$${price.toExponential(2)}`;
+    return `$${price.toFixed(10)}`;
 }
 
 function formatCompactUsd(value: number): string {

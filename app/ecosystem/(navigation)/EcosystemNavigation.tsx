@@ -119,6 +119,9 @@ const EcosystemNavigation = () => {
           // Trade tab: show popover when already on a trade page
           if (tab.id === "trade") {
             const isOnTradePage = pathname.startsWith("/ecosystem/trade");
+            const isOnSpot = pathname.startsWith("/ecosystem/trade/spot");
+            const tradeIcon = isOnSpot ? "solar:chart-2-bold" : "solar:rocket-bold";
+            const tradeLabel = isOnSpot ? "Spot" : "Trade";
 
             const tabContent = (
               <>
@@ -131,14 +134,9 @@ const EcosystemNavigation = () => {
                 >
                   <div className="scale-100">
                     <Icon
-                      icon={tab.icon}
-                      className={("iconClassName" in tab && tab.iconClassName) || ""}
+                      icon={tradeIcon}
                       style={{ width: "1.5em", height: "1.5em" }}
                     />
-                  </div>
-                  {/* Small chevron indicator showing multiple options */}
-                  <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2">
-                    <Icon icon="solar:alt-arrow-down-bold" className="w-2.5 h-2.5 opacity-60" />
                   </div>
                 </div>
                 <span
@@ -146,7 +144,7 @@ const EcosystemNavigation = () => {
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  {tab.label}
+                  {tradeLabel}
                 </span>
               </>
             );
