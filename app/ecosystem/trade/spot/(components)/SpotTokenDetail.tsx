@@ -17,40 +17,37 @@ interface SpotTokenDetailProps {
         description?: string;
         verification?: string;
     };
-    pool?: {
+    market?: {
         volume24HUsd?: string;
-        lpTotalSupplyUsd?: string;
-        apy1D?: string;
-        lpFee: string;
+        liquidityUsd?: string;
+        priceChangeH24?: string;
+        marketCapUsd?: string;
+        fdvUsd?: string;
+        poolName?: string;
     } | null;
     priceTon?: number;
     tonPrice: number;
     isLoadingDetail: boolean;
-    isLoadingPool: boolean;
+    isLoadingMarket: boolean;
 }
 
-export default function SpotTokenDetail({ token, detail, pool, priceTon, tonPrice, isLoadingDetail, isLoadingPool }: SpotTokenDetailProps) {
+export default function SpotTokenDetail({ token, detail, market, priceTon, tonPrice, isLoadingDetail, isLoadingMarket }: SpotTokenDetailProps) {
     const priceUsd = token.priceUsd || (priceTon && tonPrice ? priceTon * tonPrice : undefined);
     const shortAddr = `${token.contractAddress.slice(0, 6)}...${token.contractAddress.slice(-4)}`;
+    const priceChange = market?.priceChangeH24 ? parseFloat(market.priceChangeH24) : token.priceChange24h;
+    const isPositive = (priceChange ?? 0) >= 0;
 
     const copyAddress = () => {
         navigator.clipboard.writeText(token.contractAddress);
         toast.success("Address copied");
     };
 
-    // Calculate market cap from price * total supply
-    const marketCapUsd = (() => {
-        if (!priceUsd || !detail?.totalSupply) return undefined;
-        try {
-            const supply = Number(BigInt(detail.totalSupply)) / 10 ** token.decimals;
-            return priceUsd * supply;
-        } catch {
-            return undefined;
-        }
-    })();
+    const marketCap = market?.marketCapUsd ? parseFloat(market.marketCapUsd)
+        : market?.fdvUsd ? parseFloat(market.fdvUsd)
+        : token.marketCapUsd;
 
-    const volume24h = pool?.volume24HUsd ? parseFloat(pool.volume24HUsd) : undefined;
-    const liquidity = pool?.lpTotalSupplyUsd ? parseFloat(pool.lpTotalSupplyUsd) : undefined;
+    const volume24h = market?.volume24HUsd ? parseFloat(market.volume24HUsd) : token.volume24h;
+    const liquidity = market?.liquidityUsd ? parseFloat(market.liquidityUsd) : undefined;
 
     return (
         <div className="space-y-3">
@@ -91,45 +88,20 @@ export default function SpotTokenDetail({ token, detail, pool, priceTon, tonPric
                 </div>
             </div>
 
-            {/* Price + Key Stats Row */}
+            {/* Price + Key Stats */}
             <Card className="bg-white/5 border-white/5">
                 <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Market cap</p>
                             <p className="text-2xl font-bold text-white">
-                                {marketCapUsd !== undefined ? formatCompactUsd(marketCapUsd) : "--"}
+                                {marketCap ? formatCompactUsd(marketCap) : "--"}
                             </p>
                         </div>
                         <div className="text-right space-y-1.5">
-                            <div className="flex items-center justify-end gap-2">
-                                <span className="text-[10px] text-muted-foreground">Holders</span>
-                                {isLoadingDetail ? (
-                                    <Skeleton className="h-4 w-16" />
-                                ) : (
-                                    <span className="text-sm font-semibold text-white">{detail ? detail.holders.toLocaleString() : "--"}</span>
-                                )}
-                            </div>
-                            <div className="flex items-center justify-end gap-2">
-                                <span className="text-[10px] text-muted-foreground">Volume 24h</span>
-                                {isLoadingPool ? (
-                                    <Skeleton className="h-4 w-16" />
-                                ) : (
-                                    <span className="text-sm font-semibold text-white">
-                                        {volume24h !== undefined && volume24h > 0 ? formatCompactUsd(volume24h) : "--"}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center justify-end gap-2">
-                                <span className="text-[10px] text-muted-foreground">Liquidity</span>
-                                {isLoadingPool ? (
-                                    <Skeleton className="h-4 w-16" />
-                                ) : (
-                                    <span className="text-sm font-semibold text-white">
-                                        {liquidity !== undefined && liquidity > 0 ? formatCompactUsd(liquidity) : "--"}
-                                    </span>
-                                )}
-                            </div>
+                            <StatRow label="Holders" value={detail ? detail.holders.toLocaleString() : undefined} loading={isLoadingDetail} />
+                            <StatRow label="Volume 24h" value={volume24h ? formatCompactUsd(volume24h) : undefined} loading={isLoadingMarket} />
+                            <StatRow label="Liquidity" value={liquidity ? formatCompactUsd(liquidity) : undefined} loading={isLoadingMarket} />
                         </div>
                     </div>
                 </CardContent>
@@ -139,9 +111,16 @@ export default function SpotTokenDetail({ token, detail, pool, priceTon, tonPric
             <div className="flex items-center gap-3 px-1">
                 <div className="flex-1">
                     <p className="text-[10px] text-muted-foreground mb-0.5">Price</p>
-                    <p className="text-base font-semibold text-white">
-                        {priceUsd !== undefined && priceUsd > 0 ? formatUsdPrice(priceUsd) : "--"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-base font-semibold text-white">
+                            {priceUsd !== undefined && priceUsd > 0 ? formatUsdPrice(priceUsd) : "--"}
+                        </p>
+                        {priceChange !== undefined && (
+                            <span className={`text-xs font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                                {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
+                            </span>
+                        )}
+                    </div>
                 </div>
                 {priceTon !== undefined && priceTon > 0 && (
                     <div className="text-right">
@@ -164,8 +143,21 @@ export default function SpotTokenDetail({ token, detail, pool, priceTon, tonPric
     );
 }
 
+function StatRow({ label, value, loading }: { label: string; value?: string; loading: boolean }) {
+    return (
+        <div className="flex items-center justify-end gap-2">
+            <span className="text-[10px] text-muted-foreground">{label}</span>
+            {loading ? (
+                <Skeleton className="h-4 w-16" />
+            ) : (
+                <span className="text-sm font-semibold text-white">{value || "--"}</span>
+            )}
+        </div>
+    );
+}
+
 function formatUsdPrice(price: number): string {
-    if (price >= 1) return `$${price.toFixed(2)}`;
+    if (price >= 1) return `$${price.toFixed(price >= 100 ? 2 : 4)}`;
     if (price >= 0.01) return `$${price.toFixed(4)}`;
     if (price >= 0.0001) return `$${price.toFixed(6)}`;
     return `$${price.toExponential(2)}`;

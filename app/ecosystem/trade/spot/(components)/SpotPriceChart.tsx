@@ -1,82 +1,69 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     createChart,
+    CandlestickSeries,
     AreaSeries,
     type IChartApi,
     type ISeriesApi,
     type UTCTimestamp,
     ColorType,
     CrosshairMode,
-    type AreaData,
 } from "lightweight-charts";
+import { useSpotTokenChart, type ChartTimeframe, type OHLCVCandle } from "@/app/(hooks)/queries/use-spot-trading";
 
 interface SpotPriceChartProps {
-    priceTon?: number;
+    poolAddress?: string;
     tokenSymbol: string;
-    tonPrice: number;
 }
 
-interface PricePoint {
-    time: number;
-    value: number;
-}
+type ChartMode = "candle" | "area";
 
-export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: SpotPriceChartProps) {
+const TIMEFRAMES: { label: string; value: ChartTimeframe }[] = [
+    { label: "15m", value: "15m" },
+    { label: "1H", value: "1h" },
+    { label: "4H", value: "4h" },
+    { label: "1D", value: "1d" },
+];
+
+export default function SpotPriceChart({ poolAddress, tokenSymbol }: SpotPriceChartProps) {
+    const [timeframe, setTimeframe] = useState<ChartTimeframe>("1h");
+    const [chartMode, setChartMode] = useState<ChartMode>("candle");
+    const { data: candles, isLoading } = useSpotTokenChart(poolAddress, timeframe);
+
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
-    const seriesRef = useRef<ISeriesApi<"Area"> | null>(null);
-    const priceHistory = useRef<PricePoint[]>([]);
-    const lastPriceRef = useRef<number | undefined>(undefined);
-    const [hasData, setHasData] = useState(false);
-    const [tooltip, setTooltip] = useState<{ price: number; time: string; x: number; y: number } | null>(null);
+    const seriesRef = useRef<ISeriesApi<"Area"> | ISeriesApi<"Candlestick"> | null>(null);
 
-    // Append new price point when price changes
+    const [tooltip, setTooltip] = useState<{
+        price: number;
+        time: string;
+        change: string;
+        x: number;
+        y: number;
+    } | null>(null);
+
+    // Price change for header
+    const priceChange = useMemo(() => {
+        if (!candles || candles.length < 2) return null;
+        const first = candles[0].open;
+        const last = candles[candles.length - 1].close;
+        if (first === 0) return null;
+        return ((last - first) / first) * 100;
+    }, [candles]);
+
+    const lastPrice = candles?.[candles.length - 1]?.close;
+    const isPositive = (priceChange ?? 0) >= 0;
+
+    // Create and update chart
     useEffect(() => {
-        if (priceTon === undefined || priceTon <= 0) return;
-        if (priceTon === lastPriceRef.current) return;
-        lastPriceRef.current = priceTon;
+        if (!containerRef.current || !candles || candles.length === 0) return;
 
-        const now = Math.floor(Date.now() / 1000);
-        // Avoid duplicate timestamps
-        const last = priceHistory.current[priceHistory.current.length - 1];
-        if (last && last.time === now) return;
-
-        priceHistory.current.push({ time: now, value: priceTon });
-
-        if (priceHistory.current.length > 500) {
-            priceHistory.current = priceHistory.current.slice(-500);
-        }
-
-        const hasMultiple = priceHistory.current.length > 1;
-        setHasData(hasMultiple);
-
-        // Update chart series
-        if (seriesRef.current && hasMultiple) {
-            try {
-                seriesRef.current.update({
-                    time: now as UTCTimestamp,
-                    value: priceTon,
-                });
-            } catch {
-                // If update fails, set full data
-                const data: AreaData<UTCTimestamp>[] = priceHistory.current.map((p) => ({
-                    time: p.time as UTCTimestamp,
-                    value: p.value,
-                }));
-                seriesRef.current.setData(data);
-            }
-        }
-    }, [priceTon]);
-
-    // Create chart once container is available and we have data
-    useEffect(() => {
-        if (!containerRef.current || !hasData) return;
-
-        // Cleanup existing
+        // Cleanup
         if (chartRef.current) {
             chartRef.current.remove();
             chartRef.current = null;
@@ -101,7 +88,7 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
             timeScale: {
                 borderColor: "#1a1a1a",
                 timeVisible: true,
-                secondsVisible: true,
+                secondsVisible: false,
             },
             rightPriceScale: {
                 borderColor: "#1a1a1a",
@@ -110,30 +97,48 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
             handleScroll: { vertTouchDrag: false },
             handleScale: { axisPressedMouseMove: false },
             width: containerRef.current.clientWidth,
-            height: 200,
+            height: 220,
         });
 
         chartRef.current = chart;
 
-        const series = chart.addSeries(AreaSeries, {
-            lineColor: "#22c55e",
-            topColor: "rgba(34,197,94,0.2)",
-            bottomColor: "rgba(34,197,94,0)",
-            lineWidth: 2,
-            priceFormat: { type: "price", precision: 8, minMove: 0.00000001 },
-        });
-
-        seriesRef.current = series;
-
-        // Set existing data
-        if (priceHistory.current.length > 1) {
-            const data: AreaData<UTCTimestamp>[] = priceHistory.current.map((p) => ({
-                time: p.time as UTCTimestamp,
-                value: p.value,
-            }));
-            series.setData(data);
-            chart.timeScale().fitContent();
+        if (chartMode === "candle") {
+            const series = chart.addSeries(CandlestickSeries, {
+                upColor: "#22c55e",
+                downColor: "#ef4444",
+                borderUpColor: "#22c55e",
+                borderDownColor: "#ef4444",
+                wickUpColor: "#22c55e80",
+                wickDownColor: "#ef444480",
+            });
+            series.setData(
+                candles.map((c) => ({
+                    time: c.time as UTCTimestamp,
+                    open: c.open,
+                    high: c.high,
+                    low: c.low,
+                    close: c.close,
+                }))
+            );
+            seriesRef.current = series;
+        } else {
+            const lineColor = isPositive ? "#22c55e" : "#ef4444";
+            const series = chart.addSeries(AreaSeries, {
+                lineColor,
+                topColor: isPositive ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)",
+                bottomColor: isPositive ? "rgba(34,197,94,0)" : "rgba(239,68,68,0)",
+                lineWidth: 2,
+            });
+            series.setData(
+                candles.map((c) => ({
+                    time: c.time as UTCTimestamp,
+                    value: c.close,
+                }))
+            );
+            seriesRef.current = series;
         }
+
+        chart.timeScale().fitContent();
 
         // Tooltip
         chart.subscribeCrosshairMove((param) => {
@@ -141,80 +146,130 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
                 setTooltip(null);
                 return;
             }
-            const d = param.seriesData.get(series) as AreaData<UTCTimestamp> | undefined;
-            if (d?.value !== undefined) {
-                const date = new Date((param.time as number) * 1000);
-                setTooltip({
-                    price: d.value,
-                    time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-                    x: param.point.x,
-                    y: param.point.y,
-                });
-            } else {
-                setTooltip(null);
-            }
+            const s = seriesRef.current;
+            if (!s) return;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const d = param.seriesData.get(s) as any;
+            const price = d?.close ?? d?.value;
+            if (price === undefined) { setTooltip(null); return; }
+
+            const firstOpen = candles[0].open;
+            const chg = firstOpen > 0 ? ((price - firstOpen) / firstOpen * 100).toFixed(2) : "0";
+            const date = new Date((param.time as number) * 1000);
+            setTooltip({
+                price,
+                time: date.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+                change: chg,
+                x: param.point.x,
+                y: param.point.y,
+            });
         });
 
-        // ResizeObserver
-        const resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                chart.applyOptions({ width: entry.contentRect.width });
-            }
+        // Resize
+        const obs = new ResizeObserver((entries) => {
+            for (const e of entries) chart.applyOptions({ width: e.contentRect.width });
         });
-        resizeObserver.observe(containerRef.current);
+        obs.observe(containerRef.current);
 
         return () => {
-            resizeObserver.disconnect();
+            obs.disconnect();
             chart.remove();
             chartRef.current = null;
             seriesRef.current = null;
         };
-    }, [hasData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [candles, chartMode]);
+
+    if (!poolAddress) {
+        return (
+            <Card className="bg-[#111] border-[#222]">
+                <CardContent className="p-4">
+                    <div className="h-[220px] flex flex-col items-center justify-center text-center">
+                        <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-gray-700 mb-2" />
+                        <p className="text-xs text-gray-500">No pool data available</p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card className="bg-[#111] border-[#222] overflow-hidden">
             <CardContent className="p-0">
-                <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                    <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                        </span>
-                        <span className="text-[9px] font-bold text-green-400 uppercase tracking-wider">Live</span>
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                    <div className="flex items-center gap-3">
+                        {lastPrice !== undefined && (
+                            <span className="text-sm font-semibold text-white">
+                                ${lastPrice < 0.01 ? lastPrice.toExponential(2) : lastPrice.toFixed(lastPrice >= 1 ? 2 : 4)}
+                            </span>
+                        )}
+                        {priceChange !== null && (
+                            <span className={`text-xs font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                                {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
+                            </span>
+                        )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground">
-                        {tokenSymbol}/TON
-                    </span>
+                    <button
+                        onClick={() => setChartMode(chartMode === "candle" ? "area" : "candle")}
+                        className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                        <Icon
+                            icon={chartMode === "candle" ? "solar:chart-2-linear" : "solar:chart-bold"}
+                            className="w-4 h-4"
+                        />
+                    </button>
                 </div>
 
-                {hasData ? (
-                    <div className="relative h-[200px] px-2">
+                {/* Timeframe selector */}
+                <div className="flex items-center gap-1 px-4 pb-2">
+                    {TIMEFRAMES.map((tf) => (
+                        <button
+                            key={tf.value}
+                            onClick={() => setTimeframe(tf.value)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${
+                                timeframe === tf.value
+                                    ? "bg-white/10 text-white"
+                                    : "text-gray-500 hover:text-white"
+                            }`}
+                        >
+                            {tf.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Chart */}
+                {isLoading ? (
+                    <div className="h-[220px] px-4 pb-2">
+                        <Skeleton className="w-full h-full rounded-lg" />
+                    </div>
+                ) : candles && candles.length > 0 ? (
+                    <div className="relative h-[220px] px-2 pb-1">
                         <div ref={containerRef} className="w-full h-full" />
                         {tooltip && (
                             <div
                                 className="absolute bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"
                                 style={{
-                                    left: Math.min(tooltip.x, (containerRef.current?.clientWidth ?? 200) - 140),
-                                    top: Math.max(0, tooltip.y - 60),
+                                    left: Math.min(tooltip.x, (containerRef.current?.clientWidth ?? 200) - 150),
+                                    top: Math.max(0, tooltip.y - 65),
                                 }}
                             >
                                 <p className="text-[10px] text-gray-500 mb-0.5">{tooltip.time}</p>
                                 <p className="text-sm font-semibold text-white">
-                                    {tooltip.price < 0.001 ? tooltip.price.toFixed(8) : tooltip.price.toFixed(4)} TON
+                                    ${tooltip.price < 0.01 ? tooltip.price.toExponential(2) : tooltip.price.toFixed(4)}
                                 </p>
-                                {tonPrice > 0 && (
-                                    <p className="text-[10px] text-gray-500">
-                                        ≈ ${(tooltip.price * tonPrice).toFixed(6)}
-                                    </p>
-                                )}
+                                <p className={`text-[10px] font-semibold ${parseFloat(tooltip.change) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                    Chg: {parseFloat(tooltip.change) >= 0 ? "+" : ""}{tooltip.change}%
+                                </p>
                             </div>
                         )}
                     </div>
                 ) : (
-                    <div className="h-[200px] flex flex-col items-center justify-center text-center px-4">
+                    <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
                         <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-gray-700 mb-2" />
-                        <p className="text-xs text-gray-500">Collecting price data...</p>
-                        <p className="text-[10px] text-gray-600">Chart builds as prices update (~15s)</p>
+                        <p className="text-xs text-gray-500">No chart data for {tokenSymbol}</p>
+                        <p className="text-[10px] text-gray-600">This token may not have enough trading history</p>
                     </div>
                 )}
             </CardContent>

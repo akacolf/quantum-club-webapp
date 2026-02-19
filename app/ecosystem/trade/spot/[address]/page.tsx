@@ -3,7 +3,7 @@
 import React, { useState, use } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenPool } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket } from "@/app/(hooks)/queries/use-spot-trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import SpotTokenDetail from "../(components)/SpotTokenDetail";
@@ -19,12 +19,11 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     const { data: tokens, isLoading: isLoadingTokens } = useSpotTokens();
     const { data: detail, isLoading: isLoadingDetail } = useSpotTokenDetail(decodedAddress);
     const { data: priceData } = useSpotTokenPrice(decodedAddress, undefined);
-    const { data: pool, isLoading: isLoadingPool } = useSpotTokenPool(decodedAddress);
+    const { data: market, isLoading: isLoadingMarket } = useSpotTokenMarket(decodedAddress);
 
     const [tradingOpen, setTradingOpen] = useState(false);
     const [tradingTab, setTradingTab] = useState<"buy" | "sell">("buy");
 
-    // Find the token from STON.fi asset list
     const token = tokens?.find((t) => t.contractAddress === decodedAddress);
 
     if (isLoadingTokens) {
@@ -38,7 +37,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                     </div>
                 </div>
                 <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-[200px] w-full rounded-xl" />
+                <Skeleton className="h-[260px] w-full rounded-xl" />
             </div>
         );
     }
@@ -65,21 +64,20 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                 <SpotTokenDetail
                     token={token}
                     detail={detail}
-                    pool={pool}
+                    market={market}
                     priceTon={priceData?.priceTon}
                     tonPrice={tonPrice}
                     isLoadingDetail={isLoadingDetail}
-                    isLoadingPool={isLoadingPool}
+                    isLoadingMarket={isLoadingMarket}
                 />
 
                 <SpotPriceChart
-                    priceTon={priceData?.priceTon}
+                    poolAddress={market?.poolAddress}
                     tokenSymbol={token.symbol}
-                    tonPrice={tonPrice}
                 />
             </div>
 
-            {/* Floating Buy/Sell Buttons - moved up to avoid navbar overlap */}
+            {/* Floating Buy/Sell Buttons */}
             <div className="fixed bottom-28 left-0 right-0 px-4 z-40">
                 <div className="flex gap-3 max-w-md mx-auto">
                     <Button
@@ -90,7 +88,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                     </Button>
                     <Button
                         onClick={() => openTrade("sell")}
-                        className="flex-1 h-12 bg-[#ff1493] hover:bg-[#ff1493]/80 text-white font-bold text-base rounded-xl shadow-lg shadow-[#ff1493]/20"
+                        className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-xl shadow-lg shadow-red-500/20"
                     >
                         Sell
                     </Button>

@@ -3,6 +3,7 @@ import type { SwapAsset } from "@/lib/stonfi";
 export interface SpotToken extends SwapAsset {
     priceTon?: number;
     priceUsd?: number;
+    priceChange24h?: number;
     holders?: number;
     totalSupply?: string;
     volume24h?: number;
@@ -10,7 +11,7 @@ export interface SpotToken extends SwapAsset {
     description?: string;
 }
 
-export type SpotSortBy = "name" | "holders" | "price";
+export type SpotSortBy = "name" | "holders" | "price" | "volume";
 
 export type SpotTradeDirection = "buy" | "sell";
 

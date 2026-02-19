@@ -16,7 +16,9 @@ interface SpotTokenCardProps {
 
 export default function SpotTokenCard({ token, index, userBalance }: SpotTokenCardProps) {
     const priceUsd = token.priceUsd;
-    const volume = token.volume24h;
+    const change = token.priceChange24h;
+    const mcap = token.marketCapUsd;
+    const isPositive = (change ?? 0) >= 0;
 
     return (
         <motion.div
@@ -55,16 +57,12 @@ export default function SpotTokenCard({ token, index, userBalance }: SpotTokenCa
                                         </Badge>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    {volume !== undefined && volume > 0 && (
-                                        <span className="text-[10px] text-muted-foreground">
-                                            Vol: {formatCompactUsd(volume)}
-                                        </span>
-                                    )}
-                                </div>
+                                <span className="text-[10px] text-muted-foreground">
+                                    {mcap ? `MCap: ${formatCompactUsd(mcap)}` : token.displayName}
+                                </span>
                             </div>
 
-                            {/* Price */}
+                            {/* Price + Change */}
                             <div className="text-right flex-shrink-0">
                                 {priceUsd !== undefined && priceUsd > 0 ? (
                                     <div className="font-semibold text-white text-sm tracking-tight">
@@ -72,6 +70,11 @@ export default function SpotTokenCard({ token, index, userBalance }: SpotTokenCa
                                     </div>
                                 ) : (
                                     <div className="text-xs text-muted-foreground">--</div>
+                                )}
+                                {change !== undefined && (
+                                    <div className={`text-[11px] font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                                        {isPositive ? "+" : ""}{change.toFixed(2)}%
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -83,23 +86,20 @@ export default function SpotTokenCard({ token, index, userBalance }: SpotTokenCa
 }
 
 function formatUsdPrice(price: number): string {
-    if (price >= 1) return `$${price.toFixed(2)}`;
+    if (price >= 1) return `$${price.toFixed(price >= 100 ? 2 : 4)}`;
     if (price >= 0.01) return `$${price.toFixed(4)}`;
     if (price >= 0.0001) return `$${price.toFixed(6)}`;
-    // For very small prices, use subscript notation like Blum
-    const str = price.toFixed(10);
+    // Subscript notation for very small prices
+    const str = price.toFixed(12);
     const match = str.match(/^0\.(0+)(\d+)/);
     if (match) {
         const zeroCount = match[1].length;
         const significant = match[2].slice(0, 5);
-        return `$0.0\u2080${toSubscriptDigit(zeroCount)}${significant}`;
+        const subscripts = "₀₁₂₃₄₅₆₇₈₉";
+        const sub = String(zeroCount).split("").map(d => subscripts[parseInt(d)]).join("");
+        return `$0.0${sub}${significant}`;
     }
     return `$${price.toExponential(2)}`;
-}
-
-function toSubscriptDigit(n: number): string {
-    const subscripts = "₀₁₂₃₄₅₆₇₈₉";
-    return String(n).split("").map(d => subscripts[parseInt(d)]).join("");
 }
 
 function formatCompactUsd(value: number): string {
