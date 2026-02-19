@@ -42,7 +42,7 @@ export function WalletPriceChart({ data, color }: WalletPriceChartProps) {
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
                 textColor: "#555",
-                fontFamily: "inherit",
+                fontFamily: "'Onest', sans-serif",
             },
             grid: {
                 vertLines: { color: "#1a1a1a" },

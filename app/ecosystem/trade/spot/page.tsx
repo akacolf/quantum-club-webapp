@@ -10,6 +10,10 @@ import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Address } from "@ton/core";
 import SpotTokenCard from "./(components)/SpotTokenCard";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { TokenImageFill } from "@/components/ui/token-image";
+import type { SpotToken } from "@/types/spot-trading";
 
 type SpotTab = "tokens" | "positions";
 
@@ -222,21 +226,109 @@ export default function SpotTradingPage() {
                                 <p className="text-xs text-muted-foreground/60 mt-1">Buy tokens to see them here</p>
                             </div>
                         ) : (
-                            positions.map((pos, index) => (
-                                <SpotTokenCard
-                                    key={pos.token.contractAddress}
-                                    token={pos.token}
-                                    index={index}
-                                    userBalance={pos.balance.toString()}
-                                    showBalance={pos.balance}
-                                    showValue={pos.valueUsd}
-                                />
-                            ))
+                            positions.map((pos, index) => {
+                                const pctOfPortfolio = totalPositionValue > 0 && pos.valueUsd
+                                    ? (pos.valueUsd / totalPositionValue) * 100
+                                    : undefined;
+                                return (
+                                    <PositionCard
+                                        key={pos.token.contractAddress}
+                                        token={pos.token}
+                                        balance={pos.balance}
+                                        valueUsd={pos.valueUsd}
+                                        pctOfPortfolio={pctOfPortfolio}
+                                        index={index}
+                                    />
+                                );
+                            })
                         )}
                     </>
                 )}
             </div>
         </div>
+    );
+}
+
+function PositionCard({ token, balance, valueUsd, pctOfPortfolio, index }: {
+    token: SpotToken;
+    balance: number;
+    valueUsd?: number;
+    pctOfPortfolio?: number;
+    index: number;
+}) {
+    const change = token.priceChange24h;
+    const isPositive = (change ?? 0) >= 0;
+    const priceUsd = token.priceUsd;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: Math.min(index * 0.03, 0.3) }}
+        >
+            <Link href={`/ecosystem/trade/spot/${encodeURIComponent(token.contractAddress)}`} prefetch={true}>
+                <Card className="bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden group shadow-md hover:shadow-lg hover:bg-white/10">
+                    <CardContent className="p-3">
+                        <div className="flex gap-3 items-center">
+                            {/* Token Image */}
+                            <div className="relative w-11 h-11 rounded-full overflow-hidden bg-[#222] shadow-inner ring-1 ring-white/5 flex-shrink-0">
+                                {token.imageUrl ? (
+                                    <TokenImageFill src={token.imageUrl} alt={token.displayName} className="object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-primary font-bold text-sm">
+                                        {token.symbol.slice(0, 2)}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Token info */}
+                            <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-white text-sm leading-tight truncate">
+                                    {token.symbol}
+                                </h3>
+                                <span className="text-[10px] text-muted-foreground">
+                                    {balance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {token.symbol}
+                                </span>
+                            </div>
+
+                            {/* Value + Change */}
+                            <div className="text-right flex-shrink-0">
+                                <div className="font-semibold text-white text-sm tracking-tight">
+                                    {valueUsd !== undefined && valueUsd > 0
+                                        ? `$${valueUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                        : "--"
+                                    }
+                                </div>
+                                <div className={`text-[11px] font-semibold ${
+                                    change === undefined ? "text-muted-foreground/50" : isPositive ? "text-green-400" : "text-red-400"
+                                }`}>
+                                    {change !== undefined
+                                        ? `${isPositive ? "+" : ""}${change.toFixed(2)}%`
+                                        : "--"
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Extra details row */}
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                            <div className="flex items-center gap-3">
+                                {priceUsd !== undefined && priceUsd > 0 && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                        Price: ${priceUsd >= 1 ? priceUsd.toFixed(2) : priceUsd.toFixed(6)}
+                                    </span>
+                                )}
+                            </div>
+                            {pctOfPortfolio !== undefined && pctOfPortfolio > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                    {pctOfPortfolio.toFixed(1)}% of portfolio
+                                </span>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </Link>
+        </motion.div>
     );
 }
 

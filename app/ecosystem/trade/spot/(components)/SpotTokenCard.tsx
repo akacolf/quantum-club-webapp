@@ -83,11 +83,14 @@ export default function SpotTokenCard({ token, index, userBalance, showBalance, 
                                 ) : (
                                     <div className="text-xs text-muted-foreground">--</div>
                                 )}
-                                {change !== undefined && (
-                                    <div className={`text-[11px] font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                        {isPositive ? "+" : ""}{change.toFixed(2)}%
-                                    </div>
-                                )}
+                                <div className={`text-[11px] font-semibold ${
+                                    change === undefined ? "text-muted-foreground/50" : isPositive ? "text-green-400" : "text-red-400"
+                                }`}>
+                                    {change !== undefined
+                                        ? `${isPositive ? "+" : ""}${change.toFixed(2)}%`
+                                        : "--"
+                                    }
+                                </div>
                             </div>
                         </div>
                     </CardContent>

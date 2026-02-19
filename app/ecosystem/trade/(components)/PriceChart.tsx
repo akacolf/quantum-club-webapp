@@ -165,7 +165,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
                 textColor: "#555",
-                fontFamily: "inherit",
+                fontFamily: "'Onest', sans-serif",
             },
             grid: {
                 vertLines: { color: "#1a1a1a" },
@@ -359,7 +359,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                 {/* Chart */}
                 {hasData ? (
                     <div className="relative h-[160px] px-2">
-                        <div ref={containerRef} className="w-full h-full" />
+                        <div ref={containerRef} className="w-full h-full [&_a[href*='tradingview']]:!hidden" />
                         {/* Custom tooltip */}
                         {tooltip?.visible && (
                             <div

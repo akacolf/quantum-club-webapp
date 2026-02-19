@@ -95,7 +95,7 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
                 textColor: "#555",
-                fontFamily: "inherit",
+                fontFamily: "'Onest', sans-serif",
             },
             grid: {
                 vertLines: { color: "#1a1a1a" },

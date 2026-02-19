@@ -23,6 +23,20 @@ interface FileMessageProps {
 // Cache decrypted blob URLs to avoid re-decrypting
 const decryptedUrlCache = new Map<string, string>();
 
+async function fetchWithRetry(url: string, retries = 2): Promise<ArrayBuffer> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      return await response.arrayBuffer();
+    } catch (err) {
+      if (i === retries) throw err;
+      await new Promise(r => setTimeout(r, 500 * (i + 1)));
+    }
+  }
+  throw new Error("Fetch failed after retries");
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -48,8 +62,8 @@ export default function FileMessage({
   chatId,
 }: FileMessageProps) {
   const [decryptedUrl, setDecryptedUrl] = useState<string | null>(null);
-  const [isDecrypting, setIsDecrypting] = useState(false);
-  const [decryptError, setDecryptError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,7 +88,7 @@ export default function FileMessage({
     return () => observer.disconnect();
   }, [isImage]);
 
-  // Decrypt file when visible (for images) or on demand (for other files)
+  // Load file when visible (for images) or on demand (for other files)
   useEffect(() => {
     if (!isImage || !isVisible) return;
     if (!file.encrypted || !participantIds || !chatId) {
@@ -89,23 +103,22 @@ export default function FileMessage({
     }
 
     let cancelled = false;
-    setIsDecrypting(true);
+    setIsLoading(true);
 
     (async () => {
       try {
-        const response = await fetch(file.url);
-        const encryptedData = await response.arrayBuffer();
+        const encryptedData = await fetchWithRetry(file.url);
+        if (cancelled) return;
         const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
         if (cancelled) return;
         const blob = new Blob([decryptedData], { type: file.mimeType });
         const url = URL.createObjectURL(blob);
         decryptedUrlCache.set(file.url, url);
         setDecryptedUrl(url);
-      } catch (err) {
-        console.error("Failed to decrypt file:", err);
-        if (!cancelled) setDecryptError(true);
+      } catch {
+        if (!cancelled) setLoadError(true);
       } finally {
-        if (!cancelled) setIsDecrypting(false);
+        if (!cancelled) setIsLoading(false);
       }
     })();
 
@@ -120,20 +133,18 @@ export default function FileMessage({
       if (cached) {
         url = cached;
       } else {
-        setIsDecrypting(true);
+        setIsLoading(true);
         try {
-          const response = await fetch(file.url);
-          const encryptedData = await response.arrayBuffer();
+          const encryptedData = await fetchWithRetry(file.url);
           const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
           const blob = new Blob([decryptedData], { type: file.mimeType });
           url = URL.createObjectURL(blob);
           decryptedUrlCache.set(file.url, url);
-        } catch (err) {
-          console.error("Failed to decrypt file for download:", err);
-          setIsDecrypting(false);
+        } catch {
+          setIsLoading(false);
           return;
         }
-        setIsDecrypting(false);
+        setIsLoading(false);
       }
     }
 
@@ -146,11 +157,11 @@ export default function FileMessage({
     document.body.removeChild(a);
   }, [file, participantIds, chatId]);
 
-  if (decryptError) {
+  if (loadError) {
     return (
       <div className="flex items-center gap-2 py-1 opacity-50">
-        <Icon icon="solar:lock-keyhole-bold" className="w-4 h-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Unable to decrypt file</span>
+        <Icon icon="solar:file-corrupted-bold" className="w-4 h-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">File unavailable</span>
       </div>
     );
   }
@@ -160,9 +171,9 @@ export default function FileMessage({
     return (
       <>
         <div ref={containerRef} className="max-w-[220px] rounded-lg overflow-hidden">
-          {!decryptedUrl && !decryptError ? (
+          {!decryptedUrl && !loadError ? (
             <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg">
-              <Icon icon="solar:gallery-bold" className="w-6 h-6 text-muted-foreground/50" />
+              <Icon icon="solar:gallery-bold" className="w-6 h-6 text-muted-foreground/50 animate-pulse" />
             </div>
           ) : decryptedUrl ? (
             <button onClick={() => setShowLightbox(true)} className="block w-full">
@@ -213,7 +224,7 @@ export default function FileMessage({
   return (
     <button
       onClick={handleDownload}
-      disabled={isDecrypting}
+      disabled={isLoading}
       className={`flex items-center gap-3 p-2.5 rounded-xl min-w-[200px] max-w-[260px] transition-colors ${
         isMine
           ? "bg-primary-foreground/10 hover:bg-primary-foreground/15"

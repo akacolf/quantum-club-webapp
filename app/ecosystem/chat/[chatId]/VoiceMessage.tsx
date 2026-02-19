@@ -17,6 +17,20 @@ interface VoiceMessageProps {
 // Cache decrypted blob URLs to avoid re-decrypting on replay
 const decryptedUrlCache = new Map<string, string>();
 
+async function fetchWithRetry(url: string, retries = 2): Promise<ArrayBuffer> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      return await response.arrayBuffer();
+    } catch (err) {
+      if (i === retries) throw err;
+      await new Promise(r => setTimeout(r, 500 * (i + 1)));
+    }
+  }
+  throw new Error("Fetch failed after retries");
+}
+
 export default function VoiceMessage({
   audioUrl,
   durationSec,
@@ -28,8 +42,8 @@ export default function VoiceMessage({
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isDecrypting, setIsDecrypting] = useState(false);
-  const [decryptError, setDecryptError] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -38,44 +52,36 @@ export default function VoiceMessage({
     const initAudio = async () => {
       let src = audioUrl;
 
-      // Decrypt encrypted voice messages
       if (encrypted && participantIds && chatId) {
         const cached = decryptedUrlCache.get(audioUrl);
         if (cached) {
           src = cached;
         } else {
-          setIsDecrypting(true);
           try {
-            const response = await fetch(audioUrl);
-            if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-            const encryptedData = await response.arrayBuffer();
+            const encryptedData = await fetchWithRetry(audioUrl);
+            if (cancelled) return;
             if (encryptedData.byteLength < 28) throw new Error("Audio data too small");
             const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
             if (cancelled) return;
             const blob = new Blob([decryptedData], { type: "audio/webm" });
             src = URL.createObjectURL(blob);
             decryptedUrlCache.set(audioUrl, src);
-          } catch (err) {
-            console.error("Failed to decrypt voice message:", err);
-            // Retry once with sorted participants (in case order differs)
+          } catch {
+            // Retry with sorted participants (in case order differs)
             try {
               const sortedIds = [...participantIds].sort();
-              const response = await fetch(audioUrl);
-              if (!response.ok) throw new Error(`Retry fetch failed: ${response.status}`);
-              const encryptedData = await response.arrayBuffer();
+              const encryptedData = await fetchWithRetry(audioUrl);
+              if (cancelled) return;
               const decryptedData = await decryptBlob(encryptedData, sortedIds, chatId);
               if (cancelled) return;
               const blob = new Blob([decryptedData], { type: "audio/webm" });
               src = URL.createObjectURL(blob);
               decryptedUrlCache.set(audioUrl, src);
-            } catch (retryErr) {
-              console.error("Retry decrypt also failed:", retryErr);
-              if (!cancelled) setDecryptError(true);
-              setIsDecrypting(false);
+            } catch {
+              if (!cancelled) setLoadError(true);
               return;
             }
           }
-          if (!cancelled) setIsDecrypting(false);
         }
       }
 
@@ -84,6 +90,10 @@ export default function VoiceMessage({
       const audio = new Audio(src);
       audio.preload = "auto";
       audioRef.current = audio;
+
+      audio.addEventListener("canplaythrough", () => {
+        if (!cancelled) setReady(true);
+      });
 
       audio.addEventListener("timeupdate", () => {
         if (audio.duration && isFinite(audio.duration)) {
@@ -97,6 +107,8 @@ export default function VoiceMessage({
         setProgress(0);
         setCurrentTime(0);
       });
+
+      if (!cancelled) setReady(true);
     };
 
     initAudio();
@@ -134,11 +146,11 @@ export default function VoiceMessage({
     ? formatTime(currentTime)
     : formatTime(durationSec);
 
-  if (decryptError) {
+  if (loadError) {
     return (
       <div className="flex items-center gap-2 min-w-[180px] max-w-[240px] py-0.5 opacity-50">
-        <Icon icon="solar:lock-keyhole-bold" className="w-4 h-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Unable to decrypt</span>
+        <Icon icon="solar:microphone-3-bold" className="w-4 h-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Voice message unavailable</span>
       </div>
     );
   }
@@ -149,7 +161,7 @@ export default function VoiceMessage({
         variant="ghost"
         size="icon"
         onClick={togglePlay}
-        disabled={isDecrypting}
+        disabled={!ready}
         className={`w-9 h-9 rounded-full shrink-0 ${
           isMine
             ? "bg-primary-foreground/20 hover:bg-primary-foreground/30"
