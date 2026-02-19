@@ -3,7 +3,7 @@
 import React, { useState, use } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenPool } from "@/app/(hooks)/queries/use-spot-trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import SpotTokenDetail from "../(components)/SpotTokenDetail";
@@ -19,6 +19,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     const { data: tokens, isLoading: isLoadingTokens } = useSpotTokens();
     const { data: detail, isLoading: isLoadingDetail } = useSpotTokenDetail(decodedAddress);
     const { data: priceData } = useSpotTokenPrice(decodedAddress, undefined);
+    const { data: pool, isLoading: isLoadingPool } = useSpotTokenPool(decodedAddress);
 
     const [tradingOpen, setTradingOpen] = useState(false);
     const [tradingTab, setTradingTab] = useState<"buy" | "sell">("buy");
@@ -30,17 +31,14 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
         return (
             <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 p-4 space-y-4">
                 <div className="flex items-center gap-3">
-                    <Skeleton className="w-12 h-12 rounded-xl" />
+                    <Skeleton className="w-14 h-14 rounded-full" />
                     <div className="space-y-2">
                         <Skeleton className="h-5 w-32" />
                         <Skeleton className="h-3 w-24" />
                     </div>
                 </div>
+                <Skeleton className="h-24 w-full rounded-xl" />
                 <Skeleton className="h-[200px] w-full rounded-xl" />
-                <div className="grid grid-cols-2 gap-2">
-                    <Skeleton className="h-16 rounded-xl" />
-                    <Skeleton className="h-16 rounded-xl" />
-                </div>
             </div>
         );
     }
@@ -62,14 +60,16 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
+        <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-40">
             <div className="px-4 pt-4 space-y-4">
                 <SpotTokenDetail
                     token={token}
                     detail={detail}
+                    pool={pool}
                     priceTon={priceData?.priceTon}
                     tonPrice={tonPrice}
                     isLoadingDetail={isLoadingDetail}
+                    isLoadingPool={isLoadingPool}
                 />
 
                 <SpotPriceChart
@@ -79,9 +79,9 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                 />
             </div>
 
-            {/* Floating Buy/Sell Buttons */}
-            <div className="fixed bottom-24 left-0 right-0 px-4 z-40">
-                <div className="flex gap-2 max-w-md mx-auto">
+            {/* Floating Buy/Sell Buttons - moved up to avoid navbar overlap */}
+            <div className="fixed bottom-28 left-0 right-0 px-4 z-40">
+                <div className="flex gap-3 max-w-md mx-auto">
                     <Button
                         onClick={() => openTrade("buy")}
                         className="flex-1 h-12 bg-green-500 hover:bg-green-600 text-white font-bold text-base rounded-xl shadow-lg shadow-green-500/20"
@@ -90,7 +90,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                     </Button>
                     <Button
                         onClick={() => openTrade("sell")}
-                        className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-xl shadow-lg shadow-red-500/20"
+                        className="flex-1 h-12 bg-[#ff1493] hover:bg-[#ff1493]/80 text-white font-bold text-base rounded-xl shadow-lg shadow-[#ff1493]/20"
                     >
                         Sell
                     </Button>

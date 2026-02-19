@@ -434,6 +434,7 @@ export default function ChatConversationPage() {
         poll?: ChatMessage["poll"];
         voice?: ChatMessage["voice"];
         transfer?: ChatMessage["transfer"];
+        file?: ChatMessage["file"];
       }[] = [];
 
       snapshot.forEach((docSnap) => {
@@ -453,6 +454,7 @@ export default function ChatConversationPage() {
           poll: data.poll || undefined,
           voice: data.voice || undefined,
           transfer: data.transfer || undefined,
+          file: data.file || undefined,
         });
       });
 
@@ -483,6 +485,7 @@ export default function ChatConversationPage() {
             poll: msg.poll,
             voice: msg.voice,
             transfer: msg.transfer,
+            file: msg.file,
           };
         })
       );
@@ -575,6 +578,7 @@ export default function ChatConversationPage() {
           poll: data.poll || undefined,
           voice: data.voice || undefined,
           transfer: data.transfer || undefined,
+          file: data.file || undefined,
         };
       });
 
@@ -604,6 +608,7 @@ export default function ChatConversationPage() {
             poll: msg.poll,
             voice: msg.voice,
             transfer: msg.transfer,
+            file: msg.file,
           };
         })
       );

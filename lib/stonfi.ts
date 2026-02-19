@@ -16,6 +16,8 @@ export interface SwapAsset {
     decimals: number;
     balance?: string;
     balanceUsd?: string;
+    dexPriceUsd?: string;
+    tags?: string[];
 }
 
 export interface SwapSimulation {
@@ -70,6 +72,8 @@ export async function fetchSwappableAssets(): Promise<SwapAsset[]> {
             displayName: asset.meta?.displayName || asset.meta?.symbol || "Unknown",
             imageUrl: asset.meta?.imageUrl,
             decimals: asset.meta?.decimals ?? 9,
+            dexPriceUsd: asset.dexPriceUsd ?? undefined,
+            tags: asset.tags ?? [],
         }));
 
         // Sort: TON first, then by symbol alphabetically

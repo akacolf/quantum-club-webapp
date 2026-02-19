@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import {
@@ -21,7 +21,7 @@ interface SpotPriceChartProps {
 }
 
 interface PricePoint {
-    time: number; // Unix seconds
+    time: number;
     value: number;
 }
 
@@ -31,6 +31,8 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
     const seriesRef = useRef<ISeriesApi<"Area"> | null>(null);
     const priceHistory = useRef<PricePoint[]>([]);
     const lastPriceRef = useRef<number | undefined>(undefined);
+    const [hasData, setHasData] = useState(false);
+    const [tooltip, setTooltip] = useState<{ price: number; time: string; x: number; y: number } | null>(null);
 
     // Append new price point when price changes
     useEffect(() => {
@@ -39,27 +41,40 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
         lastPriceRef.current = priceTon;
 
         const now = Math.floor(Date.now() / 1000);
+        // Avoid duplicate timestamps
+        const last = priceHistory.current[priceHistory.current.length - 1];
+        if (last && last.time === now) return;
+
         priceHistory.current.push({ time: now, value: priceTon });
 
-        // Keep max 500 points
         if (priceHistory.current.length > 500) {
             priceHistory.current = priceHistory.current.slice(-500);
         }
 
-        // Update the series if it exists
-        if (seriesRef.current && priceHistory.current.length > 1) {
-            const data: AreaData<UTCTimestamp>[] = priceHistory.current.map((p) => ({
-                time: p.time as UTCTimestamp,
-                value: p.value,
-            }));
-            seriesRef.current.setData(data);
-            chartRef.current?.timeScale().fitContent();
+        const hasMultiple = priceHistory.current.length > 1;
+        setHasData(hasMultiple);
+
+        // Update chart series
+        if (seriesRef.current && hasMultiple) {
+            try {
+                seriesRef.current.update({
+                    time: now as UTCTimestamp,
+                    value: priceTon,
+                });
+            } catch {
+                // If update fails, set full data
+                const data: AreaData<UTCTimestamp>[] = priceHistory.current.map((p) => ({
+                    time: p.time as UTCTimestamp,
+                    value: p.value,
+                }));
+                seriesRef.current.setData(data);
+            }
         }
     }, [priceTon]);
 
-    // Create chart
-    const createChartInstance = useCallback(() => {
-        if (!containerRef.current) return;
+    // Create chart once container is available and we have data
+    useEffect(() => {
+        if (!containerRef.current || !hasData) return;
 
         // Cleanup existing
         if (chartRef.current) {
@@ -95,7 +110,7 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
             handleScroll: { vertTouchDrag: false },
             handleScale: { axisPressedMouseMove: false },
             width: containerRef.current.clientWidth,
-            height: 160,
+            height: 200,
         });
 
         chartRef.current = chart;
@@ -120,6 +135,26 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
             chart.timeScale().fitContent();
         }
 
+        // Tooltip
+        chart.subscribeCrosshairMove((param) => {
+            if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+                setTooltip(null);
+                return;
+            }
+            const d = param.seriesData.get(series) as AreaData<UTCTimestamp> | undefined;
+            if (d?.value !== undefined) {
+                const date = new Date((param.time as number) * 1000);
+                setTooltip({
+                    price: d.value,
+                    time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+                    x: param.point.x,
+                    y: param.point.y,
+                });
+            } else {
+                setTooltip(null);
+            }
+        });
+
         // ResizeObserver
         const resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
@@ -134,14 +169,7 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
             chartRef.current = null;
             seriesRef.current = null;
         };
-    }, []);
-
-    useEffect(() => {
-        const cleanup = createChartInstance();
-        return cleanup;
-    }, [createChartInstance]);
-
-    const hasData = priceHistory.current.length > 1;
+    }, [hasData]);
 
     return (
         <Card className="bg-[#111] border-[#222] overflow-hidden">
@@ -160,15 +188,33 @@ export default function SpotPriceChart({ priceTon, tokenSymbol, tonPrice }: Spot
                 </div>
 
                 {hasData ? (
-                    <div className="relative h-[160px] px-2">
+                    <div className="relative h-[200px] px-2">
                         <div ref={containerRef} className="w-full h-full" />
+                        {tooltip && (
+                            <div
+                                className="absolute bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"
+                                style={{
+                                    left: Math.min(tooltip.x, (containerRef.current?.clientWidth ?? 200) - 140),
+                                    top: Math.max(0, tooltip.y - 60),
+                                }}
+                            >
+                                <p className="text-[10px] text-gray-500 mb-0.5">{tooltip.time}</p>
+                                <p className="text-sm font-semibold text-white">
+                                    {tooltip.price < 0.001 ? tooltip.price.toFixed(8) : tooltip.price.toFixed(4)} TON
+                                </p>
+                                {tonPrice > 0 && (
+                                    <p className="text-[10px] text-gray-500">
+                                        ≈ ${(tooltip.price * tonPrice).toFixed(6)}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ) : (
-                    <div className="h-[160px] flex flex-col items-center justify-center text-center px-4">
-                        <div ref={containerRef} className="hidden" />
+                    <div className="h-[200px] flex flex-col items-center justify-center text-center px-4">
                         <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-gray-700 mb-2" />
                         <p className="text-xs text-gray-500">Collecting price data...</p>
-                        <p className="text-[10px] text-gray-600">Chart builds as prices update</p>
+                        <p className="text-[10px] text-gray-600">Chart builds as prices update (~15s)</p>
                     </div>
                 )}
             </CardContent>

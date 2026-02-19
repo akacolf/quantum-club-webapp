@@ -136,6 +136,10 @@ const EcosystemNavigation = () => {
                       style={{ width: "1.5em", height: "1.5em" }}
                     />
                   </div>
+                  {/* Small chevron indicator showing multiple options */}
+                  <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2">
+                    <Icon icon="solar:alt-arrow-down-bold" className="w-2.5 h-2.5 opacity-60" />
+                  </div>
                 </div>
                 <span
                   className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${

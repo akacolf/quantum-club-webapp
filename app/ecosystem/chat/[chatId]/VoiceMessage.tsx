@@ -47,7 +47,9 @@ export default function VoiceMessage({
           setIsDecrypting(true);
           try {
             const response = await fetch(audioUrl);
+            if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
             const encryptedData = await response.arrayBuffer();
+            if (encryptedData.byteLength < 28) throw new Error("Audio data too small");
             const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
             if (cancelled) return;
             const blob = new Blob([decryptedData], { type: "audio/webm" });
@@ -55,9 +57,23 @@ export default function VoiceMessage({
             decryptedUrlCache.set(audioUrl, src);
           } catch (err) {
             console.error("Failed to decrypt voice message:", err);
-            if (!cancelled) setDecryptError(true);
-            setIsDecrypting(false);
-            return;
+            // Retry once with sorted participants (in case order differs)
+            try {
+              const sortedIds = [...participantIds].sort();
+              const response = await fetch(audioUrl);
+              if (!response.ok) throw new Error(`Retry fetch failed: ${response.status}`);
+              const encryptedData = await response.arrayBuffer();
+              const decryptedData = await decryptBlob(encryptedData, sortedIds, chatId);
+              if (cancelled) return;
+              const blob = new Blob([decryptedData], { type: "audio/webm" });
+              src = URL.createObjectURL(blob);
+              decryptedUrlCache.set(audioUrl, src);
+            } catch (retryErr) {
+              console.error("Retry decrypt also failed:", retryErr);
+              if (!cancelled) setDecryptError(true);
+              setIsDecrypting(false);
+              return;
+            }
           }
           if (!cancelled) setIsDecrypting(false);
         }
