@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 interface VoiceRecorderProps {
   onSend: (blob: Blob, durationSec: number) => void;
@@ -69,12 +70,33 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     if (disabled) return;
 
     try {
+      // Check for MediaRecorder support (missing in some mobile WebViews)
+      if (typeof MediaRecorder === "undefined") {
+        toast.error("Voice recording is not supported on this device.");
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error("Microphone access is not available.");
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm")
           ? "audio/webm"
-          : "audio/ogg;codecs=opus";
+          : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
+            ? "audio/ogg;codecs=opus"
+            : MediaRecorder.isTypeSupported("audio/mp4")
+              ? "audio/mp4"
+              : "";
+
+      if (!mimeType) {
+        toast.error("No supported audio format found on this device.");
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
 
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorder.current = recorder;
@@ -98,8 +120,9 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
           stopRecording(true);
         }
       }, 200);
-    } catch {
-      console.error("Microphone access denied");
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      toast.error("Could not access microphone. Please check permissions.");
     }
   }, [disabled, stopRecording]);
 

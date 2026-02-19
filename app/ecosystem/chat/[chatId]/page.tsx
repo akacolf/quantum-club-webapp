@@ -770,11 +770,18 @@ export default function ChatConversationPage() {
       return;
     }
 
+    const participants = participantsRef.current;
+    if (!participants.length) {
+      toast.error("Chat not fully loaded. Please wait and try again.");
+      return;
+    }
+
     const senderName = qcUsername || "Unknown";
     const msgId = `voice_${Date.now()}_${telegramId}`;
 
     try {
-      const participants = participantsRef.current;
+      // Refresh auth token before upload to prevent expired token errors
+      await currentUser.getIdToken(true);
 
       // Encrypt the audio blob before uploading
       const audioBuffer = await blob.arrayBuffer();
@@ -782,7 +789,19 @@ export default function ChatConversationPage() {
       const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
 
       const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.enc.webm`);
-      await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
+
+      // Upload with retry
+      let uploadAttempts = 0;
+      while (uploadAttempts < 3) {
+        try {
+          await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
+          break;
+        } catch (uploadErr) {
+          uploadAttempts++;
+          if (uploadAttempts >= 3) throw uploadErr;
+          await new Promise((r) => setTimeout(r, 1000 * uploadAttempts));
+        }
+      }
       const url = await getDownloadURL(fileRef);
 
       const previewText = "🎤 Voice message";
@@ -840,9 +859,14 @@ export default function ChatConversationPage() {
       }
 
       scrollToBottom(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send voice message:", error);
-      toast.error("Failed to send voice message");
+      const msg = error?.code === "storage/unauthorized"
+        ? "Upload denied. Please re-open the app to refresh your session."
+        : error?.code === "storage/retry-limit-exceeded" || error?.message?.includes("network")
+          ? "Network error. Check your connection and try again."
+          : "Failed to send voice message";
+      toast.error(msg);
     }
   };
 
@@ -863,12 +887,19 @@ export default function ChatConversationPage() {
       return;
     }
 
+    const participants = participantsRef.current;
+    if (!participants.length) {
+      toast.error("Chat not fully loaded. Please wait and try again.");
+      return;
+    }
+
     const senderName = qcUsername || "Unknown";
     const msgId = `file_${Date.now()}_${telegramId}`;
     setIsSendingFile(true);
 
     try {
-      const participants = participantsRef.current;
+      // Refresh auth token before upload to prevent expired token errors
+      await currentUser.getIdToken(true);
 
       // Read file and encrypt
       const fileBuffer = await file.arrayBuffer();
@@ -888,7 +919,19 @@ export default function ChatConversationPage() {
       }
 
       const fileRef = storageRef(storage, `chat-files/${chatId}/${msgId}/${file.name}.enc`);
-      await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
+
+      // Upload with retry
+      let uploadAttempts = 0;
+      while (uploadAttempts < 3) {
+        try {
+          await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
+          break;
+        } catch (uploadErr) {
+          uploadAttempts++;
+          if (uploadAttempts >= 3) throw uploadErr;
+          await new Promise((r) => setTimeout(r, 1000 * uploadAttempts));
+        }
+      }
       const url = await getDownloadURL(fileRef);
 
       const isImage = file.type.startsWith("image/");
@@ -954,9 +997,14 @@ export default function ChatConversationPage() {
       }
 
       scrollToBottom(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send file:", error);
-      toast.error("Failed to send file");
+      const msg = error?.code === "storage/unauthorized"
+        ? "Upload denied. Please re-open the app to refresh your session."
+        : error?.code === "storage/retry-limit-exceeded" || error?.message?.includes("network")
+          ? "Network error. Check your connection and try again."
+          : "Failed to send file";
+      toast.error(msg);
     } finally {
       setIsSendingFile(false);
       // Reset file input

@@ -57,39 +57,6 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                 return;
             }
 
-            // Force re-auth check: compare remote version with local
-            if (user) {
-                try {
-                    const settingsRef = doc(dbfs, "set", "settings");
-                    const settingsSnap = await getDoc(settingsRef);
-                    const remoteVersion = settingsSnap.data()?.forceAuthVersion;
-                    const localVersion = localStorage.getItem("forceAuthVersion");
-                    // First login: just store the version without forcing re-auth
-                    if (remoteVersion && localVersion === null) {
-                        localStorage.setItem("forceAuthVersion", String(remoteVersion));
-                    }
-                    if (remoteVersion && localVersion !== null && String(remoteVersion) !== localVersion) {
-                        localStorage.setItem("forceAuthVersion", String(remoteVersion));
-                        // Clear all user session data
-                        const keys = Object.keys(localStorage);
-                        for (const key of keys) {
-                            if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
-                                key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
-                                key === "username" || key === "telegramId" || key === "telegramIdNM" ||
-                                key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
-                                localStorage.removeItem(key);
-                            }
-                        }
-                        sessionStorage.clear();
-                        await auth.signOut();
-                        try { await removeToken(); } catch {}
-                        setCurrentUser(null);
-                        setAuthLoading(false);
-                        return;
-                    }
-                } catch {}
-            }
-
             setCurrentUser(user ?? null);
             if(user){
                 try {
@@ -108,6 +75,37 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                 try { await removeToken(); } catch {}
             }
             setAuthLoading(false);
+
+            // Deferred: check force re-auth version (non-blocking, runs after auth resolves)
+            if (user) {
+                (async () => {
+                    try {
+                        const settingsRef = doc(dbfs, "set", "settings");
+                        const settingsSnap = await getDoc(settingsRef);
+                        const remoteVersion = settingsSnap.data()?.forceAuthVersion;
+                        const localVersion = localStorage.getItem("forceAuthVersion");
+                        if (remoteVersion && localVersion === null) {
+                            localStorage.setItem("forceAuthVersion", String(remoteVersion));
+                        }
+                        if (remoteVersion && localVersion !== null && String(remoteVersion) !== localVersion) {
+                            localStorage.setItem("forceAuthVersion", String(remoteVersion));
+                            const keys = Object.keys(localStorage);
+                            for (const key of keys) {
+                                if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
+                                    key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
+                                    key === "username" || key === "telegramId" || key === "telegramIdNM" ||
+                                    key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
+                                    localStorage.removeItem(key);
+                                }
+                            }
+                            sessionStorage.clear();
+                            await auth.signOut();
+                            try { await removeToken(); } catch {}
+                            setCurrentUser(null);
+                        }
+                    } catch {}
+                })();
+            }
         });
 
         // Safety timeout: if onAuthStateChanged never fires, stop loading after 5s
