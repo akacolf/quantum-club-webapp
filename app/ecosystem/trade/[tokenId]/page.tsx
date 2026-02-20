@@ -86,6 +86,10 @@ export default function TokenDetailPage() {
         30000
     );
 
+    useEffect(() => {
+        router.prefetch("/wallet");
+    }, [router]);
+
     // Load token and refresh balance
     useEffect(() => {
         if (tokenId) {

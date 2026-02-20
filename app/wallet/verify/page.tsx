@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
@@ -18,6 +18,11 @@ export default function VerifyPhrasePage() {
   const { telegramId } = useUserContext();
   const router = useRouter();
   const { addWallet, switchWallet, storedWallets } = useWallet();
+  useEffect(() => {
+    router.prefetch("/wallet");
+    router.prefetch("/wallet/backup");
+  }, [router]);
+
   const [mnemonic, setMnemonic] = useState<string[]>([]);
   const [walletAddress, setWalletAddress] = useState("");
   const [verificationWords, setVerificationWords] = useState<{ index: number, word: string }[]>([]);

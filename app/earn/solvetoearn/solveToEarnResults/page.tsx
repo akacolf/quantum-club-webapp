@@ -17,16 +17,21 @@ const SolveToEarnResults = () => {
   const [buttonClicked, setButtonClicked] = useState(false);
 
   const { remainingSolveToEarn, telegramId, setRemainingSolveToEarn } = useUserContext();
-  const solvetoearnremaining = useState(remainingSolveToEarn);
   const router = useRouter();
 
- useTelegramBackButton();
+  useTelegramBackButton();
 
-  const totalCorrect = useState<string>(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("TotalCorrectSolveToEarn") || "0" }else{return "0"} });
-  const totalCorrectAnswers = useState(() => { if (typeof window !== "undefined") { return sessionStorage.getItem("correctAnswers") || 0 } })
+  const [totalCorrect, setTotalCorrect] = useState("0");
+  const [totalCorrectAnswers, setTotalCorrectAnswers] = useState<string | number>(0);
+
+  useEffect(() => {
+    setTotalCorrect(sessionStorage.getItem("TotalCorrectSolveToEarn") || "0");
+    setTotalCorrectAnswers(sessionStorage.getItem("correctAnswers") || 0);
+  }, []);
 
   useEffect(() => {
     router.prefetch("/earn/solvetoearn");
+    router.prefetch("/earn");
   }, [router])
 
   async function checkRemainingSolveToEarn() {
@@ -89,7 +94,7 @@ const SolveToEarnResults = () => {
               <div>
                 <div className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">Total Earned</div>
                 <div className="flex items-center justify-center gap-1 text-xl font-bold text-white">
-                  +{totalCorrect[0]} 
+                  +{totalCorrect} 
                   <span className="text-sm font-normal text-gray-400">QNTM</span>
                 </div>
               </div>
@@ -106,7 +111,7 @@ const SolveToEarnResults = () => {
               </div>
               <div>
                 <div className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">Correct Answers</div>
-                <div className="text-xl font-bold text-white">{totalCorrectAnswers[0]}</div>
+                <div className="text-xl font-bold text-white">{totalCorrectAnswers}</div>
               </div>
             </CardContent>
           </Card>
@@ -122,7 +127,7 @@ const SolveToEarnResults = () => {
             <span className="flex items-center gap-2">
               Solve Again
               <Badge variant="secondary" className="bg-black/10 text-black hover:bg-black/20 border-0 px-2 py-0.5 h-6">
-                {solvetoearnremaining[0]} left
+                {remainingSolveToEarn} left
               </Badge>
             </span>
           </Button>

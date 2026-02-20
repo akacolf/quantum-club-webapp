@@ -18,6 +18,13 @@ import { useWallet } from "../WalletContext";
 
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -72,17 +79,21 @@ function AutoRefreshToggle() {
 
   return (
     <div className="flex items-center gap-2">
-      <select 
-        value={autoRefreshInterval}
-        onChange={(e) => setAutoRefreshInterval(Number(e.target.value))}
+      <Select
+        value={String(autoRefreshInterval)}
+        onValueChange={(val) => setAutoRefreshInterval(Number(val))}
         disabled={!autoRefreshEnabled}
-        className="bg-muted border border-border rounded-md px-2 py-1 text-xs text-muted-foreground disabled:opacity-50"
       >
-        <option value={30}>30s</option>
-        <option value={60}>1m</option>
-        <option value={120}>2m</option>
-        <option value={300}>5m</option>
-      </select>
+        <SelectTrigger className="w-[70px] h-7 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="30">30s</SelectItem>
+          <SelectItem value="60">1m</SelectItem>
+          <SelectItem value="120">2m</SelectItem>
+          <SelectItem value="300">5m</SelectItem>
+        </SelectContent>
+      </Select>
       <Switch
         checked={autoRefreshEnabled}
         onCheckedChange={toggleAutoRefresh}

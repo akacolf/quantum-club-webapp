@@ -104,6 +104,10 @@ export default function SwapPage() {
         isTestnet
     } = useWallet();
 
+    useEffect(() => {
+        router.prefetch("/wallet");
+    }, [router]);
+
     const TON_API_BASE_URL = isTestnet
         ? "https://testnet.tonapi.io"
         : "https://tonapi.io";

@@ -30,6 +30,10 @@ export default function GroupDetailPage() {
     const isAdmin = group?.createdBy === telegramId;
 
     useEffect(() => {
+        router.prefetch("/groups");
+    }, [router]);
+
+    useEffect(() => {
         const loadMembers = async () => {
             const membersList = await getGroupMembers(groupId);
             setMembers(membersList);

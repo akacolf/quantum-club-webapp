@@ -74,6 +74,10 @@ export default function AnalyticsPage() {
     trxUsdValue,
   } = useWallet();
   const { telegramId } = useUserContext();
+  useEffect(() => {
+    router.prefetch("/wallet");
+  }, [router]);
+
   const [change24h, setChange24h] = useState<number | null>(null);
   const [change7d, setChange7d] = useState<number | null>(null);
 

@@ -62,17 +62,17 @@ const EcosystemNavigation = () => {
     return () => unsub();
   }, [currentUser, telegramId]);
 
-  // Hide navbar when inside an individual chat conversation
-  if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
-    return null;
-  }
-
   // Prefetch trade routes for popover
   useEffect(() => {
     router.prefetch("/ecosystem/trade");
     router.prefetch("/ecosystem/trade/spot");
     router.prefetch("/ecosystem/chat");
   }, [router]);
+
+  // Hide navbar when inside an individual chat conversation
+  if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
+    return null;
+  }
 
   const getActiveTab = () => {
     for (const tab of navTabs) {

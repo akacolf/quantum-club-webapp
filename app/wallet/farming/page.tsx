@@ -36,6 +36,11 @@ export default function FarmingPage() {
         handleCancel: handleAuthCancel,
     } = useBiometricAuth();
     
+    useEffect(() => {
+        router.prefetch("/wallet/earn");
+        router.prefetch("/wallet/liquidity");
+    }, [router]);
+
     const [viewMode, setViewMode] = useState<ViewMode>("list");
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);

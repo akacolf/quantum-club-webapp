@@ -186,6 +186,10 @@ export default function SendPage() {
 
   const TON_API_BASE_URL = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
+  useEffect(() => {
+    router.prefetch("/wallet");
+  }, [router]);
+
   // Network mode state
   const [networkMode, setNetworkMode] = useState<NetworkMode>("ton");
   const [selectedChain, setSelectedChain] = useState<MultiChainType>("eth");

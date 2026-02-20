@@ -35,6 +35,10 @@ export default function ManageWalletsPage() {
     renameWallet
   } = useWallet();
 
+  useEffect(() => {
+    router.prefetch("/wallet/import");
+  }, [router]);
+
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
 

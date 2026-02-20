@@ -14,6 +14,10 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 export default function ViewRecoveryPhrasePage() {
   useTelegramBackButton("/wallet/settings");
   const router = useRouter();
+  useEffect(() => {
+    router.prefetch("/wallet/settings");
+  }, [router]);
+
   const [mnemonic, setMnemonic] = useState<string[]>([]);
   const [isRevealed, setIsRevealed] = useState(false);
   const [copied, setCopied] = useState(false);

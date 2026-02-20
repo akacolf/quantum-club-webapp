@@ -52,6 +52,7 @@ import {
   serverTimestamp,
   updateDoc,
   setDoc,
+  deleteDoc,
   deleteField,
   increment,
   Timestamp,
@@ -1275,6 +1276,33 @@ export default function ChatConversationPage() {
     [forwardMsgId, messages, telegramId, qcUsername, chatId]
   );
 
+  // Delete message
+  const handleDeleteMessage = useCallback(
+    async (msgId: string) => {
+      if (!chatId) return;
+      try {
+        await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
+      } catch (err) {
+        console.error("Failed to delete message:", err);
+      }
+      setReactionPickerMsgId(null);
+    },
+    [chatId]
+  );
+
+  // Copy message text
+  const handleCopyText = useCallback(
+    (msgId: string) => {
+      const msg = messages.find((m) => m.id === msgId);
+      if (!msg) return;
+      navigator.clipboard.writeText(msg.text).then(() => {
+        toast.success("Copied to clipboard");
+      }).catch(() => {});
+      setReactionPickerMsgId(null);
+    },
+    [messages]
+  );
+
   // Disappearing messages: update setting
   const handleSetDisappearAfter = useCallback(
     async (ms: number) => {
@@ -1291,7 +1319,7 @@ export default function ChatConversationPage() {
 
   // Admin actions: kick, ban, mute, unmute
   const handleAdminAction = useCallback(
-    async (action: "kick" | "ban" | "mute" | "unmute", targetUserId: string) => {
+    async (action: "kick" | "ban" | "unban" | "mute" | "unmute", targetUserId: string) => {
       if (!chatId || !chatMeta || !telegramId) return;
       if (chatMeta.createdBy !== telegramId) return;
       if (targetUserId === telegramId) return;
@@ -1337,6 +1365,17 @@ export default function ChatConversationPage() {
           });
           await addDoc(messagesRef, {
             text: `@${adminName} muted @${targetName}`,
+            senderId: "system",
+            senderName: "system",
+            createdAt: serverTimestamp(),
+            encrypted: false,
+          });
+        } else if (action === "unban") {
+          await updateDoc(chatRef, {
+            bannedUsers: arrayRemove(targetUserId),
+          });
+          await addDoc(messagesRef, {
+            text: `@${adminName} unbanned @${targetName}`,
             senderId: "system",
             senderName: "system",
             createdAt: serverTimestamp(),
@@ -1818,6 +1857,89 @@ export default function ChatConversationPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Message Context Menu */}
+      <Drawer open={!!reactionPickerMsgId} onOpenChange={(open) => { if (!open) setReactionPickerMsgId(null); }}>
+        <DrawerContent className="max-h-[60vh]">
+          <div className="px-4 pt-2 pb-4 space-y-3">
+            {/* Emoji reactions row */}
+            <div className="flex items-center justify-center gap-2 py-1">
+              {REACTION_EMOJIS.map((emoji) => {
+                const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
+                const isReacted = activeMsg?.reactions?.[emoji.key]?.includes(telegramId || "");
+                return (
+                  <button
+                    key={emoji.key}
+                    onClick={() => reactionPickerMsgId && toggleReaction(reactionPickerMsgId, emoji.key)}
+                    className={`p-2 rounded-xl hover:bg-muted/60 transition-colors ${isReacted ? "bg-primary/15" : ""}`}
+                  >
+                    <Icon icon={emoji.icon} className="w-6 h-6" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Action items */}
+            <div className="space-y-0.5">
+              <button
+                onClick={() => {
+                  const msg = messages.find((m) => m.id === reactionPickerMsgId);
+                  if (msg) { setReplyTo(msg); inputRef.current?.focus(); }
+                  setReactionPickerMsgId(null);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+              >
+                <Icon icon="lucide:reply" className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Reply</span>
+              </button>
+
+              <button
+                onClick={() => reactionPickerMsgId && handleCopyText(reactionPickerMsgId)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+              >
+                <Icon icon="lucide:copy" className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Copy Text</span>
+              </button>
+
+              <button
+                onClick={() => reactionPickerMsgId && handleForwardStart(reactionPickerMsgId)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+              >
+                <Icon icon="lucide:forward" className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Forward</span>
+              </button>
+
+              {isGroupChat && (
+                <button
+                  onClick={() => {
+                    const msg = messages.find((m) => m.id === reactionPickerMsgId);
+                    if (msg) handlePinMessage(msg);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+                >
+                  <Icon icon="lucide:pin" className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm font-medium">Pin</span>
+                </button>
+              )}
+
+              {(() => {
+                const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
+                const canDelete = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
+                if (!canDelete) return null;
+                return (
+                  <button
+                    onClick={() => reactionPickerMsgId && handleDeleteMessage(reactionPickerMsgId)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 transition-colors"
+                  >
+                    <Icon icon="lucide:trash-2" className="w-5 h-5 text-red-500" />
+                    <span className="text-sm font-medium text-red-500">Delete</span>
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       {/* Search bar */}
       {showSearch && (
         <div className="px-3 py-2 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
@@ -2035,40 +2157,6 @@ export default function ChatConversationPage() {
                     >
                       <Icon icon="lucide:reply" className="w-3.5 h-3.5" />
                     </button>
-                    {/* Reaction picker */}
-                    {reactionPickerMsgId === msg.id && (
-                      <div
-                        data-reaction-picker
-                        className={`absolute ${isOwnMessage ? "right-0" : "left-0"} bottom-full mb-1 z-50 flex items-center gap-1 px-2 py-1.5 bg-popover border border-border rounded-xl shadow-lg`}
-                      >
-                        {REACTION_EMOJIS.map((emoji) => (
-                          <button
-                            key={emoji.key}
-                            onClick={() => toggleReaction(msg.id, emoji.key)}
-                            className={`p-1 rounded-lg hover:bg-muted/60 transition-colors ${
-                              msg.reactions?.[emoji.key]?.includes(telegramId || "") ? "bg-primary/15" : ""
-                            }`}
-                          >
-                            <Icon icon={emoji.icon} className="w-5 h-5" />
-                          </button>
-                        ))}
-                        {msg.senderId !== "system" && (
-                          <button
-                            onClick={() => handlePinMessage(msg)}
-                            className="p-1 rounded-lg hover:bg-muted/60 transition-colors border-l border-border ml-0.5 pl-1.5"
-                          >
-                            <Icon icon="lucide:pin" className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleForwardStart(msg.id)}
-                          className="p-1 rounded-lg hover:bg-muted/60 transition-colors border-l border-border ml-0.5 pl-1.5"
-                        >
-                          <Icon icon="lucide:forward" className="w-4 h-4 text-muted-foreground" />
-                        </button>
-                      </div>
-                    )}
-
                     <div
                       data-bubble
                       className={`relative ${

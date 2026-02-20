@@ -38,6 +38,11 @@ export default function StakingPage() {
         handleCancel: handleAuthCancel,
     } = useBiometricAuth();
     
+    useEffect(() => {
+        router.prefetch("/wallet");
+        router.prefetch("/wallet/unstake");
+    }, [router]);
+
     const [viewMode, setViewMode] = useState<ViewMode>("list");
     const [isLoading, setIsLoading] = useState(true);
     const [isStaking, setIsStaking] = useState(false);

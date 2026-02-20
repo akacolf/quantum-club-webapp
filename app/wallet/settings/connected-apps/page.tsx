@@ -31,6 +31,10 @@ export default function ConnectedAppsPage() {
     const walletKit = useWalletKitOptional();
     const { telegramId } = useUserContext();
     
+    useEffect(() => {
+        router.prefetch("/wallet/settings");
+    }, [router]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);

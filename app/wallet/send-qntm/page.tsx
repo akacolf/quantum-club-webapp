@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ChangeEvent, useCallback, useMemo } from "react";
+import { useState, useEffect, ChangeEvent, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -21,6 +21,10 @@ export default function SendQNTMPage() {
 
   // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
+
+  useEffect(() => {
+    router.prefetch("/wallet");
+  }, [router]);
 
   // State
 

@@ -57,6 +57,10 @@ export default function ImportWalletPage() {
   const [walletVersion, setWalletVersion] = useState("v5r1");
   const [previewAddresses, setPreviewAddresses] = useState<{ version: string; address: string }[]>([]);
 
+  useEffect(() => {
+    router.prefetch("/wallet");
+  }, [router]);
+
   // Ensure page starts at top on navigation
   useEffect(() => {
     window.scrollTo(0, 0);

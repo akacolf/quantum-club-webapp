@@ -87,6 +87,10 @@ export default function LendingPage() {
         ? "https://testnet.tonapi.io"
         : "https://tonapi.io";
 
+    useEffect(() => {
+        router.prefetch("/wallet");
+    }, [router]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [markets, setMarkets] = useState<LendingAsset[]>([]);
     const [userPositions, setUserPositions] = useState<UserLendingData | null>(null);

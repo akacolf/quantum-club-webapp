@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -85,6 +85,11 @@ export default function EarnPage() {
     const router = useRouter();
     const { tonBalance, tonPrice } = useWallet();
     
+    useEffect(() => {
+        router.prefetch("/wallet/staking");
+        router.prefetch("/wallet/liquidity");
+    }, [router]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [protocols, setProtocols] = useState<YieldProtocol[]>([]);
 

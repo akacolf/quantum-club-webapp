@@ -62,6 +62,7 @@ export default function CreateTokenPage() {
     // Prefetch trade page for faster navigation after creation
     useEffect(() => {
         router.prefetch("/ecosystem/trade");
+        router.prefetch("/wallet");
     }, [router]);
 
     const [isLoading, setIsLoading] = useState(false);

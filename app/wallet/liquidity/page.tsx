@@ -114,6 +114,10 @@ export default function LiquidityPage() {
     isTestnet,
   } = useWallet();
 
+  useEffect(() => {
+    router.prefetch("/wallet");
+  }, [router]);
+
   // State
   const [tab, setTab] = useState<"add" | "remove" | "positions">("positions");
   const [step, setStep] = useState<

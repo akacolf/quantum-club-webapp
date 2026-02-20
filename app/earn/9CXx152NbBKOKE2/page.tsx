@@ -20,6 +20,7 @@ export default function AnswerPage() {
 
     useEffect(() => {
         router.prefetch('/earn/9CXx152NbBKOKE2');
+        router.prefetch('/earn');
     }, [router]);
 
     const [isCorrect, setIsCorrect] = useState(true);

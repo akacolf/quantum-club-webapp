@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
@@ -16,6 +16,10 @@ export default function CreateGroupPage() {
     useTelegramBackButton("/groups");
     const router = useRouter();
     const { createGroup } = useGroups();
+
+    useEffect(() => {
+        router.prefetch("/groups");
+    }, [router]);
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");

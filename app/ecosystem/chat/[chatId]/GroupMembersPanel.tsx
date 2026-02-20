@@ -31,7 +31,7 @@ interface GroupMembersPanelProps {
   chatId: string;
   chatMeta: ChatMeta;
   currentUserId: string;
-  onAction: (action: "kick" | "ban" | "mute" | "unmute", userId: string) => void;
+  onAction: (action: "kick" | "ban" | "unban" | "mute" | "unmute", userId: string) => void;
 }
 
 function getInitials(name: string): string {
@@ -188,6 +188,15 @@ export default function GroupMembersPanel({
                       <span className="text-sm text-muted-foreground truncate flex-1">
                         @{name}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-7 h-7 rounded-full shrink-0"
+                        title="Unban"
+                        onClick={() => onAction("unban", userId)}
+                      >
+                        <Icon icon="solar:shield-check-bold" className="w-4 h-4 text-green-500" />
+                      </Button>
                     </div>
                   );
                 })}
