@@ -112,14 +112,16 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
       setRecording(true);
       setCancelled(false);
       setSlideX(0);
+      setElapsed(0);
 
-      timerRef.current = setInterval(() => {
+      // First tick immediately, then every 200ms
+      const tick = () => {
         const sec = Math.round((Date.now() - startTime.current) / 1000);
         setElapsed(sec);
-        if (sec >= MAX_DURATION) {
-          stopRecording(true);
-        }
-      }, 200);
+        if (sec >= MAX_DURATION) stopRecording(true);
+      };
+      tick();
+      timerRef.current = setInterval(tick, 200);
     } catch (err) {
       console.error("Microphone access error:", err);
       toast.error("Could not access microphone. Please check permissions.");
@@ -173,10 +175,10 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
       <AnimatePresence>
         {recording && (
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0, x: cancelled ? -80 : 40, scale: cancelled ? 0.9 : 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            transition={{ duration: 0.1 }}
             className="absolute inset-0 flex items-center gap-2 px-3 bg-card/95 backdrop-blur-sm z-10 rounded-full"
             onMouseMove={(e) => handlePointerMove(e.clientX)}
             onMouseDown={(e) => handlePointerDown(e.clientX)}

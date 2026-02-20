@@ -65,6 +65,8 @@ export default function FileMessage({
   const [loadError, setLoadError] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = file.mimeType.startsWith("image/");
@@ -118,9 +120,9 @@ export default function FileMessage({
         url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId);
       }
 
-      // PDFs and docs: open in new tab (works in Telegram WebView)
-      if (file.mimeType === "application/pdf" || file.mimeType.startsWith("text/")) {
-        window.open(url, "_blank");
+      if (file.mimeType === "application/pdf") {
+        setPdfUrl(url);
+        setShowPdfViewer(true);
       } else {
         const a = document.createElement("a");
         a.href = url;
@@ -173,8 +175,8 @@ export default function FileMessage({
             onClick={() => setShowLightbox(false)}
           >
             <button
-              onClick={() => setShowLightbox(false)}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center z-10"
+              onClick={(e) => { e.stopPropagation(); setShowLightbox(false); }}
+              className="absolute top-14 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center z-10"
             >
               <Icon icon="lucide:x" className="w-5 h-5 text-white" />
             </button>
@@ -192,29 +194,66 @@ export default function FileMessage({
   }
 
   return (
-    <button
-      onClick={handleDownload}
-      disabled={isLoading}
-      className={`flex items-center gap-3 p-2.5 rounded-xl min-w-[200px] max-w-[260px] transition-colors ${
-        isMine
-          ? "bg-primary-foreground/10 hover:bg-primary-foreground/15"
-          : "bg-primary/10 hover:bg-primary/15"
-      }`}
-    >
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-        isMine ? "bg-primary-foreground/20" : "bg-primary/20"
-      }`}>
-        <Icon icon={getFileIcon(file.mimeType)} className="w-5 h-5 text-white/70" />
-      </div>
-      <div className="flex-1 min-w-0 text-left">
-        <p className="text-xs font-medium text-white truncate">{file.name}</p>
-        <p className="text-[10px] text-muted-foreground/70">{formatFileSize(file.size)}</p>
-      </div>
-      {isLoading ? (
-        <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted-foreground/50 shrink-0 animate-spin" />
-      ) : (
-        <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+    <>
+      <button
+        onClick={handleDownload}
+        disabled={isLoading}
+        className={`flex items-center gap-3 p-2.5 rounded-xl min-w-[200px] max-w-[260px] transition-colors ${
+          isMine
+            ? "bg-primary-foreground/10 hover:bg-primary-foreground/15"
+            : "bg-primary/10 hover:bg-primary/15"
+        }`}
+      >
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+          isMine ? "bg-primary-foreground/20" : "bg-primary/20"
+        }`}>
+          <Icon icon={getFileIcon(file.mimeType)} className="w-5 h-5 text-white/70" />
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <p className="text-xs font-medium text-white truncate">{file.name}</p>
+          <p className="text-[10px] text-muted-foreground/70">{formatFileSize(file.size)}</p>
+        </div>
+        {isLoading ? (
+          <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted-foreground/50 shrink-0 animate-spin" />
+        ) : (
+          <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+        )}
+      </button>
+
+      {showPdfViewer && pdfUrl && (
+        <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-card/90 backdrop-blur-sm">
+            <p className="text-sm font-medium text-white truncate flex-1 mr-3">{file.name}</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = pdfUrl;
+                  a.download = file.name;
+                  a.target = "_blank";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
+              >
+                <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4 text-white" />
+              </button>
+              <button
+                onClick={() => setShowPdfViewer(false)}
+                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
+              >
+                <Icon icon="lucide:x" className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
+          <iframe
+            src={pdfUrl}
+            className="flex-1 w-full bg-white"
+            title={file.name}
+          />
+        </div>
       )}
-    </button>
+    </>
   );
 }
