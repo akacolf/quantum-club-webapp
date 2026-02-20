@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Icon } from "@iconify/react";
-import { Button } from "@/components/ui/button";
 import { decryptBlob } from "@/lib/chat-crypto";
 
 interface FileMessageProps {
@@ -20,31 +19,12 @@ interface FileMessageProps {
   chatId?: string;
 }
 
-// Cache decrypted blob URLs to avoid re-decrypting
 const decryptedUrlCache = new Map<string, string>();
-
-async function fetchWithRetry(url: string, retries = 2): Promise<ArrayBuffer> {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const response = await fetch(url, { mode: "cors", credentials: "omit" });
-      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-      return await response.arrayBuffer();
-    } catch (err) {
-      if (i === retries) throw err;
-      await new Promise(r => setTimeout(r, 500 * (i + 1)));
-    }
-  }
-  throw new Error("Fetch failed after retries");
-}
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function isImageMime(mimeType: string): boolean {
-  return mimeType.startsWith("image/");
 }
 
 function getFileIcon(mimeType: string): string {
@@ -55,26 +35,23 @@ function getFileIcon(mimeType: string): string {
   return "solar:file-bold";
 }
 
-/**
- * Download a blob by opening it in a new tab (works in Telegram WebView).
- * The standard <a download> approach doesn't work reliably in TMA WebViews.
- */
-function downloadBlob(url: string, name: string, mimeType: string) {
-  // For PDFs and documents, open in a new tab so the user can save from there
-  if (mimeType === "application/pdf" || mimeType.startsWith("text/")) {
-    window.open(url, "_blank");
-    return;
-  }
+async function fetchAndDecrypt(
+  url: string,
+  mimeType: string,
+  participantIds: string[],
+  chatId: string,
+): Promise<string> {
+  const cached = decryptedUrlCache.get(url);
+  if (cached) return cached;
 
-  // Try standard download first
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status}`);
+  const encryptedData = await res.arrayBuffer();
+  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
+  const blob = new Blob([decryptedData], { type: mimeType });
+  const blobUrl = URL.createObjectURL(blob);
+  decryptedUrlCache.set(url, blobUrl);
+  return blobUrl;
 }
 
 export default function FileMessage({
@@ -90,12 +67,11 @@ export default function FileMessage({
   const [showLightbox, setShowLightbox] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const isImage = isImageMime(file.mimeType);
+  const isImage = file.mimeType.startsWith("image/");
 
-  // IntersectionObserver for lazy loading images
+  // Lazy load images
   useEffect(() => {
     if (!isImage || !containerRef.current) return;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -105,12 +81,11 @@ export default function FileMessage({
       },
       { rootMargin: "200px" }
     );
-
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, [isImage]);
 
-  // Load file when visible (for images) or on demand (for other files)
+  // Decrypt image when visible
   useEffect(() => {
     if (!isImage || !isVisible) return;
     if (!file.encrypted || !participantIds || !chatId) {
@@ -127,62 +102,38 @@ export default function FileMessage({
     let cancelled = false;
     setIsLoading(true);
 
-    (async () => {
-      try {
-        const encryptedData = await fetchWithRetry(file.url);
-        if (cancelled) return;
-        const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
-        if (cancelled) return;
-        const blob = new Blob([decryptedData], { type: file.mimeType });
-        const url = URL.createObjectURL(blob);
-        decryptedUrlCache.set(file.url, url);
-        setDecryptedUrl(url);
-      } catch (err) {
-        console.error("[FileMessage] Image decryption failed:", err, {
-          fileName: file.name,
-          fileSize: file.size,
-          mimeType: file.mimeType,
-          participantCount: participantIds?.length,
-          chatId,
-        });
-        if (!cancelled) setLoadError(true);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
+    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId)
+      .then((url) => { if (!cancelled) setDecryptedUrl(url); })
+      .catch((err) => { console.error("[FileMessage]", err); if (!cancelled) setLoadError(true); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, file.name, file.size, participantIds, chatId]);
+  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId]);
 
   const handleDownload = useCallback(async () => {
-    let url = file.url;
-
-    if (file.encrypted && participantIds && chatId) {
-      const cached = decryptedUrlCache.get(file.url);
-      if (cached) {
-        url = cached;
-      } else {
-        setIsLoading(true);
-        try {
-          const encryptedData = await fetchWithRetry(file.url);
-          const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
-          const blob = new Blob([decryptedData], { type: file.mimeType });
-          url = URL.createObjectURL(blob);
-          decryptedUrlCache.set(file.url, url);
-        } catch (err) {
-          console.error("[FileMessage] File decryption failed:", err, {
-            fileName: file.name,
-            fileSize: file.size,
-            mimeType: file.mimeType,
-          });
-          setIsLoading(false);
-          return;
-        }
-        setIsLoading(false);
+    setIsLoading(true);
+    try {
+      let url = file.url;
+      if (file.encrypted && participantIds && chatId) {
+        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId);
       }
-    }
 
-    downloadBlob(url, file.name, file.mimeType);
+      // PDFs and docs: open in new tab (works in Telegram WebView)
+      if (file.mimeType === "application/pdf" || file.mimeType.startsWith("text/")) {
+        window.open(url, "_blank");
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error("[FileMessage] download:", err);
+    }
+    setIsLoading(false);
   }, [file, participantIds, chatId]);
 
   if (loadError) {
@@ -194,36 +145,28 @@ export default function FileMessage({
     );
   }
 
-  // Image message
   if (isImage) {
     return (
       <>
         <div ref={containerRef} className="max-w-[220px] rounded-lg overflow-hidden">
-          {!decryptedUrl && !loadError ? (
+          {!decryptedUrl ? (
             <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg">
               <Icon icon="solar:gallery-bold" className="w-6 h-6 text-muted-foreground/50 animate-pulse" />
             </div>
-          ) : decryptedUrl ? (
+          ) : (
             <button onClick={() => setShowLightbox(true)} className="block w-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={decryptedUrl}
                 alt={file.name}
                 className="w-full rounded-lg object-cover max-h-[300px]"
-                style={file.width && file.height ? {
-                  aspectRatio: `${file.width} / ${file.height}`,
-                } : undefined}
+                style={file.width && file.height ? { aspectRatio: `${file.width} / ${file.height}` } : undefined}
               />
             </button>
-          ) : (
-            <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg">
-              <Icon icon="solar:gallery-bold" className="w-6 h-6 text-muted-foreground/50" />
-            </div>
           )}
           <p className="text-[10px] text-muted-foreground/60 mt-1 truncate">{file.name}</p>
         </div>
 
-        {/* Lightbox */}
         {showLightbox && decryptedUrl && (
           <div
             className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
@@ -248,7 +191,6 @@ export default function FileMessage({
     );
   }
 
-  // Non-image file message
   return (
     <button
       onClick={handleDownload}
@@ -266,9 +208,7 @@ export default function FileMessage({
       </div>
       <div className="flex-1 min-w-0 text-left">
         <p className="text-xs font-medium text-white truncate">{file.name}</p>
-        <p className="text-[10px] text-muted-foreground/70">
-          {formatFileSize(file.size)}
-        </p>
+        <p className="text-[10px] text-muted-foreground/70">{formatFileSize(file.size)}</p>
       </div>
       {isLoading ? (
         <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted-foreground/50 shrink-0 animate-spin" />

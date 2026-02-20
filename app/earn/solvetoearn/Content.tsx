@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { dbfs } from "@/app/(firebase)/client";
@@ -25,9 +25,8 @@ const SolveToEarnContent = () => {
 
   useTelegramCloseConfirmation();
 
-  // Reset scroll position and lock body scroll to prevent layout shifts
-  // Using useLayoutEffect ensures this happens before the browser paints
-  useLayoutEffect(() => {
+  // Reset scroll position and lock body scroll
+  useEffect(() => {
     window.scrollTo(0, 0);
     document.body.style.overflow = "hidden";
     return () => {

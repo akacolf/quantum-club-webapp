@@ -14,22 +14,7 @@ interface VoiceMessageProps {
   chatId?: string;
 }
 
-// Cache decrypted blob URLs to avoid re-decrypting on replay
 const decryptedUrlCache = new Map<string, string>();
-
-async function fetchWithRetry(url: string, retries = 2): Promise<ArrayBuffer> {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const response = await fetch(url, { mode: "cors", credentials: "omit" });
-      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-      return await response.arrayBuffer();
-    } catch (err) {
-      if (i === retries) throw err;
-      await new Promise(r => setTimeout(r, 500 * (i + 1)));
-    }
-  }
-  throw new Error("Fetch failed after retries");
-}
 
 export default function VoiceMessage({
   audioUrl,
@@ -58,23 +43,17 @@ export default function VoiceMessage({
           src = cached;
         } else {
           try {
-            const encryptedData = await fetchWithRetry(audioUrl);
+            const res = await fetch(audioUrl);
+            if (!res.ok) throw new Error(`${res.status}`);
+            const encryptedData = await res.arrayBuffer();
             if (cancelled) return;
-            if (encryptedData.byteLength < 28) {
-              console.error("[VoiceMessage] Encrypted data too small:", encryptedData.byteLength, "bytes");
-              throw new Error("Audio data too small");
-            }
             const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
             if (cancelled) return;
             const blob = new Blob([decryptedData], { type: "audio/webm" });
             src = URL.createObjectURL(blob);
             decryptedUrlCache.set(audioUrl, src);
           } catch (err) {
-            console.error("[VoiceMessage] Decryption failed:", err, {
-              urlLength: audioUrl?.length,
-              participantCount: participantIds?.length,
-              chatId,
-            });
+            console.error("[VoiceMessage] decrypt failed:", err);
             if (!cancelled) setLoadError(true);
             return;
           }

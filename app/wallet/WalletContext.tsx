@@ -113,10 +113,7 @@ const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const {telegramId} = useUserContext();
-  const [walletAddress, setWalletAddress] = useState(() => {
-    const wallet = typeof window !== "undefined" ? localStorage.getItem(`quantum_wallet_address_${telegramId}`) : "";
-    return wallet || ""; // Default to empty string if null
-  });
+  const [walletAddress, setWalletAddress] = useState("");
   const [tonBalance, setTonBalance] = useState("0");
   const [tonPrice, setTonPrice] = useState(0);
   const [tonUsdValue, setTonUsdValue] = useState("0.00");
@@ -127,13 +124,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [walletStatus, setWalletStatus] = useState("nonexist");
-  // TON Testnet mode
-  const [isTestnet, setIsTestnet] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("quantum_ton_testnet") === "true";
-    }
-    return DEFAULT_TESTNET;
-  });
+  const [isTestnet, setIsTestnet] = useState(DEFAULT_TESTNET);
       
   // Re-derive TON address when network changes
   const rederiveTonAddress = useCallback(async (testnet: boolean) => {
@@ -203,13 +194,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [rederiveTonAddress]);
 
   // Selected network for display
-  const [selectedNetwork, setSelectedNetworkState] = useState<ChainType>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("quantum_selected_network");
-      return (stored as ChainType) || "ton";
-    }
-    return "ton";
-  });
+  const [selectedNetwork, setSelectedNetworkState] = useState<ChainType>("ton");
 
   const setSelectedNetwork = useCallback((network: ChainType) => {
     setSelectedNetworkState(network);
@@ -236,69 +221,36 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingMultiChain, setIsLoadingMultiChain] = useState(false);
 
   // Multi-wallet support
-  const [storedWallets, setStoredWallets] = useState<StoredWallet[]>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(`quantum_wallets_${telegramId}`);
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch {
-          localStorage.removeItem(`quantum_wallets_${telegramId}`);
-          return [];
-        }
-      }
-      return [];
-    }
-    return [];
-  });
+  const [storedWallets, setStoredWallets] = useState<StoredWallet[]>([]);
+  const [activeWalletIndex, setActiveWalletIndex] = useState(0);
+  const [hiddenAssets, setHiddenAssets] = useState<string[]>([]);
+  const [hideBalance, setHideBalance] = useState(false);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [autoRefreshInterval, setAutoRefreshIntervalState] = useState(60);
 
-  const [activeWalletIndex, setActiveWalletIndex] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(`quantum_active_wallet_index_${telegramId}`);
-      return stored ? parseInt(stored) : 0;
-    }
-    return 0;
-  });
-
-  const [hiddenAssets, setHiddenAssets] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(`quantum_hidden_assets_${telegramId}`);
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch {
-          localStorage.removeItem(`quantum_hidden_assets_${telegramId}`);
-          return [];
-        }
-      }
-      return [];
-    }
-    return [];
-  });
-
-  const [hideBalance, setHideBalance] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("quantum_hide_balance") === "true";
-    }
-    return false;
-  });
-
-  // Auto-refresh settings
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("quantum_auto_refresh");
-      return stored !== "false"; // Default to true
-    }
-    return true;
-  });
-
-  const [autoRefreshInterval, setAutoRefreshIntervalState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("quantum_auto_refresh_interval");
-      return stored ? parseInt(stored) : 60; // Default 60 seconds
-    }
-    return 60;
-  });
+  // Hydrate all wallet settings from localStorage after mount
+  useEffect(() => {
+    if (!telegramId) return;
+    setWalletAddress(localStorage.getItem(`quantum_wallet_address_${telegramId}`) || "");
+    setIsTestnet(localStorage.getItem("quantum_ton_testnet") === "true");
+    const storedNetwork = localStorage.getItem("quantum_selected_network");
+    if (storedNetwork) setSelectedNetworkState(storedNetwork as ChainType);
+    setHideBalance(localStorage.getItem("quantum_hide_balance") === "true");
+    const storedAutoRefresh = localStorage.getItem("quantum_auto_refresh");
+    setAutoRefreshEnabled(storedAutoRefresh !== "false");
+    const storedInterval = localStorage.getItem("quantum_auto_refresh_interval");
+    if (storedInterval) setAutoRefreshIntervalState(parseInt(storedInterval));
+    const storedIdx = localStorage.getItem(`quantum_active_wallet_index_${telegramId}`);
+    if (storedIdx) setActiveWalletIndex(parseInt(storedIdx));
+    try {
+      const w = localStorage.getItem(`quantum_wallets_${telegramId}`);
+      if (w) setStoredWallets(JSON.parse(w));
+    } catch {}
+    try {
+      const h = localStorage.getItem(`quantum_hidden_assets_${telegramId}`);
+      if (h) setHiddenAssets(JSON.parse(h));
+    } catch {}
+  }, [telegramId]);
 
   const toggleAutoRefresh = useCallback(() => {
     setAutoRefreshEnabled(prev => {

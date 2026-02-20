@@ -21,33 +21,18 @@ const FrensContext = createContext<FrensContextType>({} as FrensContextType);
 });*/
 
 export const FrensProvider = ({ children }: { children: ReactNode }) => {
-  const [referralsContext, setReferralsContext] = useState<Referral[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedReferrals = sessionStorage.getItem("referrals");
-      if (savedReferrals) {
-        try {
-          return JSON.parse(savedReferrals);
-        } catch {
-          sessionStorage.removeItem("referrals");
-          return [];
-        }
-      }
-      return [];
-    }
-    return [];
-  });
+  const [referralsContext, setReferralsContext] = useState<Referral[]>([]);
+  const [referralsNum, setReferralNum] = useState(0);
 
-  const [referralsNum, setReferralNum] = useState(() => {
-    if (typeof window !== "undefined") {
-      const referralsNumValue = sessionStorage.getItem("Num");
-      if (referralsNumValue) {
-        return parseInt(referralsNumValue, 10) || 0;
-      } else {
-        return 0;
-      }
-    }
-    return 0;
-  });
+  // Hydrate from sessionStorage after mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("referrals");
+      if (saved) setReferralsContext(JSON.parse(saved));
+    } catch {}
+    const num = sessionStorage.getItem("Num");
+    if (num) setReferralNum(parseInt(num, 10) || 0);
+  }, []);
 
   useEffect(() => {
     const savedReferrals = sessionStorage.getItem("referrals");
