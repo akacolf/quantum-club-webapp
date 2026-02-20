@@ -55,6 +55,28 @@ function getFileIcon(mimeType: string): string {
   return "solar:file-bold";
 }
 
+/**
+ * Download a blob by opening it in a new tab (works in Telegram WebView).
+ * The standard <a download> approach doesn't work reliably in TMA WebViews.
+ */
+function downloadBlob(url: string, name: string, mimeType: string) {
+  // For PDFs and documents, open in a new tab so the user can save from there
+  if (mimeType === "application/pdf" || mimeType.startsWith("text/")) {
+    window.open(url, "_blank");
+    return;
+  }
+
+  // Try standard download first
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 export default function FileMessage({
   file,
   isMine,
@@ -115,7 +137,14 @@ export default function FileMessage({
         const url = URL.createObjectURL(blob);
         decryptedUrlCache.set(file.url, url);
         setDecryptedUrl(url);
-      } catch {
+      } catch (err) {
+        console.error("[FileMessage] Image decryption failed:", err, {
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.mimeType,
+          participantCount: participantIds?.length,
+          chatId,
+        });
         if (!cancelled) setLoadError(true);
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -123,7 +152,7 @@ export default function FileMessage({
     })();
 
     return () => { cancelled = true; };
-  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId]);
+  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, file.name, file.size, participantIds, chatId]);
 
   const handleDownload = useCallback(async () => {
     let url = file.url;
@@ -140,7 +169,12 @@ export default function FileMessage({
           const blob = new Blob([decryptedData], { type: file.mimeType });
           url = URL.createObjectURL(blob);
           decryptedUrlCache.set(file.url, url);
-        } catch {
+        } catch (err) {
+          console.error("[FileMessage] File decryption failed:", err, {
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.mimeType,
+          });
           setIsLoading(false);
           return;
         }
@@ -148,13 +182,7 @@ export default function FileMessage({
       }
     }
 
-    // Trigger download
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    downloadBlob(url, file.name, file.mimeType);
   }, [file, participantIds, chatId]);
 
   if (loadError) {
@@ -242,7 +270,11 @@ export default function FileMessage({
           {formatFileSize(file.size)}
         </p>
       </div>
-      <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+      {isLoading ? (
+        <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted-foreground/50 shrink-0 animate-spin" />
+      ) : (
+        <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+      )}
     </button>
   );
 }

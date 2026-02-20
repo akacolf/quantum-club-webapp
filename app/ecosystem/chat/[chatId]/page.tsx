@@ -693,6 +693,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
+        encVersion: 2,
       };
 
       // Add expiresAt if disappearing messages enabled
@@ -818,6 +819,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
+        encVersion: 2,
         type: "voice",
         voice: { url, durationSec, encrypted: true },
       };
@@ -949,6 +951,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
+        encVersion: 2,
         type: "file",
         file: {
           url,

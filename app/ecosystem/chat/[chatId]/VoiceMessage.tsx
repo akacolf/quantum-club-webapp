@@ -60,27 +60,23 @@ export default function VoiceMessage({
           try {
             const encryptedData = await fetchWithRetry(audioUrl);
             if (cancelled) return;
-            if (encryptedData.byteLength < 28) throw new Error("Audio data too small");
+            if (encryptedData.byteLength < 28) {
+              console.error("[VoiceMessage] Encrypted data too small:", encryptedData.byteLength, "bytes");
+              throw new Error("Audio data too small");
+            }
             const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
             if (cancelled) return;
             const blob = new Blob([decryptedData], { type: "audio/webm" });
             src = URL.createObjectURL(blob);
             decryptedUrlCache.set(audioUrl, src);
-          } catch {
-            // Retry with sorted participants (in case order differs)
-            try {
-              const sortedIds = [...participantIds].sort();
-              const encryptedData = await fetchWithRetry(audioUrl);
-              if (cancelled) return;
-              const decryptedData = await decryptBlob(encryptedData, sortedIds, chatId);
-              if (cancelled) return;
-              const blob = new Blob([decryptedData], { type: "audio/webm" });
-              src = URL.createObjectURL(blob);
-              decryptedUrlCache.set(audioUrl, src);
-            } catch {
-              if (!cancelled) setLoadError(true);
-              return;
-            }
+          } catch (err) {
+            console.error("[VoiceMessage] Decryption failed:", err, {
+              urlLength: audioUrl?.length,
+              participantCount: participantIds?.length,
+              chatId,
+            });
+            if (!cancelled) setLoadError(true);
+            return;
           }
         }
       }

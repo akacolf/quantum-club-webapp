@@ -168,7 +168,7 @@ const EcosystemNavigation = () => {
                     side="top"
                     align="start"
                     sideOffset={12}
-                    className="w-52 p-1.5 bg-[#1a1a1a] border-white/10 rounded-xl"
+                    className="w-52 p-1.5 bg-[#1a1a1a] border-white/10 rounded-xl ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
                   >
                     <button
                       onClick={() => { setTradePopoverOpen(false); router.push("/ecosystem/trade"); }}
