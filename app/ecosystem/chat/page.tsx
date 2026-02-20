@@ -154,7 +154,7 @@ function ChatListItem({
     // If it's actual encrypted ciphertext, decrypt it
     if (isEncryptedMessage(chat.lastMessage)) {
       let cancelled = false;
-      decryptMessage(chat.lastMessage, chat.participants, chat.id, chat.lastMessageBy).then((text) => {
+      decryptMessage(chat.lastMessage, chat.participants, chat.id, chat.lastMessageBy, chat.isGroup || chat.isGlobal).then((text) => {
         if (!cancelled) {
           // If decryption failed, show sender info instead of error
           if (text === "Unable to decrypt message") {
@@ -577,6 +577,14 @@ export default function QCChatListPage() {
     const displayName = getChatDisplayName(chat).toLowerCase();
     return displayName.includes(searchQuery.toLowerCase());
   });
+
+  // Prefetch chat routes for visible conversations
+  useEffect(() => {
+    filteredConversations.slice(0, 10).forEach((chat) => {
+      router.prefetch(`/ecosystem/chat/${chat.id}`);
+    });
+    if (globalChat) router.prefetch(`/ecosystem/chat/${GLOBAL_CHAT_ID}`);
+  }, [filteredConversations, globalChat, router]);
 
   // Show global chat in search results too
   const showGlobalChat =

@@ -67,6 +67,13 @@ const EcosystemNavigation = () => {
     return null;
   }
 
+  // Prefetch trade routes for popover
+  useEffect(() => {
+    router.prefetch("/ecosystem/trade");
+    router.prefetch("/ecosystem/trade/spot");
+    router.prefetch("/ecosystem/chat");
+  }, [router]);
+
   const getActiveTab = () => {
     for (const tab of navTabs) {
       if (pathname.startsWith(tab.href)) {

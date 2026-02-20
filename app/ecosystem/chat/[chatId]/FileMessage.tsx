@@ -23,6 +23,7 @@ interface FileMessageProps {
   participantIds?: string[];
   chatId?: string;
   senderId?: string;
+  isGroup?: boolean;
 }
 
 const decryptedUrlCache = new Map<string, string>();
@@ -47,6 +48,7 @@ async function fetchAndDecrypt(
   participantIds: string[],
   chatId: string,
   senderId?: string,
+  isGroup?: boolean,
 ): Promise<string> {
   const cached = decryptedUrlCache.get(url);
   if (cached) return cached;
@@ -54,7 +56,7 @@ async function fetchAndDecrypt(
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${res.status}`);
   const encryptedData = await res.arrayBuffer();
-  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId);
+  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId, isGroup);
   const blob = new Blob([decryptedData], { type: mimeType });
   const blobUrl = URL.createObjectURL(blob);
   decryptedUrlCache.set(url, blobUrl);
@@ -67,6 +69,7 @@ export default function FileMessage({
   participantIds,
   chatId,
   senderId,
+  isGroup,
 }: FileMessageProps) {
   const [decryptedUrl, setDecryptedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +80,7 @@ export default function FileMessage({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfScale, setPdfScale] = useState(1);
+  const pinchRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = file.mimeType.startsWith("image/");
@@ -114,20 +118,20 @@ export default function FileMessage({
     let cancelled = false;
     setIsLoading(true);
 
-    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId)
+    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup)
       .then((url) => { if (!cancelled) setDecryptedUrl(url); })
       .catch((err) => { console.error("[FileMessage]", err); if (!cancelled) setLoadError(true); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId, senderId]);
+  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId, senderId, isGroup]);
 
   const handleDownload = useCallback(async () => {
     setIsLoading(true);
     try {
       let url = file.url;
       if (file.encrypted && participantIds && chatId) {
-        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId);
+        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup);
       }
 
       if (file.mimeType === "application/pdf") {
@@ -146,7 +150,7 @@ export default function FileMessage({
       console.error("[FileMessage] download:", err);
     }
     setIsLoading(false);
-  }, [file, participantIds, chatId, senderId]);
+  }, [file, participantIds, chatId, senderId, isGroup]);
 
   if (loadError) {
     return (
@@ -232,8 +236,8 @@ export default function FileMessage({
 
       {showPdfViewer && pdfUrl && (
         <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
-          {/* Header with pt-16 to clear Telegram Mini App buttons */}
-          <div className="flex items-center justify-between px-4 pt-16 pb-3 bg-card/90 backdrop-blur-sm">
+          {/* Header with pt-20 to clear Telegram Mini App buttons */}
+          <div className="flex items-center justify-between px-4 pt-20 pb-3 bg-card/90 backdrop-blur-sm">
             <p className="text-sm font-medium text-white truncate flex-1 mr-3">{file.name}</p>
             <div className="flex items-center gap-1.5">
               <button
@@ -273,8 +277,28 @@ export default function FileMessage({
               </button>
             </div>
           </div>
-          {/* PDF pages rendered by react-pdf */}
-          <div className="flex-1 overflow-auto bg-neutral-200">
+          {/* PDF pages rendered by react-pdf — pinch to zoom */}
+          <div
+            className="flex-1 overflow-auto bg-neutral-200"
+            onTouchStart={(e) => {
+              if (e.touches.length === 2) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                pinchRef.current = Math.hypot(dx, dy);
+              }
+            }}
+            onTouchMove={(e) => {
+              if (e.touches.length === 2 && pinchRef.current > 0) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const dist = Math.hypot(dx, dy);
+                const delta = (dist - pinchRef.current) / 200;
+                setPdfScale((s) => Math.min(3, Math.max(0.5, s + delta)));
+                pinchRef.current = dist;
+              }
+            }}
+            onTouchEnd={() => { pinchRef.current = 0; }}
+          >
             <Document
               file={pdfUrl}
               onLoadSuccess={({ numPages: n }) => setNumPages(n)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -68,6 +68,12 @@ export default function GroupsPage() {
     const handleNavigateToCreate = useCallback(() => {
         router.push("/groups/create");
     }, [router]);
+
+    // Prefetch group routes
+    useEffect(() => {
+        groups.slice(0, 10).forEach((g) => router.prefetch(`/groups/${g.id}`));
+        router.prefetch("/groups/create");
+    }, [groups, router]);
 
     if (loading) {
         return <Loader />;
