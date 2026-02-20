@@ -462,12 +462,12 @@ export default function ChatConversationPage() {
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, participants, chatId);
+            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId);
           }
           // Decrypt reply preview if present
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
-            const decryptedReply = await decryptMessage(replyData.text, participants, chatId);
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId);
             replyData = { ...replyData, text: decryptedReply };
           }
           return {
@@ -586,11 +586,11 @@ export default function ChatConversationPage() {
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, participants, chatId);
+            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId);
           }
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
-            const decryptedReply = await decryptMessage(replyData.text, participants, chatId);
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId);
             replyData = { ...replyData, text: decryptedReply };
           }
           return {
@@ -684,7 +684,7 @@ export default function ChatConversationPage() {
     try {
       // Use participantsRef for latest participants
       const participants = participantsRef.current;
-      const encryptedText = await encryptMessage(text, participants, chatId);
+      const encryptedText = await encryptMessage(text, participants, chatId, telegramId);
 
       // Build message doc
       const messageDoc: Record<string, unknown> = {
@@ -693,7 +693,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 2,
+        encVersion: 3,
       };
 
       // Add expiresAt if disappearing messages enabled
@@ -706,7 +706,7 @@ export default function ChatConversationPage() {
         const replyText = currentReply.text.length > 80
           ? currentReply.text.slice(0, 80) + "…"
           : currentReply.text;
-        const encryptedReplyText = await encryptMessage(replyText, participants, chatId);
+        const encryptedReplyText = await encryptMessage(replyText, participants, chatId, telegramId);
         messageDoc.replyTo = {
           id: currentReply.id,
           text: encryptedReplyText,
@@ -791,7 +791,7 @@ export default function ChatConversationPage() {
 
       // Encrypt the audio blob before uploading
       const audioBuffer = await blob.arrayBuffer();
-      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId);
+      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId, telegramId);
       const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
 
       const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.enc.webm`);
@@ -811,7 +811,7 @@ export default function ChatConversationPage() {
       const url = await getDownloadURL(fileRef);
 
       const previewText = "🎤 Voice message";
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -819,7 +819,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 2,
+        encVersion: 3,
         type: "voice",
         voice: { url, durationSec, encrypted: true },
       };
@@ -910,7 +910,7 @@ export default function ChatConversationPage() {
 
       // Read file and encrypt
       const fileBuffer = await file.arrayBuffer();
-      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId);
+      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId, telegramId);
       const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
 
       // Get image dimensions if applicable
@@ -943,7 +943,7 @@ export default function ChatConversationPage() {
 
       const isImage = file.type.startsWith("image/");
       const previewText = isImage ? "Sent an image" : `Sent a file`;
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -951,7 +951,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 2,
+        encVersion: 3,
         type: "file",
         file: {
           url,
@@ -1028,7 +1028,7 @@ export default function ChatConversationPage() {
     try {
       const participants = participantsRef.current;
       const previewText = `Sent ${amount} TON`;
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -1036,6 +1036,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
+        encVersion: 3,
         type: "transfer",
         transfer: {
           amount,
@@ -1225,7 +1226,7 @@ export default function ChatConversationPage() {
       setIsForwarding(true);
       try {
         const destParticipants: string[] = destChat.participants || [];
-        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id);
+        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId);
         const senderName = qcUsername || "Unknown";
 
         const fwdDoc: Record<string, unknown> = {
@@ -1234,6 +1235,7 @@ export default function ChatConversationPage() {
           senderId: telegramId,
           createdAt: serverTimestamp(),
           encrypted: true,
+          encVersion: 3,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
 
@@ -2107,6 +2109,7 @@ export default function ChatConversationPage() {
                         encrypted={msg.voice.encrypted}
                         participantIds={chatMeta?.participants}
                         chatId={chatId}
+                        senderId={msg.senderId}
                       />
                     ) : msg.type === "poll" && msg.poll ? (
                       <PollMessage
@@ -2122,6 +2125,7 @@ export default function ChatConversationPage() {
                         isMine={isOwnMessage}
                         participantIds={chatMeta?.participants}
                         chatId={chatId}
+                        senderId={msg.senderId}
                       />
                     ) : msg.type === "transfer" && msg.transfer ? (
                       <TransferMessage

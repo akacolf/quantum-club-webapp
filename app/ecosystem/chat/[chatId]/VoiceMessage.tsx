@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { decryptBlob } from "@/lib/chat-crypto";
@@ -12,6 +12,7 @@ interface VoiceMessageProps {
   encrypted?: boolean;
   participantIds?: string[];
   chatId?: string;
+  senderId?: string;
 }
 
 const decryptedUrlCache = new Map<string, string>();
@@ -23,6 +24,7 @@ export default function VoiceMessage({
   encrypted,
   participantIds,
   chatId,
+  senderId,
 }: VoiceMessageProps) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -30,6 +32,17 @@ export default function VoiceMessage({
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const rafRef = useRef<number>(0);
+
+  // RAF-based progress loop for smooth updates
+  const updateProgress = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && !audio.paused && audio.duration && isFinite(audio.duration)) {
+      setProgress(audio.currentTime / audio.duration);
+      setCurrentTime(audio.currentTime);
+    }
+    rafRef.current = requestAnimationFrame(updateProgress);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +60,7 @@ export default function VoiceMessage({
             if (!res.ok) throw new Error(`${res.status}`);
             const encryptedData = await res.arrayBuffer();
             if (cancelled) return;
-            const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
+            const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId);
             if (cancelled) return;
             const blob = new Blob([decryptedData], { type: "audio/webm" });
             src = URL.createObjectURL(blob);
@@ -70,17 +83,11 @@ export default function VoiceMessage({
         if (!cancelled) setReady(true);
       });
 
-      audio.addEventListener("timeupdate", () => {
-        if (audio.duration && isFinite(audio.duration)) {
-          setProgress(audio.currentTime / audio.duration);
-          setCurrentTime(audio.currentTime);
-        }
-      });
-
       audio.addEventListener("ended", () => {
         setPlaying(false);
         setProgress(0);
         setCurrentTime(0);
+        cancelAnimationFrame(rafRef.current);
       });
 
       if (!cancelled) setReady(true);
@@ -90,12 +97,13 @@ export default function VoiceMessage({
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(rafRef.current);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = "";
       }
     };
-  }, [audioUrl, encrypted, participantIds, chatId]);
+  }, [audioUrl, encrypted, participantIds, chatId, senderId]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -104,9 +112,11 @@ export default function VoiceMessage({
     if (playing) {
       audio.pause();
       setPlaying(false);
+      cancelAnimationFrame(rafRef.current);
     } else {
       audio.play().catch(() => {});
       setPlaying(true);
+      rafRef.current = requestAnimationFrame(updateProgress);
     }
   };
 
@@ -151,7 +161,7 @@ export default function VoiceMessage({
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <div className="w-full h-1 rounded-full bg-muted-foreground/20 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-100 ${
+            className={`h-full rounded-full ${
               isMine ? "bg-primary-foreground/70" : "bg-primary/60"
             }`}
             style={{ width: `${progress * 100}%` }}

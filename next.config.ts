@@ -118,6 +118,12 @@ const nextConfig: import('next').NextConfig = {
     ],
   },
 
+  // react-pdf needs canvas excluded from server bundle
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    return config;
+  },
+
   // Disable x-powered-by header for security
   poweredByHeader: false,
 };

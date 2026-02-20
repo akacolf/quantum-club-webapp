@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import { decryptBlob } from "@/lib/chat-crypto";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface FileMessageProps {
   file: {
@@ -17,6 +22,7 @@ interface FileMessageProps {
   isMine: boolean;
   participantIds?: string[];
   chatId?: string;
+  senderId?: string;
 }
 
 const decryptedUrlCache = new Map<string, string>();
@@ -40,6 +46,7 @@ async function fetchAndDecrypt(
   mimeType: string,
   participantIds: string[],
   chatId: string,
+  senderId?: string,
 ): Promise<string> {
   const cached = decryptedUrlCache.get(url);
   if (cached) return cached;
@@ -47,7 +54,7 @@ async function fetchAndDecrypt(
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${res.status}`);
   const encryptedData = await res.arrayBuffer();
-  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId);
+  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId);
   const blob = new Blob([decryptedData], { type: mimeType });
   const blobUrl = URL.createObjectURL(blob);
   decryptedUrlCache.set(url, blobUrl);
@@ -59,6 +66,7 @@ export default function FileMessage({
   isMine,
   participantIds,
   chatId,
+  senderId,
 }: FileMessageProps) {
   const [decryptedUrl, setDecryptedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +75,7 @@ export default function FileMessage({
   const [showLightbox, setShowLightbox] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [numPages, setNumPages] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = file.mimeType.startsWith("image/");
@@ -104,20 +113,20 @@ export default function FileMessage({
     let cancelled = false;
     setIsLoading(true);
 
-    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId)
+    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId)
       .then((url) => { if (!cancelled) setDecryptedUrl(url); })
       .catch((err) => { console.error("[FileMessage]", err); if (!cancelled) setLoadError(true); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId]);
+  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId, senderId]);
 
   const handleDownload = useCallback(async () => {
     setIsLoading(true);
     try {
       let url = file.url;
       if (file.encrypted && participantIds && chatId) {
-        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId);
+        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId);
       }
 
       if (file.mimeType === "application/pdf") {
@@ -136,7 +145,7 @@ export default function FileMessage({
       console.error("[FileMessage] download:", err);
     }
     setIsLoading(false);
-  }, [file, participantIds, chatId]);
+  }, [file, participantIds, chatId, senderId]);
 
   if (loadError) {
     return (
@@ -176,7 +185,7 @@ export default function FileMessage({
           >
             <button
               onClick={(e) => { e.stopPropagation(); setShowLightbox(false); }}
-              className="absolute top-14 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center z-10"
+              className="absolute top-20 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center z-10"
             >
               <Icon icon="lucide:x" className="w-5 h-5 text-white" />
             </button>
@@ -222,7 +231,8 @@ export default function FileMessage({
 
       {showPdfViewer && pdfUrl && (
         <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 bg-card/90 backdrop-blur-sm">
+          {/* Header with pt-12 to clear Telegram Mini App buttons */}
+          <div className="flex items-center justify-between px-4 pt-12 pb-3 bg-card/90 backdrop-blur-sm">
             <p className="text-sm font-medium text-white truncate flex-1 mr-3">{file.name}</p>
             <div className="flex items-center gap-2">
               <button
@@ -247,11 +257,35 @@ export default function FileMessage({
               </button>
             </div>
           </div>
-          <iframe
-            src={pdfUrl}
-            className="flex-1 w-full bg-white"
-            title={file.name}
-          />
+          {/* PDF pages rendered by react-pdf */}
+          <div className="flex-1 overflow-y-auto bg-neutral-200">
+            <Document
+              file={pdfUrl}
+              onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+              loading={
+                <div className="flex items-center justify-center py-20">
+                  <Icon icon="lucide:loader-2" className="w-8 h-8 text-neutral-400 animate-spin" />
+                </div>
+              }
+              error={
+                <div className="flex flex-col items-center justify-center py-20 gap-2">
+                  <Icon icon="solar:document-bold" className="w-8 h-8 text-neutral-400" />
+                  <p className="text-sm text-neutral-500">Could not load PDF</p>
+                </div>
+              }
+            >
+              {Array.from({ length: numPages }, (_, i) => (
+                <Page
+                  key={i}
+                  pageNumber={i + 1}
+                  width={Math.min(window.innerWidth, 448)}
+                  className="mb-2 mx-auto"
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                />
+              ))}
+            </Document>
+          </div>
         </div>
       )}
     </>

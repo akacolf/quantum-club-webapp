@@ -154,7 +154,7 @@ function ChatListItem({
     // If it's actual encrypted ciphertext, decrypt it
     if (isEncryptedMessage(chat.lastMessage)) {
       let cancelled = false;
-      decryptMessage(chat.lastMessage, chat.participants, chat.id).then((text) => {
+      decryptMessage(chat.lastMessage, chat.participants, chat.id, chat.lastMessageBy).then((text) => {
         if (!cancelled) {
           // If decryption failed, show sender info instead of error
           if (text === "Unable to decrypt message") {
