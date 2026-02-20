@@ -489,7 +489,7 @@ export default function ChatConversationPage() {
     }
   };
 
-  // Reaction toggle: add or remove reaction
+  
   const toggleReaction = useCallback(
     async (msgId: string, emojiKey: string) => {
       if (!telegramId || !chatId) return;

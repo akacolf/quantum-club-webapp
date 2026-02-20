@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/session";
+import { cookies } from "next/headers";
+import { decodeJwt } from "jose";
 
 // OFAC sanctioned countries (ISO 3166-1 alpha-2 codes)
 // This list should be kept up-to-date with current sanctions
@@ -54,7 +56,46 @@ export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname === "/unsupported-region") {
     return NextResponse.next();
   }
+  if (request.method === "POST") {
+    return NextResponse.next();
+  }
 
+  const cookieStore = await cookies();
+  const token = cookieStore.get("firebaseAuthToken")?.value;
+  const { pathname } = request.nextUrl;
+
+  if (
+    !token &&
+    (pathname.startsWith("/login") ||
+      pathname.startsWith("/signup"))
+  ) {
+    return NextResponse.next();
+  }
+  if (
+    token &&
+    (pathname.startsWith("/login"))
+  ) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  const decodedToken = decodeJwt(token);
+
+  if (decodedToken.exp && (decodedToken.exp - 300) * 1000 < Date.now()) {
+    return NextResponse.redirect(
+      new URL(
+        `/api/refresh-token?redirect=${encodeURIComponent(pathname)}`,
+        request.url
+      )
+    );
+  }
+
+  if (!decodedToken && pathname.startsWith("/home")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
   // Check for sanctioned countries on wallet routes and protected routes
   const isProtectedRoute = request.nextUrl.pathname.startsWith("/wallet") ||
                            request.nextUrl.pathname.startsWith("/home") ||
