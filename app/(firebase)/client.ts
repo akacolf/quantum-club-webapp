@@ -2,8 +2,6 @@ import { getApps, initializeApp } from "firebase/app";
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { Database, getDatabase } from "firebase/database";
-import { getAnalytics, Analytics } from "firebase/analytics";
-import { getPerformance, FirebasePerformance } from "firebase/performance";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -21,8 +19,6 @@ let auth: Auth;
 let dbfs: Firestore;
 let database: Database;
 let storage: FirebaseStorage;
-let analytics: Analytics | undefined;
-let perf: FirebasePerformance | undefined;
 
 if (!currentApps.length) {
   const app = initializeApp(firebaseConfig);
@@ -32,16 +28,49 @@ if (!currentApps.length) {
   });
   database = getDatabase(app);
   storage = getStorage(app);
-  analytics = typeof window !== "undefined" ? getAnalytics(app) : undefined;
-  perf = typeof window !== "undefined" ? getPerformance(app) : undefined;
 } else {
   const app = currentApps[0];
   auth = getAuth(app);
   dbfs = getFirestore(app);
   database = getDatabase(app);
   storage = getStorage(app);
-  analytics = getAnalytics(app);
-  perf = getPerformance(app);
 }
 
-export { auth, dbfs, database, storage, analytics, perf };
+// Lazy-load analytics and performance monitoring after initial paint
+let analyticsPromise: Promise<import("firebase/analytics").Analytics | undefined> | undefined;
+let perfPromise: Promise<import("firebase/performance").FirebasePerformance | undefined> | undefined;
+
+function initAnalyticsLazy() {
+  if (!analyticsPromise && typeof window !== "undefined") {
+    analyticsPromise = import("firebase/analytics").then(({ getAnalytics }) => {
+      const app = getApps()[0];
+      return app ? getAnalytics(app) : undefined;
+    }).catch(() => undefined);
+  }
+  return analyticsPromise;
+}
+
+function initPerfLazy() {
+  if (!perfPromise && typeof window !== "undefined") {
+    perfPromise = import("firebase/performance").then(({ getPerformance }) => {
+      const app = getApps()[0];
+      return app ? getPerformance(app) : undefined;
+    }).catch(() => undefined);
+  }
+  return perfPromise;
+}
+
+// Start lazy init after idle (non-blocking)
+if (typeof window !== "undefined") {
+  const startLazyInit = () => {
+    initAnalyticsLazy();
+    initPerfLazy();
+  };
+  if ("requestIdleCallback" in window) {
+    (window as any).requestIdleCallback(startLazyInit);
+  } else {
+    setTimeout(startLazyInit, 3000);
+  }
+}
+
+export { auth, dbfs, database, storage, initAnalyticsLazy, initPerfLazy };

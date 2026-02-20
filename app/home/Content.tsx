@@ -522,7 +522,7 @@ const HomeContent = () => {
 
 
             if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, `${rewardDay}`);
+              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
             }
             if (typeof window !== "undefined") {
               localStorage.setItem(`daily_${telegramId}`, "1");
@@ -573,7 +573,7 @@ const HomeContent = () => {
 
                 SetMainQuantAmount(formattedAmount);
                 if (typeof window !== "undefined") {
-                  localStorage.setItem(`QAmount_${telegramId}`, rewardDay);
+                  localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
                 }
                 setDaily(dailyDay + 1);
                 setTimeout(() => {
@@ -610,7 +610,7 @@ const HomeContent = () => {
 
                 SetMainQuantAmount(formattedAmount);
                 if (typeof window !== "undefined") {
-                  localStorage.setItem(`QAmount_${telegramId}`, rewardDay);
+                  localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
                 }
                 setDaily(1);
                 if (typeof window !== "undefined") {

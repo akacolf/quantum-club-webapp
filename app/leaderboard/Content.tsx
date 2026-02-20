@@ -29,27 +29,26 @@ const LeaderboardContent = () => {
 
   const formattedAmount = useCallback((total: number) => {
     const amount = total;
-    let totally: string = "";
     if (amount >= 100_000_000_000) {
-      return (totally = Math.round(amount / 1_000_000_000) + "B");
+      return Math.round(amount / 1_000_000_000) + "B";
     } else if (amount >= 10_000_000_000) {
-      return (totally = Math.round(amount / 1_000_000_000) + "B");
+      return Math.round(amount / 1_000_000_000) + "B";
     } else if (amount >= 1_000_000_000) {
-      return (totally = Math.round(amount / 1_000_000) + "M");
+      return Math.round(amount / 1_000_000) + "M";
     } else if (amount >= 100_000_000) {
-      return (totally = (amount / 1_000_000).toFixed(1) + "M");
+      return (amount / 1_000_000).toFixed(1) + "M";
     } else if (amount >= 10_000_000) {
-      return (totally = (amount / 1_000_000).toFixed(1) + "M");
+      return (amount / 1_000_000).toFixed(1) + "M";
     } else if (amount >= 1_000_000) {
-      return (totally = (amount / 1_000_000).toFixed(1) + "M");
+      return (amount / 1_000_000).toFixed(1) + "M";
     } else if (amount >= 100_000) {
-      return (totally = Math.round(amount / 1_000) + "K");
+      return Math.round(amount / 1_000) + "K";
     } else if (amount >= 10_000) {
-      return (totally = Math.round(amount / 1_000) + "K");
+      return Math.round(amount / 1_000) + "K";
     } else if (amount >= 1_000) {
-      return (totally = Math.round(amount / 1_000) + "K");
+      return Math.round(amount / 1_000) + "K";
     }
-    return totally;
+    return Math.round(amount).toLocaleString("en-US");
   }, []);
 
   useEffect(() => {

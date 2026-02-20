@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
+import { decrypt } from '@/utils/session';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -143,6 +144,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate session
+    const sessionCookie = request.cookies.get('session')?.value;
+    if (!sessionCookie) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CACHE_HEADERS });
+    }
+    try {
+      await decrypt(sessionCookie);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CACHE_HEADERS });
+    }
+
     // Rate limit
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(ip)) {
@@ -262,6 +274,17 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    // Validate session
+    const sessionCookie = request.cookies.get('session')?.value;
+    if (!sessionCookie) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CACHE_HEADERS });
+    }
+    try {
+      await decrypt(sessionCookie);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CACHE_HEADERS });
+    }
+
     // Rate limit
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(ip)) {

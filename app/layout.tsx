@@ -33,10 +33,16 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <link rel="preconnect" href="https://firestore.googleapis.com" />
+        <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
+        <link rel="preconnect" href="https://tonapi.io" />
+        <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+        <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+        <link rel="dns-prefetch" href="https://tonapi.io" />
       </head>
       <body className={`${onest.variable} antialiased`}>
-        <Script src="https://telegram.org/js/telegram-web-app.js?57"></Script>
-        <Script src="https://accounts.google.com/gsi/client" async defer></Script>
+        <Script src="https://telegram.org/js/telegram-web-app.js?57" strategy="beforeInteractive"></Script>
+        <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload"></Script>
         <AuthProvider>
         <ClientProviders>
           <div className="flex justify-center min-h-screen bg-neutral-100 dark:bg-neutral-900">

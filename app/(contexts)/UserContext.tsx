@@ -1,5 +1,7 @@
 "use client";
-import React, { createContext, useState, useContext, ReactNode, useMemo } from "react";
+import React, { createContext, useState, useContext, useEffect, useRef, ReactNode, useMemo } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { dbfs } from "@/app/(firebase)/client";
 
 interface UserContextType {
   username: string | null;
@@ -33,87 +35,69 @@ interface UserContextType {
 const userContext = createContext<UserContextType>({} as UserContextType);
 
 export const UserDataProvider = ({ children }: { children: ReactNode }) => {
-  const [username, setUsername] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("username");
-    }
-    return null;
-  });
-
-  const [telegramId, setTelegramId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("telegramId");
-    }
-    return null;
-  });
-
+  const [username, setUsername] = useState<string | null>(null);
+  const [telegramId, setTelegramId] = useState<string | null>(null);
   const [jointext, setJoinButtonText] = useState("Join");
   const [miningActive, setMiningActive] = useState(false);
-  
-  const [lastActiveTime, setLastActiveTime] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("lastactivetime");
-    }
-    return null;
-  });
+  const [lastActiveTime, setLastActiveTime] = useState<string | null>(null);
+  const [MainQuantAmount, SetMainQuantAmount] = useState<string>("0");
+  const [rank, setRank] = useState<string | null>(null);
+  const [telegramIdNM, setTelegramIdNm] = useState<string | null>(null);
+  const [daily, setDaily] = useState<number>(0);
+  const [remainingSolveToEarn, setRemainingSolveToEarn] = useState<number>(0);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [qcUsername, setQcUsername] = useState<string | null>(null);
+  const [miningTimestamp, setMiningTimestamp] = useState<string | null>(null);
 
-  const [MainQuantAmount, SetMainQuantAmount] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const amount = localStorage.getItem(`QAmount`+`_${telegramId}`);
-      return amount ? `${amount}` : "0";
-    }
-    return "0";
-  });
+  // Hydrate from localStorage after mount (prevents SSR mismatch)
+  useEffect(() => {
+    const tid = localStorage.getItem("telegramId");
+    setUsername(localStorage.getItem("username"));
+    setTelegramId(tid);
+    setLastActiveTime(localStorage.getItem("lastactivetime"));
+    setTelegramIdNm(localStorage.getItem("telegramIdNM"));
+    setMiningTimestamp(localStorage.getItem("miningTime"));
+    setWalletAddress(localStorage.getItem(`walletAddress_${tid}`));
+    setQcUsername(localStorage.getItem(`qcUsername_${tid}`));
+    setRank(localStorage.getItem(`rank_${tid}`));
+    setRemainingSolveToEarn(Number(sessionStorage.getItem("remainingSolveToEarn")) || 0);
 
-  const [rank, setRank] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(`rank_${telegramId}`);
-    }
-    return null;
-  });
+    const dailyVal = localStorage.getItem(`daily_${tid}`);
+    setDaily(dailyVal ? parseFloat(dailyVal) : 0);
 
-  const [telegramIdNM, setTelegramIdNm] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("telegramIdNM");
+    const amount = localStorage.getItem(`QAmount_${tid}`);
+    if (amount) {
+      const num = Number(amount.replace(/,/g, ""));
+      SetMainQuantAmount(isNaN(num) ? amount : num.toLocaleString("en-US", { maximumFractionDigits: 0 }));
     }
-    return null;
-  });
+  }, []);
 
-  const [daily, setDaily] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const dailyValue = localStorage.getItem(`daily_${telegramId}`);
-      return dailyValue ? parseFloat(dailyValue) : 0;
-    }
-    return 0;
-  });
+  // Real-time Firestore listener for QuantAmount — keeps balance always up to date
+  const quantListenerRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!telegramId) return;
+    // Clean up previous listener
+    if (quantListenerRef.current) quantListenerRef.current();
 
-  const [remainingSolveToEarn, setRemainingSolveToEarn] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      return Number(sessionStorage.getItem("remainingSolveToEarn")) || 0;
-    }
-    return 0;
-  });
+    const valueRef = doc(dbfs, "user", telegramId, "miningData", "values");
+    const unsub = onSnapshot(valueRef, (snap) => {
+      if (!snap.exists()) return;
+      const raw = snap.data()?.QuantAmount;
+      if (raw == null) return;
+      const num = Number(raw);
+      if (isNaN(num)) return;
+      const formatted = num.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      SetMainQuantAmount(formatted);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`QAmount_${telegramId}`, formatted);
+      }
+    }, () => {
+      // Silently ignore snapshot errors (permission denied, etc.)
+    });
+    quantListenerRef.current = unsub;
+    return () => unsub();
+  }, [telegramId]);
 
-  const [walletAddress, setWalletAddress] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(`walletAddress_${telegramId}`);
-    }
-    return null;
-  });
-
-  const [qcUsername, setQcUsername] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(`qcUsername_${telegramId}`);
-    }
-    return null;
-  });
-
-  const [miningTimestamp, setMiningTimestamp] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("miningTime");
-    }
-    return null;
-  });
   const resetContext = () => {
     setUsername(null);
     setTelegramId(null);

@@ -65,24 +65,24 @@ export default function ProfilePage() {
         const fetchData = async () => {
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
 
-            // Set display name from Telegram or context
-            if (tgUser?.username) {
+            // Prefer DB-stored username (works for email login from different TG account)
+            if (username) {
+                setDisplayName(username);
+            } else if (tgUser?.username) {
                 setDisplayName(tgUser.username);
             } else if (tgUser?.first_name) {
                 setDisplayName(tgUser.first_name);
-            } else if (username) {
-                setDisplayName(username);
             }
 
-            // Fetch photo
+            // Fetch photo — use DB telegramId as fallback
             if (tgUser?.photo_url) {
                 setPhotoUrl(tgUser.photo_url);
-            } else if (tgUser?.id) {
+            } else if (telegramId) {
                 try {
                     const res = await fetch('/api/get-profile-photo', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ telegramId: tgUser.id })
+                        body: JSON.stringify({ telegramId })
                     });
                     const data = await res.json();
                     setPhotoUrl(data.photoUrl);

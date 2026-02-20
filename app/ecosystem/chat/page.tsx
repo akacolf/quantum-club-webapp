@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -154,7 +154,7 @@ function ChatListItem({
     // If it's actual encrypted ciphertext, decrypt it
     if (isEncryptedMessage(chat.lastMessage)) {
       let cancelled = false;
-      decryptMessage(chat.lastMessage, chat.participants, chat.id).then((text) => {
+      decryptMessage(chat.lastMessage, chat.participants, chat.id, chat.lastMessageBy, chat.isGroup || chat.isGlobal).then((text) => {
         if (!cancelled) {
           // If decryption failed, show sender info instead of error
           if (text === "Unable to decrypt message") {
@@ -240,7 +240,17 @@ function ChatListItem({
             {isLastMsgByMe && chat.lastMessageBy !== "system" && (
               <span className="text-foreground/50">You: </span>
             )}
-            {previewText}
+            {previewText.startsWith("📊") ? (
+              <>
+                <Icon icon="mdi:poll" className="w-3.5 h-3.5 shrink-0 inline-block align-text-bottom" />
+                <span>{" "}{previewText.slice(2)}</span>
+              </>
+            ) : previewText.startsWith("🎤") ? (
+              <>
+                <Icon icon="material-symbols:mic" className="w-3.5 h-3.5 shrink-0 inline-block align-text-bottom" />
+                <span>{" "}{previewText.slice(2)}</span>
+              </>
+            ) : previewText}
           </p>
         </div>
       </div>
@@ -327,19 +337,86 @@ export default function QCChatListPage() {
     }
   };
 
-  // Handle deep link join: startapp=join_JOINCODE
+  // Handle deep links: startapp=join_JOINCODE or startapp=chat_CHATID
+  const deepLinkHandledRef = useRef(false);
   useEffect(() => {
-    if (!currentUser || !telegramId || !qcUsername) return;
+    if (!currentUser || !telegramId || !qcUsername || deepLinkHandledRef.current) return;
     try {
       const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-      if (!startParam || !startParam.startsWith("join_")) return;
+      if (!startParam) return;
+
+      // Handle chat deep link: navigate directly to chat
+      if (startParam.startsWith("chat_")) {
+        deepLinkHandledRef.current = true;
+        const targetChatId = startParam.replace("chat_", "");
+        if (targetChatId) {
+          router.push(`/ecosystem/chat/${targetChatId}`);
+        }
+        return;
+      }
+
+      if (!startParam.startsWith("join_")) return;
       const code = startParam.replace("join_", "").toUpperCase();
       if (!code) return;
-      // Auto-fill join form
-      setJoinCode(code);
-      setFormMode("join");
+      deepLinkHandledRef.current = true;
+
+      // Auto-join: directly execute the join logic
+      (async () => {
+        setIsStartingChat(true);
+        try {
+          // Check if already in the group
+          const localMatch = conversations.find(
+            (c) => c.joinCode?.toUpperCase() === code
+          );
+          if (localMatch) {
+            router.push(`/ecosystem/chat/${localMatch.id}`);
+            return;
+          }
+
+          const chatsRef = collection(dbfs, "qc-chats");
+          const { getDocs, query: fsQuery } = await import("firebase/firestore");
+          const q = fsQuery(chatsRef, where("joinCode", "==", code));
+          const snap = await getDocs(q);
+
+          if (snap.empty) return;
+
+          const groupDoc = snap.docs[0];
+          const groupData = groupDoc.data();
+
+          // Check if user is banned
+          if (groupData.bannedUsers?.includes(telegramId)) {
+            setFormError("You are banned from this group.");
+            setFormMode("join");
+            return;
+          }
+
+          if (groupData.participants?.includes(telegramId)) {
+            router.push(`/ecosystem/chat/${groupDoc.id}`);
+            return;
+          }
+
+          const selfDisplayName = qcUsername?.replace(/^@+/, "").trim() || "Unknown";
+
+          await updateDoc(doc(dbfs, "qc-chats", groupDoc.id), {
+            participants: arrayUnion(telegramId),
+            [`participantNames.${telegramId}`]: selfDisplayName,
+            lastMessage: `${selfDisplayName} joined the group`,
+            lastMessageBy: "system",
+            lastMessageAt: serverTimestamp(),
+          });
+
+          router.push(`/ecosystem/chat/${groupDoc.id}`);
+        } catch (err) {
+          console.error("Deep link auto-join failed:", err);
+          // Fallback: show join form with pre-filled code
+          setJoinCode(code);
+          setFormMode("join");
+        } finally {
+          setIsStartingChat(false);
+        }
+      })();
     } catch {}
-  }, [currentUser, telegramId, qcUsername]);
+  }, [currentUser, telegramId, qcUsername, conversations, router]);
 
   // Sync wallet address to QC username if missing
   useEffect(() => {
@@ -500,6 +577,14 @@ export default function QCChatListPage() {
     const displayName = getChatDisplayName(chat).toLowerCase();
     return displayName.includes(searchQuery.toLowerCase());
   });
+
+  // Prefetch chat routes for visible conversations
+  useEffect(() => {
+    filteredConversations.slice(0, 10).forEach((chat) => {
+      router.prefetch(`/ecosystem/chat/${chat.id}`);
+    });
+    if (globalChat) router.prefetch(`/ecosystem/chat/${GLOBAL_CHAT_ID}`);
+  }, [filteredConversations, globalChat, router]);
 
   // Show global chat in search results too
   const showGlobalChat =
@@ -698,6 +783,12 @@ export default function QCChatListPage() {
 
       const groupDoc = snap.docs[0];
       const groupData = groupDoc.data();
+
+      // Check if user is banned
+      if (groupData.bannedUsers?.includes(telegramId)) {
+        setFormError("You are banned from this group.");
+        return;
+      }
 
       if (groupData.participants?.includes(telegramId)) {
         setFormMode("none");

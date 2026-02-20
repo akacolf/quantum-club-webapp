@@ -695,7 +695,7 @@ export function formatPrice(price: string | number | bigint): string {
             : price;
 
     if (num === 0) return "0";
-    if (num < 0.00000001) return num.toExponential(2);
+    if (num < 0.00000001) return num.toFixed(10);
     if (num < 0.0001) return num.toFixed(8);
     if (num < 0.01) return num.toFixed(6);
     if (num < 1) return num.toFixed(4);

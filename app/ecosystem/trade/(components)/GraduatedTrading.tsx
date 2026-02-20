@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,25 +10,70 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Token } from "@/types/trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
-import { simulateSwap, toUnits, fromUnits } from "@/lib/stonfi";
+import { simulateSwap, toUnits, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
+import { useOmnistonSwap, type QuoteParams } from "@/app/wallet/swap/hooks/useOmnistonSwap";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { Cell } from "@ton/core";
+import { dbfs } from "@/app/(firebase)/client";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 interface GraduatedTradingProps {
     token: Token;
 }
 
 export default function GraduatedTrading({ token }: GraduatedTradingProps) {
-    const { tonBalance } = useWallet();
+    const { tonBalance, walletAddress, sendTransaction } = useWallet();
     const [activeTab, setActiveTab] = useState("buy");
     const [amount, setAmount] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [isExecuting, setIsExecuting] = useState(false);
     const [preview, setPreview] = useState<{
         receiveAmount: string;
         priceImpact: string;
         rate: string;
     } | null>(null);
+    const [simLoading, setSimLoading] = useState(false);
 
-    // Simulate swap when amount changes
+    // Build Omniston quote params
+    const [quoteParams, setQuoteParams] = useState<QuoteParams | null>(null);
+
+    useEffect(() => {
+        if (!amount || parseFloat(amount) <= 0 || !token.jettonMasterAddress) {
+            setQuoteParams(null);
+            return;
+        }
+
+        const isBuying = activeTab === "buy";
+        const units = toUnits(amount, 9);
+
+        const referralAddress = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
+
+        const timer = setTimeout(() => {
+            setQuoteParams({
+                fromAsset: isBuying
+                    ? { address: TON_ADDRESS, blockchain: 607, kind: "Ton", symbol: "TON", displayName: "Toncoin", decimals: 9 }
+                    : { address: token.jettonMasterAddress!, blockchain: 607, kind: "Jetton", symbol: token.symbol || "???", displayName: token.name || "Token", decimals: 9 },
+                toAsset: isBuying
+                    ? { address: token.jettonMasterAddress!, blockchain: 607, kind: "Jetton", symbol: token.symbol || "???", displayName: token.name || "Token", decimals: 9 }
+                    : { address: TON_ADDRESS, blockchain: 607, kind: "Ton", symbol: "TON", displayName: "Toncoin", decimals: 9 },
+                amount: units,
+                ...(referralAddress ? { referrerAddress: referralAddress, referrerFeeBps: 10 } : {}),
+            });
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [amount, activeTab, token.jettonMasterAddress, token.symbol, token.name]);
+
+    // Omniston real-time quotes
+    const {
+        quote,
+        isQuoting,
+        quoteError,
+        resolverName,
+        buildAndExecute,
+        isBuilding,
+    } = useOmnistonSwap({ params: quoteParams, enabled: !!quoteParams });
+
+    // Simulation preview (quick estimate while Omniston streams)
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0 || !token.jettonMasterAddress) {
             setPreview(null);
@@ -37,15 +82,10 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
 
         const simulate = async () => {
             try {
-                setIsLoading(true);
+                setSimLoading(true);
                 const isBuying = activeTab === "buy";
-                const offerAddress = isBuying
-                    ? "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" // TON
-                    : token.jettonMasterAddress!;
-                const askAddress = isBuying
-                    ? token.jettonMasterAddress!
-                    : "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"; // TON
-
+                const offerAddress = isBuying ? TON_ADDRESS : token.jettonMasterAddress!;
+                const askAddress = isBuying ? token.jettonMasterAddress! : TON_ADDRESS;
                 const units = toUnits(amount, 9);
                 const result = await simulateSwap(offerAddress, askAddress, units);
 
@@ -58,7 +98,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                 console.error("Simulation failed:", error);
                 setPreview(null);
             } finally {
-                setIsLoading(false);
+                setSimLoading(false);
             }
         };
 
@@ -66,34 +106,72 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
         return () => clearTimeout(debounce);
     }, [amount, activeTab, token.jettonMasterAddress]);
 
-    const handleTradeOnStonfi = () => {
-        // Build STON.fi URL with pre-filled swap parameters
-        const baseUrl = "https://app.ston.fi/swap";
-        const params = new URLSearchParams();
+    // Determine display values - prefer Omniston quote over simulation
+    const displayReceive = quote
+        ? fromUnits(quote.askUnits, 9)
+        : preview?.receiveAmount;
+    const displayImpact = preview?.priceImpact;
+    const isLoading = simLoading || isQuoting;
 
-        if (token.jettonMasterAddress) {
-            if (activeTab === "buy") {
-                // TON -> Token
-                params.set("ft", "TON");
-                params.set("tt", token.jettonMasterAddress);
-            } else {
-                // Token -> TON
-                params.set("ft", token.jettonMasterAddress);
-                params.set("tt", "TON");
-            }
-            if (amount) {
-                params.set("fa", amount);
-            }
+    const handleSwap = useCallback(async () => {
+        if (!quote || !walletAddress) {
+            toast.error("No quote available. Please try again.");
+            return;
         }
 
-        const url = `${baseUrl}?${params.toString()}`;
-        window.open(url, "_blank");
-        toast.success("Opening STON.fi...");
-    };
+        setIsExecuting(true);
+        try {
+            // Wrap WalletContext's sendTransaction for Omniston compatibility
+            const wrappedSendTx = async (params: { to: string; value: bigint; body: string }) => {
+                const bodyCell = params.body ? Cell.fromBoc(Buffer.from(params.body, "base64"))[0] : undefined;
+                const result = await sendTransaction({
+                    to: params.to,
+                    value: params.value.toString(),
+                    body: bodyCell,
+                });
+                if (!result.success) {
+                    throw new Error(result.error || "Transaction failed");
+                }
+            };
+
+            const quoteId = await buildAndExecute(quote, walletAddress, wrappedSendTx);
+
+            toast.success(activeTab === "buy" ? "Buy order executed!" : "Sell order executed!");
+
+            // Track the trade in Firestore
+            if (quoteId) {
+                try {
+                    await setDoc(doc(dbfs, "graduated-trades", quoteId), {
+                        tokenId: token.id,
+                        tokenSymbol: token.symbol,
+                        jettonMasterAddress: token.jettonMasterAddress,
+                        direction: activeTab,
+                        amountIn: quote.bidUnits,
+                        amountOut: quote.askUnits,
+                        walletAddress,
+                        resolverName: resolverName || "unknown",
+                        quoteId,
+                        timestamp: serverTimestamp(),
+                    });
+                } catch (trackErr) {
+                    console.warn("Failed to track graduated trade:", trackErr);
+                }
+            }
+
+            setAmount("");
+        } catch (error) {
+            console.error("Swap failed:", error);
+            toast.error(error instanceof Error ? error.message : "Swap failed. Please try again.");
+        } finally {
+            setIsExecuting(false);
+        }
+    }, [quote, walletAddress, buildAndExecute, sendTransaction, activeTab, token, resolverName]);
 
     const quickAmounts = activeTab === "buy"
         ? ["0.1", "0.5", "1", "5"]
         : ["25%", "50%", "75%", "MAX"];
+
+    const isBusy = isExecuting || isBuilding;
 
     return (
         <div className="space-y-4">
@@ -131,7 +209,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
             {/* DEX Trading Panel */}
             <Card className="bg-white/5 border-white/10 overflow-hidden">
                 <CardContent className="p-4">
-                    <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); setPreview(null); }}>
+                    <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); setPreview(null); setQuoteParams(null); }}>
                         <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
                             <TabsTrigger
                                 value="buy"
@@ -177,35 +255,53 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                                 </div>
                             </div>
 
-                            {preview && (
+                            {(displayReceive || quoteError) && (
                                 <div className="p-3 rounded-xl bg-white/5 space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">You Receive</span>
-                                        <span className="text-green-400 font-semibold">
-                                            ~{parseFloat(preview.receiveAmount).toLocaleString()} {token.symbol}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Price Impact</span>
-                                        <span className={parseFloat(preview.priceImpact) > 3 ? "text-red-400" : "text-muted-foreground"}>
-                                            {preview.priceImpact}%
-                                        </span>
-                                    </div>
+                                    {displayReceive && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">You Receive</span>
+                                            <span className="text-green-400 font-semibold">
+                                                ~{parseFloat(displayReceive).toLocaleString()} {token.symbol}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {displayImpact && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Price Impact</span>
+                                            <span className={parseFloat(displayImpact) > 3 ? "text-red-400" : "text-muted-foreground"}>
+                                                {displayImpact}%
+                                            </span>
+                                        </div>
+                                    )}
+                                    {resolverName && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Resolver</span>
+                                            <span className="text-muted-foreground">{resolverName}</span>
+                                        </div>
+                                    )}
+                                    {quoteError && !displayReceive && (
+                                        <p className="text-xs text-red-400">{quoteError}</p>
+                                    )}
                                 </div>
                             )}
 
                             <Button
-                                onClick={handleTradeOnStonfi}
-                                disabled={isLoading || !amount}
+                                onClick={handleSwap}
+                                disabled={isBusy || isLoading || !amount || !quote}
                                 className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold"
                             >
-                                {isLoading ? (
+                                {isBusy ? (
                                     <>
                                         <ButtonLoader />
-                                        <span className="ml-2">Processing...</span>
+                                        <span className="ml-2">Executing...</span>
+                                    </>
+                                ) : isLoading ? (
+                                    <>
+                                        <ButtonLoader />
+                                        <span className="ml-2">Getting quote...</span>
                                     </>
                                 ) : (
-                                    <>Buy on STON.fi</>
+                                    <>Buy {token.symbol}</>
                                 )}
                             </Button>
                         </TabsContent>
@@ -237,43 +333,58 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
                                 </div>
                             </div>
 
-                            {preview && (
+                            {(displayReceive || quoteError) && (
                                 <div className="p-3 rounded-xl bg-white/5 space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">You Receive</span>
-                                        <span className="text-green-400 font-semibold">
-                                            ~{parseFloat(preview.receiveAmount).toFixed(4)} TON
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Price Impact</span>
-                                        <span className={parseFloat(preview.priceImpact) > 3 ? "text-red-400" : "text-muted-foreground"}>
-                                            {preview.priceImpact}%
-                                        </span>
-                                    </div>
+                                    {displayReceive && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">You Receive</span>
+                                            <span className="text-green-400 font-semibold">
+                                                ~{parseFloat(displayReceive).toFixed(4)} TON
+                                            </span>
+                                        </div>
+                                    )}
+                                    {displayImpact && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Price Impact</span>
+                                            <span className={parseFloat(displayImpact) > 3 ? "text-red-400" : "text-muted-foreground"}>
+                                                {displayImpact}%
+                                            </span>
+                                        </div>
+                                    )}
+                                    {resolverName && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Resolver</span>
+                                            <span className="text-muted-foreground">{resolverName}</span>
+                                        </div>
+                                    )}
+                                    {quoteError && !displayReceive && (
+                                        <p className="text-xs text-red-400">{quoteError}</p>
+                                    )}
                                 </div>
                             )}
 
                             <Button
-                                onClick={handleTradeOnStonfi}
-                                disabled={isLoading || !amount}
+                                onClick={handleSwap}
+                                disabled={isBusy || isLoading || !amount || !quote}
                                 className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-bold"
                             >
-                                {isLoading ? (
+                                {isBusy ? (
                                     <>
                                         <ButtonLoader />
-                                        <span className="ml-2">Processing...</span>
+                                        <span className="ml-2">Executing...</span>
+                                    </>
+                                ) : isLoading ? (
+                                    <>
+                                        <ButtonLoader />
+                                        <span className="ml-2">Getting quote...</span>
                                     </>
                                 ) : (
-                                    <>Sell on STON.fi</>
+                                    <>Sell {token.symbol}</>
                                 )}
                             </Button>
                         </TabsContent>
                     </Tabs>
 
-                    <p className="text-[10px] text-center text-muted-foreground mt-4">
-                        Powered by STON.fi DEX • Standard DEX fees apply
-                    </p>
                 </CardContent>
             </Card>
         </div>

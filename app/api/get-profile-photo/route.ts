@@ -1,6 +1,7 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
+import { decrypt } from "@/utils/session";
 
 /**
  * API endpoint to fetch a Telegram user's profile photo.
@@ -8,6 +9,17 @@ import { NextRequest, NextResponse } from "next/server";
  * Returns the image as base64 data URI or null.
  */
 export async function POST(req: NextRequest) {
+    // Validate session
+    const sessionCookie = req.cookies.get("session")?.value;
+    if (!sessionCookie) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    try {
+        await decrypt(sessionCookie);
+    } catch {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const botToken = process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
         ? process.env.BOT_TOKEN
         : process.env.DEV_BOT_TOKEN;

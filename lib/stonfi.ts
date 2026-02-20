@@ -16,6 +16,8 @@ export interface SwapAsset {
     decimals: number;
     balance?: string;
     balanceUsd?: string;
+    dexPriceUsd?: string;
+    tags?: string[];
 }
 
 export interface SwapSimulation {
@@ -70,6 +72,8 @@ export async function fetchSwappableAssets(): Promise<SwapAsset[]> {
             displayName: asset.meta?.displayName || asset.meta?.symbol || "Unknown",
             imageUrl: asset.meta?.imageUrl,
             decimals: asset.meta?.decimals ?? 9,
+            dexPriceUsd: asset.dexPriceUsd ?? undefined,
+            tags: asset.tags ?? [],
         }));
 
         // Sort: TON first, then by symbol alphabetically
@@ -100,7 +104,9 @@ export async function simulateSwap(
     offerAddress: string,
     askAddress: string,
     offerUnits: string,
-    slippageTolerance: string = "0.01"
+    slippageTolerance: string = "0.01",
+    referralFeeBps: string = "10", // 0.1% referral fee (matches FEE_CONFIG.referralFeePercent)
+    referralAddress?: string // TON address to receive referral fees (set via NEXT_PUBLIC_PLATFORM_WALLET)
 ): Promise<SwapSimulation> {
     const client = createStonApiClient();
 
@@ -110,6 +116,8 @@ export async function simulateSwap(
             askAddress,
             offerUnits,
             slippageTolerance,
+            referralFeeBps,
+            ...(referralAddress ? { referralAddress } : {}),
         });
 
         return {

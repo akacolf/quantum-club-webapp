@@ -19,6 +19,22 @@ import { useDeviceDetection } from "./deviceDetection";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
+/** Resolve deep link destination from Telegram start_param */
+function getDeepLinkDestination(): string {
+  try {
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+    if (startParam?.startsWith("chat_")) {
+      const chatId = startParam.replace("chat_", "");
+      if (chatId) return `/ecosystem/chat/${chatId}`;
+    }
+    // join_ links need the chat list page to process (auto-join logic)
+    if (startParam?.startsWith("join_")) {
+      return "/ecosystem/chat";
+    }
+  } catch {}
+  return "/home";
+}
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,7 +72,7 @@ export default function Login() {
   useEffect(() => {
     if (!authContext?.authLoading && authContext?.currentUser && !hasRedirected.current) {
       hasRedirected.current = true;
-      router.replace("/home");
+      router.replace(getDeepLinkDestination());
     }
   }, [authContext?.currentUser, authContext?.authLoading, router]);
 
@@ -111,7 +127,7 @@ export default function Login() {
         }
       }
 
-      router.replace("/home");
+      router.replace(getDeepLinkDestination());
     } catch (err) {
       console.error("Login error:", err);
       if (err instanceof Error) {
@@ -227,7 +243,7 @@ export default function Login() {
           if (finalData.userRank != null) sessionStorage.setItem("userLeaderRank", String(finalData.userRank));
           setLastActiveTime(finalData.lastActiveTime);
           setRemainingSolveToEarn(finalData.remainingSolveToEarn);
-          router.replace("/home");
+          router.replace(getDeepLinkDestination());
         }
       } else {
         setError("Telegram WebApp is not available. Please open this app from Telegram.");

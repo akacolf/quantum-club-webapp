@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -23,6 +38,7 @@ import {
   encryptMessage,
   decryptMessage,
   isEncryptedMessage,
+  encryptBlob,
 } from "@/lib/chat-crypto";
 import {
   collection,
@@ -41,12 +57,23 @@ import {
   Timestamp,
   arrayUnion,
   arrayRemove,
+  limitToLast,
+  limit,
+  startAfter,
 } from "firebase/firestore";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/app/(firebase)/client";
+import ChatThemePicker from "./ChatThemePicker";
+import PollCreator from "./PollCreator";
+import PollMessage from "./PollMessage";
+import VoiceRecorder from "./VoiceRecorder";
+import VoiceMessage from "./VoiceMessage";
+import FileMessage from "./FileMessage";
+import GroupMembersPanel from "./GroupMembersPanel";
+import TransferMessage from "./TransferMessage";
+import TransferDrawer from "./TransferDrawer";
+import { useWallet } from "@/app/wallet/WalletContext";
+import { toast } from "sonner";
 
 interface ChatMessage {
   id: string;
@@ -66,6 +93,34 @@ interface ChatMessage {
     originalChatId: string;
   };
   expiresAt?: any;
+  type?: "text" | "poll" | "voice" | "transfer" | "file";
+  poll?: {
+    question: string;
+    options: string[];
+    votes: Record<string, string[]>;
+    createdBy: string;
+  };
+  voice?: {
+    url: string;
+    durationSec: number;
+    encrypted?: boolean;
+  };
+  file?: {
+    url: string;
+    name: string;
+    size: number;
+    mimeType: string;
+    encrypted?: boolean;
+    width?: number;
+    height?: number;
+  };
+  transfer?: {
+    amount: string;
+    senderAddress: string;
+    recipientAddress: string;
+    txHash?: string;
+    status: "sent" | "failed";
+  };
 }
 
 interface ChatMeta {
@@ -80,6 +135,8 @@ interface ChatMeta {
   typing?: Record<string, Timestamp>;
   pinnedMessage?: { id: string; senderName: string };
   disappearAfter?: number;
+  bannedUsers?: string[];
+  mutedUsers?: string[];
 }
 
 const TYPING_TIMEOUT_MS = 3000;
@@ -156,6 +213,10 @@ export default function ChatConversationPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
 
+  // Pagination state
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+
   // Reaction picker state
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   // Search state
@@ -172,13 +233,28 @@ export default function ChatConversationPage() {
   // Disappearing messages timer popover
   const [timerPopoverOpen, setTimerPopoverOpen] = useState(false);
 
+  // Chat theme/wallpaper
+  const [chatTheme, setChatTheme] = useState("");
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [showMembersPanel, setShowMembersPanel] = useState(false);
+
+  // Transfer state
+  const [showTransferDrawer, setShowTransferDrawer] = useState(false);
+  const [recipientWalletAddress, setRecipientWalletAddress] = useState<string | null>(null);
+
+  const { walletAddress, isTestnet } = useWallet();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isAtBottomRef = useRef(true);
+  const lastMessageIdRef = useRef<string | null>(null);
+  const initialLoadDoneRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
   const participantsRef = useRef<string[]>([]);
+  const isGroupRef = useRef(false);
 
   // Long-press & double-tap refs for reactions
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -189,6 +265,26 @@ export default function ChatConversationPage() {
   useEffect(() => {
     return () => {
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
+  // iOS keyboard: resize chat container when virtual keyboard opens/closes
+  const chatRootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      if (chatRootRef.current) {
+        chatRootRef.current.style.height = `${vv.height}px`;
+      }
+    };
+
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
     };
   }, []);
 
@@ -206,6 +302,13 @@ export default function ChatConversationPage() {
   const otherPresence = useUserPresence(
     !chatMeta?.isGroup && !chatMeta?.isGlobal ? otherParticipantId : null
   );
+
+  // Set current chat for presence tracking + mark as read
+  useEffect(() => {
+    if (!chatId) return;
+    const saved = localStorage.getItem(`chatTheme_${chatId}`);
+    if (saved) setChatTheme(saved);
+  }, [chatId]);
 
   // Set current chat for presence tracking + mark as read
   useEffect(() => {
@@ -242,7 +345,7 @@ export default function ChatConversationPage() {
 
   const scrollToBottom = useCallback((force = false) => {
     if (force || isAtBottomRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: force ? "auto" : "smooth" });
     }
   }, []);
 
@@ -255,6 +358,7 @@ export default function ChatConversationPage() {
         const data = snap.data();
         const participants = data.participants || [];
         participantsRef.current = participants;
+        isGroupRef.current = data.isGroup || data.isGlobal || false;
         setChatMeta({
           participants,
           participantNames: data.participantNames || {},
@@ -267,6 +371,8 @@ export default function ChatConversationPage() {
           typing: data.typing || {},
           pinnedMessage: data.pinnedMessage || undefined,
           disappearAfter: data.disappearAfter || 0,
+          bannedUsers: data.bannedUsers || [],
+          mutedUsers: data.mutedUsers || [],
         });
       }
     }, (error) => {
@@ -275,6 +381,25 @@ export default function ChatConversationPage() {
     });
     return () => unsub();
   }, [currentUser, chatId]);
+
+  // Resolve recipient's wallet address for DM transfers
+  useEffect(() => {
+    if (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId) return;
+    const recipientId = chatMeta.participants.find((p) => p !== telegramId);
+    if (!recipientId) return;
+
+    let cancelled = false;
+    fetch(`/api/qc-username?qcId=${encodeURIComponent(recipientId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.address) {
+          setRecipientWalletAddress(data.address);
+        }
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [chatMeta, telegramId]);
 
   // Subscribe to messages and decrypt them
   const isGroupChat = chatMeta?.isGroup || chatMeta?.isGlobal;
@@ -290,7 +415,7 @@ export default function ChatConversationPage() {
     if (!currentUser || !chatId || !messagesReady) return;
 
     const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"));
+    const q = query(messagesRef, orderBy("createdAt", "asc"), limitToLast(50));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       // Use participantsRef for latest participants (avoids stale closure)
@@ -307,6 +432,11 @@ export default function ChatConversationPage() {
         replyTo?: { id: string; text: string; senderName: string };
         forwarded?: { from: string; originalChatId: string };
         expiresAt?: any;
+        type?: string;
+        poll?: ChatMessage["poll"];
+        voice?: ChatMessage["voice"];
+        transfer?: ChatMessage["transfer"];
+        file?: ChatMessage["file"];
       }[] = [];
 
       snapshot.forEach((docSnap) => {
@@ -322,6 +452,11 @@ export default function ChatConversationPage() {
           replyTo: data.replyTo || undefined,
           forwarded: data.forwarded || undefined,
           expiresAt: data.expiresAt || undefined,
+          type: data.type || undefined,
+          poll: data.poll || undefined,
+          voice: data.voice || undefined,
+          transfer: data.transfer || undefined,
+          file: data.file || undefined,
         });
       });
 
@@ -329,12 +464,12 @@ export default function ChatConversationPage() {
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, participants, chatId);
+            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current);
           }
           // Decrypt reply preview if present
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
-            const decryptedReply = await decryptMessage(replyData.text, participants, chatId);
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current);
             replyData = { ...replyData, text: decryptedReply };
           }
           return {
@@ -348,13 +483,40 @@ export default function ChatConversationPage() {
             replyTo: replyData,
             forwarded: msg.forwarded,
             expiresAt: msg.expiresAt,
+            type: msg.type as ChatMessage["type"],
+            poll: msg.poll,
+            voice: msg.voice,
+            transfer: msg.transfer,
+            file: msg.file,
           };
         })
       );
 
-      setMessages(decryptedMsgs);
+      // Merge with any previously loaded older messages
+      setMessages((prev) => {
+        if (prev.length === 0) return decryptedMsgs;
+        // Find the oldest message from the snapshot
+        const oldestSnapshotId = decryptedMsgs[0]?.id;
+        // Keep any older messages that are not in the snapshot
+        const olderMessages = prev.filter(
+          (m) => !decryptedMsgs.some((dm) => dm.id === m.id) &&
+            m.createdAt && decryptedMsgs[0]?.createdAt &&
+            m.createdAt.toMillis() < decryptedMsgs[0].createdAt.toMillis()
+        );
+        return [...olderMessages, ...decryptedMsgs];
+      });
       setIsLoading(false);
-      setTimeout(() => scrollToBottom(), 50);
+
+      // Only scroll to bottom when a NEW message arrives after initial load
+      const newLastId = decryptedMsgs[decryptedMsgs.length - 1]?.id;
+      if (!initialLoadDoneRef.current) {
+        // First snapshot — just record the ID, don't scroll (isLoading effect handles it)
+        lastMessageIdRef.current = newLastId || null;
+        initialLoadDoneRef.current = true;
+      } else if (newLastId && newLastId !== lastMessageIdRef.current) {
+        lastMessageIdRef.current = newLastId;
+        setTimeout(() => scrollToBottom(), 50);
+      }
 
       // Update read position on new messages
       if (telegramId) {
@@ -368,12 +530,119 @@ export default function ChatConversationPage() {
     return () => unsubscribe();
   }, [currentUser, chatId, messagesReady, scrollToBottom, telegramId]);
 
-  // Initial scroll
+  // Initial scroll — wait for DOM paint
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
-      scrollToBottom(true);
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      });
     }
-  }, [isLoading, messages.length, scrollToBottom]);
+  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load older messages when scrolling to top
+  const loadOlderMessages = useCallback(async () => {
+    if (loadingOlder || !hasMoreMessages || !chatId || messages.length === 0) return;
+    const oldestMsg = messages[0];
+    if (!oldestMsg?.createdAt) return;
+
+    setLoadingOlder(true);
+    try {
+      const participants = [...participantsRef.current];
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      const olderQuery = query(
+        messagesRef,
+        orderBy("createdAt", "desc"),
+        startAfter(oldestMsg.createdAt),
+        limit(50)
+      );
+      const snapshot = await getDocs(olderQuery);
+
+      if (snapshot.size < 50) setHasMoreMessages(false);
+      if (snapshot.empty) {
+        setLoadingOlder(false);
+        return;
+      }
+
+      const rawMsgs = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          rawText: data.text || "",
+          senderName: data.senderName || "Unknown",
+          senderId: data.senderId || "",
+          createdAt: data.createdAt,
+          encrypted: data.encrypted === true,
+          reactions: data.reactions || undefined,
+          replyTo: data.replyTo || undefined,
+          forwarded: data.forwarded || undefined,
+          expiresAt: data.expiresAt || undefined,
+          type: data.type || undefined,
+          poll: data.poll || undefined,
+          voice: data.voice || undefined,
+          transfer: data.transfer || undefined,
+          file: data.file || undefined,
+        };
+      });
+
+      const olderDecrypted = await Promise.all(
+        rawMsgs.map(async (msg) => {
+          let text = msg.rawText;
+          if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
+            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current);
+          }
+          let replyData = msg.replyTo;
+          if (replyData?.text && isEncryptedMessage(replyData.text)) {
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current);
+            replyData = { ...replyData, text: decryptedReply };
+          }
+          return {
+            id: msg.id,
+            text,
+            senderName: msg.senderName,
+            senderId: msg.senderId,
+            createdAt: msg.createdAt,
+            encrypted: msg.encrypted,
+            reactions: msg.reactions,
+            replyTo: replyData,
+            forwarded: msg.forwarded,
+            expiresAt: msg.expiresAt,
+            type: msg.type as ChatMessage["type"],
+            poll: msg.poll,
+            voice: msg.voice,
+            transfer: msg.transfer,
+            file: msg.file,
+          };
+        })
+      );
+
+      // Reverse since we queried desc
+      olderDecrypted.reverse();
+
+      const container = chatContainerRef.current;
+      const prevHeight = container?.scrollHeight ?? 0;
+
+      setMessages((prev) => [...olderDecrypted, ...prev]);
+
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight - prevHeight;
+        }
+      });
+    } catch (err) {
+      console.error("Failed to load older messages:", err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [loadingOlder, hasMoreMessages, chatId, messages]);
+
+  // Scroll handler: detect scrolling to top for pagination
+  const handleScrollForPagination = useCallback(() => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop } = chatContainerRef.current;
+    if (scrollTop <= 50 && !loadingOlder && hasMoreMessages) {
+      loadOlderMessages();
+    }
+  }, [loadOlderMessages, loadingOlder, hasMoreMessages]);
 
   // Typing indicator: set/clear typing status
   const setTyping = useCallback(
@@ -417,7 +686,7 @@ export default function ChatConversationPage() {
     try {
       // Use participantsRef for latest participants
       const participants = participantsRef.current;
-      const encryptedText = await encryptMessage(text, participants, chatId);
+      const encryptedText = await encryptMessage(text, participants, chatId, telegramId, isGroupRef.current);
 
       // Build message doc
       const messageDoc: Record<string, unknown> = {
@@ -426,6 +695,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
+        encVersion: 3,
       };
 
       // Add expiresAt if disappearing messages enabled
@@ -438,7 +708,7 @@ export default function ChatConversationPage() {
         const replyText = currentReply.text.length > 80
           ? currentReply.text.slice(0, 80) + "…"
           : currentReply.text;
-        const encryptedReplyText = await encryptMessage(replyText, participants, chatId);
+        const encryptedReplyText = await encryptMessage(replyText, participants, chatId, telegramId, isGroupRef.current);
         messageDoc.replyTo = {
           id: currentReply.id,
           text: encryptedReplyText,
@@ -472,6 +742,22 @@ export default function ChatConversationPage() {
         console.warn("Chat metadata update failed (message was sent):", err);
       });
 
+      // Push notification to offline participants (fire-and-forget)
+      const recipientIds = participants.filter((p) => p !== telegramId);
+      if (recipientIds.length > 0) {
+        fetch("/api/chat-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientIds,
+            senderName,
+            chatId,
+            chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
+            isGroup: !!isGroupChat,
+          }),
+        }).catch(() => {});
+      }
+
       scrollToBottom(true);
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -482,6 +768,339 @@ export default function ChatConversationPage() {
     }
   };
 
+  // Send voice message
+  const handleSendVoice = async (blob: Blob, durationSec: number) => {
+    if (!telegramId || !chatId || !chatMeta) return;
+
+    if (!currentUser) {
+      toast.error("Not authenticated. Please re-open the app.");
+      console.error("Voice send blocked: Firebase Auth currentUser is null");
+      return;
+    }
+
+    const participants = participantsRef.current;
+    if (!participants.length) {
+      toast.error("Chat not fully loaded. Please wait and try again.");
+      return;
+    }
+
+    const senderName = qcUsername || "Unknown";
+    const msgId = `voice_${Date.now()}_${telegramId}`;
+
+    try {
+      // Refresh auth token before upload to prevent expired token errors
+      await currentUser.getIdToken(true);
+
+      // Encrypt the audio blob before uploading
+      const audioBuffer = await blob.arrayBuffer();
+      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
+
+      const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.enc.webm`);
+
+      // Upload with retry
+      let uploadAttempts = 0;
+      while (uploadAttempts < 3) {
+        try {
+          await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
+          break;
+        } catch (uploadErr) {
+          uploadAttempts++;
+          if (uploadAttempts >= 3) throw uploadErr;
+          await new Promise((r) => setTimeout(r, 1000 * uploadAttempts));
+        }
+      }
+      const url = await getDownloadURL(fileRef);
+
+      const previewText = "🎤 Voice message";
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current);
+
+      const messageDoc: Record<string, unknown> = {
+        text: encryptedPreview,
+        senderName,
+        senderId: telegramId,
+        createdAt: serverTimestamp(),
+        encrypted: true,
+        encVersion: 3,
+        type: "voice",
+        voice: { url, durationSec, encrypted: true },
+      };
+
+      if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
+        messageDoc.expiresAt = Timestamp.fromMillis(Date.now() + chatMeta.disappearAfter);
+      }
+
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      await addDoc(messagesRef, messageDoc);
+
+      try { localStorage.setItem(`qc-preview-${chatId}`, previewText); } catch {}
+
+      const updates: Record<string, unknown> = {
+        lastMessage: encryptedPreview,
+        lastMessageBy: telegramId,
+        lastMessageAt: serverTimestamp(),
+        [`readPositions.${telegramId}`]: serverTimestamp(),
+        [`unreadCounts.${telegramId}`]: 0,
+      };
+      for (const pid of participants) {
+        if (pid !== telegramId) {
+          updates[`unreadCounts.${pid}`] = increment(1);
+        }
+      }
+      updateDoc(doc(dbfs, "qc-chats", chatId), updates).catch((err) => {
+        console.warn("Chat metadata update failed (voice was sent):", err);
+      });
+
+      // Push notification to offline participants (fire-and-forget)
+      const recipientIds = participants.filter((p) => p !== telegramId);
+      if (recipientIds.length > 0) {
+        fetch("/api/chat-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientIds,
+            senderName,
+            chatId,
+            chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
+            isGroup: !!isGroupChat,
+          }),
+        }).catch(() => {});
+      }
+
+      scrollToBottom(true);
+    } catch (error: any) {
+      console.error("Failed to send voice message:", error);
+      const msg = error?.code === "storage/unauthorized"
+        ? "Upload denied. Please re-open the app to refresh your session."
+        : error?.code === "storage/retry-limit-exceeded" || error?.message?.includes("network")
+          ? "Network error. Check your connection and try again."
+          : "Failed to send voice message";
+      toast.error(msg);
+    }
+  };
+
+  // Send file/image message (encrypted)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSendingFile, setIsSendingFile] = useState(false);
+
+  const handleSendFile = async (file: File) => {
+    if (!telegramId || !chatId || !chatMeta) return;
+
+    if (!currentUser) {
+      toast.error("Not authenticated. Please re-open the app.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 10 MB.");
+      return;
+    }
+
+    const participants = participantsRef.current;
+    if (!participants.length) {
+      toast.error("Chat not fully loaded. Please wait and try again.");
+      return;
+    }
+
+    const senderName = qcUsername || "Unknown";
+    const msgId = `file_${Date.now()}_${telegramId}`;
+    setIsSendingFile(true);
+
+    try {
+      // Refresh auth token before upload to prevent expired token errors
+      await currentUser.getIdToken(true);
+
+      // Read file and encrypt
+      const fileBuffer = await file.arrayBuffer();
+      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
+
+      // Get image dimensions if applicable
+      let width: number | undefined;
+      let height: number | undefined;
+      if (file.type.startsWith("image/")) {
+        try {
+          const img = await createImageBitmap(file);
+          width = img.width;
+          height = img.height;
+          img.close();
+        } catch {}
+      }
+
+      const fileRef = storageRef(storage, `chat-files/${chatId}/${msgId}/${file.name}.enc`);
+
+      // Upload with retry
+      let uploadAttempts = 0;
+      while (uploadAttempts < 3) {
+        try {
+          await uploadBytes(fileRef, encryptedBlob, { contentType: "application/octet-stream" });
+          break;
+        } catch (uploadErr) {
+          uploadAttempts++;
+          if (uploadAttempts >= 3) throw uploadErr;
+          await new Promise((r) => setTimeout(r, 1000 * uploadAttempts));
+        }
+      }
+      const url = await getDownloadURL(fileRef);
+
+      const isImage = file.type.startsWith("image/");
+      const previewText = isImage ? "Sent an image" : `Sent a file`;
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current);
+
+      const messageDoc: Record<string, unknown> = {
+        text: encryptedPreview,
+        senderName,
+        senderId: telegramId,
+        createdAt: serverTimestamp(),
+        encrypted: true,
+        encVersion: 3,
+        type: "file",
+        file: {
+          url,
+          name: file.name,
+          size: file.size,
+          mimeType: file.type,
+          encrypted: true,
+          ...(width && height ? { width, height } : {}),
+        },
+      };
+
+      if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
+        messageDoc.expiresAt = Timestamp.fromMillis(Date.now() + chatMeta.disappearAfter);
+      }
+
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      await addDoc(messagesRef, messageDoc);
+
+      try { localStorage.setItem(`qc-preview-${chatId}`, previewText); } catch {}
+
+      const updates: Record<string, unknown> = {
+        lastMessage: encryptedPreview,
+        lastMessageBy: telegramId,
+        lastMessageAt: serverTimestamp(),
+        [`readPositions.${telegramId}`]: serverTimestamp(),
+        [`unreadCounts.${telegramId}`]: 0,
+      };
+      for (const pid of participants) {
+        if (pid !== telegramId) {
+          updates[`unreadCounts.${pid}`] = increment(1);
+        }
+      }
+      updateDoc(doc(dbfs, "qc-chats", chatId), updates).catch((err) => {
+        console.warn("Chat metadata update failed (file was sent):", err);
+      });
+
+      // Push notification
+      const recipientIds = participants.filter((p) => p !== telegramId);
+      if (recipientIds.length > 0) {
+        fetch("/api/chat-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientIds,
+            senderName,
+            chatId,
+            chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
+            isGroup: !!isGroupChat,
+          }),
+        }).catch(() => {});
+      }
+
+      scrollToBottom(true);
+    } catch (error: any) {
+      console.error("Failed to send file:", error);
+      const msg = error?.code === "storage/unauthorized"
+        ? "Upload denied. Please re-open the app to refresh your session."
+        : error?.code === "storage/retry-limit-exceeded" || error?.message?.includes("network")
+          ? "Network error. Check your connection and try again."
+          : "Failed to send file";
+      toast.error(msg);
+    } finally {
+      setIsSendingFile(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Send transfer message (after successful TON transaction)
+  const handleSendTransfer = async (amount: string, txHash: string, toAddress: string) => {
+    if (!telegramId || !chatId || !chatMeta || !walletAddress) return;
+
+    const senderName = qcUsername || "Unknown";
+    try {
+      const participants = participantsRef.current;
+      const previewText = `Sent ${amount} TON`;
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current);
+
+      const messageDoc: Record<string, unknown> = {
+        text: encryptedPreview,
+        senderName,
+        senderId: telegramId,
+        createdAt: serverTimestamp(),
+        encrypted: true,
+        encVersion: 3,
+        type: "transfer",
+        transfer: {
+          amount,
+          senderAddress: walletAddress,
+          recipientAddress: toAddress,
+          txHash,
+          status: "sent",
+        },
+      };
+
+      if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
+        messageDoc.expiresAt = Timestamp.fromMillis(Date.now() + chatMeta.disappearAfter);
+      }
+
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      await addDoc(messagesRef, messageDoc);
+
+      try { localStorage.setItem(`qc-preview-${chatId}`, previewText); } catch {}
+
+      const updates: Record<string, unknown> = {
+        lastMessage: encryptedPreview,
+        lastMessageBy: telegramId,
+        lastMessageAt: serverTimestamp(),
+        [`readPositions.${telegramId}`]: serverTimestamp(),
+        [`unreadCounts.${telegramId}`]: 0,
+      };
+      for (const pid of participants) {
+        if (pid !== telegramId) {
+          updates[`unreadCounts.${pid}`] = increment(1);
+        }
+      }
+      updateDoc(doc(dbfs, "qc-chats", chatId), updates).catch((err) => {
+        console.warn("Chat metadata update failed (transfer was sent):", err);
+      });
+
+      // Push notification
+      const recipientIds = participants.filter((p) => p !== telegramId);
+      if (recipientIds.length > 0) {
+        fetch("/api/chat-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientIds,
+            senderName,
+            chatId,
+            chatName: senderName,
+            isGroup: false,
+          }),
+        }).catch(() => {});
+      }
+
+      scrollToBottom(true);
+    } catch (error) {
+      console.error("Failed to send transfer message:", error);
+    }
+  };
+
+  const handleTransferFailed = async (amount: string, _error: string) => {
+    // Failed transfers only show a toast (already shown by TransferDrawer)
+    // No message posted to chat for failed transfers
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -489,7 +1108,54 @@ export default function ChatConversationPage() {
     }
   };
 
-  
+  const handleCreatePoll = async (question: string, options: string[]) => {
+    if (!telegramId || !chatId || !chatMeta) return;
+    try {
+      const senderName = qcUsername || "Unknown";
+      const participants = participantsRef.current;
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+
+      const votes: Record<string, string[]> = {};
+      options.forEach((_, i) => { votes[String(i)] = []; });
+
+      const messageDoc: Record<string, unknown> = {
+        text: `📊 ${question}`,
+        senderName,
+        senderId: telegramId,
+        createdAt: serverTimestamp(),
+        encrypted: false,
+        type: "poll",
+        poll: { question, options, votes, createdBy: telegramId },
+      };
+
+      if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
+        messageDoc.expiresAt = Timestamp.fromMillis(Date.now() + chatMeta.disappearAfter);
+      }
+
+      await addDoc(messagesRef, messageDoc);
+
+      try { localStorage.setItem(`qc-preview-${chatId}`, `📊 ${question}`); } catch {}
+
+      const updates: Record<string, unknown> = {
+        lastMessage: `📊 ${question}`,
+        lastMessageBy: telegramId,
+        lastMessageAt: serverTimestamp(),
+        [`readPositions.${telegramId}`]: serverTimestamp(),
+        [`unreadCounts.${telegramId}`]: 0,
+      };
+      for (const pid of participants) {
+        if (pid !== telegramId) {
+          updates[`unreadCounts.${pid}`] = increment(1);
+        }
+      }
+      updateDoc(doc(dbfs, "qc-chats", chatId), updates).catch(() => {});
+      scrollToBottom(true);
+    } catch (error) {
+      console.error("Failed to create poll:", error);
+    }
+  };
+
+  // Reaction toggle: add or remove reaction
   const toggleReaction = useCallback(
     async (msgId: string, emojiKey: string) => {
       if (!telegramId || !chatId) return;
@@ -562,7 +1228,8 @@ export default function ChatConversationPage() {
       setIsForwarding(true);
       try {
         const destParticipants: string[] = destChat.participants || [];
-        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id);
+        const destIsGroup = destChat.isGroup || destChat.isGlobal || false;
+        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId, destIsGroup);
         const senderName = qcUsername || "Unknown";
 
         const fwdDoc: Record<string, unknown> = {
@@ -571,6 +1238,7 @@ export default function ChatConversationPage() {
           senderId: telegramId,
           createdAt: serverTimestamp(),
           encrypted: true,
+          encVersion: 3,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
 
@@ -621,13 +1289,89 @@ export default function ChatConversationPage() {
     [chatId]
   );
 
+  // Admin actions: kick, ban, mute, unmute
+  const handleAdminAction = useCallback(
+    async (action: "kick" | "ban" | "mute" | "unmute", targetUserId: string) => {
+      if (!chatId || !chatMeta || !telegramId) return;
+      if (chatMeta.createdBy !== telegramId) return;
+      if (targetUserId === telegramId) return;
+
+      const chatRef = doc(dbfs, "qc-chats", chatId);
+      const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
+      const adminName = qcUsername || "Admin";
+      const targetName = chatMeta.participantNames[targetUserId] || targetUserId;
+
+      try {
+        if (action === "kick") {
+          const updatedNames = { ...chatMeta.participantNames };
+          delete updatedNames[targetUserId];
+          await updateDoc(chatRef, {
+            participants: arrayRemove(targetUserId),
+            participantNames: updatedNames,
+          });
+          await addDoc(messagesRef, {
+            text: `@${adminName} kicked @${targetName}`,
+            senderId: "system",
+            senderName: "system",
+            createdAt: serverTimestamp(),
+            encrypted: false,
+          });
+        } else if (action === "ban") {
+          const updatedNames = { ...chatMeta.participantNames };
+          delete updatedNames[targetUserId];
+          await updateDoc(chatRef, {
+            participants: arrayRemove(targetUserId),
+            participantNames: updatedNames,
+            bannedUsers: arrayUnion(targetUserId),
+          });
+          await addDoc(messagesRef, {
+            text: `@${adminName} banned @${targetName}`,
+            senderId: "system",
+            senderName: "system",
+            createdAt: serverTimestamp(),
+            encrypted: false,
+          });
+        } else if (action === "mute") {
+          await updateDoc(chatRef, {
+            mutedUsers: arrayUnion(targetUserId),
+          });
+          await addDoc(messagesRef, {
+            text: `@${adminName} muted @${targetName}`,
+            senderId: "system",
+            senderName: "system",
+            createdAt: serverTimestamp(),
+            encrypted: false,
+          });
+        } else if (action === "unmute") {
+          await updateDoc(chatRef, {
+            mutedUsers: arrayRemove(targetUserId),
+          });
+          await addDoc(messagesRef, {
+            text: `@${adminName} unmuted @${targetName}`,
+            senderId: "system",
+            senderName: "system",
+            createdAt: serverTimestamp(),
+            encrypted: false,
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to ${action} user:`, err);
+      }
+    },
+    [chatId, chatMeta, telegramId, qcUsername]
+  );
+
   // Scroll to a specific message by ID
   const scrollToMessage = useCallback((msgId: string) => {
     const el = messageRefs.current[msgId];
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("ring-2", "ring-primary/50");
-      setTimeout(() => el.classList.remove("ring-2", "ring-primary/50"), 1500);
+      // Apply highlight to the bubble div (the one with .relative inside the wrapper)
+      const bubble = el.querySelector("[data-bubble]") as HTMLElement | null;
+      const target = bubble || el;
+      target.style.animation = "none";
+      void target.offsetHeight;
+      target.style.animation = "highlightMessage 2s ease-in-out";
     }
   }, []);
 
@@ -712,6 +1456,8 @@ export default function ChatConversationPage() {
   const isSelfChat = !chatMeta?.isGroup && !chatMeta?.isGlobal &&
     chatMeta?.participants.length === 1 && chatMeta.participants[0] === telegramId;
 
+  const isMuted = !!(telegramId && chatMeta?.mutedUsers?.includes(telegramId));
+
   const headerName = getHeaderName();
   const headerInitials = getInitials(headerName);
   const headerAvatarColor = getAvatarColor(headerName);
@@ -779,7 +1525,15 @@ export default function ChatConversationPage() {
   const subtitle = getSubtitle();
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-background">
+    <div ref={chatRootRef} className="fixed inset-x-0 top-0 z-40 flex flex-col bg-background" style={{ height: "100dvh" }}>
+      <style>{`
+        @keyframes highlightMessage {
+          0% { box-shadow: 0 0 0 0 transparent; }
+          15% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4); background-color: hsl(var(--primary) / 0.08); }
+          85% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4); background-color: hsl(var(--primary) / 0.08); }
+          100% { box-shadow: 0 0 0 0 transparent; }
+        }
+      `}</style>
       {/* Chat Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
@@ -815,9 +1569,18 @@ export default function ChatConversationPage() {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <h1 className="text-sm font-semibold text-foreground truncate">
-              {isSelfChat ? "Saved Messages" : isGroupChat ? headerName : `@${headerName}`}
-            </h1>
+            {isGroupChat ? (
+              <button
+                onClick={() => setShowMembersPanel(true)}
+                className="text-sm font-semibold text-foreground truncate hover:underline text-left"
+              >
+                {chatMeta?.isGlobal ? "QC Global" : headerName}
+              </button>
+            ) : (
+              <h1 className="text-sm font-semibold text-foreground truncate">
+                {isSelfChat ? "Saved Messages" : `@${headerName}`}
+              </h1>
+            )}
             {chatMeta?.isGlobal && (
               <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
             )}
@@ -835,76 +1598,63 @@ export default function ChatConversationPage() {
           </div>
         </div>
 
-        {/* Disappearing messages timer */}
-        <Popover open={timerPopoverOpen} onOpenChange={setTimerPopoverOpen}>
-          <PopoverTrigger asChild>
+        {/* Three-dot menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               size="icon"
               variant="ghost"
               className="w-9 h-9 rounded-full shrink-0"
             >
-              <Icon icon="lucide:timer" className={`w-4 h-4 ${chatMeta?.disappearAfter ? "text-primary" : ""}`} />
+              <Icon icon="solar:menu-dots-bold" className="w-5 h-5" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-48 p-1">
-            <p className="text-[11px] font-semibold text-muted-foreground px-2 py-1.5">Disappearing messages</p>
-            {[
-              { label: "Off", ms: 0 },
-              { label: "5 minutes", ms: 5 * 60 * 1000 },
-              { label: "1 hour", ms: 60 * 60 * 1000 },
-              { label: "24 hours", ms: 24 * 60 * 60 * 1000 },
-              { label: "7 days", ms: 7 * 24 * 60 * 60 * 1000 },
-            ].map((opt) => (
-              <button
-                key={opt.ms}
-                onClick={() => handleSetDisappearAfter(opt.ms)}
-                className={`w-full text-left px-2 py-1.5 text-sm rounded-md hover:bg-muted/60 transition-colors flex items-center justify-between ${
-                  (chatMeta?.disappearAfter || 0) === opt.ms ? "text-primary font-medium" : "text-foreground"
-                }`}
-              >
-                {opt.label}
-                {(chatMeta?.disappearAfter || 0) === opt.ms && (
-                  <Icon icon="lucide:check" className="w-3.5 h-3.5" />
-                )}
-              </button>
-            ))}
-          </PopoverContent>
-        </Popover>
-
-        {/* Search button */}
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-9 h-9 rounded-full shrink-0"
-          onClick={() => { setShowSearch((v) => !v); setSearchQuery(""); setSearchMatchIndex(-1); }}
-        >
-          <Icon icon="lucide:search" className="w-4 h-4" />
-        </Button>
-
-        {/* Group actions: share */}
-        {isGroupChat && chatMeta?.joinCode && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="w-9 h-9 rounded-full shrink-0"
-            onClick={() => setShowShareModal(true)}
-          >
-            <Icon icon="lucide:share-2" className="w-4 h-4" />
-          </Button>
-        )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => { setShowSearch((v) => !v); setSearchQuery(""); setSearchMatchIndex(-1); }}>
+              <Icon icon="lucide:search" className="w-4 h-4 mr-2" />
+              Search
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowThemePicker(true)}>
+              <Icon icon="lucide:wallpaper" className="w-4 h-4 mr-2" />
+              Wallpaper
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTimerPopoverOpen(true)}>
+              <Icon icon="lucide:timer" className="w-4 h-4 mr-2" />
+              Disappearing messages
+              {!!chatMeta?.disappearAfter && chatMeta.disappearAfter > 0 && (
+                <span className="ml-auto text-[10px] text-primary">On</span>
+              )}
+            </DropdownMenuItem>
+            {isGroupChat && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowMembersPanel(true)}>
+                  <Icon icon="solar:users-group-rounded-linear" className="w-4 h-4 mr-2" />
+                  Members
+                </DropdownMenuItem>
+              </>
+            )}
+            {isGroupChat && chatMeta?.joinCode && (
+              <DropdownMenuItem onClick={() => setShowShareModal(true)}>
+                <Icon icon="lucide:share-2" className="w-4 h-4 mr-2" />
+                Share group
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Share Modal */}
+      {/* Share Drawer (bottom sheet) */}
       {isGroupChat && chatMeta?.joinCode && (
-        <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-          <DialogContent hideClose className="max-w-[340px] rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-center">Share Group</DialogTitle>
-              <DialogDescription className="text-center text-xs">
+        <Drawer open={showShareModal} onOpenChange={setShowShareModal}>
+          <DrawerContent>
+            <DrawerHeader className="text-center items-center">
+              <DrawerTitle>Share Group</DrawerTitle>
+              <DrawerDescription className="text-xs">
                 Invite others to join {headerName}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-1">
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-6">
               <div className="text-center">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-2">
                   <Icon icon="solar:users-group-rounded-bold" className="w-7 h-7 text-primary" />
@@ -955,14 +1705,75 @@ export default function ChatConversationPage() {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
+      )}
+
+      {/* Chat Theme Picker */}
+      <ChatThemePicker
+        open={showThemePicker}
+        onOpenChange={setShowThemePicker}
+        currentTheme={chatTheme}
+        onSelect={(theme) => {
+          setChatTheme(theme);
+          if (theme) {
+            localStorage.setItem(`chatTheme_${chatId}`, theme);
+          } else {
+            localStorage.removeItem(`chatTheme_${chatId}`);
+          }
+        }}
+      />
+
+      {/* Disappearing Messages Dialog */}
+      <Dialog open={timerPopoverOpen} onOpenChange={setTimerPopoverOpen}>
+        <DialogContent className="max-w-[280px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <Icon icon="lucide:timer" className="w-5 h-5 text-primary" />
+              Disappearing messages
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            {[
+              { label: "Off", ms: 0 },
+              { label: "5 minutes", ms: 5 * 60 * 1000 },
+              { label: "1 hour", ms: 60 * 60 * 1000 },
+              { label: "24 hours", ms: 24 * 60 * 60 * 1000 },
+              { label: "7 days", ms: 7 * 24 * 60 * 60 * 1000 },
+            ].map((opt) => (
+              <button
+                key={opt.ms}
+                onClick={() => handleSetDisappearAfter(opt.ms)}
+                className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-muted/60 transition-colors flex items-center justify-between ${
+                  (chatMeta?.disappearAfter || 0) === opt.ms ? "text-primary font-medium" : "text-foreground"
+                }`}
+              >
+                {opt.label}
+                {(chatMeta?.disappearAfter || 0) === opt.ms && (
+                  <Icon icon="lucide:check" className="w-3.5 h-3.5" />
+                )}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Members Panel */}
+      {isGroupChat && chatMeta && telegramId && (
+        <GroupMembersPanel
+          open={showMembersPanel}
+          onOpenChange={setShowMembersPanel}
+          chatId={chatId}
+          chatMeta={chatMeta}
+          currentUserId={telegramId}
+          onAction={handleAdminAction}
+        />
       )}
 
       {/* Forward Dialog */}
       <Dialog open={showForwardDialog} onOpenChange={(open) => { setShowForwardDialog(open); if (!open) setForwardMsgId(null); }}>
         <DialogContent hideClose className="max-w-[340px] rounded-2xl">
-          <DialogHeader>
+          <DialogHeader className="text-center items-center">
             <DialogTitle className="text-center">Forward Message</DialogTitle>
             <DialogDescription className="text-center text-xs">
               Select a chat to forward to
@@ -1016,7 +1827,7 @@ export default function ChatConversationPage() {
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setSearchMatchIndex(-1); }}
             placeholder="Search messages..."
-            className="flex-1 h-8 text-sm rounded-lg bg-background border-border/50"
+            className="flex-1 h-8 text-base rounded-lg bg-background border-border/50"
           />
           {searchMatches.length > 0 && (
             <span className="text-[11px] text-muted-foreground whitespace-nowrap">
@@ -1052,25 +1863,53 @@ export default function ChatConversationPage() {
       {chatMeta?.pinnedMessage && (() => {
         const pinnedMsg = messages.find(m => m.id === chatMeta.pinnedMessage!.id);
         return (
-          <button
-            onClick={() => scrollToMessage(chatMeta.pinnedMessage!.id)}
-            className="w-full px-3 py-2 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2 text-left hover:bg-muted/30 transition-colors"
-          >
-            <Icon icon="lucide:pin" className="w-4 h-4 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold text-primary">{chatMeta.pinnedMessage.senderName}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{pinnedMsg?.text || "Pinned message"}</p>
-            </div>
-          </button>
+          <div className="w-full px-3 py-2 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
+            <button
+              onClick={() => scrollToMessage(chatMeta.pinnedMessage!.id)}
+              className="flex items-center gap-2 flex-1 min-w-0 text-left"
+            >
+              <Icon icon="lucide:pin" className="w-4 h-4 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold text-primary">{chatMeta.pinnedMessage.senderName}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{pinnedMsg?.text || "Pinned message"}</p>
+              </div>
+            </button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="w-6 h-6 rounded-full shrink-0"
+              onClick={async () => {
+                try {
+                  await updateDoc(doc(dbfs, "qc-chats", chatId), { pinnedMessage: deleteField() });
+                } catch (err) {
+                  console.error("Failed to unpin:", err);
+                }
+              }}
+            >
+              <Icon icon="lucide:x" className="w-3 h-3" />
+            </Button>
+          </div>
         );
       })()}
 
       {/* Messages */}
       <div
         ref={chatContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scroll-smooth"
+        onScroll={(e) => { handleScroll(); handleScrollForPagination(); }}
+        className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5"
+        style={chatTheme ? { background: chatTheme } : undefined}
       >
+        {/* Load older indicator */}
+        {!isLoading && messages.length > 0 && (
+          <div className="flex justify-center py-2">
+            {loadingOlder ? (
+              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            ) : !hasMoreMessages ? (
+              <span className="text-[10px] text-muted-foreground">No more messages</span>
+            ) : null}
+          </div>
+        )}
+
         {/* Chat Notice */}
         {!isLoading && (
           <div className="flex justify-center py-3 pb-1">
@@ -1188,7 +2027,14 @@ export default function ChatConversationPage() {
                   )}
                   {!isOwnMessage && consecutive && <div className="w-7 shrink-0" />}
 
-                  <div className="relative max-w-[75%]">
+                  <div className="relative max-w-[75%] group/msg">
+                    {/* Hover reply button */}
+                    <button
+                      onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+                      className={`absolute top-1 ${isOwnMessage ? "-left-8" : "-right-8"} z-20 w-6 h-6 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover/msg:opacity-100 transition-opacity`}
+                    >
+                      <Icon icon="lucide:reply" className="w-3.5 h-3.5" />
+                    </button>
                     {/* Reaction picker */}
                     {reactionPickerMsgId === msg.id && (
                       <div
@@ -1206,7 +2052,7 @@ export default function ChatConversationPage() {
                             <Icon icon={emoji.icon} className="w-5 h-5" />
                           </button>
                         ))}
-                        {isGroupChat && (
+                        {msg.senderId !== "system" && (
                           <button
                             onClick={() => handlePinMessage(msg)}
                             className="p-1 rounded-lg hover:bg-muted/60 transition-colors border-l border-border ml-0.5 pl-1.5"
@@ -1224,11 +2070,12 @@ export default function ChatConversationPage() {
                     )}
 
                     <div
-                      className={`${
+                      data-bubble
+                      className={`relative ${
                         isOwnMessage
                           ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
                           : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
-                      } px-3 py-1.5`}
+                      } px-2.5 py-1.5`}
                     >
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1.5 mb-0.5">
@@ -1257,25 +2104,69 @@ export default function ChatConversationPage() {
                       </div>
                     )}
 
-                    <span className="text-[13px] text-foreground leading-relaxed break-words whitespace-pre-wrap">
-                      {msg.text}
-                    </span>
-                    {/* Invisible spacer to prevent text overlapping time+ticks */}
-                    <span className={`inline-block ${status ? "w-[4.5rem]" : msg.expiresAt ? "w-[4.5rem]" : "w-[3.25rem]"}`} />
-                    {/* Time + ticks anchored bottom-right */}
-                    <span className="float-right flex items-center gap-0.5 mt-1 ml-2 translate-y-[-2px]">
+                    {msg.type === "voice" && msg.voice ? (
+                      <VoiceMessage
+                        audioUrl={msg.voice.url}
+                        durationSec={msg.voice.durationSec}
+                        isMine={isOwnMessage}
+                        encrypted={msg.voice.encrypted}
+                        participantIds={chatMeta?.participants}
+                        chatId={chatId}
+                        senderId={msg.senderId}
+                        isGroup={chatMeta?.isGroup || chatMeta?.isGlobal}
+                      />
+                    ) : msg.type === "poll" && msg.poll ? (
+                      <PollMessage
+                        msgId={msg.id}
+                        poll={msg.poll}
+                        telegramId={telegramId || ""}
+                        chatId={chatId}
+                        isOwnMessage={isOwnMessage}
+                      />
+                    ) : msg.type === "file" && msg.file ? (
+                      <FileMessage
+                        file={msg.file}
+                        isMine={isOwnMessage}
+                        participantIds={chatMeta?.participants}
+                        chatId={chatId}
+                        senderId={msg.senderId}
+                        isGroup={chatMeta?.isGroup || chatMeta?.isGlobal}
+                      />
+                    ) : msg.type === "transfer" && msg.transfer ? (
+                      <TransferMessage
+                        amount={msg.transfer.amount}
+                        status={msg.transfer.status}
+                        txHash={msg.transfer.txHash}
+                        isMine={isOwnMessage}
+                        isTestnet={isTestnet}
+                      />
+                    ) : (
+                      <span className={`text-[13.5px] leading-[1.4] break-words whitespace-pre-wrap ${
+                        msg.text === "Unable to decrypt message"
+                          ? "text-muted-foreground italic"
+                          : "text-foreground"
+                      }`}>
+                        {msg.text === "Unable to decrypt message"
+                          ? `${msg.senderName} sent a message`
+                          : msg.text}
+                      </span>
+                    )}
+                    {/* Invisible spacer reserves space for time+ticks so they don't overlap text */}
+                    <span className={`inline-block ${status ? "w-[4.5rem]" : "w-[3.5rem]"} h-[1px]`} aria-hidden="true" />
+                    {/* Time + ticks positioned at bottom-right */}
+                    <span className="absolute bottom-[5px] right-[8px] flex items-center gap-0.5">
                       {msg.expiresAt && (
-                        <Icon icon="lucide:timer" className="w-3 h-3 text-muted-foreground/70 shrink-0" />
+                        <Icon icon="lucide:timer" className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
                       )}
-                      <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap leading-none">
+                      <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap leading-none">
                         {formatTime(msg.createdAt)}
                       </span>
                       {status && (
-                        <span className={`inline-flex shrink-0 transition-all duration-300 ${status === "read" ? "text-primary" : "text-muted-foreground/70"}`}>
+                        <span className={`inline-flex shrink-0 transition-all duration-300 ${status === "read" ? "text-primary" : "text-muted-foreground/60"}`}>
                           {status === "sent" ? (
-                            <Icon icon="lucide:check" className="w-[14px] h-[14px]" />
+                            <Icon icon="mdi:check" className="w-[14px] h-[14px]" />
                           ) : (
-                            <Icon icon="lucide:check-check" className="w-[14px] h-[14px]" />
+                            <Icon icon="mdi:check-all" className="w-[14px] h-[14px]" />
                           )}
                         </span>
                       )}
@@ -1373,8 +2264,56 @@ export default function ChatConversationPage() {
           <div className="flex items-center justify-center py-2">
             <p className="text-xs text-muted-foreground">Sign in to chat</p>
           </div>
+        ) : isMuted ? (
+          <div className="flex items-center justify-center py-2 gap-2">
+            <Icon icon="solar:volume-cross-bold" className="w-4 h-4 text-orange-500" />
+            <p className="text-xs text-muted-foreground">You are muted in this group</p>
+          </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
+            {isGroupChat && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-9 h-9 rounded-full shrink-0"
+                onClick={() => setShowPollCreator(true)}
+              >
+                <Icon icon="mdi:poll" className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            )}
+            {!isGroupChat && walletAddress && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-9 h-9 rounded-full shrink-0"
+                onClick={() => setShowTransferDrawer(true)}
+              >
+                <Image src="/svg/ton-logo.svg" alt="TON" width={20} height={20} className="opacity-60" />
+              </Button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf,.doc,.docx,.txt"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleSendFile(file);
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-9 h-9 rounded-full shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isSendingFile}
+            >
+              {isSendingFile ? (
+                <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+              ) : (
+                <Icon icon="solar:paperclip-linear" className="w-5 h-5 text-muted-foreground" />
+              )}
+            </Button>
             <Input
               ref={inputRef}
               type="text"
@@ -1383,23 +2322,44 @@ export default function ChatConversationPage() {
               onKeyDown={handleKeyDown}
               placeholder={replyTo ? "Reply..." : "Type a message..."}
               maxLength={500}
-              className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
+              className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-base placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
             />
-            <Button
-              onClick={handleSend}
-              disabled={!newMessage.trim() || isSending}
-              size="icon"
-              className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
-            >
-              {isSending ? (
-                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              ) : (
-                <Icon icon="material-symbols:send-rounded" className="w-5 h-5" />
-              )}
-            </Button>
+            {newMessage.trim() ? (
+              <Button
+                onClick={handleSend}
+                disabled={!newMessage.trim() || isSending}
+                size="icon"
+                className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
+              >
+                {isSending ? (
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                ) : (
+                  <Icon icon="material-symbols:send-rounded" className="w-5 h-5" />
+                )}
+              </Button>
+            ) : (
+              <VoiceRecorder onSend={handleSendVoice} disabled={isSending} />
+            )}
           </div>
         )}
       </div>
+
+      <PollCreator
+        open={showPollCreator}
+        onOpenChange={setShowPollCreator}
+        onCreatePoll={handleCreatePoll}
+      />
+
+      {!isGroupChat && chatMeta && (
+        <TransferDrawer
+          open={showTransferDrawer}
+          onOpenChange={setShowTransferDrawer}
+          recipientName={chatMeta.participantNames[chatMeta.participants.find((p) => p !== telegramId) || ""] || "Unknown"}
+          recipientAddress={recipientWalletAddress}
+          onSend={handleSendTransfer}
+          onFailed={handleTransferFailed}
+        />
+      )}
     </div>
   );
 }

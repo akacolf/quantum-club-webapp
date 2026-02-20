@@ -1,5 +1,5 @@
 'use client';
-import React, { useContext, createContext, useState, ReactNode } from "react";
+import React, { useContext, createContext, useState, useEffect, ReactNode } from "react";
 
 interface Leaderboard {
 username:string;
@@ -19,46 +19,23 @@ interface LeaderboardContextType {
 const LeaderboardContext = createContext<LeaderboardContextType>({} as LeaderboardContextType);
 
 export const LeaderboardProvider = ({ children } : { children: ReactNode }) => {
-  const [leaderboardContext, setLeaderboardContext] = useState<Leaderboard[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedBoards = sessionStorage.getItem("lboard");
-      if (savedBoards) {
-        try {
-          return JSON.parse(savedBoards);
-        } catch {
-          sessionStorage.removeItem("lboard");
-          return [];
-        }
-      }
-      return [];
-    }
-    return [];
-  });
-  const [userRank, setUserRank] = useState<number | null>(() => {
-    if (typeof window !== "undefined") {
-      const rank = sessionStorage.getItem("userLeaderRank");
-      return rank ? Number(rank) : 0;
-    }
-    return null;
-  });
-  const [totalUsers, setTotalUsers] = useState<number | null>(() => {
-    if (typeof window !== "undefined") {
-      const totalusers = sessionStorage.getItem("totalusers");
-      return totalusers ? Number(totalusers) : 0;
-    }
-    return null;
-  });
-  const [totalQuant, setTotalQuant] = useState<string>(() => {
-  if (typeof window !== "undefined") {
-    const totalquant = sessionStorage.getItem("totalquant");
+  const [leaderboardContext, setLeaderboardContext] = useState<Leaderboard[]>([]);
+  const [userRank, setUserRank] = useState<number | null>(null);
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [totalQuant, setTotalQuant] = useState<string>("");
+
+  // Hydrate from sessionStorage after mount
+  useEffect(() => {
     try {
-      return totalquant ?? "";
-    } catch {
-      console.error("Invalid JSON in sessionStorage for 'totalquant'");
-    }
-  }
-  return "";
-});
+      const savedBoards = sessionStorage.getItem("lboard");
+      if (savedBoards) setLeaderboardContext(JSON.parse(savedBoards));
+    } catch {}
+    const rank = sessionStorage.getItem("userLeaderRank");
+    if (rank) setUserRank(Number(rank));
+    const totalusers = sessionStorage.getItem("totalusers");
+    if (totalusers) setTotalUsers(Number(totalusers));
+    setTotalQuant(sessionStorage.getItem("totalquant") ?? "");
+  }, []);
 
   return (
     <LeaderboardContext.Provider

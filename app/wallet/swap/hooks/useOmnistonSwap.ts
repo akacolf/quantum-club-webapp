@@ -29,6 +29,8 @@ export interface QuoteParams {
     amount: string; // In base units (nanotons for TON)
     slippageBps?: number; // Slippage in basis points (e.g., 100 = 1%)
     preferGasless?: boolean; // Whether to prefer gasless settlement
+    referrerAddress?: string; // TON address to receive referral fees
+    referrerFeeBps?: number; // Referral fee in basis points (e.g., 10 = 0.1%)
 }
 
 export interface UseOmnistonSwapProps {
@@ -91,10 +93,17 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
             amount: {
                 bidUnits: params.amount,
             },
+            ...(params.referrerAddress ? {
+                referrerAddress: {
+                    blockchain: Blockchain.TON,
+                    address: params.referrerAddress,
+                },
+                referrerFeeBps: params.referrerFeeBps ?? 10,
+            } : {}),
             settlementParams: {
                 maxPriceSlippageBps: params.slippageBps ?? 100, // Default 1%
-                gaslessSettlement: params.preferGasless 
-                    ? GaslessSettlement.GASLESS_SETTLEMENT_REQUIRED 
+                gaslessSettlement: params.preferGasless
+                    ? GaslessSettlement.GASLESS_SETTLEMENT_REQUIRED
                     : GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
             },
         };

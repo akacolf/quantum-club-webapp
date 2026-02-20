@@ -23,7 +23,7 @@ const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const { referralsNum, setReferralNum } = useFrenContext();
   const router = useRouter();
-  const { telegramId } = useUserContext();
+  const { telegramId, SetMainQuantAmount } = useUserContext();
   const {
     referralsContext,
     addReferral,
@@ -276,8 +276,11 @@ const FrensContent = () => {
         toast.success(`Claimed ${data.claimedAmount.toFixed(0)} QNTM!`);
         setPendingRewards(0);
         // Update local storage balance
-        const currentBalance = Number(localStorage.getItem(`QAmount_${telegramId}`) || "0");
-        localStorage.setItem(`QAmount_${telegramId}`, String(currentBalance + data.claimedAmount));
+        const currentBalance = Number(String(localStorage.getItem(`QAmount_${telegramId}`) || "0").replace(/,/g, ""));
+        const newBalance = currentBalance + data.claimedAmount;
+        const formattedBalance = newBalance.toLocaleString("en-US", { maximumFractionDigits: 0 });
+        localStorage.setItem(`QAmount_${telegramId}`, formattedBalance);
+        SetMainQuantAmount(formattedBalance);
       } else if (data.claimedAmount === 0) {
         toast.info("No pending rewards to claim");
       } else {

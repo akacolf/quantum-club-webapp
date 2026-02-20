@@ -52,22 +52,27 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
   useEffect(() => {
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (tgUser?.username) {
-      setDisplayName(tgUser.username);
-    } else if (tgUser?.first_name) {
-      setDisplayName(tgUser.first_name);
-    } else if (username) {
+    // Prefer DB-stored username (works for email login from different TG account)
+    if (username) {
       setDisplayName(username);
+    } else {
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (tgUser?.username) {
+        setDisplayName(tgUser.username);
+      } else if (tgUser?.first_name) {
+        setDisplayName(tgUser.first_name);
+      }
     }
 
+    // Fetch profile photo using DB telegramId (not initDataUnsafe which may be a different TG account)
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     if (tgUser?.photo_url) {
       setPhotoUrl(tgUser.photo_url);
-    } else if (tgUser?.id) {
+    } else if (telegramId) {
       fetch("/api/get-profile-photo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId: tgUser.id }),
+        body: JSON.stringify({ telegramId }),
       })
         .then((res) => res.json())
         .then((data) => {
@@ -75,7 +80,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
         })
         .catch(() => {});
     }
-  }, [username]);
+  }, [username, telegramId]);
 
   // Load QC username on mount
   useEffect(() => {

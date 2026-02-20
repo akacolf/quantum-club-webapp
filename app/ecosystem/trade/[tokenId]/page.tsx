@@ -10,6 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
@@ -70,7 +76,9 @@ export default function TokenDetailPage() {
         newPrice: string;
     } | null>(null);
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
-    
+    const [tradingOpen, setTradingOpen] = useState(false);
+    const [tradingTab, setTradingTab] = useState<"buy" | "sell">("buy");
+
     // On-chain stats from TONAPI via TanStack Query
     const { data: onChainStats = { holders: 0, trades: 0, volume24h: 0 } } = useOnChainStats(
         selectedToken?.jettonMasterAddress,
@@ -136,6 +144,7 @@ export default function TokenDetailPage() {
                         duration: 5000,
                     });
                     setAmount("");
+                    setTradingOpen(false);
                     // Refresh token data from on-chain after trade
                     setTimeout(() => selectToken(tokenId), 2000);
                     setTimeout(() => selectToken(tokenId), 5000);
@@ -150,6 +159,7 @@ export default function TokenDetailPage() {
                         duration: 5000,
                     });
                     setAmount("");
+                    setTradingOpen(false);
                     // Refresh token data from on-chain after trade
                     setTimeout(() => selectToken(tokenId), 2000);
                     setTimeout(() => selectToken(tokenId), 5000);
@@ -187,6 +197,14 @@ export default function TokenDetailPage() {
         }
     };
 
+    const openTrade = (tab: "buy" | "sell") => {
+        setTradingTab(tab);
+        setActiveTab(tab);
+        setAmount("");
+        setPreview(null);
+        setTradingOpen(true);
+    };
+
     if (!selectedToken) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32 px-4 pt-16">
@@ -195,122 +213,153 @@ export default function TokenDetailPage() {
         );
     }
 
+    const shortAddr = selectedToken.jettonMasterAddress
+        ? `${selectedToken.jettonMasterAddress.slice(0, 6)}...${selectedToken.jettonMasterAddress.slice(-4)}`
+        : "";
+
+    const tonReserveTon = Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9;
+    const marketCapUsd = tonReserveTon * (tonPrice || 5);
+
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
-            {/* Header - Premium Glassmorphism */}
-            {/* Header - Premium Glassmorphism */}
-            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl shadow-black/20">
-                <div className="px-4 py-3 flex items-center gap-4">
+        <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-40">
+            <div className="px-4 pt-4 space-y-4">
+                {/* Token Header — matches Spot Trading style */}
+                <div className="flex items-center gap-3">
                     <button
                         onClick={() => selectedToken.image && setIsImageViewOpen(true)}
-                        className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-white/10 to-transparent relative cursor-pointer ring-1 ring-white/10 hover:ring-primary/50 transition-all flex-shrink-0 group"
+                        className="relative w-14 h-14 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/10 flex-shrink-0 hover:ring-primary/50 transition-all group"
                     >
                         {selectedToken.image ? (
                             <Image src={selectedToken.image} alt={selectedToken.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-primary font-bold bg-white/5">
+                            <div className="w-full h-full flex items-center justify-center text-primary font-bold text-lg">
                                 {selectedToken.symbol.slice(0, 2)}
                             </div>
                         )}
                     </button>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                            <h1 className="text-lg font-bold text-white truncate leading-none">{selectedToken.name}</h1>
+                            <h1 className="text-lg font-bold text-white truncate">{selectedToken.symbol}</h1>
                             {selectedToken.isGraduated && (
-                                <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-blue-400" />
+                                <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-blue-400 flex-shrink-0" />
                             )}
+                            <Badge
+                                className={`text-[9px] h-4 border-0 font-semibold ${
+                                    !selectedToken.isGraduated
+                                    ? "bg-green-500/10 text-green-400"
+                                    : "bg-blue-500/10 text-blue-400"
+                                }`}
+                            >
+                                {!selectedToken.isGraduated ? "Active Curve" : "Graduated"}
+                            </Badge>
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                             <span className="text-[10px] font-bold text-black bg-white/90 px-1.5 py-px rounded-[4px] tracking-tight">
-                                ${selectedToken.symbol}
-                            </span>
+                        <p className="text-xs text-muted-foreground truncate">{selectedToken.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            {selectedToken.jettonMasterAddress && (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
+                                            toast.success("Address copied!");
+                                        }}
+                                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] text-muted-foreground hover:text-white transition-colors"
+                                    >
+                                        {shortAddr}
+                                        <Icon icon="solar:copy-linear" className="w-3 h-3" />
+                                    </button>
+                                    <a
+                                        href={`${isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com"}/${selectedToken.jettonMasterAddress}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-muted-foreground hover:text-white transition-colors"
+                                    >
+                                        <Icon icon="solar:link-round-bold" className="w-3.5 h-3.5" />
+                                    </a>
+                                </>
+                            )}
+                            <Badge className="bg-primary/10 text-primary border-0 text-[9px] h-4">RocketStart</Badge>
                         </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1.5">
-                         <Badge
-                            variant="outline"
-                            className={`text-[9px] px-2 py-0.5 h-5 border-0 font-semibold ${
-                                !selectedToken.isGraduated 
-                                ? "bg-green-500/10 text-green-400" 
-                                : "bg-blue-500/10 text-blue-400"
-                            }`}
-                        >
-                            {!selectedToken.isGraduated ? "Active Curve" : "Graduated"}
-                        </Badge>
-                        {selectedToken.jettonMasterAddress && (
-                            <div className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-full bg-white/5 border border-white/5">
-                                <span className="text-[10px] text-muted-foreground">
-                                    {selectedToken.jettonMasterAddress.slice(0, 4)}...{selectedToken.jettonMasterAddress.slice(-4)}
-                                </span>
-                                <div className="w-px h-3 bg-white/10 mx-1" />
-                                <button
-                                    className="text-muted-foreground hover:text-white transition-colors"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
-                                        toast.success("Address copied!");
-                                    }}
-                                >
-                                    <Icon icon="solar:copy-linear" className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    className="text-muted-foreground hover:text-primary transition-colors"
-                                    onClick={() =>
-                                        window.open(
-                                            `${isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com"}/${selectedToken.jettonMasterAddress}`,
-                                            "_blank"
-                                        )
-                                    }
-                                >
-                                    <Icon icon="solar:link-circle-linear" className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
-            </div>
 
-            <div className="px-4 py-4 space-y-4">
-                {/* Graduation Progress - Above price */}
+                {/* Graduation Progress */}
                 {!selectedToken.isGraduated && (
                     <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
                 )}
 
-                {/* Price Card - On-Chain Data */}
-                <Card className="bg-white/5 backdrop-blur-md border border-white/5 relative overflow-hidden group">
-                     {/* Ambient Glow */}
-                     <div className="absolute -right-10 -top-10 w-40 h-40 blur-[80px] rounded-full transition-opacity opacity-50 bg-green-500/20" />
-                    
-                    <CardContent className="p-4 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full flex items-center justify-center border border-white/5 bg-green-500/10 text-green-400">
-                                    <Icon icon="solar:tag-price-bold" className="w-5 h-5" />
+                {/* Market Stats — matches Spot Trading card layout */}
+                <Card className="bg-white/5 border-white/5">
+                    <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                                    {selectedToken.isGraduated ? "Market cap" : "TON Reserve"}
+                                </p>
+                                <p className="text-2xl font-bold text-white">
+                                    ${formatCompactNumber(marketCapUsd, 2)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                    {formatMarketCap(selectedToken.tonReserve || selectedToken.marketCap || "0")}
+                                </p>
+                            </div>
+                            <div className="text-right space-y-1.5">
+                                <StatRow label="Holders" value={onChainStats.holders > 0 ? formatCompactNumber(onChainStats.holders, 0) : undefined} />
+                                <StatRow label="Volume 24h" value={onChainStats.volume24h > 0 ? `${formatCompactNumber(onChainStats.volume24h, 1)} TON` : undefined} />
+                                <StatRow label="Transactions" value={onChainStats.trades > 0 ? formatCompactNumber(onChainStats.trades, 0) : undefined} />
+                            </div>
+                        </div>
+
+                        {/* Graduation progress strip */}
+                        {!selectedToken.isGraduated && (
+                            <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-blue-500" />
+                                    <div>
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">To Graduation</p>
+                                        <p className="text-xs font-semibold text-blue-100">ST<span className="text-blue-500">O</span>N.fi Listing</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Current Price</p>
-                                    <p className="text-2xl font-bold text-white tracking-tight flex items-baseline gap-1">
-                                         {formatPrice(BigInt(selectedToken.currentPrice || "0"))} 
-                                         <span className="text-xs text-muted-foreground font-normal">TON</span>
+                                <div className="text-right">
+                                    <p className="text-sm font-bold text-white">
+                                        {(() => {
+                                            const rawThreshold = parseFloat(selectedToken.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
+                                            let thresholdTon = rawThreshold > 1e9 ? rawThreshold / 1e9 : rawThreshold;
+                                            if (thresholdTon === 100) thresholdTon = 2000;
+                                            return formatCompactNumber(Math.max(0, thresholdTon - tonReserveTon), 0);
+                                        })()} <span className="text-xs font-normal text-muted-foreground">TON remaining</span>
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-1">
-                                <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
-                                    ON-CHAIN
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    Live
-                                </span>
-                            </div>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
 
-                {/* Price Chart - Now reads directly from blockchain */}
-                <PriceChart 
-                    currentPrice={selectedToken.currentPrice} 
+                {/* Price row — matches Spot Trading */}
+                <div className="flex items-center gap-3 px-1">
+                    <div className="flex-1">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">Price</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-base font-semibold text-white">
+                                {formatPrice(BigInt(selectedToken.currentPrice || "0"))} TON
+                            </p>
+                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
+                                ON-CHAIN
+                            </Badge>
+                        </div>
+                    </div>
+                    {tonPrice > 0 && (
+                        <div className="text-right">
+                            <p className="text-[10px] text-muted-foreground mb-0.5">Price (USD)</p>
+                            <p className="text-base font-semibold text-white">
+                                ${(Number(selectedToken.currentPrice || "0") / 1e9 * tonPrice).toFixed(6)}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Price Chart */}
+                <PriceChart
+                    currentPrice={selectedToken.currentPrice}
                     jettonAddress={selectedToken.jettonMasterAddress}
                 />
 
@@ -321,47 +370,197 @@ export default function TokenDetailPage() {
                         name: selectedToken.name,
                         symbol: selectedToken.symbol,
                         price: Number(selectedToken.currentPrice || "0") / 1e9,
-                        marketCap: Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9,
+                        marketCap: tonReserveTon,
                         volume24h: onChainStats.volume24h,
                         holders: onChainStats.holders,
                         createdAt: selectedToken.createdAt ? new Date(selectedToken.createdAt).toISOString() : undefined,
                     }}
                 />
 
-                {/* Trading Panel - Show different UI based on graduation status (moved up, under graduation progress) */}
-                {selectedToken.isGraduated ? (
+                {/* Graduated Trading (STON.fi) */}
+                {selectedToken.isGraduated && (
                     <GraduatedTrading token={selectedToken} />
-                ) : (
-                    <Card className="bg-white/5 backdrop-blur-xl border border-white/5 overflow-hidden shadow-xl">
-                        <CardContent className="p-5">
-                            {/* Header with Slippage Settings */}
-                            <div className="flex items-center justify-between mb-5">
-                                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                                    <Icon icon="solar:card-transfer-bold" className="w-5 h-5 text-primary" />
-                                    Trade
-                                </h3>
+                )}
+
+                {/* Supply Info */}
+                <SupplyInfo token={selectedToken} />
+
+                {/* Live Trades */}
+                <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} jettonAddress={selectedToken.jettonMasterAddress} />
+
+                {/* User Position (if exists) */}
+                {position && BigInt(position.balance) > BigInt(0) && (
+                    <Card className="bg-white/5 border-white/5">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-primary" />
+                                <h3 className="font-semibold text-white text-sm">Your Position</h3>
+                            </div>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground mb-0.5">Balance</p>
+                                    <p className="text-lg font-bold text-white">
+                                        {formatCompactNumber(Number(position.balance) / 1e9, 2)}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">{selectedToken.symbol}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] text-muted-foreground mb-0.5">Value</p>
+                                    <p className="text-lg font-bold text-white">
+                                        {formatCompactNumber((Number(position.balance) / 1e9) * (Number(selectedToken.currentPrice) / 1e9), 4)}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">TON</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Token Description */}
+                {selectedToken.description && (
+                    <Card className="bg-white/5 border-white/5">
+                        <CardContent className="p-3">
+                            <p className="text-xs text-muted-foreground mb-1">About</p>
+                            <p className="text-sm text-white/80 line-clamp-3">{selectedToken.description}</p>
+                            {selectedToken.creatorWallet && (
+                                <p className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-white/5">
+                                    Created by <span className="text-white font-medium">{selectedToken.creatorWallet.slice(0, 6)}...{selectedToken.creatorWallet.slice(-4)}</span>
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Community Group */}
+                <Card className="bg-white/5 border-white/5">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-primary" />
+                                <h3 className="font-semibold text-white text-sm">Community</h3>
+                            </div>
+                            {tokenGroup && (
+                                <span className="text-[10px] text-muted-foreground">{tokenGroup.memberCount} members</span>
+                            )}
+                        </div>
+
+                        {tokenGroup ? (
+                            <div className="space-y-3">
+                                <p className="text-xs text-muted-foreground">{tokenGroup.description || `Join the ${selectedToken.symbol} community`}</p>
+                                {isGroupMember(tokenGroup.id) ? (
+                                    <Button
+                                        onClick={() => router.push(`/groups/${tokenGroup.id}`)}
+                                        className="w-full bg-primary/20 hover:bg-primary/30 text-primary h-11 rounded-xl font-bold text-sm"
+                                    >
+                                        <Icon icon="solar:chat-round-line-bold" className="w-4 h-4 mr-2" />
+                                        Open Group Chat
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={async () => {
+                                            const success = await joinGroup(tokenGroup.id);
+                                            if (success) {
+                                                toast.success("Joined community!");
+                                                router.push(`/groups/${tokenGroup.id}`);
+                                            } else {
+                                                toast.error("Failed to join");
+                                            }
+                                        }}
+                                        className="w-full bg-white hover:bg-white/90 text-black h-11 rounded-xl font-bold text-sm"
+                                    >
+                                        <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
+                                        Join Community
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-3 text-center py-2">
+                                <p className="text-xs text-muted-foreground">No community group yet</p>
+                                {selectedToken.creatorId && (
+                                    <Button
+                                        onClick={async () => {
+                                            const groupId = await createGroup(
+                                                `${selectedToken.symbol} Community`,
+                                                `Official community for ${selectedToken.name} token holders`,
+                                                tokenId,
+                                                selectedToken.symbol
+                                            );
+                                            if (groupId) {
+                                                toast.success("Community created!");
+                                                router.push(`/groups/${groupId}`);
+                                            } else {
+                                                toast.error("Failed to create community");
+                                            }
+                                        }}
+                                        variant="outline"
+                                        className="w-full border-white/20 text-white hover:bg-white/10 h-10 rounded-xl text-sm"
+                                    >
+                                        <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
+                                        Create Community
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Token Chat */}
+                <TokenChat tokenId={tokenId} tokenSymbol={selectedToken.symbol} />
+            </div>
+
+            {/* Floating Buy/Sell Buttons — matches Spot Trading */}
+            {!selectedToken.isGraduated && (
+                <div className="fixed bottom-28 left-0 right-0 px-4 z-40">
+                    <div className="flex gap-3 max-w-md mx-auto">
+                        <Button
+                            onClick={() => openTrade("buy")}
+                            className="flex-1 h-12 bg-green-500 hover:bg-green-600 text-white font-bold text-base rounded-xl shadow-lg shadow-green-500/20"
+                        >
+                            Buy
+                        </Button>
+                        <Button
+                            onClick={() => openTrade("sell")}
+                            disabled={!position || BigInt(position?.balance || "0") <= BigInt(0)}
+                            className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-xl shadow-lg shadow-red-500/20"
+                        >
+                            Sell
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* Trading Sheet — matches Spot Trading's bottom drawer */}
+            {!selectedToken.isGraduated && (
+                <Sheet open={tradingOpen} onOpenChange={setTradingOpen}>
+                    <SheetContent side="bottom" className="bg-[#111] border-t border-white/10 rounded-t-2xl max-h-[85vh] overflow-y-auto px-0">
+                        <SheetHeader className="px-5 pb-2">
+                            <div className="flex items-center justify-between">
+                                <SheetTitle className="text-white font-bold">
+                                    Trade {selectedToken.symbol}
+                                </SheetTitle>
                                 <SlippageSettings value={slippage} onChange={setSlippage} />
                             </div>
+                        </SheetHeader>
 
-                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); }}>
-                                <TabsList className="w-full bg-white/5 p-1 mb-5 h-12 rounded-xl grid grid-cols-2 relative overflow-hidden">
-                                     {/* Background slider could go here for extra polish, but default tabs are fine with tweaks */}
+                        <div className="px-5 pb-8">
+                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); setPreview(null); }}>
+                                <TabsList className="w-full bg-white/5 p-1 mb-5 h-11 rounded-xl grid grid-cols-2">
                                     <TabsTrigger
                                         value="buy"
-                                        className="h-full gap-2 rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg duration-200"
+                                        className="h-full rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg duration-200"
                                     >
                                         Buy
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="sell"
-                                        className="h-full gap-2 rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg duration-200"
-                                        disabled={!position || BigInt(position.balance) <= BigInt(0)}
+                                        className="h-full rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg duration-200"
+                                        disabled={!position || BigInt(position?.balance || "0") <= BigInt(0)}
                                     >
                                         Sell
                                     </TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="buy" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <TabsContent value="buy" className="space-y-4">
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-end">
                                             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amount (TON)</label>
@@ -369,17 +568,17 @@ export default function TokenDetailPage() {
                                                 Bal: <span className="text-white">{parseFloat(tonBalance || "0").toFixed(2)}</span>
                                             </span>
                                         </div>
-                                        
-                                        <div className="relative group">
+
+                                        <div className="relative">
                                             <Input
                                                 type="number"
                                                 placeholder="0.00"
                                                 value={amount}
                                                 onChange={(e) => setAmount(e.target.value)}
-                                                className="bg-white/5 border-white/10 text-white text-2xl font-bold h-16 pl-4 pr-16 rounded-2xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 transition-all placeholder:text-white/10"
+                                                className="bg-white/5 border-white/10 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 transition-all placeholder:text-white/10"
                                             />
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-                                                <div className="w-6 h-6 relative">
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                                                <div className="w-5 h-5 relative">
                                                     <Image src="/svg/ton-logo.svg" alt="TON" fill className="object-contain" />
                                                 </div>
                                             </div>
@@ -401,14 +600,14 @@ export default function TokenDetailPage() {
                                     </div>
 
                                     {preview && (
-                                        <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 space-y-2.5">
+                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">You receive</span>
-                                                <span className="text-white font-bold text-lg">
-                                                    ~{parseFloat(preview.tokensReceived || "0").toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{selectedToken.symbol}</span>
+                                                <span className="text-white font-bold">
+                                                    ~{parseFloat(preview.tokensReceived || "0").toLocaleString()} <span className="text-xs font-normal text-muted-foreground">{selectedToken.symbol}</span>
                                                 </span>
                                             </div>
-                                            <div className="h-px bg-white/5 w-full my-1" />
+                                            <div className="h-px bg-white/5 w-full" />
                                             <div className="flex justify-between text-xs">
                                                 <span className="text-muted-foreground">Price per token</span>
                                                 <span className="text-white">{parseFloat(preview.averagePrice || "0").toFixed(6)} TON</span>
@@ -442,7 +641,7 @@ export default function TokenDetailPage() {
                                     )}
 
                                     <Button
-                                        className="w-full h-14 text-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-green-500/20"
+                                        className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/20"
                                         onClick={handleTrade}
                                         disabled={isLoading || !amount || parseFloat(amount) <= 0}
                                     >
@@ -452,15 +651,12 @@ export default function TokenDetailPage() {
                                                 <span>Confirming...</span>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col items-center leading-tight">
-                                                <span>Buy {selectedToken.symbol}</span>
-                                                {/* <span className="text-[10px] opacity-80 font-normal">Instant settlement</span> */}
-                                            </div>
+                                            `Buy ${selectedToken.symbol}`
                                         )}
                                     </Button>
                                 </TabsContent>
 
-                                <TabsContent value="sell" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <TabsContent value="sell" className="space-y-4">
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-end">
                                             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amount ({selectedToken.symbol})</label>
@@ -468,18 +664,18 @@ export default function TokenDetailPage() {
                                                 Avail: <span className="text-white">{(Number(availableToSell || 0) / 1e9).toLocaleString()}</span>
                                             </span>
                                         </div>
-                                        
-                                        <div className="relative group">
+
+                                        <div className="relative">
                                             <Input
                                                 type="number"
                                                 placeholder="0"
                                                 value={amount}
                                                 onChange={(e) => setAmount(e.target.value)}
-                                                className="bg-white/5 border-white/10 text-white text-2xl font-bold h-16 pl-4 pr-16 rounded-2xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500/50 transition-all placeholder:text-white/10"
+                                                className="bg-white/5 border-white/10 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500/50 transition-all placeholder:text-white/10"
                                             />
                                             {selectedToken.image && (
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden bg-white/10 p-0.5 pointer-events-none">
-                                                     <Image src={selectedToken.image} alt="" fill className="object-cover rounded-full" />
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full overflow-hidden bg-white/10 pointer-events-none">
+                                                    <Image src={selectedToken.image} alt="" fill className="object-cover rounded-full" unoptimized />
                                                 </div>
                                             )}
                                         </div>
@@ -500,14 +696,14 @@ export default function TokenDetailPage() {
                                     </div>
 
                                     {preview && (
-                                        <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 space-y-2.5">
+                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">You receive</span>
-                                                <span className="text-white font-bold text-lg">
-                                                    ~{parseFloat(preview.tonReceived || "0").toFixed(4)} <span className="text-sm font-normal text-muted-foreground">TON</span>
+                                                <span className="text-white font-bold">
+                                                    ~{parseFloat(preview.tonReceived || "0").toFixed(4)} <span className="text-xs font-normal text-muted-foreground">TON</span>
                                                 </span>
                                             </div>
-                                            <div className="h-px bg-white/5 w-full my-1" />
+                                            <div className="h-px bg-white/5 w-full" />
                                             <div className="flex justify-between text-xs">
                                                 <span className="text-muted-foreground">Price per token</span>
                                                 <span className="text-white">{parseFloat(preview.averagePrice || "0").toFixed(6)} TON</span>
@@ -516,7 +712,7 @@ export default function TokenDetailPage() {
                                     )}
 
                                     <Button
-                                        className="w-full h-14 text-lg bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold rounded-2xl shadow-lg shadow-red-500/20"
+                                        className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-500/20"
                                         onClick={handleTrade}
                                         disabled={isLoading || !amount || parseFloat(amount) <= 0}
                                     >
@@ -531,282 +727,10 @@ export default function TokenDetailPage() {
                                     </Button>
                                 </TabsContent>
                             </Tabs>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Stats Card - Now 100% On-Chain */}
-                <Card className="bg-white/5 border border-white/5 overflow-hidden">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="solar:chart-square-bold" className="w-4 h-4 text-primary" />
-                                <p className="text-xs text-white/70 font-bold uppercase tracking-wide">Market Statistics</p>
-                            </div>
-                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
-                                ON-CHAIN
-                            </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                             {/* Market Cap - uses tonReserve (on-chain) */}
-                            <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
-                                <div className="flex items-center gap-2 mb-1.5 opacity-60">
-                                     <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 text-blue-400" />
-                                     <span className="text-[10px] uppercase font-bold tracking-wider">TON Reserve</span>
-                                </div>
-                                <p className="text-lg font-bold text-white leading-tight">
-                                    ${formatCompactNumber((Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9) * (tonPrice || 5), 2)}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground mt-0.5">
-                                    {formatMarketCap(selectedToken.tonReserve || selectedToken.marketCap || "0")}
-                                </p>
-                            </div>
-
-                             {/* Volume - on-chain from TONAPI */}
-                             <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
-                                <div className="flex items-center gap-2 mb-1.5 opacity-60">
-                                     <Icon icon="solar:graph-new-bold" className="w-3.5 h-3.5 text-orange-400" />
-                                     <span className="text-[10px] uppercase font-bold tracking-wider">Volume (24h)</span>
-                                </div>
-                                <p className="text-lg font-bold text-white leading-tight">
-                                    {formatCompactNumber(onChainStats.volume24h, 1)} <span className="text-sm font-normal text-muted-foreground">TON</span>
-                                </p>
-                            </div>
-
-                             {/* Holders - on-chain from TONAPI */}
-                             <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
-                                <div className="flex items-center gap-2 mb-1.5 opacity-60">
-                                     <Icon icon="solar:users-group-two-rounded-bold" className="w-3.5 h-3.5 text-purple-400" />
-                                     <span className="text-[10px] uppercase font-bold tracking-wider">Holders</span>
-                                </div>
-                                <p className="text-lg font-bold text-white leading-tight">
-                                    {formatCompactNumber(onChainStats.holders, 0)}
-                                </p>
-                            </div>
-
-                             {/* Trades - on-chain from TONAPI */}
-                             <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.02]">
-                                <div className="flex items-center gap-2 mb-1.5 opacity-60">
-                                     <Icon icon="solar:transfer-horizontal-bold" className="w-3.5 h-3.5 text-cyan-400" />
-                                     <span className="text-[10px] uppercase font-bold tracking-wider">Transactions</span>
-                                </div>
-                                <p className="text-lg font-bold text-white leading-tight">
-                                    {formatCompactNumber(onChainStats.trades, 0)}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Graduation Progress Strip - uses tonReserve (on-chain) */}
-                        <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-blue-500" />
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">To Graduation</p>
-                                    <p className="text-xs font-semibold text-blue-100">ST<span className="text-blue-500">O</span>N.fi Listing</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm font-bold text-white">
-                                    {(() => {
-                                        const rawThreshold = parseFloat(selectedToken.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
-                                        let thresholdTon = rawThreshold > 1e9 ? rawThreshold / 1e9 : rawThreshold;
-                                        if (thresholdTon === 100) thresholdTon = 2000;
-                                        const tonReserveTon = Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9;
-                                        return formatCompactNumber(Math.max(0, thresholdTon - tonReserveTon), 0);
-                                    })()} <span className="text-xs font-normal text-muted-foreground">TON remaining</span>
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Supply Info */}
-                <SupplyInfo token={selectedToken} />
-
-                {/* Live Trades */}
-                <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} jettonAddress={selectedToken.jettonMasterAddress} />
-
-                {/* User Position (if exists) */}
-                {position && BigInt(position.balance) > BigInt(0) && (
-                    <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                                    <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-primary" />
-                                </div>
-                                <h3 className="font-semibold text-white">Your Position</h3>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-3 rounded-xl bg-white/5">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Icon icon="solar:coins-bold" className="w-4 h-4 text-yellow-400" />
-                                        <p className="text-xs text-muted-foreground">Balance</p>
-                                    </div>
-                                    <p className="text-lg font-bold text-white">
-                                        {formatCompactNumber(Number(position.balance) / 1e9, 2)}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground">{selectedToken.symbol}</p>
-                                </div>
-                                <div className="p-3 rounded-xl bg-white/5">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Icon icon="solar:dollar-minimalistic-bold" className="w-4 h-4 text-green-400" />
-                                        <p className="text-xs text-muted-foreground">Value</p>
-                                    </div>
-                                    <p className="text-lg font-bold text-white">
-                                        {formatCompactNumber((Number(position.balance) / 1e9) * (Number(selectedToken.currentPrice) / 1e9), 4)}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground">TON</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Token Description */}
-                {selectedToken.description && (
-                    <Card className="bg-white/5 border border-white/5 overflow-hidden">
-                        <CardContent className="p-5">
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-                                    <Icon icon="solar:document-text-bold" className="w-4 h-4 text-cyan-400" />
-                                </div>
-                                <h3 className="font-bold text-white text-base">About</h3>
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed font-light">{selectedToken.description}</p>
-                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
-                                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                                     <Icon icon="solar:user-circle-bold" className="w-3.5 h-3.5 text-white/70" />
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Created by <span className="text-white font-medium">{selectedToken.creatorWallet ? `${selectedToken.creatorWallet.slice(0, 6)}...${selectedToken.creatorWallet.slice(-4)}` : "unknown"}</span>
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Trade Info */}
-                <Card className="bg-white/5 border border-white/5 overflow-hidden">
-                    <CardContent className="p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                            <h3 className="font-bold text-white text-base">How It Works</h3>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.02]">
-                                <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-                                    <Icon icon="solar:bolt-circle-bold" className="w-4 h-4 text-green-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-white">Instant Unlock</p>
-                                    <p className="text-[11px] text-muted-foreground">100% of supply available immediately</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.02]">
-                                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                                     <Icon icon="solar:chart-bold" className="w-4 h-4 text-blue-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-white">Bonding Curve</p>
-                                    <p className="text-[11px] text-muted-foreground">Price is determined by supply & demand</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.02]">
-                                <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0">
-                                    <Icon icon="solar:safe-circle-bold" className="w-4 h-4 text-orange-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-white">Natural Protection</p>
-                                    <p className="text-[11px] text-muted-foreground">Large sells incur higher slippage automatically</p>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Community Group Section */}
-                <Card className="bg-white/5 border border-white/5 overflow-hidden">
-                    <CardContent className="p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                                    <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-primary" />
-                                </div>
-                                <h3 className="font-bold text-white text-base">Community</h3>
-                            </div>
-                            {tokenGroup && (
-                                <Badge variant="secondary" className="text-xs bg-white/10 hover:bg-white/20 text-white">
-                                    {tokenGroup.memberCount} members
-                                </Badge>
-                            )}
-                        </div>
-
-                        {tokenGroup ? (
-                            <div className="space-y-4">
-                                <p className="text-sm text-muted-foreground">{tokenGroup.description || `Join the ${selectedToken.symbol} community`}</p>
-                                {isGroupMember(tokenGroup.id) ? (
-                                    <Button
-                                        onClick={() => router.push(`/groups/${tokenGroup.id}`)}
-                                        className="w-full bg-primary/20 hover:bg-primary/30 text-primary h-12 rounded-xl font-bold"
-                                    >
-                                        <Icon icon="solar:chat-round-line-bold" className="w-5 h-5 mr-2" />
-                                        Open Group Chat
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        onClick={async () => {
-                                            const success = await joinGroup(tokenGroup.id);
-                                            if (success) {
-                                                toast.success("Joined community!");
-                                                router.push(`/groups/${tokenGroup.id}`);
-                                            } else {
-                                                toast.error("Failed to join");
-                                            }
-                                        }}
-                                        className="w-full bg-white hover:bg-white/90 text-black h-12 rounded-xl font-bold transition-all shadow-lg shadow-white/10"
-                                    >
-                                        <Icon icon="solar:add-circle-bold" className="w-5 h-5 mr-2" />
-                                        Join Community
-                                    </Button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="space-y-4 text-center py-2">
-                                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto">
-                                    <Icon icon="solar:users-group-two-rounded-bold" className="w-6 h-6 text-muted-foreground/50" />
-                                </div>
-                                <p className="text-sm text-muted-foreground">No community group yet. Be the first to start one!</p>
-                                {selectedToken.creatorId && (
-                                    <Button
-                                        onClick={async () => {
-                                            const groupId = await createGroup(
-                                                `${selectedToken.symbol} Community`,
-                                                `Official community for ${selectedToken.name} token holders`,
-                                                tokenId,
-                                                selectedToken.symbol
-                                            );
-                                            if (groupId) {
-                                                toast.success("Community created!");
-                                                router.push(`/groups/${groupId}`);
-                                            } else {
-                                                toast.error("Failed to create community");
-                                            }
-                                        }}
-                                        variant="outline"
-                                        className="w-full border-white/20 text-white hover:bg-white/10 h-11 rounded-xl"
-                                    >
-                                        <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
-                                        Create Community
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Token Chat */}
-                <TokenChat tokenId={tokenId} tokenSymbol={selectedToken.symbol} />
-            </div>
+                    </SheetContent>
+                </Sheet>
+            )}
 
             {/* Image Viewer Modal */}
             <ImageViewer
@@ -819,27 +743,27 @@ export default function TokenDetailPage() {
     );
 }
 
+function StatRow({ label, value }: { label: string; value?: string }) {
+    return (
+        <div className="flex items-center justify-end gap-2">
+            <span className="text-[10px] text-muted-foreground">{label}</span>
+            <span className="text-sm font-semibold text-white">{value || "--"}</span>
+        </div>
+    );
+}
+
 function TokenDetailSkeleton() {
     return (
         <div className="space-y-4">
-            <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-4">
-                    <Skeleton className="h-6 w-32 mb-2" />
-                    <Skeleton className="h-10 w-48 mb-4" />
-                    <div className="grid grid-cols-3 gap-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                    </div>
-                </CardContent>
-            </Card>
-            <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-4">
-                    <Skeleton className="h-10 w-full mb-4" />
-                    <Skeleton className="h-12 w-full mb-4" />
-                    <Skeleton className="h-12 w-full" />
-                </CardContent>
-            </Card>
+            <div className="flex items-center gap-3">
+                <Skeleton className="w-14 h-14 rounded-full" />
+                <div className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                </div>
+            </div>
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-[260px] w-full rounded-xl" />
         </div>
     );
 }

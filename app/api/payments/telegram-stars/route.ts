@@ -225,6 +225,12 @@ export async function POST(request: NextRequest) {
 // Webhook handler for Telegram payment updates
 export async function PUT(request: NextRequest) {
   try {
+    // Verify webhook secret to prevent forged payment confirmations
+    const webhookSecret = request.headers.get("x-telegram-bot-api-secret-token");
+    if (!webhookSecret || webhookSecret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+      return NextResponse.json({ ok: false }, { status: 401 });
+    }
+
     const update = await request.json();
     
     // Handle pre_checkout_query

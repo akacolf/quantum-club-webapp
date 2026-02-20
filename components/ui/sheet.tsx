@@ -67,7 +67,7 @@ const SheetContent = React.forwardRef<
       {children}
       <SheetPrimitive.Close
         className="absolute right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-secondary"
-        style={{ top: `calc(var(--tg-content-safe-area-inset-top, 0px) + 16px)` }}
+        style={{ top: side === "bottom" || side === "top" ? "24px" : `calc(var(--tg-content-safe-area-inset-top, 0px) + 16px)` }}
       >
         <Icon icon="lucide:x" className="h-4 w-4" />
         <span className="sr-only">Close</span>

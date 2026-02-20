@@ -154,7 +154,7 @@ service cloud.firestore {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
         allow update: if request.auth != null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'poll']);
         allow delete: if false;
       }
     }

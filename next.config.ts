@@ -100,13 +100,26 @@ const nextConfig: import('next').NextConfig = {
       'lottie-react',
       'framer-motion',
       'recharts',
+      'lightweight-charts',
       'date-fns',
       'firebase',
+      'firebase/auth',
+      'firebase/firestore',
+      'firebase/storage',
+      'firebase/database',
       '@ton/core',
       '@ton/ton',
       '@ton/crypto',
+      '@ton-api/client',
+      '@ton-api/ton-adapter',
+      'sonner',
+      '@ston-fi/omniston-sdk-react',
+      'gsap',
     ],
   },
+
+  // react-pdf: canvas is not needed in browser, exclude from server bundle
+  serverExternalPackages: ['canvas'],
 
   // Disable x-powered-by header for security
   poweredByHeader: false,

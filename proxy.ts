@@ -83,7 +83,6 @@ export async function proxy(request: NextRequest) {
   }
 
   const decodedToken = decodeJwt(token);
-
   if (decodedToken.exp && (decodedToken.exp - 300) * 1000 < Date.now()) {
     return NextResponse.redirect(
       new URL(

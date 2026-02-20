@@ -1,6 +1,7 @@
 "use client"
 
-import { auth } from "@/app/(firebase)/client";
+import { auth, dbfs } from "@/app/(firebase)/client";
+import { doc, getDoc } from "firebase/firestore";
 import { GoogleAuthProvider, EmailAuthProvider, ParsedToken, signInWithCredential, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, User } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react"
 import { removeToken, setToken } from "./actions";
@@ -42,10 +43,11 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             }
         }
 
-        const storedKeep = typeof window !== "undefined" ? localStorage.getItem("keepLoggedIn") : null;
-        const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
-
         const unsubscribe = auth.onAuthStateChanged(async(user) => {
+            // Read keepLoggedIn inside the callback to always get the latest value
+            const storedKeep = typeof window !== "undefined" ? localStorage.getItem("keepLoggedIn") : null;
+            const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
+
             if (user && !shouldKeep) {
                 // User chose not to stay logged in — sign them out
                 await auth.signOut();
@@ -54,6 +56,7 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                 setAuthLoading(false);
                 return;
             }
+
             setCurrentUser(user ?? null);
             if(user){
                 try {
@@ -72,6 +75,37 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                 try { await removeToken(); } catch {}
             }
             setAuthLoading(false);
+
+            // Deferred: check force re-auth version (non-blocking, runs after auth resolves)
+            if (user) {
+                (async () => {
+                    try {
+                        const settingsRef = doc(dbfs, "set", "settings");
+                        const settingsSnap = await getDoc(settingsRef);
+                        const remoteVersion = settingsSnap.data()?.forceAuthVersion;
+                        const localVersion = localStorage.getItem("forceAuthVersion");
+                        if (remoteVersion && localVersion === null) {
+                            localStorage.setItem("forceAuthVersion", String(remoteVersion));
+                        }
+                        if (remoteVersion && localVersion !== null && String(remoteVersion) !== localVersion) {
+                            localStorage.setItem("forceAuthVersion", String(remoteVersion));
+                            const keys = Object.keys(localStorage);
+                            for (const key of keys) {
+                                if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
+                                    key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
+                                    key === "username" || key === "telegramId" || key === "telegramIdNM" ||
+                                    key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
+                                    localStorage.removeItem(key);
+                                }
+                            }
+                            sessionStorage.clear();
+                            await auth.signOut();
+                            try { await removeToken(); } catch {}
+                            setCurrentUser(null);
+                        }
+                    } catch {}
+                })();
+            }
         });
 
         // Safety timeout: if onAuthStateChanged never fires, stop loading after 5s
@@ -87,7 +121,8 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
         await auth.signOut();
     }
     const loginWithToken = async(customToken:string) =>{
-      await signInWithCustomToken(auth, customToken);
+      const cred = await signInWithCustomToken(auth, customToken);
+      await cred.user.getIdToken(true);
     }
     const loginWithEmail = async(email: string, password: string): Promise<User> => {
       const result = await signInWithEmailAndPassword(auth, email, password);
