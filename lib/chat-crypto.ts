@@ -6,8 +6,8 @@
  * - The message key is encrypted with the conversation key (derived via HKDF)
  * - Sender ID is bound as AAD (additional authenticated data) to prevent forgery
  *
- * Wire format (text):  base64( version(1) + encMsgKey(44) + iv(12) + ciphertext )
- * Wire format (blob):  version(1) + encMsgKey(44) + iv(12) + ciphertext
+ * Wire format (text):  base64( version(1) + encMsgKey(60) + iv(12) + ciphertext )
+ * Wire format (blob):  version(1) + encMsgKey(60) + iv(12) + ciphertext
  *
  * v3 = envelope + sender AAD
  * v2 = HKDF conversation key (no envelope)
@@ -19,9 +19,9 @@ const SALT_V2 = new TextEncoder().encode("qc-chat-e2e-v2");
 const HKDF_INFO = new TextEncoder().encode("aes-256-gcm");
 const IV_LENGTH = 12;
 const VERSION_V3 = 3;
-const MSG_KEY_LENGTH = 32; // AES-256
-// encrypted message key = iv(12) + encrypted(32) = 44 bytes
-const ENC_MSG_KEY_LENGTH = IV_LENGTH + MSG_KEY_LENGTH;
+const WRAPPED_KEY_LENGTH = 48; // AES-256 key (32) + GCM auth tag (16)
+// encrypted message key = wrapIv(12) + wrappedKey(48) = 60 bytes
+const ENC_MSG_KEY_LENGTH = IV_LENGTH + WRAPPED_KEY_LENGTH;
 
 const keyCache = new Map<string, CryptoKey>();
 

@@ -76,6 +76,7 @@ export default function FileMessage({
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState(0);
+  const [pdfScale, setPdfScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = file.mimeType.startsWith("image/");
@@ -231,10 +232,25 @@ export default function FileMessage({
 
       {showPdfViewer && pdfUrl && (
         <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
-          {/* Header with pt-12 to clear Telegram Mini App buttons */}
-          <div className="flex items-center justify-between px-4 pt-12 pb-3 bg-card/90 backdrop-blur-sm">
+          {/* Header with pt-16 to clear Telegram Mini App buttons */}
+          <div className="flex items-center justify-between px-4 pt-16 pb-3 bg-card/90 backdrop-blur-sm">
             <p className="text-sm font-medium text-white truncate flex-1 mr-3">{file.name}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPdfScale((s) => Math.max(0.5, s - 0.25))}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
+              >
+                <Icon icon="lucide:minus" className="w-3.5 h-3.5 text-white" />
+              </button>
+              <span className="text-[10px] text-white/60 tabular-nums w-8 text-center">
+                {Math.round(pdfScale * 100)}%
+              </span>
+              <button
+                onClick={() => setPdfScale((s) => Math.min(3, s + 0.25))}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
+              >
+                <Icon icon="lucide:plus" className="w-3.5 h-3.5 text-white" />
+              </button>
               <button
                 onClick={() => {
                   const a = document.createElement("a");
@@ -245,20 +261,20 @@ export default function FileMessage({
                   a.click();
                   document.body.removeChild(a);
                 }}
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center ml-1"
               >
-                <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4 text-white" />
+                <Icon icon="solar:download-minimalistic-bold" className="w-3.5 h-3.5 text-white" />
               </button>
               <button
-                onClick={() => setShowPdfViewer(false)}
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
+                onClick={() => { setShowPdfViewer(false); setPdfScale(1); }}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
               >
-                <Icon icon="lucide:x" className="w-4 h-4 text-white" />
+                <Icon icon="lucide:x" className="w-3.5 h-3.5 text-white" />
               </button>
             </div>
           </div>
           {/* PDF pages rendered by react-pdf */}
-          <div className="flex-1 overflow-y-auto bg-neutral-200">
+          <div className="flex-1 overflow-auto bg-neutral-200">
             <Document
               file={pdfUrl}
               onLoadSuccess={({ numPages: n }) => setNumPages(n)}
@@ -278,7 +294,7 @@ export default function FileMessage({
                 <Page
                   key={i}
                   pageNumber={i + 1}
-                  width={Math.min(window.innerWidth, 448)}
+                  width={Math.min(window.innerWidth, 448) * pdfScale}
                   className="mb-2 mx-auto"
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
