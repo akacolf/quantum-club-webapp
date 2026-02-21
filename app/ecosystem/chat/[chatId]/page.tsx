@@ -39,6 +39,7 @@ import {
   decryptMessage,
   isEncryptedMessage,
   encryptBlob,
+  generateEpochNonce,
 } from "@/lib/chat-crypto";
 import {
   collection,
@@ -83,6 +84,7 @@ interface ChatMessage {
   senderId: string;
   createdAt: Timestamp | null;
   encrypted?: boolean;
+  encEpoch?: number;
   reactions?: Record<string, string[]>;
   replyTo?: {
     id: string;
@@ -138,6 +140,9 @@ interface ChatMeta {
   disappearAfter?: number;
   bannedUsers?: string[];
   mutedUsers?: string[];
+  epochNonce?: string;
+  epochCounter?: number;
+  epochNonces?: Record<number, string>;
 }
 
 const TYPING_TIMEOUT_MS = 3000;
@@ -220,6 +225,8 @@ export default function ChatConversationPage() {
 
   // Reaction picker state
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ y: number; centerX: number; showAbove: boolean } | null>(null);
+  const justOpenedMenuRef = useRef(false);
   // Search state
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -377,6 +384,9 @@ export default function ChatConversationPage() {
           disappearAfter: data.disappearAfter || 0,
           bannedUsers: data.bannedUsers || [],
           mutedUsers: data.mutedUsers || [],
+          epochNonce: data.epochNonce,
+          epochCounter: data.epochCounter,
+          epochNonces: data.epochNonces,
         });
       }
     }, (error) => {
@@ -432,6 +442,7 @@ export default function ChatConversationPage() {
         senderId: string;
         createdAt: Timestamp | null;
         encrypted: boolean;
+        encEpoch?: number;
         reactions?: Record<string, string[]>;
         replyTo?: { id: string; text: string; senderName: string };
         forwarded?: { from: string; originalChatId: string };
@@ -452,6 +463,7 @@ export default function ChatConversationPage() {
           senderId: data.senderId || "",
           createdAt: data.createdAt,
           encrypted: data.encrypted === true,
+          encEpoch: data.encEpoch,
           reactions: data.reactions || undefined,
           replyTo: data.replyTo || undefined,
           forwarded: data.forwarded || undefined,
@@ -464,16 +476,23 @@ export default function ChatConversationPage() {
         });
       });
 
+      // Helper to look up epoch nonce for a message
+      const getEpochNonce = (epoch?: number) => {
+        if (epoch === undefined) return undefined;
+        return chatMeta?.epochNonces?.[epoch] ?? (epoch === chatMeta?.epochCounter ? chatMeta?.epochNonce : undefined);
+      };
+
       const decryptedMsgs = await Promise.all(
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
+          const msgEpochNonce = getEpochNonce(msg.encEpoch);
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current);
+            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
           }
           // Decrypt reply preview if present
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
-            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current);
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
             replyData = { ...replyData, text: decryptedReply };
           }
           return {
@@ -576,6 +595,7 @@ export default function ChatConversationPage() {
           senderId: data.senderId || "",
           createdAt: data.createdAt,
           encrypted: data.encrypted === true,
+          encEpoch: data.encEpoch as number | undefined,
           reactions: data.reactions || undefined,
           replyTo: data.replyTo || undefined,
           forwarded: data.forwarded || undefined,
@@ -588,15 +608,21 @@ export default function ChatConversationPage() {
         };
       });
 
+      const getEpochNonceOlder = (epoch?: number) => {
+        if (epoch === undefined) return undefined;
+        return chatMeta?.epochNonces?.[epoch] ?? (epoch === chatMeta?.epochCounter ? chatMeta?.epochNonce : undefined);
+      };
+
       const olderDecrypted = await Promise.all(
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
+          const msgEpochNonce = getEpochNonceOlder(msg.encEpoch);
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current);
+            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
           }
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
-            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current);
+            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
             replyData = { ...replyData, text: decryptedReply };
           }
           return {
@@ -690,7 +716,7 @@ export default function ChatConversationPage() {
     try {
       // Use participantsRef for latest participants
       const participants = participantsRef.current;
-      const encryptedText = await encryptMessage(text, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedText = await encryptMessage(text, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
 
       // Build message doc
       const messageDoc: Record<string, unknown> = {
@@ -699,7 +725,8 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 5,
+        encVersion: 6,
+        encEpoch: chatMeta?.epochCounter ?? 0,
       };
 
       // Add expiresAt if disappearing messages enabled
@@ -712,7 +739,7 @@ export default function ChatConversationPage() {
         const replyText = currentReply.text.length > 80
           ? currentReply.text.slice(0, 80) + "…"
           : currentReply.text;
-        const encryptedReplyText = await encryptMessage(replyText, participants, chatId, telegramId, isGroupRef.current);
+        const encryptedReplyText = await encryptMessage(replyText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
         messageDoc.replyTo = {
           id: currentReply.id,
           text: encryptedReplyText,
@@ -797,7 +824,7 @@ export default function ChatConversationPage() {
 
       // Encrypt the audio blob before uploading
       const audioBuffer = await blob.arrayBuffer();
-      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
       const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
 
       const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.enc.webm`);
@@ -817,7 +844,7 @@ export default function ChatConversationPage() {
       const url = await getDownloadURL(fileRef);
 
       const previewText = "🎤 Voice message";
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -825,7 +852,8 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 5,
+        encVersion: 6,
+        encEpoch: chatMeta?.epochCounter ?? 0,
         type: "voice",
         voice: { url, durationSec, encrypted: true },
       };
@@ -916,7 +944,7 @@ export default function ChatConversationPage() {
 
       // Read file and encrypt
       const fileBuffer = await file.arrayBuffer();
-      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
       const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
 
       // Get image dimensions if applicable
@@ -949,7 +977,7 @@ export default function ChatConversationPage() {
 
       const isImage = file.type.startsWith("image/");
       const previewText = isImage ? "Sent an image" : `Sent a file`;
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -957,7 +985,8 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 5,
+        encVersion: 6,
+        encEpoch: chatMeta?.epochCounter ?? 0,
         type: "file",
         file: {
           url,
@@ -1034,7 +1063,7 @@ export default function ChatConversationPage() {
     try {
       const participants = participantsRef.current;
       const previewText = `Sent ${amount} TON`;
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -1042,7 +1071,8 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 5,
+        encVersion: 6,
+        encEpoch: chatMeta?.epochCounter ?? 0,
         type: "transfer",
         transfer: {
           amount,
@@ -1233,7 +1263,7 @@ export default function ChatConversationPage() {
       try {
         const destParticipants: string[] = destChat.participants || [];
         const destIsGroup = destChat.isGroup || destChat.isGlobal || false;
-        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId, destIsGroup);
+        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId, destIsGroup, destChat.epochNonce, destChat.epochCounter);
         const senderName = qcUsername || "Unknown";
 
         const fwdDoc: Record<string, unknown> = {
@@ -1242,7 +1272,8 @@ export default function ChatConversationPage() {
           senderId: telegramId,
           createdAt: serverTimestamp(),
           encrypted: true,
-          encVersion: 5,
+          encVersion: 6,
+          encEpoch: destChat.epochCounter ?? 0,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
 
@@ -1336,9 +1367,15 @@ export default function ChatConversationPage() {
         if (action === "kick") {
           const updatedNames = { ...chatMeta.participantNames };
           delete updatedNames[targetUserId];
+          // Rotate epoch for post-removal forward secrecy
+          const newEpoch = (chatMeta.epochCounter ?? 0) + 1;
+          const newNonce = generateEpochNonce();
           await updateDoc(chatRef, {
             participants: arrayRemove(targetUserId),
             participantNames: updatedNames,
+            epochNonce: newNonce,
+            epochCounter: newEpoch,
+            [`epochNonces.${newEpoch}`]: newNonce,
           });
           await addDoc(messagesRef, {
             text: `@${adminName} kicked @${targetName}`,
@@ -1350,10 +1387,16 @@ export default function ChatConversationPage() {
         } else if (action === "ban") {
           const updatedNames = { ...chatMeta.participantNames };
           delete updatedNames[targetUserId];
+          // Rotate epoch for post-removal forward secrecy
+          const newEpoch = (chatMeta.epochCounter ?? 0) + 1;
+          const newNonce = generateEpochNonce();
           await updateDoc(chatRef, {
             participants: arrayRemove(targetUserId),
             participantNames: updatedNames,
             bannedUsers: arrayUnion(targetUserId),
+            epochNonce: newNonce,
+            epochCounter: newEpoch,
+            [`epochNonces.${newEpoch}`]: newNonce,
           });
           await addDoc(messagesRef, {
             text: `@${adminName} banned @${targetName}`,
@@ -1861,10 +1904,16 @@ export default function ChatConversationPage() {
       </Dialog>
 
       {/* Message Context Menu — Telegram-style floating popover */}
-      {reactionPickerMsgId && (
+      {reactionPickerMsgId && menuAnchor && (
         <div className="fixed inset-0 z-[999] bg-black/50" onClick={() => setReactionPickerMsgId(null)}>
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px]"
+            data-reaction-picker
+            className="absolute w-[220px] z-[1001]"
+            style={{
+              top: menuAnchor.y,
+              left: menuAnchor.centerX - 110,
+              transform: menuAnchor.showAbove ? "translateY(-100%) translateY(-8px)" : undefined,
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Emoji reactions row */}
@@ -2071,7 +2120,7 @@ export default function ChatConversationPage() {
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-9 h-9" />
+              <img src="/png/qc-chat-logo.png" alt="QC Chat" className="w-9 h-9" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">No messages yet</p>
@@ -2116,7 +2165,20 @@ export default function ChatConversationPage() {
                     const touch = e.touches[0];
                     swipeRef.current = { startX: touch.clientX, startY: touch.clientY, msgId: msg.id };
                     longPressTimerRef.current = setTimeout(() => {
+                      justOpenedMenuRef.current = true;
                       setReactionPickerMsgId(msg.id);
+                      const el = messageRefs.current[msg.id];
+                      if (el) {
+                        const bubble = (el.querySelector("[data-bubble]") || el) as HTMLElement;
+                        const rect = bubble.getBoundingClientRect();
+                        const viewH = window.innerHeight;
+                        const showAbove = rect.bottom > viewH * 0.55;
+                        setMenuAnchor({
+                          y: showAbove ? rect.top : rect.bottom + 8,
+                          centerX: Math.max(120, Math.min((rect.left + rect.right) / 2, window.innerWidth - 120)),
+                          showAbove,
+                        });
+                      }
                       longPressTimerRef.current = null;
                     }, 500);
                   }}
@@ -2135,6 +2197,13 @@ export default function ChatConversationPage() {
                     if (longPressTimerRef.current) {
                       clearTimeout(longPressTimerRef.current);
                       longPressTimerRef.current = null;
+                    }
+                    // Prevent synthetic click from closing menu right after long-press
+                    if (justOpenedMenuRef.current) {
+                      justOpenedMenuRef.current = false;
+                      e.preventDefault();
+                      swipeRef.current = { startX: 0, startY: 0, msgId: null };
+                      return;
                     }
                     // Swipe-to-reply
                     if (swipeRef.current.msgId !== msg.id) return;
@@ -2214,6 +2283,8 @@ export default function ChatConversationPage() {
                         chatId={chatId}
                         senderId={msg.senderId}
                         isGroup={chatMeta?.isGroup || chatMeta?.isGlobal}
+                        epochNonce={chatMeta?.epochNonces?.[msg.encEpoch ?? 0] ?? (msg.encEpoch === chatMeta?.epochCounter ? chatMeta?.epochNonce : undefined)}
+                        epochCounter={msg.encEpoch}
                       />
                     ) : msg.type === "poll" && msg.poll ? (
                       <PollMessage
@@ -2231,6 +2302,8 @@ export default function ChatConversationPage() {
                         chatId={chatId}
                         senderId={msg.senderId}
                         isGroup={chatMeta?.isGroup || chatMeta?.isGlobal}
+                        epochNonce={chatMeta?.epochNonces?.[msg.encEpoch ?? 0] ?? (msg.encEpoch === chatMeta?.epochCounter ? chatMeta?.epochNonce : undefined)}
+                        epochCounter={msg.encEpoch}
                       />
                     ) : msg.type === "transfer" && msg.transfer ? (
                       <TransferMessage

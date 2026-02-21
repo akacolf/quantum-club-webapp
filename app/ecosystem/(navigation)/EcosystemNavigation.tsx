@@ -249,7 +249,7 @@ const EcosystemNavigation = () => {
                 <div className="scale-100">
                   {tab.id === "chat" ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src="/svg/qc-chat-logo.svg" alt="QC Chat" style={{ width: "1.6em", height: "1.6em" }} />
+                    <img src="/png/qc-chat-logo.png" alt="QC Chat" style={{ width: "1.6em", height: "1.6em" }} />
                   ) : (
                     <Icon
                       icon={tab.icon}

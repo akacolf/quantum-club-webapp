@@ -24,6 +24,8 @@ interface FileMessageProps {
   chatId?: string;
   senderId?: string;
   isGroup?: boolean;
+  epochNonce?: string;
+  epochCounter?: number;
 }
 
 const decryptedUrlCache = new Map<string, string>();
@@ -49,6 +51,8 @@ async function fetchAndDecrypt(
   chatId: string,
   senderId?: string,
   isGroup?: boolean,
+  epochNonce?: string,
+  epochCounter?: number,
 ): Promise<string> {
   const cached = decryptedUrlCache.get(url);
   if (cached) return cached;
@@ -56,7 +60,7 @@ async function fetchAndDecrypt(
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${res.status}`);
   const encryptedData = await res.arrayBuffer();
-  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId, isGroup);
+  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter);
   const blob = new Blob([decryptedData], { type: mimeType });
   const blobUrl = URL.createObjectURL(blob);
   decryptedUrlCache.set(url, blobUrl);
@@ -70,6 +74,8 @@ export default function FileMessage({
   chatId,
   senderId,
   isGroup,
+  epochNonce,
+  epochCounter,
 }: FileMessageProps) {
   const [decryptedUrl, setDecryptedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,7 +124,7 @@ export default function FileMessage({
     let cancelled = false;
     setIsLoading(true);
 
-    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup)
+    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter)
       .then((url) => { if (!cancelled) setDecryptedUrl(url); })
       .catch((err) => { console.error("[FileMessage]", err); if (!cancelled) setLoadError(true); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
@@ -131,7 +137,7 @@ export default function FileMessage({
     try {
       let url = file.url;
       if (file.encrypted && participantIds && chatId) {
-        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup);
+        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter);
       }
 
       if (file.mimeType === "application/pdf") {

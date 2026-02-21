@@ -14,6 +14,8 @@ interface VoiceMessageProps {
   chatId?: string;
   senderId?: string;
   isGroup?: boolean;
+  epochNonce?: string;
+  epochCounter?: number;
 }
 
 const decryptedUrlCache = new Map<string, string>();
@@ -27,6 +29,8 @@ export default function VoiceMessage({
   chatId,
   senderId,
   isGroup,
+  epochNonce,
+  epochCounter,
 }: VoiceMessageProps) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -64,7 +68,7 @@ export default function VoiceMessage({
             if (!res.ok) throw new Error(`${res.status}`);
             const encryptedData = await res.arrayBuffer();
             if (cancelled) return;
-            const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId, isGroup);
+            const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter);
             if (cancelled) return;
             const blob = new Blob([decryptedData], { type: "audio/webm" });
             src = URL.createObjectURL(blob);
