@@ -263,6 +263,7 @@ export default function ChatConversationPage() {
   const isAtBottomRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
   const initialLoadDoneRef = useRef(false);
+  const staleClearedRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
   const participantsRef = useRef<string[]>([]);
@@ -583,7 +584,11 @@ export default function ChatConversationPage() {
       );
 
       // Messages were deleted — clear stale preview on chat doc + localStorage cache
-      if (decryptedMsgs.length === 0 && !initialLoadDoneRef.current) {
+      // (staleClearedRef prevents repeated writes; separate from initialLoadDoneRef
+      // because Firestore persistent cache fires the snapshot with stale cached data
+      // first, which sets initialLoadDoneRef before the server-empty snapshot arrives)
+      if (decryptedMsgs.length === 0 && !staleClearedRef.current) {
+        staleClearedRef.current = true;
         updateDoc(doc(dbfs, "qc-chats", chatId), {
           lastMessage: "",
           lastMessageBy: "",
