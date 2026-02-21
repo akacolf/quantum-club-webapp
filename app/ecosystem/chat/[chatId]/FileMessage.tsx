@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Icon } from "@iconify/react";
-import { decryptBlob } from "@/lib/chat-crypto";
+import { decryptBlob, triggerDownload } from "@/lib/chat-crypto";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -144,13 +144,7 @@ export default function FileMessage({
         setPdfUrl(url);
         setShowPdfViewer(true);
       } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        a.target = "_blank";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        triggerDownload(url, file.name);
       }
     } catch (err) {
       console.error("[FileMessage] download:", err);
@@ -194,12 +188,20 @@ export default function FileMessage({
             className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
             onClick={() => setShowLightbox(false)}
           >
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowLightbox(false); }}
-              className="absolute top-20 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center z-10"
-            >
-              <Icon icon="lucide:x" className="w-5 h-5 text-white" />
-            </button>
+            <div className="absolute top-20 right-4 flex items-center gap-2 z-10">
+              <button
+                onClick={(e) => { e.stopPropagation(); triggerDownload(decryptedUrl, file.name); }}
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
+              >
+                <Icon icon="solar:download-minimalistic-bold" className="w-5 h-5 text-white" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowLightbox(false); }}
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
+              >
+                <Icon icon="lucide:x" className="w-5 h-5 text-white" />
+              </button>
+            </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={decryptedUrl}
@@ -262,22 +264,7 @@ export default function FileMessage({
                 <Icon icon="lucide:plus" className="w-3.5 h-3.5 text-white" />
               </button>
               <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch(pdfUrl);
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = file.name;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  } catch {
-                    window.open(pdfUrl, "_blank");
-                  }
-                }}
+                onClick={() => triggerDownload(pdfUrl, file.name)}
                 className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center ml-1"
               >
                 <Icon icon="solar:download-minimalistic-bold" className="w-3.5 h-3.5 text-white" />

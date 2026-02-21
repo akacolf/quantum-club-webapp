@@ -18,7 +18,7 @@
  *   incremented counter. Removed members lose Firestore access and cannot
  *   read the new nonce, achieving post-removal forward secrecy.
  *
- * Domain separation (v5):
+ * Domain separation (v5 fallback):
  *   Conversation root key → HKDF(material, salt=v2, info="aes-256-gcm")
  *   Wrap sub-key          → HKDF(material, salt=v5-wrap, info="key-wrap")
  *
@@ -30,14 +30,10 @@
  * Wire format (blob):  version(1) + encMsgKey(60) + iv(12) + ciphertext
  *
  * v6 = epoch-rotated keys + extended AAD (with epoch counter)
- * v5 = envelope + extended AAD + domain-separated wrap key
- * v4 = envelope + extended AAD (version:chatId:senderId)
- * v3 = envelope + sender AAD only
- * v2 = HKDF conversation key (no envelope)
- * v1 = PBKDF2 conversation key (legacy)
+ * v5 = envelope + extended AAD + domain-separated wrap key (fallback when no epoch)
+ * v1–v4 deprecated and removed
  */
 
-const SALT_V1 = new TextEncoder().encode("qc-chat-e2e-v1");
 const SALT_V2 = new TextEncoder().encode("qc-chat-e2e-v2");
 const HKDF_INFO = new TextEncoder().encode("aes-256-gcm");
 const SALT_V5_WRAP = new TextEncoder().encode("qc-chat-v5-wrap");
@@ -47,11 +43,8 @@ const SALT_V6_WRAP = new TextEncoder().encode("qc-chat-v6-wrap");
 const IV_LENGTH = 12;
 const VERSION_V6 = 6;
 const VERSION_V5 = 5;
-const VERSION_V4 = 4;
-const VERSION_V3 = 3;
 const WRAPPED_KEY_LENGTH = 48; // AES-256 key (32) + GCM auth tag (16)
-// encrypted message key = wrapIv(12) + wrappedKey(48) = 60 bytes
-const ENC_MSG_KEY_LENGTH = IV_LENGTH + WRAPPED_KEY_LENGTH;
+const ENC_MSG_KEY_LENGTH = IV_LENGTH + WRAPPED_KEY_LENGTH; // 60 bytes
 
 const keyCache = new Map<string, CryptoKey>();
 
@@ -123,7 +116,7 @@ async function deriveEpochWrapKey(
   return key;
 }
 
-// --- v5 wrap key derivation ---
+// --- v5 wrap key derivation (fallback for chats without epoch) ---
 
 async function deriveWrapKey(material: string): Promise<CryptoKey> {
   const cacheKey = `v5wrap:${material}`;
@@ -131,13 +124,8 @@ async function deriveWrapKey(material: string): Promise<CryptoKey> {
   if (cached) return cached;
 
   const rawKey = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(material),
-    "HKDF",
-    false,
-    ["deriveKey"]
+    "raw", new TextEncoder().encode(material), "HKDF", false, ["deriveKey"]
   );
-
   const key = await crypto.subtle.deriveKey(
     { name: "HKDF", salt: SALT_V5_WRAP, info: HKDF_WRAP_INFO, hash: "SHA-256" },
     rawKey,
@@ -145,7 +133,6 @@ async function deriveWrapKey(material: string): Promise<CryptoKey> {
     false,
     ["wrapKey", "unwrapKey"]
   );
-
   keyCache.set(cacheKey, key);
   return key;
 }
@@ -156,19 +143,14 @@ function buildMaterial(participantIds: string[], chatId: string, isGroup?: boole
   return `${sorted.join(":")}:${chatId}`;
 }
 
-async function deriveHKDF(material: string, cachePrefix: string): Promise<CryptoKey> {
-  const cacheKey = `${cachePrefix}:${material}`;
+async function deriveHKDF(material: string): Promise<CryptoKey> {
+  const cacheKey = `v2:${material}`;
   const cached = keyCache.get(cacheKey);
   if (cached) return cached;
 
   const rawKey = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(material),
-    "HKDF",
-    false,
-    ["deriveKey"]
+    "raw", new TextEncoder().encode(material), "HKDF", false, ["deriveKey"]
   );
-
   const key = await crypto.subtle.deriveKey(
     { name: "HKDF", salt: SALT_V2, info: HKDF_INFO, hash: "SHA-256" },
     rawKey,
@@ -176,32 +158,6 @@ async function deriveHKDF(material: string, cachePrefix: string): Promise<Crypto
     false,
     ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
   );
-
-  keyCache.set(cacheKey, key);
-  return key;
-}
-
-async function derivePBKDF2(material: string): Promise<CryptoKey> {
-  const cacheKey = `v1:${material}`;
-  const cached = keyCache.get(cacheKey);
-  if (cached) return cached;
-
-  const rawKey = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(material),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  );
-
-  const key = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: SALT_V1, iterations: 100_000, hash: "SHA-256" },
-    rawKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-
   keyCache.set(cacheKey, key);
   return key;
 }
@@ -238,7 +194,7 @@ async function doEncryptEnvelope(
   convKey: CryptoKey,
   aad: Uint8Array,
   version: number,
-  wrapKey?: CryptoKey,
+  wrapKey: CryptoKey,
 ): Promise<Uint8Array> {
   const aadBuf = aad.buffer as ArrayBuffer;
 
@@ -256,7 +212,7 @@ async function doEncryptEnvelope(
   );
 
   const wrapIv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const wrappedKey = await crypto.subtle.wrapKey("raw", msgKey, wrapKey || convKey, {
+  const wrappedKey = await crypto.subtle.wrapKey("raw", msgKey, wrapKey, {
     name: "AES-GCM",
     iv: wrapIv,
   });
@@ -276,9 +232,8 @@ async function doEncryptEnvelope(
 
 async function doDecryptEnvelope(
   data: Uint8Array,
-  convKey: CryptoKey,
   aad: Uint8Array,
-  wrapKey?: CryptoKey,
+  wrapKey: CryptoKey,
 ): Promise<ArrayBuffer> {
   const aadBuf = aad.buffer as ArrayBuffer;
 
@@ -290,7 +245,7 @@ async function doDecryptEnvelope(
   const msgKey = await crypto.subtle.unwrapKey(
     "raw",
     wrappedKey,
-    wrapKey || convKey,
+    wrapKey,
     { name: "AES-GCM", iv: wrapIv },
     { name: "AES-GCM", length: 256 },
     false,
@@ -298,12 +253,6 @@ async function doDecryptEnvelope(
   );
 
   return crypto.subtle.decrypt({ name: "AES-GCM", iv, additionalData: aadBuf }, msgKey, ciphertext);
-}
-
-async function doDecryptGCM(data: Uint8Array, key: CryptoKey): Promise<ArrayBuffer> {
-  const iv = data.slice(0, IV_LENGTH);
-  const ciphertext = data.slice(IV_LENGTH);
-  return crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
 }
 
 // === Public API ===
@@ -325,7 +274,7 @@ export async function encryptMessage(
   const material = buildMaterial(participantIds, chatId, isGroup);
   const data = new TextEncoder().encode(plaintext);
 
-  // v6: epoch-rotated keys (best — post-removal forward secrecy)
+  // v6: epoch-rotated keys (primary path)
   if (senderId && epochNonce !== undefined && epochCounter !== undefined) {
     const epochConvKey = await deriveEpochKey(material, epochNonce, chatId, epochCounter);
     const epochWrapKey = await deriveEpochWrapKey(material, epochNonce, chatId, epochCounter);
@@ -334,23 +283,16 @@ export async function encryptMessage(
     return bufferToBase64(result.buffer as ArrayBuffer);
   }
 
-  // v5: domain-separated wrap key
+  // v5 fallback: for chats that haven't initialized epoch yet
   if (senderId) {
-    const convKey = await deriveHKDF(material, "v2");
+    const convKey = await deriveHKDF(material);
     const wrapKey = await deriveWrapKey(material);
     const aad = buildAAD(VERSION_V5, chatId, senderId);
     const result = await doEncryptEnvelope(data.buffer as ArrayBuffer, convKey, aad, VERSION_V5, wrapKey);
     return bufferToBase64(result.buffer as ArrayBuffer);
   }
 
-  // v2: legacy HKDF (no envelope)
-  const key = await deriveHKDF(material, "v2");
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
-  const combined = new Uint8Array(IV_LENGTH + ciphertext.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(ciphertext), IV_LENGTH);
-  return bufferToBase64(combined.buffer as ArrayBuffer);
+  throw new Error("senderId is required for encryption");
 }
 
 export async function decryptMessage(
@@ -364,62 +306,31 @@ export async function decryptMessage(
 ): Promise<string> {
   const combined = new Uint8Array(base64ToBuffer(encryptedBase64));
 
-  // Build material variants to try
   const materials: string[] = [buildMaterial(participantIds, chatId, isGroup)];
-  // For groups, also try participant-based key (old messages before group fix)
   if (isGroup) materials.push(buildMaterial(participantIds, chatId, false));
 
   for (const material of materials) {
-    // Try v6 epoch envelope
+    // v6 epoch envelope
     if (combined[0] === VERSION_V6 && senderId && epochNonce !== undefined && epochCounter !== undefined) {
       try {
         const epochConvKey = await deriveEpochKey(material, epochNonce, chatId, epochCounter);
         const epochWrapKey = await deriveEpochWrapKey(material, epochNonce, chatId, epochCounter);
         const aad = buildAAD(VERSION_V6, chatId, senderId, epochCounter);
-        return new TextDecoder().decode(await doDecryptEnvelope(combined, epochConvKey, aad, epochWrapKey));
+        return new TextDecoder().decode(await doDecryptEnvelope(combined, aad, epochWrapKey));
       } catch { /* next */ }
     }
 
-    const convKey = await deriveHKDF(material, "v2");
-
-    // Try v5 envelope (domain-separated wrap key + extended AAD)
+    // v5 envelope (domain-separated wrap key)
     if (combined[0] === VERSION_V5 && senderId) {
       try {
         const wrapKey = await deriveWrapKey(material);
         const aad = buildAAD(VERSION_V5, chatId, senderId);
-        return new TextDecoder().decode(await doDecryptEnvelope(combined, convKey, aad, wrapKey));
+        return new TextDecoder().decode(await doDecryptEnvelope(combined, aad, wrapKey));
       } catch { /* next */ }
     }
-
-    // Try v4 envelope (extended AAD: version:chatId:senderId)
-    if (combined[0] === VERSION_V4 && senderId) {
-      try {
-        const aad = buildAAD(VERSION_V4, chatId, senderId);
-        return new TextDecoder().decode(await doDecryptEnvelope(combined, convKey, aad));
-      } catch { /* next */ }
-    }
-
-    // Try v3 envelope (sender-only AAD)
-    if (combined[0] === VERSION_V3 && senderId) {
-      try {
-        const aad = new TextEncoder().encode(senderId);
-        return new TextDecoder().decode(await doDecryptEnvelope(combined, convKey, aad));
-      } catch { /* next */ }
-    }
-
-    // Try v2 HKDF (no envelope)
-    try {
-      return new TextDecoder().decode(await doDecryptGCM(combined, convKey));
-    } catch { /* next */ }
-
-    // Try v1 PBKDF2
-    try {
-      const key = await derivePBKDF2(material);
-      return new TextDecoder().decode(await doDecryptGCM(combined, key));
-    } catch { /* next */ }
   }
 
-  return "Unable to decrypt message";
+  return "Old encrypted message";
 }
 
 export async function encryptBlob(
@@ -433,7 +344,7 @@ export async function encryptBlob(
 ): Promise<ArrayBuffer> {
   const material = buildMaterial(participantIds, chatId, isGroup);
 
-  // v6: epoch-rotated keys
+  // v6: epoch-rotated keys (primary path)
   if (senderId && epochNonce !== undefined && epochCounter !== undefined) {
     const epochConvKey = await deriveEpochKey(material, epochNonce, chatId, epochCounter);
     const epochWrapKey = await deriveEpochWrapKey(material, epochNonce, chatId, epochCounter);
@@ -442,23 +353,16 @@ export async function encryptBlob(
     return result.buffer as ArrayBuffer;
   }
 
-  // v5: domain-separated wrap key
+  // v5 fallback
   if (senderId) {
-    const convKey = await deriveHKDF(material, "v2");
+    const convKey = await deriveHKDF(material);
     const wrapKey = await deriveWrapKey(material);
     const aad = buildAAD(VERSION_V5, chatId, senderId);
     const result = await doEncryptEnvelope(data, convKey, aad, VERSION_V5, wrapKey);
     return result.buffer as ArrayBuffer;
   }
 
-  // v2: legacy HKDF
-  const key = await deriveHKDF(material, "v2");
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
-  const combined = new Uint8Array(IV_LENGTH + ciphertext.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(ciphertext), IV_LENGTH);
-  return combined.buffer as ArrayBuffer;
+  throw new Error("senderId is required for encryption");
 }
 
 export async function decryptBlob(
@@ -482,50 +386,21 @@ export async function decryptBlob(
         const epochConvKey = await deriveEpochKey(material, epochNonce, chatId, epochCounter);
         const epochWrapKey = await deriveEpochWrapKey(material, epochNonce, chatId, epochCounter);
         const aad = buildAAD(VERSION_V6, chatId, senderId, epochCounter);
-        return await doDecryptEnvelope(combined, epochConvKey, aad, epochWrapKey);
+        return await doDecryptEnvelope(combined, aad, epochWrapKey);
       } catch { /* next */ }
     }
 
-    const convKey = await deriveHKDF(material, "v2");
-
-    // v5 envelope (domain-separated wrap key + extended AAD)
+    // v5 envelope
     if (combined[0] === VERSION_V5 && senderId) {
       try {
         const wrapKey = await deriveWrapKey(material);
         const aad = buildAAD(VERSION_V5, chatId, senderId);
-        return await doDecryptEnvelope(combined, convKey, aad, wrapKey);
+        return await doDecryptEnvelope(combined, aad, wrapKey);
       } catch { /* next */ }
     }
-
-    // v4 envelope (extended AAD)
-    if (combined[0] === VERSION_V4 && senderId) {
-      try {
-        const aad = buildAAD(VERSION_V4, chatId, senderId);
-        return await doDecryptEnvelope(combined, convKey, aad);
-      } catch { /* next */ }
-    }
-
-    // v3 envelope (sender-only AAD)
-    if (combined[0] === VERSION_V3 && senderId) {
-      try {
-        const aad = new TextEncoder().encode(senderId);
-        return await doDecryptEnvelope(combined, convKey, aad);
-      } catch { /* next */ }
-    }
-
-    // v2 HKDF (no envelope)
-    try {
-      return await doDecryptGCM(combined, convKey);
-    } catch { /* next */ }
-
-    // v1 PBKDF2
-    try {
-      const key = await derivePBKDF2(material);
-      return await doDecryptGCM(combined, key);
-    } catch { /* next */ }
   }
 
-  throw new Error("Unable to decrypt blob");
+  throw new Error("Unable to decrypt — message may use a deprecated encryption version");
 }
 
 export function isEncryptedMessage(text: string): boolean {
@@ -560,11 +435,51 @@ export async function deriveConversationFingerprint(
       hash: "SHA-256",
     },
     rawKey,
-    160, // 20 bytes = 40 hex chars
+    160,
   );
   const hex = Array.from(new Uint8Array(bits))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  // Format as 5 groups of 8 hex chars
   return hex.match(/.{8}/g)!.join(" ").toUpperCase();
+}
+
+/**
+ * Download a file using the Telegram WebApp API (if available), with fallback.
+ * For blob: URLs, falls back to <a download> since Telegram API requires HTTPS.
+ */
+export function triggerDownload(url: string, fileName: string): void {
+  // Telegram WebApp.downloadFile only works with HTTPS URLs
+  const isHttps = url.startsWith("https://");
+  const tg = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
+
+  if (isHttps && tg?.downloadFile) {
+    tg.downloadFile({ url, file_name: fileName }, (accepted: boolean) => {
+      if (!accepted) fallbackDownload(url, fileName);
+    });
+    return;
+  }
+
+  fallbackDownload(url, fileName);
+}
+
+function fallbackDownload(url: string, fileName: string): void {
+  // Fetch as blob and trigger download
+  fetch(url)
+    .then((res) => res.blob())
+    .then((blob) => {
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
+    })
+    .catch(() => {
+      window.open(url, "_blank");
+    });
 }
