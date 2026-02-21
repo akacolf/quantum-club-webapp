@@ -1,13 +1,20 @@
 /**
- * QC Chat End-to-End Encryption (v4)
+ * QC Chat End-to-End Encryption (v5)
  *
  * Envelope encryption inspired by Signal:
  * - Each message/blob gets a random AES-256-GCM key (message key)
- * - The message key is encrypted with the conversation key (derived via HKDF)
+ * - The message key is wrapped with a dedicated wrap key (domain-separated)
+ * - Content is encrypted with the message key
  * - Extended AAD binds version + chatId + senderId to prevent:
  *   · Forgery (wrong sender)
  *   · Cross-chat replay (message moved between chats)
  *   · Downgrade attacks (version included)
+ *
+ * Domain separation (v5):
+ *   Conversation root key → HKDF(material, salt=v2, info="aes-256-gcm")
+ *   Wrap sub-key          → HKDF(rootKey, salt=v5-wrap, info="key-wrap")
+ *   This ensures the wrap operation and content encryption use
+ *   cryptographically independent key material (Signal principle).
  *
  * Key derivation:
  *   1:1 chats  → material = sort(participants).join(":") + chatId
@@ -16,6 +23,7 @@
  * Wire format (text):  base64( version(1) + encMsgKey(60) + iv(12) + ciphertext )
  * Wire format (blob):  version(1) + encMsgKey(60) + iv(12) + ciphertext
  *
+ * v5 = envelope + extended AAD + domain-separated wrap key
  * v4 = envelope + extended AAD (version:chatId:senderId)
  * v3 = envelope + sender AAD only
  * v2 = HKDF conversation key (no envelope)
@@ -25,7 +33,10 @@
 const SALT_V1 = new TextEncoder().encode("qc-chat-e2e-v1");
 const SALT_V2 = new TextEncoder().encode("qc-chat-e2e-v2");
 const HKDF_INFO = new TextEncoder().encode("aes-256-gcm");
+const SALT_V5_WRAP = new TextEncoder().encode("qc-chat-v5-wrap");
+const HKDF_WRAP_INFO = new TextEncoder().encode("key-wrap");
 const IV_LENGTH = 12;
+const VERSION_V5 = 5;
 const VERSION_V4 = 4;
 const VERSION_V3 = 3;
 const WRAPPED_KEY_LENGTH = 48; // AES-256 key (32) + GCM auth tag (16)
@@ -33,6 +44,32 @@ const WRAPPED_KEY_LENGTH = 48; // AES-256 key (32) + GCM auth tag (16)
 const ENC_MSG_KEY_LENGTH = IV_LENGTH + WRAPPED_KEY_LENGTH;
 
 const keyCache = new Map<string, CryptoKey>();
+
+// Derive a domain-separated wrap key from the same material (v5)
+async function deriveWrapKey(material: string): Promise<CryptoKey> {
+  const cacheKey = `v5wrap:${material}`;
+  const cached = keyCache.get(cacheKey);
+  if (cached) return cached;
+
+  const rawKey = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(material),
+    "HKDF",
+    false,
+    ["deriveKey"]
+  );
+
+  const key = await crypto.subtle.deriveKey(
+    { name: "HKDF", salt: SALT_V5_WRAP, info: HKDF_WRAP_INFO, hash: "SHA-256" },
+    rawKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["wrapKey", "unwrapKey"]
+  );
+
+  keyCache.set(cacheKey, key);
+  return key;
+}
 
 function buildMaterial(participantIds: string[], chatId: string, isGroup?: boolean): string {
   if (isGroup) return chatId;
@@ -119,6 +156,7 @@ async function doEncryptEnvelope(
   convKey: CryptoKey,
   aad: Uint8Array,
   version: number,
+  wrapKey?: CryptoKey,
 ): Promise<Uint8Array> {
   const aadBuf = aad.buffer as ArrayBuffer;
 
@@ -136,7 +174,7 @@ async function doEncryptEnvelope(
   );
 
   const wrapIv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const wrappedKey = await crypto.subtle.wrapKey("raw", msgKey, convKey, {
+  const wrappedKey = await crypto.subtle.wrapKey("raw", msgKey, wrapKey || convKey, {
     name: "AES-GCM",
     iv: wrapIv,
   });
@@ -158,6 +196,7 @@ async function doDecryptEnvelope(
   data: Uint8Array,
   convKey: CryptoKey,
   aad: Uint8Array,
+  wrapKey?: CryptoKey,
 ): Promise<ArrayBuffer> {
   const aadBuf = aad.buffer as ArrayBuffer;
 
@@ -169,7 +208,7 @@ async function doDecryptEnvelope(
   const msgKey = await crypto.subtle.unwrapKey(
     "raw",
     wrappedKey,
-    convKey,
+    wrapKey || convKey,
     { name: "AES-GCM", iv: wrapIv },
     { name: "AES-GCM", length: 256 },
     false,
@@ -206,8 +245,9 @@ export async function encryptMessage(
 
   if (senderId) {
     const convKey = await deriveHKDF(material, "v2");
-    const aad = buildAAD(VERSION_V4, chatId, senderId);
-    const result = await doEncryptEnvelope(data.buffer as ArrayBuffer, convKey, aad, VERSION_V4);
+    const wrapKey = await deriveWrapKey(material);
+    const aad = buildAAD(VERSION_V5, chatId, senderId);
+    const result = await doEncryptEnvelope(data.buffer as ArrayBuffer, convKey, aad, VERSION_V5, wrapKey);
     return bufferToBase64(result.buffer as ArrayBuffer);
   }
 
@@ -236,6 +276,15 @@ export async function decryptMessage(
 
   for (const material of materials) {
     const convKey = await deriveHKDF(material, "v2");
+
+    // Try v5 envelope (domain-separated wrap key + extended AAD)
+    if (combined[0] === VERSION_V5 && senderId) {
+      try {
+        const wrapKey = await deriveWrapKey(material);
+        const aad = buildAAD(VERSION_V5, chatId, senderId);
+        return new TextDecoder().decode(await doDecryptEnvelope(combined, convKey, aad, wrapKey));
+      } catch { /* next */ }
+    }
 
     // Try v4 envelope (extended AAD: version:chatId:senderId)
     if (combined[0] === VERSION_V4 && senderId) {
@@ -279,8 +328,9 @@ export async function encryptBlob(
 
   if (senderId) {
     const convKey = await deriveHKDF(material, "v2");
-    const aad = buildAAD(VERSION_V4, chatId, senderId);
-    const result = await doEncryptEnvelope(data, convKey, aad, VERSION_V4);
+    const wrapKey = await deriveWrapKey(material);
+    const aad = buildAAD(VERSION_V5, chatId, senderId);
+    const result = await doEncryptEnvelope(data, convKey, aad, VERSION_V5, wrapKey);
     return result.buffer as ArrayBuffer;
   }
 
@@ -307,6 +357,15 @@ export async function decryptBlob(
 
   for (const material of materials) {
     const convKey = await deriveHKDF(material, "v2");
+
+    // v5 envelope (domain-separated wrap key + extended AAD)
+    if (combined[0] === VERSION_V5 && senderId) {
+      try {
+        const wrapKey = await deriveWrapKey(material);
+        const aad = buildAAD(VERSION_V5, chatId, senderId);
+        return await doDecryptEnvelope(combined, convKey, aad, wrapKey);
+      } catch { /* next */ }
+    }
 
     // v4 envelope (extended AAD)
     if (combined[0] === VERSION_V4 && senderId) {

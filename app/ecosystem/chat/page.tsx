@@ -826,7 +826,7 @@ export default function QCChatListPage() {
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/30">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-5 h-5" />
+              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -1115,7 +1115,7 @@ export default function QCChatListPage() {
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-8 h-8" />
+              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-10 h-10" />
             </div>
             <p className="text-sm font-medium text-foreground">Sign in to chat</p>
             <p className="text-xs text-muted-foreground">
@@ -1137,7 +1137,7 @@ export default function QCChatListPage() {
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-8 h-8" />
+                  <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-10 h-10" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">

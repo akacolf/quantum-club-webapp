@@ -699,7 +699,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 4,
+        encVersion: 5,
       };
 
       // Add expiresAt if disappearing messages enabled
@@ -825,7 +825,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 4,
+        encVersion: 5,
         type: "voice",
         voice: { url, durationSec, encrypted: true },
       };
@@ -957,7 +957,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 4,
+        encVersion: 5,
         type: "file",
         file: {
           url,
@@ -1042,7 +1042,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 4,
+        encVersion: 5,
         type: "transfer",
         transfer: {
           amount,
@@ -1242,7 +1242,7 @@ export default function ChatConversationPage() {
           senderId: telegramId,
           createdAt: serverTimestamp(),
           encrypted: true,
-          encVersion: 4,
+          encVersion: 5,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
 
@@ -2071,7 +2071,7 @@ export default function ChatConversationPage() {
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-7 h-7" />
+              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-9 h-9" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">No messages yet</p>
@@ -2111,13 +2111,31 @@ export default function ChatConversationPage() {
                   ref={(el) => { messageRefs.current[msg.id] = el; }}
                   className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
                     consecutive ? "mt-0.5" : "mt-2.5"
-                  }`}
-                  onClick={() => setReactionPickerMsgId(msg.id)}
+                  } ${reactionPickerMsgId === msg.id ? "relative z-[1000]" : ""}`}
                   onTouchStart={(e) => {
                     const touch = e.touches[0];
                     swipeRef.current = { startX: touch.clientX, startY: touch.clientY, msgId: msg.id };
+                    longPressTimerRef.current = setTimeout(() => {
+                      setReactionPickerMsgId(msg.id);
+                      longPressTimerRef.current = null;
+                    }, 500);
+                  }}
+                  onTouchMove={(e) => {
+                    if (longPressTimerRef.current) {
+                      const touch = e.touches[0];
+                      const dx = Math.abs(touch.clientX - swipeRef.current.startX);
+                      const dy = Math.abs(touch.clientY - swipeRef.current.startY);
+                      if (dx > 10 || dy > 10) {
+                        clearTimeout(longPressTimerRef.current);
+                        longPressTimerRef.current = null;
+                      }
+                    }
                   }}
                   onTouchEnd={(e) => {
+                    if (longPressTimerRef.current) {
+                      clearTimeout(longPressTimerRef.current);
+                      longPressTimerRef.current = null;
+                    }
                     // Swipe-to-reply
                     if (swipeRef.current.msgId !== msg.id) return;
                     const touch = e.changedTouches[0];
@@ -2153,11 +2171,11 @@ export default function ChatConversationPage() {
                     </button>
                     <div
                       data-bubble
-                      className={`relative ${
+                      className={`relative transition-all duration-200 ${
                         isOwnMessage
                           ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
                           : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
-                      } px-2.5 py-1.5`}
+                      } ${reactionPickerMsgId === msg.id ? "ring-2 ring-primary/40 scale-[1.02]" : ""} px-2.5 py-1.5`}
                     >
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1.5 mb-0.5">
