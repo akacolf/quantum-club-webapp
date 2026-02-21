@@ -133,7 +133,7 @@ export default function GroupMembersPanel({
                         title="Unmute"
                         onClick={() => onAction("unmute", userId)}
                       >
-                        <Icon icon="solar:microphone-large-bold" className="w-4 h-4 text-green-500" />
+                        <Icon icon="solar:volume-loud-bold" className="w-4 h-4 text-green-500" />
                       </Button>
                     ) : (
                       <Button
@@ -143,7 +143,7 @@ export default function GroupMembersPanel({
                         title="Mute"
                         onClick={() => onAction("mute", userId)}
                       >
-                        <Icon icon="solar:microphone-large-cross-bold" className="w-4 h-4 text-orange-500" />
+                        <Icon icon="solar:volume-cross-bold" className="w-4 h-4 text-orange-500" />
                       </Button>
                     )}
                     <Button

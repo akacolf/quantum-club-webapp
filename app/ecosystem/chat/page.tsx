@@ -825,7 +825,8 @@ export default function QCChatListPage() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/30">
-              <Icon icon="proicons:chat" className="w-5 h-5 text-primary" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -1113,7 +1114,8 @@ export default function QCChatListPage() {
         ) : !telegramId ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="proicons:chat" className="w-8 h-8 text-primary" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-8 h-8" />
             </div>
             <p className="text-sm font-medium text-foreground">Sign in to chat</p>
             <p className="text-xs text-muted-foreground">
@@ -1134,7 +1136,8 @@ export default function QCChatListPage() {
             {filteredConversations.length === 0 && !showGlobalChat ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-                  <Icon icon="proicons:chat" className="w-8 h-8 text-primary" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-8 h-8" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">

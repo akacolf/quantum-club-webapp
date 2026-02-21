@@ -256,14 +256,21 @@ export default function FileMessage({
                 <Icon icon="lucide:plus" className="w-3.5 h-3.5 text-white" />
               </button>
               <button
-                onClick={() => {
-                  const a = document.createElement("a");
-                  a.href = pdfUrl;
-                  a.download = file.name;
-                  a.target = "_blank";
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
+                onClick={async () => {
+                  try {
+                    const res = await fetch(pdfUrl);
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = file.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  } catch {
+                    window.open(pdfUrl, "_blank");
+                  }
                 }}
                 className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center ml-1"
               >

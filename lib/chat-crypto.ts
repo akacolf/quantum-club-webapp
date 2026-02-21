@@ -1,10 +1,13 @@
 /**
- * QC Chat End-to-End Encryption (v3)
+ * QC Chat End-to-End Encryption (v4)
  *
  * Envelope encryption inspired by Signal:
  * - Each message/blob gets a random AES-256-GCM key (message key)
  * - The message key is encrypted with the conversation key (derived via HKDF)
- * - Sender ID is bound as AAD (additional authenticated data) to prevent forgery
+ * - Extended AAD binds version + chatId + senderId to prevent:
+ *   · Forgery (wrong sender)
+ *   · Cross-chat replay (message moved between chats)
+ *   · Downgrade attacks (version included)
  *
  * Key derivation:
  *   1:1 chats  → material = sort(participants).join(":") + chatId
@@ -13,7 +16,8 @@
  * Wire format (text):  base64( version(1) + encMsgKey(60) + iv(12) + ciphertext )
  * Wire format (blob):  version(1) + encMsgKey(60) + iv(12) + ciphertext
  *
- * v3 = envelope + sender AAD
+ * v4 = envelope + extended AAD (version:chatId:senderId)
+ * v3 = envelope + sender AAD only
  * v2 = HKDF conversation key (no envelope)
  * v1 = PBKDF2 conversation key (legacy)
  */
@@ -22,6 +26,7 @@ const SALT_V1 = new TextEncoder().encode("qc-chat-e2e-v1");
 const SALT_V2 = new TextEncoder().encode("qc-chat-e2e-v2");
 const HKDF_INFO = new TextEncoder().encode("aes-256-gcm");
 const IV_LENGTH = 12;
+const VERSION_V4 = 4;
 const VERSION_V3 = 3;
 const WRAPPED_KEY_LENGTH = 48; // AES-256 key (32) + GCM auth tag (16)
 // encrypted message key = wrapIv(12) + wrappedKey(48) = 60 bytes
@@ -105,12 +110,17 @@ function base64ToBuffer(base64: string): ArrayBuffer {
 
 // --- Encryption helpers ---
 
-async function doEncryptV3(
+function buildAAD(version: number, chatId: string, senderId: string): Uint8Array {
+  return new TextEncoder().encode(`v${version}:${chatId}:${senderId}`);
+}
+
+async function doEncryptEnvelope(
   data: ArrayBuffer,
   convKey: CryptoKey,
-  senderId: string,
+  aad: Uint8Array,
+  version: number,
 ): Promise<Uint8Array> {
-  const aad = new TextEncoder().encode(senderId);
+  const aadBuf = aad.buffer as ArrayBuffer;
 
   const msgKey = await crypto.subtle.generateKey(
     { name: "AES-GCM", length: 256 },
@@ -120,7 +130,7 @@ async function doEncryptV3(
 
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv, additionalData: aad },
+    { name: "AES-GCM", iv, additionalData: aadBuf },
     msgKey,
     data
   );
@@ -136,7 +146,7 @@ async function doEncryptV3(
   encMsgKey.set(new Uint8Array(wrappedKey), IV_LENGTH);
 
   const result = new Uint8Array(1 + ENC_MSG_KEY_LENGTH + IV_LENGTH + ciphertext.byteLength);
-  result[0] = VERSION_V3;
+  result[0] = version;
   result.set(encMsgKey, 1);
   result.set(iv, 1 + ENC_MSG_KEY_LENGTH);
   result.set(new Uint8Array(ciphertext), 1 + ENC_MSG_KEY_LENGTH + IV_LENGTH);
@@ -144,12 +154,12 @@ async function doEncryptV3(
   return result;
 }
 
-async function doDecryptV3(
+async function doDecryptEnvelope(
   data: Uint8Array,
   convKey: CryptoKey,
-  senderId: string,
+  aad: Uint8Array,
 ): Promise<ArrayBuffer> {
-  const aad = new TextEncoder().encode(senderId);
+  const aadBuf = aad.buffer as ArrayBuffer;
 
   const wrapIv = data.slice(1, 1 + IV_LENGTH);
   const wrappedKey = data.slice(1 + IV_LENGTH, 1 + ENC_MSG_KEY_LENGTH);
@@ -166,7 +176,7 @@ async function doDecryptV3(
     ["decrypt"]
   );
 
-  return crypto.subtle.decrypt({ name: "AES-GCM", iv, additionalData: aad }, msgKey, ciphertext);
+  return crypto.subtle.decrypt({ name: "AES-GCM", iv, additionalData: aadBuf }, msgKey, ciphertext);
 }
 
 async function doDecryptGCM(data: Uint8Array, key: CryptoKey): Promise<ArrayBuffer> {
@@ -196,7 +206,8 @@ export async function encryptMessage(
 
   if (senderId) {
     const convKey = await deriveHKDF(material, "v2");
-    const result = await doEncryptV3(data.buffer as ArrayBuffer, convKey, senderId);
+    const aad = buildAAD(VERSION_V4, chatId, senderId);
+    const result = await doEncryptEnvelope(data.buffer as ArrayBuffer, convKey, aad, VERSION_V4);
     return bufferToBase64(result.buffer as ArrayBuffer);
   }
 
@@ -224,27 +235,33 @@ export async function decryptMessage(
   if (isGroup) materials.push(buildMaterial(participantIds, chatId, false));
 
   for (const material of materials) {
-    // Try v3 envelope
-    if (combined[0] === VERSION_V3 && senderId) {
+    const convKey = await deriveHKDF(material, "v2");
+
+    // Try v4 envelope (extended AAD: version:chatId:senderId)
+    if (combined[0] === VERSION_V4 && senderId) {
       try {
-        const convKey = await deriveHKDF(material, "v2");
-        const decrypted = await doDecryptV3(combined, convKey, senderId);
-        return new TextDecoder().decode(decrypted);
+        const aad = buildAAD(VERSION_V4, chatId, senderId);
+        return new TextDecoder().decode(await doDecryptEnvelope(combined, convKey, aad));
       } catch { /* next */ }
     }
 
-    // Try v2 HKDF
+    // Try v3 envelope (sender-only AAD)
+    if (combined[0] === VERSION_V3 && senderId) {
+      try {
+        const aad = new TextEncoder().encode(senderId);
+        return new TextDecoder().decode(await doDecryptEnvelope(combined, convKey, aad));
+      } catch { /* next */ }
+    }
+
+    // Try v2 HKDF (no envelope)
     try {
-      const key = await deriveHKDF(material, "v2");
-      const decrypted = await doDecryptGCM(combined, key);
-      return new TextDecoder().decode(decrypted);
+      return new TextDecoder().decode(await doDecryptGCM(combined, convKey));
     } catch { /* next */ }
 
     // Try v1 PBKDF2
     try {
       const key = await derivePBKDF2(material);
-      const decrypted = await doDecryptGCM(combined, key);
-      return new TextDecoder().decode(decrypted);
+      return new TextDecoder().decode(await doDecryptGCM(combined, key));
     } catch { /* next */ }
   }
 
@@ -262,7 +279,8 @@ export async function encryptBlob(
 
   if (senderId) {
     const convKey = await deriveHKDF(material, "v2");
-    const result = await doEncryptV3(data, convKey, senderId);
+    const aad = buildAAD(VERSION_V4, chatId, senderId);
+    const result = await doEncryptEnvelope(data, convKey, aad, VERSION_V4);
     return result.buffer as ArrayBuffer;
   }
 
@@ -288,18 +306,30 @@ export async function decryptBlob(
   if (isGroup) materials.push(buildMaterial(participantIds, chatId, false));
 
   for (const material of materials) {
-    if (combined[0] === VERSION_V3 && senderId) {
+    const convKey = await deriveHKDF(material, "v2");
+
+    // v4 envelope (extended AAD)
+    if (combined[0] === VERSION_V4 && senderId) {
       try {
-        const convKey = await deriveHKDF(material, "v2");
-        return await doDecryptV3(combined, convKey, senderId);
+        const aad = buildAAD(VERSION_V4, chatId, senderId);
+        return await doDecryptEnvelope(combined, convKey, aad);
       } catch { /* next */ }
     }
 
+    // v3 envelope (sender-only AAD)
+    if (combined[0] === VERSION_V3 && senderId) {
+      try {
+        const aad = new TextEncoder().encode(senderId);
+        return await doDecryptEnvelope(combined, convKey, aad);
+      } catch { /* next */ }
+    }
+
+    // v2 HKDF (no envelope)
     try {
-      const key = await deriveHKDF(material, "v2");
-      return await doDecryptGCM(combined, key);
+      return await doDecryptGCM(combined, convKey);
     } catch { /* next */ }
 
+    // v1 PBKDF2
     try {
       const key = await derivePBKDF2(material);
       return await doDecryptGCM(combined, key);

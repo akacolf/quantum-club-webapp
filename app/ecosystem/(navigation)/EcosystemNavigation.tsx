@@ -247,11 +247,16 @@ const EcosystemNavigation = () => {
                 }`}
               >
                 <div className="scale-100">
-                  <Icon
-                    icon={tab.icon}
-                    className={("iconClassName" in tab && tab.iconClassName) || ""}
-                    style={{ width: "1.5em", height: "1.5em" }}
-                  />
+                  {tab.id === "chat" ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src="/svg/qc-chat-logo.svg" alt="QC Chat" style={{ width: "1.5em", height: "1.5em" }} />
+                  ) : (
+                    <Icon
+                      icon={tab.icon}
+                      className={("iconClassName" in tab && tab.iconClassName) || ""}
+                      style={{ width: "1.5em", height: "1.5em" }}
+                    />
+                  )}
                 </div>
                 {tab.id === "chat" && totalUnread > 0 && (
                   <span className="absolute -top-1 -right-2 h-[18px] min-w-[18px] px-[5px] text-[11px] font-semibold rounded-full bg-red-500 text-white flex items-center justify-center leading-none shadow-sm">

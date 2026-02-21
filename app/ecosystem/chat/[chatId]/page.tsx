@@ -699,7 +699,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 3,
+        encVersion: 4,
       };
 
       // Add expiresAt if disappearing messages enabled
@@ -825,7 +825,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 3,
+        encVersion: 4,
         type: "voice",
         voice: { url, durationSec, encrypted: true },
       };
@@ -957,7 +957,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 3,
+        encVersion: 4,
         type: "file",
         file: {
           url,
@@ -1042,7 +1042,7 @@ export default function ChatConversationPage() {
         senderId: telegramId,
         createdAt: serverTimestamp(),
         encrypted: true,
-        encVersion: 3,
+        encVersion: 4,
         type: "transfer",
         transfer: {
           amount,
@@ -1242,7 +1242,7 @@ export default function ChatConversationPage() {
           senderId: telegramId,
           createdAt: serverTimestamp(),
           encrypted: true,
-          encVersion: 3,
+          encVersion: 4,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
 
@@ -2070,7 +2070,8 @@ export default function ChatConversationPage() {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="proicons:chat" className="w-7 h-7 text-primary" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/svg/qc-chat-logo.svg" alt="QC Chat" className="w-7 h-7" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">No messages yet</p>
@@ -2111,27 +2112,12 @@ export default function ChatConversationPage() {
                   className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
                     consecutive ? "mt-0.5" : "mt-2.5"
                   }`}
+                  onClick={() => setReactionPickerMsgId(msg.id)}
                   onTouchStart={(e) => {
                     const touch = e.touches[0];
                     swipeRef.current = { startX: touch.clientX, startY: touch.clientY, msgId: msg.id };
-                    // Long-press detection (500ms)
-                    longPressTimerRef.current = setTimeout(() => {
-                      setReactionPickerMsgId(msg.id);
-                    }, 500);
-                  }}
-                  onTouchMove={() => {
-                    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
                   }}
                   onTouchEnd={(e) => {
-                    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
-                    // Double-tap detection
-                    const now = Date.now();
-                    if (lastTapRef.current.msgId === msg.id && now - lastTapRef.current.time < 300) {
-                      setReactionPickerMsgId(msg.id);
-                      lastTapRef.current = { time: 0, msgId: null };
-                    } else {
-                      lastTapRef.current = { time: now, msgId: msg.id };
-                    }
                     // Swipe-to-reply
                     if (swipeRef.current.msgId !== msg.id) return;
                     const touch = e.changedTouches[0];
@@ -2143,7 +2129,6 @@ export default function ChatConversationPage() {
                     }
                     swipeRef.current = { startX: 0, startY: 0, msgId: null };
                   }}
-                  onDoubleClick={() => setReactionPickerMsgId(msg.id)}
                 >
                   {!isOwnMessage && !consecutive && (
                     <Avatar className="h-7 w-7 shrink-0 mt-0.5">
@@ -2334,7 +2319,7 @@ export default function ChatConversationPage() {
       {showScrollDown && (
         <button
           onClick={() => scrollToBottom(true)}
-          className="absolute bottom-24 right-4 z-40 w-10 h-10 rounded-full bg-card border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
+          className="absolute bottom-32 right-4 z-40 w-10 h-10 rounded-full bg-card border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
         >
           <Icon icon="lucide:chevron-down" className="w-5 h-5 text-muted-foreground" />
         </button>
