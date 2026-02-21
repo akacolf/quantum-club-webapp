@@ -582,11 +582,21 @@ export default function ChatConversationPage() {
         })
       );
 
+      // Messages were deleted — clear stale preview on chat doc + localStorage cache
+      if (decryptedMsgs.length === 0 && !initialLoadDoneRef.current) {
+        updateDoc(doc(dbfs, "qc-chats", chatId), {
+          lastMessage: "",
+          lastMessageBy: "",
+          lastMessageAt: serverTimestamp(),
+          lastMessageEpoch: deleteField(),
+        }).catch(() => {});
+        try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
+      }
+
       // Merge with any previously loaded older messages
       setMessages((prev) => {
+        if (decryptedMsgs.length === 0) return []; // Clear stale paginated messages too
         if (prev.length === 0) return decryptedMsgs;
-        // Find the oldest message from the snapshot
-        const oldestSnapshotId = decryptedMsgs[0]?.id;
         // Keep any older messages that are not in the snapshot
         const olderMessages = prev.filter(
           (m) => !decryptedMsgs.some((dm) => dm.id === m.id) &&
@@ -1444,12 +1454,33 @@ export default function ChatConversationPage() {
       if (!chatId) return;
       try {
         await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
+
+        // If deleting the last message, update chat doc preview
+        const remaining = messages.filter((m) => m.id !== msgId);
+        const lastMsg = remaining[remaining.length - 1];
+        if (!lastMsg || messages[messages.length - 1]?.id === msgId) {
+          if (lastMsg) {
+            updateDoc(doc(dbfs, "qc-chats", chatId), {
+              lastMessage: lastMsg.encrypted ? "New message" : lastMsg.text,
+              lastMessageBy: lastMsg.senderId,
+              lastMessageAt: lastMsg.createdAt || serverTimestamp(),
+            }).catch(() => {});
+          } else {
+            updateDoc(doc(dbfs, "qc-chats", chatId), {
+              lastMessage: "",
+              lastMessageBy: "",
+              lastMessageAt: serverTimestamp(),
+              lastMessageEpoch: deleteField(),
+            }).catch(() => {});
+            try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
+          }
+        }
       } catch (err) {
         console.error("Failed to delete message:", err);
       }
       setReactionPickerMsgId(null);
     },
-    [chatId]
+    [chatId, messages]
   );
 
   // Copy message text
