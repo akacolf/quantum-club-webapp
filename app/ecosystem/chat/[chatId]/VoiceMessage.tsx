@@ -32,6 +32,7 @@ export default function VoiceMessage({
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [ready, setReady] = useState(false);
+  const [decrypting, setDecrypting] = useState(!!encrypted);
   const [loadError, setLoadError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number>(0);
@@ -56,6 +57,7 @@ export default function VoiceMessage({
         const cached = decryptedUrlCache.get(audioUrl);
         if (cached) {
           src = cached;
+          if (!cancelled) setDecrypting(false);
         } else {
           try {
             const res = await fetch(audioUrl);
@@ -67,12 +69,15 @@ export default function VoiceMessage({
             const blob = new Blob([decryptedData], { type: "audio/webm" });
             src = URL.createObjectURL(blob);
             decryptedUrlCache.set(audioUrl, src);
+            if (!cancelled) setDecrypting(false);
           } catch (err) {
             console.error("[VoiceMessage] decrypt failed:", err);
             if (!cancelled) setLoadError(true);
             return;
           }
         }
+      } else {
+        if (!cancelled) setDecrypting(false);
       }
 
       if (cancelled) return;
@@ -148,17 +153,21 @@ export default function VoiceMessage({
         variant="ghost"
         size="icon"
         onClick={togglePlay}
-        disabled={!ready}
+        disabled={!ready || decrypting}
         className={`w-9 h-9 rounded-full shrink-0 ${
           isMine
             ? "bg-primary-foreground/20 hover:bg-primary-foreground/30"
             : "bg-primary/60 hover:bg-primary/70"
         }`}
       >
-        <Icon
-          icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
-          className="w-5 h-5 text-white"
-        />
+        {decrypting ? (
+          <Icon icon="lucide:loader-2" className="w-4 h-4 text-white animate-spin" />
+        ) : (
+          <Icon
+            icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}
+            className="w-5 h-5 text-white"
+          />
+        )}
       </Button>
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <div className="w-full h-1 rounded-full bg-muted-foreground/20 overflow-hidden">

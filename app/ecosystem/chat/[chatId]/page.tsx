@@ -243,6 +243,7 @@ export default function ChatConversationPage() {
   // Transfer state
   const [showTransferDrawer, setShowTransferDrawer] = useState(false);
   const [recipientWalletAddress, setRecipientWalletAddress] = useState<string | null>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
   const { walletAddress, isTestnet } = useWallet();
 
@@ -341,7 +342,9 @@ export default function ChatConversationPage() {
   const handleScroll = useCallback(() => {
     if (!chatContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 80;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 80;
+    isAtBottomRef.current = atBottom;
+    setShowScrollDown(!atBottom);
   }, []);
 
   const scrollToBottom = useCallback((force = false) => {
@@ -1857,55 +1860,50 @@ export default function ChatConversationPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Message Context Menu */}
-      <Drawer open={!!reactionPickerMsgId} onOpenChange={(open) => { if (!open) setReactionPickerMsgId(null); }}>
-        <DrawerContent className="max-h-[60vh]">
-          <div className="px-4 pt-2 pb-4 space-y-3">
+      {/* Message Context Menu — Telegram-style floating popover */}
+      {reactionPickerMsgId && (
+        <div className="fixed inset-0 z-[999] bg-black/50" onClick={() => setReactionPickerMsgId(null)}>
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px]"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Emoji reactions row */}
-            <div className="flex items-center justify-center gap-2 py-1">
+            <div className="flex items-center justify-center gap-1 mb-2 px-2 py-1.5 bg-card border border-border/50 rounded-2xl shadow-xl">
               {REACTION_EMOJIS.map((emoji) => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
                 const isReacted = activeMsg?.reactions?.[emoji.key]?.includes(telegramId || "");
                 return (
                   <button
                     key={emoji.key}
-                    onClick={() => reactionPickerMsgId && toggleReaction(reactionPickerMsgId, emoji.key)}
-                    className={`p-2 rounded-xl hover:bg-muted/60 transition-colors ${isReacted ? "bg-primary/15" : ""}`}
+                    onClick={() => toggleReaction(reactionPickerMsgId, emoji.key)}
+                    className={`p-1.5 rounded-lg hover:bg-muted/60 transition-all hover:scale-110 ${isReacted ? "bg-primary/15 scale-110" : ""}`}
                   >
-                    <Icon icon={emoji.icon} className="w-6 h-6" />
+                    <Icon icon={emoji.icon} className="w-5 h-5" />
                   </button>
                 );
               })}
             </div>
 
             {/* Action items */}
-            <div className="space-y-0.5">
+            <div className="bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden py-1">
               <button
                 onClick={() => {
                   const msg = messages.find((m) => m.id === reactionPickerMsgId);
                   if (msg) { setReplyTo(msg); inputRef.current?.focus(); }
                   setReactionPickerMsgId(null);
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
               >
-                <Icon icon="lucide:reply" className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Reply</span>
+                <Icon icon="lucide:reply" className="w-[18px] h-[18px] text-muted-foreground" />
+                <span className="text-[13px] font-medium">Reply</span>
               </button>
 
               <button
-                onClick={() => reactionPickerMsgId && handleCopyText(reactionPickerMsgId)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+                onClick={() => handleCopyText(reactionPickerMsgId)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
               >
-                <Icon icon="lucide:copy" className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Copy Text</span>
-              </button>
-
-              <button
-                onClick={() => reactionPickerMsgId && handleForwardStart(reactionPickerMsgId)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
-              >
-                <Icon icon="lucide:forward" className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Forward</span>
+                <Icon icon="lucide:copy" className="w-[18px] h-[18px] text-muted-foreground" />
+                <span className="text-[13px] font-medium">Copy Text</span>
               </button>
 
               {isGroupChat && (
@@ -1914,31 +1912,42 @@ export default function ChatConversationPage() {
                     const msg = messages.find((m) => m.id === reactionPickerMsgId);
                     if (msg) handlePinMessage(msg);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
                 >
-                  <Icon icon="lucide:pin" className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">Pin</span>
+                  <Icon icon="lucide:pin" className="w-[18px] h-[18px] text-muted-foreground" />
+                  <span className="text-[13px] font-medium">Pin</span>
                 </button>
               )}
+
+              <button
+                onClick={() => handleForwardStart(reactionPickerMsgId)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+              >
+                <Icon icon="lucide:forward" className="w-[18px] h-[18px] text-muted-foreground" />
+                <span className="text-[13px] font-medium">Forward</span>
+              </button>
 
               {(() => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
                 const canDelete = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
                 if (!canDelete) return null;
                 return (
-                  <button
-                    onClick={() => reactionPickerMsgId && handleDeleteMessage(reactionPickerMsgId)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 transition-colors"
-                  >
-                    <Icon icon="lucide:trash-2" className="w-5 h-5 text-red-500" />
-                    <span className="text-sm font-medium text-red-500">Delete</span>
-                  </button>
+                  <>
+                    <div className="mx-3 border-t border-border/50" />
+                    <button
+                      onClick={() => handleDeleteMessage(reactionPickerMsgId)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
+                    >
+                      <Icon icon="lucide:trash-2" className="w-[18px] h-[18px] text-red-500" />
+                      <span className="text-[13px] font-medium text-red-500">Delete</span>
+                    </button>
+                  </>
                 );
               })()}
             </div>
           </div>
-        </DrawerContent>
-      </Drawer>
+        </div>
+      )}
 
       {/* Search bar */}
       {showSearch && (
@@ -2320,6 +2329,16 @@ export default function ChatConversationPage() {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollDown && (
+        <button
+          onClick={() => scrollToBottom(true)}
+          className="absolute bottom-24 right-4 z-40 w-10 h-10 rounded-full bg-card border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
+        >
+          <Icon icon="lucide:chevron-down" className="w-5 h-5 text-muted-foreground" />
+        </button>
+      )}
 
       {/* Reply preview bar */}
       {replyTo && (

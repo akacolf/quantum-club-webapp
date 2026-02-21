@@ -167,7 +167,7 @@ export default function FileMessage({
         <div ref={containerRef} className="max-w-[220px] rounded-lg overflow-hidden">
           {!decryptedUrl ? (
             <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg">
-              <Icon icon="solar:gallery-bold" className="w-6 h-6 text-muted-foreground/50 animate-pulse" />
+              <Icon icon="lucide:loader-2" className="w-6 h-6 text-muted-foreground/50 animate-spin" />
             </div>
           ) : (
             <button onClick={() => setShowLightbox(true)} className="block w-full">
