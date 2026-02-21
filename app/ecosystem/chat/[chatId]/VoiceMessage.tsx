@@ -114,7 +114,7 @@ export default function VoiceMessage({
         audioRef.current.src = "";
       }
     };
-  }, [audioUrl, encrypted, participantIds, chatId, senderId, isGroup]);
+  }, [audioUrl, encrypted, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
 
   const togglePlay = () => {
     const audio = audioRef.current;

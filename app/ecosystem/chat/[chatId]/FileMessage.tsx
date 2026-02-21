@@ -130,7 +130,7 @@ export default function FileMessage({
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId, senderId, isGroup]);
+  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
 
   const handleDownload = useCallback(async () => {
     setIsLoading(true);
@@ -150,7 +150,7 @@ export default function FileMessage({
       console.error("[FileMessage] download:", err);
     }
     setIsLoading(false);
-  }, [file, participantIds, chatId, senderId, isGroup]);
+  }, [file, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
 
   if (loadError) {
     return (
