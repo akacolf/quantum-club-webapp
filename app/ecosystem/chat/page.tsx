@@ -41,12 +41,16 @@ interface ChatConversation {
   lastMessage: string;
   lastMessageBy: string;
   lastMessageAt: Timestamp | null;
+  lastMessageEpoch?: number;
   isGroup: boolean;
   isGlobal?: boolean;
   groupName?: string;
   joinCode?: string;
   memberCount?: number;
   unreadCount?: number;
+  epochNonce?: string;
+  epochCounter?: number;
+  epochNonces?: Record<number, string>;
 }
 
 function getInitials(name: string): string {
@@ -154,10 +158,14 @@ function ChatListItem({
     // If it's actual encrypted ciphertext, decrypt it
     if (isEncryptedMessage(chat.lastMessage)) {
       let cancelled = false;
-      decryptMessage(chat.lastMessage, chat.participants, chat.id, chat.lastMessageBy, chat.isGroup || chat.isGlobal).then((text) => {
+      // Look up epoch nonce for the message's epoch
+      const msgEpoch = chat.lastMessageEpoch;
+      const epochNonce = msgEpoch !== undefined
+        ? (chat.epochNonces?.[msgEpoch] ?? (msgEpoch === chat.epochCounter ? chat.epochNonce : undefined))
+        : chat.epochNonce;
+      decryptMessage(chat.lastMessage, chat.participants, chat.id, chat.lastMessageBy, chat.isGroup || chat.isGlobal, epochNonce, msgEpoch ?? chat.epochCounter).then((text) => {
         if (!cancelled) {
-          // If decryption failed, show sender info instead of error
-          if (text === "Unable to decrypt message") {
+          if (text === "Old encrypted message") {
             const senderName = chat.lastMessageBy && chat.participantNames[chat.lastMessageBy];
             setDecryptedPreview(senderName ? `${senderName} sent a message` : "New message");
           } else {
@@ -495,11 +503,15 @@ export default function QCChatListPage() {
           lastMessage: data.lastMessage || "",
           lastMessageBy: data.lastMessageBy || "",
           lastMessageAt: data.lastMessageAt,
+          lastMessageEpoch: data.lastMessageEpoch,
           isGroup: true,
           isGlobal: true,
           groupName: "QC Global",
           memberCount: data.participants?.length || 0,
           unreadCount: data.unreadCounts?.[telegramId] || 0,
+          epochNonce: data.epochNonce,
+          epochCounter: data.epochCounter,
+          epochNonces: data.epochNonces,
         });
       }
     }, (error) => {
@@ -537,12 +549,16 @@ export default function QCChatListPage() {
             lastMessage: data.lastMessage || "",
             lastMessageBy: data.lastMessageBy || "",
             lastMessageAt: data.lastMessageAt,
+            lastMessageEpoch: data.lastMessageEpoch,
             isGroup: data.isGroup || false,
             isGlobal: false,
             groupName: data.groupName,
             joinCode: data.joinCode,
             memberCount: data.isGroup ? data.participants?.length : undefined,
             unreadCount: data.unreadCounts?.[telegramId] || 0,
+            epochNonce: data.epochNonce,
+            epochCounter: data.epochCounter,
+            epochNonces: data.epochNonces,
           });
         });
         setConversations(chats);

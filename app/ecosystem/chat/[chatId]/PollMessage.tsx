@@ -9,6 +9,7 @@ interface PollData {
   options: string[];
   votes: Record<string, string[]>;
   createdBy: string;
+  encData?: string;
 }
 
 interface PollMessageProps {

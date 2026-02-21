@@ -102,6 +102,7 @@ interface ChatMessage {
     options: string[];
     votes: Record<string, string[]>;
     createdBy: string;
+    encData?: string;
   };
   voice?: {
     url: string;
@@ -111,6 +112,7 @@ interface ChatMessage {
   file?: {
     url: string;
     name: string;
+    encName?: string;
     size: number;
     mimeType: string;
     encrypted?: boolean;
@@ -119,10 +121,11 @@ interface ChatMessage {
   };
   transfer?: {
     amount: string;
-    senderAddress: string;
-    recipientAddress: string;
+    senderAddress?: string;
+    recipientAddress?: string;
     txHash?: string;
     status: "sent" | "failed";
+    encData?: string;
   };
 }
 
@@ -396,6 +399,35 @@ export default function ChatConversationPage() {
     return () => unsub();
   }, [currentUser, chatId]);
 
+  // Auto-initialize epoch if this chat doesn't have one (required for v6 encryption)
+  const ensureEpochRef = useRef<Promise<{ nonce: string; counter: number }> | null>(null);
+
+  const ensureEpoch = useCallback(async (): Promise<{ nonce: string; counter: number }> => {
+    if (chatMeta?.epochNonce && chatMeta.epochCounter !== undefined) {
+      return { nonce: chatMeta.epochNonce, counter: chatMeta.epochCounter };
+    }
+    // Deduplicate concurrent calls
+    if (ensureEpochRef.current) return ensureEpochRef.current;
+    const promise = (async () => {
+      const nonce = generateEpochNonce();
+      const chatRef = doc(dbfs, "qc-chats", chatId);
+      await updateDoc(chatRef, {
+        epochNonce: nonce,
+        epochCounter: 0,
+        [`epochNonces.0`]: nonce,
+      });
+      return { nonce, counter: 0 };
+    })();
+    ensureEpochRef.current = promise;
+    try { return await promise; } finally { ensureEpochRef.current = null; }
+  }, [chatMeta, chatId]);
+
+  useEffect(() => {
+    if (!chatMeta || !chatId || !currentUser) return;
+    if (chatMeta.epochNonce && chatMeta.epochCounter !== undefined) return;
+    ensureEpoch().catch((err) => console.error("Failed to init epoch:", err));
+  }, [chatMeta, chatId, currentUser, ensureEpoch]);
+
   // Resolve recipient's wallet address for DM transfers
   useEffect(() => {
     if (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId) return;
@@ -495,6 +527,41 @@ export default function ChatConversationPage() {
             const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
             replyData = { ...replyData, text: decryptedReply };
           }
+          // Decrypt poll content if encrypted
+          let pollData = msg.poll;
+          if (msg.type === "poll" && pollData?.encData) {
+            try {
+              const decryptedPoll = await decryptMessage(pollData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const parsed = JSON.parse(decryptedPoll);
+              pollData = { ...pollData, question: parsed.question, options: parsed.options };
+            } catch {
+              pollData = { ...pollData, question: "Encrypted poll", options: [] };
+            }
+          }
+
+          // Decrypt transfer content if encrypted
+          let transferData = msg.transfer;
+          if (msg.type === "transfer" && transferData?.encData) {
+            try {
+              const decryptedTransfer = await decryptMessage(transferData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const parsed = JSON.parse(decryptedTransfer);
+              transferData = { ...transferData, ...parsed };
+            } catch {
+              transferData = { ...transferData, amount: "?", status: "sent" as const };
+            }
+          }
+
+          // Decrypt file name if encrypted
+          let fileData = msg.file;
+          if (msg.type === "file" && fileData?.encName) {
+            try {
+              const decryptedName = await decryptMessage(fileData.encName, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              fileData = { ...fileData, name: decryptedName };
+            } catch {
+              fileData = { ...fileData, name: "Encrypted file" };
+            }
+          }
+
           return {
             id: msg.id,
             text,
@@ -507,10 +574,10 @@ export default function ChatConversationPage() {
             forwarded: msg.forwarded,
             expiresAt: msg.expiresAt,
             type: msg.type as ChatMessage["type"],
-            poll: msg.poll,
+            poll: pollData,
             voice: msg.voice,
-            transfer: msg.transfer,
-            file: msg.file,
+            transfer: transferData,
+            file: fileData,
           };
         })
       );
@@ -625,6 +692,41 @@ export default function ChatConversationPage() {
             const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
             replyData = { ...replyData, text: decryptedReply };
           }
+          // Decrypt poll content if encrypted
+          let pollData = msg.poll;
+          if (msg.type === "poll" && pollData?.encData) {
+            try {
+              const decryptedPoll = await decryptMessage(pollData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const parsed = JSON.parse(decryptedPoll);
+              pollData = { ...pollData, question: parsed.question, options: parsed.options };
+            } catch {
+              pollData = { ...pollData, question: "Encrypted poll", options: [] };
+            }
+          }
+
+          // Decrypt transfer content if encrypted
+          let transferData = msg.transfer;
+          if (msg.type === "transfer" && transferData?.encData) {
+            try {
+              const decryptedTransfer = await decryptMessage(transferData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const parsed = JSON.parse(decryptedTransfer);
+              transferData = { ...transferData, ...parsed };
+            } catch {
+              transferData = { ...transferData, amount: "?", status: "sent" as const };
+            }
+          }
+
+          // Decrypt file name if encrypted
+          let fileData = msg.file;
+          if (msg.type === "file" && fileData?.encName) {
+            try {
+              const decryptedName = await decryptMessage(fileData.encName, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              fileData = { ...fileData, name: decryptedName };
+            } catch {
+              fileData = { ...fileData, name: "Encrypted file" };
+            }
+          }
+
           return {
             id: msg.id,
             text,
@@ -637,10 +739,10 @@ export default function ChatConversationPage() {
             forwarded: msg.forwarded,
             expiresAt: msg.expiresAt,
             type: msg.type as ChatMessage["type"],
-            poll: msg.poll,
+            poll: pollData,
             voice: msg.voice,
-            transfer: msg.transfer,
-            file: msg.file,
+            transfer: transferData,
+            file: fileData,
           };
         })
       );
@@ -716,7 +818,8 @@ export default function ChatConversationPage() {
     try {
       // Use participantsRef for latest participants
       const participants = participantsRef.current;
-      const encryptedText = await encryptMessage(text, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
+      const epoch = await ensureEpoch();
+      const encryptedText = await encryptMessage(text, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
 
       // Build message doc
       const messageDoc: Record<string, unknown> = {
@@ -726,7 +829,7 @@ export default function ChatConversationPage() {
         createdAt: serverTimestamp(),
         encrypted: true,
         encVersion: 6,
-        encEpoch: chatMeta?.epochCounter ?? 0,
+        encEpoch: epoch.counter,
       };
 
       // Add expiresAt if disappearing messages enabled
@@ -739,7 +842,7 @@ export default function ChatConversationPage() {
         const replyText = currentReply.text.length > 80
           ? currentReply.text.slice(0, 80) + "…"
           : currentReply.text;
-        const encryptedReplyText = await encryptMessage(replyText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
+        const encryptedReplyText = await encryptMessage(replyText, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
         messageDoc.replyTo = {
           id: currentReply.id,
           text: encryptedReplyText,
@@ -761,6 +864,7 @@ export default function ChatConversationPage() {
         lastMessage: encryptedText,
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
+        lastMessageEpoch: epoch.counter,
         [`readPositions.${telegramId}`]: serverTimestamp(),
         [`unreadCounts.${telegramId}`]: 0,
       };
@@ -822,9 +926,11 @@ export default function ChatConversationPage() {
       // Refresh auth token before upload to prevent expired token errors
       await currentUser.getIdToken(true);
 
+      const epoch = await ensureEpoch();
+
       // Encrypt the audio blob before uploading
       const audioBuffer = await blob.arrayBuffer();
-      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
+      const encryptedBuffer = await encryptBlob(audioBuffer, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
       const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
 
       const fileRef = storageRef(storage, `voice-messages/${chatId}/${msgId}.enc.webm`);
@@ -844,7 +950,7 @@ export default function ChatConversationPage() {
       const url = await getDownloadURL(fileRef);
 
       const previewText = "🎤 Voice message";
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -853,7 +959,7 @@ export default function ChatConversationPage() {
         createdAt: serverTimestamp(),
         encrypted: true,
         encVersion: 6,
-        encEpoch: chatMeta?.epochCounter ?? 0,
+        encEpoch: epoch.counter,
         type: "voice",
         voice: { url, durationSec, encrypted: true },
       };
@@ -871,6 +977,7 @@ export default function ChatConversationPage() {
         lastMessage: encryptedPreview,
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
+        lastMessageEpoch: epoch.counter,
         [`readPositions.${telegramId}`]: serverTimestamp(),
         [`unreadCounts.${telegramId}`]: 0,
       };
@@ -942,9 +1049,11 @@ export default function ChatConversationPage() {
       // Refresh auth token before upload to prevent expired token errors
       await currentUser.getIdToken(true);
 
+      const epoch = await ensureEpoch();
+
       // Read file and encrypt
       const fileBuffer = await file.arrayBuffer();
-      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
+      const encryptedBuffer = await encryptBlob(fileBuffer, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
       const encryptedBlob = new Blob([encryptedBuffer], { type: "application/octet-stream" });
 
       // Get image dimensions if applicable
@@ -977,7 +1086,7 @@ export default function ChatConversationPage() {
 
       const isImage = file.type.startsWith("image/");
       const previewText = isImage ? "Sent an image" : `Sent a file`;
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -986,11 +1095,11 @@ export default function ChatConversationPage() {
         createdAt: serverTimestamp(),
         encrypted: true,
         encVersion: 6,
-        encEpoch: chatMeta?.epochCounter ?? 0,
+        encEpoch: epoch.counter,
         type: "file",
         file: {
           url,
-          name: file.name,
+          encName: await encryptMessage(file.name, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter),
           size: file.size,
           mimeType: file.type,
           encrypted: true,
@@ -1011,6 +1120,7 @@ export default function ChatConversationPage() {
         lastMessage: encryptedPreview,
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
+        lastMessageEpoch: epoch.counter,
         [`readPositions.${telegramId}`]: serverTimestamp(),
         [`unreadCounts.${telegramId}`]: 0,
       };
@@ -1062,8 +1172,19 @@ export default function ChatConversationPage() {
     const senderName = qcUsername || "Unknown";
     try {
       const participants = participantsRef.current;
+      const epoch = await ensureEpoch();
       const previewText = `Sent ${amount} TON`;
-      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, chatMeta?.epochNonce, chatMeta?.epochCounter);
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
+
+      // Encrypt transfer details
+      const transferContent = JSON.stringify({
+        amount,
+        senderAddress: walletAddress,
+        recipientAddress: toAddress,
+        txHash,
+        status: "sent",
+      });
+      const encTransferData = await encryptMessage(transferContent, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
 
       const messageDoc: Record<string, unknown> = {
         text: encryptedPreview,
@@ -1072,15 +1193,9 @@ export default function ChatConversationPage() {
         createdAt: serverTimestamp(),
         encrypted: true,
         encVersion: 6,
-        encEpoch: chatMeta?.epochCounter ?? 0,
+        encEpoch: epoch.counter,
         type: "transfer",
-        transfer: {
-          amount,
-          senderAddress: walletAddress,
-          recipientAddress: toAddress,
-          txHash,
-          status: "sent",
-        },
+        transfer: { encData: encTransferData },
       };
 
       if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
@@ -1096,6 +1211,7 @@ export default function ChatConversationPage() {
         lastMessage: encryptedPreview,
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
+        lastMessageEpoch: epoch.counter,
         [`readPositions.${telegramId}`]: serverTimestamp(),
         [`unreadCounts.${telegramId}`]: 0,
       };
@@ -1152,14 +1268,24 @@ export default function ChatConversationPage() {
       const votes: Record<string, string[]> = {};
       options.forEach((_, i) => { votes[String(i)] = []; });
 
+      const epoch = await ensureEpoch();
+
+      // Encrypt poll content (question + options as JSON)
+      const pollContent = JSON.stringify({ question, options });
+      const encPollData = await encryptMessage(pollContent, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
+      const previewText = "Created a poll";
+      const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
+
       const messageDoc: Record<string, unknown> = {
-        text: `📊 ${question}`,
+        text: encryptedPreview,
         senderName,
         senderId: telegramId,
         createdAt: serverTimestamp(),
-        encrypted: false,
+        encrypted: true,
+        encVersion: 6,
+        encEpoch: epoch.counter,
         type: "poll",
-        poll: { question, options, votes, createdBy: telegramId },
+        poll: { encData: encPollData, votes, createdBy: telegramId },
       };
 
       if (chatMeta.disappearAfter && chatMeta.disappearAfter > 0) {
@@ -1171,9 +1297,10 @@ export default function ChatConversationPage() {
       try { localStorage.setItem(`qc-preview-${chatId}`, `📊 ${question}`); } catch {}
 
       const updates: Record<string, unknown> = {
-        lastMessage: `📊 ${question}`,
+        lastMessage: encryptedPreview,
         lastMessageBy: telegramId,
         lastMessageAt: serverTimestamp(),
+        lastMessageEpoch: epoch.counter,
         [`readPositions.${telegramId}`]: serverTimestamp(),
         [`unreadCounts.${telegramId}`]: 0,
       };
@@ -1290,6 +1417,7 @@ export default function ChatConversationPage() {
           lastMessage: encryptedText,
           lastMessageBy: telegramId,
           lastMessageAt: serverTimestamp(),
+          lastMessageEpoch: destChat.epochCounter ?? 0,
           [`readPositions.${telegramId}`]: serverTimestamp(),
           [`unreadCounts.${telegramId}`]: 0,
         };
