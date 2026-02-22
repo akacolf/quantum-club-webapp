@@ -185,6 +185,9 @@ export default function FileMessage({
           <div
             className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
             onClick={() => setShowLightbox(false)}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
           >
             <div className="absolute top-20 right-4 z-10">
               <button
@@ -234,7 +237,12 @@ export default function FileMessage({
       </div>
 
       {showPdfViewer && pdfUrl && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
+        <div
+          className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
           {/* Header with pt-20 to clear Telegram Mini App buttons */}
           <div className="flex items-center justify-between px-4 pt-20 pb-3 bg-card/90 backdrop-blur-sm">
             <p className="text-sm font-medium text-white truncate flex-1 mr-3">{file.name}</p>
