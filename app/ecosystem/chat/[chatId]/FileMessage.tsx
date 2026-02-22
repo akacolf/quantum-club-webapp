@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Icon } from "@iconify/react";
-import { decryptBlob, triggerDownload } from "@/lib/chat-crypto";
+import { decryptBlob } from "@/lib/chat-crypto";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -132,25 +132,23 @@ export default function FileMessage({
     return () => { cancelled = true; };
   }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
 
-  const handleDownload = useCallback(async () => {
+  const isPdf = file.mimeType === "application/pdf";
+
+  const handleOpenPdf = useCallback(async () => {
+    if (!isPdf) return;
     setIsLoading(true);
     try {
       let url = file.url;
       if (file.encrypted && participantIds && chatId) {
         url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter);
       }
-
-      if (file.mimeType === "application/pdf") {
-        setPdfUrl(url);
-        setShowPdfViewer(true);
-      } else {
-        triggerDownload(url, file.name);
-      }
+      setPdfUrl(url);
+      setShowPdfViewer(true);
     } catch (err) {
-      console.error("[FileMessage] download:", err);
+      console.error("[FileMessage] open pdf:", err);
     }
     setIsLoading(false);
-  }, [file, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
+  }, [isPdf, file, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
 
   if (loadError) {
     return (
@@ -188,13 +186,7 @@ export default function FileMessage({
             className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
             onClick={() => setShowLightbox(false)}
           >
-            <div className="absolute top-20 right-4 flex items-center gap-2 z-10">
-              <button
-                onClick={(e) => { e.stopPropagation(); triggerDownload(decryptedUrl, file.name); }}
-                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
-              >
-                <Icon icon="solar:download-minimalistic-bold" className="w-5 h-5 text-white" />
-              </button>
+            <div className="absolute top-20 right-4 z-10">
               <button
                 onClick={(e) => { e.stopPropagation(); setShowLightbox(false); }}
                 className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
@@ -217,13 +209,14 @@ export default function FileMessage({
 
   return (
     <>
-      <button
-        onClick={handleDownload}
-        disabled={isLoading}
+      <div
+        onClick={isPdf ? handleOpenPdf : undefined}
         className={`flex items-center gap-3 p-2.5 rounded-xl min-w-[200px] max-w-[260px] transition-colors ${
+          isPdf ? "cursor-pointer" : ""
+        } ${
           isMine
-            ? "bg-primary-foreground/10 hover:bg-primary-foreground/15"
-            : "bg-primary/10 hover:bg-primary/15"
+            ? `bg-primary-foreground/10 ${isPdf ? "hover:bg-primary-foreground/15" : ""}`
+            : `bg-primary/10 ${isPdf ? "hover:bg-primary/15" : ""}`
         }`}
       >
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
@@ -235,12 +228,10 @@ export default function FileMessage({
           <p className="text-xs font-medium text-white truncate">{file.name}</p>
           <p className="text-[10px] text-muted-foreground/70">{formatFileSize(file.size)}</p>
         </div>
-        {isLoading ? (
+        {isLoading && (
           <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted-foreground/50 shrink-0 animate-spin" />
-        ) : (
-          <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4 text-muted-foreground/50 shrink-0" />
         )}
-      </button>
+      </div>
 
       {showPdfViewer && pdfUrl && (
         <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
@@ -264,12 +255,6 @@ export default function FileMessage({
                 <Icon icon="lucide:plus" className="w-3.5 h-3.5 text-white" />
               </button>
               <button
-                onClick={() => triggerDownload(pdfUrl, file.name)}
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center ml-1"
-              >
-                <Icon icon="solar:download-minimalistic-bold" className="w-3.5 h-3.5 text-white" />
-              </button>
-              <button
                 onClick={() => { setShowPdfViewer(false); setPdfScale(1); }}
                 className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
               >
@@ -280,8 +265,11 @@ export default function FileMessage({
           {/* PDF pages rendered by react-pdf — pinch to zoom */}
           <div
             className="flex-1 overflow-auto bg-neutral-200"
+            style={{ touchAction: "pan-x pan-y" }}
+            onContextMenu={(e) => e.preventDefault()}
             onTouchStart={(e) => {
               if (e.touches.length === 2) {
+                e.preventDefault();
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
                 pinchRef.current = Math.hypot(dx, dy);
@@ -289,6 +277,7 @@ export default function FileMessage({
             }}
             onTouchMove={(e) => {
               if (e.touches.length === 2 && pinchRef.current > 0) {
+                e.preventDefault();
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
                 const dist = Math.hypot(dx, dy);
