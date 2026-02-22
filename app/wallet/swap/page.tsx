@@ -135,13 +135,15 @@ export default function SwapPage() {
     const debouncedAmount = useDebounce(amount, 500);
 
     // Build quote params based on current form state
+    const referralAddress = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
+
     const quoteParams = useMemo((): QuoteParams | null => {
         if (!fromAsset || !toAsset || !debouncedAmount || parseFloat(debouncedAmount) <= 0) {
             return null;
         }
 
         const offerUnits = toUnits(debouncedAmount, fromAsset.decimals);
-        
+
         return {
             fromAsset: {
                 address: fromAsset.contractAddress,
@@ -164,8 +166,9 @@ export default function SwapPage() {
             amount: offerUnits,
             slippageBps: Math.round(parseFloat(slippage) * 100), // Convert % to basis points
             preferGasless, // Pass gasless preference
+            ...(referralAddress ? { referrerAddress: referralAddress, referrerFeeBps: 10 } : {}),
         };
-    }, [fromAsset, toAsset, debouncedAmount, slippage, preferGasless, fromChain, toChain]);
+    }, [fromAsset, toAsset, debouncedAmount, slippage, preferGasless, fromChain, toChain, referralAddress]);
 
     // Omniston hook for quotes and execution
     const {
