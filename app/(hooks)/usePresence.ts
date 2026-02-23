@@ -14,6 +14,7 @@ interface PresenceData {
   isOnline: boolean;
   lastSeen: Timestamp | null;
   currentChatId: string | null;
+  activeCallId: string | null;
 }
 
 /**
@@ -64,7 +65,15 @@ export function usePresence(telegramId: string | null) {
     []
   );
 
-  return { setCurrentChat, presenceRef };
+  const setActiveCall = useCallback(
+    (callId: string | null) => {
+      if (!presenceRef.current) return;
+      setDoc(presenceRef.current, { activeCallId: callId }, { merge: true }).catch(() => {});
+    },
+    []
+  );
+
+  return { setCurrentChat, setActiveCall, presenceRef };
 }
 
 /**
@@ -119,6 +128,7 @@ export function useUserPresence(telegramId: string | null): PresenceData | null 
         isOnline,
         lastSeen,
         currentChatId: (d.currentChatId as string) || null,
+        activeCallId: (d.activeCallId as string) || null,
       };
     };
 

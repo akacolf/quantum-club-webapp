@@ -9,6 +9,8 @@ import type { Metadata } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
+import CallOverlay from "./(components)/CallOverlay";
+import IncomingCallOverlay from "./(components)/IncomingCallOverlay";
 
 
 const onest = Onest({
@@ -55,6 +57,8 @@ export default function RootLayout({
               </div>
             </div>
           </div>
+          <CallOverlay />
+          <IncomingCallOverlay />
           <Toaster />
         </ClientProviders>
         </AuthProvider>

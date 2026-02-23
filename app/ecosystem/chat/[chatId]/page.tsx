@@ -74,6 +74,8 @@ import FileMessage from "./FileMessage";
 import GroupMembersPanel from "./GroupMembersPanel";
 import TransferMessage from "./TransferMessage";
 import NftShareMessage from "./NftShareMessage";
+import CallMessage from "./CallMessage";
+import { useCallContext } from "@/app/(contexts)/CallContext";
 import TransferDrawer from "./TransferDrawer";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
@@ -97,7 +99,7 @@ interface ChatMessage {
     originalChatId: string;
   };
   expiresAt?: any;
-  type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share";
+  type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share" | "call";
   poll?: {
     question: string;
     options: string[];
@@ -134,6 +136,13 @@ interface ChatMessage {
     nftImage?: string;
     nftPrice?: string;
     collectionName?: string;
+  };
+  call?: {
+    callId: string;
+    status: "ringing" | "connected" | "ended" | "declined" | "missed" | "busy";
+    duration: number;
+    callerId: string;
+    calleeId: string;
   };
 }
 
@@ -219,6 +228,7 @@ export default function ChatConversationPage() {
   const { telegramId, qcUsername } = useUserContext();
   const authCtx = useAuth();
   const currentUser = authCtx?.currentUser ?? null;
+  const { initiateCall, callState } = useCallContext();
 
   useTelegramBackButton("/ecosystem/chat");
 
@@ -1857,6 +1867,25 @@ export default function ChatConversationPage() {
           </div>
         </div>
 
+        {/* Voice call button (DMs only, not self-chat or global) */}
+        {!isGroupChat && !isSelfChat && otherParticipantId && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-9 h-9 rounded-full shrink-0"
+            disabled={callState !== "idle"}
+            onClick={() => {
+              initiateCall({
+                calleeId: otherParticipantId,
+                calleeName: headerName,
+                chatId,
+              });
+            }}
+          >
+            <Icon icon="solar:phone-bold" className="w-5 h-5" />
+          </Button>
+        )}
+
         {/* Three-dot menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -2495,6 +2524,18 @@ export default function ChatConversationPage() {
                         nftPrice={msg.nftShare.nftPrice}
                         collectionName={msg.nftShare.collectionName}
                         isMine={isOwnMessage}
+                      />
+                    ) : msg.type === "call" && msg.call ? (
+                      <CallMessage
+                        callId={msg.call.callId}
+                        status={msg.call.status}
+                        duration={msg.call.duration}
+                        callerId={msg.call.callerId}
+                        calleeId={msg.call.calleeId}
+                        isMine={isOwnMessage}
+                        chatId={chatId}
+                        remoteUserId={otherParticipantId || ""}
+                        remoteName={headerName}
                       />
                     ) : (
                       <span className={`text-[13.5px] leading-[1.4] break-words whitespace-pre-wrap ${

@@ -24,6 +24,7 @@ const ChatProvider = dynamic(() => import("../(contexts)/ChatContext").then(m =>
 const GroupsProvider = dynamic(() => import("../(contexts)/GroupsContext").then(m => ({ default: m.GroupsProvider })));
 const TradingProvider = dynamic(() => import("../(contexts)/TradingContext").then(m => ({ default: m.TradingProvider })));
 const OmnistonClientProvider = dynamic(() => import("./OmnistonProvider").then(m => ({ default: m.OmnistonClientProvider })), { ssr: false });
+const CallProvider = dynamic(() => import("../(contexts)/CallContext").then(m => ({ default: m.CallProvider })), { ssr: false });
 
 // Lazy-init analytics after first paint
 if (typeof window !== "undefined") {
@@ -50,7 +51,9 @@ export default function ClientProviders({ children }: { children: React.ReactNod
                   <GroupsProvider>
                     <TradingProvider>
                       <OmnistonClientProvider>
-                        {children}
+                        <CallProvider>
+                          {children}
+                        </CallProvider>
                       </OmnistonClientProvider>
                     </TradingProvider>
                   </GroupsProvider>
