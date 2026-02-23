@@ -67,6 +67,162 @@ async function fetchAndDecrypt(
   return blobUrl;
 }
 
+/** Pinch-to-zoom + pan image lightbox */
+function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const gestureRef = useRef<{
+    initialDist: number;
+    initialScale: number;
+    lastCenter: { x: number; y: number };
+    startTranslate: { x: number; y: number };
+    isPinching: boolean;
+    isPanning: boolean;
+    startTouch: { x: number; y: number };
+  } | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      gestureRef.current = {
+        initialDist: Math.hypot(dx, dy),
+        initialScale: scale,
+        lastCenter: {
+          x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+          y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        },
+        startTranslate: { ...translate },
+        isPinching: true,
+        isPanning: false,
+        startTouch: { x: 0, y: 0 },
+      };
+    } else if (e.touches.length === 1 && scale > 1) {
+      gestureRef.current = {
+        initialDist: 0,
+        initialScale: scale,
+        lastCenter: { x: 0, y: 0 },
+        startTranslate: { ...translate },
+        isPinching: false,
+        isPanning: true,
+        startTouch: { x: e.touches[0].clientX, y: e.touches[0].clientY },
+      };
+    }
+  }, [scale, translate]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (!gestureRef.current) return;
+
+    if (gestureRef.current.isPinching && e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / gestureRef.current.initialDist;
+      const newScale = Math.min(5, Math.max(1, gestureRef.current.initialScale * ratio));
+      setScale(newScale);
+
+      // Pan with pinch center movement
+      const center = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+      setTranslate({
+        x: gestureRef.current.startTranslate.x + (center.x - gestureRef.current.lastCenter.x),
+        y: gestureRef.current.startTranslate.y + (center.y - gestureRef.current.lastCenter.y),
+      });
+    } else if (gestureRef.current.isPanning && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - gestureRef.current.startTouch.x;
+      const dy = e.touches[0].clientY - gestureRef.current.startTouch.y;
+      setTranslate({
+        x: gestureRef.current.startTranslate.x + dx,
+        y: gestureRef.current.startTranslate.y + dy,
+      });
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (gestureRef.current?.isPinching && e.touches.length < 2) {
+      // Snap back to 1 if close enough
+      if (scale < 1.1) {
+        setScale(1);
+        setTranslate({ x: 0, y: 0 });
+      }
+    }
+    if (e.touches.length === 0) {
+      gestureRef.current = null;
+    }
+  }, [scale]);
+
+  const handleDoubleTap = useCallback(() => {
+    if (scale > 1) {
+      setScale(1);
+      setTranslate({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+    }
+  }, [scale]);
+
+  const doubleTapRef = useRef<{ time: number }>({ time: 0 });
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const now = Date.now();
+    if (now - doubleTapRef.current.time < 300) {
+      handleDoubleTap();
+      doubleTapRef.current.time = 0;
+    } else {
+      doubleTapRef.current.time = now;
+    }
+  }, [handleDoubleTap]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
+      onClick={() => { if (scale <= 1) onClose(); }}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <div className="absolute top-20 right-4 z-10">
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
+        >
+          <Icon icon="lucide:x" className="w-5 h-5 text-white" />
+        </button>
+      </div>
+      <div
+        className="w-full h-full flex items-center justify-center overflow-hidden"
+        style={{ touchAction: "none" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className="max-w-full max-h-full object-contain select-none"
+          style={{
+            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+            transition: gestureRef.current ? "none" : "transform 0.2s ease-out",
+          }}
+          draggable={false}
+          onClick={handleClick}
+          onContextMenu={(e) => e.preventDefault()}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function FileMessage({
   file,
   isMine,
@@ -168,13 +324,21 @@ export default function FileMessage({
               <Icon icon="lucide:loader-2" className="w-6 h-6 text-muted-foreground/50 animate-spin" />
             </div>
           ) : (
-            <button onClick={() => setShowLightbox(true)} className="block w-full">
+            <button
+              onClick={() => setShowLightbox(true)}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              onContextMenu={(e) => e.preventDefault()}
+              className="block w-full"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={decryptedUrl}
                 alt={file.name}
                 className="w-full rounded-lg object-cover max-h-[300px]"
                 style={file.width && file.height ? { aspectRatio: `${file.width} / ${file.height}` } : undefined}
+                draggable={false}
               />
             </button>
           )}
@@ -182,29 +346,11 @@ export default function FileMessage({
         </div>
 
         {showLightbox && decryptedUrl && (
-          <div
-            className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setShowLightbox(false)}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-          >
-            <div className="absolute top-20 right-4 z-10">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowLightbox(false); }}
-                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
-              >
-                <Icon icon="lucide:x" className="w-5 h-5 text-white" />
-              </button>
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={decryptedUrl}
-              alt={file.name}
-              className="max-w-full max-h-full object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+          <ImageLightbox
+            src={decryptedUrl}
+            alt={file.name}
+            onClose={() => setShowLightbox(false)}
+          />
         )}
       </>
     );
