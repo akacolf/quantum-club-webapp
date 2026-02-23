@@ -4,18 +4,24 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
+import { useWallet } from "@/app/wallet/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import { usePopularCollectionsQuery } from "@/app/(hooks)/queries/use-nft-marketplace";
 
 export default function CreateGroupPage() {
     useTelegramBackButton("/groups");
     const router = useRouter();
     const { createGroup } = useGroups();
+    const { isTestnet } = useWallet();
+
+    const collectionsQuery = usePopularCollectionsQuery(isTestnet);
 
     useEffect(() => {
         router.prefetch("/groups");
@@ -24,6 +30,9 @@ export default function CreateGroupPage() {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [isCreating, setIsCreating] = useState(false);
+    const [nftGated, setNftGated] = useState(false);
+    const [selectedCollection, setSelectedCollection] = useState("");
+    const [selectedCollectionName, setSelectedCollectionName] = useState("");
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -38,10 +47,22 @@ export default function CreateGroupPage() {
             toast.error("Description must be 100 characters or less");
             return;
         }
+        if (nftGated && !selectedCollection) {
+            toast.error("Please select a collection for NFT gating");
+            return;
+        }
 
         setIsCreating(true);
         try {
-            const groupId = await createGroup(name.trim(), description.trim());
+            const groupId = await createGroup(
+                name.trim(),
+                description.trim(),
+                undefined,
+                undefined,
+                nftGated || undefined,
+                nftGated ? selectedCollection : undefined,
+                nftGated ? selectedCollectionName : undefined,
+            );
             if (groupId) {
                 toast.success("Group created!");
                 router.push(`/groups/${groupId}`);
@@ -95,6 +116,53 @@ export default function CreateGroupPage() {
                             />
                             <p className="text-xs text-muted-foreground text-right">{description.length}/100</p>
                         </div>
+
+                        {/* NFT-Gated Toggle */}
+                        <div className="flex items-center justify-between py-2">
+                            <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">NFT-Gated</Label>
+                                <p className="text-xs text-muted-foreground">Require an NFT to join</p>
+                            </div>
+                            <Switch checked={nftGated} onCheckedChange={setNftGated} />
+                        </div>
+
+                        {/* Collection Selector */}
+                        {nftGated && (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-muted-foreground">Required NFT Collection</Label>
+                                {collectionsQuery.isLoading ? (
+                                    <p className="text-xs text-muted-foreground">Loading collections...</p>
+                                ) : (
+                                    <div className="max-h-40 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
+                                        {(collectionsQuery.data ?? []).map((col) => (
+                                            <button
+                                                key={col.address}
+                                                onClick={() => {
+                                                    setSelectedCollection(col.address);
+                                                    setSelectedCollectionName(col.name);
+                                                }}
+                                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
+                                                    selectedCollection === col.address
+                                                        ? "bg-primary/10 border border-primary/30"
+                                                        : "hover:bg-accent"
+                                                }`}
+                                            >
+                                                <Icon icon="solar:gallery-minimalistic-bold" className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                <span className="text-sm truncate">{col.name}</span>
+                                                {col.verified && (
+                                                    <Icon icon="solar:verified-check-bold" className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {selectedCollectionName && (
+                                    <p className="text-xs text-primary">
+                                        Selected: {selectedCollectionName}
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         <Button
                             onClick={handleCreate}

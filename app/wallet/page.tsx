@@ -27,6 +27,7 @@ import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
 import { AnimatedPrice } from "@/components/ui/animated-price";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { categorizeNft } from "@/lib/nft-marketplace";
 import { WalletPriceChart } from "./WalletPriceChart";
 import { useLivePrice } from "@/app/(hooks)/queries/use-trades";
 
@@ -71,6 +72,100 @@ const formatUsd = (value: number | string): string => {
   if (isNaN(num) || num === 0) return "$0.00";
   return `$${num.toFixed(2)}`;
 };
+
+// NFT Filter Chips sub-component
+type NftFilterType = "all" | "gifts" | "collections";
+
+function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string; image?: string; collectionAddress?: string; collectionName?: string; description?: string; ownerAddress?: string; sale?: any; attributes?: any[] }> }) {
+  const [filter, setFilter] = useState<NftFilterType>("all");
+
+  const filteredNfts = nfts.filter((nft) => {
+    if (filter === "all") return true;
+    const category = categorizeNft(nft);
+    if (filter === "gifts") return category === "gift" || category === "sticker";
+    if (filter === "collections") return category === "regular";
+    return true;
+  });
+
+  const filters: { value: NftFilterType; label: string; icon: string }[] = [
+    { value: "all", label: "All", icon: "solar:widget-linear" },
+    { value: "gifts", label: "Gifts", icon: "solar:gift-linear" },
+    { value: "collections", label: "Collections", icon: "solar:gallery-minimalistic-linear" },
+  ];
+
+  return (
+    <>
+      <div className="flex gap-2">
+        {filters.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              filter === f.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-[#111] border border-[#222] text-gray-400 hover:bg-[#161616]"
+            }`}
+          >
+            <Icon icon={f.icon} className="w-3.5 h-3.5" />
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredNfts.length === 0 && (
+        <div className="py-6 text-center">
+          <p className="text-sm text-gray-500">No {filter === "gifts" ? "gift" : "collection"} NFTs found</p>
+        </div>
+      )}
+
+      {filteredNfts.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          {filteredNfts.map((nft, index) => {
+            const category = categorizeNft(nft);
+            return (
+              <Link key={index} href={`/wallet/nft/${encodeURIComponent(nft.address)}`}>
+                <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
+                  <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden">
+                    {nft.image ? (
+                      <Image
+                        src={nft.image}
+                        alt={nft.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Icon icon="lucide:image" className="w-8 h-8 text-gray-600"/>
+                      </div>
+                    )}
+                    {category === "gift" && (
+                      <Badge className="absolute top-2 left-2 bg-purple-600 text-[10px] px-1.5 py-0">
+                        <Icon icon="solar:gift-bold" className="w-3 h-3 mr-0.5" />
+                        Gift
+                      </Badge>
+                    )}
+                    {category === "sticker" && (
+                      <Badge className="absolute top-2 left-2 bg-blue-600 text-[10px] px-1.5 py-0">
+                        Sticker
+                      </Badge>
+                    )}
+                  </div>
+                  <CardContent className="p-3">
+                    <h4 className="font-bold text-white text-sm truncate">{nft.name}</h4>
+                    {nft.collectionName && (
+                      <p className="text-xs text-gray-500 truncate">{nft.collectionName}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
 
 export default function WalletPage() {
   const router = useRouter();
@@ -1232,7 +1327,12 @@ export default function WalletPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="nfts" className="mt-4">
+          <TabsContent value="nfts" className="mt-4 space-y-3">
+            {/* Filter Chips */}
+            {nfts.length > 0 && (
+              <NftFilterChips nfts={nfts} />
+            )}
+
             {isLoadingNfts && nfts.length === 0 && (
               <div className="grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((i) => (
@@ -1252,38 +1352,6 @@ export default function WalletPage() {
                 <Icon icon="lucide:image" className="w-8 h-8 text-gray-600 mx-auto mb-2"/>
                 <p className="text-sm text-gray-500">No NFTs found</p>
                 <p className="text-xs text-gray-600 mt-1">Your collectibles will appear here</p>
-              </div>
-            )}
-
-            {nfts.length > 0 && (
-              <div className="grid grid-cols-2 gap-3">
-                {nfts.map((nft, index) => (
-                  <Link key={index} href={`/wallet/nft/${encodeURIComponent(nft.address)}`}>
-                    <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
-                      <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden">
-                        {nft.image ? (
-                          <Image
-                            src={nft.image}
-                            alt={nft.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Icon icon="lucide:image" className="w-8 h-8 text-gray-600"/>
-                          </div>
-                        )}
-                      </div>
-                      <CardContent className="p-3">
-                        <h4 className="font-bold text-white text-sm truncate">{nft.name}</h4>
-                        {nft.collectionName && (
-                          <p className="text-xs text-gray-500 truncate">{nft.collectionName}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
               </div>
             )}
           </TabsContent>

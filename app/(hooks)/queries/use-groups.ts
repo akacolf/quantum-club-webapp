@@ -10,6 +10,7 @@ import {
     serverTimestamp,
 } from "firebase/firestore";
 import type { Group, GroupMember } from "@/app/(contexts)/GroupsContext";
+import { getAccountNfts } from "@/lib/nft-marketplace";
 
 export function useGroupsQuery(telegramId: string | null) {
     return useQuery<{ groups: Group[]; memberIds: Set<string> }>({
@@ -43,6 +44,9 @@ export function useGroupsQuery(telegramId: string | null) {
                                 memberCount: membersSnap.size,
                                 linkedTokenId: data.linkedTokenId,
                                 linkedTokenSymbol: data.linkedTokenSymbol,
+                                nftGated: data.nftGated || false,
+                                requiredNftCollection: data.requiredNftCollection,
+                                requiredNftCollectionName: data.requiredNftCollectionName,
                             } as Group;
                         }
                         return null;
@@ -88,11 +92,17 @@ export function useCreateGroup(telegramId: string | null, username: string | nul
             description,
             tokenId,
             tokenSymbol,
+            nftGated,
+            requiredNftCollection,
+            requiredNftCollectionName,
         }: {
             name: string;
             description: string;
             tokenId?: string;
             tokenSymbol?: string;
+            nftGated?: boolean;
+            requiredNftCollection?: string;
+            requiredNftCollectionName?: string;
         }) => {
             if (!telegramId || !username) throw new Error("Not authenticated");
 
@@ -107,6 +117,9 @@ export function useCreateGroup(telegramId: string | null, username: string | nul
                 maxMembers: tokenId ? 1000 : 5,
                 ...(tokenId && { linkedTokenId: tokenId }),
                 ...(tokenSymbol && { linkedTokenSymbol: tokenSymbol }),
+                ...(nftGated && { nftGated: true }),
+                ...(requiredNftCollection && { requiredNftCollection }),
+                ...(requiredNftCollectionName && { requiredNftCollectionName }),
             });
 
             const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
@@ -127,7 +140,7 @@ export function useCreateGroup(telegramId: string | null, username: string | nul
     });
 }
 
-export function useJoinGroup(telegramId: string | null, username: string | null) {
+export function useJoinGroup(telegramId: string | null, username: string | null, walletAddress?: string | null) {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -139,6 +152,23 @@ export function useJoinGroup(telegramId: string | null, username: string | null)
             if (!groupSnap.exists()) throw new Error("Group not found");
 
             const groupData = groupSnap.data();
+
+            // NFT gate check
+            if (groupData.nftGated && groupData.requiredNftCollection) {
+                if (!walletAddress) {
+                    throw new Error("Wallet required to join NFT-gated groups");
+                }
+                const userNfts = await getAccountNfts(walletAddress);
+                const hasRequired = userNfts.some(
+                    (nft) => nft.collectionAddress === groupData.requiredNftCollection
+                );
+                if (!hasRequired) {
+                    throw new Error(
+                        `You need a ${groupData.requiredNftCollectionName || "required"} NFT to join this group`
+                    );
+                }
+            }
+
             const membersRef = collection(dbfs, `groups/${groupId}/members`);
             const membersSnap = await getDocs(membersRef);
 

@@ -20,6 +20,8 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
 import { toast } from "sonner";
 import { APP_VERSION } from "@/lib/version";
+import { useUserBadgesQuery } from "@/app/(hooks)/queries/use-badges";
+import { getBadgeDefinition } from "@/lib/badges";
 
 interface ProfileSidebarProps {
   open: boolean;
@@ -30,6 +32,8 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const router = useRouter();
   const authContext = useAuth();
   const { telegramId, username, MainQuantAmount, daily, qcUsername, setQcUsername, walletAddress } = useUserContext();
+
+  const badgesQuery = useUserBadgesQuery(telegramId);
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("Quantum User");
@@ -366,6 +370,39 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
             </CardContent>
           </Card>
         </div>
+
+        {/* Badges Section */}
+        {(badgesQuery.data?.length ?? 0) > 0 && (
+          <>
+            <div className="px-4 py-2">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Badges</p>
+                <button
+                  onClick={() => navigateTo("/badges")}
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  View All
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {badgesQuery.data!.slice(0, 4).map((ub) => {
+                  const def = getBadgeDefinition(ub.badgeId);
+                  if (!def) return null;
+                  return (
+                    <div
+                      key={ub.badgeId}
+                      className="flex items-center gap-1 bg-primary/10 rounded-full px-2 py-1"
+                    >
+                      <Icon icon={def.icon} className={`w-3 h-3 ${def.color}`} />
+                      <span className="text-[10px] font-medium">{def.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
 
         <Separator />
 

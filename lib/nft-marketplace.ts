@@ -354,6 +354,58 @@ export async function getNftDetails(
     }
 }
 
+/**
+ * Client-side filter collections by name
+ */
+export function filterCollectionsByName(
+    collections: NftCollection[],
+    query: string
+): NftCollection[] {
+    if (!query.trim()) return collections;
+    const lower = query.toLowerCase();
+    return collections.filter(
+        (c) =>
+            c.name.toLowerCase().includes(lower) ||
+            c.description?.toLowerCase().includes(lower)
+    );
+}
+
+// =====================================================
+// Telegram Gift / Sticker Helpers
+// =====================================================
+
+// Known Telegram gift collection addresses (bounceable base64)
+const TELEGRAM_GIFT_COLLECTIONS = new Set([
+    "EQAvwEBh52NmFjnOzQWJlg4mlh1yqvGiT5LdQojQIc6mTqjp", // SBT Telegram Usernames
+    "EQCA14o1-VWhS2efqoh_9M1b_A9DtKTuoqfmkn83AbJzwnPi", // Telegram Anonymous Numbers
+]);
+
+const TELEGRAM_GIFT_COLLECTIONS_RAW = new Set(
+    [...TELEGRAM_GIFT_COLLECTIONS]
+        .map(addr => normalizeToRaw(addr))
+        .filter((addr): addr is string => addr !== null)
+);
+
+/**
+ * Check if an NFT collection is a Telegram gift collection
+ */
+export function isTelegramGift(collectionAddress?: string): boolean {
+    if (!collectionAddress) return false;
+    const normalized = normalizeToRaw(collectionAddress);
+    return normalized !== null && TELEGRAM_GIFT_COLLECTIONS_RAW.has(normalized);
+}
+
+/**
+ * Categorize an NFT as gift, sticker, or regular
+ */
+export function categorizeNft(nft: NftItem): "gift" | "sticker" | "regular" {
+    if (isTelegramGift(nft.collectionAddress)) return "gift";
+    // Sticker detection: collection names containing "sticker" or NFT names with sticker patterns
+    const name = (nft.collectionName || nft.name || "").toLowerCase();
+    if (name.includes("sticker")) return "sticker";
+    return "regular";
+}
+
 // Search functionality - placeholder for future Getgems API integration
 export async function searchNfts(
     query: string,

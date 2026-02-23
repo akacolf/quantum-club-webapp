@@ -15,8 +15,11 @@ import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Address, toNano } from "@ton/core";
 import { toast } from "sonner";
-import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, type NftItem } from "@/lib/nft-marketplace";
+import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, categorizeNft, type NftItem } from "@/lib/nft-marketplace";
 import { calculateFees, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
+import ChatPickerModal from "@/app/(components)/ChatPickerModal";
+import { dbfs } from "@/app/(firebase)/client";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function NftDetailPage() {
     const params = useParams();
@@ -36,6 +39,9 @@ export default function NftDetailPage() {
     const [showListingModal, setShowListingModal] = useState(false);
     const [listingPrice, setListingPrice] = useState("");
     const [isListing, setIsListing] = useState(false);
+
+    // Share to chat state
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Dynamic back button - go to collection page if NFT has a collection, otherwise wallet
     const backPath = nft?.collectionAddress 
@@ -214,9 +220,36 @@ export default function NftDetailPage() {
         }
     };
 
+    // Handle Share to Chat
+    const handleShareToChat = async (chatId: string, chatName: string) => {
+        if (!nft || !telegramId) return;
+        try {
+            const messagesRef = collection(dbfs, `chats/${chatId}/messages`);
+            await addDoc(messagesRef, {
+                senderId: telegramId,
+                senderName: "You",
+                text: `Shared NFT: ${nft.name}`,
+                createdAt: serverTimestamp(),
+                type: "nft_share",
+                nftShare: {
+                    nftAddress: nft.address,
+                    nftName: nft.name,
+                    nftImage: nft.image || null,
+                    nftPrice: nft.sale ? nft.sale.priceFormatted : null,
+                    collectionName: nft.collectionName || null,
+                },
+            });
+            setShowShareModal(false);
+            toast.success(`Shared to ${chatName}`);
+        } catch (error) {
+            console.error("Share error:", error);
+            toast.error("Failed to share NFT");
+        }
+    };
+
     // Calculate listing fee preview
-    const listingFeePreview = listingPrice && parseFloat(listingPrice) > 0 
-        ? calculateFees(toNano(listingPrice)) 
+    const listingFeePreview = listingPrice && parseFloat(listingPrice) > 0
+        ? calculateFees(toNano(listingPrice))
         : null;
 
     if (isLoading) {
@@ -283,6 +316,17 @@ export default function NftDetailPage() {
                             <Badge className="absolute top-3 right-3 bg-green-600">
                                 <Icon icon="lucide:tag" className="w-3 h-3 mr-1" />
                                 For Sale
+                            </Badge>
+                        )}
+                        {categorizeNft(nft) === "gift" && (
+                            <Badge className="absolute top-3 left-3 bg-purple-600">
+                                <Icon icon="solar:gift-bold" className="w-3 h-3 mr-1" />
+                                Gift
+                            </Badge>
+                        )}
+                        {categorizeNft(nft) === "sticker" && (
+                            <Badge className="absolute top-3 left-3 bg-blue-600">
+                                Sticker
                             </Badge>
                         )}
                     </div>
@@ -447,6 +491,14 @@ export default function NftDetailPage() {
                         </Button>
                     )}
                     <Button
+                        onClick={() => setShowShareModal(true)}
+                        variant="outline"
+                        className="w-full bg-card border-border text-foreground hover:bg-muted h-12 rounded-xl font-bold"
+                    >
+                        <Icon icon="solar:share-linear" className="w-4 h-4 mr-2" />
+                        Share to Chat
+                    </Button>
+                    <Button
                         onClick={openExplorer}
                         variant="outline"
                         className="w-full bg-card border-border text-foreground hover:bg-muted h-12 rounded-xl font-bold"
@@ -456,6 +508,13 @@ export default function NftDetailPage() {
                     </Button>
                 </div>
             </motion.div>
+
+            {/* Share to Chat Modal */}
+            <ChatPickerModal
+                open={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                onSelect={handleShareToChat}
+            />
 
             {/* Listing Modal */}
             <AnimatePresence>

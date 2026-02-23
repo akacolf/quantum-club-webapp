@@ -73,6 +73,7 @@ import VoiceMessage from "./VoiceMessage";
 import FileMessage from "./FileMessage";
 import GroupMembersPanel from "./GroupMembersPanel";
 import TransferMessage from "./TransferMessage";
+import NftShareMessage from "./NftShareMessage";
 import TransferDrawer from "./TransferDrawer";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
@@ -96,7 +97,7 @@ interface ChatMessage {
     originalChatId: string;
   };
   expiresAt?: any;
-  type?: "text" | "poll" | "voice" | "transfer" | "file";
+  type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share";
   poll?: {
     question: string;
     options: string[];
@@ -126,6 +127,13 @@ interface ChatMessage {
     txHash?: string;
     status: "sent" | "failed";
     encData?: string;
+  };
+  nftShare?: {
+    nftAddress: string;
+    nftName: string;
+    nftImage?: string;
+    nftPrice?: string;
+    collectionName?: string;
   };
 }
 
@@ -2478,6 +2486,15 @@ export default function ChatConversationPage() {
                         txHash={msg.transfer.txHash}
                         isMine={isOwnMessage}
                         isTestnet={isTestnet}
+                      />
+                    ) : msg.type === "nft_share" && msg.nftShare ? (
+                      <NftShareMessage
+                        nftAddress={msg.nftShare.nftAddress}
+                        nftName={msg.nftShare.nftName}
+                        nftImage={msg.nftShare.nftImage}
+                        nftPrice={msg.nftShare.nftPrice}
+                        collectionName={msg.nftShare.collectionName}
+                        isMine={isOwnMessage}
                       />
                     ) : (
                       <span className={`text-[13.5px] leading-[1.4] break-words whitespace-pre-wrap ${

@@ -28,6 +28,9 @@ export interface Group {
     memberCount: number;
     linkedTokenId?: string;
     linkedTokenSymbol?: string;
+    nftGated?: boolean;
+    requiredNftCollection?: string;
+    requiredNftCollectionName?: string;
 }
 
 export interface GroupMember {
@@ -40,7 +43,7 @@ export interface GroupMember {
 interface GroupsContextType {
     groups: Group[];
     loading: boolean;
-    createGroup: (name: string, description: string, tokenId?: string, tokenSymbol?: string) => Promise<string | null>;
+    createGroup: (name: string, description: string, tokenId?: string, tokenSymbol?: string, nftGated?: boolean, requiredNftCollection?: string, requiredNftCollectionName?: string) => Promise<string | null>;
     joinGroup: (groupId: string) => Promise<boolean>;
     leaveGroup: (groupId: string) => Promise<boolean>;
     getGroupMembers: (groupId: string) => Promise<GroupMember[]>;
@@ -52,12 +55,12 @@ interface GroupsContextType {
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
 
 export function GroupsProvider({ children }: { children: React.ReactNode }) {
-    const { telegramId, username } = useUserContext();
+    const { telegramId, username, walletAddress } = useUserContext();
 
     // TanStack Query hooks
     const groupsQuery = useGroupsQuery(telegramId);
     const createGroupMutation = useCreateGroupMutation(telegramId, username);
-    const joinGroupMutation = useJoinGroupMutation(telegramId, username);
+    const joinGroupMutation = useJoinGroupMutation(telegramId, username, walletAddress);
     const leaveGroupMutation = useLeaveGroupMutation(telegramId);
 
     const groups = groupsQuery.data?.groups ?? [];
@@ -72,10 +75,13 @@ export function GroupsProvider({ children }: { children: React.ReactNode }) {
         name: string,
         description: string,
         tokenId?: string,
-        tokenSymbol?: string
+        tokenSymbol?: string,
+        nftGated?: boolean,
+        requiredNftCollection?: string,
+        requiredNftCollectionName?: string
     ): Promise<string | null> => {
         try {
-            return await createGroupMutation.mutateAsync({ name, description, tokenId, tokenSymbol });
+            return await createGroupMutation.mutateAsync({ name, description, tokenId, tokenSymbol, nftGated, requiredNftCollection, requiredNftCollectionName });
         } catch (error) {
             console.error("Error creating group:", error);
             return null;

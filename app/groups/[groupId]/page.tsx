@@ -9,6 +9,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 
@@ -113,6 +114,19 @@ export default function GroupDetailPage() {
                         <Icon icon="lucide:users" className="w-4 h-4" />
                         {members.length} / 5 members
                     </div>
+                    {group.nftGated && (
+                        <div className="flex flex-col items-center gap-1">
+                            <Badge className="bg-purple-600/20 text-purple-400 border-purple-500/30">
+                                <Icon icon="solar:gallery-bold" className="w-3 h-3 mr-1" />
+                                NFT-Gated
+                            </Badge>
+                            {group.requiredNftCollectionName && (
+                                <p className="text-xs text-muted-foreground">
+                                    Requires {group.requiredNftCollectionName} NFT
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </motion.div>
 
                 {/* Invite Button */}
