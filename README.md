@@ -4,7 +4,7 @@
 
 ##**The Super Ecosystem built on Telegram and TON**
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TON](https://img.shields.io/badge/TON-Blockchain-0098EA?style=for-the-badge&logo=ton)](https://ton.org/)
 [![Telegram](https://img.shields.io/badge/Telegram-Mini%20App-26A5E4?style=for-the-badge&logo=telegram)](https://telegram.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -48,15 +48,22 @@ Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, 
 
 ### Token Swaps
 
-- **STON.fi Integration**: Swap tokens via STON.fi DEX
-- **Omniston SDK**: Advanced swap routing for optimal rates
+- **Omniston-Powered**: Cross-chain swap routing for optimal rates across multiple DEXs
+- **STON.fi Integration**: Direct swap support via STON.fi DEX
 - **Slippage Protection**: Configurable slippage tolerance
 - **Gas Estimation**: Transparent fee calculations
 
+### NFT Marketplace
+
+- **Browse Collections**: Discover verified NFT collections on TON
+- **Purchase NFTs**: Buy NFTs directly from the integrated marketplace
+- **NFT Gallery**: View and manage your NFT collection in your wallet
+
 ### Social Features
 
-- **Groups**: Create and join community groups
-- **Group Chat**: Real-time messaging with group members
+- **Encrypted Chat**: End-to-end encrypted private messaging with NaCl box encryption
+- **Groups**: Create and join community groups with real-time messaging
+- **QC Usernames**: Register a unique username linked to your wallet address
 - **Referral System**: Earn rewards through friend referrals
 - **Leaderboards**: Compete on global rankings
 
@@ -77,7 +84,7 @@ Quantum Club is a comprehensive Web3 super app designed as a Telegram Mini App, 
 
 ### Frontend
 
-- **Framework**: Next.js 15.5 with App Router
+- **Framework**: Next.js 16 with App Router
 - **Language**: TypeScript 5.9
 - **Styling**: Tailwind CSS 4.0
 - **Animations**: Framer Motion, GSAP
@@ -239,18 +246,15 @@ quantum-club/
 ### Development Commands
 
 ```bash
-# Development (Turborepo)
-npm run dev              # All workspaces
-npm run dev:web          # Web app only
-npm run dev:mobile       # Mobile app (Expo)
+# Development
+npm run dev              # Next.js dev server (http://localhost:3000)
 
 # Build
-npm run build            # All workspaces
-npm run build:web        # Web app only
+npm run build            # Production build
 
 # Lint and Typecheck
-npm run lint             # ESLint across all workspaces
-npm run typecheck        # TypeScript check all workspaces
+npm run lint             # ESLint
+npm run typecheck        # TypeScript check (tsc --noEmit)
 
 # Smart Contracts
 npm run compile:contracts                              # Compile FunC contracts

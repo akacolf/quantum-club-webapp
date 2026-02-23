@@ -495,7 +495,7 @@ export default function AIChatDrawer() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsOpen(false)}
-                            className="fixed inset-0 bg-black/70 z-50"
+                            className="fixed inset-0 bg-black/70 z-[60]"
                             aria-hidden="true"
                         />
 
@@ -505,7 +505,7 @@ export default function AIChatDrawer() {
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="fixed bottom-0 left-0 right-0 h-[80vh] bg-background border-t border-border rounded-t-2xl z-50 flex flex-col overflow-hidden"
+                            className="fixed bottom-0 left-0 right-0 h-[80vh] bg-background border-t border-border rounded-t-2xl z-[60] flex flex-col overflow-hidden"
                             role="dialog"
                             aria-modal="true"
                             aria-label="Quantum Club AI Chat"

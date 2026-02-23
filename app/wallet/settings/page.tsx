@@ -145,7 +145,27 @@ export default function WalletSettingsPage() {
     },
     {
       question: "How do I swap tokens?",
-      answer: "Go to the Swap tab in your wallet. Select the tokens you want to swap, enter the amount, and confirm. We integrate with STON.fi DEX to find you the best rates with minimal fees."
+      answer: "Go to the Swap tab in your wallet. Select the tokens you want to swap, enter the amount, and confirm. Swaps are powered by Omniston, which routes your trade across multiple DEXs to find the best rate automatically."
+    },
+    {
+      question: "What are cross-chain swaps?",
+      answer: "Cross-chain swaps let you exchange tokens across different blockchains directly from your wallet. Powered by Omniston routing, you can swap between TON-based tokens and assets on other supported networks without leaving the app."
+    },
+    {
+      question: "What is spot trading?",
+      answer: "Spot trading lets you buy and sell tokens on the RocketStart launchpad using bonding curve mechanics. View real-time price charts, monitor market caps, and execute trades directly. Tokens that reach the graduation threshold are automatically listed on STON.fi DEX."
+    },
+    {
+      question: "How does encrypted chat work?",
+      answer: "Messages in private chats are end-to-end encrypted using NaCl box encryption. Only you and the recipient can read the messages — not even Quantum Club can access them. Group chats and token community chats are not end-to-end encrypted."
+    },
+    {
+      question: "What is the QC AI Assistant?",
+      answer: "The AI Assistant is powered by Google Gemini and can help you understand transactions, analyze tokens, answer questions about the platform, and provide general crypto guidance. Open it from the AI button on the home screen."
+    },
+    {
+      question: "What is a QC Username?",
+      answer: "A QC Username is a unique handle linked to your wallet address. Other users can send you assets using your username instead of your full wallet address. Register one from Wallet Settings > Username."
     },
     {
       question: "How do I stake TON?",
@@ -173,7 +193,7 @@ export default function WalletSettingsPage() {
     },
     {
       question: "How do I get support?",
-      answer: "For help and support, contact us via Telegram at @quantumclubinc. Our team is available to assist with any issues or questions about the platform."
+      answer: "For help and support, contact us via Telegram at @QCSupportBot. Our team is available to assist with any issues or questions about the platform."
     }
   ];
 

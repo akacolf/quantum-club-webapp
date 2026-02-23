@@ -26,7 +26,7 @@ export default function TermsOfServicePage() {
               <Icon icon="solar:document-text-bold" className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Terms of Service</h1>
-            <p className="text-muted-foreground text-sm">Last updated: January 19, 2026</p>
+            <p className="text-muted-foreground text-sm">Last updated: February 23, 2026</p>
           </div>
 
           <div className="prose prose-invert prose-sm max-w-none space-y-6">
@@ -53,12 +53,17 @@ export default function TermsOfServicePage() {
               <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
                 <li>Create and manage cryptocurrency wallets</li>
                 <li>Send and receive digital assets including tokens and NFTs</li>
-                <li>Swap tokens through integrated decentralized exchanges</li>
+                <li>Swap tokens through Omniston-powered cross-chain routing and integrated decentralized exchanges</li>
+                <li>Trade tokens on the spot trading platform with real-time charts and order execution</li>
                 <li>Stake assets to earn rewards through third-party staking providers</li>
                 <li>Provide liquidity to decentralized liquidity pools</li>
                 <li>View portfolio balances, analytics, and price information</li>
+                <li>Set price alerts with Telegram notifications</li>
                 <li>Earn and transfer in-app rewards (QNTM points)</li>
-                <li>Access AI-powered assistance features</li>
+                <li>Access an AI-powered assistant for wallet and trading support</li>
+                <li>Send end-to-end encrypted messages and join group chats</li>
+                <li>Browse and purchase NFTs on the integrated marketplace</li>
+                <li>Register a unique QC username linked to your wallet address</li>
                 <li>Receive cryptocurrencies on multiple blockchain networks</li>
                 <li>Create and trade tokens on RocketStart launchpad</li>
                 <li>Send batch transactions to multiple recipients</li>

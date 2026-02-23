@@ -231,6 +231,32 @@ export function WalletKitProvider({
         }
     }, [isTestnet]);
 
+    // Auto-register wallet on initialization so it's ready before connection requests
+    useEffect(() => {
+        if (!isReady || isWalletRegistered || walletRef.current) return;
+
+        const telegramId = localStorage.getItem("telegramId") || "";
+        let storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+
+        // Fallback: scan localStorage for any mnemonic key if primary lookup fails
+        if (!storedMnemonic) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key?.startsWith("quantum_wallet_mnemonic_")) {
+                    storedMnemonic = localStorage.getItem(key);
+                    if (storedMnemonic) break;
+                }
+            }
+        }
+
+        if (storedMnemonic) {
+            const mnemonic = storedMnemonic.split(" ");
+            registerWallet(mnemonic).then((ok) => {
+                if (ok) console.log("[WalletKit] Auto-registered wallet on init");
+            });
+        }
+    }, [isReady, isWalletRegistered, registerWallet]);
+
     // Approve connection request
     const approveConnection = useCallback(async () => {
         if (!kitRef.current || !pendingConnection) {
@@ -244,17 +270,31 @@ export function WalletKitProvider({
         // Check if wallet is registered, if not try to register it
         if (!walletRef.current) {
             console.log("[WalletKit] Wallet not registered, attempting to register...");
-            
+
             // Try to get mnemonic from localStorage and register
-            // The telegramId is stored as encrypted value in localStorage
             const telegramId = localStorage.getItem("telegramId") || "";
-            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-            
+            let storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+
+            // Fallback: scan localStorage for any mnemonic key if primary lookup fails
+            if (!storedMnemonic) {
+                console.log("[WalletKit] Primary mnemonic lookup failed, scanning localStorage...");
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key?.startsWith("quantum_wallet_mnemonic_")) {
+                        storedMnemonic = localStorage.getItem(key);
+                        if (storedMnemonic) {
+                            console.log("[WalletKit] Found mnemonic under key:", key);
+                            break;
+                        }
+                    }
+                }
+            }
+
             if (storedMnemonic) {
                 try {
                     const mnemonic = storedMnemonic.split(" ");
                     const registered = await registerWallet(mnemonic);
-                    
+
                     if (!registered || !walletRef.current) {
                         throw new Error("Wallet registration failed");
                     }
@@ -267,7 +307,7 @@ export function WalletKitProvider({
                     return;
                 }
             } else {
-                console.error("[WalletKit] Cannot approve: no mnemonic found for telegramId:", telegramId);
+                console.error("[WalletKit] Cannot approve: no mnemonic found in localStorage");
                 toast.error("Connection failed", {
                     description: "No wallet found. Please create or import a wallet first.",
                 });

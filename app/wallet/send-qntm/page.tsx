@@ -341,7 +341,7 @@ export default function SendQNTMPage() {
                       </div>
                       <span className="text-xs text-muted-foreground truncate max-w-[80px]">{username || "You"}</span>
                     </div>
-                    <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary"/>
+                    <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary self-start mt-3"/>
                     <div className="text-center">
                       <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
                         <Icon icon="lucide:user" className="w-6 h-6 text-primary"/>

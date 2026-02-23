@@ -66,6 +66,12 @@ export default function SignUp() {
     setIsLoading(true);
     setError(null);
 
+    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
+      setError("Please fill in all fields");
+      setIsLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
@@ -410,7 +416,6 @@ export default function SignUp() {
                     placeholder="Your email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                     disabled={isLoading}
                     autoComplete="email"
                   />
@@ -424,7 +429,6 @@ export default function SignUp() {
                       placeholder="Create a password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
                       disabled={isLoading}
                       autoComplete="new-password"
                       className="pr-10"
@@ -454,7 +458,6 @@ export default function SignUp() {
                       placeholder="Confirm your password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
                       disabled={isLoading}
                       autoComplete="new-password"
                       className="pr-10"

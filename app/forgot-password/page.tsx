@@ -45,6 +45,12 @@ export default function ForgotPassword() {
     setIsLoading(true);
     setError(null);
 
+    if (!email.trim()) {
+      setError("Please enter your email address");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       await sendPasswordResetEmail(auth, email, {
         url: `${window.location.origin}/`,
@@ -196,7 +202,6 @@ export default function ForgotPassword() {
                       placeholder="Your email address"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      required
                       disabled={isLoading}
                       autoComplete="email"
                       autoFocus

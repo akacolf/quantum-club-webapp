@@ -95,6 +95,13 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter your email and password");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       await authContext?.loginWithEmail(email, password);
 
@@ -332,7 +339,6 @@ export default function Login() {
                     placeholder="Your email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                     disabled={isLoading}
                     autoComplete="email"
                   />
@@ -354,7 +360,6 @@ export default function Login() {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
                       disabled={isLoading}
                       autoComplete="current-password"
                       className="pr-10"

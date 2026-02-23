@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
               <Icon icon="solar:shield-check-bold" className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">Privacy Policy</h1>
-            <p className="text-muted-foreground text-sm">Last updated: January 19, 2026</p>
+            <p className="text-muted-foreground text-sm">Last updated: February 23, 2026</p>
           </div>
 
           <div className="prose prose-invert prose-sm max-w-none space-y-6">
@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-2">1. Introduction</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Quantum Club (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Telegram mini app and wallet services.
+                Quantum Club (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Telegram mini app, wallet, trading platform, encrypted messaging, AI assistant, NFT marketplace, and related services.
               </p>
             </section>
 
@@ -66,12 +66,16 @@ export default function PrivacyPolicyPage() {
                 We collect limited data for platform functionality:
               </p>
               <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
-                <li>Your public wallet address</li>
+                <li>Your public wallet address and QC username (if registered)</li>
                 <li>QNTM balance and transfer history within the platform</li>
                 <li>Task completion and referral data</li>
                 <li>Token creation and trading activity on RocketStart</li>
+                <li>Swap activity through Omniston and integrated DEX providers</li>
                 <li>Staking and liquidity provision activity</li>
-                <li>Chat messages in token communities</li>
+                <li>Chat messages in token communities (end-to-end encrypted messages are not readable by us)</li>
+                <li>AI assistant conversation history</li>
+                <li>Price alert configurations</li>
+                <li>NFT browsing and purchase activity</li>
               </ul>
             </section>
 
@@ -79,12 +83,15 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-lg font-semibold text-foreground mb-2">3. How We Use Your Information</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">We use collected information to:</p>
               <ul className="text-muted-foreground text-sm list-disc list-inside mt-2 space-y-1">
-                <li>Provide and maintain our services</li>
+                <li>Provide and maintain our services including wallet, trading, chat, and AI features</li>
                 <li>Process QNTM transfers between users</li>
+                <li>Facilitate token swaps through Omniston and DEX providers</li>
                 <li>Track task completion and distribute rewards</li>
                 <li>Maintain leaderboards and referral systems</li>
                 <li>Display portfolio analytics and performance data</li>
-                <li>Provide AI-powered assistance features</li>
+                <li>Provide AI-powered assistance and transaction explanations</li>
+                <li>Deliver price alert notifications via Telegram</li>
+                <li>Resolve QC usernames to wallet addresses</li>
                 <li>Prevent fraud and ensure platform security</li>
                 <li>Comply with legal obligations</li>
               </ul>
@@ -120,7 +127,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-2">7. Third-Party Services</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                We integrate with third-party services including staking providers, decentralized exchanges, and liquidity protocols. These services have their own privacy policies and data practices. We encourage you to review those policies when using third-party services through our App.
+                We integrate with third-party services including staking providers, decentralized exchanges (STON.fi, Omniston), liquidity protocols, AI providers (Google Gemini), and NFT marketplaces. These services have their own privacy policies and data practices. We encourage you to review those policies when using third-party services through our App.
               </p>
             </section>
 
