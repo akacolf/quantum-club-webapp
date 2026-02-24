@@ -598,6 +598,8 @@ export default function ChatConversationPage() {
             voice: msg.voice,
             transfer: transferData,
             file: fileData,
+            call: msg.call,
+            nftShare: msg.nftShare,
           };
         })
       );
@@ -778,6 +780,8 @@ export default function ChatConversationPage() {
             voice: msg.voice,
             transfer: transferData,
             file: fileData,
+            call: msg.call,
+            nftShare: msg.nftShare,
           };
         })
       );

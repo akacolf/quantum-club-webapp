@@ -94,6 +94,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // Refs for cleanup
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const unsubCallDocRef = useRef<(() => void) | null>(null);
   const unsubICERef = useRef<(() => void) | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -189,6 +190,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((t) => t.stop());
         localStreamRef.current = null;
+      }
+
+      // Stop remote audio
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.pause();
+        remoteAudioRef.current.srcObject = null;
+        remoteAudioRef.current = null;
       }
 
       // Unsubscribe listeners
@@ -398,11 +406,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           }
         };
 
-        // Handle remote stream
+        // Handle remote stream — persist audio element to prevent GC
         pc.ontrack = (e) => {
-          const audio = new Audio();
-          audio.srcObject = e.streams[0];
-          audio.play().catch(() => {});
+          if (!remoteAudioRef.current) {
+            remoteAudioRef.current = new Audio();
+          }
+          remoteAudioRef.current.srcObject = e.streams[0];
+          remoteAudioRef.current.play().catch(() => {});
         };
 
         monitorConnection(pc);
@@ -557,14 +567,26 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       // Add local tracks
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      // Handle remote stream
+      // Handle remote stream — persist audio element to prevent GC
       pc.ontrack = (e) => {
-        const audio = new Audio();
-        audio.srcObject = e.streams[0];
-        audio.play().catch(() => {});
+        if (!remoteAudioRef.current) {
+          remoteAudioRef.current = new Audio();
+        }
+        remoteAudioRef.current.srcObject = e.streams[0];
+        remoteAudioRef.current.play().catch(() => {});
       };
 
       monitorConnection(pc);
+
+      // Send ICE candidates — must be set BEFORE setLocalDescription
+      // to avoid missing early candidates
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          addICECandidate(info.callId, "callee", e.candidate).catch(
+            () => {}
+          );
+        }
+      };
 
       // Get the offer from Firestore
       const callRef = await new Promise<CallDocument>((resolve) => {
@@ -600,15 +622,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       callStateRef.current = "connected";
       setActiveCall(info.callId);
       startTimer();
-
-      // Send ICE candidates
-      pc.onicecandidate = (e) => {
-        if (e.candidate) {
-          addICECandidate(info.callId, "callee", e.candidate).catch(
-            () => {}
-          );
-        }
-      };
 
       // Listen for caller ICE candidates
       unsubICERef.current = listenToICECandidates(

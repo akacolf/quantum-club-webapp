@@ -62,6 +62,10 @@ export default function CallOverlay() {
                 {callInfo.remoteName}
               </h2>
               <p className="text-sm text-white/60 mt-1">{statusText}</p>
+              <div className="flex items-center justify-center gap-1 mt-2">
+                <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
+                <span className="text-[11px] text-green-400/80">End-to-end encrypted</span>
+              </div>
             </div>
           </div>
 
