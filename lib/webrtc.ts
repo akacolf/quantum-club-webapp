@@ -66,11 +66,24 @@ export interface CallHistoryData {
 
 // ── WebRTC Configuration ───────────────────────────────────────────────────────
 
+const turnServers: RTCIceServer[] =
+  process.env.NEXT_PUBLIC_TURN_URL
+    ? [
+        {
+          urls: process.env.NEXT_PUBLIC_TURN_URL,
+          username: process.env.NEXT_PUBLIC_TURN_USERNAME ?? "",
+          credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL ?? "",
+        },
+      ]
+    : [];
+
 export const RTC_CONFIG: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    ...turnServers,
   ],
+  iceTransportPolicy: "all",
 };
 
 export const AUDIO_CONSTRAINTS: MediaTrackConstraints = {

@@ -56,6 +56,10 @@ export default function IncomingCallOverlay() {
               <p className="text-sm text-white/50 mt-1">
                 Incoming voice call
               </p>
+              <div className="flex items-center justify-center gap-1 mt-2">
+                <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
+                <span className="text-[11px] text-green-400/80">End-to-end encrypted</span>
+              </div>
             </div>
           </div>
 
