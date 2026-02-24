@@ -29,7 +29,7 @@ import {
   writeCallHistoryMessage,
   findExistingRingingCall,
   checkUserBusy,
-  RTC_CONFIG,
+  fetchRtcConfig,
   AUDIO_CONSTRAINTS,
   type CallDocument,
   type CallStatus,
@@ -360,8 +360,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
         localStreamRef.current = stream;
 
-        // Create peer connection
-        const pc = new RTCPeerConnection(RTC_CONFIG);
+        // Fetch TURN credentials and create peer connection
+        const rtcConfig = await fetchRtcConfig();
+        const pc = new RTCPeerConnection(rtcConfig);
         pcRef.current = pc;
 
         // Add local tracks
@@ -560,8 +561,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
       localStreamRef.current = stream;
 
-      // Create peer connection
-      const pc = new RTCPeerConnection(RTC_CONFIG);
+      // Fetch TURN credentials and create peer connection
+      const rtcConfig = await fetchRtcConfig();
+      const pc = new RTCPeerConnection(rtcConfig);
       pcRef.current = pc;
 
       // Add local tracks

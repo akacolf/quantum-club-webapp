@@ -66,25 +66,22 @@ export interface CallHistoryData {
 
 // ── WebRTC Configuration ───────────────────────────────────────────────────────
 
-const turnServers: RTCIceServer[] =
-  process.env.NEXT_PUBLIC_TURN_URL
-    ? [
-        {
-          urls: process.env.NEXT_PUBLIC_TURN_URL,
-          username: process.env.NEXT_PUBLIC_TURN_USERNAME ?? "",
-          credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL ?? "",
-        },
-      ]
-    : [];
+const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+];
 
-export const RTC_CONFIG: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    ...turnServers,
-  ],
-  iceTransportPolicy: "all",
-};
+/** Fetch TURN credentials from our server-side proxy (keeps API key secret). */
+export async function fetchRtcConfig(): Promise<RTCConfiguration> {
+  try {
+    const res = await fetch("/api/turn-credentials");
+    if (res.ok) {
+      const iceServers = await res.json();
+      return { iceServers, iceTransportPolicy: "all" };
+    }
+  } catch {}
+  return { iceServers: FALLBACK_ICE_SERVERS, iceTransportPolicy: "all" };
+}
 
 export const AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   echoCancellation: true,
