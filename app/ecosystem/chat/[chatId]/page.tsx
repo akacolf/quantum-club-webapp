@@ -503,6 +503,8 @@ export default function ChatConversationPage() {
         voice?: ChatMessage["voice"];
         transfer?: ChatMessage["transfer"];
         file?: ChatMessage["file"];
+        call?: ChatMessage["call"];
+        nftShare?: ChatMessage["nftShare"];
       }[] = [];
 
       snapshot.forEach((docSnap) => {
@@ -524,6 +526,8 @@ export default function ChatConversationPage() {
           voice: data.voice || undefined,
           transfer: data.transfer || undefined,
           file: data.file || undefined,
+          call: data.call || undefined,
+          nftShare: data.nftShare || undefined,
         });
       });
 
@@ -708,6 +712,8 @@ export default function ChatConversationPage() {
           voice: data.voice || undefined,
           transfer: data.transfer || undefined,
           file: data.file || undefined,
+          call: data.call || undefined,
+          nftShare: data.nftShare || undefined,
         };
       });
 
