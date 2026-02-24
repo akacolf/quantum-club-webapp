@@ -258,6 +258,11 @@ function ChatListItem({
                 <Icon icon="material-symbols:mic" className="w-3.5 h-3.5 shrink-0 inline-block align-text-bottom" />
                 <span>{" "}{previewText.slice(2)}</span>
               </>
+            ) : previewText.startsWith("📞") ? (
+              <>
+                <Icon icon="solar:phone-bold" className="w-3.5 h-3.5 shrink-0 inline-block align-text-bottom" />
+                <span>{" "}{previewText.slice(2)}</span>
+              </>
             ) : previewText}
           </p>
         </div>

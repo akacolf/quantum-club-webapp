@@ -33,8 +33,12 @@ export default function IncomingCallOverlay() {
           transition={{ duration: 0.25 }}
           className="fixed inset-0 z-[80] flex flex-col items-center justify-between bg-neutral-950/95 backdrop-blur-sm py-16"
         >
-          {/* Top: Avatar with pulse + Caller info */}
+          {/* Top: E2E badge + Avatar with pulse + Caller info */}
           <div className="flex flex-col items-center gap-4 mt-12">
+            <div className="flex items-center justify-center gap-1">
+              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
+              <span className="text-[11px] text-green-400/80">End-to-end encrypted</span>
+            </div>
             <div className="relative">
               {/* Pulse rings */}
               <span className="absolute inset-0 rounded-full animate-ping bg-green-500/20" />
@@ -56,10 +60,6 @@ export default function IncomingCallOverlay() {
               <p className="text-sm text-white/50 mt-1">
                 Incoming voice call
               </p>
-              <div className="flex items-center justify-center gap-1 mt-2">
-                <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400" />
-                <span className="text-[11px] text-green-400/80">End-to-end encrypted</span>
-              </div>
             </div>
           </div>
 

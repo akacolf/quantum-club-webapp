@@ -191,6 +191,22 @@ export async function writeCallHistoryMessage(
       calleeId: callData.calleeId,
     },
   });
+
+  // Update chat doc so the call appears in the chat list preview and reorders it
+  const previewText =
+    callData.status === "missed"
+      ? "📞 Missed voice call"
+      : callData.status === "declined"
+        ? "📞 Declined call"
+        : callData.duration > 0
+          ? `📞 Voice call · ${Math.floor(callData.duration / 60)}:${(callData.duration % 60).toString().padStart(2, "0")}`
+          : "📞 Voice call";
+
+  updateDoc(doc(dbfs, "qc-chats", chatId), {
+    lastMessage: previewText,
+    lastMessageBy: senderId,
+    lastMessageAt: serverTimestamp(),
+  }).catch(() => {});
 }
 
 /**

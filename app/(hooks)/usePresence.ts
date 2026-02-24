@@ -35,6 +35,12 @@ export function usePresence(telegramId: string | null) {
       setDoc(ref, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true }).catch(() => {});
     };
 
+    // Heartbeat only refreshes isOnline flag without updating lastSeen,
+    // so other users don't see "last seen just now" while we're idle
+    const heartbeat = () => {
+      setDoc(ref, { isOnline: true }, { merge: true }).catch(() => {});
+    };
+
     const goOffline = () => {
       setDoc(ref, { isOnline: false, lastSeen: serverTimestamp(), currentChatId: null }, { merge: true }).catch(() => {});
     };
@@ -45,7 +51,7 @@ export function usePresence(telegramId: string | null) {
     };
 
     goOnline();
-    intervalRef.current = setInterval(goOnline, 60_000);
+    intervalRef.current = setInterval(heartbeat, 60_000);
     window.addEventListener("beforeunload", goOffline);
     document.addEventListener("visibilitychange", handleVisibility);
 
