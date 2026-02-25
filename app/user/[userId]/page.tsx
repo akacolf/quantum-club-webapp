@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc } from "firebase/firestore";
@@ -45,7 +44,20 @@ export default function UserProfilePage() {
   const router = useRouter();
   const userId = params.userId as string;
 
-  useTelegramBackButton();
+  // Telegram back button → go back to previous page (the chat)
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    const handleBack = () => {
+      try { router.back(); } catch { window.history.back(); }
+    };
+    tg?.BackButton.show();
+    tg?.BackButton.onClick(handleBack);
+    return () => {
+      tg?.BackButton.offClick(handleBack);
+      tg?.BackButton.hide();
+    };
+  }, [router]);
 
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [memberSince, setMemberSince] = useState<string | null>(null);
@@ -123,15 +135,6 @@ export default function UserProfilePage() {
       </div>
 
       <div className="relative z-10 p-4 pt-8 space-y-6">
-        {/* Back Button (web fallback) */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
-          Back
-        </button>
-
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

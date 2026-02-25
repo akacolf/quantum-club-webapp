@@ -80,8 +80,8 @@ export default function GroupCallOverlay() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -40 }}
           transition={{ duration: 0.2 }}
-          className="fixed top-0 left-0 right-0 z-[60] flex items-center gap-3 px-3 py-2 bg-green-600/95 backdrop-blur-sm cursor-pointer"
-          style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.5rem)" }}
+          className="fixed top-0 left-0 right-0 z-[60] flex items-center gap-3 px-3 pb-5 bg-green-600/95 backdrop-blur-sm cursor-pointer"
+          style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
           onClick={toggleMinimize}
         >
           <div className="flex items-center gap-1 shrink-0">

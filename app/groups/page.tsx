@@ -80,14 +80,8 @@ export default function GroupsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground pb-24 relative overflow-hidden">
-            {/* Background */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px]" />
-            </div>
-
-            <div className="relative z-10 p-4 pt-8 space-y-6">
+        <div className="min-h-screen bg-background text-foreground pb-24">
+            <div className="p-4 pt-8 space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
