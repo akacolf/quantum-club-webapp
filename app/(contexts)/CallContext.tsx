@@ -333,6 +333,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }) => {
       if (!telegramId || callStateRef.current !== "idle") return;
 
+      console.warn("[CallContext] Initiating call:", {
+        calleeId: params.calleeId,
+        calleeName: params.calleeName,
+        chatId: params.chatId,
+        callerId: telegramId,
+      });
+
       try {
         // Check if callee is busy
         const busy = await checkUserBusy(params.calleeId);
@@ -391,6 +398,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         // Create offer
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
+        console.warn("[CallContext] Caller: offer created, SDP type:", offer.type);
 
         // Create call document in Firestore
         const callId = await createCallDocument({
@@ -429,14 +437,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
         // Handle remote stream
         pc.ontrack = (e) => {
+          console.warn("[CallContext] Caller: ontrack fired, streams:", e.streams?.length, "track kind:", e.track?.kind);
           const stream = e.streams?.[0] ?? new MediaStream([e.track]);
           if (remoteAudioRef.current) {
             remoteAudioRef.current.srcObject = stream;
             remoteAudioRef.current
               .play()
+              .then(() => console.warn("[CallContext] Caller: remote audio playing"))
               .catch((err) =>
-                console.warn("[CallContext] Remote audio play failed:", err)
+                console.warn("[CallContext] Caller: remote audio play failed:", err)
               );
+          } else {
+            console.warn("[CallContext] Caller: remoteAudioRef is null in ontrack!");
           }
         };
 
@@ -448,10 +460,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             data.answer &&
             pc.signalingState === "have-local-offer"
           ) {
+            console.warn("[CallContext] Caller: received answer from callee, setting remote description");
             try {
               await pc.setRemoteDescription(
                 new RTCSessionDescription(data.answer)
               );
+              console.warn("[CallContext] Caller: remote description set, flushing", pendingCandidatesRef.current.length, "pending ICE candidates");
               // Flush any pending ICE candidates
               for (const c of pendingCandidatesRef.current) {
                 await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
@@ -570,6 +584,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const info = callInfoRef.current;
     if (!info || !telegramId) return;
 
+    console.warn("[CallContext] Accepting call:", { callId: info.callId, from: info.remoteName, callerId: info.remoteUserId });
+
     try {
       stopRingtone();
 
@@ -612,14 +628,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
       // Handle remote stream
       pc.ontrack = (e) => {
+        console.warn("[CallContext] Callee: ontrack fired, streams:", e.streams?.length, "track kind:", e.track?.kind);
         const stream = e.streams?.[0] ?? new MediaStream([e.track]);
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = stream;
           remoteAudioRef.current
             .play()
+            .then(() => console.warn("[CallContext] Callee: remote audio playing"))
             .catch((err) =>
-              console.warn("[CallContext] Remote audio play failed:", err)
+              console.warn("[CallContext] Callee: remote audio play failed:", err)
             );
+        } else {
+          console.warn("[CallContext] Callee: remoteAudioRef is null in ontrack!");
         }
       };
 
@@ -644,11 +664,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!callRef.offer) {
+        console.warn("[CallContext] Callee: offer missing from Firestore call doc!");
         toast.error("Call data unavailable");
         cleanup();
         return;
       }
 
+      console.warn("[CallContext] Callee: received offer from Firestore, setting remote description");
       // Set remote description (offer)
       await pc.setRemoteDescription(
         new RTCSessionDescription(callRef.offer)
@@ -657,13 +679,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       // Create answer
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+      console.warn("[CallContext] Callee: answer created, SDP type:", answer.type);
 
       // Write answer to Firestore + update status
+      console.warn("[CallContext] Callee: writing answer to Firestore");
       await updateCallDoc(info.callId, {
         answer: { type: answer.type!, sdp: answer.sdp! },
         status: "connected",
         answeredAt: serverTimestamp() as any,
       });
+      console.warn("[CallContext] Callee: answer written, status set to connected");
 
       setCallState("connected");
       callStateRef.current = "connected";
@@ -816,13 +841,21 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       where("status", "==", "ringing")
     );
 
+    console.warn("[CallContext] Listening for incoming calls, userId:", telegramId);
     const unsub = onSnapshot(q, (snapshot) => {
+      console.warn("[CallContext] Incoming call snapshot:", snapshot.docChanges().length, "changes, current state:", callStateRef.current);
       // Only process if idle
       if (callStateRef.current !== "idle") return;
 
       for (const change of snapshot.docChanges()) {
         if (change.type === "added") {
           const data = change.doc.data() as CallDocument;
+          console.warn("[CallContext] Incoming call detected:", {
+            callId: change.doc.id,
+            from: data.callerName,
+            callerId: data.callerId,
+            hasOffer: !!data.offer,
+          });
 
           const info: CallInfo = {
             callId: change.doc.id,
