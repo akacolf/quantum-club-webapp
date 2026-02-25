@@ -192,10 +192,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         localStreamRef.current = null;
       }
 
-      // Stop remote audio
+      // Stop remote audio and remove from DOM
       if (remoteAudioRef.current) {
         remoteAudioRef.current.pause();
         remoteAudioRef.current.srcObject = null;
+        if (remoteAudioRef.current.parentNode) {
+          remoteAudioRef.current.parentNode.removeChild(remoteAudioRef.current);
+        }
         remoteAudioRef.current = null;
       }
 
@@ -368,6 +371,23 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         // Add local tracks
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
+        // Pre-create and warm up remote audio element during user gesture
+        // so it's allowed to play later when ontrack fires
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.pause();
+          remoteAudioRef.current.srcObject = null;
+          if (remoteAudioRef.current.parentNode) {
+            remoteAudioRef.current.parentNode.removeChild(remoteAudioRef.current);
+          }
+        }
+        const audioEl = document.createElement("audio");
+        audioEl.autoplay = true;
+        audioEl.setAttribute("playsinline", "");
+        audioEl.setAttribute("autoplay", "");
+        audioEl.style.display = "none";
+        document.body.appendChild(audioEl);
+        remoteAudioRef.current = audioEl;
+
         // Create offer
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -407,13 +427,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           }
         };
 
-        // Handle remote stream — persist audio element to prevent GC
+        // Handle remote stream
         pc.ontrack = (e) => {
-          if (!remoteAudioRef.current) {
-            remoteAudioRef.current = new Audio();
+          const stream = e.streams?.[0] ?? new MediaStream([e.track]);
+          if (remoteAudioRef.current) {
+            remoteAudioRef.current.srcObject = stream;
+            remoteAudioRef.current
+              .play()
+              .catch((err) =>
+                console.warn("[CallContext] Remote audio play failed:", err)
+              );
           }
-          remoteAudioRef.current.srcObject = e.streams[0];
-          remoteAudioRef.current.play().catch(() => {});
         };
 
         monitorConnection(pc);
@@ -569,13 +593,34 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       // Add local tracks
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      // Handle remote stream — persist audio element to prevent GC
-      pc.ontrack = (e) => {
-        if (!remoteAudioRef.current) {
-          remoteAudioRef.current = new Audio();
+      // Pre-create and warm up remote audio element during user gesture
+      // so it's allowed to play later when ontrack fires
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.pause();
+        remoteAudioRef.current.srcObject = null;
+        if (remoteAudioRef.current.parentNode) {
+          remoteAudioRef.current.parentNode.removeChild(remoteAudioRef.current);
         }
-        remoteAudioRef.current.srcObject = e.streams[0];
-        remoteAudioRef.current.play().catch(() => {});
+      }
+      const audioEl = document.createElement("audio");
+      audioEl.autoplay = true;
+      audioEl.setAttribute("playsinline", "");
+      audioEl.setAttribute("autoplay", "");
+      audioEl.style.display = "none";
+      document.body.appendChild(audioEl);
+      remoteAudioRef.current = audioEl;
+
+      // Handle remote stream
+      pc.ontrack = (e) => {
+        const stream = e.streams?.[0] ?? new MediaStream([e.track]);
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = stream;
+          remoteAudioRef.current
+            .play()
+            .catch((err) =>
+              console.warn("[CallContext] Remote audio play failed:", err)
+            );
+        }
       };
 
       monitorConnection(pc);
@@ -721,10 +766,43 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // ── Toggle speaker ──────────────────────────────────────────────────────
 
   const toggleSpeaker = useCallback(() => {
-    setIsSpeaker((prev) => !prev);
-    // Note: speaker routing is limited in browsers, this is mostly a visual toggle.
-    // On Telegram Mini Apps, the audio output typically follows the device default.
-  }, []);
+    const next = !isSpeaker;
+    setIsSpeaker(next);
+
+    const el = remoteAudioRef.current;
+    if (!el) return;
+
+    // setSinkId is supported in Chromium-based WebViews (Android)
+    // Not available in iOS WKWebView — audio follows system default there
+    if (typeof (el as any).setSinkId === "function") {
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((devices) => {
+          const outputs = devices.filter((d) => d.kind === "audiooutput");
+          if (outputs.length < 2) return;
+
+          const speaker = outputs.find((d) =>
+            d.label.toLowerCase().includes("speaker")
+          );
+          const earpiece = outputs.find(
+            (d) =>
+              d.label.toLowerCase().includes("earpiece") ||
+              d.label.toLowerCase().includes("handset")
+          );
+
+          const targetId = next
+            ? speaker?.deviceId ?? "default"
+            : earpiece?.deviceId ?? "";
+
+          (el as any)
+            .setSinkId(targetId)
+            .catch((err: Error) =>
+              console.warn("[CallContext] setSinkId failed:", err)
+            );
+        })
+        .catch(() => {});
+    }
+  }, [isSpeaker]);
 
   // ── Global incoming call listener ─────────────────────────────────────────
 
