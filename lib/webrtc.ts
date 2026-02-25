@@ -67,8 +67,7 @@ export interface CallHistoryData {
 // ── WebRTC Configuration ───────────────────────────────────────────────────────
 
 const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
 ];
 
 /** Fetch TURN credentials from our server-side proxy (keeps API key secret). */
