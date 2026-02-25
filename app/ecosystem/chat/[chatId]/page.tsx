@@ -342,12 +342,14 @@ export default function ChatConversationPage() {
   }, [chatMeta?.isGroup, chatMeta?.isGlobal, chatMeta?.participants, telegramId]);
   const groupPresenceMap = useMultiplePresence(groupParticipantIds);
 
-  // Prefetch user profile route for DM header name
+  // Prefetch navigation targets for clickable header names
   useEffect(() => {
-    if (otherParticipantId && !chatMeta?.isGroup && !chatMeta?.isGlobal) {
+    if (chatMeta?.isGroup && !chatMeta?.isGlobal) {
+      router.prefetch(`/ecosystem/chat/${chatId}/info`);
+    } else if (otherParticipantId) {
       router.prefetch(`/user/${otherParticipantId}`);
     }
-  }, [router, chatMeta?.isGroup, chatMeta?.isGlobal, otherParticipantId]);
+  }, [router, chatMeta?.isGroup, chatMeta?.isGlobal, chatId, otherParticipantId]);
 
   // Set current chat for presence tracking + mark as read
   useEffect(() => {
@@ -1877,7 +1879,7 @@ export default function ChatConversationPage() {
                 <h1 className="text-sm font-semibold text-foreground truncate">QC Global</h1>
               ) : (
                 <button
-                  onClick={() => setShowMembersPanel(true)}
+                  onClick={() => router.push(`/ecosystem/chat/${chatId}/info`)}
                   className="text-sm font-semibold text-foreground truncate hover:underline text-left"
                 >
                   {headerName}
