@@ -34,6 +34,15 @@ export default function GroupDetailPage() {
         router.prefetch("/groups");
     }, [router]);
 
+    // Prefetch user profile routes for members
+    useEffect(() => {
+        for (const member of members) {
+            if (member.telegramId !== telegramId) {
+                router.prefetch(`/user/${member.telegramId}`);
+            }
+        }
+    }, [members, telegramId, router]);
+
     useEffect(() => {
         const loadMembers = async () => {
             const membersList = await getGroupMembers(groupId);
@@ -157,7 +166,12 @@ export default function GroupDetailPage() {
                         {members.map((member) => (
                             <div
                                 key={member.telegramId}
-                                className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]"
+                                className={`bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]${member.telegramId !== telegramId ? " cursor-pointer" : ""}`}
+                                onClick={() => {
+                                    if (member.telegramId !== telegramId) {
+                                        router.push(`/user/${member.telegramId}`);
+                                    }
+                                }}
                             >
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-11 w-11 border border-white/10">

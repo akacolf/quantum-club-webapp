@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -64,9 +66,20 @@ export default function GroupMembersPanel({
   currentUserId,
   onAction,
 }: GroupMembersPanelProps) {
+  const router = useRouter();
   const isAdmin = chatMeta.createdBy === currentUserId;
   const mutedSet = new Set(chatMeta.mutedUsers || []);
   const bannedList = chatMeta.bannedUsers || [];
+
+  // Prefetch user profile routes for members
+  useEffect(() => {
+    if (!open) return;
+    for (const userId of chatMeta.participants) {
+      if (userId !== currentUserId) {
+        router.prefetch(`/user/${userId}`);
+      }
+    }
+  }, [open, chatMeta.participants, currentUserId, router]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -103,9 +116,18 @@ export default function GroupMembersPanel({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium truncate">
-                      @{name}
-                    </span>
+                    {isSelf ? (
+                      <span className="text-sm font-medium truncate">
+                        @{name}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => router.push(`/user/${userId}`)}
+                        className="text-sm font-medium truncate hover:underline text-left"
+                      >
+                        @{name}
+                      </button>
+                    )}
                     {isCreator && (
                       <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md">
                         Admin

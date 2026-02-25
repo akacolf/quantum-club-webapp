@@ -69,8 +69,9 @@ declare global {
           left: number;
           right: number;
         };
-        onEvent: (eventType: string, callback: () => void) => void;
-        offEvent: (eventType: string, callback: () => void) => void;
+        viewportStableHeight: number;
+        onEvent: (eventType: string, callback: (...args: unknown[]) => void) => void;
+        offEvent: (eventType: string, callback: (...args: unknown[]) => void) => void;
         
         // QR Scanner
         showScanQrPopup: (params?: { text?: string }, callback?: (result: string) => boolean | void) => void;

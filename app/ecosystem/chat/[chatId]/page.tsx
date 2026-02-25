@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -225,6 +225,7 @@ function formatDateDivider(timestamp: Timestamp | null): string {
 
 export default function ChatConversationPage() {
   const params = useParams();
+  const router = useRouter();
   const chatId = params.chatId as string;
   const { telegramId, qcUsername } = useUserContext();
   const authCtx = useAuth();
@@ -340,6 +341,15 @@ export default function ChatConversationPage() {
     return (chatMeta?.participants || []).filter((p) => p !== telegramId);
   }, [chatMeta?.isGroup, chatMeta?.isGlobal, chatMeta?.participants, telegramId]);
   const groupPresenceMap = useMultiplePresence(groupParticipantIds);
+
+  // Prefetch navigation targets for clickable header names
+  useEffect(() => {
+    if (chatMeta?.isGroup && !chatMeta?.isGlobal) {
+      router.prefetch(`/groups/${chatId}`);
+    } else if (otherParticipantId) {
+      router.prefetch(`/user/${otherParticipantId}`);
+    }
+  }, [router, chatMeta?.isGroup, chatMeta?.isGlobal, chatId, otherParticipantId]);
 
   // Set current chat for presence tracking + mark as read
   useEffect(() => {
@@ -1865,16 +1875,25 @@ export default function ChatConversationPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {isGroupChat ? (
+              chatMeta?.isGlobal ? (
+                <h1 className="text-sm font-semibold text-foreground truncate">QC Global</h1>
+              ) : (
+                <button
+                  onClick={() => router.push(`/groups/${chatId}`)}
+                  className="text-sm font-semibold text-foreground truncate hover:underline text-left"
+                >
+                  {headerName}
+                </button>
+              )
+            ) : isSelfChat ? (
+              <h1 className="text-sm font-semibold text-foreground truncate">Saved Messages</h1>
+            ) : (
               <button
-                onClick={() => setShowMembersPanel(true)}
+                onClick={() => otherParticipantId && router.push(`/user/${otherParticipantId}`)}
                 className="text-sm font-semibold text-foreground truncate hover:underline text-left"
               >
-                {chatMeta?.isGlobal ? "QC Global" : headerName}
+                @{headerName}
               </button>
-            ) : (
-              <h1 className="text-sm font-semibold text-foreground truncate">
-                {isSelfChat ? "Saved Messages" : `@${headerName}`}
-              </h1>
             )}
             {chatMeta?.isGlobal && (
               <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />

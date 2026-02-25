@@ -20,6 +20,11 @@ interface PresenceData {
 /**
  * Manage the current user's online/offline presence.
  * Call once at a high-level layout (e.g. EcosystemLayout).
+ *
+ * Heartbeat fires every 60s while visible. When the app is backgrounded
+ * (browser visibilitychange OR Telegram Mini App viewport events) we
+ * immediately mark offline AND pause the heartbeat so it can't accidentally
+ * overwrite the offline status.
  */
 export function usePresence(telegramId: string | null) {
   const presenceRef = useRef<ReturnType<typeof doc> | null>(null);
@@ -31,17 +36,27 @@ export function usePresence(telegramId: string | null) {
     const ref = doc(dbfs, "qc-presence", telegramId);
     presenceRef.current = ref;
 
-    const goOnline = () => {
-      setDoc(ref, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true }).catch(() => {});
+    const startHeartbeat = () => {
+      if (intervalRef.current) return; // already running
+      intervalRef.current = setInterval(() => {
+        setDoc(ref, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true }).catch(() => {});
+      }, 60_000);
     };
 
-    // Heartbeat only refreshes isOnline flag without updating lastSeen,
-    // so other users don't see "last seen just now" while we're idle
-    const heartbeat = () => {
-      setDoc(ref, { isOnline: true }, { merge: true }).catch(() => {});
+    const stopHeartbeat = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    const goOnline = () => {
+      setDoc(ref, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true }).catch(() => {});
+      startHeartbeat();
     };
 
     const goOffline = () => {
+      stopHeartbeat();
       setDoc(ref, { isOnline: false, lastSeen: serverTimestamp(), currentChatId: null }, { merge: true }).catch(() => {});
     };
 
@@ -50,15 +65,28 @@ export function usePresence(telegramId: string | null) {
       else goOnline();
     };
 
+    // Telegram Mini App viewport visibility
+    const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : null;
+    const handleTgViewport = (...args: unknown[]) => {
+      // When Telegram collapses the mini app the viewport height drops to 0
+      // and isStateStable becomes true once the transition finishes.
+      const e = args[0] as { isStateStable?: boolean } | undefined;
+      if (e?.isStateStable && tg) {
+        if (tg.viewportStableHeight === 0) goOffline();
+        else goOnline();
+      }
+    };
+
     goOnline();
-    intervalRef.current = setInterval(heartbeat, 60_000);
     window.addEventListener("beforeunload", goOffline);
     document.addEventListener("visibilitychange", handleVisibility);
+    tg?.onEvent?.("viewportChanged", handleTgViewport);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      stopHeartbeat();
       window.removeEventListener("beforeunload", goOffline);
       document.removeEventListener("visibilitychange", handleVisibility);
+      tg?.offEvent?.("viewportChanged", handleTgViewport);
       goOffline();
     };
   }, [telegramId]);
@@ -111,7 +139,7 @@ export function usePresenceActions(telegramId: string | null) {
  * Treats a user as offline if lastSeen is stale (>130s old),
  * since the heartbeat fires every 60s.
  */
-const HEARTBEAT_STALE_MS = 130_000; // 2× heartbeat + buffer
+const HEARTBEAT_STALE_MS = 75_000; // heartbeat (60s) + 15s buffer
 
 export function useUserPresence(telegramId: string | null): PresenceData | null {
   const [presence, setPresence] = useState<PresenceData | null>(null);
@@ -149,10 +177,10 @@ export function useUserPresence(telegramId: string | null): PresenceData | null 
       // Silently handle permission errors
     });
 
-    // Re-evaluate staleness every 30s (heartbeat may not trigger a snapshot update)
+    // Re-evaluate staleness every 15s so stale presence is detected quickly
     const interval = setInterval(() => {
       if (latestData) setPresence(evaluatePresence(latestData));
-    }, 30_000);
+    }, 15_000);
 
     return () => { unsub(); clearInterval(interval); };
   }, [telegramId]);
@@ -189,33 +217,37 @@ export function formatLastSeen(presence: PresenceData | null, currentChatId?: st
  */
 export function useMultiplePresence(telegramIds: string[]): Map<string, PresenceData> {
   const [presenceMap, setPresenceMap] = useState<Map<string, PresenceData>>(new Map());
+  const latestDataRef = useRef<Map<string, Record<string, unknown>>>(new Map());
 
   useEffect(() => {
     if (telegramIds.length === 0) return;
 
     const unsubs: (() => void)[] = [];
 
+    const evaluateUser = (d: Record<string, unknown>) => {
+      let isOnline = (d.isOnline as boolean) || false;
+      const lastSeen: Timestamp | null = (d.lastSeen as Timestamp) || null;
+      if (isOnline && lastSeen && typeof lastSeen.toDate === "function") {
+        const age = Date.now() - lastSeen.toDate().getTime();
+        if (age > HEARTBEAT_STALE_MS) isOnline = false;
+      }
+      return {
+        isOnline,
+        lastSeen,
+        currentChatId: (d.currentChatId as string) || null,
+        activeCallId: (d.activeCallId as string) || null,
+      };
+    };
+
     for (const id of telegramIds) {
       const ref = doc(dbfs, "qc-presence", id);
       const unsub = onSnapshot(ref, (snap) => {
         if (snap.exists()) {
           const d = snap.data();
-          let isOnline = (d.isOnline as boolean) || false;
-          const lastSeen: Timestamp | null = (d.lastSeen as Timestamp) || null;
-
-          if (isOnline && lastSeen && typeof lastSeen.toDate === "function") {
-            const age = Date.now() - lastSeen.toDate().getTime();
-            if (age > HEARTBEAT_STALE_MS) isOnline = false;
-          }
-
+          latestDataRef.current.set(id, d);
           setPresenceMap((prev) => {
             const next = new Map(prev);
-            next.set(id, {
-              isOnline,
-              lastSeen,
-              currentChatId: (d.currentChatId as string) || null,
-              activeCallId: (d.activeCallId as string) || null,
-            });
+            next.set(id, evaluateUser(d));
             return next;
           });
         }
@@ -223,7 +255,29 @@ export function useMultiplePresence(telegramIds: string[]): Map<string, Presence
       unsubs.push(unsub);
     }
 
-    return () => unsubs.forEach((u) => u());
+    // Re-evaluate staleness every 15s
+    const interval = setInterval(() => {
+      setPresenceMap((prev) => {
+        const next = new Map(prev);
+        let changed = false;
+        for (const [id, d] of latestDataRef.current) {
+          const evaluated = evaluateUser(d);
+          const existing = prev.get(id);
+          if (existing?.isOnline !== evaluated.isOnline) {
+            next.set(id, evaluated);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 15_000);
+
+    const dataRef = latestDataRef.current;
+    return () => {
+      unsubs.forEach((u) => u());
+      clearInterval(interval);
+      dataRef.clear();
+    };
   }, [telegramIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return presenceMap;

@@ -102,8 +102,11 @@ export async function proxy(request: NextRequest) {
                            request.nextUrl.pathname.startsWith("/earn") ||
                            request.nextUrl.pathname.startsWith("/story") ||
                            request.nextUrl.pathname.startsWith("/leaderboard") ||
-                           request.nextUrl.pathname.startsWith("/trade") ||
-                           request.nextUrl.pathname.startsWith("/ecosystem");
+                           request.nextUrl.pathname.startsWith("/ecosystem") ||
+                           request.nextUrl.pathname.startsWith("/chat") ||
+                           request.nextUrl.pathname.startsWith("/groups") ||
+                           request.nextUrl.pathname.startsWith("/badges") ||
+                           request.nextUrl.pathname.startsWith("/user");
   
   if (isProtectedRoute && isFromSanctionedLocation(request)) {
     // Redirect to the unsupported region page
@@ -136,7 +139,10 @@ export const config = {
     "/leaderboard/:path*",
     "/ecosystem/:path*",
     "/wallet/:path*",
-    "/trade/:path*",
+    "/chat/:path*",
+    "/groups/:path*",
+    "/badges/:path*",
+    "/user/:path*",
     "/unsupported-region",
   ],
 };
