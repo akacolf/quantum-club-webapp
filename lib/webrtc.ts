@@ -73,18 +73,13 @@ const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
 
 /** Fetch TURN credentials from our server-side proxy (keeps API key secret). */
 export async function fetchRtcConfig(): Promise<RTCConfiguration> {
-  console.warn("[WebRTC] Fetching TURN credentials...");
   try {
     const res = await fetch("/api/turn-credentials");
     if (res.ok) {
       const iceServers = await res.json();
-      console.warn("[WebRTC] TURN credentials fetched:", iceServers.length, "servers");
       return { iceServers, iceTransportPolicy: "all" };
     }
-    console.warn("[WebRTC] TURN fetch failed, status:", res.status, "— using fallback STUN");
-  } catch (err) {
-    console.warn("[WebRTC] TURN fetch error — using fallback STUN:", err);
-  }
+  } catch {}
   return { iceServers: FALLBACK_ICE_SERVERS, iceTransportPolicy: "all" };
 }
 
@@ -104,11 +99,6 @@ export async function createCallDocument(params: {
   chatId: string;
   offer: RTCSessionDescriptionInit;
 }): Promise<string> {
-  console.warn("[WebRTC] Creating call document:", {
-    callerId: params.callerId,
-    calleeId: params.calleeId,
-    chatId: params.chatId,
-  });
   const callRef = doc(collection(dbfs, "qc-calls"));
   await setDoc(callRef, {
     callerId: params.callerId,
@@ -124,7 +114,6 @@ export async function createCallDocument(params: {
     offer: { type: params.offer.type, sdp: params.offer.sdp },
     answer: null,
   });
-  console.warn("[WebRTC] Call document created:", callRef.id);
   return callRef.id;
 }
 
@@ -132,19 +121,10 @@ export function listenToCallDoc(
   callId: string,
   callback: (data: CallDocument) => void
 ): () => void {
-  console.warn("[WebRTC] Listening to call doc:", callId);
   const ref = doc(dbfs, "qc-calls", callId);
   return onSnapshot(ref, (snap) => {
     if (snap.exists()) {
-      const data = snap.data() as CallDocument;
-      console.warn("[WebRTC] Call doc update:", callId, {
-        status: data.status,
-        hasOffer: !!data.offer,
-        hasAnswer: !!data.answer,
-      });
-      callback(data);
-    } else {
-      console.warn("[WebRTC] Call doc does not exist:", callId);
+      callback(snap.data() as CallDocument);
     }
   });
 }
@@ -155,17 +135,11 @@ export function listenToICECandidates(
   callback: (candidate: ICECandidateData) => void
 ): () => void {
   const subCollection = role === "caller" ? "callerCandidates" : "calleeCandidates";
-  console.warn("[WebRTC] Listening to ICE candidates:", callId, role, subCollection);
   const colRef = collection(dbfs, "qc-calls", callId, subCollection);
   return onSnapshot(colRef, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
       if (change.type === "added") {
-        const data = change.doc.data() as ICECandidateData;
-        console.warn("[WebRTC] ICE candidate received:", role, {
-          candidate: data.candidate?.slice(0, 50) + "...",
-          sdpMid: data.sdpMid,
-        });
-        callback(data);
+        callback(change.doc.data() as ICECandidateData);
       }
     });
   });
@@ -178,26 +152,19 @@ export async function addICECandidate(
 ): Promise<void> {
   const subCollection = role === "caller" ? "callerCandidates" : "calleeCandidates";
   const colRef = collection(dbfs, "qc-calls", callId, subCollection);
-  console.warn("[WebRTC] Sending ICE candidate:", role, {
-    candidate: candidate.candidate?.slice(0, 50) + "...",
-    sdpMid: candidate.sdpMid,
-  });
   await addDoc(colRef, {
     candidate: candidate.candidate,
     sdpMLineIndex: candidate.sdpMLineIndex,
     sdpMid: candidate.sdpMid,
   });
-  console.warn("[WebRTC] ICE candidate written to Firestore:", role);
 }
 
 export async function updateCallDoc(
   callId: string,
   updates: Partial<CallDocument>
 ): Promise<void> {
-  console.warn("[WebRTC] Updating call doc:", callId, Object.keys(updates));
   const ref = doc(dbfs, "qc-calls", callId);
   await updateDoc(ref, updates as Record<string, unknown>);
-  console.warn("[WebRTC] Call doc updated:", callId);
 }
 
 export async function writeCallHistoryMessage(
@@ -247,7 +214,6 @@ export async function findExistingRingingCall(
   userId1: string,
   userId2: string
 ): Promise<string | null> {
-  console.warn("[WebRTC] Checking for existing ringing call:", userId1, "↔", userId2);
   const callsRef = collection(dbfs, "qc-calls");
 
   // Check if userId1 is calling userId2
@@ -270,24 +236,18 @@ export async function findExistingRingingCall(
 
   const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
 
-  const result = !snap1.empty ? snap1.docs[0].id : !snap2.empty ? snap2.docs[0].id : null;
-  console.warn("[WebRTC] Existing ringing call:", result);
-  return result;
+  if (!snap1.empty) return snap1.docs[0].id;
+  if (!snap2.empty) return snap2.docs[0].id;
+  return null;
 }
 
 /**
  * Check if a user is currently in an active call via presence.
  */
 export async function checkUserBusy(userId: string): Promise<boolean> {
-  console.warn("[WebRTC] Checking if user is busy:", userId);
   const ref = doc(dbfs, "qc-presence", userId);
   const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    console.warn("[WebRTC] User presence doc not found:", userId);
-    return false;
-  }
+  if (!snap.exists()) return false;
   const data = snap.data();
-  const busy = !!data?.activeCallId;
-  console.warn("[WebRTC] User busy:", userId, busy, "activeCallId:", data?.activeCallId ?? "none");
-  return busy;
+  return !!data?.activeCallId;
 }
