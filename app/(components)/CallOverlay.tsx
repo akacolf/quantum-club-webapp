@@ -23,8 +23,18 @@ function formatDuration(seconds: number): string {
 }
 
 export default function CallOverlay() {
-  const { callState, callInfo, isMuted, isSpeaker, callDuration, endCall, toggleMute, toggleSpeaker } =
-    useCallContext();
+  const {
+    callState,
+    callInfo,
+    isMuted,
+    isSpeaker,
+    callDuration,
+    isMinimized,
+    endCall,
+    toggleMute,
+    toggleSpeaker,
+    toggleMinimize,
+  } = useCallContext();
 
   const photo = useProfilePhoto(callInfo?.remoteUserId ?? null);
 
@@ -39,8 +49,46 @@ export default function CallOverlay() {
         : "";
 
   return (
-    <AnimatePresence>
-      {visible && callInfo && (
+    <AnimatePresence mode="wait">
+      {visible && callInfo && isMinimized && (
+        <motion.div
+          key="call-minimized"
+          initial={{ opacity: 0, y: -40 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -40 }}
+          transition={{ duration: 0.2 }}
+          className="fixed top-0 left-0 right-0 z-[60] flex items-center gap-3 px-3 py-2 bg-green-600/95 backdrop-blur-sm cursor-pointer"
+          style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.5rem)" }}
+          onClick={toggleMinimize}
+        >
+          <Avatar className="w-8 h-8 shrink-0">
+            <AvatarImage src={photo || undefined} />
+            <AvatarFallback className="text-xs bg-white/20 text-white">
+              {getInitials(callInfo.remoteName)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">
+              {callInfo.remoteName}
+            </p>
+            <p className="text-xs text-white/80">{statusText}</p>
+          </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              endCall();
+            }}
+            className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white shrink-0"
+          >
+            <Icon icon="solar:phone-bold" className="w-4 h-4 rotate-[135deg]" />
+          </Button>
+          <Icon icon="solar:alt-arrow-up-linear" className="w-4 h-4 text-white/80 shrink-0" />
+        </motion.div>
+      )}
+
+      {visible && callInfo && !isMinimized && (
         <motion.div
           key="call-overlay"
           initial={{ opacity: 0, y: 20 }}
@@ -49,6 +97,17 @@ export default function CallOverlay() {
           transition={{ duration: 0.25 }}
           className="fixed inset-0 z-[70] flex flex-col items-center justify-between bg-neutral-950/95 backdrop-blur-sm py-16"
         >
+          {/* Minimize button */}
+          {callState === "connected" && (
+            <button
+              onClick={toggleMinimize}
+              className="absolute top-4 left-4 p-2 text-white/60 hover:text-white transition-colors"
+              style={{ marginTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))" }}
+            >
+              <Icon icon="solar:alt-arrow-down-linear" className="w-6 h-6" />
+            </button>
+          )}
+
           {/* Top: E2E badge + Avatar + Name + Status */}
           <div className="flex flex-col items-center gap-4 mt-8">
             <div className="flex items-center justify-center gap-1">

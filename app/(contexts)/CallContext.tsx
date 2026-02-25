@@ -34,6 +34,17 @@ import {
   type CallDocument,
   type CallStatus,
 } from "@/lib/webrtc";
+import {
+  createGroupCall as createGroupCallDoc,
+  joinGroupCall as joinGroupCallDoc,
+  leaveGroupCall as leaveGroupCallDoc,
+  endGroupCall as endGroupCallDoc,
+  sendSignal,
+  listenToGroupCall,
+  listenToSignals,
+  getActiveGroupCall,
+  type GroupCallDocument,
+} from "@/lib/group-call";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -52,12 +63,24 @@ interface CallInfo {
   isCaller: boolean;
 }
 
+export type GroupCallState = "idle" | "active";
+
+interface GroupCallInfo {
+  callId: string;
+  chatId: string;
+  groupName: string;
+  participants: string[];
+  participantNames: Record<string, string>;
+}
+
 interface CallContextType {
+  // 1:1 calls
   callState: CallState;
   callInfo: CallInfo | null;
   isMuted: boolean;
   isSpeaker: boolean;
   callDuration: number;
+  isMinimized: boolean;
   initiateCall: (params: {
     calleeId: string;
     calleeName: string;
@@ -68,6 +91,12 @@ interface CallContextType {
   endCall: () => void;
   toggleMute: () => void;
   toggleSpeaker: () => void;
+  toggleMinimize: () => void;
+  // Group calls
+  groupCallState: GroupCallState;
+  groupCallInfo: GroupCallInfo | null;
+  joinGroupCall: (chatId: string, groupName: string) => Promise<void>;
+  leaveGroupCall: () => void;
 }
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
@@ -90,6 +119,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // Refs for cleanup
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -219,6 +249,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       pendingCandidatesRef.current = [];
       setIsMuted(false);
       setIsSpeaker(false);
+      setIsMinimized(false);
       setCallDuration(0);
       connectedAtRef.current = 0;
 
@@ -804,6 +835,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isSpeaker]);
 
+  // ── Toggle minimize ─────────────────────────────────────────────────────
+
+  const toggleMinimize = useCallback(() => {
+    setIsMinimized((prev) => !prev);
+  }, []);
+
   // ── Global incoming call listener ─────────────────────────────────────────
 
   useEffect(() => {
@@ -865,11 +902,327 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, [telegramId, playRingtone, stopRingtone]);
 
+  // ── Group Call State ────────────────────────────────────────────────────────
+
+  const [groupCallState, setGroupCallState] = useState<GroupCallState>("idle");
+  const [groupCallInfo, setGroupCallInfo] = useState<GroupCallInfo | null>(null);
+  const groupPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const groupStreamRef = useRef<MediaStream | null>(null);
+  const groupAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const unsubGroupCallRef = useRef<(() => void) | null>(null);
+  const unsubGroupSignalsRef = useRef<(() => void) | null>(null);
+  const groupCallInfoRef = useRef<GroupCallInfo | null>(null);
+
+  useEffect(() => {
+    groupCallInfoRef.current = groupCallInfo;
+  }, [groupCallInfo]);
+
+  const cleanupGroupCall = useCallback(() => {
+    // Close all peer connections
+    for (const pc of groupPeersRef.current.values()) {
+      pc.close();
+    }
+    groupPeersRef.current.clear();
+
+    // Stop local stream
+    if (groupStreamRef.current) {
+      groupStreamRef.current.getTracks().forEach((t) => t.stop());
+      groupStreamRef.current = null;
+    }
+
+    // Remove audio elements
+    for (const el of groupAudioElementsRef.current.values()) {
+      el.pause();
+      el.srcObject = null;
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+    groupAudioElementsRef.current.clear();
+
+    // Unsubscribe listeners
+    if (unsubGroupCallRef.current) {
+      unsubGroupCallRef.current();
+      unsubGroupCallRef.current = null;
+    }
+    if (unsubGroupSignalsRef.current) {
+      unsubGroupSignalsRef.current();
+      unsubGroupSignalsRef.current = null;
+    }
+
+    setActiveCall(null);
+    setIsMinimized(false);
+    setGroupCallState("idle");
+    setGroupCallInfo(null);
+    groupCallInfoRef.current = null;
+  }, [setActiveCall]);
+
+  const createPeerForRemote = useCallback(
+    async (
+      callId: string,
+      remoteUserId: string,
+      rtcConfig: RTCConfiguration,
+      isCaller: boolean
+    ) => {
+      if (!telegramId || groupPeersRef.current.has(remoteUserId)) return;
+
+      const pc = new RTCPeerConnection(rtcConfig);
+      groupPeersRef.current.set(remoteUserId, pc);
+
+      // Add local tracks
+      if (groupStreamRef.current) {
+        groupStreamRef.current.getTracks().forEach((track) => {
+          pc.addTrack(track, groupStreamRef.current!);
+        });
+      }
+
+      // Handle remote audio
+      pc.ontrack = (e) => {
+        const stream = e.streams?.[0] ?? new MediaStream([e.track]);
+        let audioEl = groupAudioElementsRef.current.get(remoteUserId);
+        if (!audioEl) {
+          audioEl = document.createElement("audio");
+          audioEl.autoplay = true;
+          audioEl.setAttribute("playsinline", "");
+          audioEl.style.display = "none";
+          document.body.appendChild(audioEl);
+          groupAudioElementsRef.current.set(remoteUserId, audioEl);
+        }
+        audioEl.srcObject = stream;
+        audioEl.play().catch(() => {});
+      };
+
+      // ICE candidates
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          sendSignal(callId, telegramId, remoteUserId, "ice-candidate", {
+            candidate: e.candidate.candidate,
+            sdpMLineIndex: e.candidate.sdpMLineIndex,
+            sdpMid: e.candidate.sdpMid,
+          }).catch(() => {});
+        }
+      };
+
+      // Connection monitoring
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "failed") {
+          pc.restartIce();
+        }
+      };
+
+      // If we're the initiator for this peer, create and send offer
+      if (isCaller) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await sendSignal(callId, telegramId, remoteUserId, "offer", {
+          type: offer.type,
+          sdp: offer.sdp,
+        });
+      }
+    },
+    [telegramId]
+  );
+
+  const joinGroupCallFn = useCallback(
+    async (chatId: string, groupName: string) => {
+      if (!telegramId || !qcUsername) return;
+      if (groupCallState !== "idle") return;
+      if (callStateRef.current !== "idle") {
+        toast.error("End your current call first");
+        return;
+      }
+
+      try {
+        // Get microphone
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: AUDIO_CONSTRAINTS,
+          });
+        } catch {
+          toast.error("Microphone access required for voice calls");
+          return;
+        }
+        groupStreamRef.current = stream;
+
+        // Find existing active call or create new
+        let callId: string;
+        let existingParticipants: string[] = [];
+
+        const existing = await getActiveGroupCall(chatId);
+        if (existing) {
+          if (existing.data.participants.length >= existing.data.maxParticipants) {
+            toast.error("Call is full (max 8 participants)");
+            stream.getTracks().forEach((t) => t.stop());
+            groupStreamRef.current = null;
+            return;
+          }
+          callId = existing.id;
+          existingParticipants = existing.data.participants;
+          await joinGroupCallDoc(callId, telegramId, qcUsername);
+        } else {
+          callId = await createGroupCallDoc(chatId, groupName, telegramId, qcUsername);
+        }
+
+        const info: GroupCallInfo = {
+          callId,
+          chatId,
+          groupName,
+          participants: existingParticipants.includes(telegramId)
+            ? existingParticipants
+            : [...existingParticipants, telegramId],
+          participantNames: { [telegramId]: qcUsername },
+        };
+        setGroupCallInfo(info);
+        groupCallInfoRef.current = info;
+        setGroupCallState("active");
+        setActiveCall(callId);
+
+        // Fetch TURN config
+        const rtcConfig = await fetchRtcConfig();
+
+        // Create peer connections to all existing participants
+        for (const pid of existingParticipants) {
+          if (pid !== telegramId) {
+            await createPeerForRemote(callId, pid, rtcConfig, true);
+          }
+        }
+
+        // Listen for call updates (participant changes)
+        unsubGroupCallRef.current = listenToGroupCall(callId, (data) => {
+          if (data.status === "ended") {
+            cleanupGroupCall();
+            return;
+          }
+
+          const updatedInfo: GroupCallInfo = {
+            callId,
+            chatId,
+            groupName: data.groupName,
+            participants: data.participants,
+            participantNames: data.participantNames,
+          };
+          setGroupCallInfo(updatedInfo);
+          groupCallInfoRef.current = updatedInfo;
+
+          // Check for new participants to connect to
+          for (const pid of data.participants) {
+            if (pid !== telegramId && !groupPeersRef.current.has(pid)) {
+              // New participant joined — they should send us an offer
+              // (they call createPeerForRemote with isCaller=true)
+            }
+          }
+
+          // Check for departed participants
+          for (const [pid, pc] of groupPeersRef.current.entries()) {
+            if (!data.participants.includes(pid)) {
+              pc.close();
+              groupPeersRef.current.delete(pid);
+              const audioEl = groupAudioElementsRef.current.get(pid);
+              if (audioEl) {
+                audioEl.pause();
+                audioEl.srcObject = null;
+                if (audioEl.parentNode) audioEl.parentNode.removeChild(audioEl);
+                groupAudioElementsRef.current.delete(pid);
+              }
+            }
+          }
+
+          // End call if we're the only one left (or empty)
+          if (data.participants.length <= 1 && data.participants.includes(telegramId!)) {
+            // Don't auto-end, just stay in call (others might join)
+          }
+        });
+
+        // Listen for signaling messages directed at us
+        unsubGroupSignalsRef.current = listenToSignals(callId, telegramId, async (signal) => {
+          if (signal.type === "offer") {
+            // Someone is offering us a connection
+            const pc = groupPeersRef.current.get(signal.from);
+            if (pc) {
+              // Already have a connection, this is a renegotiation
+              await pc.setRemoteDescription(
+                new RTCSessionDescription(signal.data as unknown as RTCSessionDescriptionInit)
+              );
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              await sendSignal(callId, telegramId!, signal.from, "answer", {
+                type: answer.type,
+                sdp: answer.sdp,
+              });
+            } else {
+              // New peer, create connection and answer
+              await createPeerForRemote(callId, signal.from, rtcConfig, false);
+              const newPc = groupPeersRef.current.get(signal.from);
+              if (newPc) {
+                await newPc.setRemoteDescription(
+                  new RTCSessionDescription(signal.data as unknown as RTCSessionDescriptionInit)
+                );
+                const answer = await newPc.createAnswer();
+                await newPc.setLocalDescription(answer);
+                await sendSignal(callId, telegramId!, signal.from, "answer", {
+                  type: answer.type,
+                  sdp: answer.sdp,
+                });
+              }
+            }
+          } else if (signal.type === "answer") {
+            const pc = groupPeersRef.current.get(signal.from);
+            if (pc && pc.signalingState === "have-local-offer") {
+              await pc.setRemoteDescription(
+                new RTCSessionDescription(signal.data as unknown as RTCSessionDescriptionInit)
+              );
+            }
+          } else if (signal.type === "ice-candidate") {
+            const pc = groupPeersRef.current.get(signal.from);
+            if (pc) {
+              await pc
+                .addIceCandidate(
+                  new RTCIceCandidate({
+                    candidate: signal.data.candidate as string,
+                    sdpMLineIndex: signal.data.sdpMLineIndex as number | null,
+                    sdpMid: signal.data.sdpMid as string | null,
+                  })
+                )
+                .catch(() => {});
+            }
+          }
+        });
+      } catch (err) {
+        console.error("[CallContext] joinGroupCall error:", err);
+        toast.error("Failed to join group call");
+        cleanupGroupCall();
+      }
+    },
+    [
+      telegramId,
+      qcUsername,
+      groupCallState,
+      setActiveCall,
+      createPeerForRemote,
+      cleanupGroupCall,
+    ]
+  );
+
+  const leaveGroupCallFn = useCallback(() => {
+    const info = groupCallInfoRef.current;
+    if (!info || !telegramId) return;
+
+    leaveGroupCallDoc(info.callId, telegramId).then(() => {
+      // If we're the last participant, end the call
+      const remaining = info.participants.filter((p) => p !== telegramId);
+      if (remaining.length === 0) {
+        endGroupCallDoc(info.callId).catch(() => {});
+      }
+    }).catch(() => {});
+
+    cleanupGroupCall();
+  }, [telegramId, cleanupGroupCall]);
+
   // ── Cleanup on unmount ────────────────────────────────────────────────────
 
   useEffect(() => {
     return () => {
       cleanup({ skipHistoryWrite: true });
+      cleanupGroupCall();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -882,12 +1235,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         isMuted,
         isSpeaker,
         callDuration,
+        isMinimized,
         initiateCall,
         acceptCall,
         declineCall,
         endCall,
         toggleMute,
         toggleSpeaker,
+        toggleMinimize,
+        groupCallState,
+        groupCallInfo,
+        joinGroupCall: joinGroupCallFn,
+        leaveGroupCall: leaveGroupCallFn,
       }}
     >
       {children}

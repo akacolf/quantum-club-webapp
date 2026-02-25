@@ -5,14 +5,18 @@ export function useTelegramBackButton(path: string = "/home") {
     const router = useRouter();
     useEffect(() => {
         router.prefetch(path);
-        
+
         const tg = window.Telegram?.WebApp;
         tg?.ready();
 
         const handleBackButtonClick = () => {
-            router.push(path);
+            try {
+                router.replace(path);
+            } catch {
+                window.location.href = path;
+            }
         };
-        
+
         tg?.BackButton.show();
         tg?.BackButton.onClick(handleBackButtonClick);
 

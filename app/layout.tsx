@@ -11,6 +11,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
 import CallOverlay from "./(components)/CallOverlay";
 import IncomingCallOverlay from "./(components)/IncomingCallOverlay";
+import GroupCallOverlay from "./(components)/GroupCallOverlay";
 
 
 const onest = Onest({
@@ -59,6 +60,7 @@ export default function RootLayout({
           </div>
           <CallOverlay />
           <IncomingCallOverlay />
+          <GroupCallOverlay />
           <Toaster />
         </ClientProviders>
         </AuthProvider>

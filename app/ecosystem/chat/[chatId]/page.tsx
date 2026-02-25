@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -32,7 +32,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
-import { usePresenceActions, useUserPresence, formatLastSeen } from "@/app/(hooks)/usePresence";
+import { usePresenceActions, useUserPresence, useMultiplePresence, formatLastSeen } from "@/app/(hooks)/usePresence";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   encryptMessage,
@@ -75,6 +75,7 @@ import GroupMembersPanel from "./GroupMembersPanel";
 import TransferMessage from "./TransferMessage";
 import NftShareMessage from "./NftShareMessage";
 import CallMessage from "./CallMessage";
+import GroupCallBanner from "@/app/(components)/GroupCallBanner";
 import { useCallContext } from "@/app/(contexts)/CallContext";
 import TransferDrawer from "./TransferDrawer";
 import { useWallet } from "@/app/wallet/WalletContext";
@@ -228,7 +229,7 @@ export default function ChatConversationPage() {
   const { telegramId, qcUsername } = useUserContext();
   const authCtx = useAuth();
   const currentUser = authCtx?.currentUser ?? null;
-  const { initiateCall, callState } = useCallContext();
+  const { initiateCall, callState, joinGroupCall, groupCallState } = useCallContext();
 
   useTelegramBackButton("/ecosystem/chat");
 
@@ -333,6 +334,12 @@ export default function ChatConversationPage() {
   const otherPresence = useUserPresence(
     !chatMeta?.isGroup && !chatMeta?.isGlobal ? otherParticipantId : null
   );
+  // Group presence: track online count for non-global group chats (skip for large global chats)
+  const groupParticipantIds = useMemo(() => {
+    if (!chatMeta?.isGroup || chatMeta?.isGlobal) return [];
+    return (chatMeta?.participants || []).filter((p) => p !== telegramId);
+  }, [chatMeta?.isGroup, chatMeta?.isGlobal, chatMeta?.participants, telegramId]);
+  const groupPresenceMap = useMultiplePresence(groupParticipantIds);
 
   // Set current chat for presence tracking + mark as read
   useEffect(() => {
@@ -612,12 +619,12 @@ export default function ChatConversationPage() {
       // (staleClearedRef prevents repeated writes; separate from initialLoadDoneRef
       // because Firestore persistent cache fires the snapshot with stale cached data
       // first, which sets initialLoadDoneRef before the server-empty snapshot arrives)
-      if (decryptedMsgs.length === 0 && !staleClearedRef.current) {
+      if (decryptedMsgs.length === 0 && !staleClearedRef.current && !snapshot.metadata.fromCache) {
         staleClearedRef.current = true;
         updateDoc(doc(dbfs, "qc-chats", chatId), {
           lastMessage: "",
           lastMessageBy: "",
-          lastMessageAt: serverTimestamp(),
+          lastMessageAt: deleteField(),
           lastMessageEpoch: deleteField(),
         }).catch(() => {});
         try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
@@ -1779,8 +1786,17 @@ export default function ChatConversationPage() {
   // Header subtitle text — no typing indicator here (shown as bubble below)
   const getSubtitle = (): { text: string; color: string } => {
     if (isGroupChat) {
+      const memberCount = chatMeta?.participants.length || 0;
+      // Count online members (excluding self) from group presence map
+      const onlineCount = Array.from(groupPresenceMap.values()).filter((p) => p.isOnline).length;
+      if (onlineCount > 0) {
+        return {
+          text: `${memberCount} members · ${onlineCount} online`,
+          color: "text-green-400",
+        };
+      }
       return {
-        text: `${chatMeta?.participants.length || 0} members · Encrypted`,
+        text: `${memberCount} members · Encrypted`,
         color: "text-green-400",
       };
     }
@@ -1789,8 +1805,8 @@ export default function ChatConversationPage() {
       return { text: "Encrypted personal notes", color: "text-green-400" };
     }
 
-    // DM: show online/last seen
-    const presenceText = formatLastSeen(otherPresence);
+    // DM: show online/last seen (pass chatId so same-chat users show as online)
+    const presenceText = formatLastSeen(otherPresence, chatId);
     if (presenceText === "online") {
       return { text: "online", color: "text-green-400" };
     }
@@ -1877,7 +1893,7 @@ export default function ChatConversationPage() {
           </div>
         </div>
 
-        {/* Voice call button (DMs only, not self-chat or global) */}
+        {/* Voice call button — DM */}
         {!isGroupChat && !isSelfChat && otherParticipantId && (
           <Button
             size="icon"
@@ -1890,6 +1906,20 @@ export default function ChatConversationPage() {
                 calleeName: headerName,
                 chatId,
               });
+            }}
+          >
+            <Icon icon="solar:phone-bold" className="w-5 h-5" />
+          </Button>
+        )}
+        {/* Voice call button — Group (not global) */}
+        {chatMeta?.isGroup && !chatMeta?.isGlobal && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="w-9 h-9 rounded-full shrink-0"
+            disabled={groupCallState !== "idle" && callState !== "idle"}
+            onClick={() => {
+              joinGroupCall(chatId, headerName);
             }}
           >
             <Icon icon="solar:phone-bold" className="w-5 h-5" />
@@ -2284,6 +2314,11 @@ export default function ChatConversationPage() {
           </div>
         );
       })()}
+
+      {/* Group call banner */}
+      {chatMeta?.isGroup && !chatMeta?.isGlobal && (
+        <GroupCallBanner chatId={chatId} groupName={headerName} />
+      )}
 
       {/* Messages */}
       <div

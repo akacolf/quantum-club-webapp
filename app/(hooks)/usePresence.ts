@@ -162,10 +162,13 @@ export function useUserPresence(telegramId: string | null): PresenceData | null 
 
 /**
  * Format presence into human-readable text.
+ * If currentChatId is provided and matches the user's currentChatId, treat as online.
  */
-export function formatLastSeen(presence: PresenceData | null): string {
+export function formatLastSeen(presence: PresenceData | null, currentChatId?: string): string {
   if (!presence) return "";
   if (presence.isOnline) return "online";
+  // If the user is in the same chat, treat as online even if staleness says otherwise
+  if (currentChatId && presence.currentChatId === currentChatId) return "online";
   if (!presence.lastSeen) return "";
 
   const date = presence.lastSeen.toDate();
@@ -178,4 +181,50 @@ export function formatLastSeen(presence: PresenceData | null): string {
   if (mins < 60) return `last seen ${mins}m ago`;
   if (hours < 24) return `last seen ${hours}h ago`;
   return `last seen ${date.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+}
+
+/**
+ * Subscribe to presence data for multiple users at once.
+ * Returns a map of userId -> PresenceData.
+ */
+export function useMultiplePresence(telegramIds: string[]): Map<string, PresenceData> {
+  const [presenceMap, setPresenceMap] = useState<Map<string, PresenceData>>(new Map());
+
+  useEffect(() => {
+    if (telegramIds.length === 0) return;
+
+    const unsubs: (() => void)[] = [];
+
+    for (const id of telegramIds) {
+      const ref = doc(dbfs, "qc-presence", id);
+      const unsub = onSnapshot(ref, (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          let isOnline = (d.isOnline as boolean) || false;
+          const lastSeen: Timestamp | null = (d.lastSeen as Timestamp) || null;
+
+          if (isOnline && lastSeen && typeof lastSeen.toDate === "function") {
+            const age = Date.now() - lastSeen.toDate().getTime();
+            if (age > HEARTBEAT_STALE_MS) isOnline = false;
+          }
+
+          setPresenceMap((prev) => {
+            const next = new Map(prev);
+            next.set(id, {
+              isOnline,
+              lastSeen,
+              currentChatId: (d.currentChatId as string) || null,
+              activeCallId: (d.activeCallId as string) || null,
+            });
+            return next;
+          });
+        }
+      }, () => {});
+      unsubs.push(unsub);
+    }
+
+    return () => unsubs.forEach((u) => u());
+  }, [telegramIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return presenceMap;
 }

@@ -110,28 +110,10 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        // Read unread count from chat doc for richer message content
-        let unreadCount = 1;
-        try {
-          const chatSnap = await db.doc(`qc-chats/${chatId}`).get();
-          if (chatSnap.exists) {
-            const chatData = chatSnap.data();
-            const count = chatData?.unreadCounts?.[encryptedId];
-            if (typeof count === "number" && count > 0) {
-              unreadCount = count;
-            }
-          }
-        } catch {
-          // Non-critical, use default count
-        }
-
-        // Format message with unread count
-        const countText = unreadCount === 1
-          ? "new message"
-          : `${unreadCount} new messages`;
+        // Format message
         const message = isGroup
-          ? `<b>${senderName}</b> in <b>${chatName}</b>\nYou have ${countText}`
-          : `You have ${countText} from <b>${senderName}</b>`;
+          ? `<b>${senderName}</b> in <b>${chatName}</b>\nYou have a new message`
+          : `You have a new message from <b>${senderName}</b>`;
 
         // Build deep link button to open the chat directly
         const botUsername = process.env.BOT_USERNAME || "QuantumClubBot";
