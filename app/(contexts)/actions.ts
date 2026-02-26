@@ -15,15 +15,14 @@ token,refreshToken
     token:string;
     refreshToken:string;
 })=>{
-    try{
     const verifiedToken = await auth.verifyIdToken(token);
     if(!verifiedToken){
-        return;
+        throw new Error("Token verification failed");
     }
 
     const userRecord = await auth.getUser(verifiedToken.uid)
     if(!userRecord.uid){
-        return;
+        throw new Error("User record not found");
     }
     const cookieStore = await cookies();
     cookieStore.set("firebaseAuthToken",token,{
@@ -34,9 +33,6 @@ token,refreshToken
         httpOnly:true,
         secure:process.env.NODE_ENV ==="production",
     });
-    }catch(e) {
-        console.error("Failed to set auth cookies:", e);
-    }
 }
 export const updateUserPassword = async(token:string, newPassword: string)=>{
     if (!newPassword || newPassword.length < 6) {

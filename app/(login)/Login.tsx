@@ -69,11 +69,57 @@ export default function Login() {
 
   // Auto-redirect if user is already signed in (keepLoggedIn handled in auth context)
   // Uses a ref to prevent multiple redirects / redirect loops
+  // Also rehydrates localStorage if it was cleared (e.g. cookies deleted externally)
   useEffect(() => {
     if (!authContext?.authLoading && authContext?.currentUser && !hasRedirected.current) {
       hasRedirected.current = true;
-      router.replace(getDeepLinkDestination());
+
+      const storedTid = localStorage.getItem("telegramId");
+      if (storedTid) {
+        // localStorage intact → redirect immediately
+        router.replace(getDeepLinkDestination());
+        return;
+      }
+
+      // localStorage was cleared — rehydrate user data before redirecting
+      (async () => {
+        try {
+          const user = authContext.currentUser!;
+          let qcId: string | null = null;
+
+          // Email users: look up QC ID by email
+          if (user.email) {
+            qcId = await lookupUserByEmail(user.email);
+          }
+          // Telegram users (custom token auth): UID is the QC ID
+          if (!qcId) {
+            qcId = user.uid;
+          }
+
+          const data = await LoadExistingUserByQCId(qcId);
+          if (data.status === "completed") {
+            setTelegramId(data.telegramId);
+            SetMainQuantAmount(data.MainQuantAmount);
+            setRank(data.rank);
+            setUserRank(data.userRank);
+            setDaily(data.daily);
+            setUsername(data.username);
+            setWalletAddress(data.walletAddress);
+            if (data.qcUsername) {
+              setQcUsername(data.qcUsername);
+              localStorage.setItem(`qcUsername_${data.telegramId}`, data.qcUsername);
+            }
+            if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
+            setLastActiveTime(data.lastActiveTime);
+            setRemainingSolveToEarn(data.remainingSolveToEarn);
+          }
+        } catch (err) {
+          console.error("Failed to rehydrate user data:", err);
+        }
+        router.replace(getDeepLinkDestination());
+      })();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- setters are stable references
   }, [authContext?.currentUser, authContext?.authLoading, router]);
 
   // Show loader while auth is resolving

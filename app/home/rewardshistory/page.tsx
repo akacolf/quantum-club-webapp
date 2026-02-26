@@ -276,7 +276,8 @@ function getPlatformIcon(platform: string | null) {
   return null;
 }
 
-const convertToDate = (dateStr: string) => {
+const convertToDate = (dateStr: string | undefined) => {
+  if (!dateStr || !dateStr.includes("/")) return new Date(0);
   const [day, month, year] = dateStr.split("/");
   return new Date(`${year}-${month}-${day}`);
 };
