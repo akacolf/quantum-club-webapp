@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/session";
-import { cookies } from "next/headers";
 import { decodeJwt } from "jose";
 
 // OFAC sanctioned countries (ISO 3166-1 alpha-2 codes)
@@ -52,7 +51,7 @@ function isFromSanctionedLocation(request: NextRequest): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  // Allow unsupported region page to be accessed without restrictions
+  // Allow unsupported region page without restrictions
   if (request.nextUrl.pathname === "/unsupported-region") {
     return NextResponse.next();
   }
@@ -60,69 +59,43 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get("firebaseAuthToken")?.value;
-  const { pathname } = request.nextUrl;
+  // Check for either auth system: session cookie (Telegram) or Firebase auth token
+  const sessionCookie = request.cookies.get("session")?.value;
+  const firebaseToken = request.cookies.get("firebaseAuthToken")?.value;
 
-  if (
-    !token &&
-    (pathname.startsWith("/login") ||
-      pathname.startsWith("/signup"))
-  ) {
-    return NextResponse.next();
-  }
-  if (
-    token &&
-    (pathname.startsWith("/login"))
-  ) {
+  // No auth at all → redirect to login (root page)
+  if (!sessionCookie && !firebaseToken) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (!token) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // If we have a Firebase token, validate it hasn't expired
+  if (firebaseToken) {
+    try {
+      const decoded = decodeJwt(firebaseToken);
+      if (decoded.exp && (decoded.exp - 300) * 1000 < Date.now()) {
+        const { pathname } = request.nextUrl;
+        return NextResponse.redirect(
+          new URL(
+            `/api/refresh-token?redirect=${encodeURIComponent(pathname)}`,
+            request.url
+          )
+        );
+      }
+    } catch {
+      // Malformed token — if no session cookie either, redirect to login
+      if (!sessionCookie) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    }
   }
 
-  const decodedToken = decodeJwt(token);
-  if (decodedToken.exp && (decodedToken.exp - 300) * 1000 < Date.now()) {
-    return NextResponse.redirect(
-      new URL(
-        `/api/refresh-token?redirect=${encodeURIComponent(pathname)}`,
-        request.url
-      )
-    );
-  }
-
-  if (!decodedToken && pathname.startsWith("/home")) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-  // Check for sanctioned countries on wallet routes and protected routes
-  const isProtectedRoute = request.nextUrl.pathname.startsWith("/wallet") ||
-                           request.nextUrl.pathname.startsWith("/home") ||
-                           request.nextUrl.pathname.startsWith("/frens") ||
-                           request.nextUrl.pathname.startsWith("/earn") ||
-                           request.nextUrl.pathname.startsWith("/story") ||
-                           request.nextUrl.pathname.startsWith("/leaderboard") ||
-                           request.nextUrl.pathname.startsWith("/ecosystem") ||
-                           request.nextUrl.pathname.startsWith("/chat") ||
-                           request.nextUrl.pathname.startsWith("/groups") ||
-                           request.nextUrl.pathname.startsWith("/badges") ||
-                           request.nextUrl.pathname.startsWith("/user");
-  
-  if (isProtectedRoute && isFromSanctionedLocation(request)) {
-    // Redirect to the unsupported region page
+  // OFAC sanctioned country check
+  if (isFromSanctionedLocation(request)) {
     return NextResponse.redirect(new URL("/unsupported-region", request.url));
   }
 
-  // Check for either auth system: session cookie (Telegram initData) or Firebase auth token
-  const hasSession = request.cookies.get("session")?.value;
-  const hasFirebaseToken = request.cookies.get("firebaseAuthToken")?.value;
-
-  if (!hasSession && !hasFirebaseToken) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // If we have a session cookie, try to update/extend it
-  if (hasSession) {
+  // Extend session cookie if present
+  if (sessionCookie) {
     return updateSession(request);
   }
 

@@ -133,8 +133,8 @@ export default function Login() {
           setRemainingSolveToEarn(data.remainingSolveToEarn);
         }
       }
-
-      router.replace(getDeepLinkDestination());
+      // Navigation is handled by the useEffect that waits for authLoading
+      // to become false, ensuring the auth cookie is set before navigating.
     } catch (err) {
       console.error("Login error:", err);
       if (err instanceof Error) {
@@ -250,7 +250,8 @@ export default function Login() {
           if (finalData.userRank != null) sessionStorage.setItem("userLeaderRank", String(finalData.userRank));
           setLastActiveTime(finalData.lastActiveTime);
           setRemainingSolveToEarn(finalData.remainingSolveToEarn);
-          router.replace(getDeepLinkDestination());
+          // Navigation is handled by the useEffect that waits for authLoading
+          // to become false, ensuring the auth cookie is set before navigating.
         }
       } else {
         setError("Telegram WebApp is not available. Please open this app from Telegram.");
