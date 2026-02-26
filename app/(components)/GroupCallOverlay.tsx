@@ -142,7 +142,7 @@ export default function GroupCallOverlay() {
 
           {/* Participant grid */}
           <div className="flex-1 flex items-center justify-center px-8">
-            <div className="grid grid-cols-2 gap-6 max-w-[240px]">
+            <div className="flex flex-wrap justify-center gap-6 max-w-[280px]">
               {participants.map((pid) => (
                 <ParticipantAvatar
                   key={pid}
