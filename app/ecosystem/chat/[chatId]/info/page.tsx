@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
 import { dbfs } from "@/app/(firebase)/client";
-import { doc, onSnapshot, Timestamp } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, Timestamp } from "firebase/firestore";
 import Loader from "@/app/(components)/Loader";
 
 interface ChatMeta {
@@ -86,6 +86,50 @@ export default function GroupInfoPage() {
     return () => unsub();
   }, [chatId]);
 
+  // Resolve "Unknown" participant names from the database
+  const resolvedNamesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!chatMeta?.participantNames || !chatId) return;
+
+    const unknownUids = Object.entries(chatMeta.participantNames)
+      .filter(([uid, name]) => name === "Unknown" && !resolvedNamesRef.current.has(uid))
+      .map(([uid]) => uid);
+
+    if (unknownUids.length === 0) return;
+    unknownUids.forEach((uid) => resolvedNamesRef.current.add(uid));
+
+    const resolveNames = async () => {
+      const updates: Record<string, string> = {};
+      await Promise.all(
+        unknownUids.map(async (uid) => {
+          try {
+            const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(uid)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.username) updates[uid] = data.username;
+          } catch { /* ignore */ }
+        })
+      );
+      if (Object.keys(updates).length === 0) return;
+
+      setChatMeta((prev) => {
+        if (!prev) return prev;
+        return { ...prev, participantNames: { ...prev.participantNames, ...updates } };
+      });
+
+      try {
+        const chatRef = doc(dbfs, "qc-chats", chatId);
+        const firestoreUpdates: Record<string, string> = {};
+        for (const [uid, name] of Object.entries(updates)) {
+          firestoreUpdates[`participantNames.${uid}`] = name;
+        }
+        await updateDoc(chatRef, firestoreUpdates);
+      } catch { /* non-critical */ }
+    };
+
+    resolveNames();
+  }, [chatMeta?.participantNames, chatId]);
+
   // Prefetch user profile routes
   useEffect(() => {
     if (!chatMeta) return;
@@ -127,12 +171,20 @@ export default function GroupInfoPage() {
           className="flex flex-col items-center space-y-3"
         >
           <Avatar className="h-20 w-20 border-2 border-white/10">
+            {chatMeta.isGlobal ? (
+              <AvatarImage src="/png/qc-global-logo.png" alt="QC Global" />
+            ) : null}
             <AvatarFallback className={`${getAvatarColor(groupName)} text-white font-bold text-3xl`}>
               {getInitials(groupName)}
             </AvatarFallback>
           </Avatar>
 
-          <h1 className="text-2xl font-bold text-foreground text-center">{groupName}</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-2xl font-bold text-foreground text-center">{groupName}</h1>
+            {chatMeta.isGlobal && (
+              <Icon icon="solar:verified-check-bold" className="w-5 h-5 text-primary shrink-0" />
+            )}
+          </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4" />

@@ -435,6 +435,61 @@ export default function ChatConversationPage() {
     return () => unsub();
   }, [currentUser, chatId]);
 
+  // Resolve "Unknown" participant names from the database
+  const resolvedNamesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!chatMeta?.participantNames || !chatId) return;
+
+    const unknownUids = Object.entries(chatMeta.participantNames)
+      .filter(([uid, name]) => name === "Unknown" && !resolvedNamesRef.current.has(uid))
+      .map(([uid]) => uid);
+
+    if (unknownUids.length === 0) return;
+
+    // Mark as being resolved to avoid duplicate fetches
+    unknownUids.forEach((uid) => resolvedNamesRef.current.add(uid));
+
+    const resolveNames = async () => {
+      const updates: Record<string, string> = {};
+
+      await Promise.all(
+        unknownUids.map(async (uid) => {
+          try {
+            const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(uid)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.username) {
+              updates[uid] = data.username;
+            }
+          } catch { /* ignore individual failures */ }
+        })
+      );
+
+      if (Object.keys(updates).length === 0) return;
+
+      // Update local state immediately
+      setChatMeta((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          participantNames: { ...prev.participantNames, ...updates },
+        };
+      });
+
+      // Persist resolved names to Firestore
+      try {
+        const chatRef = doc(dbfs, "qc-chats", chatId);
+        const firestoreUpdates: Record<string, string> = {};
+        for (const [uid, name] of Object.entries(updates)) {
+          firestoreUpdates[`participantNames.${uid}`] = name;
+        }
+        await updateDoc(chatRef, firestoreUpdates);
+      } catch { /* non-critical, local state is already updated */ }
+    };
+
+    resolveNames();
+  }, [chatMeta?.participantNames, chatId]);
+
   // Auto-initialize epoch if this chat doesn't have one (required for v6 encryption)
   const ensureEpochRef = useRef<Promise<{ nonce: string; counter: number }> | null>(null);
 
@@ -1736,6 +1791,14 @@ export default function ChatConversationPage() {
     );
   };
 
+  // Resolve sender display name: prefer participantNames over stored senderName when it's "Unknown"
+  const resolveSenderName = (msg: ChatMessage): string => {
+    if (msg.senderName && msg.senderName !== "Unknown") return msg.senderName;
+    const resolved = chatMeta?.participantNames?.[msg.senderId];
+    if (resolved && resolved !== "Unknown") return resolved;
+    return msg.senderName || "Unknown";
+  };
+
   // Header display name
   const getHeaderName = (): string => {
     if (!chatMeta) return "Chat";
@@ -1875,16 +1938,12 @@ export default function ChatConversationPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {isGroupChat ? (
-              chatMeta?.isGlobal ? (
-                <h1 className="text-sm font-semibold text-foreground truncate">QC Global</h1>
-              ) : (
-                <button
-                  onClick={() => router.push(`/ecosystem/chat/${chatId}/info`)}
-                  className="text-sm font-semibold text-foreground truncate hover:underline text-left"
-                >
-                  {headerName}
-                </button>
-              )
+              <button
+                onClick={() => router.push(`/ecosystem/chat/${chatId}/info`)}
+                className="text-sm font-semibold text-foreground truncate hover:underline text-left"
+              >
+                {headerName}
+              </button>
             ) : isSelfChat ? (
               <h1 className="text-sm font-semibold text-foreground truncate">Saved Messages</h1>
             ) : (
@@ -2490,8 +2549,8 @@ export default function ChatConversationPage() {
                         const senderPhoto = msg.senderId === telegramId ? myPhoto : otherPhoto;
                         return senderPhoto ? <AvatarImage src={senderPhoto} /> : null;
                       })()}
-                      <AvatarFallback className={`${getAvatarColor(msg.senderName)} text-white text-[10px] font-semibold`}>
-                        {getInitials(msg.senderName)}
+                      <AvatarFallback className={`${getAvatarColor(resolveSenderName(msg))} text-white text-[10px] font-semibold`}>
+                        {getInitials(resolveSenderName(msg))}
                       </AvatarFallback>
                     </Avatar>
                   )}
@@ -2516,7 +2575,7 @@ export default function ChatConversationPage() {
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-[11px] font-semibold text-primary">
-                          @{msg.senderName}
+                          @{resolveSenderName(msg)}
                         </span>
                       </div>
                     )}
@@ -2608,7 +2667,7 @@ export default function ChatConversationPage() {
                           : "text-foreground"
                       }`}>
                         {msg.text === "Unable to decrypt message" || msg.text === "Old encrypted message" || (msg.encrypted && isEncryptedMessage(msg.text))
-                          ? `${msg.senderName} sent a message`
+                          ? `${resolveSenderName(msg)} sent a message`
                           : msg.text}
                       </span>
                     )}
