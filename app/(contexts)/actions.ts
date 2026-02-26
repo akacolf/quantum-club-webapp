@@ -24,14 +24,21 @@ token,refreshToken
     if(!userRecord.uid){
         throw new Error("User record not found");
     }
+    const expiresIn = 30 * 24 * 60 * 60; // 30 days in seconds
     const cookieStore = await cookies();
     cookieStore.set("firebaseAuthToken",token,{
         httpOnly:true,
         secure:process.env.NODE_ENV ==="production",
+        sameSite:"strict",
+        path:"/",
+        maxAge:expiresIn,
     });
     cookieStore.set("firebaseAuthRefreshToken",refreshToken,{
         httpOnly:true,
         secure:process.env.NODE_ENV ==="production",
+        sameSite:"strict",
+        path:"/",
+        maxAge:expiresIn,
     });
 }
 export const updateUserPassword = async(token:string, newPassword: string)=>{

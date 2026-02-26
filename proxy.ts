@@ -87,7 +87,7 @@ export async function proxy(request: NextRequest) {
   // Extend session cookie if present
   if (sessionCookie) {
     try {
-      return updateSession(request);
+      return await updateSession(request);
     } catch {
       // Session JWT is corrupted/expired — clear it and redirect to login
       const response = NextResponse.redirect(new URL("/", request.url));

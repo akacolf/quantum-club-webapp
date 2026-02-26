@@ -83,8 +83,7 @@ export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
     if (valueDataSnapshot.exists()) {
       const data = valueDataSnapshot.data();
       const Amount = Number(data.QuantAmount);
-      const remainingSolveToEarn = data.remainingSolveToEarn;
-      result.remainingSolveToEarn = remainingSolveToEarn;
+      result.remainingSolveToEarn = data.remainingSolveToEarn ?? 0;
       const firstQuant = Number(data.firstQuant);
       const formattedAmount = Amount.toLocaleString("en-US", {
         minimumFractionDigits: 0,
@@ -445,8 +444,7 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
         if (valueDataSnapshot.exists()) {
           const data = valueDataSnapshot.data();
           const Amount = Number(data.QuantAmount);
-          const remainingSolveToEarn = data.remainingSolveToEarn;
-          userData.remainingSolveToEarn = remainingSolveToEarn;
+          userData.remainingSolveToEarn = data.remainingSolveToEarn ?? 0;
           const firstQuant = Number(data.firstQuant);
           const formattedAmount = Amount.toLocaleString("en-US", {
             minimumFractionDigits: 0,
