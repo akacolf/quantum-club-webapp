@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +29,8 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signupComplete, setSignupComplete] = useState(false);
+  const hasRedirected = useRef(false);
 
   const router = useRouter();
   const authContext = useAuth();
@@ -49,6 +51,14 @@ export default function SignUp() {
   
   // Telegram back button to return to login
   useTelegramBackButton("/");
+
+  // Redirect to /home once auth cookie is set (after signup completes)
+  useEffect(() => {
+    if (signupComplete && !authContext?.authLoading && authContext?.currentUser && !hasRedirected.current) {
+      hasRedirected.current = true;
+      router.replace("/home");
+    }
+  }, [signupComplete, authContext?.authLoading, authContext?.currentUser, router]);
 
   useEffect(() => {
     // Prefetch auth-related pages for faster navigation
@@ -209,7 +219,9 @@ export default function SignUp() {
         }
       }
 
-      router.replace("/home");
+      // Signal that signup is complete — useEffect handles navigation
+      // after auth cookie is confirmed set
+      setSignupComplete(true);
     } catch (err) {
       console.error("Sign up error:", err);
       if (err instanceof Error) {
@@ -332,7 +344,7 @@ export default function SignUp() {
           setWalletAddress(finalData.walletAddress);
           setLastActiveTime(finalData.lastActiveTime);
           setRemainingSolveToEarn(finalData.remainingSolveToEarn);
-          router.replace("/home");
+          setSignupComplete(true);
         }
       } else {
         setError("Telegram WebApp is not available. Please open this app from Telegram.");
@@ -347,7 +359,7 @@ export default function SignUp() {
     }
   };
 
-  if (isPageLoading) {
+  if (isPageLoading || signupComplete) {
     return <Loader />;
   }
 

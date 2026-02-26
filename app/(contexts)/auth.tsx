@@ -140,6 +140,20 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     },[])
 
     const logout = async () =>{
+        // Clear user-specific localStorage to prevent stale data if a different user logs in
+        if (typeof window !== "undefined") {
+            const keys = Object.keys(localStorage);
+            for (const key of keys) {
+                if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
+                    key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
+                    key === "username" || key === "telegramId" || key === "telegramIdNM" ||
+                    key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
+                    localStorage.removeItem(key);
+                }
+            }
+            sessionStorage.clear();
+        }
+        try { await removeToken(); } catch {}
         await auth.signOut();
     }
     const loginWithToken = async(customToken:string) =>{

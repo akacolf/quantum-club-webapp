@@ -68,26 +68,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // If we have a Firebase token, validate it hasn't expired
-  if (firebaseToken) {
+  // Basic sanity check: if we only have a Firebase token, make sure it's a valid JWT
+  if (firebaseToken && !sessionCookie) {
     try {
-      const decoded = decodeJwt(firebaseToken);
-      if (decoded.exp && (decoded.exp - 300) * 1000 < Date.now()) {
-        const { pathname } = request.nextUrl;
-        return NextResponse.redirect(
-          new URL(
-            `/api/refresh-token?redirect=${encodeURIComponent(pathname)}`,
-            request.url
-          )
-        );
-      }
+      decodeJwt(firebaseToken);
     } catch {
-      // Malformed token — if no session cookie either, redirect to login
-      if (!sessionCookie) {
-        return NextResponse.redirect(new URL("/", request.url));
-      }
+      // Garbage cookie — redirect to login
+      return NextResponse.redirect(new URL("/", request.url));
     }
   }
+  // Note: Token refresh is handled client-side by Firebase SDK + auth.tsx setToken()
 
   // OFAC sanctioned country check
   if (isFromSanctionedLocation(request)) {
@@ -96,7 +86,14 @@ export async function proxy(request: NextRequest) {
 
   // Extend session cookie if present
   if (sessionCookie) {
-    return updateSession(request);
+    try {
+      return updateSession(request);
+    } catch {
+      // Session JWT is corrupted/expired — clear it and redirect to login
+      const response = NextResponse.redirect(new URL("/", request.url));
+      response.cookies.delete("session");
+      return response;
+    }
   }
 
   return NextResponse.next();

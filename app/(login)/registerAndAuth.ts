@@ -4,18 +4,20 @@ import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, limi
 
 import { getMaintenance } from "@/lib/getMaintenance";
 
-const userData = {
-  telegramId: "",
-  MainQuantAmount: "",
-  rank: "",
-  daily: 0,
-  username: "",
-  walletAddress: "",
-  qcUsername: "",
-  lastActiveTime: "",
-  remainingSolveToEarn: 0,
-  userRank: 0,
-  status: "",
+function freshUserData() {
+  return {
+    telegramId: "",
+    MainQuantAmount: "",
+    rank: "",
+    daily: 0,
+    username: "",
+    walletAddress: "",
+    qcUsername: "",
+    lastActiveTime: "",
+    remainingSolveToEarn: 0,
+    userRank: 0,
+    status: "",
+  };
 }
 
 /**
@@ -42,7 +44,7 @@ export async function lookupUserByEmail(email: string): Promise<string | null> {
  * Returns the same userData shape as UseRegisterAndAuth.
  */
 export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
-  const result = { ...userData, telegramId: telegramIdEncrypted, status: "" };
+  const result = { ...freshUserData(), telegramId: telegramIdEncrypted, status: "" };
   try {
     localStorage.setItem("telegramId", telegramIdEncrypted);
 
@@ -164,6 +166,7 @@ export async function linkEmailToUserDoc(telegramIdEncrypted: string, email: str
 }
 
 export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, email }: { telegramIdEncrypted: string, initDataUnsafe: any, email?: string }) {
+  const userData = freshUserData();
   try {
     if (!telegramIdEncrypted || !initDataUnsafe) {
       userData.status = "error";

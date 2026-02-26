@@ -91,9 +91,26 @@ export default function Login() {
           if (user.email) {
             qcId = await lookupUserByEmail(user.email);
           }
-          // Telegram users (custom token auth): UID is the QC ID
+
+          // Telegram users: get encrypted ID from auth endpoint
+          if (!qcId && window.Telegram?.WebApp?.initData) {
+            try {
+              const res = await fetch("/api/auth/telegram", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ initData: window.Telegram.WebApp.initData }),
+              });
+              if (res.ok) {
+                const { telegramIdEncrypted } = await res.json();
+                if (telegramIdEncrypted) qcId = telegramIdEncrypted;
+              }
+            } catch {}
+          }
+
           if (!qcId) {
-            qcId = user.uid;
+            // Can't determine identity — redirect without rehydration
+            router.replace(getDeepLinkDestination());
+            return;
           }
 
           const data = await LoadExistingUserByQCId(qcId);
