@@ -475,7 +475,7 @@ const HomeContent = () => {
             "user",
             telegramId,
             "rewardsHistory",
-            Date.now().toString()
+            crypto.randomUUID()
           );
           const snapshotValue = await getDoc(valueRef);
           let quant;
@@ -669,7 +669,7 @@ const HomeContent = () => {
             "user",
             telegramId,
             "rewardsHistory",
-            Date.now().toString()
+            crypto.randomUUID()
           );
 
           setDoc(rewardsHistory, {

@@ -9,6 +9,7 @@ import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc } from "firebase/firestore";
 import Loader from "@/app/(components)/Loader";
+import { toast } from "sonner";
 
 function getInitials(name: string): string {
   if (!name) return "?";
@@ -166,15 +167,22 @@ export default function UserProfilePage() {
           transition={{ delay: 0.1 }}
           className="space-y-2"
         >
-          <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
+          <button
+            className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
+            onClick={() => {
+              navigator.clipboard.writeText(userId);
+              toast.success("QC ID copied");
+            }}
+          >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <Icon icon="solar:user-id-bold" className="w-5 h-5 text-primary" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">QC ID</p>
-              <p className="font-bold text-white text-sm">{userId}</p>
+              <p className="font-bold text-white text-sm truncate">{userId}</p>
             </div>
-          </div>
+            <Icon icon="solar:copy-linear" className="w-4 h-4 text-white/40 shrink-0" />
+          </button>
 
           {memberSince && (
             <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3">

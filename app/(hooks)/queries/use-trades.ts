@@ -216,7 +216,7 @@ export function usePriceAlerts(telegramId: string | null) {
 /**
  * Fetch on-chain stats (holders, trades, volume) for a token.
  */
-export function useOnChainStats(jettonAddress: string | undefined, isTestnet: boolean, refetchMs = 30000) {
+export function useOnChainStats(jettonAddress: string | undefined, isTestnet: boolean) {
     return useQuery<{ holders: number; trades: number; volume24h: number }>({
         queryKey: ["onChainStats", jettonAddress, isTestnet],
         queryFn: async () => {
@@ -257,8 +257,8 @@ export function useOnChainStats(jettonAddress: string | undefined, isTestnet: bo
             return { holders: holdersCount, trades: tradesCount, volume24h };
         },
         enabled: !!jettonAddress,
-        staleTime: 15_000,
-        refetchInterval: refetchMs,
+        retry: false,
+        staleTime: Infinity,
     });
 }
 

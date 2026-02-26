@@ -66,10 +66,32 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                     const claims = tokenResult.claims;
                     setCustomClaims(claims ?? null);
                     if(token && refreshToken){
-                        await setToken({ token, refreshToken });
+                        try {
+                            await setToken({ token, refreshToken });
+                        } catch {
+                            // Retry once — cookie MUST be set for middleware to allow protected routes
+                            try {
+                                const freshResult = await user.getIdTokenResult(true);
+                                await setToken({ token: freshResult.token, refreshToken: user.refreshToken });
+                            } catch {
+                                // Cookie could not be set — sign out to prevent unauthenticated access
+                                console.error("Failed to set auth cookie after retry — signing out");
+                                await auth.signOut();
+                                try { await removeToken(); } catch {}
+                                setCurrentUser(null);
+                                setAuthLoading(false);
+                                return;
+                            }
+                        }
                     }
                 } catch {
-                    // Token verification may fail on preview — don't block auth
+                    // Token retrieval failed entirely — sign out
+                    console.error("Failed to retrieve auth token — signing out");
+                    await auth.signOut();
+                    try { await removeToken(); } catch {}
+                    setCurrentUser(null);
+                    setAuthLoading(false);
+                    return;
                 }
             }else{
                 try { await removeToken(); } catch {}

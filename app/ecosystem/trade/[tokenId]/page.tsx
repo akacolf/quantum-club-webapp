@@ -83,7 +83,6 @@ export default function TokenDetailPage() {
     const { data: onChainStats = { holders: 0, trades: 0, volume24h: 0 } } = useOnChainStats(
         selectedToken?.jettonMasterAddress,
         isTestnet,
-        30000
     );
 
     useEffect(() => {
