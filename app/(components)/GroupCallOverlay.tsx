@@ -54,15 +54,15 @@ export default function GroupCallOverlay() {
   } = useCallContext();
 
   const [duration, setDuration] = useState(0);
-  const [startTime] = useState(() => Date.now());
+  const startedAt = groupCallInfo?.startedAt;
 
   useEffect(() => {
-    if (groupCallState !== "active") return;
-    const interval = setInterval(() => {
-      setDuration(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
+    if (groupCallState !== "active" || !startedAt) return;
+    const tick = () => setDuration(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [groupCallState, startTime]);
+  }, [groupCallState, startedAt]);
 
   const visible = groupCallState === "active" && groupCallInfo;
 
@@ -116,20 +116,23 @@ export default function GroupCallOverlay() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[70] flex flex-col items-center justify-between bg-neutral-950/95 backdrop-blur-sm py-16"
+          className="fixed inset-0 z-[70] flex flex-col items-center bg-neutral-950/95 backdrop-blur-sm"
+          style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))" }}
         >
-          {/* Minimize button */}
-          <button
-            onClick={toggleMinimize}
-            className="absolute top-4 left-4 p-2 text-white/60 hover:text-white transition-colors"
-            style={{ marginTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))" }}
-          >
-            <Icon icon="solar:alt-arrow-down-linear" className="w-6 h-6" />
-          </button>
+          {/* Top bar */}
+          <div className="w-full flex items-center justify-between px-4 pt-3 pb-2">
+            <button
+              onClick={toggleMinimize}
+              className="p-2 text-white/60 hover:text-white transition-colors"
+            >
+              <Icon icon="solar:alt-arrow-down-linear" className="w-6 h-6" />
+            </button>
+            <div className="w-10" />
+          </div>
 
           {/* Header */}
-          <div className="flex flex-col items-center gap-2 mt-8">
-            <h2 className="text-lg font-semibold text-white">
+          <div className="flex flex-col items-center gap-1 px-12 mt-2">
+            <h2 className="text-lg font-semibold text-white text-center leading-tight">
               {groupCallInfo.groupName}
             </h2>
             <p className="text-sm text-white/60">
@@ -151,7 +154,7 @@ export default function GroupCallOverlay() {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-8 mb-8">
+          <div className="flex items-center gap-8 pb-12 shrink-0">
             <Button
               size="icon"
               variant="ghost"

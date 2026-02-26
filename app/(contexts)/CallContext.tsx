@@ -71,6 +71,7 @@ interface GroupCallInfo {
   groupName: string;
   participants: string[];
   participantNames: Record<string, string>;
+  startedAt: number;
 }
 
 interface CallContextType {
@@ -1046,6 +1047,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         // Find existing active call or create new
         let callId: string;
         let existingParticipants: string[] = [];
+        let callStartedAt = Date.now();
 
         const existing = await getActiveGroupCall(chatId);
         if (existing) {
@@ -1057,6 +1059,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           }
           callId = existing.id;
           existingParticipants = existing.data.participants;
+          callStartedAt = existing.data.createdAt?.toMillis() || Date.now();
           await joinGroupCallDoc(callId, telegramId, qcUsername);
         } else {
           callId = await createGroupCallDoc(chatId, groupName, telegramId, qcUsername);
@@ -1070,6 +1073,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             ? existingParticipants
             : [...existingParticipants, telegramId],
           participantNames: { [telegramId]: qcUsername },
+          startedAt: callStartedAt,
         };
         setGroupCallInfo(info);
         groupCallInfoRef.current = info;
@@ -1099,6 +1103,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             groupName: data.groupName,
             participants: data.participants,
             participantNames: data.participantNames,
+            startedAt: data.createdAt?.toMillis() || groupCallInfoRef.current?.startedAt || Date.now(),
           };
           setGroupCallInfo(updatedInfo);
           groupCallInfoRef.current = updatedInfo;
