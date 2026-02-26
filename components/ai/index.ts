@@ -3,8 +3,6 @@
 
 export { TokenAnalysisCard } from "./TokenAnalysisCard";
 export { PortfolioHealthCard } from "./PortfolioHealthCard";
-export { TransactionExplainer } from "./TransactionExplainer";
-
 // Types
 export interface TokenAnalysis {
     riskScore: number;

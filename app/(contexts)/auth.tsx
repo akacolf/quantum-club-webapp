@@ -3,7 +3,7 @@
 import { auth, dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc } from "firebase/firestore";
 import { GoogleAuthProvider, EmailAuthProvider, ParsedToken, signInWithCredential, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, User } from "firebase/auth";
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { removeToken, setToken } from "./actions";
 type AuthContextType = {
     currentUser: User | null;
@@ -26,6 +26,9 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const [authLoading, setAuthLoading] = useState(true);
     const [customClaims,setCustomClaims] = useState<ParsedToken | null>(null)
     const [keepLoggedIn, setKeepLoggedInState] = useState(true);
+    // Tracks whether an explicit login is in progress, so onAuthStateChanged
+    // doesn't immediately sign the user out when keepLoggedIn is false.
+    const isExplicitLogin = useRef(false);
 
     const setKeepLoggedIn = (value: boolean) => {
         setKeepLoggedInState(value);
@@ -48,15 +51,23 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
             const storedKeep = typeof window !== "undefined" ? localStorage.getItem("keepLoggedIn") : null;
             const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
 
-            if (user && !shouldKeep) {
-                // User chose not to stay logged in — sign them out
+            if (user && !shouldKeep && !isExplicitLogin.current) {
+                // User chose not to stay logged in and this is a page reload (not an active login)
+                // — sign them out so the session doesn't persist.
                 await auth.signOut();
                 try { await removeToken(); } catch {}
                 setCurrentUser(null);
                 setAuthLoading(false);
                 return;
             }
+            // Clear the explicit-login flag now that onAuthStateChanged has processed
+            isExplicitLogin.current = false;
 
+            if (user) {
+                // Keep authLoading true while we set the cookie — prevents
+                // Login.tsx from navigating before the middleware cookie is ready.
+                setAuthLoading(true);
+            }
             setCurrentUser(user ?? null);
             if(user){
                 try {
@@ -157,14 +168,17 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
         await auth.signOut();
     }
     const loginWithToken = async(customToken:string) =>{
+      isExplicitLogin.current = true;
       const cred = await signInWithCustomToken(auth, customToken);
       await cred.user.getIdToken(true);
     }
     const loginWithEmail = async(email: string, password: string): Promise<User> => {
+      isExplicitLogin.current = true;
       const result = await signInWithEmailAndPassword(auth, email, password);
       return result.user;
     }
     const signUpWithEmail = async(email: string, password: string): Promise<User> => {
+      isExplicitLogin.current = true;
       const result = await createUserWithEmailAndPassword(auth, email, password);
       // Note: verification email is not sent — email verification service is not ready yet.
       return result.user;
