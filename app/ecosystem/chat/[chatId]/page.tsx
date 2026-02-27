@@ -45,6 +45,7 @@ import {
   collection,
   doc,
   addDoc,
+  getDoc,
   query,
   orderBy,
   where,
@@ -563,6 +564,8 @@ export default function ChatConversationPage() {
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       // Use participantsRef for latest participants (avoids stale closure)
       const participants = [...participantsRef.current];
+      // If participants haven't loaded yet, skip decryption to avoid false "sent a message" failures
+      if (participants.length === 0) return;
 
       const rawMsgs: {
         id: string;
@@ -1385,6 +1388,7 @@ export default function ChatConversationPage() {
 
   const handleCreatePoll = async (question: string, options: string[]) => {
     if (!telegramId || !chatId || !chatMeta) return;
+    if (!question.trim() || options.length < 2 || options.some((o) => !o.trim())) return;
     try {
       const senderName = qcUsername || "Unknown";
       const participants = participantsRef.current;
@@ -1513,9 +1517,14 @@ export default function ChatConversationPage() {
       if (!msg) return;
       setIsForwarding(true);
       try {
-        const destParticipants: string[] = destChat.participants || [];
-        const destIsGroup = destChat.isGroup || destChat.isGlobal || false;
-        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId, destIsGroup, destChat.epochNonce, destChat.epochCounter);
+        // Fetch fresh destination chat data to get current epoch & participants
+        const destSnap = await getDoc(doc(dbfs, "qc-chats", destChat.id));
+        const freshDest = destSnap.exists() ? destSnap.data() : destChat;
+        const destParticipants: string[] = freshDest.participants || destChat.participants || [];
+        const destIsGroup = freshDest.isGroup || freshDest.isGlobal || false;
+        const destEpochNonce = freshDest.epochNonce ?? destChat.epochNonce;
+        const destEpochCounter = freshDest.epochCounter ?? destChat.epochCounter;
+        const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId, destIsGroup, destEpochNonce, destEpochCounter);
         const senderName = qcUsername || "Unknown";
 
         const fwdDoc: Record<string, unknown> = {
@@ -1525,13 +1534,14 @@ export default function ChatConversationPage() {
           createdAt: serverTimestamp(),
           encrypted: true,
           encVersion: 6,
-          encEpoch: destChat.epochCounter ?? 0,
+          encEpoch: destEpochCounter ?? 0,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
 
         // If destination has disappearing messages, add expiresAt
-        if (destChat.disappearAfter && destChat.disappearAfter > 0) {
-          fwdDoc.expiresAt = Timestamp.fromMillis(Date.now() + destChat.disappearAfter);
+        const destDisappear = freshDest.disappearAfter ?? destChat.disappearAfter;
+        if (destDisappear && destDisappear > 0) {
+          fwdDoc.expiresAt = Timestamp.fromMillis(Date.now() + destDisappear);
         }
 
         const destMsgsRef = collection(dbfs, "qc-chats", destChat.id, "messages");
@@ -1542,7 +1552,7 @@ export default function ChatConversationPage() {
           lastMessage: encryptedText,
           lastMessageBy: telegramId,
           lastMessageAt: serverTimestamp(),
-          lastMessageEpoch: destChat.epochCounter ?? 0,
+          lastMessageEpoch: destEpochCounter ?? 0,
           [`readPositions.${telegramId}`]: serverTimestamp(),
           [`unreadCounts.${telegramId}`]: 0,
         };

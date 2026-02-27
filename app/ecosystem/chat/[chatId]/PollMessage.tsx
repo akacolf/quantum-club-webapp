@@ -31,17 +31,16 @@ export default function PollMessage({ msgId, poll, telegramId, chatId, isOwnMess
     const msgRef = doc(dbfs, "qc-chats", chatId, "messages", msgId);
 
     try {
-      // Remove previous vote if any
+      // Combine remove + add into a single atomic update to prevent race conditions
+      const updates: Record<string, unknown> = {};
       if (userVotedOption !== undefined) {
-        await updateDoc(msgRef, {
-          [`poll.votes.${userVotedOption}`]: arrayRemove(telegramId),
-        });
+        updates[`poll.votes.${userVotedOption}`] = arrayRemove(telegramId);
       }
-      // Add new vote (skip if tapping the same option to un-vote)
       if (userVotedOption !== key) {
-        await updateDoc(msgRef, {
-          [`poll.votes.${key}`]: arrayUnion(telegramId),
-        });
+        updates[`poll.votes.${key}`] = arrayUnion(telegramId);
+      }
+      if (Object.keys(updates).length > 0) {
+        await updateDoc(msgRef, updates);
       }
     } catch (err) {
       console.error("Vote failed:", err);

@@ -21,6 +21,21 @@ type AuthContextType = {
 }
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/** Clear user-specific localStorage keys to prevent stale data across accounts. */
+function clearUserLocalStorage() {
+    if (typeof window === "undefined") return;
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+        if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
+            key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
+            key === "username" || key === "telegramId" || key === "telegramIdNM" ||
+            key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
+            localStorage.removeItem(key);
+        }
+    }
+    sessionStorage.clear();
+}
+
 export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [authLoading, setAuthLoading] = useState(true);
@@ -122,16 +137,7 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
                         }
                         if (remoteVersion && localVersion !== null && String(remoteVersion) !== localVersion) {
                             localStorage.setItem("forceAuthVersion", String(remoteVersion));
-                            const keys = Object.keys(localStorage);
-                            for (const key of keys) {
-                                if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
-                                    key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
-                                    key === "username" || key === "telegramId" || key === "telegramIdNM" ||
-                                    key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
-                                    localStorage.removeItem(key);
-                                }
-                            }
-                            sessionStorage.clear();
+                            clearUserLocalStorage();
                             await auth.signOut();
                             try { await removeToken(); } catch {}
                             setCurrentUser(null);
@@ -151,19 +157,7 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     },[])
 
     const logout = async () =>{
-        // Clear user-specific localStorage to prevent stale data if a different user logs in
-        if (typeof window !== "undefined") {
-            const keys = Object.keys(localStorage);
-            for (const key of keys) {
-                if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
-                    key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
-                    key === "username" || key === "telegramId" || key === "telegramIdNM" ||
-                    key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
-                    localStorage.removeItem(key);
-                }
-            }
-            sessionStorage.clear();
-        }
+        clearUserLocalStorage();
         try { await removeToken(); } catch {}
         await auth.signOut();
     }
@@ -184,23 +178,24 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
       return result.user;
     }
     const loginWithGoogle = async() =>{
-    const client = (window as any).google.accounts.oauth2.initTokenClient({
-    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/userinfo.profile',
-    callback: (tokenResponse: any) => {
-      const credential = GoogleAuthProvider.credential(null,tokenResponse.access_token);
-      signInWithCredential(auth, credential)
-        .then((result) => {
-          console.error("Firebase'e giriş yapıldı:", result.user);
-        })
-        .catch((error) => {
-          console.error("Hata:", error);
+      isExplicitLogin.current = true;
+      return new Promise<void>((resolve, reject) => {
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/userinfo.profile',
+          callback: async (tokenResponse: any) => {
+            try {
+              const credential = GoogleAuthProvider.credential(null, tokenResponse.access_token);
+              await signInWithCredential(auth, credential);
+              resolve();
+            } catch (error) {
+              console.error("Google sign-in error:", error);
+              reject(error);
+            }
+          },
         });
-    },
-  });
-
-  // Giriş akışını başlat (Doğrudan Google Popup açar)
-    client.requestAccessToken();
+        client.requestAccessToken();
+      });
     }
     const linkEmailToAccount = async(email: string, password: string): Promise<void> => {
       const user = auth.currentUser;
@@ -213,15 +208,22 @@ export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
     const linkGoogleToAccount = async(): Promise<void> => {
       const user = auth.currentUser;
       if (!user) throw new Error("No user signed in");
-      const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/userinfo.profile',
-        callback: async (tokenResponse: any) => {
-          const credential = GoogleAuthProvider.credential(null, tokenResponse.access_token);
-          await linkWithCredential(user, credential);
-        },
+      return new Promise<void>((resolve, reject) => {
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/userinfo.profile',
+          callback: async (tokenResponse: any) => {
+            try {
+              const credential = GoogleAuthProvider.credential(null, tokenResponse.access_token);
+              await linkWithCredential(user, credential);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+        });
+        client.requestAccessToken();
       });
-      client.requestAccessToken();
     }
    return ( 
     <AuthContext.Provider 
