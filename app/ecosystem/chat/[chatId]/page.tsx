@@ -288,6 +288,7 @@ export default function ChatConversationPage() {
   const isTypingRef = useRef(false);
   const participantsRef = useRef<string[]>([]);
   const isGroupRef = useRef(false);
+  const epochRef = useRef<{ nonce?: string; counter?: number; nonces?: Record<number, string> }>({});
 
   // Long-press & double-tap refs for reactions
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -409,6 +410,11 @@ export default function ChatConversationPage() {
         const participants = data.participants || [];
         participantsRef.current = participants;
         isGroupRef.current = data.isGroup || data.isGlobal || false;
+        epochRef.current = {
+          nonce: data.epochNonce,
+          counter: data.epochCounter,
+          nonces: data.epochNonces,
+        };
         setChatMeta({
           participants,
           participantNames: data.participantNames || {},
@@ -603,10 +609,11 @@ export default function ChatConversationPage() {
         });
       });
 
-      // Helper to look up epoch nonce for a message
+      // Helper to look up epoch nonce for a message (use epochRef to avoid stale closure)
       const getEpochNonce = (epoch?: number) => {
         if (epoch === undefined) return undefined;
-        return chatMeta?.epochNonces?.[epoch] ?? (epoch === chatMeta?.epochCounter ? chatMeta?.epochNonce : undefined);
+        const ep = epochRef.current;
+        return ep.nonces?.[epoch] ?? (epoch === ep.counter ? ep.nonce : undefined);
       };
 
       const decryptedMsgs = await Promise.all(
@@ -791,7 +798,8 @@ export default function ChatConversationPage() {
 
       const getEpochNonceOlder = (epoch?: number) => {
         if (epoch === undefined) return undefined;
-        return chatMeta?.epochNonces?.[epoch] ?? (epoch === chatMeta?.epochCounter ? chatMeta?.epochNonce : undefined);
+        const ep = epochRef.current;
+        return ep.nonces?.[epoch] ?? (epoch === ep.counter ? ep.nonce : undefined);
       };
 
       const olderDecrypted = await Promise.all(

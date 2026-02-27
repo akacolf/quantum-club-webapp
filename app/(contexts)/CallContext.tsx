@@ -137,6 +137,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const callStateRef = useRef<CallState>("idle");
   // Track pending remote ICE candidates (received before remote description is set)
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const isSpeakerRef = useRef(false);
 
   // Keep refs in sync
   useEffect(() => {
@@ -145,6 +146,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     callStateRef.current = callState;
   }, [callState]);
+  useEffect(() => {
+    isSpeakerRef.current = isSpeaker;
+  }, [isSpeaker]);
 
   // ── Audio helpers ──────────────────────────────────────────────────────────
 
@@ -786,8 +790,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // ── Toggle mute ─────────────────────────────────────────────────────────
 
   const toggleMute = useCallback(() => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+    // Check 1:1 call stream first, then group call stream
+    const stream = localStreamRef.current || groupStreamRef.current;
+    if (stream) {
+      const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
@@ -801,12 +807,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const next = !isSpeaker;
     setIsSpeaker(next);
 
-    const el = remoteAudioRef.current;
-    if (!el) return;
+    // Collect all audio elements: 1:1 remote audio + all group call audio elements
+    const audioElements: HTMLAudioElement[] = [];
+    if (remoteAudioRef.current) audioElements.push(remoteAudioRef.current);
+    for (const el of groupAudioElementsRef.current.values()) {
+      audioElements.push(el);
+    }
+    if (audioElements.length === 0) return;
 
     // setSinkId is supported in Chromium-based WebViews (Android)
     // Not available in iOS WKWebView — audio follows system default there
-    if (typeof (el as any).setSinkId === "function") {
+    const firstEl = audioElements[0];
+    if (typeof (firstEl as any).setSinkId === "function") {
       navigator.mediaDevices
         .enumerateDevices()
         .then((devices) => {
@@ -826,11 +838,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             ? speaker?.deviceId ?? "default"
             : earpiece?.deviceId ?? "";
 
-          (el as any)
-            .setSinkId(targetId)
-            .catch((err: Error) =>
-              console.warn("[CallContext] setSinkId failed:", err)
-            );
+          // Apply to all audio elements
+          for (const el of audioElements) {
+            (el as any)
+              .setSinkId(targetId)
+              .catch((err: Error) =>
+                console.warn("[CallContext] setSinkId failed:", err)
+              );
+          }
         })
         .catch(() => {});
     }
@@ -986,6 +1001,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           audioEl.style.display = "none";
           document.body.appendChild(audioEl);
           groupAudioElementsRef.current.set(remoteUserId, audioEl);
+
+          // Apply current speaker setting to new audio element
+          if (isSpeakerRef.current && typeof (audioEl as any).setSinkId === "function") {
+            navigator.mediaDevices.enumerateDevices().then((devices) => {
+              const speaker = devices.find(
+                (d) => d.kind === "audiooutput" && d.label.toLowerCase().includes("speaker")
+              );
+              if (speaker) {
+                (audioEl as any).setSinkId(speaker.deviceId).catch(() => {});
+              }
+            }).catch(() => {});
+          }
         }
         audioEl.srcObject = stream;
         audioEl.play().catch(() => {});
@@ -1078,6 +1105,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         setGroupCallInfo(info);
         groupCallInfoRef.current = info;
         setGroupCallState("active");
+        setIsMuted(false);
+        setIsSpeaker(false);
         setActiveCall(callId);
 
         // Fetch TURN config
