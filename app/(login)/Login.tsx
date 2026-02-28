@@ -124,7 +124,6 @@ export default function Login() {
             setWalletAddress(data.walletAddress);
             if (data.qcUsername) {
               setQcUsername(data.qcUsername);
-              localStorage.setItem(`qcUsername_${data.telegramId}`, data.qcUsername);
             }
             if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
             setLastActiveTime(data.lastActiveTime);
@@ -189,7 +188,6 @@ export default function Login() {
           setWalletAddress(data.walletAddress);
           if (data.qcUsername) {
             setQcUsername(data.qcUsername);
-            localStorage.setItem(`qcUsername_${data.telegramId}`, data.qcUsername);
           }
           if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
           setLastActiveTime(data.lastActiveTime);
@@ -308,7 +306,6 @@ export default function Login() {
           setWalletAddress(finalData.walletAddress);
           if (finalData.qcUsername) {
             setQcUsername(finalData.qcUsername);
-            localStorage.setItem(`qcUsername_${finalData.telegramId}`, finalData.qcUsername);
           }
           if (finalData.userRank != null) sessionStorage.setItem("userLeaderRank", String(finalData.userRank));
           setLastActiveTime(finalData.lastActiveTime);

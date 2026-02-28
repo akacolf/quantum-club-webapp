@@ -1,8 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { UserDataProvider } from "../(contexts)/UserContext";
 import { ThemeProvider } from "./ThemeProvider";
+import { useUserHydration } from "@/stores/user-store";
 
 // Shared QueryClient instance — available to all providers and hooks
 const queryClient = new QueryClient({
@@ -40,28 +40,29 @@ if (typeof window !== "undefined") {
 }
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
+  // Firestore listener for real-time QuantAmount updates (replaces UserDataProvider)
+  useUserHydration();
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
-        <UserDataProvider>
-          <WalletProvider>
-            <LeaderboardProvider>
-              <FrensProvider>
-                <ChatProvider>
-                  <GroupsProvider>
-                    <TradingProvider>
-                      <OmnistonClientProvider>
-                        <CallProvider>
-                          {children}
-                        </CallProvider>
-                      </OmnistonClientProvider>
-                    </TradingProvider>
-                  </GroupsProvider>
-                </ChatProvider>
-              </FrensProvider>
-            </LeaderboardProvider>
-          </WalletProvider>
-        </UserDataProvider>
+        <WalletProvider>
+          <LeaderboardProvider>
+            <FrensProvider>
+              <ChatProvider>
+                <GroupsProvider>
+                  <TradingProvider>
+                    <OmnistonClientProvider>
+                      <CallProvider>
+                        {children}
+                      </CallProvider>
+                    </OmnistonClientProvider>
+                  </TradingProvider>
+                </GroupsProvider>
+              </ChatProvider>
+            </FrensProvider>
+          </LeaderboardProvider>
+        </WalletProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

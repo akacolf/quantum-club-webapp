@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { GoogleAuthProvider, EmailAuthProvider, ParsedToken, signInWithCredential, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, User } from "firebase/auth";
 import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { removeToken, setToken } from "./actions";
+import { useUserStore } from "@/stores/user-store";
 type AuthContextType = {
     currentUser: User | null;
     authLoading: boolean;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 /** Clear user-specific localStorage keys to prevent stale data across accounts. */
 function clearUserLocalStorage() {
     if (typeof window === "undefined") return;
+    // Clear legacy per-key localStorage values (may still exist during migration)
     const keys = Object.keys(localStorage);
     for (const key of keys) {
         if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
@@ -34,6 +36,8 @@ function clearUserLocalStorage() {
         }
     }
     sessionStorage.clear();
+    // Reset Zustand persisted store
+    useUserStore.getState().reset();
 }
 
 export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
