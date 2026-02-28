@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/lib/validations";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,10 +21,12 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
+  const form = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isEmailSent, setIsEmailSent] = useState(false);
 
   const router = useRouter();
@@ -40,19 +45,12 @@ export default function ForgotPassword() {
     return () => clearTimeout(timer);
   }, [router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
-    setError(null);
-
-    if (!email.trim()) {
-      setError("Please enter your email address");
-      setIsLoading(false);
-      return;
-    }
+    form.clearErrors("root");
 
     try {
-      await sendPasswordResetEmail(auth, email, {
+      await sendPasswordResetEmail(auth, data.email, {
         url: `${window.location.origin}/`,
         handleCodeInApp: false,
       });
@@ -61,13 +59,13 @@ export default function ForgotPassword() {
       console.error("Password reset error:", err);
       if (err instanceof Error) {
         if (err.message.includes("user-not-found")) {
-          setError("No account found with this email address");
+          form.setError("root", { message: "No account found with this email address" });
         } else if (err.message.includes("invalid-email")) {
-          setError("Please enter a valid email address");
+          form.setError("root", { message: "Please enter a valid email address" });
         } else if (err.message.includes("too-many-requests")) {
-          setError("Too many requests. Please try again later");
+          form.setError("root", { message: "Too many requests. Please try again later" });
         } else {
-          setError("Failed to send reset email. Please try again.");
+          form.setError("root", { message: "Failed to send reset email. Please try again." });
         }
       }
     } finally {
@@ -77,15 +75,15 @@ export default function ForgotPassword() {
 
   const handleResendEmail = async () => {
     setIsLoading(true);
-    setError(null);
+    form.clearErrors("root");
     try {
-      await sendPasswordResetEmail(auth, email, {
+      await sendPasswordResetEmail(auth, form.getValues("email"), {
         url: `${window.location.origin}/`,
         handleCodeInApp: false,
       });
     } catch (err) {
       console.error("Resend error:", err);
-      setError("Failed to resend email. Please try again.");
+      form.setError("root", { message: "Failed to resend email. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +125,7 @@ export default function ForgotPassword() {
                 <h1 className="text-xl font-semibold">Check your email</h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   We&apos;ve sent a password reset link to{" "}
-                  <span className="font-medium text-foreground">{email}</span>
+                  <span className="font-medium text-foreground">{form.getValues("email")}</span>
                 </p>
               </>
             ) : (
@@ -185,11 +183,11 @@ export default function ForgotPassword() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
               <div className="grid gap-6">
-                {error && (
+                {form.formState.errors.root && (
                   <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                    {error}
+                    {form.formState.errors.root.message}
                   </div>
                 )}
 
@@ -200,17 +198,19 @@ export default function ForgotPassword() {
                       id="email"
                       type="email"
                       placeholder="Your email address"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      {...form.register("email")}
                       disabled={isLoading}
                       autoComplete="email"
                       autoFocus
                     />
+                    {form.formState.errors.email && (
+                      <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+                    )}
                   </div>
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoading || !email}
+                    disabled={isLoading || !form.watch("email")}
                   >
                     {isLoading ? (
                       <ButtonLoader size="sm" />

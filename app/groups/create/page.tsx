@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createGroupSchema, type CreateGroupFormData } from "@/lib/validations";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { useWallet } from "@/app/wallet/WalletContext";
@@ -27,26 +30,16 @@ export default function CreateGroupPage() {
         router.prefetch("/groups");
     }, [router]);
 
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
+    const form = useForm<CreateGroupFormData>({
+        resolver: zodResolver(createGroupSchema),
+        defaultValues: { name: "", description: "" },
+    });
     const [isCreating, setIsCreating] = useState(false);
     const [nftGated, setNftGated] = useState(false);
     const [selectedCollection, setSelectedCollection] = useState("");
     const [selectedCollectionName, setSelectedCollectionName] = useState("");
 
-    const handleCreate = async () => {
-        if (!name.trim()) {
-            toast.error("Please enter a group name");
-            return;
-        }
-        if (name.length > 30) {
-            toast.error("Group name must be 30 characters or less");
-            return;
-        }
-        if (description.length > 100) {
-            toast.error("Description must be 100 characters or less");
-            return;
-        }
+    const handleCreate = async (data: CreateGroupFormData) => {
         if (nftGated && !selectedCollection) {
             toast.error("Please select a collection for NFT gating");
             return;
@@ -55,8 +48,8 @@ export default function CreateGroupPage() {
         setIsCreating(true);
         try {
             const groupId = await createGroup(
-                name.trim(),
-                description.trim(),
+                data.name.trim(),
+                data.description.trim(),
                 undefined,
                 undefined,
                 nftGated || undefined,
@@ -96,25 +89,33 @@ export default function CreateGroupPage() {
                         <div className="space-y-2">
                             <Label className="text-sm font-medium text-muted-foreground">Group Name</Label>
                             <Input
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                {...form.register("name")}
                                 placeholder="Enter group name"
                                 maxLength={30}
                             />
-                            <p className="text-xs text-muted-foreground text-right">{name.length}/30</p>
+                            <div className="flex justify-between">
+                                {form.formState.errors.name ? (
+                                    <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
+                                ) : <span />}
+                                <p className="text-xs text-muted-foreground">{form.watch("name").length}/30</p>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
                             <Label className="text-sm font-medium text-muted-foreground">Description (optional)</Label>
                             <Textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
+                                {...form.register("description")}
                                 placeholder="What's your group about?"
                                 maxLength={100}
                                 rows={3}
                                 className="resize-none"
                             />
-                            <p className="text-xs text-muted-foreground text-right">{description.length}/100</p>
+                            <div className="flex justify-between">
+                                {form.formState.errors.description ? (
+                                    <p className="text-xs text-destructive">{form.formState.errors.description.message}</p>
+                                ) : <span />}
+                                <p className="text-xs text-muted-foreground">{form.watch("description").length}/100</p>
+                            </div>
                         </div>
 
                         {/* NFT-Gated Toggle */}
@@ -165,8 +166,8 @@ export default function CreateGroupPage() {
                         )}
 
                         <Button
-                            onClick={handleCreate}
-                            disabled={isCreating || !name.trim()}
+                            onClick={form.handleSubmit(handleCreate)}
+                            disabled={isCreating || !form.watch("name").trim()}
                             className="w-full"
                         >
                             {isCreating ? "Creating..." : "Create Group"}

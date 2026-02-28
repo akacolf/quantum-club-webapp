@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { signupSchema, type SignupFormData } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,14 +24,14 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function SignUp() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const form = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { email: "", password: "", confirmPassword: "" },
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [signupComplete, setSignupComplete] = useState(false);
   const hasRedirected = useRef(false);
 
@@ -71,39 +74,20 @@ export default function SignUp() {
     return () => clearTimeout(timer);
   }, [router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
-    setError(null);
-
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      setError("Please fill in all fields");
-      setIsLoading(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      setIsLoading(false);
-      return;
-    }
+    form.clearErrors("root");
 
     try {
       // Check if email is already linked to an existing QC account
       const checkRes = await fetch("/api/check-existing-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: data.email }),
       });
       const { exists } = await checkRes.json();
       if (exists) {
-        setError("An account with this email already exists. Please sign in instead.");
+        form.setError("root", { message: "An account with this email already exists. Please sign in instead." });
         setIsLoading(false);
         return;
       }
@@ -144,7 +128,7 @@ export default function SignUp() {
               });
               const { exists: tgExists } = await tgCheckRes.json();
               if (tgExists) {
-                setError("You already have an account. Please sign in instead.");
+                form.setError("root", { message: "You already have an account. Please sign in instead." });
                 setIsLoading(false);
                 return;
               }
@@ -154,7 +138,7 @@ export default function SignUp() {
       }
 
       // Create Firebase account with email verification
-      await authContext?.signUpWithEmail(email, password);
+      await authContext?.signUpWithEmail(data.email, data.password);
 
       // Register with TG ID (since we're in TG Mini App)
       if (
@@ -193,28 +177,28 @@ export default function SignUp() {
           }
 
           // Store email in the user's Firestore profile
-          const data = await UseRegisterAndAuth({
+          const regData = await UseRegisterAndAuth({
             telegramIdEncrypted,
             initDataUnsafe,
-            email,
+            email: data.email,
           });
 
-          if (data.status === "maintenance") {
+          if (regData.status === "maintenance") {
             router.replace("/maintenance");
             return;
           }
 
-          if (data.status === "completed") {
-            setTelegramId(data.telegramId);
-            SetMainQuantAmount(data.MainQuantAmount);
-            setRank(data.rank);
-            setUserRank(data.userRank);
-            if (data.userRank != null) sessionStorage.setItem("userLeaderRank", String(data.userRank));
-            setDaily(data.daily);
-            setUsername(data.username);
-            setWalletAddress(data.walletAddress);
-            setLastActiveTime(data.lastActiveTime);
-            setRemainingSolveToEarn(data.remainingSolveToEarn);
+          if (regData.status === "completed") {
+            setTelegramId(regData.telegramId);
+            SetMainQuantAmount(regData.MainQuantAmount);
+            setRank(regData.rank);
+            setUserRank(regData.userRank);
+            if (regData.userRank != null) sessionStorage.setItem("userLeaderRank", String(regData.userRank));
+            setDaily(regData.daily);
+            setUsername(regData.username);
+            setWalletAddress(regData.walletAddress);
+            setLastActiveTime(regData.lastActiveTime);
+            setRemainingSolveToEarn(regData.remainingSolveToEarn);
           }
         }
       }
@@ -226,13 +210,13 @@ export default function SignUp() {
       console.error("Sign up error:", err);
       if (err instanceof Error) {
         if (err.message.includes("email-already-in-use")) {
-          setError("An account with this email already exists");
+          form.setError("root", { message: "An account with this email already exists" });
         } else if (err.message.includes("invalid-email")) {
-          setError("Please enter a valid email address");
+          form.setError("root", { message: "Please enter a valid email address" });
         } else if (err.message.includes("weak-password")) {
-          setError("Password is too weak. Please use a stronger password");
+          form.setError("root", { message: "Password is too weak. Please use a stronger password" });
         } else {
-          setError("Failed to create account. Please try again.");
+          form.setError("root", { message: "Failed to create account. Please try again." });
         }
       }
     } finally {
@@ -242,7 +226,7 @@ export default function SignUp() {
 
   const handleTelegramSignUp = async () => {
     setIsLoading(true);
-    setError(null);
+    form.clearErrors("root");
     try {
       if (
         typeof window !== "undefined" &&
@@ -297,7 +281,7 @@ export default function SignUp() {
         });
         const { exists } = await checkRes.json();
         if (exists) {
-          setError("You already have an account. Please sign in instead.");
+          form.setError("root", { message: "You already have an account. Please sign in instead." });
           setIsLoading(false);
           return;
         }
@@ -347,13 +331,13 @@ export default function SignUp() {
           setSignupComplete(true);
         }
       } else {
-        setError("Telegram WebApp is not available. Please open this app from Telegram.");
+        form.setError("root", { message: "Telegram WebApp is not available. Please open this app from Telegram." });
       }
     } catch (err) {
       console.error("Telegram sign-up error:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to sign up with Telegram"
-      );
+      form.setError("root", {
+        message: err instanceof Error ? err.message : "Failed to sign up with Telegram",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -390,11 +374,11 @@ export default function SignUp() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="grid gap-6">
-              {error && (
+              {form.formState.errors.root && (
                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
+                  {form.formState.errors.root.message}
                 </div>
               )}
 
@@ -426,11 +410,13 @@ export default function SignUp() {
                     id="email"
                     type="email"
                     placeholder="Your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...form.register("email")}
                     disabled={isLoading}
                     autoComplete="email"
                   />
+                  {form.formState.errors.email && (
+                    <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
@@ -439,8 +425,7 @@ export default function SignUp() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      {...form.register("password")}
                       disabled={isLoading}
                       autoComplete="new-password"
                       className="pr-10"
@@ -460,6 +445,9 @@ export default function SignUp() {
                       />
                     </button>
                   </div>
+                  {form.formState.errors.password && (
+                    <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
@@ -468,8 +456,7 @@ export default function SignUp() {
                       id="confirm-password"
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm your password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      {...form.register("confirmPassword")}
                       disabled={isLoading}
                       autoComplete="new-password"
                       className="pr-10"
@@ -489,6 +476,9 @@ export default function SignUp() {
                       />
                     </button>
                   </div>
+                  {form.formState.errors.confirmPassword && (
+                    <p className="text-xs text-destructive">{form.formState.errors.confirmPassword.message}</p>
+                  )}
                 </div>
 
                 {/* Keep me logged in */}

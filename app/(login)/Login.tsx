@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +39,13 @@ function getDeepLinkDestination(): string {
 }
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const hasRedirected = useRef(false);
 
   const router = useRouter();
@@ -153,22 +157,15 @@ export default function Login() {
     return () => clearTimeout(timer);
   }, [router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    setError(null);
-
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter your email and password");
-      setIsLoading(false);
-      return;
-    }
+    form.clearErrors("root");
 
     try {
-      await authContext?.loginWithEmail(email, password);
+      await authContext?.loginWithEmail(data.email, data.password);
 
       // Look up existing QC account by email (independent of Telegram session)
-      const existingQCId = await lookupUserByEmail(email);
+      const existingQCId = await lookupUserByEmail(data.email);
       if (existingQCId) {
         // Load existing user data using their stored QC ID
         const data = await LoadExistingUserByQCId(existingQCId);
@@ -200,13 +197,13 @@ export default function Login() {
       console.error("Login error:", err);
       if (err instanceof Error) {
         if (err.message.includes("user-not-found") || err.message.includes("invalid-credential")) {
-          setError("Invalid email or password");
+          form.setError("root", { message: "Invalid email or password" });
         } else if (err.message.includes("wrong-password")) {
-          setError("Invalid email or password");
+          form.setError("root", { message: "Invalid email or password" });
         } else if (err.message.includes("too-many-requests")) {
-          setError("Too many failed attempts. Please try again later.");
+          form.setError("root", { message: "Too many failed attempts. Please try again later." });
         } else {
-          setError("Failed to sign in. Please try again.");
+          form.setError("root", { message: "Failed to sign in. Please try again." });
         }
       }
     } finally {
@@ -216,7 +213,7 @@ export default function Login() {
 
   const handleTelegramLogin = async () => {
     setIsLoading(true);
-    setError(null);
+    form.clearErrors("root");
     try {
       if (
         typeof window !== "undefined" &&
@@ -314,13 +311,13 @@ export default function Login() {
           // to become false, ensuring the auth cookie is set before navigating.
         }
       } else {
-        setError("Telegram WebApp is not available. Please open this app from Telegram.");
+        form.setError("root", { message: "Telegram WebApp is not available. Please open this app from Telegram." });
       }
     } catch (err) {
       console.error("Telegram sign-in error:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to sign in with Telegram"
-      );
+      form.setError("root", {
+        message: err instanceof Error ? err.message : "Failed to sign in with Telegram",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -362,11 +359,11 @@ export default function Login() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="grid gap-6">
-              {error && (
+              {form.formState.errors.root && (
                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
+                  {form.formState.errors.root.message}
                 </div>
               )}
 
@@ -398,11 +395,13 @@ export default function Login() {
                     id="email"
                     type="email"
                     placeholder="Your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...form.register("email")}
                     disabled={isLoading}
                     autoComplete="email"
                   />
+                  {form.formState.errors.email && (
+                    <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center">
@@ -419,8 +418,7 @@ export default function Login() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      {...form.register("password")}
                       disabled={isLoading}
                       autoComplete="current-password"
                       className="pr-10"
@@ -440,6 +438,9 @@ export default function Login() {
                       />
                     </button>
                   </div>
+                  {form.formState.errors.password && (
+                    <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
+                  )}
                 </div>
 
                 {/* Keep me logged in */}
