@@ -253,6 +253,9 @@ export function getJettonWalletAddressLocal(
 // Cached TonAPI adapter
 let cachedContractAdapter: ContractAdapter | null = null;
 
+// Cache for deterministic wallet addresses (owner+jetton -> wallet address)
+const walletAddressCache = new Map<string, string>();
+
 /**
  * Get or create a ContractAdapter for blockchain queries
  * Uses TonAPI - reliable, fast, and supports all contract methods
@@ -337,6 +340,11 @@ export async function getJettonWalletAddress(
     ownerAddress: string,
     contractAdapter: ContractAdapter
 ): Promise<string | null> {
+    // Check cache first (wallet addresses are deterministic)
+    const cacheKey = `${jettonMasterAddress}:${ownerAddress}`;
+    const cached = walletAddressCache.get(cacheKey);
+    if (cached) return cached;
+
     // Try ContractAdapter first
     try {
         const master = Address.parse(jettonMasterAddress);
@@ -352,7 +360,9 @@ export async function getJettonWalletAddress(
         const walletAddress = result.stack.readAddress();
 
         if (walletAddress) {
-            return walletAddress.toString();
+            const address = walletAddress.toString();
+            walletAddressCache.set(cacheKey, address);
+            return address;
         }
     } catch (error) {
         // ContractAdapter failed, try TONAPI fallback
@@ -361,22 +371,25 @@ export async function getJettonWalletAddress(
             console.warn("[getJettonWalletAddress] ContractAdapter failed, trying TONAPI fallback");
         }
     }
-    
+
     // Fallback: Use TONAPI
     try {
         const response = await fetch(
             `https://tonapi.io/v2/accounts/${ownerAddress}/jettons/${jettonMasterAddress}`,
             { signal: AbortSignal.timeout(5000) }
         );
-        
+
         if (response.ok) {
             const data = await response.json();
             if (data.wallet_address?.address) {
                 // TONAPI returns raw address, convert to friendly
                 const rawAddress = data.wallet_address.address;
                 try {
-                    return Address.parse(rawAddress).toString();
+                    const address = Address.parse(rawAddress).toString();
+                    walletAddressCache.set(cacheKey, address);
+                    return address;
                 } catch {
+                    walletAddressCache.set(cacheKey, rawAddress);
                     return rawAddress;
                 }
             }
@@ -384,7 +397,7 @@ export async function getJettonWalletAddress(
     } catch (tonapiError) {
         console.warn("[getJettonWalletAddress] TONAPI fallback also failed:", tonapiError);
     }
-    
+
     return null;
 }
 

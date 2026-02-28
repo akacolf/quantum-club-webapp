@@ -197,8 +197,6 @@ export async function GET(request: NextRequest) {
                         });
                     }
 
-                    // Wait a bit between transactions to avoid rate limits
-                    await new Promise(resolve => setTimeout(resolve, 1500));
                     continue; // Don't withdraw fees in same run as graduation
                 }
 
@@ -232,8 +230,6 @@ export async function GET(request: NextRequest) {
                         });
                     }
 
-                    // Wait between transactions
-                    await new Promise(resolve => setTimeout(resolve, 1500));
                 } else {
                     results.push({
                         tokenId: token.id,

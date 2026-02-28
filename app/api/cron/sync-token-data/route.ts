@@ -143,8 +143,6 @@ export async function GET(request: NextRequest) {
                 });
             }
 
-            // Rate limiting: 1 request per second for TONAPI free tier
-            await sleep(1000);
         }
 
         return NextResponse.json({
@@ -215,10 +213,6 @@ async function fetchHoldersCount(address: string): Promise<number | null> {
         console.error(`[sync-token-data] Error fetching holders for ${address}:`, error);
         return null;
     }
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Runtime configuration for Vercel

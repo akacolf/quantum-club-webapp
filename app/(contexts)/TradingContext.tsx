@@ -264,13 +264,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
       (t, i, arr) => t.jettonMasterAddress && arr.findIndex(x => x.id === t.id) === i
     );
 
-    // Only refresh up to 5 tokens at a time to avoid rate limits
-    const tokensToRefresh = allTokens.slice(0, 5);
-    
     const enrichedUpdates: { id: string; data: Partial<Token> }[] = [];
 
     await Promise.all(
-      tokensToRefresh.map(async (token) => {
+      allTokens.map(async (token) => {
         try {
           if (!token.jettonMasterAddress) return;
           
@@ -511,39 +508,46 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
         query(collection(dbfs, "tokens"), where("isOnChain", "==", true))
       );
 
+      const tokens = tokensSnapshot.docs
+        .map(docToToken)
+        .filter((t) => t.jettonMasterAddress);
+
+      // Process in batches of 10 for controlled concurrency
       const results: HolderPosition[] = [];
+      const BATCH_SIZE = 10;
 
-      // Process tokens sequentially to avoid rate limits (no API key = 1 req/sec limit)
-      for (const docSnap of tokensSnapshot.docs) {
-        const token = docToToken(docSnap);
-        if (!token.jettonMasterAddress) continue;
+      for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+        const batch = tokens.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map(async (token) => {
+            try {
+              const balance = await getJettonBalance(
+                token.jettonMasterAddress,
+                walletAddress,
+                contractAdapter
+              );
 
-        try {
-          // Query on-chain balance
-          const balance = await getJettonBalance(
-            token.jettonMasterAddress,
-            walletAddress,
-            contractAdapter
-          );
-
-          if (balance > BigInt(0)) {
-            results.push({
-              tokenId: token.id,
-              balance: balance.toString(),
-              averageBuyPrice: "0", // Can't determine without indexing
-              totalInvested: "0",
-              currentValue: formatTokenAmount(balance),
-              pnl: 0,
-              pnlPercent: 0,
-              token,
-            });
-          }
-
-          // Small delay between requests to avoid rate limits
-          await new Promise((r) => setTimeout(r, 100));
-        } catch {
-          // Token might not be deployed yet - silently ignore
-        }
+              if (balance > BigInt(0)) {
+                return {
+                  tokenId: token.id,
+                  balance: balance.toString(),
+                  averageBuyPrice: "0",
+                  totalInvested: "0",
+                  currentValue: formatTokenAmount(balance),
+                  pnl: 0,
+                  pnlPercent: 0,
+                  token,
+                } as HolderPosition;
+              }
+            } catch {
+              // Token might not be deployed yet - silently ignore
+            }
+            return null;
+          })
+        );
+        results.push(
+          ...batchResults.filter((r): r is HolderPosition => r !== null)
+        );
       }
 
       setPositions(results);

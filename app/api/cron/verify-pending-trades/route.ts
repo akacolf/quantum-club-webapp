@@ -181,8 +181,6 @@ export async function GET(request: NextRequest) {
                     console.error(`[verify-trades] Error verifying ${trade.txHash}:`, error);
                 }
 
-                // Rate limiting
-                await sleep(500);
             }
         }
 
@@ -242,10 +240,6 @@ async function verifyTransaction(txHash: string, walletAddress: string): Promise
         console.error(`[verify-trades] Error checking tx ${txHash}:`, error);
         return { verified: false, failed: false };
     }
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Runtime configuration for Vercel
