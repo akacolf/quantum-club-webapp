@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createGroupSchema, type CreateGroupFormData } from "@/lib/validations";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -86,37 +87,53 @@ export default function CreateGroupPage() {
                         <CardDescription>Max 5 members per group</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label className="text-sm font-medium text-muted-foreground">Group Name</Label>
-                            <Input
-                                {...form.register("name")}
-                                placeholder="Enter group name"
-                                maxLength={30}
-                            />
-                            <div className="flex justify-between">
-                                {form.formState.errors.name ? (
-                                    <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
-                                ) : <span />}
-                                <p className="text-xs text-muted-foreground">{form.watch("name").length}/30</p>
-                            </div>
-                        </div>
+                        <Controller
+                            name="name"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                    <FieldLabel htmlFor={field.name} className="text-sm font-medium text-muted-foreground">Group Name</FieldLabel>
+                                    <Input
+                                        {...field}
+                                        id={field.name}
+                                        aria-invalid={fieldState.invalid}
+                                        placeholder="Enter group name"
+                                        maxLength={30}
+                                    />
+                                    <div className="flex justify-between">
+                                        {fieldState.invalid ? (
+                                            <FieldError errors={[fieldState.error]} />
+                                        ) : <span />}
+                                        <p className="text-xs text-muted-foreground">{field.value.length}/30</p>
+                                    </div>
+                                </Field>
+                            )}
+                        />
 
-                        <div className="space-y-2">
-                            <Label className="text-sm font-medium text-muted-foreground">Description (optional)</Label>
-                            <Textarea
-                                {...form.register("description")}
-                                placeholder="What's your group about?"
-                                maxLength={100}
-                                rows={3}
-                                className="resize-none"
-                            />
-                            <div className="flex justify-between">
-                                {form.formState.errors.description ? (
-                                    <p className="text-xs text-destructive">{form.formState.errors.description.message}</p>
-                                ) : <span />}
-                                <p className="text-xs text-muted-foreground">{form.watch("description").length}/100</p>
-                            </div>
-                        </div>
+                        <Controller
+                            name="description"
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                    <FieldLabel htmlFor={field.name} className="text-sm font-medium text-muted-foreground">Description (optional)</FieldLabel>
+                                    <Textarea
+                                        {...field}
+                                        id={field.name}
+                                        aria-invalid={fieldState.invalid}
+                                        placeholder="What's your group about?"
+                                        maxLength={100}
+                                        rows={3}
+                                        className="resize-none"
+                                    />
+                                    <div className="flex justify-between">
+                                        {fieldState.invalid ? (
+                                            <FieldError errors={[fieldState.error]} />
+                                        ) : <span />}
+                                        <p className="text-xs text-muted-foreground">{field.value.length}/100</p>
+                                    </div>
+                                </Field>
+                            )}
+                        />
 
                         {/* NFT-Gated Toggle */}
                         <div className="flex items-center justify-between py-2">

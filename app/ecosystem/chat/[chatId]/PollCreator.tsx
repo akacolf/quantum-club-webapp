@@ -1,11 +1,12 @@
 "use client";
 
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { pollSchema, type PollFormData } from "@/lib/validations";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -58,33 +59,53 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
         </DialogHeader>
 
         <div className="space-y-3 mt-1">
-          <Input
-            placeholder="Ask a question..."
-            {...form.register("question")}
-            maxLength={200}
-            className="text-sm"
+          <Controller
+            name="question"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <Input
+                  {...field}
+                  id={field.name}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="Ask a question..."
+                  maxLength={200}
+                  className="text-sm"
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
           />
 
           <div className="space-y-2">
-            {fields.map((field, i) => (
-              <div key={field.id} className="flex items-center gap-2">
-                <Input
-                  placeholder={`Option ${i + 1}`}
-                  {...form.register(`options.${i}.value`)}
-                  maxLength={100}
-                  className="text-sm flex-1"
-                />
-                {fields.length > 2 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-7 h-7 shrink-0"
-                    onClick={() => remove(i)}
-                  >
-                    <Icon icon="lucide:x" className="w-3.5 h-3.5 text-muted-foreground" />
-                  </Button>
+            {fields.map((arrayField, i) => (
+              <Controller
+                key={arrayField.id}
+                name={`options.${i}.value`}
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      {...field}
+                      id={field.name}
+                      aria-invalid={fieldState.invalid}
+                      placeholder={`Option ${i + 1}`}
+                      maxLength={100}
+                      className="text-sm flex-1"
+                    />
+                    {fields.length > 2 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-7 h-7 shrink-0"
+                        onClick={() => remove(i)}
+                      >
+                        <Icon icon="lucide:x" className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                    )}
+                  </div>
                 )}
-              </div>
+              />
             ))}
           </div>
 

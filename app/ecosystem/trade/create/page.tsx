@@ -18,9 +18,10 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTokenSchema, type CreateTokenFormData } from "@/lib/validations";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -437,87 +438,99 @@ export default function CreateTokenPage() {
                                 </div>
 
                                 {/* Token Name */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-white">Token Name *</Label>
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        placeholder="e.g., Quantum Club"
-                                        {...form.register("name")}
-                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${form.formState.errors.name ? "border-red-500" : ""
-                                            }`}
-                                        maxLength={32}
-                                    />
-                                    {form.formState.errors.name && (
-                                        <p className="text-xs text-red-400">{form.formState.errors.name.message}</p>
+                                <Controller
+                                    name="name"
+                                    control={form.control}
+                                    render={({ field, fieldState }) => (
+                                        <Field data-invalid={fieldState.invalid}>
+                                            <FieldLabel htmlFor={field.name} className="text-white">Token Name *</FieldLabel>
+                                            <Input
+                                                {...field}
+                                                id={field.name}
+                                                type="text"
+                                                aria-invalid={fieldState.invalid}
+                                                placeholder="e.g., Quantum Club"
+                                                className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${fieldState.invalid ? "border-destructive" : ""}`}
+                                                maxLength={32}
+                                            />
+                                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                        </Field>
                                     )}
-                                </div>
+                                />
 
                                 {/* Token Symbol */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="symbol" className="text-white">Token Symbol *</Label>
-                                    <div className="relative">
-                                        <Input
-                                            id="symbol"
-                                            type="text"
-                                            placeholder="e.g., QNTM"
-                                            {...form.register("symbol", {
-                                                onChange: (e) => {
-                                                    e.target.value = e.target.value.toUpperCase();
-                                                },
-                                            })}
-                                            className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase pr-10 ${
-                                                form.formState.errors.symbol ? "border-red-500" :
-                                                symbolAvailable === true ? "border-green-500" : ""
-                                            }`}
-                                            maxLength={10}
-                                        />
-                                        {/* Status indicator */}
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            {isCheckingSymbol && (
-                                                <svg className="animate-spin h-4 w-4 text-white/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
+                                <Controller
+                                    name="symbol"
+                                    control={form.control}
+                                    render={({ field, fieldState }) => (
+                                        <Field data-invalid={fieldState.invalid}>
+                                            <FieldLabel htmlFor={field.name} className="text-white">Token Symbol *</FieldLabel>
+                                            <div className="relative">
+                                                <Input
+                                                    {...field}
+                                                    onChange={(e) => {
+                                                        field.onChange(e.target.value.toUpperCase());
+                                                    }}
+                                                    id={field.name}
+                                                    type="text"
+                                                    aria-invalid={fieldState.invalid}
+                                                    placeholder="e.g., QNTM"
+                                                    className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase pr-10 ${
+                                                        fieldState.invalid ? "border-destructive" :
+                                                        symbolAvailable === true ? "border-green-500" : ""
+                                                    }`}
+                                                    maxLength={10}
+                                                />
+                                                {/* Status indicator */}
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    {isCheckingSymbol && (
+                                                        <svg className="animate-spin h-4 w-4 text-white/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                    )}
+                                                    {!isCheckingSymbol && symbolAvailable === true && (
+                                                        <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                    {!isCheckingSymbol && symbolAvailable === false && (
+                                                        <svg className="h-4 w-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                            {!fieldState.invalid && symbolAvailable === true && watchedSymbol.length >= 2 && (
+                                                <p className="text-xs text-green-400">Symbol is available!</p>
                                             )}
-                                            {!isCheckingSymbol && symbolAvailable === true && (
-                                                <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            )}
-                                            {!isCheckingSymbol && symbolAvailable === false && (
-                                                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {form.formState.errors.symbol && (
-                                        <p className="text-xs text-red-400">{form.formState.errors.symbol.message}</p>
+                                        </Field>
                                     )}
-                                    {!form.formState.errors.symbol && symbolAvailable === true && watchedSymbol.length >= 2 && (
-                                        <p className="text-xs text-green-400">Symbol is available!</p>
-                                    )}
-                                </div>
+                                />
 
                                 {/* Description */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="description" className="text-white">Description</Label>
-                                    <Textarea
-                                        id="description"
-                                        placeholder="Tell us about your token..."
-                                        {...form.register("description")}
-                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground min-h-[100px] resize-none ${form.formState.errors.description ? "border-red-500" : ""
-                                            }`}
-                                        maxLength={500}
-                                    />
-                                    <div className="flex justify-between text-xs text-muted-foreground">
-                                        {form.formState.errors.description && (
-                                            <p className="text-red-400">{form.formState.errors.description.message}</p>
-                                        )}
-                                        <span className="ml-auto">{form.watch("description").length}/500</span>
-                                    </div>
-                                </div>
+                                <Controller
+                                    name="description"
+                                    control={form.control}
+                                    render={({ field, fieldState }) => (
+                                        <Field data-invalid={fieldState.invalid}>
+                                            <FieldLabel htmlFor={field.name} className="text-white">Description</FieldLabel>
+                                            <Textarea
+                                                {...field}
+                                                id={field.name}
+                                                aria-invalid={fieldState.invalid}
+                                                placeholder="Tell us about your token..."
+                                                className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground min-h-[100px] resize-none ${fieldState.invalid ? "border-destructive" : ""}`}
+                                                maxLength={500}
+                                            />
+                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                                <span className="ml-auto">{field.value.length}/500</span>
+                                            </div>
+                                        </Field>
+                                    )}
+                                />
                             </CardContent>
                         </Card>
 

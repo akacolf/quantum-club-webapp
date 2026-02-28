@@ -11,9 +11,10 @@ import { toast } from "sonner";
 import { Address } from "@ton/core";
 import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addressBookSchema, type AddressBookFormData } from "@/lib/validations";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 
 interface SavedAddress {
     address: string;
@@ -148,23 +149,38 @@ export default function AddressBookPage() {
                         >
                             <Card className="bg-card border-border mb-4">
                                 <CardContent className="p-4 space-y-3">
-                                    <Input
-                                        {...addForm.register("name")}
-                                        placeholder="Name (e.g., My Friend)"
-                                        className="bg-muted border-border text-foreground"
+                                    <Controller
+                                        name="name"
+                                        control={addForm.control}
+                                        render={({ field, fieldState }) => (
+                                            <Field data-invalid={fieldState.invalid}>
+                                                <Input
+                                                    {...field}
+                                                    id={field.name}
+                                                    aria-invalid={fieldState.invalid}
+                                                    placeholder="Name (e.g., My Friend)"
+                                                    className="bg-muted border-border text-foreground"
+                                                />
+                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                            </Field>
+                                        )}
                                     />
-                                    {addForm.formState.errors.name && (
-                                        <p className="text-xs text-destructive">{addForm.formState.errors.name.message}</p>
-                                    )}
-                                    <Input
-                                        {...addForm.register("address")}
-                                        placeholder="TON Address"
-                                        className={`bg-muted border-border text-foreground font-mono text-sm ${addForm.formState.errors.address ? "border-destructive" : ""
-                                            }`}
+                                    <Controller
+                                        name="address"
+                                        control={addForm.control}
+                                        render={({ field, fieldState }) => (
+                                            <Field data-invalid={fieldState.invalid}>
+                                                <Input
+                                                    {...field}
+                                                    id={field.name}
+                                                    aria-invalid={fieldState.invalid}
+                                                    placeholder="TON Address"
+                                                    className={`bg-muted border-border text-foreground font-mono text-sm ${fieldState.invalid ? "border-destructive" : ""}`}
+                                                />
+                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                            </Field>
+                                        )}
                                     />
-                                    {addForm.formState.errors.address && (
-                                        <p className="text-xs text-destructive">{addForm.formState.errors.address.message}</p>
-                                    )}
                                     <div className="flex gap-2">
                                         <Button
                                             variant="outline"
