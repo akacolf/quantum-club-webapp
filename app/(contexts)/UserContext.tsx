@@ -40,6 +40,7 @@ export const useUserContext = () =>
       setWalletAddress: s.setWalletAddress,
       qcUsername: s.qcUsername,
       setQcUsername: s.setQcUsername,
+      _hasHydrated: s._hasHydrated,
     }))
   );
 

@@ -24,6 +24,8 @@ interface UserState {
   remainingSolveToEarn: number;
   walletAddress: string | null;
   qcUsername: string | null;
+  /** True once persist rehydration + first Firestore snapshot have resolved */
+  _hasHydrated: boolean;
 }
 
 interface UserActions {
@@ -64,6 +66,7 @@ const defaultState: UserState = {
   remainingSolveToEarn: 0,
   walletAddress: null,
   qcUsername: null,
+  _hasHydrated: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -185,6 +188,13 @@ export const useUserStore = create<UserStore>()(
           const ste = Number(sessionStorage.getItem("remainingSolveToEarn"));
           if (ste) useUserStore.setState({ remainingSolveToEarn: ste });
         }
+
+        // Mark persist rehydration complete — if there's already a persisted
+        // MainQuantAmount (> "0"), we can show it immediately.
+        const rehydrated = useUserStore.getState();
+        if (rehydrated.MainQuantAmount !== "0") {
+          useUserStore.setState({ _hasHydrated: true });
+        }
       },
     }
   )
@@ -212,22 +222,34 @@ export function useUserHydration() {
     const unsub = onSnapshot(
       valueRef,
       (snap) => {
-        if (!snap.exists()) return;
+        if (!snap.exists()) {
+          // Document doesn't exist yet (new user) — mark hydrated anyway
+          useUserStore.setState({ _hasHydrated: true });
+          return;
+        }
         const raw = snap.data()?.QuantAmount;
-        if (raw == null) return;
+        if (raw == null) {
+          useUserStore.setState({ _hasHydrated: true });
+          return;
+        }
         const num = Number(raw);
-        if (isNaN(num)) return;
+        if (isNaN(num)) {
+          useUserStore.setState({ _hasHydrated: true });
+          return;
+        }
         const formatted = num.toLocaleString("en-US", {
           maximumFractionDigits: 0,
         });
         useUserStore.getState().SetMainQuantAmount(formatted);
+        useUserStore.setState({ _hasHydrated: true });
         // Also write legacy key for code that reads it directly
         if (typeof window !== "undefined") {
           localStorage.setItem(`QAmount_${telegramId}`, formatted);
         }
       },
       () => {
-        // Silently ignore snapshot errors (permission denied, etc.)
+        // Mark hydrated even on error so the UI doesn't stay in loading forever
+        useUserStore.setState({ _hasHydrated: true });
       }
     );
 

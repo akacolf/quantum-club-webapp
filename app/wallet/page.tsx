@@ -169,7 +169,7 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
 
 export default function WalletPage() {
   const router = useRouter();
-  const { MainQuantAmount } = useUserContext();
+  const { MainQuantAmount, _hasHydrated } = useUserContext();
   const {
     walletAddress,
     setWalletAddress: setContextWalletAddress,
@@ -752,7 +752,7 @@ export default function WalletPage() {
                   </Button>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  {isLoadingAssets ? (
+                  {(isLoadingAssets || !hasFetched) ? (
                     <Skeleton className="h-10 w-32 bg-[#222]" />
                   ) : (
                     <h2 className="text-4xl font-bold text-white tracking-tight">
@@ -761,7 +761,7 @@ export default function WalletPage() {
                   )}
                 </div>
                 {/* 24h Change */}
-                {!isLoadingAssets && change24h !== null && (
+                {!isLoadingAssets && hasFetched && change24h !== null && (
                   <div className="flex items-center gap-1.5 mt-1">
                     {(() => {
                       const isPositive = change24h >= 0;
@@ -836,8 +836,17 @@ export default function WalletPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <h4 className="font-bold text-orange-400 text-xl">{hideBalance ? "••••••" : MainQuantAmount}</h4>
-                  <p className="text-xs text-gray-500">QC Points</p>
+                  {!_hasHydrated ? (
+                    <div className="space-y-1 flex flex-col items-end">
+                      <Skeleton className="h-6 w-20 bg-[#222]" />
+                      <Skeleton className="h-3 w-14 bg-[#222]" />
+                    </div>
+                  ) : (
+                    <>
+                      <h4 className="font-bold text-orange-400 text-xl">{hideBalance ? "••••••" : MainQuantAmount}</h4>
+                      <p className="text-xs text-gray-500">QC Points</p>
+                    </>
+                  )}
                 </div>
               </div>
               <Button
@@ -1037,7 +1046,7 @@ export default function WalletPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-right">
-                    {isLoadingAssets ? (
+                    {(isLoadingAssets || !hasFetched) ? (
                       <div className="space-y-1 flex flex-col items-end">
                         <Skeleton className="h-5 w-24 bg-[#222]" />
                         <Skeleton className="h-3 w-16 bg-[#222]" />

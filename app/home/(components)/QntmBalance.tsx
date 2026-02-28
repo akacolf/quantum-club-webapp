@@ -1,5 +1,6 @@
 import Link from "next/link";
 import React from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { QntmBalanceProps } from "@/lib/interfaces";
 
 const FrensIcon = React.memo(() => (
@@ -26,6 +27,7 @@ export default function QntmBalance({
   MainQuantAmount,
   rank,
   getRankIcon,
+  isLoading,
 }: QntmBalanceProps) {
   return (
     <div className="flex flex-col items-center py-6 relative">
@@ -49,9 +51,13 @@ export default function QntmBalance({
       </div>
 
       <div className="flex items-center gap-2 mt-2">
-        <div className="text-5xl font-bold bg-linear-to-b from-white to-gray-400 bg-clip-text text-transparent tracking-tight">
-          {MainQuantAmount}
-        </div>
+        {isLoading ? (
+          <Skeleton className="h-12 w-40 rounded-lg bg-[#1a1a1a]" />
+        ) : (
+          <div className="text-5xl font-bold bg-linear-to-b from-white to-gray-400 bg-clip-text text-transparent tracking-tight">
+            {MainQuantAmount}
+          </div>
+        )}
         <div className="text-xl font-medium text-gray-400">QNTM</div>
       </div>
 
@@ -59,10 +65,16 @@ export default function QntmBalance({
         <span className="text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase leading-none translate-y-px">RANK</span>
         <div className="w-px h-3 bg-[#333]" />
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center">
-            {getRankIcon(rank)}
-          </div>
-          <span className="text-sm font-bold text-white tracking-wide leading-none translate-y-px">{rank}</span>
+          {isLoading ? (
+            <Skeleton className="h-4 w-16 rounded bg-[#222]" />
+          ) : (
+            <>
+              <div className="flex items-center justify-center">
+                {getRankIcon(rank)}
+              </div>
+              <span className="text-sm font-bold text-white tracking-wide leading-none translate-y-px">{rank}</span>
+            </>
+          )}
         </div>
       </div>
 

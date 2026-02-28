@@ -51,6 +51,7 @@ export interface QntmBalanceProps {
     MainQuantAmount: string;
     rank: string | null;
     getRankIcon: (rank: string | null) => JSX.Element | null;
+    isLoading?: boolean;
 }
 
 export interface SolveToEarnCardProps {

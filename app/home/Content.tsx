@@ -145,6 +145,7 @@ const HomeContent = () => {
     setDaily,
     setRemainingSolveToEarn,
     remainingSolveToEarn,
+    _hasHydrated,
   } = useUserContext();
 
   const [isClaimDay, setIsclaimDay] = useState(true);
@@ -757,6 +758,7 @@ const HomeContent = () => {
         MainQuantAmount={MainQuantAmount}
         rank={rank}
         getRankIcon={getRankIcon}
+        isLoading={!_hasHydrated}
       />
       {/*daily check-in*/}
       <DailyCheckIn
