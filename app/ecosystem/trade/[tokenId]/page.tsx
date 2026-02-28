@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,7 +33,7 @@ import SlippageSettings from "@/app/ecosystem/trade/(components)/SlippageSetting
 import { DEFAULT_GRADUATION_THRESHOLD_TON, DEFAULT_SLIPPAGE } from "@/types/trading";
 import ImageViewer from "@/components/ui/image-viewer";
 import { FEE_CONFIG } from "@/lib/platform-config";
-import { useOnChainStats } from "@/app/(hooks)/queries/use-trades";
+import { useOnChainStats, EMPTY_ON_CHAIN_STATS } from "@/app/(hooks)/queries/use-trades";
 import {
     Popover,
     PopoverContent,
@@ -57,6 +58,7 @@ export default function TokenDetailPage() {
     } = useTrading();
     const { walletAddress, tonBalance, tonPrice, isTestnet, fetchWalletAssets } = useWallet();
     const { getGroupByToken, joinGroup, isGroupMember, createGroup } = useGroups();
+    const queryClient = useQueryClient();
 
     // Get linked community group for this token
     const tokenGroup = getGroupByToken(tokenId);
@@ -80,10 +82,19 @@ export default function TokenDetailPage() {
     const [tradingTab, setTradingTab] = useState<"buy" | "sell">("buy");
 
     // On-chain stats from TONAPI via TanStack Query
-    const { data: onChainStats = { holders: 0, trades: 0, volume24h: 0 } } = useOnChainStats(
+    const { data: onChainStats = EMPTY_ON_CHAIN_STATS } = useOnChainStats(
         selectedToken?.jettonMasterAddress,
         isTestnet,
     );
+
+    // Refresh token + stats after a trade without resetting displayed data
+    const refreshAfterTrade = useCallback(() => {
+        selectToken(tokenId);
+        if (selectedToken?.jettonMasterAddress) {
+            queryClient.invalidateQueries({ queryKey: ["onChainStats", selectedToken.jettonMasterAddress, isTestnet] });
+            queryClient.invalidateQueries({ queryKey: ["liveTrades", selectedToken.jettonMasterAddress, isTestnet] });
+        }
+    }, [tokenId, selectToken, selectedToken?.jettonMasterAddress, isTestnet, queryClient]);
 
     useEffect(() => {
         router.prefetch("/wallet");
@@ -148,9 +159,8 @@ export default function TokenDetailPage() {
                     });
                     setAmount("");
                     setTradingOpen(false);
-                    // Refresh token data from on-chain after trade
-                    setTimeout(() => selectToken(tokenId), 2000);
-                    setTimeout(() => selectToken(tokenId), 5000);
+                    // Refresh token data from on-chain after trade settles
+                    setTimeout(refreshAfterTrade, 3000);
                 } else {
                     toast.error(result.error || "Transaction failed");
                 }
@@ -163,9 +173,8 @@ export default function TokenDetailPage() {
                     });
                     setAmount("");
                     setTradingOpen(false);
-                    // Refresh token data from on-chain after trade
-                    setTimeout(() => selectToken(tokenId), 2000);
-                    setTimeout(() => selectToken(tokenId), 5000);
+                    // Refresh token data from on-chain after trade settles
+                    setTimeout(refreshAfterTrade, 3000);
                 } else {
                     toast.error(result.error || "Transaction failed");
                 }

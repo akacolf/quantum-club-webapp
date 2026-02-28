@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Address } from "@ton/core";
 
 interface Trade {
@@ -216,27 +216,31 @@ export function usePriceAlerts(telegramId: string | null) {
 /**
  * Fetch on-chain stats (holders, trades, volume) for a token.
  */
+export const EMPTY_ON_CHAIN_STATS = { holders: 0, trades: 0, volume24h: 0 };
+
 export function useOnChainStats(jettonAddress: string | undefined, isTestnet: boolean) {
     return useQuery<{ holders: number; trades: number; volume24h: number }>({
         queryKey: ["onChainStats", jettonAddress, isTestnet],
         queryFn: async () => {
-            if (!jettonAddress) return { holders: 0, trades: 0, volume24h: 0 };
+            if (!jettonAddress) return EMPTY_ON_CHAIN_STATS;
             const { tonApiGet } = await import("@/lib/tonapi-client");
 
-            const holdersData = await tonApiGet<{ total?: number }>(
-                `/v2/jettons/${jettonAddress}/holders?limit=1`,
-                { testnet: isTestnet }
-            );
-            const holdersCount = holdersData.total || 0;
+            const [holdersData, txData] = await Promise.all([
+                tonApiGet<{ total?: number }>(
+                    `/v2/jettons/${jettonAddress}/holders?limit=1`,
+                    { testnet: isTestnet }
+                ),
+                tonApiGet<{ transactions?: Array<{
+                    success?: boolean;
+                    in_msg?: { op_code?: string; value?: number };
+                    utime?: number;
+                }> }>(
+                    `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=50`,
+                    { testnet: isTestnet }
+                ),
+            ]);
 
-            const txData = await tonApiGet<{ transactions?: Array<{
-                success?: boolean;
-                in_msg?: { op_code?: string; value?: number };
-                utime?: number;
-            }> }>(
-                `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=50`,
-                { testnet: isTestnet }
-            );
+            const holdersCount = holdersData.total || 0;
 
             let tradesCount = 0;
             let volume24h = 0;
@@ -259,6 +263,7 @@ export function useOnChainStats(jettonAddress: string | undefined, isTestnet: bo
         enabled: !!jettonAddress,
         retry: false,
         staleTime: Infinity,
+        placeholderData: keepPreviousData,
     });
 }
 

@@ -18,6 +18,9 @@ import { ContractAdapter } from "@ton-api/ton-adapter";
 const NETWORK = (process.env.NEXT_PUBLIC_TON_NETWORK || "mainnet") as "mainnet" | "testnet";
 const IS_TESTNET = NETWORK === "testnet";
 
+/** API key — available on server (TONAPI_KEY) and client (NEXT_PUBLIC_TONAPI_KEY) */
+const TONAPI_KEY = process.env.TONAPI_KEY || process.env.NEXT_PUBLIC_TONAPI_KEY;
+
 // Cache for TonAPI client and adapter
 let cachedTonApiClient: TonApiClient | null = null;
 let cachedContractAdapter: ContractAdapter | null = null;
@@ -28,12 +31,15 @@ let cachedContractAdapter: ContractAdapter | null = null;
 
 /**
  * Get TonAPI client (cached)
+ * Includes API key for authenticated rate limits (server uses TONAPI_KEY, client uses NEXT_PUBLIC_TONAPI_KEY)
  */
 export function getTonApiClient(): TonApiClient {
     if (cachedTonApiClient) return cachedTonApiClient;
-    
+
+    const apiKey = process.env.TONAPI_KEY || process.env.NEXT_PUBLIC_TONAPI_KEY;
     cachedTonApiClient = new TonApiClient({
         baseUrl: IS_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io",
+        ...(apiKey ? { apiKey } : {}),
     });
     return cachedTonApiClient;
 }

@@ -63,8 +63,7 @@ export async function GET(request: NextRequest) {
         const response = await fetch(`${baseUrl}${path}`, {
             method: "GET",
             headers,
-            // Cache for 5 seconds to reduce API calls
-            next: { revalidate: 5 },
+            next: { revalidate: 0 },
         });
 
         if (!response.ok) {
