@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { Address, fromNano, internal, SendMode, Cell, loadStateInit } from "@ton/core";
+import { useState, useEffect, useCallback, ReactNode } from "react";
+import { Address, internal, SendMode, Cell, loadStateInit } from "@ton/core";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
@@ -9,107 +9,15 @@ import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, ChainType } from "./utils/multichain";
 import { useUserContext } from "../(contexts)/UserContext";
-import { getAccountJettons } from "@/lib/tonapi-client";
 import { useWalletAssetsQuery, useNftsQuery, useMultiChainBalancesQuery, useInvalidateWalletQueries } from "@/app/(hooks)/queries/use-wallet";
+import { useWalletStore } from "@/stores/wallet-store";
+import { useShallow } from "zustand/shallow";
+
+// Re-export types from store for backward compatibility
+export type { StoredWallet } from "@/stores/wallet-store";
 
 // Default testnet mode - can be overridden by user preference in localStorage
 const DEFAULT_TESTNET = false;
-
-interface JettonBalance {
-  symbol: string;
-  name: string;
-  balance: string;
-  decimals: number;
-  image?: string;
-  usdValue?: number;
-  priceUsd?: number;
-  jettonAddress?: string;
-  walletAddress?: string;
-  isHidden?: boolean;
-}
-
-interface NftItem {
-  address: string;
-  name: string;
-  description?: string;
-  image?: string;
-  collectionName?: string;
-  collectionAddress?: string;
-}
-
-
-export interface StoredWallet {
-  address: string;
-  name: string;
-  createdAt: number;
-  isActive: boolean;
-}
-
-interface WalletContextType {
-  walletAddress: string;
-  tonBalance: string;
-  tonPrice: number;
-  tonUsdValue: string;
-  totalUsdBalance: string;
-  jettons: JettonBalance[];
-  nfts: NftItem[];
-  hiddenAssets: string[];
-  isLoadingAssets: boolean;
-  isLoadingNfts: boolean;
-  hasFetched: boolean;
-  hideBalance: boolean;
-  isTestnet: boolean;
-  storedWallets: StoredWallet[];
-  activeWalletIndex: number;
-  walletStatus: string;
-  selectedNetwork: ChainType;
-  // Multi-chain support
-  ethAddress: string;
-  btcAddress: string;
-  solAddress: string;
-  trxAddress: string;
-  ethBalance: number;
-  btcBalance: number;
-  solBalance: number;
-  trxBalance: number;
-  ethUsdValue: number;
-  btcUsdValue: number;
-  solUsdValue: number;
-  trxUsdValue: number;
-  ethPrice: number;
-  btcPrice: number;
-  solPrice: number;
-  trxPrice: number;
-  isLoadingMultiChain: boolean;
-  fetchWalletAssets: () => Promise<void>;
-  fetchNfts: () => Promise<void>;
-  fetchMultiChainBalances: () => Promise<void>;
-  setWalletStatus: (walletstatus: string) => void;
-  setWalletAddress: (address: string) => void;
-  setSelectedNetwork: (network: ChainType) => void;
-  toggleHideAsset: (symbol: string) => void;
-  toggleHideBalance: () => void;
-  toggleTestnet: () => void;
-  addWallet: (address: string, name?: string) => void;
-  removeWallet: (address: string) => void;
-  switchWallet: (address: string) => void;
-  renameWallet: (address: string, newName: string) => void;
-  clearWallet: () => void; // Clears all wallet state on logout
-  // Auto-refresh settings
-  autoRefreshEnabled: boolean;
-  autoRefreshInterval: number; // in seconds
-  toggleAutoRefresh: () => void;
-  setAutoRefreshInterval: (seconds: number) => void;
-  // Transaction sending for QC Wallet integration
-  sendTransaction: (params: {
-    to: string;
-    value: string; // In nano
-    body?: Cell;
-    stateInit?: Cell;
-  }) => Promise<{ success: boolean; txHash?: string; error?: string }>;
-}
-
-const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const {telegramId} = useUserContext();
@@ -118,18 +26,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [tonPrice, setTonPrice] = useState(0);
   const [tonUsdValue, setTonUsdValue] = useState("0.00");
   const [totalUsdBalance, setTotalUsdBalance] = useState("0.00");
-  const [jettons, setJettons] = useState<JettonBalance[]>([]);
-  const [nfts, setNfts] = useState<NftItem[]>([]);
+  const [jettons, setJettons] = useState<import("@/stores/wallet-store").JettonBalance[]>([]);
+  const [nfts, setNfts] = useState<import("@/stores/wallet-store").NftItem[]>([]);
   const [isLoadingNfts, setIsLoadingNfts] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [walletStatus, setWalletStatus] = useState("nonexist");
   const [isTestnet, setIsTestnet] = useState(DEFAULT_TESTNET);
-      
+
   // Re-derive TON address when network changes
   const rederiveTonAddress = useCallback(async (testnet: boolean) => {
     if (!telegramId) return;
-    
+
     const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
     const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
 
@@ -221,7 +129,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isLoadingMultiChain, setIsLoadingMultiChain] = useState(false);
 
   // Multi-wallet support
-  const [storedWallets, setStoredWallets] = useState<StoredWallet[]>([]);
+  const [storedWallets, setStoredWallets] = useState<import("@/stores/wallet-store").StoredWallet[]>([]);
   const [activeWalletIndex, setActiveWalletIndex] = useState(0);
   const [hiddenAssets, setHiddenAssets] = useState<string[]>([]);
   const [hideBalance, setHideBalance] = useState(false);
@@ -273,7 +181,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (prev.some(w => w.address === address)) {
         return prev;
       }
-      const newWallet: StoredWallet = {
+      const newWallet: import("@/stores/wallet-store").StoredWallet = {
         address,
         name: name || `Wallet ${prev.length + 1}`,
         createdAt: Date.now(),
@@ -357,7 +265,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     hasFetched && !isTestnet
   );
 
-  // Sync query data → context state
+  // Sync query data → local state
   useEffect(() => {
     if (walletAssetsQuery.data) {
       const d = walletAssetsQuery.data;
@@ -408,7 +316,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setIsLoadingMultiChain(multiChainQuery.isFetching);
   }, [multiChainQuery.isFetching]);
 
-  // Imperative refetch wrappers (preserve existing context interface)
+  // Imperative refetch wrappers (preserve existing interface)
   const fetchWalletAssets = useCallback(async () => {
     await walletAssetsQuery.refetch();
   }, [walletAssetsQuery]);
@@ -420,6 +328,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const fetchMultiChainBalances = useCallback(async () => {
     await multiChainQuery.refetch();
   }, [multiChainQuery]);
+
   const clearWallet = useCallback(() => {
     // Clear localStorage
     localStorage.removeItem(`quantum_wallet_address_${telegramId}`);
@@ -429,7 +338,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(`quantum_wallet_version_${telegramId}`);
     localStorage.removeItem(`quantum_wallets_${telegramId}`);
     localStorage.removeItem(`quantum_active_wallet_index_${telegramId}`);
-    
+
     // Reset all state
     setWalletAddress("");
     setTonBalance("0");
@@ -441,7 +350,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setWalletStatus("nonexist");
     setStoredWallets([]);
     setActiveWalletIndex(0);
-    
+
     // Clear multi-chain state
     setEthAddress("");
     setBtcAddress("");
@@ -661,8 +570,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [isTestnet, invalidateWalletQueries, walletAddress]);
 
-  return (
-    <WalletContext.Provider value={{
+  // =====================================================
+  // Bridge: Sync state and actions into Zustand store
+  // =====================================================
+  useEffect(() => {
+    useWalletStore.setState({
       walletAddress,
       tonBalance,
       tonPrice,
@@ -680,29 +592,39 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       activeWalletIndex,
       walletStatus,
       selectedNetwork,
-      // Multi-chain
-      ethAddress,
-      btcAddress,
-      solAddress,
-      trxAddress,
-      ethBalance,
-      btcBalance,
-      solBalance,
-      trxBalance,
-      ethUsdValue,
-      btcUsdValue,
-      solUsdValue,
-      trxUsdValue,
-      ethPrice,
-      btcPrice,
-      solPrice,
-      trxPrice,
+    });
+  }, [
+    walletAddress, tonBalance, tonPrice, tonUsdValue, totalUsdBalance,
+    jettons, nfts, hiddenAssets, isLoadingAssets, isLoadingNfts,
+    hasFetched, hideBalance, isTestnet, storedWallets, activeWalletIndex,
+    walletStatus, selectedNetwork,
+  ]);
+
+  useEffect(() => {
+    useWalletStore.setState({
+      ethAddress, btcAddress, solAddress, trxAddress,
+      ethBalance, btcBalance, solBalance, trxBalance,
+      ethUsdValue, btcUsdValue, solUsdValue, trxUsdValue,
+      ethPrice, btcPrice, solPrice, trxPrice,
       isLoadingMultiChain,
-      setWalletStatus,
+      autoRefreshEnabled,
+      autoRefreshInterval,
+    });
+  }, [
+    ethAddress, btcAddress, solAddress, trxAddress,
+    ethBalance, btcBalance, solBalance, trxBalance,
+    ethUsdValue, btcUsdValue, solUsdValue, trxUsdValue,
+    ethPrice, btcPrice, solPrice, trxPrice,
+    isLoadingMultiChain, autoRefreshEnabled, autoRefreshInterval,
+  ]);
+
+  useEffect(() => {
+    useWalletStore.setState({
       fetchWalletAssets,
       fetchNfts,
       fetchMultiChainBalances,
       setWalletAddress: handleSetWalletAddress,
+      setWalletStatus,
       setSelectedNetwork,
       toggleHideAsset,
       toggleHideBalance,
@@ -712,23 +634,79 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       switchWallet,
       renameWallet,
       clearWallet,
-      // Auto-refresh
-      autoRefreshEnabled,
-      autoRefreshInterval,
       toggleAutoRefresh,
       setAutoRefreshInterval,
       sendTransaction,
-    }}>
-      {children}
-    </WalletContext.Provider>
+    });
+  }, [
+    fetchWalletAssets, fetchNfts, fetchMultiChainBalances,
+    handleSetWalletAddress, setWalletStatus, setSelectedNetwork,
+    toggleHideAsset, toggleHideBalance, toggleTestnet,
+    addWallet, removeWallet, switchWallet, renameWallet, clearWallet,
+    toggleAutoRefresh, setAutoRefreshInterval, sendTransaction,
+  ]);
+
+  return <>{children}</>;
+}
+
+// =====================================================
+// Compatibility hook — consumers continue using useWallet() unchanged
+// =====================================================
+export const useWallet = () =>
+  useWalletStore(
+    useShallow((s) => ({
+      walletAddress: s.walletAddress,
+      tonBalance: s.tonBalance,
+      tonPrice: s.tonPrice,
+      tonUsdValue: s.tonUsdValue,
+      totalUsdBalance: s.totalUsdBalance,
+      jettons: s.jettons,
+      nfts: s.nfts,
+      hiddenAssets: s.hiddenAssets,
+      isLoadingAssets: s.isLoadingAssets,
+      isLoadingNfts: s.isLoadingNfts,
+      hasFetched: s.hasFetched,
+      hideBalance: s.hideBalance,
+      isTestnet: s.isTestnet,
+      storedWallets: s.storedWallets,
+      activeWalletIndex: s.activeWalletIndex,
+      walletStatus: s.walletStatus,
+      selectedNetwork: s.selectedNetwork,
+      ethAddress: s.ethAddress,
+      btcAddress: s.btcAddress,
+      solAddress: s.solAddress,
+      trxAddress: s.trxAddress,
+      ethBalance: s.ethBalance,
+      btcBalance: s.btcBalance,
+      solBalance: s.solBalance,
+      trxBalance: s.trxBalance,
+      ethUsdValue: s.ethUsdValue,
+      btcUsdValue: s.btcUsdValue,
+      solUsdValue: s.solUsdValue,
+      trxUsdValue: s.trxUsdValue,
+      ethPrice: s.ethPrice,
+      btcPrice: s.btcPrice,
+      solPrice: s.solPrice,
+      trxPrice: s.trxPrice,
+      isLoadingMultiChain: s.isLoadingMultiChain,
+      fetchWalletAssets: s.fetchWalletAssets,
+      fetchNfts: s.fetchNfts,
+      fetchMultiChainBalances: s.fetchMultiChainBalances,
+      setWalletAddress: s.setWalletAddress,
+      setWalletStatus: s.setWalletStatus,
+      setSelectedNetwork: s.setSelectedNetwork,
+      toggleHideAsset: s.toggleHideAsset,
+      toggleHideBalance: s.toggleHideBalance,
+      toggleTestnet: s.toggleTestnet,
+      addWallet: s.addWallet,
+      removeWallet: s.removeWallet,
+      switchWallet: s.switchWallet,
+      renameWallet: s.renameWallet,
+      clearWallet: s.clearWallet,
+      autoRefreshEnabled: s.autoRefreshEnabled,
+      autoRefreshInterval: s.autoRefreshInterval,
+      toggleAutoRefresh: s.toggleAutoRefresh,
+      setAutoRefreshInterval: s.setAutoRefreshInterval,
+      sendTransaction: s.sendTransaction,
+    }))
   );
-}
-
-export function useWallet() {
-  const context = useContext(WalletContext);
-  if (!context) {
-    throw new Error("useWallet must be used within a WalletProvider");
-  }
-  return context;
-}
-

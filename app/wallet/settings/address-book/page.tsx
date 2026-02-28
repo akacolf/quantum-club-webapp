@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { Address } from "@ton/core";
 import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { addressBookSchema, type AddressBookFormData } from "@/lib/validations";
 
 interface SavedAddress {
     address: string;
@@ -27,11 +30,13 @@ export default function AddressBookPage() {
     const [addresses, setAddresses] = useState<SavedAddress[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     const [editingAddress, setEditingAddress] = useState<string | null>(null);
-    const [newName, setNewName] = useState("");
-    const [newAddress, setNewAddress] = useState("");
     const [editName, setEditName] = useState("");
-    const [addressError, setAddressError] = useState("");
     const { telegramId } = useUserContext();
+
+    const addForm = useForm<AddressBookFormData>({
+        resolver: zodResolver(addressBookSchema),
+        defaultValues: { name: "", address: "" },
+    });
     // Format address for display
     const formatAddress = useCallback((address: string): string => {
         try {
@@ -62,42 +67,27 @@ export default function AddressBookPage() {
         localStorage.setItem(STORAGE_KEY+`_${telegramId}`, JSON.stringify(newAddresses));
     };
 
-    const validateAddress = (addr: string): boolean => {
+    const handleAdd = (data: AddressBookFormData) => {
+        // Validate TON address format
         try {
-            Address.parse(addr);
-            setAddressError("");
-            return true;
+            Address.parse(data.address);
         } catch {
-            setAddressError("Invalid TON address");
-            return false;
+            addForm.setError("address", { message: "Invalid TON address" });
+            return;
         }
-    };
 
-    const handleAdd = () => {
-        if (!newName.trim()) {
-            toast.error("Please enter a name");
-            return;
-        }
-        if (!newAddress.trim()) {
-            toast.error("Please enter an address");
-            return;
-        }
-        if (!validateAddress(newAddress)) {
-            return;
-        }
-        if (addresses.some(a => a.address.toLowerCase() === newAddress.toLowerCase())) {
-            toast.error("Address already saved");
+        if (addresses.some(a => a.address.toLowerCase() === data.address.toLowerCase())) {
+            addForm.setError("address", { message: "Address already saved" });
             return;
         }
 
         const newEntry: SavedAddress = {
-            address: formatAddress(newAddress),
-            name: newName.trim(),
+            address: formatAddress(data.address),
+            name: data.name.trim(),
             createdAt: Date.now(),
         };
         saveAddresses([...addresses, newEntry]);
-        setNewName("");
-        setNewAddress("");
+        addForm.reset();
         setIsAdding(false);
         toast.success("Address saved!");
     };
@@ -159,39 +149,35 @@ export default function AddressBookPage() {
                             <Card className="bg-card border-border mb-4">
                                 <CardContent className="p-4 space-y-3">
                                     <Input
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
+                                        {...addForm.register("name")}
                                         placeholder="Name (e.g., My Friend)"
                                         className="bg-muted border-border text-foreground"
                                     />
+                                    {addForm.formState.errors.name && (
+                                        <p className="text-xs text-destructive">{addForm.formState.errors.name.message}</p>
+                                    )}
                                     <Input
-                                        value={newAddress}
-                                        onChange={(e) => {
-                                            setNewAddress(e.target.value);
-                                            if (e.target.value) validateAddress(e.target.value);
-                                        }}
+                                        {...addForm.register("address")}
                                         placeholder="TON Address"
-                                        className={`bg-muted border-border text-foreground font-mono text-sm ${addressError ? "border-destructive" : ""
+                                        className={`bg-muted border-border text-foreground font-mono text-sm ${addForm.formState.errors.address ? "border-destructive" : ""
                                             }`}
                                     />
-                                    {addressError && (
-                                        <p className="text-xs text-destructive">{addressError}</p>
+                                    {addForm.formState.errors.address && (
+                                        <p className="text-xs text-destructive">{addForm.formState.errors.address.message}</p>
                                     )}
                                     <div className="flex gap-2">
                                         <Button
                                             variant="outline"
                                             onClick={() => {
                                                 setIsAdding(false);
-                                                setNewName("");
-                                                setNewAddress("");
-                                                setAddressError("");
+                                                addForm.reset();
                                             }}
                                             className="flex-1 bg-muted border-border text-foreground"
                                         >
                                             Cancel
                                         </Button>
                                         <Button
-                                            onClick={handleAdd}
+                                            onClick={addForm.handleSubmit(handleAdd)}
                                             className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                                         >
                                             Save

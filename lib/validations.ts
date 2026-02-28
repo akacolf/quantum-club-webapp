@@ -49,3 +49,34 @@ export const createGroupSchema = z.object({
     .max(100, "Description must be 100 characters or less"),
 });
 export type CreateGroupFormData = z.infer<typeof createGroupSchema>;
+
+export const pollSchema = z.object({
+  question: z.string().min(1, "Question is required").max(200),
+  options: z
+    .array(z.object({ value: z.string().max(100) }))
+    .min(2)
+    .max(4),
+});
+export type PollFormData = z.infer<typeof pollSchema>;
+
+export const addressBookSchema = z.object({
+  name: z.string().min(1, "Please enter a name"),
+  address: z.string().min(1, "Please enter an address"),
+});
+export type AddressBookFormData = z.infer<typeof addressBookSchema>;
+
+export const createTokenSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Token name is required")
+    .max(32, "Token name must be 32 characters or less"),
+  symbol: z
+    .string()
+    .min(1, "Token symbol is required")
+    .max(10, "Token symbol must be 10 characters or less")
+    .regex(/^[A-Za-z0-9]+$/, "Token symbol can only contain letters and numbers"),
+  description: z
+    .string()
+    .max(500, "Description must be 500 characters or less"),
+});
+export type CreateTokenFormData = z.infer<typeof createTokenSchema>;

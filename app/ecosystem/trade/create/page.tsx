@@ -18,6 +18,9 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createTokenSchema, type CreateTokenFormData } from "@/lib/validations";
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -65,24 +68,25 @@ export default function CreateTokenPage() {
         router.prefetch("/wallet");
     }, [router]);
 
+    const form = useForm<CreateTokenFormData>({
+        resolver: zodResolver(createTokenSchema),
+        defaultValues: { name: "", symbol: "", description: "" },
+    });
+
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageBase64, setImageBase64] = useState("");
     const [initialBuyAmount, setInitialBuyAmount] = useState("");
+    const [initialBuyError, setInitialBuyError] = useState("");
     const [isCheckingSymbol, setIsCheckingSymbol] = useState(false);
     const [symbolAvailable, setSymbolAvailable] = useState<boolean | null>(null);
-    const [formData, setFormData] = useState({
-        name: "",
-        symbol: "",
-        description: "",
-        image: "",
-    });
-    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // Check symbol availability with debounce
+    const watchedSymbol = form.watch("symbol");
     useEffect(() => {
-        const symbol = formData.symbol.trim();
-        
+        const symbol = watchedSymbol.trim();
+
         // Reset if symbol is empty or too short
         if (!symbol || symbol.length < 2) {
             setSymbolAvailable(null);
@@ -102,19 +106,14 @@ export default function CreateTokenPage() {
             try {
                 const response = await fetch(`/api/check-symbol?symbol=${encodeURIComponent(symbol)}`);
                 const data = await response.json();
-                
+
                 // Only update if the symbol hasn't changed during the request
-                if (formData.symbol.trim().toUpperCase() === symbol.toUpperCase()) {
+                if (watchedSymbol.trim().toUpperCase() === symbol.toUpperCase()) {
                     setSymbolAvailable(data.available === true);
                     if (!data.available && data.reason) {
-                        setErrors(prev => ({ ...prev, symbol: data.reason }));
+                        form.setError("symbol", { message: data.reason });
                     } else if (data.available) {
-                        // Clear any previous symbol error if now available
-                        setErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.symbol;
-                            return newErrors;
-                        });
+                        form.clearErrors("symbol");
                     }
                 }
             } catch {
@@ -125,45 +124,32 @@ export default function CreateTokenPage() {
         }, 500);
 
         return () => clearTimeout(debounce);
-    }, [formData.symbol]);
+    }, [watchedSymbol, form]);
 
-    const validateForm = (): boolean => {
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.name.trim()) {
-            newErrors.name = "Token name is required";
-        } else if (formData.name.length > 32) {
-            newErrors.name = "Token name must be 32 characters or less";
+    const validateExtras = (): boolean => {
+        // Validate symbol availability (async check not covered by Zod)
+        if (symbolAvailable === false) {
+            form.setError("symbol", { message: "This symbol is already taken" });
+            return false;
         }
-
-        if (!formData.symbol.trim()) {
-            newErrors.symbol = "Token symbol is required";
-        } else if (formData.symbol.length > 10) {
-            newErrors.symbol = "Token symbol must be 10 characters or less";
-        } else if (!/^[A-Za-z0-9]+$/.test(formData.symbol)) {
-            newErrors.symbol = "Token symbol can only contain letters and numbers";
-        } else if (symbolAvailable === false) {
-            newErrors.symbol = "This symbol is already taken";
-        } else if (isCheckingSymbol) {
-            newErrors.symbol = "Please wait while we check symbol availability";
-        }
-
-        if (formData.description && formData.description.length > 500) {
-            newErrors.description = "Description must be 500 characters or less";
+        if (isCheckingSymbol) {
+            form.setError("symbol", { message: "Please wait while we check symbol availability" });
+            return false;
         }
 
         // Validate initial buy amount
         const buyAmount = parseFloat(initialBuyAmount || "0");
         if (buyAmount > 0) {
             if (buyAmount < MIN_INITIAL_BUY) {
-                newErrors.initialBuy = `Minimum initial buy is ${MIN_INITIAL_BUY} TON`;
+                setInitialBuyError(`Minimum initial buy is ${MIN_INITIAL_BUY} TON`);
+                return false;
             } else if (buyAmount > MAX_INITIAL_BUY) {
-                newErrors.initialBuy = `Maximum initial buy is ${MAX_INITIAL_BUY} TON`;
+                setInitialBuyError(`Maximum initial buy is ${MAX_INITIAL_BUY} TON`);
+                return false;
             }
         }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        setInitialBuyError("");
+        return true;
     };
 
     // Calculate total cost (deployment + network fees buffer + optional initial buy)
@@ -256,7 +242,7 @@ export default function CreateTokenPage() {
                 reader.onloadend = () => {
                     const base64 = reader.result as string;
                     setImagePreview(base64);
-                    setFormData(prev => ({ ...prev, image: base64 }));
+                    setImageBase64(base64);
                     const sizeKB = Math.round(file.size / 1024);
                     toast.success(`GIF uploaded (${sizeKB}KB)`);
                     setIsUploading(false);
@@ -281,7 +267,7 @@ export default function CreateTokenPage() {
 
             // Set preview and form data
             setImagePreview(compressedBase64);
-            setFormData(prev => ({ ...prev, image: compressedBase64 }));
+            setImageBase64(compressedBase64);
 
             const sizeKB = Math.round((compressedBase64.length * 3) / 4 / 1024);
             toast.success(`Image compressed to ${sizeKB}KB`);
@@ -296,27 +282,22 @@ export default function CreateTokenPage() {
 
     const removeImage = () => {
         setImagePreview(null);
-        setFormData(prev => ({ ...prev, image: "" }));
+        setImageBase64("");
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
+    const onSubmit = async (data: CreateTokenFormData) => {
         if (!effectiveWalletAddress) {
             toast.error("Please connect your wallet first");
             router.push("/wallet");
             return;
         }
 
-        if (!validateForm()) {
+        if (!validateExtras()) {
             return;
         }
-
-        // Note: Balance check removed - let the blockchain handle insufficient funds
-        // This allows users with borderline balances to attempt deployment
 
         setIsLoading(true);
 
@@ -324,10 +305,10 @@ export default function CreateTokenPage() {
             toast.info("Creating and deploying token...", { duration: 5000 });
 
             const token = await createToken({
-                name: formData.name.trim(),
-                symbol: formData.symbol.trim().toUpperCase(),
-                description: formData.description.trim(),
-                image: formData.image.trim(),
+                name: data.name.trim(),
+                symbol: data.symbol.trim().toUpperCase(),
+                description: data.description.trim(),
+                image: imageBase64.trim(),
                 initialBuyAmount: initialBuyValue > 0 ? initialBuyAmount : undefined,
             });
 
@@ -399,7 +380,7 @@ export default function CreateTokenPage() {
                     </Card>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <Card className="bg-white/5 border-white/10">
                             <CardHeader>
                                 <CardTitle className="text-white">Token Details</CardTitle>
@@ -462,21 +443,13 @@ export default function CreateTokenPage() {
                                         id="name"
                                         type="text"
                                         placeholder="e.g., Quantum Club"
-                                        value={formData.name}
-                                        onChange={(e) => {
-                                            setFormData({ ...formData, name: e.target.value });
-                                            if (errors.name) {
-                                                const newErrors = { ...errors };
-                                                delete newErrors.name;
-                                                setErrors(newErrors);
-                                            }
-                                        }}
-                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${errors.name ? "border-red-500" : ""
+                                        {...form.register("name")}
+                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${form.formState.errors.name ? "border-red-500" : ""
                                             }`}
                                         maxLength={32}
                                     />
-                                    {errors.name && (
-                                        <p className="text-xs text-red-400">{errors.name}</p>
+                                    {form.formState.errors.name && (
+                                        <p className="text-xs text-red-400">{form.formState.errors.name.message}</p>
                                     )}
                                 </div>
 
@@ -488,17 +461,13 @@ export default function CreateTokenPage() {
                                             id="symbol"
                                             type="text"
                                             placeholder="e.g., QNTM"
-                                            value={formData.symbol}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, symbol: e.target.value.toUpperCase() });
-                                                if (errors.symbol) {
-                                                    const newErrors = { ...errors };
-                                                    delete newErrors.symbol;
-                                                    setErrors(newErrors);
-                                                }
-                                            }}
+                                            {...form.register("symbol", {
+                                                onChange: (e) => {
+                                                    e.target.value = e.target.value.toUpperCase();
+                                                },
+                                            })}
                                             className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase pr-10 ${
-                                                errors.symbol ? "border-red-500" : 
+                                                form.formState.errors.symbol ? "border-red-500" :
                                                 symbolAvailable === true ? "border-green-500" : ""
                                             }`}
                                             maxLength={10}
@@ -523,10 +492,10 @@ export default function CreateTokenPage() {
                                             )}
                                         </div>
                                     </div>
-                                    {errors.symbol && (
-                                        <p className="text-xs text-red-400">{errors.symbol}</p>
+                                    {form.formState.errors.symbol && (
+                                        <p className="text-xs text-red-400">{form.formState.errors.symbol.message}</p>
                                     )}
-                                    {!errors.symbol && symbolAvailable === true && formData.symbol.length >= 2 && (
+                                    {!form.formState.errors.symbol && symbolAvailable === true && watchedSymbol.length >= 2 && (
                                         <p className="text-xs text-green-400">Symbol is available!</p>
                                     )}
                                 </div>
@@ -537,17 +506,16 @@ export default function CreateTokenPage() {
                                     <Textarea
                                         id="description"
                                         placeholder="Tell us about your token..."
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground min-h-[100px] resize-none ${errors.description ? "border-red-500" : ""
+                                        {...form.register("description")}
+                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground min-h-[100px] resize-none ${form.formState.errors.description ? "border-red-500" : ""
                                             }`}
                                         maxLength={500}
                                     />
                                     <div className="flex justify-between text-xs text-muted-foreground">
-                                        {errors.description && (
-                                            <p className="text-red-400">{errors.description}</p>
+                                        {form.formState.errors.description && (
+                                            <p className="text-red-400">{form.formState.errors.description.message}</p>
                                         )}
-                                        <span className="ml-auto">{formData.description.length}/500</span>
+                                        <span className="ml-auto">{form.watch("description").length}/500</span>
                                     </div>
                                 </div>
                             </CardContent>
@@ -618,9 +586,9 @@ export default function CreateTokenPage() {
                                         </div>
                                     </div>
 
-                                    {errors.initialBuy && (
+                                    {initialBuyError && (
                                         <p className="text-xs text-red-400 text-center bg-red-500/10 py-2 rounded-lg border border-red-500/20">
-                                            {errors.initialBuy}
+                                            {initialBuyError}
                                         </p>
                                     )}
 

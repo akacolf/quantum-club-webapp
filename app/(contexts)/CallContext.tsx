@@ -1,8 +1,6 @@
 "use client";
 
 import React, {
-  createContext,
-  useContext,
   useState,
   useRef,
   useCallback,
@@ -45,68 +43,11 @@ import {
   getActiveGroupCall,
   type GroupCallDocument,
 } from "@/lib/group-call";
+import { useCallStore, type CallState, type GroupCallState, type CallInfo, type GroupCallInfo } from "@/stores/call-store";
+import { useShallow } from "zustand/shallow";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-export type CallState =
-  | "idle"
-  | "outgoing_ringing"
-  | "incoming_ringing"
-  | "connected"
-  | "ended";
-
-interface CallInfo {
-  callId: string;
-  chatId: string;
-  remoteUserId: string;
-  remoteName: string;
-  isCaller: boolean;
-}
-
-export type GroupCallState = "idle" | "active";
-
-interface GroupCallInfo {
-  callId: string;
-  chatId: string;
-  groupName: string;
-  participants: string[];
-  participantNames: Record<string, string>;
-  startedAt: number;
-}
-
-interface CallContextType {
-  // 1:1 calls
-  callState: CallState;
-  callInfo: CallInfo | null;
-  isMuted: boolean;
-  isSpeaker: boolean;
-  callDuration: number;
-  isMinimized: boolean;
-  initiateCall: (params: {
-    calleeId: string;
-    calleeName: string;
-    chatId: string;
-  }) => Promise<void>;
-  acceptCall: () => Promise<void>;
-  declineCall: () => void;
-  endCall: () => void;
-  toggleMute: () => void;
-  toggleSpeaker: () => void;
-  toggleMinimize: () => void;
-  // Group calls
-  groupCallState: GroupCallState;
-  groupCallInfo: GroupCallInfo | null;
-  joinGroupCall: (chatId: string, groupName: string) => Promise<void>;
-  leaveGroupCall: () => void;
-}
-
-const CallContext = createContext<CallContextType | undefined>(undefined);
-
-export function useCallContext() {
-  const ctx = useContext(CallContext);
-  if (!ctx) throw new Error("useCallContext must be used within CallProvider");
-  return ctx;
-}
+// Re-export types for backward compatibility
+export type { CallState, GroupCallState } from "@/stores/call-store";
 
 // ── Provider ───────────────────────────────────────────────────────────────────
 
@@ -1261,29 +1202,66 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <CallContext.Provider
-      value={{
-        callState,
-        callInfo,
-        isMuted,
-        isSpeaker,
-        callDuration,
-        isMinimized,
-        initiateCall,
-        acceptCall,
-        declineCall,
-        endCall,
-        toggleMute,
-        toggleSpeaker,
-        toggleMinimize,
-        groupCallState,
-        groupCallInfo,
-        joinGroupCall: joinGroupCallFn,
-        leaveGroupCall: leaveGroupCallFn,
-      }}
-    >
-      {children}
-    </CallContext.Provider>
+  // =====================================================
+  // Bridge: Sync state and actions into Zustand store
+  // =====================================================
+  useEffect(() => {
+    useCallStore.setState({
+      callState,
+      callInfo,
+      isMuted,
+      isSpeaker,
+      callDuration,
+      isMinimized,
+      groupCallState,
+      groupCallInfo,
+    });
+  }, [callState, callInfo, isMuted, isSpeaker, callDuration, isMinimized, groupCallState, groupCallInfo]);
+
+  useEffect(() => {
+    useCallStore.setState({
+      initiateCall,
+      acceptCall,
+      declineCall,
+      endCall,
+      toggleMute,
+      toggleSpeaker,
+      toggleMinimize,
+      joinGroupCall: joinGroupCallFn,
+      leaveGroupCall: leaveGroupCallFn,
+    });
+  }, [
+    initiateCall, acceptCall, declineCall, endCall,
+    toggleMute, toggleSpeaker, toggleMinimize,
+    joinGroupCallFn, leaveGroupCallFn,
+  ]);
+
+  return <>{children}</>;
+}
+
+// =====================================================
+// Compatibility hook — consumers continue using useCallContext() unchanged
+// =====================================================
+export function useCallContext() {
+  return useCallStore(
+    useShallow((s) => ({
+      callState: s.callState,
+      callInfo: s.callInfo,
+      isMuted: s.isMuted,
+      isSpeaker: s.isSpeaker,
+      callDuration: s.callDuration,
+      isMinimized: s.isMinimized,
+      initiateCall: s.initiateCall,
+      acceptCall: s.acceptCall,
+      declineCall: s.declineCall,
+      endCall: s.endCall,
+      toggleMute: s.toggleMute,
+      toggleSpeaker: s.toggleSpeaker,
+      toggleMinimize: s.toggleMinimize,
+      groupCallState: s.groupCallState,
+      groupCallInfo: s.groupCallInfo,
+      joinGroupCall: s.joinGroupCall,
+      leaveGroupCall: s.leaveGroupCall,
+    }))
   );
 }
