@@ -28,8 +28,9 @@ import { convertTonToStars } from "@/lib/telegram-payments";
 type ViewMode = "preview" | "processing" | "success" | "error";
 
 export default function BuyNftPage() {
-    useTelegramBackButton();
     const params = useParams();
+    const nftAddress = decodeURIComponent(params.address as string);
+    useTelegramBackButton(`/wallet/nft/${encodeURIComponent(nftAddress)}`);
     const router = useRouter();
     const { isTestnet, walletAddress, tonBalance } = useWallet();
     const { telegramId } = useUserContext();
@@ -39,8 +40,6 @@ export default function BuyNftPage() {
         handleSuccess: handleAuthSuccess,
         handleCancel: handleAuthCancel,
     } = useBiometricAuth();
-
-    const nftAddress = decodeURIComponent(params.address as string);
 
     const [nft, setNft] = useState<NftItem | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -193,11 +192,14 @@ export default function BuyNftPage() {
 
         try {
             // Create Stars invoice via our API
+            const tonAmount = Number(priceInfo!.totalPrice) / 1e9;
+            const tonPriceUsd = 5.5; // TODO: Get from price API
             const response = await fetch("/api/payments/telegram-stars", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     action: "create-invoice",
+                    telegramId,
                     title: `NFT: ${nft.name || "NFT Purchase"}`,
                     description: `Purchase NFT from ${nft.collectionName || "collection"}`,
                     payload: JSON.stringify({
@@ -207,8 +209,8 @@ export default function BuyNftPage() {
                         sellerAddress: nft.sale.owner,
                         saleContractAddress: nft.sale.address,
                     }),
-                    amount: starsAmount,
-                    photoUrl: nft.image,
+                    tonAmount,
+                    tonPriceUsd,
                 }),
             });
 
@@ -358,7 +360,7 @@ export default function BuyNftPage() {
     // Error View
     if (viewMode === "error") {
         return (
-            <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
+            <div className="fixed inset-0 bg-background text-foreground p-4 flex items-center justify-center">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}

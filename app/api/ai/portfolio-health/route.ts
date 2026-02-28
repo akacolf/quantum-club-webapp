@@ -109,20 +109,11 @@ Number of different assets: ${assets.length}`;
             });
         } catch (parseError) {
             console.error("JSON parse error:", parseError, "Response:", responseText);
-            
-            // Return a default analysis if parsing fails
+
             return NextResponse.json({
-                success: true,
-                analysis: {
-                    healthScore: 50,
-                    diversification: "MODERATE",
-                    risks: ["Unable to fully analyze portfolio at this time"],
-                    opportunities: ["Consider reviewing your asset allocation"],
-                    summary: "Your portfolio has been reviewed. Consider diversifying across different asset classes for better risk management.",
-                    recommendation: "Review your portfolio allocation periodically.",
-                    analyzedAt: new Date().toISOString(),
-                },
-            });
+                success: false,
+                error: "Failed to parse analysis results. Please try again.",
+            }, { status: 500 });
         }
     } catch (error) {
         console.error("Portfolio health error:", error);

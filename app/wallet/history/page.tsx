@@ -609,7 +609,9 @@ export default function HistoryPage() {
             <Icon icon="lucide:filter" className="w-3.5 h-3.5 mr-1.5"/>
             Filters
             {activeFilter !== "all" && (
-              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">1</Badge>
+              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">
+                {activeTab === "qntm" ? filteredQntmHistory.length : filteredHistory.length}
+              </Badge>
             )}
           </Button>
           

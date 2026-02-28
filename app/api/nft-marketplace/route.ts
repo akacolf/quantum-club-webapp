@@ -342,37 +342,67 @@ async function handleConfirmSale(body: {
     );
   }
 
-  // Update listing status
+  // Use a Firestore transaction to prevent double-selling
   const listingRef = firestore.collection("nft_listings").doc(saleContractAddress);
-  const listing = await listingRef.get();
 
-  if (!listing.exists) {
-    return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+  try {
+    const listingData = await firestore.runTransaction(async (transaction) => {
+      const listing = await transaction.get(listingRef);
+
+      if (!listing.exists) {
+        throw new Error("NOT_FOUND");
+      }
+
+      const data = listing.data();
+
+      if (data?.status !== "active") {
+        throw new Error("ALREADY_SOLD");
+      }
+
+      transaction.update(listingRef, {
+        status: "sold",
+        buyerAddress,
+        soldAt: Date.now(),
+        soldTransactionHash: transactionHash,
+      });
+
+      return data;
+    });
+
+    // Check for duplicate sales record with the same transactionHash
+    if (transactionHash) {
+      const existingSale = await firestore.collection("nft_sales")
+        .where("transactionHash", "==", transactionHash)
+        .limit(1)
+        .get();
+
+      if (!existingSale.empty) {
+        return NextResponse.json({ success: true });
+      }
+    }
+
+    // Record the sale for stats
+    await firestore.collection("nft_sales").add({
+      ...listingData,
+      buyerAddress,
+      soldAt: Date.now(),
+      transactionHash,
+    });
+
+    // Update marketplace stats
+    await updateMarketplaceStats("sale", BigInt(listingData?.price || "0"));
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    if (message === "NOT_FOUND") {
+      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    }
+    if (message === "ALREADY_SOLD") {
+      return NextResponse.json({ error: "This NFT has already been sold" }, { status: 409 });
+    }
+    throw err;
   }
-
-  const listingData = listing.data();
-  
-  await listingRef.update({
-    status: "sold",
-    buyerAddress,
-    soldAt: Date.now(),
-    soldTransactionHash: transactionHash,
-  });
-
-  // Record the sale for stats
-  await firestore.collection("nft_sales").add({
-    ...listingData,
-    buyerAddress,
-    soldAt: Date.now(),
-    transactionHash,
-  });
-
-  // Update marketplace stats
-  await updateMarketplaceStats("sale", BigInt(listingData?.price || "0"));
-
-  return NextResponse.json({
-    success: true,
-  });
 }
 
 /**

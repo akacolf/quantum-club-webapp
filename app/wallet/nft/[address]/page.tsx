@@ -183,7 +183,7 @@ export default function NftDetailPage() {
             }
 
             // Confirm the listing in Firebase
-            await fetch("/api/nft-marketplace", {
+            const confirmResponse = await fetch("/api/nft-marketplace", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -200,6 +200,12 @@ export default function NftDetailPage() {
                     transactionHash: txResult.hash,
                 }),
             });
+
+            const confirmResult = await confirmResponse.json();
+            if (!confirmResponse.ok || !confirmResult.success) {
+                console.error("Confirm listing failed:", confirmResult);
+                toast.warning("NFT listed on-chain but failed to save to marketplace. Please contact support.");
+            }
 
             toast.success("NFT listed for sale!", {
                 description: `Listed for ${listingPrice} TON on QC Marketplace`,

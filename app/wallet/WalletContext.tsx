@@ -133,8 +133,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [activeWalletIndex, setActiveWalletIndex] = useState(0);
   const [hiddenAssets, setHiddenAssets] = useState<string[]>([]);
   const [hideBalance, setHideBalance] = useState(false);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [autoRefreshInterval, setAutoRefreshIntervalState] = useState(60);
 
   // Hydrate all wallet settings from localStorage after mount
   useEffect(() => {
@@ -144,10 +142,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const storedNetwork = localStorage.getItem("quantum_selected_network");
     if (storedNetwork) setSelectedNetworkState(storedNetwork as ChainType);
     setHideBalance(localStorage.getItem("quantum_hide_balance") === "true");
-    const storedAutoRefresh = localStorage.getItem("quantum_auto_refresh");
-    setAutoRefreshEnabled(storedAutoRefresh !== "false");
-    const storedInterval = localStorage.getItem("quantum_auto_refresh_interval");
-    if (storedInterval) setAutoRefreshIntervalState(parseInt(storedInterval));
     const storedIdx = localStorage.getItem(`quantum_active_wallet_index_${telegramId}`);
     if (storedIdx) setActiveWalletIndex(parseInt(storedIdx));
     try {
@@ -159,20 +153,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (h) setHiddenAssets(JSON.parse(h));
     } catch {}
   }, [telegramId]);
-
-  const toggleAutoRefresh = useCallback(() => {
-    setAutoRefreshEnabled(prev => {
-      const newValue = !prev;
-      localStorage.setItem("quantum_auto_refresh", String(newValue));
-      return newValue;
-    });
-  }, []);
-
-  const setAutoRefreshInterval = useCallback((seconds: number) => {
-    const validSeconds = Math.max(30, Math.min(300, seconds)); // Clamp between 30s and 5min
-    setAutoRefreshIntervalState(validSeconds);
-    localStorage.setItem("quantum_auto_refresh_interval", String(validSeconds));
-  }, []);
 
   // Multi-wallet management functions
   const addWallet = useCallback((address: string, name?: string) => {
@@ -256,9 +236,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // ---- TanStack Query integration ----
   const invalidateWalletQueries = useInvalidateWalletQueries();
-  const refetchIntervalMs = autoRefreshEnabled ? autoRefreshInterval * 1000 : false;
-
-  const walletAssetsQuery = useWalletAssetsQuery(walletAddress, isTestnet, refetchIntervalMs);
+  const walletAssetsQuery = useWalletAssetsQuery(walletAddress, isTestnet, false);
   const nftsQuery = useNftsQuery(walletAddress, isTestnet);
   const multiChainQuery = useMultiChainBalancesQuery(
     { eth: ethAddress, btc: btcAddress, sol: solAddress, trx: trxAddress },
@@ -607,15 +585,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       ethUsdValue, btcUsdValue, solUsdValue, trxUsdValue,
       ethPrice, btcPrice, solPrice, trxPrice,
       isLoadingMultiChain,
-      autoRefreshEnabled,
-      autoRefreshInterval,
     });
   }, [
     ethAddress, btcAddress, solAddress, trxAddress,
     ethBalance, btcBalance, solBalance, trxBalance,
     ethUsdValue, btcUsdValue, solUsdValue, trxUsdValue,
     ethPrice, btcPrice, solPrice, trxPrice,
-    isLoadingMultiChain, autoRefreshEnabled, autoRefreshInterval,
+    isLoadingMultiChain,
   ]);
 
   useEffect(() => {
@@ -634,8 +610,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       switchWallet,
       renameWallet,
       clearWallet,
-      toggleAutoRefresh,
-      setAutoRefreshInterval,
       sendTransaction,
     });
   }, [
@@ -643,7 +617,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     handleSetWalletAddress, setWalletStatus, setSelectedNetwork,
     toggleHideAsset, toggleHideBalance, toggleTestnet,
     addWallet, removeWallet, switchWallet, renameWallet, clearWallet,
-    toggleAutoRefresh, setAutoRefreshInterval, sendTransaction,
+    sendTransaction,
   ]);
 
   return <>{children}</>;
@@ -703,10 +677,6 @@ export const useWallet = () =>
       switchWallet: s.switchWallet,
       renameWallet: s.renameWallet,
       clearWallet: s.clearWallet,
-      autoRefreshEnabled: s.autoRefreshEnabled,
-      autoRefreshInterval: s.autoRefreshInterval,
-      toggleAutoRefresh: s.toggleAutoRefresh,
-      setAutoRefreshInterval: s.setAutoRefreshInterval,
       sendTransaction: s.sendTransaction,
     }))
   );

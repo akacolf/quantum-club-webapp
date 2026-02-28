@@ -37,7 +37,7 @@ const IMPORT_FILES = [
 ];
 
 async function compileContract(name: string, mainFile: string): Promise<Buffer> {
-    console.log(`\n📦 Compiling ${name}...`);
+    console.log(`\n[BUILD] Compiling ${name}...`);
 
     // Build sources map by reading all needed files upfront
     const sources: { [key: string]: string } = {};
@@ -47,9 +47,9 @@ async function compileContract(name: string, mainFile: string): Promise<Buffer> 
         const importPath = path.join(CONTRACTS_DIR, importFile);
         if (fs.existsSync(importPath)) {
             sources[importFile] = fs.readFileSync(importPath, "utf-8");
-            console.log(`   📄 Loaded ${importFile}`);
+            console.log(`   [OK] Loaded ${importFile}`);
         } else {
-            console.warn(`   ⚠️  Import file not found: ${importFile}`);
+            console.warn(`   [WARN] Import file not found: ${importFile}`);
         }
     }
     
@@ -57,7 +57,7 @@ async function compileContract(name: string, mainFile: string): Promise<Buffer> 
     const mainPath = path.join(CONTRACTS_DIR, mainFile);
     if (fs.existsSync(mainPath)) {
         sources[mainFile] = fs.readFileSync(mainPath, "utf-8");
-        console.log(`   📄 Loaded ${mainFile}`);
+        console.log(`   [OK] Loaded ${mainFile}`);
     } else {
         throw new Error(`Contract file not found: ${mainPath}`);
     }
@@ -68,7 +68,7 @@ async function compileContract(name: string, mainFile: string): Promise<Buffer> 
     }) as CompileResult;
 
     if (result.status === "error") {
-        console.error(`❌ Compilation failed for ${name}:`);
+        console.error(`[ERR] Compilation failed for ${name}:`);
         console.error(result.message);
         throw new Error(result.message || "Unknown compilation error");
     }
@@ -77,12 +77,12 @@ async function compileContract(name: string, mainFile: string): Promise<Buffer> 
         throw new Error(`No bytecode generated for ${name}`);
     }
 
-    console.log(`✅ ${name} compiled successfully`);
+    console.log(`[OK] ${name} compiled successfully`);
     return Buffer.from(result.codeBoc, "base64");
 }
 
 async function main(): Promise<void> {
-    console.log("🚀 QC RocketStart Contract Compiler");
+    console.log("[INFO] QC RocketStart Contract Compiler");
     console.log("====================================\n");
 
     // Ensure output directory exists
@@ -131,16 +131,16 @@ export const NFT_SALE_CODE_HEX = "${nftSaleHex}";
         console.log(`   Saved: ${codeTsPath}`);
 
         console.log("\n====================================");
-        console.log("✅ All contracts compiled successfully!");
-        console.log("\n📁 Output files:");
+        console.log("[OK] All contracts compiled successfully!");
+        console.log("\n[INFO] Output files:");
         console.log(`   ${walletBocPath} (${walletCode.length} bytes)`);
         console.log(`   ${masterBocPath} (${masterCode.length} bytes)`);
         console.log(`   ${nftSaleBocPath} (${nftSaleCode.length} bytes)`);
         console.log(`   ${codeTsPath}`);
-        console.log("\n💡 Import bytecode from contracts/build/contract-code.ts");
+        console.log("\n[INFO] Import bytecode from contracts/build/contract-code.ts");
 
     } catch (error) {
-        console.error("\n❌ Compilation failed:", error instanceof Error ? error.message : error);
+        console.error("\n[ERR] Compilation failed:", error instanceof Error ? error.message : error);
         process.exit(1);
     }
 }

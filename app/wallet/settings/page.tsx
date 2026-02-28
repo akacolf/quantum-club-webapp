@@ -18,13 +18,6 @@ import { useWallet } from "../WalletContext";
 
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -73,35 +66,6 @@ function TestnetToggle() {
   );
 }
 
-// Auto-refresh toggle component
-function AutoRefreshToggle() {
-  const { autoRefreshEnabled, autoRefreshInterval, toggleAutoRefresh, setAutoRefreshInterval } = useWallet();
-
-  return (
-    <div className="flex items-center gap-2">
-      <Select
-        value={String(autoRefreshInterval)}
-        onValueChange={(val) => setAutoRefreshInterval(Number(val))}
-        disabled={!autoRefreshEnabled}
-      >
-        <SelectTrigger className="w-[70px] h-7 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="30">30s</SelectItem>
-          <SelectItem value="60">1m</SelectItem>
-          <SelectItem value="120">2m</SelectItem>
-          <SelectItem value="300">5m</SelectItem>
-        </SelectContent>
-      </Select>
-      <Switch
-        checked={autoRefreshEnabled}
-        onCheckedChange={toggleAutoRefresh}
-        className="data-[state=checked]:bg-green-500"
-      />
-    </div>
-  );
-}
 
 export default function WalletSettingsPage() {
   useTelegramBackButton("/wallet");
@@ -341,24 +305,6 @@ export default function WalletSettingsPage() {
 
             <Card className="bg-card border-border overflow-hidden">
               <CardContent className="p-0">
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
-                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                        <path d="M21 3v5h-5" />
-                      </svg>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-foreground">Auto-Refresh Balances</p>
-                      <p className="text-xs text-muted-foreground">Automatically update your balances</p>
-                    </div>
-                  </div>
-                  <AutoRefreshToggle />
-                </div>
-
-                <div className="border-t border-border" />
-
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">

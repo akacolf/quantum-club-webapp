@@ -25,7 +25,7 @@ const db = admin.firestore();
 async function main() {
   const version = Date.now().toString();
   await db.doc("set/settings").set({ forceAuthVersion: version }, { merge: true });
-  console.log(`✅ forceAuthVersion set to: ${version}`);
+  console.log(`[OK] forceAuthVersion set to: ${version}`);
   console.log("All users will be logged out on next app load.");
   process.exit(0);
 }

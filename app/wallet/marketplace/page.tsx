@@ -222,11 +222,9 @@ export default function MarketplacePage() {
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-2 mt-0.5">
-                                                            {col.itemsCount > 0 && (
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    {col.itemsCount.toLocaleString()} items
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
+                                                            </span>
                                                             {col.floorPrice && (
                                                                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                                                                     Floor: {(col.floorPrice / 1e9).toFixed(2)} TON

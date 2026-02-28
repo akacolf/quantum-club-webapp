@@ -48,7 +48,7 @@ const WALLET_VERSIONS = [
 export default function ImportWalletPage() {
   const router = useRouter();
   const { telegramId } = useUserContext();
-  useTelegramBackButton("/wallet");
+  useTelegramBackButton("/wallet/settings/wallets");
 
   const { setWalletAddress, addWallet, switchWallet, storedWallets, isTestnet } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +58,7 @@ export default function ImportWalletPage() {
   const [previewAddresses, setPreviewAddresses] = useState<{ version: string; address: string }[]>([]);
 
   useEffect(() => {
-    router.prefetch("/wallet");
+    router.prefetch("/wallet/settings/wallets");
   }, [router]);
 
   // Ensure page starts at top on navigation
@@ -187,7 +187,7 @@ export default function ImportWalletPage() {
       analyticsEvents.walletImported(address);
 
       toast.success("Wallet restored successfully!");
-      router.push("/wallet");
+      router.push("/wallet/settings/wallets");
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Failed to restore access. Please try again.");

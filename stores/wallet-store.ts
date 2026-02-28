@@ -69,9 +69,6 @@ interface WalletState {
   solPrice: number;
   trxPrice: number;
   isLoadingMultiChain: boolean;
-  // Auto-refresh
-  autoRefreshEnabled: boolean;
-  autoRefreshInterval: number;
 }
 
 interface WalletActions {
@@ -91,8 +88,6 @@ interface WalletActions {
   switchWallet: (address: string) => void;
   renameWallet: (address: string, newName: string) => void;
   clearWallet: () => void;
-  toggleAutoRefresh: () => void;
-  setAutoRefreshInterval: (seconds: number) => void;
   sendTransaction: (params: {
     to: string;
     value: string;
@@ -140,9 +135,6 @@ export const useWalletStore = create<WalletStore>()((set) => ({
   solPrice: 0,
   trxPrice: 0,
   isLoadingMultiChain: false,
-  // Auto-refresh
-  autoRefreshEnabled: true,
-  autoRefreshInterval: 60,
 
   // Setters
   setWalletAddress: (address) => set({ walletAddress: address }),
@@ -161,7 +153,5 @@ export const useWalletStore = create<WalletStore>()((set) => ({
   switchWallet: () => {},
   renameWallet: () => {},
   clearWallet: () => {},
-  toggleAutoRefresh: () => {},
-  setAutoRefreshInterval: () => {},
   sendTransaction: async () => ({ success: false, error: "Not initialized" }),
 }));

@@ -15,6 +15,7 @@ import {
   serverTimestamp,
   doc,
   setDoc,
+  getDoc,
 } from "firebase/firestore";
 import { useUserContext } from "./UserContext";
 import { toast } from "sonner";
@@ -550,6 +551,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     try {
       stopRingtone();
 
+      // Guard: check if call was already accepted on another device
+      const callSnap = await getDoc(doc(dbfs, "qc-calls", info.callId));
+      const callData = callSnap.data();
+      if (callData?.status !== "ringing") {
+        setCallState("idle");
+        callStateRef.current = "idle";
+        setCallInfo(null);
+        callInfoRef.current = null;
+        toast.info("Call already answered on another device");
+        return;
+      }
+
       // Get microphone
       let stream: MediaStream;
       try {
@@ -832,21 +845,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
           playRingtone();
 
-          // Auto-dismiss if status changes from ringing
+          // Auto-dismiss if status changes from ringing (e.g. accepted on another device, ended, missed)
           const unsubDoc = listenToCallDoc(change.doc.id, (callData) => {
             if (callData.status !== "ringing" && callStateRef.current === "incoming_ringing") {
               stopRingtone();
               unsubDoc();
-              if (
-                callData.status === "ended" ||
-                callData.status === "missed" ||
-                callData.status === "declined"
-              ) {
-                setCallState("idle");
-                callStateRef.current = "idle";
-                setCallInfo(null);
-                callInfoRef.current = null;
-              }
+              // Reset to idle for ALL non-ringing statuses when we're still in incoming_ringing
+              setCallState("idle");
+              callStateRef.current = "idle";
+              setCallInfo(null);
+              callInfoRef.current = null;
             }
           });
 
