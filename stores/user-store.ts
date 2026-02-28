@@ -166,13 +166,20 @@ export const useUserStore = create<UserStore>()(
         walletAddress: state.walletAddress,
         qcUsername: state.qcUsername,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
+      onRehydrateStorage: () => () => {
+        // NOTE: The after-callback receives `undefined` as state when the
+        // storage key doesn't exist (first load after deployment). We use
+        // getState() instead which always returns the current store state.
+        const current = useUserStore.getState();
+
         // Migrate legacy per-key localStorage values on first load
-        const patch = migrateLegacyLocalStorage(state);
-        if (Object.keys(patch).length > 0) {
-          useUserStore.setState(patch);
+        if (!current.telegramId) {
+          const patch = migrateLegacyLocalStorage(current);
+          if (Object.keys(patch).length > 0) {
+            useUserStore.setState(patch);
+          }
         }
+
         // Hydrate session-only field
         if (typeof window !== "undefined") {
           const ste = Number(sessionStorage.getItem("remainingSolveToEarn"));
