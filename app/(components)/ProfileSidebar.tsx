@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,19 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
 
   const badgesQuery = useUserBadgesQuery(telegramId);
 
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string>("Quantum User");
+  // Profile photo: prefer Telegram SDK photo_url, fall back to API fetch
+  const tgUser = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
+  const tgPhotoUrl = tgUser?.photo_url ?? null;
+  const apiPhotoUrl = useProfilePhoto(!tgPhotoUrl ? telegramId : null);
+  const photoUrl = tgPhotoUrl || apiPhotoUrl;
+
+  const displayName = useMemo(() => {
+    if (username) return username;
+    if (tgUser?.username) return tgUser.username;
+    if (tgUser?.first_name) return tgUser.first_name;
+    return "Quantum User";
+  }, [username, tgUser?.username, tgUser?.first_name]);
+
   const [copied, setCopied] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -54,37 +66,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [isRegisteringUsername, setIsRegisteringUsername] = useState(false);
   const [usernameAvailability, setUsernameAvailability] = useState<"available" | "taken" | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Prefer DB-stored username (works for email login from different TG account)
-    if (username) {
-      setDisplayName(username);
-    } else {
-      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      if (tgUser?.username) {
-        setDisplayName(tgUser.username);
-      } else if (tgUser?.first_name) {
-        setDisplayName(tgUser.first_name);
-      }
-    }
-
-    // Fetch profile photo using DB telegramId (not initDataUnsafe which may be a different TG account)
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (tgUser?.photo_url) {
-      setPhotoUrl(tgUser.photo_url);
-    } else if (telegramId) {
-      fetch("/api/get-profile-photo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.photoUrl) setPhotoUrl(data.photoUrl);
-        })
-        .catch(() => {});
-    }
-  }, [username, telegramId]);
 
   // Load QC username on mount
   useEffect(() => {

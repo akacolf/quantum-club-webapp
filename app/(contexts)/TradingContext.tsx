@@ -10,8 +10,6 @@
  */
 
 import React, {
-  createContext,
-  useContext,
   useState,
   useCallback,
   useEffect,
@@ -23,7 +21,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
   limit,
   getDocs,
   Timestamp,
@@ -62,80 +59,8 @@ import {
   useMyTokens,
   useInvalidateTokenQueries,
 } from "@/app/(hooks)/queries/use-trading";
-
-// =====================================================
-// Types
-// =====================================================
-
-interface TradingContextType {
-  // Token discovery (cached from blockchain indexing)
-  trendingTokens: Token[];
-  newTokens: Token[];
-  graduatedTokens: Token[];
-  searchResults: Token[];
-  isLoading: boolean;
-  isBuying: boolean;
-  isSelling: boolean;
-
-  // User's created tokens (including pending deployments)
-  myTokens: Token[];
-  fetchMyTokens: () => Promise<void>;
-  retryDeployToken: (
-    tokenId: string
-  ) => Promise<{ success: boolean; error?: string }>;
-
-  // Search
-  searchTokens: (query: string) => Promise<void>;
-  clearSearch: () => void;
-
-  // User positions (from on-chain queries)
-  positions: HolderPosition[];
-
-  // Selected token
-  selectedToken: Token | null;
-  selectToken: (tokenId: string) => Promise<void>;
-
-  // On-chain trading (slippageTolerance is percentage, e.g., 0.05 = 5%)
-  buyTokens: (
-    tokenId: string,
-    tonAmount: string,
-    slippageTolerance?: number,
-    isInitialBuy?: boolean
-  ) => Promise<TradeResult>;
-  sellTokens: (tokenId: string, tokenAmount: string) => Promise<TradeResult>;
-
-  // Preview trades (on-chain queries)
-  previewBuy: (
-    tokenId: string,
-    tonAmount: string
-  ) => Promise<{
-    tokensReceived: string;
-    averagePrice: string;
-    fee: string;
-    newPrice: string;
-  } | null>;
-  previewSell: (
-    tokenId: string,
-    tokenAmount: string
-  ) => Promise<{
-    tonReceived: string;
-    averagePrice: string;
-    fee: string;
-    newPrice: string;
-  } | null>;
-
-  // Token creation (deploys on-chain)
-  createToken: (params: CreateTokenParams) => Promise<Token | null>;
-
-  // Refresh data
-  refreshTokens: () => Promise<void>;
-  refreshPositions: () => Promise<void>;
-
-  // Utils
-  getPosition: (tokenId: string) => HolderPosition | null;
-}
-
-const TradingContext = createContext<TradingContextType | undefined>(undefined);
+import { useTradingStore } from "@/stores/trading-store";
+import { useShallow } from "zustand/shallow";
 
 // =====================================================
 // Provider
@@ -161,10 +86,10 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
   const myTokensQuery = useMyTokens(telegramId, walletAddress);
   const invalidateTokenQueries = useInvalidateTokenQueries();
 
-  const trendingTokens = trendingQuery.data ?? [];
-  const newTokens = newQuery.data ?? [];
-  const graduatedTokens = graduatedQuery.data ?? [];
-  const myTokens = myTokensQuery.data ?? [];
+  const trendingTokens = trendingQuery.data;
+  const newTokens = newQuery.data;
+  const graduatedTokens = graduatedQuery.data;
+  const myTokens = myTokensQuery.data;
   const isLoading = isSearching || trendingQuery.isFetching || newQuery.isFetching || graduatedQuery.isFetching;
 
   // Contract adapter for on-chain queries - uses TonAPI
@@ -260,7 +185,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
   // =====================================================
   const refreshTokensOnChain = useCallback(async () => {
     // Get all tokens that have jetton addresses
-    const allTokens = [...trendingTokens, ...newTokens].filter(
+    const allTokens = [...(trendingTokens ?? []), ...(newTokens ?? [])].filter(
       (t, i, arr) => t.jettonMasterAddress && arr.findIndex(x => x.id === t.id) === i
     );
 
@@ -1269,7 +1194,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
   // Refresh on-chain data for displayed tokens periodically
   useEffect(() => {
-    if (trendingTokens.length > 0 || newTokens.length > 0) {
+    if ((trendingTokens?.length ?? 0) > 0 || (newTokens?.length ?? 0) > 0) {
       refreshTokensOnChain();
     }
 
@@ -1278,49 +1203,84 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [trendingTokens.length, newTokens.length, refreshTokensOnChain]);
+  }, [trendingTokens?.length, newTokens?.length, refreshTokensOnChain]);
 
   // =====================================================
-  // Context Value
+  // Bridge: Sync state and actions into Zustand store
   // =====================================================
-  const value: TradingContextType = {
-    trendingTokens,
-    newTokens,
-    graduatedTokens,
-    searchResults,
-    isLoading,
-    isBuying,
-    isSelling,
-    myTokens,
-    fetchMyTokens,
-    retryDeployToken,
-    searchTokens,
-    clearSearch,
-    positions,
-    selectedToken,
-    selectToken,
-    buyTokens,
-    sellTokens,
-    previewBuy,
-    previewSell,
-    createToken,
-    refreshTokens: fetchTokens,
-    refreshPositions,
-    getPosition,
-  };
+  useEffect(() => {
+    useTradingStore.setState({
+      trendingTokens: trendingTokens ?? [],
+      newTokens: newTokens ?? [],
+      graduatedTokens: graduatedTokens ?? [],
+      myTokens: myTokens ?? [],
+      isLoading,
+    });
+  }, [trendingTokens, newTokens, graduatedTokens, myTokens, isLoading]);
 
-  return (
-    <TradingContext.Provider value={value}>{children}</TradingContext.Provider>
+  useEffect(() => {
+    useTradingStore.setState({
+      searchResults,
+      isBuying,
+      isSelling,
+      positions,
+      selectedToken,
+    });
+  }, [searchResults, isBuying, isSelling, positions, selectedToken]);
+
+  useEffect(() => {
+    useTradingStore.setState({
+      fetchMyTokens,
+      retryDeployToken,
+      searchTokens,
+      clearSearch,
+      selectToken,
+      buyTokens,
+      sellTokens,
+      previewBuy,
+      previewSell,
+      createToken,
+      refreshTokens: fetchTokens,
+      refreshPositions,
+      getPosition,
+    });
+  }, [
+    fetchMyTokens, retryDeployToken, searchTokens, clearSearch,
+    selectToken, buyTokens, sellTokens, previewBuy, previewSell,
+    createToken, fetchTokens, refreshPositions, getPosition,
+  ]);
+
+  return <>{children}</>;
+}
+
+// =====================================================
+// Compatibility hook — consumers continue using useTrading() unchanged
+// =====================================================
+export const useTrading = () =>
+  useTradingStore(
+    useShallow((s) => ({
+      trendingTokens: s.trendingTokens,
+      newTokens: s.newTokens,
+      graduatedTokens: s.graduatedTokens,
+      searchResults: s.searchResults,
+      isLoading: s.isLoading,
+      isBuying: s.isBuying,
+      isSelling: s.isSelling,
+      myTokens: s.myTokens,
+      fetchMyTokens: s.fetchMyTokens,
+      retryDeployToken: s.retryDeployToken,
+      searchTokens: s.searchTokens,
+      clearSearch: s.clearSearch,
+      positions: s.positions,
+      selectedToken: s.selectedToken,
+      selectToken: s.selectToken,
+      buyTokens: s.buyTokens,
+      sellTokens: s.sellTokens,
+      previewBuy: s.previewBuy,
+      previewSell: s.previewSell,
+      createToken: s.createToken,
+      refreshTokens: s.refreshTokens,
+      refreshPositions: s.refreshPositions,
+      getPosition: s.getPosition,
+    }))
   );
-}
-
-// =====================================================
-// Hook
-// =====================================================
-export function useTrading() {
-  const context = useContext(TradingContext);
-  if (!context) {
-    throw new Error("useTrading must be used within TradingProvider");
-  }
-  return context;
-}

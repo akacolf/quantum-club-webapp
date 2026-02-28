@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
 
 const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
@@ -35,8 +36,7 @@ const FrensContent = () => {
   const [secondTierCount, setSecondTierCount] = useState(0);
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
-  const [photoUrls, setPhotoUrls] = useState<Record<string, string | null>>({});
-  
+
   // TON referral earnings state
   const [tonEarnings, setTonEarnings] = useState(0);
   const [isClaimingTon, setIsClaimingTon] = useState(false);
@@ -156,44 +156,8 @@ const FrensContent = () => {
     fetchReferralsData();
   }, [telegramId, addReferral, referralsContext, setReferralNum, router]);
 
-  // Track which photos are being fetched to avoid duplicates
-  const fetchingPhotosRef = useRef<Set<string>>(new Set());
-
-  // Fetch profile photos for referrals
-  const fetchProfilePhoto = useCallback(async (tgId: string) => {
-    // Skip if already fetched or currently fetching
-    if (fetchingPhotosRef.current.has(tgId)) return;
-    
-    // Mark as fetching
-    fetchingPhotosRef.current.add(tgId);
-
-    try {
-      const response = await fetch('/api/get-profile-photo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: tgId })
-      });
-      const data = await response.json();
-      setPhotoUrls(prev => ({ ...prev, [tgId]: data.photoUrl || null }));
-    } catch {
-      setPhotoUrls(prev => ({ ...prev, [tgId]: null }));
-    }
-  }, []);
-
-  // Fetch photos when referrals are loaded
-  useEffect(() => {
-    if (referralsContext.length > 0) {
-      referralsContext.forEach((referral) => {
-        // Only fetch if not already in state
-        setPhotoUrls(prev => {
-          if (prev[referral.id] === undefined) {
-            fetchProfilePhoto(referral.id);
-          }
-          return prev;
-        });
-      });
-    }
-  }, [referralsContext, fetchProfilePhoto]);
+  // Profile photos for referral list — TanStack Query handles caching/dedup
+  const photoUrls = useProfilePhotos(referralsContext.map((r) => r.id));
 
   async function lookViewMore() {
     try {
