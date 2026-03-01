@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { useUserPresence } from "@/app/(hooks)/usePresence";
 import { dbfs } from "@/app/(firebase)/client";
@@ -277,6 +278,7 @@ export default function QCChatListPage() {
   const router = useRouter();
   const { telegramId, qcUsername, setQcUsername, walletAddress } = useUserContext();
   const authCtx = useAuth();
+  useTelegramBackButton("/ecosystem");
   const currentUser = authCtx?.currentUser ?? null;
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [globalChat, setGlobalChat] = useState<ChatConversation | null>(null);

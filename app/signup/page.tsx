@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { auth } from "@/app/(firebase)/client";
 import { useAuth } from "@/app/(contexts)/auth";
 import { UseRegisterAndAuth } from "@/app/(login)/registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -80,7 +81,7 @@ export default function SignUp() {
     form.clearErrors("root");
 
     try {
-      // Check if email is already linked to an existing QC account
+      // Step 1: Check if email is already linked to an existing QC account
       const checkRes = await fetch("/api/check-existing-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,115 +94,104 @@ export default function SignUp() {
         return;
       }
 
-      // Also check if the Telegram user already has an account (prevent duplicate via email)
+      // Step 2: Resolve Telegram identity BEFORE creating Firebase Auth account
+      // This prevents the broken state where email is consumed but Firestore doc is never created
       if (
-        typeof window !== "undefined" &&
-        window.Telegram &&
-        window.Telegram.WebApp
+        typeof window === "undefined" ||
+        !window.Telegram ||
+        !window.Telegram.WebApp
       ) {
-        const WebApp = window.Telegram.WebApp;
-        WebApp.ready();
-
-        let retries = 0;
-        while (
-          (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
-          retries < 20
-        ) {
-          await new Promise((r) => setTimeout(r, 100));
-          retries++;
-        }
-
-        const initData = WebApp.initData;
-        if (initData) {
-          const authRes = await fetch("/api/auth/telegram", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
-          });
-
-          if (authRes.ok) {
-            const { telegramIdEncrypted } = await authRes.json();
-            if (telegramIdEncrypted) {
-              const tgCheckRes = await fetch("/api/check-existing-user", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ qcId: telegramIdEncrypted }),
-              });
-              const { exists: tgExists } = await tgCheckRes.json();
-              if (tgExists) {
-                form.setError("root", { message: "You already have an account. Please sign in instead." });
-                setIsLoading(false);
-                return;
-              }
-            }
-          }
-        }
+        form.setError("root", { message: "Telegram WebApp is not available. Please open this app from Telegram." });
+        setIsLoading(false);
+        return;
       }
 
-      // Create Firebase account with email verification
+      const WebApp = window.Telegram.WebApp;
+      WebApp.ready();
+
+      let retries = 0;
+      while (
+        (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
+        retries < 20
+      ) {
+        await new Promise((r) => setTimeout(r, 100));
+        retries++;
+      }
+
+      const initDataUnsafe = WebApp.initDataUnsafe;
+      const initData = WebApp.initData;
+      if (!initDataUnsafe?.user?.id || !initData) {
+        form.setError("root", { message: "Telegram user data not available. Please try again." });
+        setIsLoading(false);
+        return;
+      }
+
+      const authRes = await fetch("/api/auth/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
+
+      if (!authRes.ok) {
+        throw new Error("Telegram session authentication failed");
+      }
+
+      const { telegramIdEncrypted } = await authRes.json();
+      if (!telegramIdEncrypted) {
+        throw new Error("Failed to resolve Telegram ID");
+      }
+
+      // Step 3: Check if this Telegram user already has an account
+      const tgCheckRes = await fetch("/api/check-existing-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qcId: telegramIdEncrypted }),
+      });
+      const { exists: tgExists } = await tgCheckRes.json();
+      if (tgExists) {
+        form.setError("root", { message: "You already have an account. Please sign in instead." });
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 4: Create Firebase Auth account (safe — we have TG identity)
       await authContext?.signUpWithEmail(data.email, data.password);
 
-      // Register with TG ID (since we're in TG Mini App)
-      if (
-        typeof window !== "undefined" &&
-        window.Telegram &&
-        window.Telegram.WebApp
-      ) {
-        const WebApp = window.Telegram.WebApp;
-        WebApp.ready();
+      // Step 5: Create Firestore user doc with email as identifier
+      try {
+        const regData = await UseRegisterAndAuth({
+          telegramIdEncrypted,
+          initDataUnsafe,
+          email: data.email,
+        });
 
-        let retries = 0;
-        while (
-          (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
-          retries < 20
-        ) {
-          await new Promise((r) => setTimeout(r, 100));
-          retries++;
+        if (regData.status === "maintenance") {
+          router.replace("/maintenance");
+          return;
         }
 
-        const initDataUnsafe = WebApp.initDataUnsafe;
-        const initData = WebApp.initData;
-        if (initDataUnsafe?.user?.id && initData) {
-          const authRes = await fetch("/api/auth/telegram", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
-          });
-
-          if (!authRes.ok) {
-            throw new Error("Telegram session authentication failed");
-          }
-
-          const { telegramIdEncrypted } = await authRes.json();
-          if (!telegramIdEncrypted) {
-            throw new Error("Failed to resolve Telegram ID");
-          }
-
-          // Store email in the user's Firestore profile
-          const regData = await UseRegisterAndAuth({
-            telegramIdEncrypted,
-            initDataUnsafe,
-            email: data.email,
-          });
-
-          if (regData.status === "maintenance") {
-            router.replace("/maintenance");
-            return;
-          }
-
-          if (regData.status === "completed") {
-            setTelegramId(regData.telegramId);
-            SetMainQuantAmount(regData.MainQuantAmount);
-            setRank(regData.rank);
-            setUserRank(regData.userRank);
-            if (regData.userRank != null) sessionStorage.setItem("userLeaderRank", String(regData.userRank));
-            setDaily(regData.daily);
-            setUsername(regData.username);
-            setWalletAddress(regData.walletAddress);
-            setLastActiveTime(regData.lastActiveTime);
-            setRemainingSolveToEarn(regData.remainingSolveToEarn);
-          }
+        if (regData.status === "completed") {
+          setTelegramId(regData.telegramId);
+          SetMainQuantAmount(regData.MainQuantAmount);
+          setRank(regData.rank);
+          setUserRank(regData.userRank);
+          if (regData.userRank != null) sessionStorage.setItem("userLeaderRank", String(regData.userRank));
+          setDaily(regData.daily);
+          setUsername(regData.username);
+          setWalletAddress(regData.walletAddress);
+          setLastActiveTime(regData.lastActiveTime);
+          setRemainingSolveToEarn(regData.remainingSolveToEarn);
         }
+      } catch (regErr) {
+        // Firestore doc creation failed — delete the Firebase Auth user so the email
+        // isn't permanently consumed, allowing the user to retry
+        console.error("Registration failed after Firebase Auth account created, cleaning up:", regErr);
+        try {
+          await auth.currentUser?.delete();
+        } catch (deleteErr) {
+          console.error("Failed to clean up Firebase Auth user:", deleteErr);
+        }
+        throw regErr;
       }
 
       // Signal that signup is complete — useEffect handles navigation
