@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
 import EcosystemNavigation from "./(navigation)/EcosystemNavigation";
 import Loader from "@/app/(components)/Loader";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -18,7 +17,6 @@ export default function EcosystemLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const { telegramId } = useUserContext();
   const authCtx = useAuth();
   const isMounted = useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
@@ -26,20 +24,14 @@ export default function EcosystemLayout({
   // Track user presence (online/offline) — only after Firebase auth is ready
   usePresence(authCtx?.currentUser ? telegramId : null);
 
-  // Telegram back button navigates to home
+  // Show back button — each child page registers its own onClick handler
+  // via useTelegramBackButton. We only show/hide here so the button is
+  // visible as soon as the layout mounts.
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     tg?.ready();
     tg?.BackButton.show();
-
-    const handleBack = () => router.push("/home");
-    tg?.BackButton.onClick(handleBack);
-
-    return () => {
-      tg?.BackButton.offClick(handleBack);
-      tg?.BackButton.hide();
-    };
-  }, [router]);
+  }, []);
 
   if (!isMounted) return <Loader />;
 

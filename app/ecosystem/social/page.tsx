@@ -3,8 +3,10 @@
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 export default function QCSocialPage() {
+  useTelegramBackButton("/home");
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 pb-28">
       <Card className="bg-card border-border max-w-sm w-full">

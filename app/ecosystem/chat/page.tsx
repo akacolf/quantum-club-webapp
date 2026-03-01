@@ -278,7 +278,7 @@ export default function QCChatListPage() {
   const router = useRouter();
   const { telegramId, qcUsername, setQcUsername, walletAddress } = useUserContext();
   const authCtx = useAuth();
-  useTelegramBackButton("/ecosystem");
+  useTelegramBackButton("/home");
   const currentUser = authCtx?.currentUser ?? null;
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [globalChat, setGlobalChat] = useState<ChatConversation | null>(null);
