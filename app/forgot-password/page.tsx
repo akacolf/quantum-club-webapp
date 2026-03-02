@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/lib/validations";
+import { useForm, useStore } from "@tanstack/react-form";
+import { forgotPasswordSchema } from "@/lib/validations";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,69 +20,72 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function ForgotPassword() {
-  const form = useForm<ForgotPasswordFormData>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: "" },
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [rootError, setRootError] = useState<string | null>(null);
 
   const router = useRouter();
 
+  const form = useForm({
+    defaultValues: { email: "" },
+    validators: { onSubmit: forgotPasswordSchema },
+    onSubmit: async ({ value }) => {
+      setIsLoading(true);
+      setRootError(null);
+
+      try {
+        await sendPasswordResetEmail(auth, value.email, {
+          url: `${window.location.origin}/`,
+          handleCodeInApp: false,
+        });
+        setIsEmailSent(true);
+      } catch (err) {
+        console.error("Password reset error:", err);
+        if (err instanceof Error) {
+          if (err.message.includes("user-not-found")) {
+            setRootError("No account found with this email address");
+          } else if (err.message.includes("invalid-email")) {
+            setRootError("Please enter a valid email address");
+          } else if (err.message.includes("too-many-requests")) {
+            setRootError("Too many requests. Please try again later");
+          } else {
+            setRootError("Failed to send reset email. Please try again.");
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+  });
+
+  const emailValue = useStore(form.store, (s) => s.values.email);
+
   // Enable fullscreen mode for Telegram Mini App
   useDeviceDetection();
-  
+
   // Telegram back button to return to login
   useTelegramBackButton("/");
 
   useEffect(() => {
     // Prefetch login page for faster navigation
     router.prefetch("/");
-    
+
     const timer = setTimeout(() => setIsPageLoading(false), 500);
     return () => clearTimeout(timer);
   }, [router]);
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
-    setIsLoading(true);
-    form.clearErrors("root");
-
-    try {
-      await sendPasswordResetEmail(auth, data.email, {
-        url: `${window.location.origin}/`,
-        handleCodeInApp: false,
-      });
-      setIsEmailSent(true);
-    } catch (err) {
-      console.error("Password reset error:", err);
-      if (err instanceof Error) {
-        if (err.message.includes("user-not-found")) {
-          form.setError("root", { message: "No account found with this email address" });
-        } else if (err.message.includes("invalid-email")) {
-          form.setError("root", { message: "Please enter a valid email address" });
-        } else if (err.message.includes("too-many-requests")) {
-          form.setError("root", { message: "Too many requests. Please try again later" });
-        } else {
-          form.setError("root", { message: "Failed to send reset email. Please try again." });
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleResendEmail = async () => {
     setIsLoading(true);
-    form.clearErrors("root");
+    setRootError(null);
     try {
-      await sendPasswordResetEmail(auth, form.getValues("email"), {
+      await sendPasswordResetEmail(auth, form.state.values.email, {
         url: `${window.location.origin}/`,
         handleCodeInApp: false,
       });
     } catch (err) {
       console.error("Resend error:", err);
-      form.setError("root", { message: "Failed to resend email. Please try again." });
+      setRootError("Failed to resend email. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +127,7 @@ export default function ForgotPassword() {
                 <h1 className="text-xl font-semibold">Check your email</h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   We&apos;ve sent a password reset link to{" "}
-                  <span className="font-medium text-foreground">{form.getValues("email")}</span>
+                  <span className="font-medium text-foreground">{form.state.values.email}</span>
                 </p>
               </>
             ) : (
@@ -183,39 +185,44 @@ export default function ForgotPassword() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
               <div className="grid gap-6">
-                {form.formState.errors.root && (
+                {rootError && (
                   <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                    {form.formState.errors.root.message}
+                    {rootError}
                   </div>
                 )}
 
                 <div className="grid gap-4">
-                  <Controller
+                  <form.Field
                     name="email"
-                    control={form.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                        <Input
-                          {...field}
-                          id={field.name}
-                          type="email"
-                          aria-invalid={fieldState.invalid}
-                          placeholder="Your email address"
-                          disabled={isLoading}
-                          autoComplete="email"
-                          autoFocus
-                        />
-                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
+                    >
+                    {(field) => {
+                      const hasErrors = field.state.meta.errors.length > 0;
+                      return (
+                        <Field data-invalid={hasErrors}>
+                          <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                          <Input
+                            id={field.name}
+                            type="email"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            aria-invalid={hasErrors}
+                            placeholder="Your email address"
+                            disabled={isLoading}
+                            autoComplete="email"
+                            autoFocus
+                          />
+                          {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoading || !form.watch("email")}
+                    disabled={isLoading || !emailValue}
                   >
                     {isLoading ? (
                       <ButtonLoader size="sm" />

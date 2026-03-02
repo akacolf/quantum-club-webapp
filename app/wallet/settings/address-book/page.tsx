@@ -11,10 +11,9 @@ import { toast } from "sonner";
 import { Address } from "@ton/core";
 import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "@tanstack/react-form";
 import { addressBookSchema, type AddressBookFormData } from "@/lib/validations";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 
 interface SavedAddress {
     address: string;
@@ -32,12 +31,17 @@ export default function AddressBookPage() {
     const [isAdding, setIsAdding] = useState(false);
     const [editingAddress, setEditingAddress] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
+    const [addressError, setAddressError] = useState<string | null>(null);
     const { telegramId } = useUserContext();
 
-    const addForm = useForm<AddressBookFormData>({
-        resolver: zodResolver(addressBookSchema),
+    const addForm = useForm({
         defaultValues: { name: "", address: "" },
+        validators: { onSubmit: addressBookSchema },
+        onSubmit: async ({ value }) => {
+            handleAdd(value);
+        },
     });
+
     // Format address for display
     const formatAddress = useCallback((address: string): string => {
         try {
@@ -69,16 +73,18 @@ export default function AddressBookPage() {
     };
 
     const handleAdd = (data: AddressBookFormData) => {
+        setAddressError(null);
+
         // Validate TON address format
         try {
             Address.parse(data.address);
         } catch {
-            addForm.setError("address", { message: "Invalid TON address" });
+            setAddressError("Invalid TON address");
             return;
         }
 
         if (addresses.some(a => a.address.toLowerCase() === data.address.toLowerCase())) {
-            addForm.setError("address", { message: "Address already saved" });
+            setAddressError("Address already saved");
             return;
         }
 
@@ -132,7 +138,7 @@ export default function AddressBookPage() {
                     <h1 className="text-xl font-bold">Address Book</h1>
                     <Button
                         size="sm"
-                        onClick={() => setIsAdding(true)}
+                        onClick={() => { setIsAdding(true); setAddressError(null); }}
                         className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 rounded-xl px-4 font-semibold shadow-sm"
                     >
                         <Icon icon="lucide:plus" className="w-4 h-4 mr-1" />
@@ -149,51 +155,65 @@ export default function AddressBookPage() {
                         >
                             <Card className="bg-card border-border mb-4">
                                 <CardContent className="p-4 space-y-3">
-                                    <Controller
+                                    <addForm.Field
                                         name="name"
-                                        control={addForm.control}
-                                        render={({ field, fieldState }) => (
-                                            <Field data-invalid={fieldState.invalid}>
-                                                <Input
-                                                    {...field}
-                                                    id={field.name}
-                                                    aria-invalid={fieldState.invalid}
-                                                    placeholder="Name (e.g., My Friend)"
-                                                    className="bg-muted border-border text-foreground"
-                                                />
-                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                                            </Field>
-                                        )}
-                                    />
-                                    <Controller
+                                        >
+                                        {(field) => {
+                                            const hasErrors = field.state.meta.errors.length > 0;
+                                            return (
+                                                <Field data-invalid={hasErrors}>
+                                                    <Input
+                                                        id={field.name}
+                                                        value={field.state.value}
+                                                        onBlur={field.handleBlur}
+                                                        onChange={(e) => field.handleChange(e.target.value)}
+                                                        aria-invalid={hasErrors}
+                                                        placeholder="Name (e.g., My Friend)"
+                                                        className="bg-muted border-border text-foreground"
+                                                    />
+                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                </Field>
+                                            );
+                                        }}
+                                    </addForm.Field>
+                                    <addForm.Field
                                         name="address"
-                                        control={addForm.control}
-                                        render={({ field, fieldState }) => (
-                                            <Field data-invalid={fieldState.invalid}>
-                                                <Input
-                                                    {...field}
-                                                    id={field.name}
-                                                    aria-invalid={fieldState.invalid}
-                                                    placeholder="TON Address"
-                                                    className={`bg-muted border-border text-foreground font-mono text-sm ${fieldState.invalid ? "border-destructive" : ""}`}
-                                                />
-                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                                            </Field>
-                                        )}
-                                    />
+                                        >
+                                        {(field) => {
+                                            const hasFormErrors = field.state.meta.errors.length > 0;
+                                            const hasManualError = addressError !== null;
+                                            const isInvalid = hasFormErrors || hasManualError;
+                                            return (
+                                                <Field data-invalid={isInvalid}>
+                                                    <Input
+                                                        id={field.name}
+                                                        value={field.state.value}
+                                                        onBlur={field.handleBlur}
+                                                        onChange={(e) => { field.handleChange(e.target.value); setAddressError(null); }}
+                                                        aria-invalid={isInvalid}
+                                                        placeholder="TON Address"
+                                                        className={`bg-muted border-border text-foreground font-mono text-sm ${isInvalid ? "border-destructive" : ""}`}
+                                                    />
+                                                    {hasFormErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                    {!hasFormErrors && hasManualError && <FieldError errors={[{ message: addressError }]} />}
+                                                </Field>
+                                            );
+                                        }}
+                                    </addForm.Field>
                                     <div className="flex gap-2">
                                         <Button
                                             variant="outline"
                                             onClick={() => {
                                                 setIsAdding(false);
                                                 addForm.reset();
+                                                setAddressError(null);
                                             }}
                                             className="flex-1 bg-muted border-border text-foreground"
                                         >
                                             Cancel
                                         </Button>
                                         <Button
-                                            onClick={addForm.handleSubmit(handleAdd)}
+                                            onClick={() => addForm.handleSubmit()}
                                             className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                                         >
                                             Save

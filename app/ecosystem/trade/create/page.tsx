@@ -18,8 +18,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useStore } from "@tanstack/react-form";
 import { createTokenSchema, type CreateTokenFormData } from "@/lib/validations";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { useTrading } from "@/app/(contexts)/TradingContext";
@@ -41,7 +40,7 @@ export default function CreateTokenPage() {
 
     // Check for wallet from localStorage directly to handle SSR timing issues
     const [effectiveWalletAddress, setEffectiveWalletAddress] = useState<string>("");
-    
+
     useEffect(() => {
         // First check localStorage directly (handles SSR hydration timing)
         const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
@@ -69,9 +68,12 @@ export default function CreateTokenPage() {
         router.prefetch("/wallet");
     }, [router]);
 
-    const form = useForm<CreateTokenFormData>({
-        resolver: zodResolver(createTokenSchema),
+    const form = useForm({
         defaultValues: { name: "", symbol: "", description: "" },
+        validators: { onSubmit: createTokenSchema },
+        onSubmit: async ({ value }) => {
+            await onSubmit(value);
+        },
     });
 
     const [isLoading, setIsLoading] = useState(false);
@@ -82,15 +84,17 @@ export default function CreateTokenPage() {
     const [initialBuyError, setInitialBuyError] = useState("");
     const [isCheckingSymbol, setIsCheckingSymbol] = useState(false);
     const [symbolAvailable, setSymbolAvailable] = useState<boolean | null>(null);
+    const [symbolError, setSymbolError] = useState<string | null>(null);
 
     // Check symbol availability with debounce
-    const watchedSymbol = form.watch("symbol");
+    const watchedSymbol = useStore(form.store, (s) => s.values.symbol);
     useEffect(() => {
         const symbol = watchedSymbol.trim();
 
         // Reset if symbol is empty or too short
         if (!symbol || symbol.length < 2) {
             setSymbolAvailable(null);
+            setSymbolError(null);
             setIsCheckingSymbol(false);
             return;
         }
@@ -98,6 +102,7 @@ export default function CreateTokenPage() {
         // Validate format first
         if (!/^[A-Za-z0-9]+$/.test(symbol)) {
             setSymbolAvailable(null);
+            setSymbolError(null);
             return;
         }
 
@@ -112,9 +117,9 @@ export default function CreateTokenPage() {
                 if (watchedSymbol.trim().toUpperCase() === symbol.toUpperCase()) {
                     setSymbolAvailable(data.available === true);
                     if (!data.available && data.reason) {
-                        form.setError("symbol", { message: data.reason });
+                        setSymbolError(data.reason);
                     } else if (data.available) {
-                        form.clearErrors("symbol");
+                        setSymbolError(null);
                     }
                 }
             } catch {
@@ -125,16 +130,16 @@ export default function CreateTokenPage() {
         }, 500);
 
         return () => clearTimeout(debounce);
-    }, [watchedSymbol, form]);
+    }, [watchedSymbol]);
 
     const validateExtras = (): boolean => {
         // Validate symbol availability (async check not covered by Zod)
         if (symbolAvailable === false) {
-            form.setError("symbol", { message: "This symbol is already taken" });
+            setSymbolError("This symbol is already taken");
             return false;
         }
         if (isCheckingSymbol) {
-            form.setError("symbol", { message: "Please wait while we check symbol availability" });
+            setSymbolError("Please wait while we check symbol availability");
             return false;
         }
 
@@ -363,7 +368,7 @@ export default function CreateTokenPage() {
                                     <Icon icon="solar:lock-bold" className="w-4 h-4 text-green-400" />
                                     <span className="text-xs text-muted-foreground">Locked Liquidity</span>
                                 </div>
-                
+
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-purple-400" />
                                     <span className="text-xs text-muted-foreground">Auto DEX at 2,000 TON</span>
@@ -381,7 +386,7 @@ export default function CreateTokenPage() {
                     </Card>
 
                     {/* Form */}
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="space-y-6">
                         <Card className="bg-white/5 border-white/10">
                             <CardHeader>
                                 <CardTitle className="text-white">Token Details</CardTitle>
@@ -438,99 +443,117 @@ export default function CreateTokenPage() {
                                 </div>
 
                                 {/* Token Name */}
-                                <Controller
+                                <form.Field
                                     name="name"
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor={field.name} className="text-white">Token Name *</FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id={field.name}
-                                                type="text"
-                                                aria-invalid={fieldState.invalid}
-                                                placeholder="e.g., Quantum Club"
-                                                className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${fieldState.invalid ? "border-destructive" : ""}`}
-                                                maxLength={32}
-                                            />
-                                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                                        </Field>
-                                    )}
-                                />
-
-                                {/* Token Symbol */}
-                                <Controller
-                                    name="symbol"
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor={field.name} className="text-white">Token Symbol *</FieldLabel>
-                                            <div className="relative">
+                                    >
+                                    {(field) => {
+                                        const hasErrors = field.state.meta.errors.length > 0;
+                                        return (
+                                            <Field data-invalid={hasErrors}>
+                                                <FieldLabel htmlFor={field.name} className="text-white">Token Name *</FieldLabel>
                                                 <Input
-                                                    {...field}
-                                                    onChange={(e) => {
-                                                        field.onChange(e.target.value.toUpperCase());
-                                                    }}
                                                     id={field.name}
                                                     type="text"
-                                                    aria-invalid={fieldState.invalid}
-                                                    placeholder="e.g., QNTM"
-                                                    className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase pr-10 ${
-                                                        fieldState.invalid ? "border-destructive" :
-                                                        symbolAvailable === true ? "border-green-500" : ""
-                                                    }`}
-                                                    maxLength={10}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) => field.handleChange(e.target.value)}
+                                                    aria-invalid={hasErrors}
+                                                    placeholder="e.g., Quantum Club"
+                                                    className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${hasErrors ? "border-destructive" : ""}`}
+                                                    maxLength={32}
                                                 />
-                                                {/* Status indicator */}
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                    {isCheckingSymbol && (
-                                                        <svg className="animate-spin h-4 w-4 text-white/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                    )}
-                                                    {!isCheckingSymbol && symbolAvailable === true && (
-                                                        <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    )}
-                                                    {!isCheckingSymbol && symbolAvailable === false && (
-                                                        <svg className="h-4 w-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    )}
+                                                {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                            </Field>
+                                        );
+                                    }}
+                                </form.Field>
+
+                                {/* Token Symbol */}
+                                <form.Field
+                                    name="symbol"
+                                    >
+                                    {(field) => {
+                                        const hasFormErrors = field.state.meta.errors.length > 0;
+                                        const hasSymbolError = symbolError !== null;
+                                        const isInvalid = hasFormErrors || hasSymbolError;
+                                        return (
+                                            <Field data-invalid={isInvalid}>
+                                                <FieldLabel htmlFor={field.name} className="text-white">Token Symbol *</FieldLabel>
+                                                <div className="relative">
+                                                    <Input
+                                                        id={field.name}
+                                                        type="text"
+                                                        value={field.state.value}
+                                                        onBlur={field.handleBlur}
+                                                        onChange={(e) => {
+                                                            field.handleChange(e.target.value.toUpperCase());
+                                                            setSymbolError(null);
+                                                        }}
+                                                        aria-invalid={isInvalid}
+                                                        placeholder="e.g., QNTM"
+                                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase pr-10 ${
+                                                            isInvalid ? "border-destructive" :
+                                                            symbolAvailable === true ? "border-green-500" : ""
+                                                        }`}
+                                                        maxLength={10}
+                                                    />
+                                                    {/* Status indicator */}
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                        {isCheckingSymbol && (
+                                                            <svg className="animate-spin h-4 w-4 text-white/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                        )}
+                                                        {!isCheckingSymbol && symbolAvailable === true && (
+                                                            <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        )}
+                                                        {!isCheckingSymbol && symbolAvailable === false && (
+                                                            <svg className="h-4 w-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                                            {!fieldState.invalid && symbolAvailable === true && watchedSymbol.length >= 2 && (
-                                                <p className="text-xs text-green-400">Symbol is available!</p>
-                                            )}
-                                        </Field>
-                                    )}
-                                />
+                                                {hasFormErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                {!hasFormErrors && hasSymbolError && <FieldError errors={[{ message: symbolError }]} />}
+                                                {!isInvalid && symbolAvailable === true && watchedSymbol.length >= 2 && (
+                                                    <p className="text-xs text-green-400">Symbol is available!</p>
+                                                )}
+                                            </Field>
+                                        );
+                                    }}
+                                </form.Field>
 
                                 {/* Description */}
-                                <Controller
+                                <form.Field
                                     name="description"
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor={field.name} className="text-white">Description</FieldLabel>
-                                            <Textarea
-                                                {...field}
-                                                id={field.name}
-                                                aria-invalid={fieldState.invalid}
-                                                placeholder="Tell us about your token..."
-                                                className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground min-h-[100px] resize-none ${fieldState.invalid ? "border-destructive" : ""}`}
-                                                maxLength={500}
-                                            />
-                                            <div className="flex justify-between text-xs text-muted-foreground">
-                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                                                <span className="ml-auto">{field.value.length}/500</span>
-                                            </div>
-                                        </Field>
-                                    )}
-                                />
+                                    >
+                                    {(field) => {
+                                        const hasErrors = field.state.meta.errors.length > 0;
+                                        return (
+                                            <Field data-invalid={hasErrors}>
+                                                <FieldLabel htmlFor={field.name} className="text-white">Description</FieldLabel>
+                                                <Textarea
+                                                    id={field.name}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) => field.handleChange(e.target.value)}
+                                                    aria-invalid={hasErrors}
+                                                    placeholder="Tell us about your token..."
+                                                    className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground min-h-[100px] resize-none ${hasErrors ? "border-destructive" : ""}`}
+                                                    maxLength={500}
+                                                />
+                                                <div className="flex justify-between text-xs text-muted-foreground">
+                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                    <span className="ml-auto">{field.state.value.length}/500</span>
+                                                </div>
+                                            </Field>
+                                        );
+                                    }}
+                                </form.Field>
                             </CardContent>
                         </Card>
 

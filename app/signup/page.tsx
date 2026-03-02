@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "@tanstack/react-form";
 import { signupSchema, type SignupFormData } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,15 +25,12 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 export default function SignUp() {
-  const form = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: { email: "", password: "", confirmPassword: "" },
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [rootError, setRootError] = useState<string | null>(null);
   const hasRedirected = useRef(false);
 
   const router = useRouter();
@@ -51,9 +47,17 @@ export default function SignUp() {
   } = useUserContext();
   const { setUserRank } = useLeaderboardContext();
 
+  const form = useForm({
+    defaultValues: { email: "", password: "", confirmPassword: "" },
+    validators: { onSubmit: signupSchema },
+    onSubmit: async ({ value }) => {
+      await onSubmit(value);
+    },
+  });
+
   // Enable fullscreen mode for Telegram Mini App
   useDeviceDetection();
-  
+
   // Telegram back button to return to login
   useTelegramBackButton("/");
 
@@ -71,14 +75,14 @@ export default function SignUp() {
     router.prefetch("/legal/terms");
     router.prefetch("/legal/privacy");
     router.prefetch("/home");
-    
+
     const timer = setTimeout(() => setIsPageLoading(false), 500);
     return () => clearTimeout(timer);
   }, [router]);
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
-    form.clearErrors("root");
+    setRootError(null);
 
     try {
       // Step 1: Check if email is already linked to an existing QC account
@@ -89,7 +93,7 @@ export default function SignUp() {
       });
       const { exists } = await checkRes.json();
       if (exists) {
-        form.setError("root", { message: "An account with this email already exists. Please sign in instead." });
+        setRootError("An account with this email already exists. Please sign in instead.");
         setIsLoading(false);
         return;
       }
@@ -101,7 +105,7 @@ export default function SignUp() {
         !window.Telegram ||
         !window.Telegram.WebApp
       ) {
-        form.setError("root", { message: "Telegram WebApp is not available. Please open this app from Telegram." });
+        setRootError("Telegram WebApp is not available. Please open this app from Telegram.");
         setIsLoading(false);
         return;
       }
@@ -121,7 +125,7 @@ export default function SignUp() {
       const initDataUnsafe = WebApp.initDataUnsafe;
       const initData = WebApp.initData;
       if (!initDataUnsafe?.user?.id || !initData) {
-        form.setError("root", { message: "Telegram user data not available. Please try again." });
+        setRootError("Telegram user data not available. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -149,7 +153,7 @@ export default function SignUp() {
       });
       const { exists: tgExists } = await tgCheckRes.json();
       if (tgExists) {
-        form.setError("root", { message: "You already have an account. Please sign in instead." });
+        setRootError("You already have an account. Please sign in instead.");
         setIsLoading(false);
         return;
       }
@@ -201,13 +205,13 @@ export default function SignUp() {
       console.error("Sign up error:", err);
       if (err instanceof Error) {
         if (err.message.includes("email-already-in-use")) {
-          form.setError("root", { message: "An account with this email already exists" });
+          setRootError("An account with this email already exists");
         } else if (err.message.includes("invalid-email")) {
-          form.setError("root", { message: "Please enter a valid email address" });
+          setRootError("Please enter a valid email address");
         } else if (err.message.includes("weak-password")) {
-          form.setError("root", { message: "Password is too weak. Please use a stronger password" });
+          setRootError("Password is too weak. Please use a stronger password");
         } else {
-          form.setError("root", { message: "Failed to create account. Please try again." });
+          setRootError("Failed to create account. Please try again.");
         }
       }
     } finally {
@@ -217,7 +221,7 @@ export default function SignUp() {
 
   const handleTelegramSignUp = async () => {
     setIsLoading(true);
-    form.clearErrors("root");
+    setRootError(null);
     try {
       if (
         typeof window !== "undefined" &&
@@ -272,7 +276,7 @@ export default function SignUp() {
         });
         const { exists } = await checkRes.json();
         if (exists) {
-          form.setError("root", { message: "You already have an account. Please sign in instead." });
+          setRootError("You already have an account. Please sign in instead.");
           setIsLoading(false);
           return;
         }
@@ -322,13 +326,11 @@ export default function SignUp() {
           setSignupComplete(true);
         }
       } else {
-        form.setError("root", { message: "Telegram WebApp is not available. Please open this app from Telegram." });
+        setRootError("Telegram WebApp is not available. Please open this app from Telegram.");
       }
     } catch (err) {
       console.error("Telegram sign-up error:", err);
-      form.setError("root", {
-        message: err instanceof Error ? err.message : "Failed to sign up with Telegram",
-      });
+      setRootError(err instanceof Error ? err.message : "Failed to sign up with Telegram");
     } finally {
       setIsLoading(false);
     }
@@ -365,11 +367,11 @@ export default function SignUp() {
             </p>
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
             <div className="grid gap-6">
-              {form.formState.errors.root && (
+              {rootError && (
                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {form.formState.errors.root.message}
+                  {rootError}
                 </div>
               )}
 
@@ -395,97 +397,112 @@ export default function SignUp() {
               </div>
 
               <div className="grid gap-4">
-                <Controller
+                <form.Field
                   name="email"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                      <Input
-                        {...field}
-                        id={field.name}
-                        type="email"
-                        aria-invalid={fieldState.invalid}
-                        placeholder="Your email address"
-                        disabled={isLoading}
-                        autoComplete="email"
-                      />
-                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                    </Field>
-                  )}
-                />
-                <Controller
+                  >
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field data-invalid={hasErrors}>
+                        <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                        <Input
+                          id={field.name}
+                          type="email"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          aria-invalid={hasErrors}
+                          placeholder="Your email address"
+                          disabled={isLoading}
+                          autoComplete="email"
+                        />
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+                <form.Field
                   name="password"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          id={field.name}
-                          type={showPassword ? "text" : "password"}
-                          aria-invalid={fieldState.invalid}
-                          placeholder="Create a password"
-                          disabled={isLoading}
-                          autoComplete="new-password"
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Icon
-                            icon={
-                              showPassword
-                                ? "solar:eye-closed-linear"
-                                : "solar:eye-linear"
-                            }
-                            className="size-5"
+                  >
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field data-invalid={hasErrors}>
+                        <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                        <div className="relative">
+                          <Input
+                            id={field.name}
+                            type={showPassword ? "text" : "password"}
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            aria-invalid={hasErrors}
+                            placeholder="Create a password"
+                            disabled={isLoading}
+                            autoComplete="new-password"
+                            className="pr-10"
                           />
-                        </button>
-                      </div>
-                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                    </Field>
-                  )}
-                />
-                <Controller
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Icon
+                              icon={
+                                showPassword
+                                  ? "solar:eye-closed-linear"
+                                  : "solar:eye-linear"
+                              }
+                              className="size-5"
+                            />
+                          </button>
+                        </div>
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+                <form.Field
                   name="confirmPassword"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={field.name}>Confirm Password</FieldLabel>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          id={field.name}
-                          type={showConfirmPassword ? "text" : "password"}
-                          aria-invalid={fieldState.invalid}
-                          placeholder="Confirm your password"
-                          disabled={isLoading}
-                          autoComplete="new-password"
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Icon
-                            icon={
-                              showConfirmPassword
-                                ? "solar:eye-closed-linear"
-                                : "solar:eye-linear"
-                            }
-                            className="size-5"
+                  >
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field data-invalid={hasErrors}>
+                        <FieldLabel htmlFor={field.name}>Confirm Password</FieldLabel>
+                        <div className="relative">
+                          <Input
+                            id={field.name}
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            aria-invalid={hasErrors}
+                            placeholder="Confirm your password"
+                            disabled={isLoading}
+                            autoComplete="new-password"
+                            className="pr-10"
                           />
-                        </button>
-                      </div>
-                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                    </Field>
-                  )}
-                />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Icon
+                              icon={
+                                showConfirmPassword
+                                  ? "solar:eye-closed-linear"
+                                  : "solar:eye-linear"
+                              }
+                              className="size-5"
+                            />
+                          </button>
+                        </div>
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
 
                 {/* Keep me logged in */}
                 <div className="flex items-center gap-2">

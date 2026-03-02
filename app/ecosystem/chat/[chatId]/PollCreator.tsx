@@ -1,12 +1,11 @@
 "use client";
 
-import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { pollSchema, type PollFormData } from "@/lib/validations";
+import { useForm, useStore } from "@tanstack/react-form";
+import { pollSchema } from "@/lib/validations";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -21,35 +20,31 @@ interface PollCreatorProps {
 }
 
 export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCreatorProps) {
-  const form = useForm<PollFormData>({
-    resolver: zodResolver(pollSchema),
+  const form = useForm({
     defaultValues: {
       question: "",
       options: [{ value: "" }, { value: "" }],
     },
+    validators: { onSubmit: pollSchema },
+    onSubmit: async ({ value }) => {
+      onCreatePoll(value.question.trim(), value.options.map((o) => o.value.trim()).filter(Boolean));
+      resetForm();
+      onOpenChange(false);
+    },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "options",
-  });
+  const watchedOptions = useStore(form.store, (s) => s.values.options);
+  const watchedQuestion = useStore(form.store, (s) => s.values.question);
 
-  const canAdd = fields.length < 4;
-  const filledOptions = form.watch("options").filter((o) => o.value.trim()).length;
-  const isValid = form.watch("question").trim().length > 0 && filledOptions >= 2;
+  const filledOptions = watchedOptions.filter((o) => o.value.trim()).length;
+  const isValid = watchedQuestion.trim().length > 0 && filledOptions >= 2;
 
-  function reset() {
-    form.reset({ question: "", options: [{ value: "" }, { value: "" }] });
-  }
-
-  function handleCreate(data: PollFormData) {
-    onCreatePoll(data.question.trim(), data.options.map((o) => o.value.trim()).filter(Boolean));
-    reset();
-    onOpenChange(false);
+  function resetForm() {
+    form.reset();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
       <DialogContent className="max-w-[340px] rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-sm flex items-center gap-2">
@@ -59,70 +54,86 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
         </DialogHeader>
 
         <div className="space-y-3 mt-1">
-          <Controller
+          <form.Field
             name="question"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <Input
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Ask a question..."
-                  maxLength={200}
-                  className="text-sm"
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
+            >
+            {(field) => {
+              const hasErrors = field.state.meta.errors.length > 0;
+              return (
+                <Field data-invalid={hasErrors}>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    aria-invalid={hasErrors}
+                    placeholder="Ask a question..."
+                    maxLength={200}
+                    className="text-sm"
+                  />
+                  {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                </Field>
+              );
+            }}
+          </form.Field>
 
           <div className="space-y-2">
-            {fields.map((arrayField, i) => (
-              <Controller
-                key={arrayField.id}
-                name={`options.${i}.value`}
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      {...field}
-                      id={field.name}
-                      aria-invalid={fieldState.invalid}
-                      placeholder={`Option ${i + 1}`}
-                      maxLength={100}
-                      className="text-sm flex-1"
-                    />
-                    {fields.length > 2 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-7 h-7 shrink-0"
-                        onClick={() => remove(i)}
+            <form.Field
+              name="options"
+              mode="array"
+              >
+              {(field) => (
+                <>
+                  {field.state.value.map((_, i) => (
+                    <form.Field
+                      key={i}
+                      name={`options[${i}].value`}
                       >
-                        <Icon icon="lucide:x" className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                    )}
-                  </div>
-                )}
-              />
-            ))}
+                      {(subField) => (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={subField.name}
+                            value={subField.state.value}
+                            onBlur={subField.handleBlur}
+                            onChange={(e) => subField.handleChange(e.target.value)}
+                            aria-invalid={subField.state.meta.errors.length > 0}
+                            placeholder={`Option ${i + 1}`}
+                            maxLength={100}
+                            className="text-sm flex-1"
+                          />
+                          {field.state.value.length > 2 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-7 h-7 shrink-0"
+                              onClick={() => field.removeValue(i)}
+                            >
+                              <Icon icon="lucide:x" className="w-3.5 h-3.5 text-muted-foreground" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </form.Field>
+                  ))}
+
+                  {field.state.value.length < 4 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-muted-foreground"
+                      onClick={() => field.pushValue({ value: "" })}
+                    >
+                      <Icon icon="lucide:plus" className="w-3.5 h-3.5 mr-1" />
+                      Add option
+                    </Button>
+                  )}
+                </>
+              )}
+            </form.Field>
           </div>
 
-          {canAdd && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs text-muted-foreground"
-              onClick={() => append({ value: "" })}
-            >
-              <Icon icon="lucide:plus" className="w-3.5 h-3.5 mr-1" />
-              Add option
-            </Button>
-          )}
-
           <Button
-            onClick={form.handleSubmit(handleCreate)}
+            onClick={() => form.handleSubmit()}
             disabled={!isValid}
             className="w-full rounded-full"
             size="sm"

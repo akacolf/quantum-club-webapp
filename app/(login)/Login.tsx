@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "@tanstack/react-form";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,13 +39,10 @@ function getDeepLinkDestination(): string {
 }
 
 export default function Login() {
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [rootError, setRootError] = useState<string | null>(null);
   const hasRedirected = useRef(false);
 
   const router = useRouter();
@@ -63,6 +59,14 @@ export default function Login() {
     setRemainingSolveToEarn,
   } = useUserContext();
   const { setUserRank } = useLeaderboardContext();
+
+  const form = useForm({
+    defaultValues: { email: "", password: "" },
+    validators: { onSubmit: loginSchema },
+    onSubmit: async ({ value }) => {
+      await onSubmit(value);
+    },
+  });
 
   // Enable fullscreen mode for Telegram Mini App
   useDeviceDetection();
@@ -153,14 +157,14 @@ export default function Login() {
     router.prefetch("/legal/terms");
     router.prefetch("/legal/privacy");
     router.prefetch("/home");
-    
+
     const timer = setTimeout(() => setIsPageLoading(false), 500);
     return () => clearTimeout(timer);
   }, [router]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    form.clearErrors("root");
+    setRootError(null);
 
     try {
       await authContext?.loginWithEmail(data.email, data.password);
@@ -198,13 +202,13 @@ export default function Login() {
       console.error("Login error:", err);
       if (err instanceof Error) {
         if (err.message.includes("user-not-found") || err.message.includes("invalid-credential")) {
-          form.setError("root", { message: "Invalid email or password" });
+          setRootError("Invalid email or password");
         } else if (err.message.includes("wrong-password")) {
-          form.setError("root", { message: "Invalid email or password" });
+          setRootError("Invalid email or password");
         } else if (err.message.includes("too-many-requests")) {
-          form.setError("root", { message: "Too many failed attempts. Please try again later." });
+          setRootError("Too many failed attempts. Please try again later.");
         } else {
-          form.setError("root", { message: "Failed to sign in. Please try again." });
+          setRootError("Failed to sign in. Please try again.");
         }
       }
     } finally {
@@ -214,7 +218,7 @@ export default function Login() {
 
   const handleTelegramLogin = async () => {
     setIsLoading(true);
-    form.clearErrors("root");
+    setRootError(null);
     try {
       if (
         typeof window !== "undefined" &&
@@ -312,13 +316,11 @@ export default function Login() {
           // to become false, ensuring the auth cookie is set before navigating.
         }
       } else {
-        form.setError("root", { message: "Telegram WebApp is not available. Please open this app from Telegram." });
+        setRootError("Telegram WebApp is not available. Please open this app from Telegram.");
       }
     } catch (err) {
       console.error("Telegram sign-in error:", err);
-      form.setError("root", {
-        message: err instanceof Error ? err.message : "Failed to sign in with Telegram",
-      });
+      setRootError(err instanceof Error ? err.message : "Failed to sign in with Telegram");
     } finally {
       setIsLoading(false);
     }
@@ -360,11 +362,11 @@ export default function Login() {
             </p>
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
             <div className="grid gap-6">
-              {form.formState.errors.root && (
+              {rootError && (
                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {form.formState.errors.root.message}
+                  {rootError}
                 </div>
               )}
 
@@ -390,69 +392,79 @@ export default function Login() {
               </div>
 
               <div className="grid gap-4">
-                <Controller
+                <form.Field
                   name="email"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                      <Input
-                        {...field}
-                        id={field.name}
-                        type="email"
-                        aria-invalid={fieldState.invalid}
-                        placeholder="Your email address"
-                        disabled={isLoading}
-                        autoComplete="email"
-                      />
-                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                    </Field>
-                  )}
-                />
-                <Controller
-                  name="password"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <div className="flex items-center">
-                        <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                        <Link
-                          href="/forgot-password"
-                          className="ml-auto text-sm text-muted-foreground underline-offset-4 hover:underline"
-                        >
-                          Forgot password?
-                        </Link>
-                      </div>
-                      <div className="relative">
+                  >
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field data-invalid={hasErrors}>
+                        <FieldLabel htmlFor={field.name}>Email</FieldLabel>
                         <Input
-                          {...field}
                           id={field.name}
-                          type={showPassword ? "text" : "password"}
-                          aria-invalid={fieldState.invalid}
-                          placeholder="Enter your password"
+                          type="email"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          aria-invalid={hasErrors}
+                          placeholder="Your email address"
                           disabled={isLoading}
-                          autoComplete="current-password"
-                          className="pr-10"
+                          autoComplete="email"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Icon
-                            icon={
-                              showPassword
-                                ? "solar:eye-closed-linear"
-                                : "solar:eye-linear"
-                            }
-                            className="size-5"
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+                <form.Field
+                  name="password"
+                  >
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field data-invalid={hasErrors}>
+                        <div className="flex items-center">
+                          <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                          <Link
+                            href="/forgot-password"
+                            className="ml-auto text-sm text-muted-foreground underline-offset-4 hover:underline"
+                          >
+                            Forgot password?
+                          </Link>
+                        </div>
+                        <div className="relative">
+                          <Input
+                            id={field.name}
+                            type={showPassword ? "text" : "password"}
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            aria-invalid={hasErrors}
+                            placeholder="Enter your password"
+                            disabled={isLoading}
+                            autoComplete="current-password"
+                            className="pr-10"
                           />
-                        </button>
-                      </div>
-                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                    </Field>
-                  )}
-                />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Icon
+                              icon={
+                                showPassword
+                                  ? "solar:eye-closed-linear"
+                                  : "solar:eye-linear"
+                              }
+                              className="size-5"
+                            />
+                          </button>
+                        </div>
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
 
                 {/* Keep me logged in */}
                 <div className="flex items-center gap-2">

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useStore } from "@tanstack/react-form";
 import { createGroupSchema, type CreateGroupFormData } from "@/lib/validations";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
@@ -31,14 +30,20 @@ export default function CreateGroupPage() {
         router.prefetch("/groups");
     }, [router]);
 
-    const form = useForm<CreateGroupFormData>({
-        resolver: zodResolver(createGroupSchema),
-        defaultValues: { name: "", description: "" },
-    });
     const [isCreating, setIsCreating] = useState(false);
     const [nftGated, setNftGated] = useState(false);
     const [selectedCollection, setSelectedCollection] = useState("");
     const [selectedCollectionName, setSelectedCollectionName] = useState("");
+
+    const form = useForm({
+        defaultValues: { name: "", description: "" },
+        validators: { onSubmit: createGroupSchema },
+        onSubmit: async ({ value }) => {
+            await handleCreate(value);
+        },
+    });
+
+    const nameValue = useStore(form.store, (s) => s.values.name);
 
     const handleCreate = async (data: CreateGroupFormData) => {
         if (nftGated && !selectedCollection) {
@@ -87,53 +92,63 @@ export default function CreateGroupPage() {
                         <CardDescription>Max 5 members per group</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Controller
+                        <form.Field
                             name="name"
-                            control={form.control}
-                            render={({ field, fieldState }) => (
-                                <Field data-invalid={fieldState.invalid}>
-                                    <FieldLabel htmlFor={field.name} className="text-sm font-medium text-muted-foreground">Group Name</FieldLabel>
-                                    <Input
-                                        {...field}
-                                        id={field.name}
-                                        aria-invalid={fieldState.invalid}
-                                        placeholder="Enter group name"
-                                        maxLength={30}
-                                    />
-                                    <div className="flex justify-between">
-                                        {fieldState.invalid ? (
-                                            <FieldError errors={[fieldState.error]} />
-                                        ) : <span />}
-                                        <p className="text-xs text-muted-foreground">{field.value.length}/30</p>
-                                    </div>
-                                </Field>
-                            )}
-                        />
+                            >
+                            {(field) => {
+                                const hasErrors = field.state.meta.errors.length > 0;
+                                return (
+                                    <Field data-invalid={hasErrors}>
+                                        <FieldLabel htmlFor={field.name} className="text-sm font-medium text-muted-foreground">Group Name</FieldLabel>
+                                        <Input
+                                            id={field.name}
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={(e) => field.handleChange(e.target.value)}
+                                            aria-invalid={hasErrors}
+                                            placeholder="Enter group name"
+                                            maxLength={30}
+                                        />
+                                        <div className="flex justify-between">
+                                            {hasErrors ? (
+                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                            ) : <span />}
+                                            <p className="text-xs text-muted-foreground">{field.state.value.length}/30</p>
+                                        </div>
+                                    </Field>
+                                );
+                            }}
+                        </form.Field>
 
-                        <Controller
+                        <form.Field
                             name="description"
-                            control={form.control}
-                            render={({ field, fieldState }) => (
-                                <Field data-invalid={fieldState.invalid}>
-                                    <FieldLabel htmlFor={field.name} className="text-sm font-medium text-muted-foreground">Description (optional)</FieldLabel>
-                                    <Textarea
-                                        {...field}
-                                        id={field.name}
-                                        aria-invalid={fieldState.invalid}
-                                        placeholder="What's your group about?"
-                                        maxLength={100}
-                                        rows={3}
-                                        className="resize-none"
-                                    />
-                                    <div className="flex justify-between">
-                                        {fieldState.invalid ? (
-                                            <FieldError errors={[fieldState.error]} />
-                                        ) : <span />}
-                                        <p className="text-xs text-muted-foreground">{field.value.length}/100</p>
-                                    </div>
-                                </Field>
-                            )}
-                        />
+                            >
+                            {(field) => {
+                                const hasErrors = field.state.meta.errors.length > 0;
+                                return (
+                                    <Field data-invalid={hasErrors}>
+                                        <FieldLabel htmlFor={field.name} className="text-sm font-medium text-muted-foreground">Description (optional)</FieldLabel>
+                                        <Textarea
+                                            id={field.name}
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={(e) => field.handleChange(e.target.value)}
+                                            aria-invalid={hasErrors}
+                                            placeholder="What's your group about?"
+                                            maxLength={100}
+                                            rows={3}
+                                            className="resize-none"
+                                        />
+                                        <div className="flex justify-between">
+                                            {hasErrors ? (
+                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                            ) : <span />}
+                                            <p className="text-xs text-muted-foreground">{field.state.value.length}/100</p>
+                                        </div>
+                                    </Field>
+                                );
+                            }}
+                        </form.Field>
 
                         {/* NFT-Gated Toggle */}
                         <div className="flex items-center justify-between py-2">
@@ -183,8 +198,8 @@ export default function CreateGroupPage() {
                         )}
 
                         <Button
-                            onClick={form.handleSubmit(handleCreate)}
-                            disabled={isCreating || !form.watch("name").trim()}
+                            onClick={() => form.handleSubmit()}
+                            disabled={isCreating || !nameValue.trim()}
                             className="w-full"
                         >
                             {isCreating ? "Creating..." : "Create Group"}
