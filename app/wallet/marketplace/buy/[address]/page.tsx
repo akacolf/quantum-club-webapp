@@ -154,7 +154,7 @@ export default function BuyNftPage() {
                         body: JSON.stringify({
                             action: "confirm-sale",
                             telegramId,
-                            saleContractAddress: nft.sale.address,
+                            listingId: nft.sale.address,
                             buyerAddress: walletAddress,
                             transactionHash: result.hash,
                         }),

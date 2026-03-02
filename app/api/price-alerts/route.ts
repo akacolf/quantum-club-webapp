@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as db } from "@/app/(firebase)/server";
 import { getSession } from "@/utils/session";
+import { z } from "zod";
+
+const createAlertSchema = z.object({
+  symbol: z.string().min(1, "Symbol is required"),
+  targetPrice: z.number().positive("Target price must be a positive number"),
+  direction: z.enum(["above", "below"], {
+    errorMap: () => ({ message: "Direction must be 'above' or 'below'" }),
+  }),
+  telegramId: z.union([z.string(), z.number()]).optional(),
+});
 
 export interface PriceAlert {
   id: string;
@@ -61,26 +71,19 @@ export async function POST(request: NextRequest) {
     const authenticatedTelegramId = String(session.user.telegramId);
     
     const body = await request.json();
-    const { telegramId, symbol, targetPrice, direction } = body;
-
-    // Verify telegramId matches session
-    if (telegramId && String(telegramId) !== authenticatedTelegramId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    if (!symbol || !targetPrice || !direction) {
+    const parsed = createAlertSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Missing required fields: symbol, targetPrice, direction" },
+        { error: parsed.error.errors[0].message },
         { status: 400 }
       );
     }
 
-    if (typeof targetPrice !== "number" || targetPrice <= 0) {
-      return NextResponse.json({ error: "Invalid target price" }, { status: 400 });
-    }
+    const { telegramId, symbol, targetPrice, direction } = parsed.data;
 
-    if (!["above", "below"].includes(direction)) {
-      return NextResponse.json({ error: "Direction must be 'above' or 'below'" }, { status: 400 });
+    // Verify telegramId matches session
+    if (telegramId && String(telegramId) !== authenticatedTelegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     // Limit alerts per user (max 10)

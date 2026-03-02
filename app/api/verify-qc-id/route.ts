@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
+import { z } from 'zod';
+
+const verifyQcIdSchema = z.object({
+  qcId: z.string().min(1, 'QC ID is required'),
+});
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -49,14 +54,14 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json();
-    const { qcId } = body;
-
-    if (!qcId || typeof qcId !== 'string') {
+    const parsed = verifyQcIdSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'QC ID is required', exists: false },
+        { error: parsed.error.errors[0]?.message || 'Invalid request', exists: false },
         { status: 400 }
       );
     }
+    const { qcId } = parsed.data;
 
     // Check if the QC ID exists in the database
     const userRef = db.doc(`user/${qcId.trim()}/miningData/values`);

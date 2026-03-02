@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/utils/session";
+import { z } from "zod";
+
+const checkMembershipSchema = z.object({
+  tgIdNumerical: z.union([z.string(), z.number()]).pipe(
+    z.coerce.string().min(1, "telegramId is required")
+  ),
+  channelUsername: z.string().min(1, "channelUsername is required"),
+});
 
 export async function POST(req:NextRequest) {
   // Validate session
@@ -23,13 +31,14 @@ export async function POST(req:NextRequest) {
     );
   }
   const body = await req.json();
-  const { tgIdNumerical, channelUsername } = body;
-  if (!tgIdNumerical || !channelUsername) {
+  const parsed = checkMembershipSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request: missing telegramId or channelUsername" },
+      { error: parsed.error.errors[0]?.message || "Invalid request" },
       { status: 400 }
     );
   }
+  const { tgIdNumerical, channelUsername } = parsed.data;
   try {
     let formattedChatId = channelUsername;
     if (

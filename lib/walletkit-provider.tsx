@@ -21,6 +21,7 @@ import {
     type IWallet,
 } from "@ton/walletkit";
 import { toast } from "sonner";
+import { analyticsEvents } from "@/lib/telegramAnalytics";
 
 interface WalletKitContextType {
     isReady: boolean;
@@ -134,6 +135,7 @@ export function WalletKitProvider({
                 // Handle connection requests
                 kit.onConnectRequest((event: EventConnectRequest) => {
                     console.log("[WalletKit] Connection request received:", event);
+                    analyticsEvents.connectionStarted();
                     if (mounted) {
                         setPendingConnection(event);
                     }
@@ -158,6 +160,7 @@ export function WalletKitProvider({
                 // Handle disconnections
                 kit.onDisconnect((event: EventDisconnect) => {
                     console.log("[WalletKit] Disconnect event:", event);
+                    analyticsEvents.disconnection();
                     kit.listSessions().then(s => {
                         if (mounted) setSessions(s);
                     });
@@ -320,15 +323,19 @@ export function WalletKitProvider({
             console.log("[WalletKit] Approving connection with wallet:", walletRef.current?.getAddress());
             await kitRef.current.approveConnectRequest(pendingConnection);
             console.log("[WalletKit] Connection approved");
-            
+
+            const address = walletRef.current?.getAddress();
+            if (address) analyticsEvents.connectionCompleted(address.toString());
+
             // Refresh sessions
             const newSessions = await kitRef.current.listSessions();
             setSessions(newSessions);
-            
+
             toast.success("Connected successfully");
         } catch (error) {
             console.error("[WalletKit] Failed to approve connection:", error);
             const errorMessage = error instanceof Error ? error.message : "Failed to connect";
+            analyticsEvents.connectionError(errorMessage);
             
             // Check for specific error about wallet requirement
             if (errorMessage.toLowerCase().includes("wallet") && errorMessage.toLowerCase().includes("required")) {

@@ -6,6 +6,7 @@ import { ThemeProvider } from "./ThemeProvider";
 import { useUserHydration } from "@/stores/user-store";
 import { hydrateLeaderboardFromSession } from "@/stores/leaderboard-store";
 import { hydrateFrensFromSession } from "@/stores/frens-store";
+import { useTgUsernameSync } from "@/app/(hooks)/useTgUsernameSync";
 
 // Shared QueryClient instance — available to all providers and hooks
 const queryClient = new QueryClient({
@@ -43,6 +44,9 @@ if (typeof window !== "undefined") {
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   // Firestore listener for real-time QuantAmount updates
   useUserHydration();
+
+  // Sync TG username if it changed between sessions
+  useTgUsernameSync();
 
   // Hydrate session-only stores from sessionStorage on mount
   useEffect(() => {

@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import { createCipheriv } from 'node:crypto';
 import { decrypt } from '@/utils/session';
+import { z } from 'zod';
+
+const transferSchema = z.object({
+  recipientQcId: z.string().min(1, "recipientQcId is required"),
+  amount: z.coerce.number().refine((val) => val > 0, {
+    message: "Amount must be a positive number",
+  }),
+});
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -53,23 +61,15 @@ export async function POST(request: NextRequest) {
     const senderQcId = encryptTelegramId(String(rawTelegramId));
 
     const body = await request.json();
-    const { recipientQcId, amount } = body;
-
-    // Validate input - senderTelegramId is no longer accepted from client
-    if (!recipientQcId || !amount) {
+    const parsed = transferSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'recipientQcId and amount are required' },
+        { error: parsed.error.errors[0].message },
         { status: 400 }
       );
     }
 
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount <= 0) {
-      return NextResponse.json(
-        { error: 'Invalid amount' },
-        { status: 400 }
-      );
-    }
+    const { recipientQcId, amount: transferAmount } = parsed.data;
 
     // Prevent self-transfer
     if (senderQcId === recipientQcId) {

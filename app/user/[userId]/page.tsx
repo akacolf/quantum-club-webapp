@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
-import { dbfs } from "@/app/(firebase)/client";
-import { doc, getDoc } from "firebase/firestore";
+import { useUserProfile } from "@/app/(hooks)/queries/use-user-profile";
 import Loader from "@/app/(components)/Loader";
 import { toast } from "sonner";
 
@@ -34,12 +33,6 @@ function getAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-function parseCreatedAt(userArray: string | undefined): string | null {
-  if (!userArray) return null;
-  const match = userArray.match(/createdAt=([^&]+)/);
-  return match ? match[1] : null;
-}
-
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -60,64 +53,14 @@ export default function UserProfilePage() {
     };
   }, [router]);
 
-  const [displayName, setDisplayName] = useState<string | null>(null);
-  const [memberSince, setMemberSince] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
+  const { data: profile, isLoading } = useUserProfile(userId);
   const profilePhoto = useProfilePhoto(userId);
 
-  useEffect(() => {
-    if (!userId) return;
-
-    let cancelled = false;
-
-    async function fetchUser() {
-      try {
-        const userDoc = await getDoc(doc(dbfs, "user", userId));
-        if (cancelled) return;
-
-        if (!userDoc.exists()) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-
-        const data = userDoc.data();
-        setDisplayName(data.qcUsername || data.username || "Quantum User");
-
-        const createdAt = parseCreatedAt(data.userArray);
-        if (createdAt) {
-          const date = new Date(createdAt);
-          setMemberSince(
-            date.toLocaleDateString("en-US", {
-              month: "long",
-              year: "numeric",
-            })
-          );
-        }
-
-        setLoading(false);
-      } catch {
-        if (!cancelled) {
-          setNotFound(true);
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchUser();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 
-  if (notFound) {
+  if (!profile) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <p className="text-muted-foreground">User not found</p>
@@ -125,7 +68,7 @@ export default function UserProfilePage() {
     );
   }
 
-  const name = displayName || "Quantum User";
+  const name = profile.displayName;
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 relative overflow-hidden">
@@ -184,14 +127,14 @@ export default function UserProfilePage() {
             <Icon icon="solar:copy-linear" className="w-4 h-4 text-white/40 shrink-0" />
           </button>
 
-          {memberSince && (
+          {profile.memberSince && (
             <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Icon icon="solar:calendar-bold" className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Member Since</p>
-                <p className="font-bold text-white text-sm">{memberSince}</p>
+                <p className="font-bold text-white text-sm">{profile.memberSince}</p>
               </div>
             </div>
           )}

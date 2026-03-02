@@ -1,36 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/utils/session";
 import { firestore as db } from "@/app/(firebase)/server";
-import { 
-  createStarsInvoice, 
-  sendStarsInvoice, 
+import {
+  createStarsInvoice,
+  sendStarsInvoice,
   convertTonToStars,
-  answerPreCheckoutQuery 
+  answerPreCheckoutQuery
 } from "@/lib/telegram-payments";
+import { z } from "zod";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
-interface CreateInvoiceRequest {
-  action: "create-invoice" | "send-invoice" | "pre-checkout" | "confirm-payment";
-  telegramId: string;
-  // For create-invoice and send-invoice
-  title?: string;
-  description?: string;
-  payload?: string;
-  tonAmount?: number;
-  tonPriceUsd?: number;
-  // For pre-checkout
-  preCheckoutQueryId?: string;
-  ok?: boolean;
-  errorMessage?: string;
-  // For confirm-payment
-  paymentData?: {
-    telegramPaymentChargeId: string;
-    providerPaymentChargeId: string;
-    totalAmount: number;
-    invoicePayload: string;
-  };
-}
+const createInvoiceSchema = z.object({
+  action: z.literal("create-invoice"),
+  telegramId: z.string().min(1, "telegramId required"),
+  title: z.string().min(1, "title required"),
+  description: z.string().min(1, "description required"),
+  payload: z.string().min(1, "payload required"),
+  tonAmount: z.number().positive("tonAmount must be positive"),
+  tonPriceUsd: z.number().positive("tonPriceUsd must be positive"),
+});
+
+const sendInvoiceSchema = z.object({
+  action: z.literal("send-invoice"),
+  telegramId: z.string().min(1, "telegramId required"),
+  title: z.string().min(1, "title required"),
+  description: z.string().min(1, "description required"),
+  payload: z.string().min(1, "payload required"),
+  tonAmount: z.number().positive("tonAmount must be positive"),
+  tonPriceUsd: z.number().positive("tonPriceUsd must be positive"),
+});
+
+const preCheckoutSchema = z.object({
+  action: z.literal("pre-checkout"),
+  telegramId: z.string().min(1, "telegramId required"),
+  preCheckoutQueryId: z.string().min(1, "preCheckoutQueryId required"),
+  ok: z.boolean().optional(),
+  errorMessage: z.string().optional(),
+});
+
+const confirmPaymentSchema = z.object({
+  action: z.literal("confirm-payment"),
+  telegramId: z.string().min(1, "telegramId required"),
+  paymentData: z.object({
+    telegramPaymentChargeId: z.string().min(1, "telegramPaymentChargeId required"),
+    providerPaymentChargeId: z.string().min(1, "providerPaymentChargeId required"),
+    totalAmount: z.number(),
+    invoicePayload: z.string().min(1, "invoicePayload required"),
+  }),
+});
+
+const telegramStarsSchema = z.discriminatedUnion("action", [
+  createInvoiceSchema,
+  sendInvoiceSchema,
+  preCheckoutSchema,
+  confirmPaymentSchema,
+]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,8 +72,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body: CreateInvoiceRequest = await request.json();
-    const { action, telegramId } = body;
+    const body = await request.json();
+    const parsed = telegramStarsSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0]?.message || "Invalid request" },
+        { status: 400 }
+      );
+    }
+    const { action, telegramId } = parsed.data;
 
     // Verify telegramId matches session
     if (String(telegramId) !== String(session.user.telegramId)) {
@@ -57,14 +89,7 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "create-invoice": {
-        const { title, description, payload, tonAmount, tonPriceUsd } = body;
-
-        if (!title || !description || !payload || !tonAmount || !tonPriceUsd) {
-          return NextResponse.json(
-            { error: "Missing required fields" },
-            { status: 400 }
-          );
-        }
+        const { title, description, payload, tonAmount, tonPriceUsd } = parsed.data;
 
         const starsAmount = convertTonToStars(tonAmount, tonPriceUsd);
 
@@ -98,14 +123,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "send-invoice": {
-        const { title, description, payload, tonAmount, tonPriceUsd } = body;
-
-        if (!title || !description || !payload || !tonAmount || !tonPriceUsd) {
-          return NextResponse.json(
-            { error: "Missing required fields" },
-            { status: 400 }
-          );
-        }
+        const { title, description, payload, tonAmount, tonPriceUsd } = parsed.data;
 
         const starsAmount = convertTonToStars(tonAmount, tonPriceUsd);
 
@@ -139,14 +157,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "pre-checkout": {
-        const { preCheckoutQueryId, ok, errorMessage } = body;
-
-        if (!preCheckoutQueryId) {
-          return NextResponse.json(
-            { error: "Missing preCheckoutQueryId" },
-            { status: 400 }
-          );
-        }
+        const { preCheckoutQueryId, ok, errorMessage } = parsed.data;
 
         const success = await answerPreCheckoutQuery(
           BOT_TOKEN,
@@ -159,14 +170,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "confirm-payment": {
-        const { paymentData } = body;
-
-        if (!paymentData) {
-          return NextResponse.json(
-            { error: "Missing payment data" },
-            { status: 400 }
-          );
-        }
+        const { paymentData } = parsed.data;
 
         // Find and update the pending payment
         const pendingPayments = await db

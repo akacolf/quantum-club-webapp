@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
 import { getSession } from "@/utils/session";
-import { 
-  buildListingMessages, 
+import {
+  buildListingMessages,
   buildBuyTransaction,
   buildCancelTransaction,
   calculateFees,
@@ -10,6 +10,7 @@ import {
   QC_MARKETPLACE_FEE_PERCENT,
 } from "@/lib/nft-sale-contracts";
 import { toNano, fromNano } from "@ton/core";
+import { z } from "zod";
 
 // Rate limiting: max requests per minute per user
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -18,6 +19,68 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 // Maximum listing price (prevent overflow attacks)
 const MAX_LISTING_PRICE = toNano("1000000000"); // 1 billion TON
+
+const createListingSchema = z.object({
+  action: z.literal("create-listing"),
+  telegramId: z.string().optional(),
+  nftAddress: z.string().min(1, "nftAddress required"),
+  sellerAddress: z.string().min(1, "sellerAddress required"),
+  price: z.string().min(1, "price required"),
+  royaltyAddress: z.string().optional(),
+  royaltyPercent: z.number().optional(),
+});
+
+const buildBuySchema = z.object({
+  action: z.literal("build-buy"),
+  telegramId: z.string().optional(),
+  saleContractAddress: z.string().min(1, "saleContractAddress required"),
+  price: z.string().min(1, "price required"),
+});
+
+const cancelListingSchema = z.object({
+  action: z.literal("cancel-listing"),
+  telegramId: z.string().optional(),
+  saleContractAddress: z.string().min(1, "saleContractAddress required"),
+});
+
+const getListingsSchema = z.object({
+  action: z.literal("get-listings"),
+  telegramId: z.string().optional(),
+  collectionAddress: z.string().optional(),
+  sellerAddress: z.string().optional(),
+  limit: z.number().max(100).optional(),
+});
+
+const confirmListingSchema = z.object({
+  action: z.literal("confirm-listing"),
+  telegramId: z.string().optional(),
+  nftAddress: z.string().min(1, "nftAddress required"),
+  saleContractAddress: z.string().min(1, "saleContractAddress required"),
+  sellerAddress: z.string().min(1, "sellerAddress required"),
+  price: z.string().min(1, "price required"),
+  nftName: z.string().optional(),
+  nftImage: z.string().optional(),
+  collectionAddress: z.string().optional(),
+  collectionName: z.string().optional(),
+  transactionHash: z.string().optional(),
+});
+
+const confirmSaleSchema = z.object({
+  action: z.literal("confirm-sale"),
+  telegramId: z.string().optional(),
+  listingId: z.string().min(1, "listingId required"),
+  buyerAddress: z.string().min(1, "buyerAddress required"),
+  transactionHash: z.string().optional(),
+});
+
+const nftMarketplaceSchema = z.discriminatedUnion("action", [
+  createListingSchema,
+  buildBuySchema,
+  cancelListingSchema,
+  getListingsSchema,
+  confirmListingSchema,
+  confirmSaleSchema,
+]);
 
 /**
  * NFT Marketplace API
@@ -44,20 +107,27 @@ export async function POST(request: NextRequest) {
     const authenticatedTelegramId = String(session.user.telegramId);
     
     const body = await request.json();
-    const { action, telegramId } = body;
+    const parsed = nftMarketplaceSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0]?.message || "Invalid request" },
+        { status: 400 }
+      );
+    }
+    const { action, telegramId } = parsed.data;
 
     // Verify telegramId matches authenticated user
     if (telegramId && String(telegramId) !== authenticatedTelegramId) {
       return NextResponse.json(
-        { error: "telegramId mismatch with authenticated user" }, 
+        { error: "telegramId mismatch with authenticated user" },
         { status: 403 }
       );
     }
-    
+
     // Rate limiting
     const now = Date.now();
     const userRateLimit = rateLimitMap.get(authenticatedTelegramId);
-    
+
     if (userRateLimit) {
       if (now < userRateLimit.resetTime) {
         if (userRateLimit.count >= MAX_REQUESTS_PER_WINDOW) {
@@ -80,23 +150,23 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "create-listing":
-        return handleCreateListing({ ...body, telegramId: verifiedTelegramId });
-      
+        return handleCreateListing({ ...parsed.data, telegramId: verifiedTelegramId });
+
       case "build-buy":
-        return handleBuildBuy({ ...body, telegramId: verifiedTelegramId });
-      
+        return handleBuildBuy({ ...parsed.data, telegramId: verifiedTelegramId });
+
       case "cancel-listing":
-        return handleCancelListing({ ...body, telegramId: verifiedTelegramId });
-      
+        return handleCancelListing({ ...parsed.data, telegramId: verifiedTelegramId });
+
       case "get-listings":
-        return handleGetListings({ ...body, telegramId: verifiedTelegramId });
-      
+        return handleGetListings({ ...parsed.data, telegramId: verifiedTelegramId });
+
       case "confirm-listing":
-        return handleConfirmListing({ ...body, telegramId: verifiedTelegramId });
-      
+        return handleConfirmListing({ ...parsed.data, telegramId: verifiedTelegramId });
+
       case "confirm-sale":
-        return handleConfirmSale({ ...body, telegramId: verifiedTelegramId });
-      
+        return handleConfirmSale({ ...parsed.data, telegramId: verifiedTelegramId });
+
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -121,13 +191,6 @@ async function handleCreateListing(body: {
   royaltyPercent?: number;
 }) {
   const { nftAddress, sellerAddress, price, royaltyAddress, royaltyPercent } = body;
-
-  if (!nftAddress || !sellerAddress || !price) {
-    return NextResponse.json(
-      { error: "nftAddress, sellerAddress, and price required" },
-      { status: 400 }
-    );
-  }
 
   const priceNano = toNano(price);
   
@@ -177,13 +240,6 @@ async function handleBuildBuy(body: {
 }) {
   const { saleContractAddress, price } = body;
 
-  if (!saleContractAddress || !price) {
-    return NextResponse.json(
-      { error: "saleContractAddress and price required" },
-      { status: 400 }
-    );
-  }
-
   const priceNano = toNano(price);
   const transaction = buildBuyTransaction(saleContractAddress, priceNano);
   const fees = calculateFees(priceNano);
@@ -207,13 +263,6 @@ async function handleCancelListing(body: {
   saleContractAddress: string;
 }) {
   const { saleContractAddress } = body;
-
-  if (!saleContractAddress) {
-    return NextResponse.json(
-      { error: "saleContractAddress required" },
-      { status: 400 }
-    );
-  }
 
   const transaction = buildCancelTransaction(saleContractAddress);
 
@@ -289,13 +338,6 @@ async function handleConfirmListing(body: {
     transactionHash,
   } = body;
 
-  if (!nftAddress || !saleContractAddress || !sellerAddress || !price) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
-  }
-
   // Store listing in Firebase
   const listingRef = firestore.collection("nft_listings").doc(saleContractAddress);
   await listingRef.set({
@@ -329,21 +371,14 @@ async function handleConfirmListing(body: {
  */
 async function handleConfirmSale(body: {
   telegramId: string;
-  saleContractAddress: string;
+  listingId: string;
   buyerAddress: string;
   transactionHash?: string;
 }) {
-  const { saleContractAddress, buyerAddress, transactionHash } = body;
-
-  if (!saleContractAddress || !buyerAddress) {
-    return NextResponse.json(
-      { error: "saleContractAddress and buyerAddress required" },
-      { status: 400 }
-    );
-  }
+  const { listingId, buyerAddress, transactionHash } = body;
 
   // Use a Firestore transaction to prevent double-selling
-  const listingRef = firestore.collection("nft_listings").doc(saleContractAddress);
+  const listingRef = firestore.collection("nft_listings").doc(listingId);
 
   try {
     const listingData = await firestore.runTransaction(async (transaction) => {

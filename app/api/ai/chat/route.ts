@@ -4,10 +4,22 @@ import { checkRateLimit, getRateLimitStatus } from "@/lib/ai/rate-limiter";
 import { getSession } from "@/utils/session";
 import { NextRequest, NextResponse } from "next/server";
 import { createCipheriv } from "node:crypto";
+import { z } from "zod";
 
 // Security: Input validation
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_LENGTH = 20;
+
+const chatRequestSchema = z.object({
+    message: z.string().min(1, "Message cannot be empty").max(MAX_MESSAGE_LENGTH, `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`),
+    history: z.array(
+        z.object({
+            role: z.string(),
+            content: z.string(),
+        })
+    ).max(MAX_HISTORY_LENGTH).default([]),
+    currentPage: z.string().optional(),
+});
 
 // Server-side encryption to get consistent user ID
 function encryptTelegramId(telegramId: string): string {
@@ -80,31 +92,25 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
         }
 
-        const { message, history = [], currentPage } = body;
-
-        // Security: Validate message
-        if (!message || typeof message !== "string") {
-            return NextResponse.json({ error: "Message is required" }, { status: 400 });
+        const parsed = chatRequestSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.errors[0].message },
+                { status: 400 }
+            );
         }
 
+        const { message, history, currentPage } = parsed.data;
+
+        // Security: Sanitize message content
         const sanitizedMessage = sanitizeMessage(message);
         if (!sanitizedMessage) {
             return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
         }
 
-        // Security: Validate and limit history
-        if (!Array.isArray(history)) {
-            return NextResponse.json({ error: "Invalid history format" }, { status: 400 });
-        }
-
+        // Security: Sanitize history entries
         const sanitizedHistory = history
             .slice(-MAX_HISTORY_LENGTH)
-            .filter((msg): msg is { role: string; content: string } =>
-                typeof msg === "object" &&
-                msg !== null &&
-                typeof msg.role === "string" &&
-                typeof msg.content === "string"
-            )
             .map(msg => ({
                 role: msg.role === "user" ? "user" : "model",
                 parts: [{ text: sanitizeMessage(msg.content) }],

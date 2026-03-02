@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSession } from "@/utils/session";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -10,11 +11,18 @@ import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_TOKENS_PER_WINDOW = 3;
 
-// Validation constants
-const MAX_NAME_LENGTH = 32;
-const MAX_SYMBOL_LENGTH = 10;
-const MAX_DESCRIPTION_LENGTH = 500;
-const SYMBOL_REGEX = /^[A-Za-z0-9]+$/;
+// Zod schema for deploy-jetton request body
+const deployJettonSchema = z.object({
+    name: z.string().min(1, "Name is required").max(32, "Name must be 32 characters or less"),
+    symbol: z.string()
+        .min(1, "Symbol is required")
+        .max(10, "Symbol must be 10 characters or less")
+        .regex(/^[A-Za-z0-9]+$/, "Symbol can only contain letters and numbers"),
+    description: z.string().max(500, "Description must be 500 characters or less").optional(),
+    image: z.string().optional(),
+    creatorAddress: z.string().min(1, "Creator address is required"),
+    tokenId: z.string().optional(),
+});
 
 
 /**
@@ -44,54 +52,20 @@ export async function POST(request: NextRequest) {
 
         const userId = String(session.user?.telegramId || "");
         const body = await request.json();
-        const { name, symbol, description, image, creatorAddress, tokenId: existingTokenId } = body;
 
-        // Validate required fields
-        if (!name || !symbol) {
+        // Validate request body with Zod schema
+        const parsed = deployJettonSchema.safeParse(body);
+        if (!parsed.success) {
+            const firstError = parsed.error.errors[0]?.message || "Invalid request body";
             return NextResponse.json(
-                { error: "Name and symbol required" },
+                { error: firstError },
                 { status: 400 }
             );
         }
 
-        if (!creatorAddress) {
-            return NextResponse.json(
-                { error: "Creator address required" },
-                { status: 400 }
-            );
-        }
+        const { name, symbol, description, image, creatorAddress, tokenId: existingTokenId } = parsed.data;
 
-        // Validate name length
-        if (name.length > MAX_NAME_LENGTH) {
-            return NextResponse.json(
-                { error: `Name must be ${MAX_NAME_LENGTH} characters or less` },
-                { status: 400 }
-            );
-        }
-
-        // Validate symbol format and length
-        if (symbol.length > MAX_SYMBOL_LENGTH) {
-            return NextResponse.json(
-                { error: `Symbol must be ${MAX_SYMBOL_LENGTH} characters or less` },
-                { status: 400 }
-            );
-        }
-        if (!SYMBOL_REGEX.test(symbol)) {
-            return NextResponse.json(
-                { error: "Symbol can only contain letters and numbers" },
-                { status: 400 }
-            );
-        }
-
-        // Validate description length
-        if (description && description.length > MAX_DESCRIPTION_LENGTH) {
-            return NextResponse.json(
-                { error: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less` },
-                { status: 400 }
-            );
-        }
-
-        // Parse owner address
+        // Parse and validate TON address
         let ownerAddress: Address;
         try {
             ownerAddress = Address.parse(creatorAddress);

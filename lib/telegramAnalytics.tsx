@@ -65,6 +65,9 @@ export async function sendAnalyticsEvent(
     walletType?: string;
     from?: string;
     messages?: { address: string; amount: string }[];
+    tokenId?: string;
+    amount?: string;
+    tokenName?: string;
   }
 ): Promise<boolean> {
   const telegramInfo = getTelegramInfo();
@@ -154,6 +157,27 @@ export const analyticsEvents = {
     sendAnalyticsEvent("wallet-imported", {
       isSuccess: true,
       walletAddress,
+    }),
+
+  tokenBought: (tokenId: string, tonAmount: string) =>
+    sendAnalyticsEvent("token-bought", {
+      isSuccess: true,
+      tokenId,
+      amount: tonAmount,
+    }),
+
+  tokenSold: (tokenId: string, tokenAmount: string) =>
+    sendAnalyticsEvent("token-sold", {
+      isSuccess: true,
+      tokenId,
+      amount: tokenAmount,
+    }),
+
+  tokenCreated: (tokenId: string, name: string) =>
+    sendAnalyticsEvent("token-created", {
+      isSuccess: true,
+      tokenId,
+      tokenName: name,
     }),
 };
 

@@ -1,7 +1,12 @@
 "use client";
 
 import { create } from "zustand";
-import type { Cell } from "@ton/core";
+import { Address, internal, SendMode, Cell, loadStateInit } from "@ton/core";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
+import { mnemonicToPrivateKey } from "@ton/crypto";
+import { toast } from "sonner";
+import { TonApiClient } from "@ton-api/client";
+import { ContractAdapter } from "@ton-api/ton-adapter";
 import type { ChainType } from "@/app/wallet/utils/multichain";
 
 export interface JettonBalance {
@@ -31,6 +36,17 @@ export interface StoredWallet {
   name: string;
   createdAt: number;
   isActive: boolean;
+}
+
+// =====================================================
+// External dependencies injected by WalletProvider
+// =====================================================
+export interface WalletDeps {
+  telegramId: string | null;
+  invalidateWalletQueries: (address: string) => void;
+  refetchAssets: () => void;
+  refetchNfts: () => void;
+  refetchMultiChain: () => void;
 }
 
 interface WalletState {
@@ -69,14 +85,14 @@ interface WalletState {
   solPrice: number;
   trxPrice: number;
   isLoadingMultiChain: boolean;
+  _deps: WalletDeps;
 }
 
 interface WalletActions {
-  // Setters for bridge sync
+  setDeps: (deps: Partial<WalletDeps>) => void;
   setWalletAddress: (address: string) => void;
   setWalletStatus: (status: string) => void;
   setSelectedNetwork: (network: ChainType) => void;
-  // Actions — set by bridge hook (depend on React hooks)
   fetchWalletAssets: () => Promise<void>;
   fetchNfts: () => Promise<void>;
   fetchMultiChainBalances: () => Promise<void>;
@@ -98,7 +114,15 @@ interface WalletActions {
 
 export type WalletStore = WalletState & WalletActions;
 
-export const useWalletStore = create<WalletStore>()((set) => ({
+const defaultDeps: WalletDeps = {
+  telegramId: null,
+  invalidateWalletQueries: () => {},
+  refetchAssets: () => {},
+  refetchNfts: () => {},
+  refetchMultiChain: () => {},
+};
+
+export const useWalletStore = create<WalletStore>()((set, get) => ({
   // State defaults
   walletAddress: "",
   tonBalance: "0",
@@ -135,23 +159,453 @@ export const useWalletStore = create<WalletStore>()((set) => ({
   solPrice: 0,
   trxPrice: 0,
   isLoadingMultiChain: false,
+  _deps: defaultDeps,
 
-  // Setters
-  setWalletAddress: (address) => set({ walletAddress: address }),
+  setDeps: (deps) => set((s) => ({ _deps: { ...s._deps, ...deps } })),
+
+  setWalletAddress: (address) => {
+    const current = get().walletAddress;
+    if (address !== current) {
+      if (!address) {
+        set({
+          walletAddress: address,
+          tonBalance: "0",
+          tonUsdValue: "0.00",
+          totalUsdBalance: "0.00",
+          jettons: [],
+          hasFetched: false,
+        });
+      } else {
+        set({ walletAddress: address, hasFetched: false });
+      }
+    }
+  },
+
   setWalletStatus: (status) => set({ walletStatus: status }),
-  setSelectedNetwork: (network) => set({ selectedNetwork: network }),
 
-  // Placeholder actions — overridden by useWalletBridge in WalletProvider
-  fetchWalletAssets: async () => {},
-  fetchNfts: async () => {},
-  fetchMultiChainBalances: async () => {},
-  toggleHideAsset: () => {},
-  toggleHideBalance: () => {},
-  toggleTestnet: () => {},
-  addWallet: () => {},
-  removeWallet: () => {},
-  switchWallet: () => {},
-  renameWallet: () => {},
-  clearWallet: () => {},
-  sendTransaction: async () => ({ success: false, error: "Not initialized" }),
+  setSelectedNetwork: (network) => {
+    set({ selectedNetwork: network });
+    localStorage.setItem("quantum_selected_network", network);
+  },
+
+  fetchWalletAssets: async () => {
+    get()._deps.refetchAssets();
+  },
+
+  fetchNfts: async () => {
+    get()._deps.refetchNfts();
+  },
+
+  fetchMultiChainBalances: async () => {
+    get()._deps.refetchMultiChain();
+  },
+
+  toggleHideAsset: (symbol) => {
+    const { hiddenAssets, _deps } = get();
+    if (!_deps.telegramId) return;
+    const newHidden = hiddenAssets.includes(symbol)
+      ? hiddenAssets.filter((s) => s !== symbol)
+      : [...hiddenAssets, symbol];
+    localStorage.setItem(
+      `quantum_hidden_assets_${_deps.telegramId}`,
+      JSON.stringify(newHidden)
+    );
+    set({ hiddenAssets: newHidden });
+  },
+
+  toggleHideBalance: () => {
+    const newValue = !get().hideBalance;
+    localStorage.setItem("quantum_hide_balance", String(newValue));
+    set({ hideBalance: newValue });
+  },
+
+  toggleTestnet: () => {
+    const { isTestnet, _deps } = get();
+    if (!_deps.telegramId) return;
+    const newValue = !isTestnet;
+    localStorage.setItem("quantum_ton_testnet", String(newValue));
+
+    // Reset wallet state when switching networks
+    set({
+      isTestnet: newValue,
+      hasFetched: false,
+      jettons: [],
+      nfts: [],
+      tonBalance: "0",
+      tonUsdValue: "0.00",
+      totalUsdBalance: "0.00",
+      ...(newValue
+        ? {
+            ethBalance: 0,
+            btcBalance: 0,
+            ethUsdValue: 0,
+            btcUsdValue: 0,
+          }
+        : {}),
+    });
+
+    // Re-derive TON address with new network flag
+    const storedMnemonic = localStorage.getItem(
+      `quantum_wallet_mnemonic_${_deps.telegramId}`
+    );
+    const storedVersion =
+      localStorage.getItem(`quantum_wallet_version_${_deps.telegramId}`) ||
+      "v5r1";
+
+    if (storedMnemonic && _deps.telegramId) {
+      (async () => {
+        try {
+          const { mnemonicToWalletKey } = await import("@ton/crypto");
+          const mnemonic = storedMnemonic.split(" ");
+          const keyPair = await mnemonicToWalletKey(mnemonic);
+
+          let wallet;
+          switch (storedVersion) {
+            case "v4r2":
+              wallet = WalletContractV4.create({
+                workchain: 0,
+                publicKey: keyPair.publicKey,
+              });
+              break;
+            case "v3r2":
+              wallet = WalletContractV3R2.create({
+                workchain: 0,
+                publicKey: keyPair.publicKey,
+              });
+              break;
+            case "v5r1":
+            default:
+              wallet = WalletContractV5R1.create({
+                workchain: 0,
+                publicKey: keyPair.publicKey,
+              });
+              break;
+          }
+
+          const newAddress = wallet.address.toString({
+            bounceable: false,
+            testOnly: newValue,
+          });
+          set({ walletAddress: newAddress });
+          localStorage.setItem(
+            `quantum_wallet_address_${_deps.telegramId}`,
+            newAddress
+          );
+        } catch (error) {
+          console.error("Failed to re-derive address:", error);
+        }
+      })();
+    }
+
+    toast.success(
+      newValue ? "Switched to TON Testnet" : "Switched to TON Mainnet"
+    );
+  },
+
+  addWallet: (address, name) => {
+    const { storedWallets, _deps } = get();
+    if (!_deps.telegramId) return;
+    if (storedWallets.some((w) => w.address === address)) return;
+
+    const newWallet: StoredWallet = {
+      address,
+      name: name || `Wallet ${storedWallets.length + 1}`,
+      createdAt: Date.now(),
+      isActive: storedWallets.length === 0,
+    };
+    const updated = [
+      ...storedWallets.map((w) => ({ ...w, isActive: false })),
+      newWallet,
+    ];
+    localStorage.setItem(
+      `quantum_wallets_${_deps.telegramId}`,
+      JSON.stringify(updated)
+    );
+    set({ storedWallets: updated });
+  },
+
+  removeWallet: (address) => {
+    const { storedWallets, _deps } = get();
+    if (!_deps.telegramId) return;
+    const updated = storedWallets.filter((w) => w.address !== address);
+    if (
+      storedWallets.find((w) => w.address === address)?.isActive &&
+      updated.length > 0
+    ) {
+      updated[0].isActive = true;
+      set({
+        walletAddress: updated[0].address,
+        hasFetched: false,
+      });
+      localStorage.setItem(
+        `quantum_wallet_address_${_deps.telegramId}`,
+        updated[0].address
+      );
+    }
+    localStorage.setItem(
+      `quantum_wallets_${_deps.telegramId}`,
+      JSON.stringify(updated)
+    );
+    set({ storedWallets: updated });
+  },
+
+  switchWallet: (address) => {
+    const { storedWallets, _deps } = get();
+    if (!_deps.telegramId) return;
+    const updated = storedWallets.map((w) => ({
+      ...w,
+      isActive: w.address === address,
+    }));
+    const newIndex = updated.findIndex((w) => w.address === address);
+    localStorage.setItem(
+      `quantum_wallets_${_deps.telegramId}`,
+      JSON.stringify(updated)
+    );
+    localStorage.setItem(
+      `quantum_active_wallet_index_${_deps.telegramId}`,
+      String(newIndex)
+    );
+    localStorage.setItem(
+      `quantum_wallet_address_${_deps.telegramId}`,
+      address
+    );
+    set({
+      storedWallets: updated,
+      activeWalletIndex: newIndex,
+      walletAddress: address,
+      hasFetched: false,
+    });
+    toast.success("Wallet switched!");
+  },
+
+  renameWallet: (address, newName) => {
+    const { storedWallets, _deps } = get();
+    if (!_deps.telegramId) return;
+    const updated = storedWallets.map((w) =>
+      w.address === address ? { ...w, name: newName } : w
+    );
+    localStorage.setItem(
+      `quantum_wallets_${_deps.telegramId}`,
+      JSON.stringify(updated)
+    );
+    set({ storedWallets: updated });
+  },
+
+  clearWallet: () => {
+    const { _deps } = get();
+    const tid = _deps.telegramId;
+    localStorage.removeItem(`quantum_wallet_address_${tid}`);
+    localStorage.removeItem(`quantum_wallet_mnemonic_${tid}`);
+    localStorage.removeItem(`quantum_wallet_pin_hash_${tid}`);
+    localStorage.removeItem(`quantum_wallet_credential_id_${tid}`);
+    localStorage.removeItem(`quantum_wallet_version_${tid}`);
+    localStorage.removeItem(`quantum_wallets_${tid}`);
+    localStorage.removeItem(`quantum_active_wallet_index_${tid}`);
+
+    set({
+      walletAddress: "",
+      tonBalance: "0",
+      tonUsdValue: "0.00",
+      totalUsdBalance: "0.00",
+      jettons: [],
+      nfts: [],
+      hasFetched: false,
+      walletStatus: "nonexist",
+      storedWallets: [],
+      activeWalletIndex: 0,
+      ethAddress: "",
+      btcAddress: "",
+      solAddress: "",
+      trxAddress: "",
+      ethBalance: 0,
+      btcBalance: 0,
+      solBalance: 0,
+      trxBalance: 0,
+      ethUsdValue: 0,
+      btcUsdValue: 0,
+      solUsdValue: 0,
+      trxUsdValue: 0,
+    });
+  },
+
+  sendTransaction: async (params) => {
+    const { isTestnet, walletAddress, _deps } = get();
+    const { telegramId, invalidateWalletQueries } = _deps;
+
+    if (!telegramId) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const storedMnemonic = localStorage.getItem(
+      `quantum_wallet_mnemonic_${telegramId}`
+    );
+    const storedVersion =
+      localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+
+    if (!storedMnemonic) {
+      return { success: false, error: "Wallet not found" };
+    }
+
+    try {
+      const mnemonic = storedMnemonic.split(" ");
+      const keyPair = await mnemonicToPrivateKey(mnemonic);
+
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey,
+          });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey,
+          });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey,
+          });
+          break;
+      }
+
+      const tonApiClient = new TonApiClient({
+        baseUrl: isTestnet
+          ? "https://testnet.tonapi.io"
+          : "https://tonapi.io",
+      });
+      const contractAdapterInstance = new ContractAdapter(tonApiClient);
+      const contract = contractAdapterInstance.open(wallet);
+      const toAddress = Address.parse(params.to);
+
+      // Get seqno with retry logic
+      let seqno = 0;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          seqno = await contract.getSeqno();
+          break;
+        } catch (err) {
+          const error = err as { response?: { status?: number } };
+          if (error?.response?.status === 429 && retries > 1) {
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            retries--;
+            continue;
+          }
+          if (retries === 1) {
+            seqno = 0;
+            break;
+          }
+          retries--;
+        }
+      }
+
+      // Parse stateInit if provided
+      let init:
+        | {
+            code: import("@ton/core").Cell;
+            data: import("@ton/core").Cell;
+          }
+        | undefined;
+      if (params.stateInit) {
+        try {
+          const parsedInit = loadStateInit(params.stateInit.beginParse());
+          if (!parsedInit.code || !parsedInit.data) {
+            console.error("stateInit missing code or data");
+            return {
+              success: false,
+              error: "stateInit missing required code or data",
+            };
+          }
+          init = { code: parsedInit.code, data: parsedInit.data };
+        } catch (parseError) {
+          console.error("Failed to parse stateInit:", parseError);
+          return {
+            success: false,
+            error:
+              "Failed to parse stateInit: " +
+              (parseError instanceof Error
+                ? parseError.message
+                : String(parseError)),
+          };
+        }
+      }
+
+      const { beginCell, storeMessage, external } = await import("@ton/core");
+
+      const internalMsg = internal({
+        to: toAddress,
+        value: BigInt(params.value),
+        body: params.body,
+        init: init,
+        bounce: false,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transferCell = (wallet as any).createTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+        messages: [internalMsg],
+      }) as Cell;
+
+      const externalMsg = external({
+        to: wallet.address,
+        init: seqno === 0 ? wallet.init : undefined,
+        body: transferCell,
+      });
+
+      const bocCell = beginCell().store(storeMessage(externalMsg)).endCell();
+      const bocBase64 = bocCell.toBoc().toString("base64");
+
+      let success = false;
+      let lastError = "";
+      let messageHash = "";
+
+      const bocHash = bocCell.hash().toString("hex");
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        if (attempt > 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+
+        try {
+          const { sendBlockchainMessage } = await import(
+            "@/lib/tonapi-client"
+          );
+          const result = await sendBlockchainMessage(bocBase64, isTestnet);
+          messageHash = result?.hash || bocHash;
+          success = true;
+          break;
+        } catch (err) {
+          console.error(`TonAPI send attempt ${attempt} failed:`, err);
+          lastError = `TonAPI: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      }
+
+      if (!success) {
+        throw new Error(
+          lastError || "Failed to send transaction via TonAPI"
+        );
+      }
+
+      setTimeout(() => {
+        const s = get();
+        s._deps.invalidateWalletQueries(s.walletAddress);
+      }, 3000);
+
+      return { success: true, txHash: messageHash };
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Transaction failed",
+      };
+    }
+  },
 }));

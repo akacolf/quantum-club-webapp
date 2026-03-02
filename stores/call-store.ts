@@ -28,6 +28,12 @@ export interface GroupCallInfo {
   startedAt: number;
 }
 
+// External dependencies injected by CallProvider
+export interface CallDeps {
+  telegramId: string | null;
+  qcUsername: string | null;
+}
+
 interface CallStoreState {
   // 1:1 calls
   callState: CallState;
@@ -39,9 +45,13 @@ interface CallStoreState {
   // Group calls
   groupCallState: GroupCallState;
   groupCallInfo: GroupCallInfo | null;
+  // Deps
+  _deps: CallDeps;
 }
 
 interface CallStoreActions {
+  setDeps: (deps: Partial<CallDeps>) => void;
+  // Actions — set by CallProvider (depend on WebRTC refs)
   initiateCall: (params: {
     calleeId: string;
     calleeName: string;
@@ -59,7 +69,12 @@ interface CallStoreActions {
 
 export type CallStore = CallStoreState & CallStoreActions;
 
-export const useCallStore = create<CallStore>()(() => ({
+const defaultDeps: CallDeps = {
+  telegramId: null,
+  qcUsername: null,
+};
+
+export const useCallStore = create<CallStore>()((set, get) => ({
   // State defaults
   callState: "idle" as CallState,
   callInfo: null,
@@ -69,15 +84,19 @@ export const useCallStore = create<CallStore>()(() => ({
   isMinimized: false,
   groupCallState: "idle" as GroupCallState,
   groupCallInfo: null,
+  _deps: defaultDeps,
 
-  // Placeholder actions — overridden by bridge in CallProvider
+  setDeps: (deps) => set((s) => ({ _deps: { ...s._deps, ...deps } })),
+
+  toggleMinimize: () => set((s) => ({ isMinimized: !s.isMinimized })),
+
+  // Placeholder actions — overridden by CallProvider (depend on WebRTC refs)
   initiateCall: async () => {},
   acceptCall: async () => {},
   declineCall: () => {},
   endCall: () => {},
   toggleMute: () => {},
   toggleSpeaker: () => {},
-  toggleMinimize: () => {},
   joinGroupCall: async () => {},
   leaveGroupCall: () => {},
 }));

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import admin from 'firebase-admin';
 import { decrypt } from '@/utils/session';
 
@@ -44,10 +45,17 @@ function checkRateLimit(ip: string): boolean {
   return entry.count <= RATE_LIMIT_MAX;
 }
 
-// Input validation helpers
-const MAX_INPUT_LENGTH = 100;
-const QC_ID_REGEX = /^[a-zA-Z0-9_-]{1,100}$/;
-const TON_ADDRESS_REGEX = /^(EQ|UQ|0:|kQ)[a-zA-Z0-9_-]{46,48}$/;
+// Zod schemas
+const registerUsernameSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  qcId: z.string().min(1, "qcId is required").max(100).regex(/^[a-zA-Z0-9_-]+$/, "Invalid qcId format"),
+  address: z.string().max(100).regex(/^(EQ|UQ|0:|kQ)[a-zA-Z0-9_-]{46,48}$/, "Invalid wallet address format").optional(),
+});
+
+const updateAddressSchema = z.object({
+  qcId: z.string().min(1, "qcId is required").max(100).regex(/^[a-zA-Z0-9_-]+$/, "Invalid qcId format"),
+  address: z.string().min(1, "Address is required").max(100).regex(/^(EQ|UQ|0:|kQ)[a-zA-Z0-9_-]{46,48}$/, "Invalid wallet address format"),
+});
 
 /**
  * GET /api/qc-username?username=windblown — Check availability or resolve username → address
@@ -165,30 +173,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username: rawUsername, qcId, address } = body;
+    const parsed = registerUsernameSchema.safeParse(body);
 
-    if (!rawUsername || !qcId) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'username and qcId are required' },
+        { error: parsed.error.errors[0].message },
         { status: 400, headers: CACHE_HEADERS }
       );
     }
 
-    // Validate qcId format
-    if (typeof qcId !== 'string' || qcId.length > MAX_INPUT_LENGTH || !QC_ID_REGEX.test(qcId)) {
-      return NextResponse.json(
-        { error: 'Invalid qcId format' },
-        { status: 400, headers: CACHE_HEADERS }
-      );
-    }
-
-    // Validate address format if provided
-    if (address && (typeof address !== 'string' || address.length > MAX_INPUT_LENGTH || !TON_ADDRESS_REGEX.test(address))) {
-      return NextResponse.json(
-        { error: 'Invalid wallet address format' },
-        { status: 400, headers: CACHE_HEADERS }
-      );
-    }
+    const { username: rawUsername, qcId, address } = parsed.data;
 
     const username = rawUsername.toLowerCase().replace(/^@/, '').trim();
     const displayUsername = rawUsername.replace(/^@/, '').trim();
@@ -295,28 +289,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { qcId, address } = body;
+    const parsed = updateAddressSchema.safeParse(body);
 
-    if (!qcId || !address) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'qcId and address are required' },
+        { error: parsed.error.errors[0].message },
         { status: 400, headers: CACHE_HEADERS }
       );
     }
 
-    // Validate input formats
-    if (typeof qcId !== 'string' || qcId.length > MAX_INPUT_LENGTH || !QC_ID_REGEX.test(qcId)) {
-      return NextResponse.json(
-        { error: 'Invalid qcId format' },
-        { status: 400, headers: CACHE_HEADERS }
-      );
-    }
-    if (typeof address !== 'string' || address.length > MAX_INPUT_LENGTH || !TON_ADDRESS_REGEX.test(address)) {
-      return NextResponse.json(
-        { error: 'Invalid wallet address format' },
-        { status: 400, headers: CACHE_HEADERS }
-      );
-    }
+    const { qcId, address } = parsed.data;
 
     // Find user's username
     const snapshot = await db.collection(USERNAMES_COLLECTION)
