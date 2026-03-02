@@ -1,253 +1,41 @@
 "use client"
 
-import { auth, dbfs } from "@/app/(firebase)/client";
-import { doc, getDoc } from "firebase/firestore";
-import { GoogleAuthProvider, EmailAuthProvider, ParsedToken, signInWithCredential, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, User } from "firebase/auth";
-import { createContext, useContext, useEffect, useRef, useState } from "react"
-import { removeToken, setToken } from "./actions";
-import { useUserStore } from "@/stores/user-store";
-type AuthContextType = {
-    currentUser: User | null;
-    authLoading: boolean;
-    logout: () => Promise<void>
-    loginWithToken: (customToken:string) => Promise<void>;
-    loginWithEmail: (email: string, password: string) => Promise<User>;
-    signUpWithEmail: (email: string, password: string) => Promise<User>;
-    loginWithGoogle: () => Promise<void>;
-    linkEmailToAccount: (email: string, password: string) => Promise<void>;
-    linkGoogleToAccount: () => Promise<void>;
-    customClaims: ParsedToken|null;
-    keepLoggedIn: boolean;
-    setKeepLoggedIn: (value: boolean) => void;
-}
-const AuthContext = createContext<AuthContextType | null>(null);
+/**
+ * Auth Provider (thin wrapper)
+ *
+ * All state and action logic lives in stores/auth-store.ts.
+ * This Provider only initializes the Firebase Auth listener on mount.
+ */
 
-/** Clear user-specific localStorage keys to prevent stale data across accounts. */
-function clearUserLocalStorage() {
-    if (typeof window === "undefined") return;
-    // Clear legacy per-key localStorage values (may still exist during migration)
-    const keys = Object.keys(localStorage);
-    for (const key of keys) {
-        if (key.startsWith("QAmount_") || key.startsWith("daily_") || key.startsWith("rank_") ||
-            key.startsWith("walletAddress_") || key.startsWith("qcUsername_") ||
-            key === "username" || key === "telegramId" || key === "telegramIdNM" ||
-            key === "keepLoggedIn" || key === "lastactivetime" || key === "miningTime") {
-            localStorage.removeItem(key);
-        }
-    }
-    sessionStorage.clear();
-    // Reset Zustand persisted store
-    useUserStore.getState().reset();
+import { useEffect } from "react"
+import { initAuthListener, useAuthStore } from "@/stores/auth-store"
+import { useShallow } from "zustand/shallow"
+
+export { type AuthStore } from "@/stores/auth-store"
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    useEffect(() => {
+        const cleanup = initAuthListener();
+        return cleanup;
+    }, []);
+
+    return <>{children}</>;
 }
 
-export const AuthProvider = ({children}:    {children: React.ReactNode}) => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [authLoading, setAuthLoading] = useState(true);
-    const [customClaims,setCustomClaims] = useState<ParsedToken | null>(null)
-    const [keepLoggedIn, setKeepLoggedInState] = useState(true);
-    // Tracks whether an explicit login is in progress, so onAuthStateChanged
-    // doesn't immediately sign the user out when keepLoggedIn is false.
-    const isExplicitLogin = useRef(false);
-
-    const setKeepLoggedIn = (value: boolean) => {
-        setKeepLoggedInState(value);
-        if (typeof window !== "undefined") {
-            localStorage.setItem("keepLoggedIn", JSON.stringify(value));
-        }
-    };
-
-    useEffect(() =>{
-        // Load keepLoggedIn preference from localStorage
-        if (typeof window !== "undefined") {
-            const stored = localStorage.getItem("keepLoggedIn");
-            if (stored !== null) {
-                setKeepLoggedInState(JSON.parse(stored));
-            }
-        }
-
-        const unsubscribe = auth.onAuthStateChanged(async(user) => {
-            // Read keepLoggedIn inside the callback to always get the latest value
-            const storedKeep = typeof window !== "undefined" ? localStorage.getItem("keepLoggedIn") : null;
-            const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
-
-            if (user && !shouldKeep && !isExplicitLogin.current) {
-                // User chose not to stay logged in and this is a page reload (not an active login)
-                // — sign them out so the session doesn't persist.
-                await auth.signOut();
-                try { await removeToken(); } catch {}
-                setCurrentUser(null);
-                setAuthLoading(false);
-                return;
-            }
-            // Clear the explicit-login flag now that onAuthStateChanged has processed
-            isExplicitLogin.current = false;
-
-            if (user) {
-                // Keep authLoading true while we set the cookie — prevents
-                // Login.tsx from navigating before the middleware cookie is ready.
-                setAuthLoading(true);
-            }
-            setCurrentUser(user ?? null);
-            if(user){
-                try {
-                    const tokenResult = await user.getIdTokenResult();
-                    const token = tokenResult.token;
-                    const refreshToken = user.refreshToken;
-                    const claims = tokenResult.claims;
-                    setCustomClaims(claims ?? null);
-                    if(token && refreshToken){
-                        try {
-                            await setToken({ token, refreshToken });
-                        } catch {
-                            // Retry once — cookie MUST be set for middleware to allow protected routes
-                            try {
-                                const freshResult = await user.getIdTokenResult(true);
-                                await setToken({ token: freshResult.token, refreshToken: user.refreshToken });
-                            } catch {
-                                // Cookie could not be set — sign out to prevent unauthenticated access
-                                console.error("Failed to set auth cookie after retry — signing out");
-                                await auth.signOut();
-                                try { await removeToken(); } catch {}
-                                setCurrentUser(null);
-                                setAuthLoading(false);
-                                return;
-                            }
-                        }
-                    }
-                } catch {
-                    // Token retrieval failed entirely — sign out
-                    console.error("Failed to retrieve auth token — signing out");
-                    await auth.signOut();
-                    try { await removeToken(); } catch {}
-                    setCurrentUser(null);
-                    setAuthLoading(false);
-                    return;
-                }
-            }else{
-                try { await removeToken(); } catch {}
-            }
-            setAuthLoading(false);
-
-            // Deferred: check force re-auth version (non-blocking, runs after auth resolves)
-            if (user) {
-                (async () => {
-                    try {
-                        const settingsRef = doc(dbfs, "set", "settings");
-                        const settingsSnap = await getDoc(settingsRef);
-                        const remoteVersion = settingsSnap.data()?.forceAuthVersion;
-                        const localVersion = localStorage.getItem("forceAuthVersion");
-                        if (remoteVersion && localVersion === null) {
-                            localStorage.setItem("forceAuthVersion", String(remoteVersion));
-                        }
-                        if (remoteVersion && localVersion !== null && String(remoteVersion) !== localVersion) {
-                            localStorage.setItem("forceAuthVersion", String(remoteVersion));
-                            clearUserLocalStorage();
-                            await auth.signOut();
-                            try { await removeToken(); } catch {}
-                            setCurrentUser(null);
-                        }
-                    } catch {}
-                })();
-            }
-        });
-
-        // Safety timeout: if onAuthStateChanged never fires, stop loading after 5s
-        const timeout = setTimeout(() => setAuthLoading(false), 5000);
-
-        return () => {
-            unsubscribe();
-            clearTimeout(timeout);
-        };
-    },[])
-
-    const logout = async () =>{
-        clearUserLocalStorage();
-        try { await removeToken(); } catch {}
-        await auth.signOut();
-    }
-    const loginWithToken = async(customToken:string) =>{
-      isExplicitLogin.current = true;
-      const cred = await signInWithCustomToken(auth, customToken);
-      await cred.user.getIdToken(true);
-    }
-    const loginWithEmail = async(email: string, password: string): Promise<User> => {
-      isExplicitLogin.current = true;
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      return result.user;
-    }
-    const signUpWithEmail = async(email: string, password: string): Promise<User> => {
-      isExplicitLogin.current = true;
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      // Note: verification email is not sent — email verification service is not ready yet.
-      return result.user;
-    }
-    const loginWithGoogle = async() =>{
-      isExplicitLogin.current = true;
-      return new Promise<void>((resolve, reject) => {
-        const client = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/userinfo.profile',
-          callback: async (tokenResponse: any) => {
-            try {
-              const credential = GoogleAuthProvider.credential(null, tokenResponse.access_token);
-              await signInWithCredential(auth, credential);
-              resolve();
-            } catch (error) {
-              console.error("Google sign-in error:", error);
-              reject(error);
-            }
-          },
-        });
-        client.requestAccessToken();
-      });
-    }
-    const linkEmailToAccount = async(email: string, password: string): Promise<void> => {
-      const user = auth.currentUser;
-      if (!user) throw new Error("No user signed in");
-      const credential = EmailAuthProvider.credential(email, password);
-      await linkWithCredential(user, credential);
-      // Note: verification email is not sent yet — email verification service is not ready.
-      // The UI shows "Pending Verification" status for linked but unverified emails.
-    }
-    const linkGoogleToAccount = async(): Promise<void> => {
-      const user = auth.currentUser;
-      if (!user) throw new Error("No user signed in");
-      return new Promise<void>((resolve, reject) => {
-        const client = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/userinfo.profile',
-          callback: async (tokenResponse: any) => {
-            try {
-              const credential = GoogleAuthProvider.credential(null, tokenResponse.access_token);
-              await linkWithCredential(user, credential);
-              resolve();
-            } catch (error) {
-              reject(error);
-            }
-          },
-        });
-        client.requestAccessToken();
-      });
-    }
-   return ( 
-    <AuthContext.Provider 
-        value={{
-            currentUser,
-            authLoading,
-            logout,
-            customClaims,
-            loginWithToken,
-            loginWithEmail,
-            signUpWithEmail,
-            loginWithGoogle,
-            linkEmailToAccount,
-            linkGoogleToAccount,
-            keepLoggedIn,
-            setKeepLoggedIn,
-        }}>
-        {children}
-        </AuthContext.Provider>
+export const useAuth = () =>
+    useAuthStore(
+        useShallow((s) => ({
+            currentUser: s.currentUser,
+            authLoading: s.authLoading,
+            customClaims: s.customClaims,
+            keepLoggedIn: s.keepLoggedIn,
+            setKeepLoggedIn: s.setKeepLoggedIn,
+            logout: s.logout,
+            loginWithToken: s.loginWithToken,
+            loginWithEmail: s.loginWithEmail,
+            signUpWithEmail: s.signUpWithEmail,
+            loginWithGoogle: s.loginWithGoogle,
+            linkEmailToAccount: s.linkEmailToAccount,
+            linkGoogleToAccount: s.linkGoogleToAccount,
+        }))
     );
-}
-
-export const useAuth = () => useContext(AuthContext)
