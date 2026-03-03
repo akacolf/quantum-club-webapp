@@ -113,8 +113,12 @@ export const env = createEnv({
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
   },
 
-  // Skip validation during CI builds (Vercel sets CI=1); validates at runtime
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION || !!process.env.CI,
+  // Skip during CI builds (Vercel sets CI=1) and on the client (vars are inlined at build time).
+  // Server runtime still validates.
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION ||
+    !!process.env.CI ||
+    typeof window !== "undefined",
 
   emptyStringAsUndefined: true,
 });
