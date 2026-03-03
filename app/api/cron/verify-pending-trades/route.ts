@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { ADMIN_API_KEY } from "@/lib/platform-config";
+import { env } from "@/env";
 import { getAccountInfo } from "@/lib/ton-api";
 import { sendTradeNotification } from "@/lib/notifications";
 
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     // Verify authorization
     const authHeader = request.headers.get("authorization");
     const apiKey = request.headers.get("x-api-key");
-    const cronSecret = process.env.CRON_SECRET;
+    const cronSecret = env.CRON_SECRET;
 
     const isVercelCron = authHeader === `Bearer ${cronSecret}` && cronSecret;
     const isAdminKey = apiKey === ADMIN_API_KEY && ADMIN_API_KEY;

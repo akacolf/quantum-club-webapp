@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/utils/session";
+import { env } from "@/env";
 
-const TURN_KEY_ID = process.env.CLOUDFLARE_TURN_KEY_ID;
-const TURN_API_TOKEN = process.env.CLOUDFLARE_TURN_API_TOKEN;
+const TURN_KEY_ID = env.CLOUDFLARE_TURN_KEY_ID;
+const TURN_API_TOKEN = env.CLOUDFLARE_TURN_API_TOKEN;
 
 const FALLBACK_ICE_SERVERS = [
   { urls: "stun:stun.cloudflare.com:3478" },

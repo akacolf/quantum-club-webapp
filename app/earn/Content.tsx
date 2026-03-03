@@ -321,11 +321,9 @@ const EarnContent = () => {
                 const updatedQuantAmount =
                   Number(currentQuantAmount) + Number(quantVal);
                 const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }
@@ -478,11 +476,9 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
             const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }
@@ -562,11 +558,9 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
             const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }
@@ -656,11 +650,9 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
             const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }
@@ -717,11 +709,9 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
             const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }
@@ -785,13 +775,11 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
             const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!",{
-                        description:response.error,
+                        description: response?.serverError ?? response?.data?.message,
                     });
                     return;
                 }
@@ -899,11 +887,9 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
             const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }
@@ -1000,11 +986,9 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
             const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }
@@ -1099,11 +1083,9 @@ const EarnContent = () => {
             const updatedQuantAmount =
               Number(currentQuantAmount) + Number(quantVal);
               const response = await confirmTask({
-                  id:task.id,
-                  completed:task.completed,
-                  platform:task.whichPlatform,
-                  quant:task.quant}, telegramId, token);
-                if(!!response.error){
+                  task: { id:task.id, completed:task.completed, platform:task.whichPlatform, quant:task.quant },
+                  telegramId, authToken: token });
+                if(response?.serverError || response?.data?.error){
                     toast.error("Error!");
                     return;
                 }

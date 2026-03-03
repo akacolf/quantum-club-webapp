@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/utils/session";
+import { env } from "@/env";
 
-const SDK_AUTH_TOKEN = process.env.TGA_AUTH_TOKEN || "";
+const SDK_AUTH_TOKEN = env.TGA_AUTH_TOKEN ?? "";
 const APP_NAME = "qntm_club";
 const APP_DOMAIN = "https://quantumclub.space";
 

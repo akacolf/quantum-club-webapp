@@ -1,17 +1,9 @@
 // Platform configuration constants
 
-// Platform wallet address that receives fees
-// REQUIRED: Set NEXT_PUBLIC_PLATFORM_WALLET in your .env file
-const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
+import { env } from "@/env";
 
-if (!platformWallet) {
-  console.error(
-    "⚠️ CRITICAL: NEXT_PUBLIC_PLATFORM_WALLET environment variable is not set!"
-  );
-  console.error("Platform fees will not be collectible without this.");
-}
-
-export const PLATFORM_WALLET_ADDRESS = platformWallet || "";
+// Platform wallet address that receives fees (validated by T3 Env)
+export const PLATFORM_WALLET_ADDRESS = env.NEXT_PUBLIC_PLATFORM_WALLET;
 
 // Admin API key for protected endpoints (fee withdrawal, etc.)
 export const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";

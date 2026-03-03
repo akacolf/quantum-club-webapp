@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as db } from "@/app/(firebase)/server";
 import { sendPriceAlertNotification } from "@/lib/notifications";
+import { env } from "@/env";
 
 // CRON secret for Vercel cron jobs
-const CRON_SECRET = process.env.CRON_SECRET;
+const CRON_SECRET = env.CRON_SECRET;
 
 interface PriceData {
   [symbol: string]: {

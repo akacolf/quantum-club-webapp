@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { ThemeProvider } from "./ThemeProvider";
 import { useUserHydration } from "@/stores/user-store";
 import { hydrateLeaderboardFromSession } from "@/stores/leaderboard-store";
@@ -55,22 +56,24 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
-        <WalletProvider>
-          <ChatProvider>
-            <GroupsProvider>
-              <TradingProvider>
-                <OmnistonClientProvider>
-                  <CallProvider>
-                    {children}
-                  </CallProvider>
-                </OmnistonClientProvider>
-              </TradingProvider>
-            </GroupsProvider>
-          </ChatProvider>
-        </WalletProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <NuqsAdapter>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
+          <WalletProvider>
+            <ChatProvider>
+              <GroupsProvider>
+                <TradingProvider>
+                  <OmnistonClientProvider>
+                    <CallProvider>
+                      {children}
+                    </CallProvider>
+                  </OmnistonClientProvider>
+                </TradingProvider>
+              </GroupsProvider>
+            </ChatProvider>
+          </WalletProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </NuqsAdapter>
   );
 }

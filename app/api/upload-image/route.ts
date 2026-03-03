@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { getSession } from "@/utils/session";
+import { env } from "@/env";
 
 // Configure Cloudinary
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: env.CLOUDINARY_CLOUD_NAME,
+    api_key: env.CLOUDINARY_API_KEY,
+    api_secret: env.CLOUDINARY_API_SECRET,
 });
 
 // Rate limiting for uploads
@@ -67,9 +68,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Validate Cloudinary config
-        if (!process.env.CLOUDINARY_CLOUD_NAME || 
-            !process.env.CLOUDINARY_API_KEY || 
-            !process.env.CLOUDINARY_API_SECRET) {
+        if (!env.CLOUDINARY_CLOUD_NAME ||
+            !env.CLOUDINARY_API_KEY ||
+            !env.CLOUDINARY_API_SECRET) {
             console.error("Missing Cloudinary configuration");
             return NextResponse.json(
                 { error: "Image upload not configured" },

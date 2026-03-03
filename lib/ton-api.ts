@@ -10,16 +10,17 @@
 import { Address } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { env } from "@/env";
 
 // =====================================================
 // Configuration
 // =====================================================
 
-const NETWORK = (process.env.NEXT_PUBLIC_TON_NETWORK || "mainnet") as "mainnet" | "testnet";
+const NETWORK = env.NEXT_PUBLIC_TON_NETWORK;
 const IS_TESTNET = NETWORK === "testnet";
 
 /** API key — available on server (TONAPI_KEY) and client (NEXT_PUBLIC_TONAPI_KEY) */
-const TONAPI_KEY = process.env.TONAPI_KEY || process.env.NEXT_PUBLIC_TONAPI_KEY;
+const TONAPI_KEY = process.env.TONAPI_KEY || env.NEXT_PUBLIC_TONAPI_KEY;
 
 // Cache for TonAPI client and adapter
 let cachedTonApiClient: TonApiClient | null = null;
@@ -36,7 +37,7 @@ let cachedContractAdapter: ContractAdapter | null = null;
 export function getTonApiClient(): TonApiClient {
     if (cachedTonApiClient) return cachedTonApiClient;
 
-    const apiKey = process.env.TONAPI_KEY || process.env.NEXT_PUBLIC_TONAPI_KEY;
+    const apiKey = process.env.TONAPI_KEY || env.NEXT_PUBLIC_TONAPI_KEY;
     cachedTonApiClient = new TonApiClient({
         baseUrl: IS_TESTNET ? "https://testnet.tonapi.io" : "https://tonapi.io",
         ...(apiKey ? { apiKey } : {}),

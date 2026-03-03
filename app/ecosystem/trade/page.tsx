@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
 import { TokenImageFill } from "@/components/ui/token-image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -249,9 +251,14 @@ export default function TradePage() {
     useTelegramBackButton("/home");
     const { trendingTokens, newTokens, graduatedTokens, searchResults, isLoading, searchTokens, clearSearch, positions, myTokens, retryDeployToken } = useTrading();
     const { walletAddress } = useWallet();
-    const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState("trending");
+    const [{ tab: activeTab, q: searchQuery }, setParams] = useQueryStates({
+        tab: parseAsStringLiteral(["trending", "new", "holdings", "created", "dex"]).withDefault("trending"),
+        q: parseAsString.withDefault(""),
+    }, { history: "replace" });
+    const setActiveTab = (value: string) => setParams({ tab: value as typeof activeTab });
+    const setSearchQuery = (value: string) => setParams({ q: value });
     const [deployingTokenId, setDeployingTokenId] = useState<string | null>(null);
+    const tokenListRef = useRef<HTMLDivElement>(null);
     const {telegramId} = useUserContext()
     // Check if wallet exists - prioritize context state, fallback to localStorage for SSR
     const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
@@ -314,6 +321,13 @@ export default function TradePage() {
         : activeTab === "trending"
             ? trendingTokens
             : newTokens;
+
+    const tokenVirtualizer = useVirtualizer({
+        count: displayTokens.length,
+        getScrollElement: () => tokenListRef.current,
+        estimateSize: () => 140,
+        overscan: 3,
+    });
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
@@ -617,15 +631,27 @@ export default function TradePage() {
                             <p className="text-muted-foreground mb-4">No tokens available yet. Be the first to create one!</p>
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            {displayTokens.map((token, index) => (
-                                <TokenCard
-                                    key={token.id}
-                                    token={token}
-                                    index={index}
-                                    showRank={activeTab === "trending"}
-                                />
-                            ))}
+                        <div ref={tokenListRef} className="overflow-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
+                            <div className="relative" style={{ height: `${tokenVirtualizer.getTotalSize()}px` }}>
+                                {tokenVirtualizer.getVirtualItems().map((virtualItem) => {
+                                    const token = displayTokens[virtualItem.index];
+                                    return (
+                                        <div
+                                            key={token.id}
+                                            className="absolute top-0 left-0 w-full pb-3"
+                                            style={{ transform: `translateY(${virtualItem.start}px)` }}
+                                            data-index={virtualItem.index}
+                                            ref={tokenVirtualizer.measureElement}
+                                        >
+                                            <TokenCard
+                                                token={token}
+                                                index={virtualItem.index}
+                                                showRank={activeTab === "trending"}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </AnimatePresence>

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,11 +90,16 @@ export default function HistoryPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingQntm, setIsLoadingQntm] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("ton");
-  
-  // Search and filter state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+
+  // URL search params for tab, filter, and search
+  const [{ tab: activeTab, filter: activeFilter, q: searchQuery }, setParams] = useQueryStates({
+    tab: parseAsStringLiteral(["ton", "qntm"]).withDefault("ton"),
+    filter: parseAsStringLiteral(["all", "sent", "received", "swap", "nft"] as const).withDefault("all"),
+    q: parseAsString.withDefault(""),
+  }, { history: "replace" });
+  const setActiveTab = (value: string) => setParams({ tab: value as "ton" | "qntm" });
+  const setActiveFilter = (value: FilterType) => setParams({ filter: value });
+  const setSearchQuery = (value: string) => setParams({ q: value });
   
   // Transaction labeling state
   const [labelSheetOpen, setLabelSheetOpen] = useState(false);
@@ -101,6 +108,10 @@ export default function HistoryPage() {
   const [tagsInput, setTagsInput] = useState<string[]>([]);
   const [txLabels, setTxLabels] = useState<Record<string, TransactionLabel>>({});
   const [showFilters, setShowFilters] = useState(false);
+
+  // Virtual list refs
+  const tonListRef = useRef<HTMLDivElement>(null);
+  const qntmListRef = useRef<HTMLDivElement>(null);
 
   // Explorer URL based on network
   const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
@@ -562,6 +573,20 @@ export default function HistoryPage() {
     });
   }, [qntmHistory, activeFilter, searchQuery]);
 
+  const tonVirtualizer = useVirtualizer({
+    count: filteredHistory.length,
+    getScrollElement: () => tonListRef.current,
+    estimateSize: () => 130,
+    overscan: 3,
+  });
+
+  const qntmVirtualizer = useVirtualizer({
+    count: filteredQntmHistory.length,
+    getScrollElement: () => qntmListRef.current,
+    estimateSize: () => 80,
+    overscan: 3,
+  });
+
   const filterOptions: { value: FilterType; label: string }[] = [
     { value: "all", label: "All" },
     { value: "sent", label: "Sent" },
@@ -692,9 +717,9 @@ export default function HistoryPage() {
           )}
 
           <div className="-mx-4 px-4">
-            <div className="space-y-3 pb-20">
-              {isLoadingHistory ? (
-                [1, 2, 3, 4, 5].map((i) => (
+            {isLoadingHistory ? (
+              <div className="space-y-3 pb-20">
+                {[1, 2, 3, 4, 5].map((i) => (
                   <Card key={i} className="bg-card border-border shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -710,143 +735,155 @@ export default function HistoryPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))
-              ) : filteredHistory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
-                    {searchQuery || activeFilter !== "all" ? (
-                      <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
-                    ) : (
-                      <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
-                    )}
-                  </div>
-                  <p>
-                    {searchQuery || activeFilter !== "all" 
-                      ? "No matching transactions" 
-                      : "No blockchain transactions yet"
-                    }
-                  </p>
-                  {(searchQuery || activeFilter !== "all") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
-                    >
-                      Clear filters
-                    </Button>
+                ))}
+              </div>
+            ) : filteredHistory.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
+                  {searchQuery || activeFilter !== "all" ? (
+                    <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
+                  ) : (
+                    <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
                   )}
                 </div>
-              ) : (
-                filteredHistory.map((tx) => (
-                  <Card
-                    key={tx.event_id}
-                    className="bg-card border-border shadow-none hover:border-muted-foreground/20 transition-all active:scale-[0.99] cursor-pointer"
-                    onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${tx.event_id}`, "_blank")}
+                <p>
+                  {searchQuery || activeFilter !== "all"
+                    ? "No matching transactions"
+                    : "No blockchain transactions yet"
+                  }
+                </p>
+                {(searchQuery || activeFilter !== "all") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
                   >
-                    <CardContent className="p-4">
-                      {/* Add Label Button at top */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground mb-3 -mt-1"
-                        onClick={(e) => handleOpenLabelSheet(tx.event_id, e)}
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div ref={tonListRef} className="overflow-auto pb-20" style={{ maxHeight: "calc(100vh - 300px)" }}>
+                <div className="relative" style={{ height: `${tonVirtualizer.getTotalSize()}px` }}>
+                  {tonVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const tx = filteredHistory[virtualItem.index];
+                    return (
+                      <div
+                        key={tx.event_id}
+                        className="absolute top-0 left-0 w-full pb-3"
+                        style={{ transform: `translateY(${virtualItem.start}px)` }}
+                        data-index={virtualItem.index}
+                        ref={tonVirtualizer.measureElement}
                       >
-                        {txLabels[tx.event_id] ? (
-                          <>
-                            <Icon icon="lucide:pencil" className="w-3 h-3 mr-1"/>
-                            Edit label
-                          </>
-                        ) : (
-                          <>
-                            <Icon icon="lucide:tag" className="w-3 h-3 mr-1"/>
-                            Add label
-                          </>
-                        )}
-                      </Button>
-                      
-                      {/* Label and Tags Display */}
-                      {txLabels[tx.event_id] && (
-                        <div className="mb-3 pb-3 border-b border-border">
-                          <div className="flex-1 min-w-0">
-                            {txLabels[tx.event_id].label && (
-                              <p className="text-sm text-foreground truncate mb-1.5">
-                                {txLabels[tx.event_id].label}
-                              </p>
-                            )}
-                            {txLabels[tx.event_id].tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {txLabels[tx.event_id].tags.map(tag => (
-                                  <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
-                                    {formatTag(tag)}
-                                  </Badge>
-                                ))}
+                        <Card
+                          className="bg-card border-border shadow-none hover:border-muted-foreground/20 transition-all active:scale-[0.99] cursor-pointer"
+                          onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${tx.event_id}`, "_blank")}
+                        >
+                          <CardContent className="p-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground mb-3 -mt-1"
+                              onClick={(e) => handleOpenLabelSheet(tx.event_id, e)}
+                            >
+                              {txLabels[tx.event_id] ? (
+                                <>
+                                  <Icon icon="lucide:pencil" className="w-3 h-3 mr-1"/>
+                                  Edit label
+                                </>
+                              ) : (
+                                <>
+                                  <Icon icon="lucide:tag" className="w-3 h-3 mr-1"/>
+                                  Add label
+                                </>
+                              )}
+                            </Button>
+
+                            {txLabels[tx.event_id] && (
+                              <div className="mb-3 pb-3 border-b border-border">
+                                <div className="flex-1 min-w-0">
+                                  {txLabels[tx.event_id].label && (
+                                    <p className="text-sm text-foreground truncate mb-1.5">
+                                      {txLabels[tx.event_id].label}
+                                    </p>
+                                  )}
+                                  {txLabels[tx.event_id].tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {txLabels[tx.event_id].tags.map(tag => (
+                                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                          {formatTag(tag)}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center border border-border ${tx.type === 'Deploy' ? 'bg-primary/10 text-primary' :
-                            tx.isSwap ? 'bg-purple-500/10 text-purple-400' :
-                              tx.symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
-                                tx.isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                            }`}>
-                            {tx.type === 'Deploy' ? (
-                              <Icon icon="lucide:layers" className="w-4 h-4"/>
-                            ) : tx.isSwap ? (
-                              <Icon icon="lucide:arrow-left-right" className="w-4 h-4"/>
-                            ) : tx.symbol === 'NFT' ? (
-                              <Icon icon="lucide:image" className="w-4 h-4"/>
-                            ) : tx.isIncoming ? (
-                              <Icon icon="lucide:arrow-down-left" className="w-4 h-4"/>
-                            ) : (
-                              <Icon icon="lucide:arrow-up-right" className="w-4 h-4"/>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="font-bold text-foreground text-sm truncate">{tx.type}</h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              {tx.isSwap ? (
-                                <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400 truncate flex items-center gap-1">
-                                  {tx.fromSymbol} <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {tx.toSymbol}
-                                </span>
-                              ) : (
-                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground truncate">
-                                  {formatAddress(tx.address)}
-                                </span>
-                              )}
+
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center border border-border ${tx.type === 'Deploy' ? 'bg-primary/10 text-primary' :
+                                  tx.isSwap ? 'bg-purple-500/10 text-purple-400' :
+                                    tx.symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
+                                      tx.isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                                  }`}>
+                                  {tx.type === 'Deploy' ? (
+                                    <Icon icon="lucide:layers" className="w-4 h-4"/>
+                                  ) : tx.isSwap ? (
+                                    <Icon icon="lucide:arrow-left-right" className="w-4 h-4"/>
+                                  ) : tx.symbol === 'NFT' ? (
+                                    <Icon icon="lucide:image" className="w-4 h-4"/>
+                                  ) : tx.isIncoming ? (
+                                    <Icon icon="lucide:arrow-down-left" className="w-4 h-4"/>
+                                  ) : (
+                                    <Icon icon="lucide:arrow-up-right" className="w-4 h-4"/>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="font-bold text-foreground text-sm truncate">{tx.type}</h4>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    {tx.isSwap ? (
+                                      <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400 truncate flex items-center gap-1">
+                                        {tx.fromSymbol} <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {tx.toSymbol}
+                                      </span>
+                                    ) : (
+                                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground truncate">
+                                        {formatAddress(tx.address)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <div className="text-right">
+                                  {tx.isSwap ? (
+                                    <>
+                                      <div className="text-xs text-muted-foreground whitespace-nowrap">-{(parseFloat(tx.fromAmount) || 0).toFixed(4)} {tx.fromSymbol}</div>
+                                      <h4 className="font-bold text-sm text-green-500 whitespace-nowrap">
+                                        +{(parseFloat(tx.toAmount) || 0).toFixed(4)} {tx.toSymbol}
+                                      </h4>
+                                    </>
+                                  ) : (
+                                    <h4 className={`font-bold text-sm whitespace-nowrap ${tx.status === 'scam' ? 'text-orange-500' :
+                                      tx.status === 'pending' ? 'text-yellow-500' :
+                                        tx.isIncoming ? 'text-green-500' : 'text-foreground'
+                                      }`}>
+                                      {tx.type === 'Deploy' || tx.type === 'Unknown' ? '' : (tx.isIncoming ? '+' : '-')}{tx.type !== 'Deploy' && tx.type !== 'Unknown' ? `${parseFloat(tx.amount).toFixed(4)} ${tx.symbol}` : ''}
+                                    </h4>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{tx.formattedDate} • {tx.formattedTime}</p>
+                                </div>
+                                <Icon icon="lucide:external-link" className="w-4 h-4 text-muted-foreground shrink-0"/>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="text-right">
-                            {tx.isSwap ? (
-                              <>
-                                <div className="text-xs text-muted-foreground whitespace-nowrap">-{(parseFloat(tx.fromAmount) || 0).toFixed(4)} {tx.fromSymbol}</div>
-                                <h4 className="font-bold text-sm text-green-500 whitespace-nowrap">
-                                  +{(parseFloat(tx.toAmount) || 0).toFixed(4)} {tx.toSymbol}
-                                </h4>
-                              </>
-                            ) : (
-                              <h4 className={`font-bold text-sm whitespace-nowrap ${tx.status === 'scam' ? 'text-orange-500' :
-                                tx.status === 'pending' ? 'text-yellow-500' :
-                                  tx.isIncoming ? 'text-green-500' : 'text-foreground'
-                                }`}>
-                                {tx.type === 'Deploy' || tx.type === 'Unknown' ? '' : (tx.isIncoming ? '+' : '-')}{tx.type !== 'Deploy' && tx.type !== 'Unknown' ? `${parseFloat(tx.amount).toFixed(4)} ${tx.symbol}` : ''}
-                              </h4>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{tx.formattedDate} • {tx.formattedTime}</p>
-                          </div>
-                          <Icon icon="lucide:external-link" className="w-4 h-4 text-muted-foreground shrink-0"/>
-                        </div>
+                          </CardContent>
+                        </Card>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -862,9 +899,9 @@ export default function HistoryPage() {
           )}
 
           <div className="-mx-4 px-4">
-            <div className="space-y-3 pb-20">
-              {isLoadingQntm ? (
-                [1, 2, 3, 4, 5].map((i) => (
+            {isLoadingQntm ? (
+              <div className="space-y-3 pb-20">
+                {[1, 2, 3, 4, 5].map((i) => (
                   <Card key={i} className="bg-card border-border shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -880,90 +917,99 @@ export default function HistoryPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))
-              ) : filteredQntmHistory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
-                    {searchQuery || activeFilter !== "all" ? (
-                      <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
-                    ) : (
-                      <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
-                    )}
-                  </div>
-                  <p>
-                    {searchQuery || activeFilter !== "all" 
-                      ? "No matching transfers" 
-                      : "No QNTM transfers yet"
-                    }
-                  </p>
-                  {!searchQuery && activeFilter === "all" && (
-                    <p className="text-xs text-muted-foreground text-center px-6">
-                      Transfer QNTM to other Quantum Club members to see your history here
-                    </p>
-                  )}
-                  {(searchQuery || activeFilter !== "all") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
-                    >
-                      Clear filters
-                    </Button>
+                ))}
+              </div>
+            ) : filteredQntmHistory.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
+                  {searchQuery || activeFilter !== "all" ? (
+                    <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
+                  ) : (
+                    <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
                   )}
                 </div>
-              ) : (
-                filteredQntmHistory.map((transfer) => {
-                  const isIncoming = transfer.type === 'received';
-                  const counterparty = isIncoming ? transfer.from : transfer.to;
-
-                  // Parse the date string or use timestamp
-                  let formattedDate = transfer.date;
-                  let formattedTime = "";
-
-                  if (transfer.timestamp) {
-                    const date = new Date(transfer.timestamp * 1000);
-                    formattedDate = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                    formattedTime = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                <p>
+                  {searchQuery || activeFilter !== "all"
+                    ? "No matching transfers"
+                    : "No QNTM transfers yet"
                   }
+                </p>
+                {!searchQuery && activeFilter === "all" && (
+                  <p className="text-xs text-muted-foreground text-center px-6">
+                    Transfer QNTM to other Quantum Club members to see your history here
+                  </p>
+                )}
+                {(searchQuery || activeFilter !== "all") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div ref={qntmListRef} className="overflow-auto pb-20" style={{ maxHeight: "calc(100vh - 300px)" }}>
+                <div className="relative" style={{ height: `${qntmVirtualizer.getTotalSize()}px` }}>
+                  {qntmVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const transfer = filteredQntmHistory[virtualItem.index];
+                    const isIncoming = transfer.type === 'received';
+                    const counterparty = isIncoming ? transfer.from : transfer.to;
 
-                  return (
-                    <Card key={transfer.id} className="bg-card border-border shadow-none hover:border-orange-500/30 transition-all active:scale-[0.99]">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'
-                            }`}>
-                            {isIncoming ? (
-                              <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>
-                            ) : (
-                              <Icon icon="lucide:arrow-up-right" className="w-5 h-5"/>
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-foreground text-base">
-                              {isIncoming ? 'Received' : 'Sent'}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-mono bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400">
-                                {formatQcId(counterparty || "")}
-                              </span>
+                    let formattedDate = transfer.date;
+                    let formattedTime = "";
+                    if (transfer.timestamp) {
+                      const date = new Date(transfer.timestamp * 1000);
+                      formattedDate = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                      formattedTime = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    return (
+                      <div
+                        key={transfer.id}
+                        className="absolute top-0 left-0 w-full pb-3"
+                        style={{ transform: `translateY(${virtualItem.start}px)` }}
+                        data-index={virtualItem.index}
+                        ref={qntmVirtualizer.measureElement}
+                      >
+                        <Card className="bg-card border-border shadow-none hover:border-orange-500/30 transition-all active:scale-[0.99]">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                                {isIncoming ? (
+                                  <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>
+                                ) : (
+                                  <Icon icon="lucide:arrow-up-right" className="w-5 h-5"/>
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-foreground text-base">
+                                  {isIncoming ? 'Received' : 'Sent'}
+                                </h4>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <span className="font-mono bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400">
+                                    {formatQcId(counterparty || "")}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <h4 className={`font-bold text-base ${isIncoming ? 'text-green-500' : 'text-foreground'
-                            }`}>
-                            {isIncoming ? '+' : '-'}{transfer.amount.toLocaleString()} QNTM
-                          </h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
+                            <div className="text-right">
+                              <h4 className={`font-bold text-base ${isIncoming ? 'text-green-500' : 'text-foreground'}`}>
+                                {isIncoming ? '+' : '-'}{transfer.amount.toLocaleString()} QNTM
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formattedDate}{formattedTime ? ` • ${formattedTime}` : ''}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>

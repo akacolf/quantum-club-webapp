@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/env";
 
 // Allowed API path prefixes to prevent SSRF attacks
 const ALLOWED_PATH_PREFIXES = [
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Invalid API path" }, { status: 400 });
     }
 
-    const TONAPI_KEY = process.env.TONAPI_KEY;
+    const TONAPI_KEY = env.TONAPI_KEY;
     const baseUrl = testnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
     try {
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid API path" }, { status: 400 });
     }
 
-    const TONAPI_KEY = process.env.TONAPI_KEY;
+    const TONAPI_KEY = env.TONAPI_KEY;
     const baseUrl = testnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
 
     try {

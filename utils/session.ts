@@ -1,8 +1,9 @@
 import { JWTPayload, jwtVerify,SignJWT } from "jose"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
+import { env } from "@/env"
 
-const key = new TextEncoder().encode(process.env.JWT_SECRET)
+const key = new TextEncoder().encode(env.JWT_SECRET)
 export const SESSION_DURATION = 24*60*60*1000
 interface Payload extends JWTPayload {
     user: {
