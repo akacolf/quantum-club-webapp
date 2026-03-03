@@ -4,9 +4,10 @@ import { firestore as adminDb } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 import { calculateGraduationLiquidity } from "@/lib/graduation";
+import { env } from "@/env";
 
 // Admin check - only platform admins can graduate tokens
-const ADMIN_IDS = process.env.ADMIN_TELEGRAM_IDS?.split(",") || [];
+const ADMIN_IDS = env.ADMIN_TELEGRAM_IDS?.split(",") || [];
 
 /**
  * POST /api/graduate

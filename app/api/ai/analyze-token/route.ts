@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { getSession } from "@/utils/session";
 import { NextRequest, NextResponse } from "next/server";
 import { AI_MODEL } from "@/lib/ai/system-prompt";
+import { env } from "@/env";
 
 const ANALYSIS_SYSTEM_PROMPT = `You are a crypto token analyst AI for Quantum Club. Analyze the provided token data and give a concise, helpful assessment.
 
@@ -24,7 +25,7 @@ interface TokenAnalysisResponse {
 
 export async function POST(req: NextRequest) {
     try {
-        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+        const apiKey = env.GOOGLE_GENERATIVE_AI_API_KEY || env.GEMINI_API_KEY;
 
         if (!apiKey) {
             return NextResponse.json({ error: "AI service not configured" }, { status: 500 });

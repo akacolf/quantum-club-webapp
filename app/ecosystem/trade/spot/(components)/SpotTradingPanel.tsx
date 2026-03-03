@@ -1,5 +1,6 @@
 "use client";
 
+import { env } from "@/env";
 import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
         const isBuying = activeTab === "buy";
         const decimals = isBuying ? 9 : token.decimals;
         const units = toUnits(amount, decimals);
-        const referralAddress = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
+        const referralAddress = env.NEXT_PUBLIC_PLATFORM_WALLET;
 
         const timer = setTimeout(() => {
             setQuoteParams({

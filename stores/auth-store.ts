@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { env } from "@/env";
 import { auth, dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc } from "firebase/firestore";
 import {
@@ -119,7 +120,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     isExplicitLogin = true;
     return new Promise<void>((resolve, reject) => {
       const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        client_id: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
         scope: "https://www.googleapis.com/auth/userinfo.profile",
         callback: async (tokenResponse: any) => {
           try {
@@ -151,7 +152,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     if (!user) throw new Error("No user signed in");
     return new Promise<void>((resolve, reject) => {
       const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        client_id: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
         scope: "https://www.googleapis.com/auth/userinfo.profile",
         callback: async (tokenResponse: any) => {
           try {

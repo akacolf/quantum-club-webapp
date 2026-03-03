@@ -5,6 +5,7 @@ import { getSession } from "@/utils/session";
 import { NextRequest, NextResponse } from "next/server";
 import { createCipheriv } from "node:crypto";
 import { z } from "zod";
+import { env } from "@/env";
 
 // Security: Input validation
 const MAX_MESSAGE_LENGTH = 2000;
@@ -23,7 +24,7 @@ const chatRequestSchema = z.object({
 
 // Server-side encryption to get consistent user ID
 function encryptTelegramId(telegramId: string): string {
-    const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64');
+    const encryptionKey = Buffer.from(env.AES_ENCRYPTION_KEY, 'base64');
     const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
     const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
     let encrypted = cipher.update(telegramId, 'utf8', 'base64');
@@ -57,7 +58,7 @@ function getContextualSystemPrompt(currentPage?: string): string {
 export async function POST(req: NextRequest) {
     try {
         // Security: Check for API key
-        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+        const apiKey = env.GOOGLE_GENERATIVE_AI_API_KEY || env.GEMINI_API_KEY;
 
         if (!apiKey) {
             console.error("Missing Gemini API key");

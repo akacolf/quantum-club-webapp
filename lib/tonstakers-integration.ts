@@ -14,6 +14,7 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { env } from "@/env";
 
 // Custom wallet connector interface matching tonstakers-sdk expectations
 interface WalletConnectorLike {
@@ -86,7 +87,7 @@ function createWalletConnector(
             // Setup TON API client for seqno query
             const tonApiClient = new TonApiClient({
                 baseUrl: isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
-                apiKey: process.env.NEXT_PUBLIC_TONAPI_KEY,
+                apiKey: env.NEXT_PUBLIC_TONAPI_KEY,
             });
             const adapter = new ContractAdapter(tonApiClient);
             const contract = adapter.open(wallet);
@@ -183,7 +184,7 @@ export async function getTonStakers(
     tonstakersInstance = new Tonstakers({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         connector: connector as any,
-        tonApiKey: process.env.NEXT_PUBLIC_TONAPI_KEY,
+        tonApiKey: env.NEXT_PUBLIC_TONAPI_KEY,
     });
     
     currentWalletAddress = walletAddress;

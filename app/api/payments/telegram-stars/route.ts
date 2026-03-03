@@ -8,8 +8,9 @@ import {
   answerPreCheckoutQuery
 } from "@/lib/telegram-payments";
 import { z } from "zod";
+import { env } from "@/env";
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_TOKEN = env.BOT_TOKEN;
 
 const createInvoiceSchema = z.object({
   action: z.literal("create-invoice"),
@@ -231,7 +232,7 @@ export async function PUT(request: NextRequest) {
   try {
     // Verify webhook secret to prevent forged payment confirmations
     const webhookSecret = request.headers.get("x-telegram-bot-api-secret-token");
-    if (!webhookSecret || webhookSecret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+    if (!webhookSecret || webhookSecret !== env.TELEGRAM_WEBHOOK_SECRET) {
       return NextResponse.json({ ok: false }, { status: 401 });
     }
 

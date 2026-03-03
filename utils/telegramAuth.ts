@@ -1,12 +1,10 @@
 import crypto from 'crypto'
+import { env } from '@/env'
 
 export function validateTelegramWebAppData(telegramInitData:string) {
-  let BOT_TOKEN = process.env.BOT_TOKEN;
-  if(process.env.NEXT_PUBLIC_VERCEL_ENV ==="production"){
-    BOT_TOKEN = process.env.BOT_TOKEN
-  }else{
-    BOT_TOKEN = process.env.DEV_BOT_TOKEN
-  }
+  const BOT_TOKEN = env.NEXT_PUBLIC_VERCEL_ENV === "production"
+    ? env.BOT_TOKEN
+    : env.DEV_BOT_TOKEN || env.BOT_TOKEN;
   let validatedData = null;
   let user = {};
   let message = '';

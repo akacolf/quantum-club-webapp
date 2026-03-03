@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { sendNotification } from "@/lib/notifications";
 import { decrypt } from "@/utils/session";
+import { env } from "@/env";
 
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID!,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, "\n"),
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+      projectId: env.FIREBASE_PROJECT_ID,
+      privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+      clientEmail: env.FIREBASE_CLIENT_EMAIL,
     }),
   });
 }
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
           : `You have a new message from <b>${senderName}</b>`;
 
         // Build deep link button to open the chat directly
-        const botUsername = process.env.BOT_USERNAME || "QuantumClubBot";
+        const botUsername = env.BOT_USERNAME || "QuantumClubBot";
         const deepLinkUrl = `https://t.me/${botUsername}/app?startapp=chat_${chatId}`;
         const replyMarkup = {
           inline_keyboard: [[{ text: "Open Chat", url: deepLinkUrl }]],

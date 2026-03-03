@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import { decrypt } from '@/utils/session';
 import { createCipheriv } from 'node:crypto';
+import { env } from '@/env';
 
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID!,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+      projectId: env.FIREBASE_PROJECT_ID,
+      clientEmail: env.FIREBASE_CLIENT_EMAIL,
+      privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     }),
   });
 }
 
 // Server-side encryption to get QC ID
 function encryptTelegramId(telegramId: string): string {
-  const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64');
+  const encryptionKey = Buffer.from(env.AES_ENCRYPTION_KEY, 'base64');
   const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
   const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
   let encrypted = cipher.update(telegramId, 'utf8', 'base64');

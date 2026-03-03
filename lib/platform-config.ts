@@ -6,7 +6,7 @@ import { env } from "@/env";
 export const PLATFORM_WALLET_ADDRESS = env.NEXT_PUBLIC_PLATFORM_WALLET;
 
 // Admin API key for protected endpoints (fee withdrawal, etc.)
-export const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
+export const ADMIN_API_KEY = env.ADMIN_API_KEY ?? "";
 
 // Fee configuration (in TON)
 export const FEE_CONFIG = {

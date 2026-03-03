@@ -1,3 +1,6 @@
+// Validate env vars at build start (fails fast if any required var is missing)
+import "./env";
+
 /** @type {import('next').NextConfig} */
 
 const nextConfig: import('next').NextConfig = {

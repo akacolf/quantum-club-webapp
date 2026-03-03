@@ -6,7 +6,7 @@ export const env = createEnv({
     // Firebase Admin SDK
     FIREBASE_CLIENT_EMAIL: z.string().min(1),
     FIREBASE_PRIVATE_KEY: z.string().min(1),
-    FIREBASE_PRIVATE_KEY_ID: z.string().min(1),
+    FIREBASE_PRIVATE_KEY_ID: z.string().optional(),
     FIREBASE_PROJECT_ID: z.string().min(1),
     FIREBASE_CLIENT_ID: z.string().optional(),
 
@@ -113,12 +113,11 @@ export const env = createEnv({
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
   },
 
-  // Skip during CI builds (Vercel sets CI=1) and on the client (vars are inlined at build time).
-  // Server runtime still validates.
+  // Only skip on the client (NEXT_PUBLIC_ vars are inlined at build time by Next.js,
+  // so process.env doesn't exist and server schema validation would fail).
+  // Server & build always validate — missing vars fail the build immediately.
   skipValidation:
-    !!process.env.SKIP_ENV_VALIDATION ||
-    !!process.env.CI ||
-    typeof window !== "undefined",
+    !!process.env.SKIP_ENV_VALIDATION || typeof window !== "undefined",
 
   emptyStringAsUndefined: true,
 });

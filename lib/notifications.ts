@@ -1,18 +1,20 @@
 /**
  * Telegram Push Notifications Utility
- * 
+ *
  * Provides centralized notification sending through Telegram Bot API.
  * Used for price alerts, transaction confirmations, and other user notifications.
- * 
+ *
  * @module lib/notifications
  */
+
+import { env } from "@/env";
 
 // Get bot token based on environment
 function getBotToken(): string | undefined {
   if (process.env.NODE_ENV === "production") {
-    return process.env.BOT_TOKEN;
+    return env.BOT_TOKEN;
   }
-  return process.env.DEV_BOT_TOKEN || process.env.BOT_TOKEN;
+  return env.DEV_BOT_TOKEN || env.BOT_TOKEN;
 }
 
 /**

@@ -4,19 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decrypt, encrypt, SESSION_DURATION } from '@/utils/session';
 import { validateTelegramWebAppData } from '@/utils/telegramAuth';
 import { createCipheriv } from 'node:crypto';
+import { env } from '@/env';
 
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID!,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+            projectId: env.FIREBASE_PROJECT_ID,
+            privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            clientEmail: env.FIREBASE_CLIENT_EMAIL,
         }),
-    }); 
+    });
 }
 
 function encryptTelegramId(telegramId: string): string {
-    const encryptionKey = Buffer.from(process.env.AES_ENCRYPTION_KEY!, 'base64');
+    const encryptionKey = Buffer.from(env.AES_ENCRYPTION_KEY, 'base64');
     const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
     const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
     let encrypted = cipher.update(telegramId, 'utf8', 'base64');

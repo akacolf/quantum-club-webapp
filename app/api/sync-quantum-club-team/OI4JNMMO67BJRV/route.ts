@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
+import { env } from '@/env';
 
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID!,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+      projectId: env.FIREBASE_PROJECT_ID,
+      clientEmail: env.FIREBASE_CLIENT_EMAIL,
+      privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     }),
   });
 }
 
 export async function GET(req:NextRequest) {
   try {
-      if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+      if (req.headers.get('authorization') !== `Bearer ${env.CRON_SECRET}`) {
         return NextResponse.json(
           { error: 'Unauthorized' }, // next response will handle the error //
           { status: 401 }

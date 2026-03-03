@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/utils/session";
 import { z } from "zod";
+import { env } from "@/env";
 
 const checkMembershipSchema = z.object({
   tgIdNumerical: z.union([z.string(), z.number()]).pipe(
@@ -21,7 +22,7 @@ export async function POST(req:NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const botToken = process.env.BOT_TOKEN;
+  const botToken = env.BOT_TOKEN;
 
   if (!botToken) {
     console.error("BOT TOKEN ERROR");

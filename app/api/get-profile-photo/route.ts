@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/utils/session";
+import { env } from "@/env";
 
 /**
  * API endpoint to fetch a Telegram user's profile photo.
@@ -20,9 +21,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const botToken = process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
-        ? process.env.BOT_TOKEN
-        : process.env.DEV_BOT_TOKEN;
+    const botToken = env.NEXT_PUBLIC_VERCEL_ENV === "production"
+        ? env.BOT_TOKEN
+        : env.DEV_BOT_TOKEN;
 
     if (!botToken) {
         return NextResponse.json(

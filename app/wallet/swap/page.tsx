@@ -1,5 +1,6 @@
 "use client";
 
+import { env } from "@/env";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -135,7 +136,7 @@ export default function SwapPage() {
     const debouncedAmount = useDebounce(amount, 500);
 
     // Build quote params based on current form state
-    const referralAddress = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
+    const referralAddress = env.NEXT_PUBLIC_PLATFORM_WALLET;
 
     const quoteParams = useMemo((): QuoteParams | null => {
         if (!fromAsset || !toAsset || !debouncedAmount || parseFloat(debouncedAmount) <= 0) {
