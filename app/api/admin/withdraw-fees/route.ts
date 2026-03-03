@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Address, beginCell, toNano } from "@ton/core";
-import { ADMIN_API_KEY, PLATFORM_WALLET_ADDRESS } from "@/lib/platform-config";
+import { getAdminApiKey, PLATFORM_WALLET_ADDRESS } from "@/lib/platform-config";
 
 /**
  * POST /api/admin/withdraw-fees
@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
     try {
         // Verify API key
         const apiKey = request.headers.get("x-api-key");
-        if (!ADMIN_API_KEY || apiKey !== ADMIN_API_KEY) {
+        const adminKey = getAdminApiKey();
+        if (!adminKey || apiKey !== adminKey) {
             return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 401 }

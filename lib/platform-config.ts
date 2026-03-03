@@ -6,7 +6,11 @@ import { env } from "@/env";
 export const PLATFORM_WALLET_ADDRESS = env.NEXT_PUBLIC_PLATFORM_WALLET;
 
 // Admin API key for protected endpoints (fee withdrawal, etc.)
-export const ADMIN_API_KEY = env.ADMIN_API_KEY ?? "";
+// Lazy getter — this file is imported by client components (for FEE_CONFIG etc.),
+// so we can't access server env vars at module level.
+export function getAdminApiKey(): string {
+  return env.ADMIN_API_KEY ?? "";
+}
 
 // Fee configuration (in TON)
 export const FEE_CONFIG = {

@@ -113,11 +113,10 @@ export const env = createEnv({
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
   },
 
-  // Only skip on the client (NEXT_PUBLIC_ vars are inlined at build time by Next.js,
-  // so process.env doesn't exist and server schema validation would fail).
-  // Server & build always validate — missing vars fail the build immediately.
-  skipValidation:
-    !!process.env.SKIP_ENV_VALIDATION || typeof window !== "undefined",
+  // Only skip when explicitly opted out. The library internally handles the
+  // client/server split — on the client it only validates NEXT_PUBLIC_ vars
+  // and blocks access to server vars via proxy.
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 
   emptyStringAsUndefined: true,
 });

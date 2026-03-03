@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { Address, toNano } from "@ton/core";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { env } from "@/env";
-import { 
-    ADMIN_API_KEY,
-    DEX_CONFIG 
+import {
+    getAdminApiKey,
+    DEX_CONFIG
 } from "@/lib/platform-config";
 import {
     isPlatformWalletConfigured,
@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
         const cronSecret = env.CRON_SECRET;
 
         const isVercelCron = authHeader === `Bearer ${cronSecret}` && cronSecret;
-        const isAdminKey = apiKey === ADMIN_API_KEY && ADMIN_API_KEY;
+        const adminKey = getAdminApiKey();
+        const isAdminKey = apiKey === adminKey && adminKey;
 
         if (!isVercelCron && !isAdminKey) {
             return NextResponse.json(

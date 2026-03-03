@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as adminDb } from "@/app/(firebase)/server";
-import { ADMIN_API_KEY } from "@/lib/platform-config";
+import { getAdminApiKey } from "@/lib/platform-config";
 import { env } from "@/env";
 import { getBondingCurveData, getJettonInfo } from "@/lib/ton-api";
 
@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
     const cronSecret = env.CRON_SECRET;
 
     const isVercelCron = authHeader === `Bearer ${cronSecret}` && cronSecret;
-    const isAdminKey = apiKey === ADMIN_API_KEY && ADMIN_API_KEY;
+    const adminKey = getAdminApiKey();
+    const isAdminKey = apiKey === adminKey && adminKey;
 
     if (!isVercelCron && !isAdminKey) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
