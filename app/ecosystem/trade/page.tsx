@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
 import { TokenImageFill } from "@/components/ui/token-image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -322,11 +322,11 @@ export default function TradePage() {
             ? trendingTokens
             : newTokens;
 
-    const tokenVirtualizer = useVirtualizer({
+    const tokenVirtualizer = useWindowVirtualizer({
         count: displayTokens.length,
-        getScrollElement: () => tokenListRef.current,
         estimateSize: () => 140,
         overscan: 3,
+        scrollMargin: tokenListRef.current?.offsetTop ?? 0,
     });
 
     return (
@@ -631,7 +631,7 @@ export default function TradePage() {
                             <p className="text-muted-foreground mb-4">No tokens available yet. Be the first to create one!</p>
                         </div>
                     ) : (
-                        <div ref={tokenListRef} className="overflow-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
+                        <div ref={tokenListRef}>
                             <div className="relative" style={{ height: `${tokenVirtualizer.getTotalSize()}px` }}>
                                 {tokenVirtualizer.getVirtualItems().map((virtualItem) => {
                                     const token = displayTokens[virtualItem.index];
@@ -639,7 +639,7 @@ export default function TradePage() {
                                         <div
                                             key={token.id}
                                             className="absolute top-0 left-0 w-full pb-3"
-                                            style={{ transform: `translateY(${virtualItem.start}px)` }}
+                                            style={{ transform: `translateY(${virtualItem.start - tokenVirtualizer.options.scrollMargin}px)` }}
                                             data-index={virtualItem.index}
                                             ref={tokenVirtualizer.measureElement}
                                         >

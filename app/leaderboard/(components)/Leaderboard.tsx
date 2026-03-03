@@ -5,17 +5,17 @@ import Image from "next/image";
 import { firstPlaceMedal, secondPlaceMedal, thirdPlaceMedal, logoWhite } from "@/public";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { Icon } from "@iconify/react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
 export default function LeaderboardList() {
     const { leaderboardContext } = useLeaderboardContext();
     const listRef = useRef<HTMLDivElement>(null);
 
-    const virtualizer = useVirtualizer({
+    const virtualizer = useWindowVirtualizer({
         count: leaderboardContext?.length ?? 0,
-        getScrollElement: () => listRef.current,
         estimateSize: () => 64,
         overscan: 5,
+        scrollMargin: listRef.current?.offsetTop ?? 0,
     });
 
     return (
@@ -26,7 +26,7 @@ export default function LeaderboardList() {
             </div>
 
             {leaderboardContext && leaderboardContext.length > 0 && (
-                <div ref={listRef} className="overflow-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                <div ref={listRef}>
                     <div className="relative" style={{ height: `${virtualizer.getTotalSize()}px` }}>
                         {virtualizer.getVirtualItems().map((virtualItem) => {
                             const item = leaderboardContext[virtualItem.index];
@@ -35,7 +35,7 @@ export default function LeaderboardList() {
                                 <div
                                     key={index}
                                     className="absolute top-0 left-0 w-full"
-                                    style={{ transform: `translateY(${virtualItem.start}px)` }}
+                                    style={{ transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)` }}
                                     data-index={virtualItem.index}
                                     ref={virtualizer.measureElement}
                                 >

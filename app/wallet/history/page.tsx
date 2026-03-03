@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -573,18 +573,18 @@ export default function HistoryPage() {
     });
   }, [qntmHistory, activeFilter, searchQuery]);
 
-  const tonVirtualizer = useVirtualizer({
+  const tonVirtualizer = useWindowVirtualizer({
     count: filteredHistory.length,
-    getScrollElement: () => tonListRef.current,
     estimateSize: () => 130,
     overscan: 3,
+    scrollMargin: tonListRef.current?.offsetTop ?? 0,
   });
 
-  const qntmVirtualizer = useVirtualizer({
+  const qntmVirtualizer = useWindowVirtualizer({
     count: filteredQntmHistory.length,
-    getScrollElement: () => qntmListRef.current,
     estimateSize: () => 80,
     overscan: 3,
+    scrollMargin: qntmListRef.current?.offsetTop ?? 0,
   });
 
   const filterOptions: { value: FilterType; label: string }[] = [
@@ -596,7 +596,7 @@ export default function HistoryPage() {
   ];
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto p-4 h-screen bg-background text-foreground">
+    <div className="flex flex-col w-full max-w-md mx-auto p-4 min-h-screen bg-background text-foreground">
       <div className="flex items-center justify-center mb-4">
         <h2 className="text-xl font-bold text-foreground">History</h2>
       </div>
@@ -763,7 +763,7 @@ export default function HistoryPage() {
                 )}
               </div>
             ) : (
-              <div ref={tonListRef} className="overflow-auto pb-20" style={{ maxHeight: "calc(100vh - 300px)" }}>
+              <div ref={tonListRef} className="pb-20">
                 <div className="relative" style={{ height: `${tonVirtualizer.getTotalSize()}px` }}>
                   {tonVirtualizer.getVirtualItems().map((virtualItem) => {
                     const tx = filteredHistory[virtualItem.index];
@@ -771,7 +771,7 @@ export default function HistoryPage() {
                       <div
                         key={tx.event_id}
                         className="absolute top-0 left-0 w-full pb-3"
-                        style={{ transform: `translateY(${virtualItem.start}px)` }}
+                        style={{ transform: `translateY(${virtualItem.start - tonVirtualizer.options.scrollMargin}px)` }}
                         data-index={virtualItem.index}
                         ref={tonVirtualizer.measureElement}
                       >
@@ -950,7 +950,7 @@ export default function HistoryPage() {
                 )}
               </div>
             ) : (
-              <div ref={qntmListRef} className="overflow-auto pb-20" style={{ maxHeight: "calc(100vh - 300px)" }}>
+              <div ref={qntmListRef} className="pb-20">
                 <div className="relative" style={{ height: `${qntmVirtualizer.getTotalSize()}px` }}>
                   {qntmVirtualizer.getVirtualItems().map((virtualItem) => {
                     const transfer = filteredQntmHistory[virtualItem.index];
@@ -969,7 +969,7 @@ export default function HistoryPage() {
                       <div
                         key={transfer.id}
                         className="absolute top-0 left-0 w-full pb-3"
-                        style={{ transform: `translateY(${virtualItem.start}px)` }}
+                        style={{ transform: `translateY(${virtualItem.start - qntmVirtualizer.options.scrollMargin}px)` }}
                         data-index={virtualItem.index}
                         ref={qntmVirtualizer.measureElement}
                       >
