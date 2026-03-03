@@ -93,7 +93,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   logout: async () => {
     clearUserLocalStorage();
-    await removeToken();
+    try { await removeToken(); } catch {}
     await auth.signOut();
   },
 
@@ -193,7 +193,7 @@ export function initAuthListener() {
 
     if (user && !shouldKeep && !isExplicitLogin) {
       await auth.signOut();
-      await removeToken();
+      try { await removeToken(); } catch {}
       useAuthStore.setState({
         currentUser: null,
         authLoading: false,
@@ -228,7 +228,7 @@ export function initAuthListener() {
                 "Failed to set auth cookie after retry — signing out"
               );
               await auth.signOut();
-              await removeToken();
+              try { await removeToken(); } catch {}
               useAuthStore.setState({
                 currentUser: null,
                 authLoading: false,
@@ -240,7 +240,7 @@ export function initAuthListener() {
       } catch {
         console.error("Failed to retrieve auth token — signing out");
         await auth.signOut();
-        await removeToken();
+        try { await removeToken(); } catch {}
         useAuthStore.setState({
           currentUser: null,
           authLoading: false,
@@ -248,7 +248,7 @@ export function initAuthListener() {
         return;
       }
     } else {
-      await removeToken();
+      try { await removeToken(); } catch {}
     }
     useAuthStore.setState({ authLoading: false });
 
@@ -271,7 +271,7 @@ export function initAuthListener() {
             localStorage.setItem("forceAuthVersion", String(remoteVersion));
             clearUserLocalStorage();
             await auth.signOut();
-            await removeToken();
+            try { await removeToken(); } catch {}
             useAuthStore.setState({ currentUser: null });
           }
         } catch {}

@@ -3,9 +3,9 @@
 import { z } from "zod";
 import { FieldValue } from "firebase-admin/firestore";
 import { auth, firestore } from "../(firebase)/server";
-import { authActionClient } from "@/lib/safe-action";
+import { actionClient } from "@/lib/safe-action";
 
-export const confirmTask = authActionClient
+export const confirmTask = actionClient
     .schema(z.object({
         task: z.object({
             id: z.string(),
