@@ -19,10 +19,6 @@ import { env } from "@/env";
 const NETWORK = env.NEXT_PUBLIC_TON_NETWORK;
 const IS_TESTNET = NETWORK === "testnet";
 
-/** API key — available on server (TONAPI_KEY) and client (NEXT_PUBLIC_TONAPI_KEY) */
-const TONAPI_KEY =
-  typeof window === "undefined" ? env.TONAPI_KEY ?? env.NEXT_PUBLIC_TONAPI_KEY : env.NEXT_PUBLIC_TONAPI_KEY;
-
 // Cache for TonAPI client and adapter
 let cachedTonApiClient: TonApiClient | null = null;
 let cachedContractAdapter: ContractAdapter | null = null;
