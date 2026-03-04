@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import React, { useState, useEffect } from "react";
+import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +28,11 @@ interface SpotTradingPanelProps {
     token: SpotToken;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    defaultTab?: "buy" | "sell";
 }
 
-export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab = "buy" }: SpotTradingPanelProps) {
+export default function SpotTradingPanel({ token, open, onOpenChange }: SpotTradingPanelProps) {
     const { tonBalance, walletAddress, sendTransaction, jettons } = useWallet();
-    const [activeTab, setActiveTab] = useState(defaultTab);
+    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
     const [amount, setAmount] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
     const [preview, setPreview] = useState<{
@@ -41,11 +41,6 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
         rate: string;
     } | null>(null);
     const [simLoading, setSimLoading] = useState(false);
-
-    // Reset when sheet opens or tab changes
-    useEffect(() => {
-        if (open) setActiveTab(defaultTab);
-    }, [open, defaultTab]);
 
     useEffect(() => {
         setAmount("");

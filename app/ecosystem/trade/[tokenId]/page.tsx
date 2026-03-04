@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -67,7 +68,7 @@ export default function TokenDetailPage() {
     // Telegram back button
     useTelegramBackButton("/ecosystem/trade");
 
-    const [activeTab, setActiveTab] = useState("buy");
+    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
     const [amount, setAmount] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [slippage, setSlippage] = useState(DEFAULT_SLIPPAGE);
@@ -80,7 +81,6 @@ export default function TokenDetailPage() {
     } | null>(null);
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
     const [tradingOpen, setTradingOpen] = useState(false);
-    const [tradingTab, setTradingTab] = useState<"buy" | "sell">("buy");
 
     // On-chain stats from TONAPI via TanStack Query
     const { data: onChainStats = EMPTY_ON_CHAIN_STATS } = useOnChainStats(
@@ -213,7 +213,6 @@ export default function TokenDetailPage() {
     };
 
     const openTrade = (tab: "buy" | "sell") => {
-        setTradingTab(tab);
         setActiveTab(tab);
         setAmount("");
         setPreview(null);
@@ -558,7 +557,7 @@ export default function TokenDetailPage() {
                         </SheetHeader>
 
                         <div className="px-5 pb-8">
-                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); setPreview(null); }}>
+                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "buy" | "sell"); setAmount(""); setPreview(null); }}>
                                 <TabsList className="w-full bg-white/5 p-1 mb-5 h-11 rounded-xl grid grid-cols-2">
                                     <TabsTrigger
                                         value="buy"
