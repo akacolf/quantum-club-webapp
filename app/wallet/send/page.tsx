@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, ChangeEvent } from "react";
+import { useForm, useStore } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -193,31 +194,48 @@ export default function SendPage() {
     router.prefetch("/wallet");
   }, [router]);
 
+  // ── TON send form (TanStack Form) ──
+  const tonForm = useForm({
+    defaultValues: { recipient: "", amount: "", comment: "", encryptComment: false },
+  });
+  const recipient = useStore(tonForm.store, s => s.values.recipient);
+  const amount = useStore(tonForm.store, s => s.values.amount);
+  const comment = useStore(tonForm.store, s => s.values.comment);
+  const encryptComment = useStore(tonForm.store, s => s.values.encryptComment);
+  const setRecipient = useCallback((v: string) => tonForm.setFieldValue("recipient", v), [tonForm]);
+  const setAmount = useCallback((v: string) => tonForm.setFieldValue("amount", v), [tonForm]);
+  const setComment = useCallback((v: string) => tonForm.setFieldValue("comment", v), [tonForm]);
+  const setEncryptComment = useCallback((v: boolean) => tonForm.setFieldValue("encryptComment", v), [tonForm]);
+
+  // ── Multi-chain send form (TanStack Form) ──
+  const multiChainForm = useForm({
+    defaultValues: { recipient: "", amount: "", comment: "" },
+  });
+  const multiChainRecipient = useStore(multiChainForm.store, s => s.values.recipient);
+  const multiChainAmount = useStore(multiChainForm.store, s => s.values.amount);
+  const multiChainComment = useStore(multiChainForm.store, s => s.values.comment);
+  const setMultiChainRecipient = useCallback((v: string) => multiChainForm.setFieldValue("recipient", v), [multiChainForm]);
+  const setMultiChainAmount = useCallback((v: string) => multiChainForm.setFieldValue("amount", v), [multiChainForm]);
+  const setMultiChainComment = useCallback((v: string) => multiChainForm.setFieldValue("comment", v), [multiChainForm]);
+
   // Network mode state
   const [networkMode, setNetworkMode] = useState<NetworkMode>("ton");
   const [selectedChain, setSelectedChain] = useState<MultiChainType>("eth");
-  const [multiChainRecipient, setMultiChainRecipient] = useState("");
-  const [multiChainAmount, setMultiChainAmount] = useState("");
   const [multiChainAddressError, setMultiChainAddressError] = useState("");
   const [multiChainEstimatedFee, setMultiChainEstimatedFee] = useState("0");
   const [isMultiChainSending, setIsMultiChainSending] = useState(false);
   const [multiChainStep, setMultiChainStep] = useState<"input" | "confirm" | "processing" | "success">("input");
   const [multiChainTxHash, setMultiChainTxHash] = useState<string | null>(null);
-  const [multiChainComment, setMultiChainComment] = useState("");
 
   // TON state
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
   const [selectedAsset, setSelectedAsset] = useState<SendableAsset | null>(null);
-  const [recipient, setRecipient] = useState("");
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const [addressError, setAddressError] = useState("");
   const [isDomainAddress, setIsDomainAddress] = useState(false);
-  const [comment, setComment] = useState("");
-  const [encryptComment, setEncryptComment] = useState(false);
   const [recipientPublicKey, setRecipientPublicKey] = useState<Uint8Array | null>(null);
   const [canEncrypt, setCanEncrypt] = useState(false);
-  const [amount, setAmount] = useState("");
   const [estimatedFee, setEstimatedFee] = useState("0.005");
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);

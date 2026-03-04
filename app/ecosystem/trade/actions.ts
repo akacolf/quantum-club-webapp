@@ -17,8 +17,7 @@ import { env } from "@/env";
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_TOKENS_PER_WINDOW = 3;
 
-// Upload rate limiting
-const uploadRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+import { checkRateLimit } from "@/lib/rate-limit";
 const MAX_UPLOADS_PER_HOUR = 20;
 
 // Configure Cloudinary
@@ -317,21 +316,10 @@ export const uploadTokenImage = authActionClient
     .action(async ({ ctx: { session }, parsedInput: { tokenId, imageData } }) => {
         const telegramId = String(session.user.telegramId);
 
-        // Rate limiting
-        const now = Date.now();
-        const userRateLimit = uploadRateLimitMap.get(telegramId);
-
-        if (userRateLimit) {
-            if (now < userRateLimit.resetTime) {
-                if (userRateLimit.count >= MAX_UPLOADS_PER_HOUR) {
-                    throw new Error("Upload rate limit exceeded. Max 20 uploads per hour.");
-                }
-                userRateLimit.count++;
-            } else {
-                uploadRateLimitMap.set(telegramId, { count: 1, resetTime: now + 60 * 60 * 1000 });
-            }
-        } else {
-            uploadRateLimitMap.set(telegramId, { count: 1, resetTime: now + 60 * 60 * 1000 });
+        // Rate limiting (Firestore-backed, survives restarts)
+        const isLimited = await checkRateLimit(`upload:${telegramId}`, 60 * 60 * 1000, MAX_UPLOADS_PER_HOUR);
+        if (isLimited) {
+            throw new Error("Upload rate limit exceeded. Max 20 uploads per hour.");
         }
 
         if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) {

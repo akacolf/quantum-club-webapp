@@ -11,6 +11,7 @@ import {
   USERNAME_REGEX,
   RESERVED_USERNAMES,
 } from "@/lib/validations";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // sendChatNotification — fire-and-forget push notification for chat messages
@@ -36,25 +37,6 @@ function resolveTelegramId(userData: Record<string, unknown>): string | null {
   return null;
 }
 
-// Rate limit: 1 notification per user per chat per 30s
-const rateLimitMap = new Map<string, number>();
-const RATE_LIMIT_MS = 30_000;
-
-function isRateLimited(userId: string, chatId: string): boolean {
-  const key = `${userId}:${chatId}`;
-  const last = rateLimitMap.get(key);
-  const now = Date.now();
-  if (last && now - last < RATE_LIMIT_MS) return true;
-  rateLimitMap.set(key, now);
-  if (rateLimitMap.size > 10_000) {
-    const cutoff = now - RATE_LIMIT_MS;
-    for (const [k, v] of rateLimitMap) {
-      if (v < cutoff) rateLimitMap.delete(k);
-    }
-  }
-  return false;
-}
-
 export const sendChatNotification = authActionClient
   .schema(chatNotificationSchema)
   .action(
@@ -63,7 +45,7 @@ export const sendChatNotification = authActionClient
     }) => {
       const promises = recipientIds.map(async (encryptedId) => {
         try {
-          if (isRateLimited(encryptedId, chatId)) return;
+          if (await checkRateLimit(`chat:${encryptedId}:${chatId}`, 30_000, 1)) return;
 
           // Check presence — skip if user is online viewing this chat
           const presenceSnap = await firestore
