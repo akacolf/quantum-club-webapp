@@ -175,7 +175,6 @@ export default function ExplorePage() {
 
     // Open dApp using Telegram's native browser
     const openDApp = (url: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const tgWebApp = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
         
         if (tgWebApp?.openLink) {

@@ -555,8 +555,7 @@ export default function SendMultiplePage() {
                   onClick={() => {
                     const tgWebApp =
                       typeof window !== "undefined"
-                        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          (window as any).Telegram?.WebApp
+                        ? (window as any).Telegram?.WebApp
                         : null;
                     const url = `https://tonviewer.com/transaction/${txHash}`;
                     if (tgWebApp?.openLink) {

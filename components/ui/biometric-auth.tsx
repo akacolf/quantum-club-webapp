@@ -87,17 +87,21 @@ export function BiometricAuth({
     const checkAuthMethods = async () => {
       if (isOpen) {
         // Check for biometric availability
-        isPlatformAuthenticatorAvailable().then(setHasBiometric);
+        isPlatformAuthenticatorAvailable().then((available) => {
+          requestAnimationFrame(() => setHasBiometric(available));
+        });
 
         // Check if PIN is set up
         if (!telegramId) {
           return;
         }
         const dataPin = await getPin();
-        setHasStoredPin(!!dataPin);
-        setAuthMethod("selecting");
-        setPin("");
-        setPinError("");
+        requestAnimationFrame(() => {
+          setHasStoredPin(!!dataPin);
+          setAuthMethod("selecting");
+          setPin("");
+          setPinError("");
+        });
       }
     };
     checkAuthMethods();
@@ -239,7 +243,7 @@ export function BiometricAuth({
     } finally {
       setIsAuthenticating(false);
     }
-  }, [hasBiometric, onSuccess]);
+  }, [hasBiometric, onSuccess, telegramId]);
 
   // Handle PIN input (only allow numbers)
   const handlePinChange = (value: string) => {

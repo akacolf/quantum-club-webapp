@@ -79,7 +79,6 @@ export async function fetchFarmingPools(): Promise<FarmPool[]> {
         const stonApi = new StonApiClient();
         const farms = await stonApi.getFarms({});
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const activeFarms = farms.filter((farm: any) => {
             // Filter out inactive farms
             if (farm.status !== "active" && farm.status !== "operational") return false;
@@ -92,7 +91,6 @@ export async function fetchFarmingPools(): Promise<FarmPool[]> {
             
             // Check if farm has active rewards
             const hasActiveRewards = farm.rewards?.some(
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (r: any) => r.status === "active" || r.status === "operational"
             );
             if (!hasActiveRewards) return false;
@@ -100,7 +98,6 @@ export async function fetchFarmingPools(): Promise<FarmPool[]> {
             return true;
         });
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return activeFarms.map((farm: any) => {
             // STON.fi API returns APY as a decimal (e.g., 0.25 = 25%)
             const apr = farm.apy ? parseFloat(farm.apy) * 100 : undefined;
@@ -109,8 +106,7 @@ export async function fetchFarmingPools(): Promise<FarmPool[]> {
             const tvl = farm.lockedTotalLpUsd ? parseFloat(farm.lockedTotalLpUsd) : undefined;
             
             // Get the first active reward token
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const activeReward = farm.rewards?.find((r: any) => 
+            const activeReward = farm.rewards?.find((r: any) =>
                 r.status === "active" || r.status === "operational"
             );
             
@@ -142,9 +138,8 @@ export async function fetchFarmingPools(): Promise<FarmPool[]> {
  * Uses the farm NFT infos from the API response
  */
 export async function fetchUserFarmPositions(
-    userAddress: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isTestnet: boolean = false
+    _userAddress: string,
+    _isTestnet: boolean = false
 ): Promise<FarmPosition[]> {
     try {
         const stonApi = new StonApiClient();
@@ -152,11 +147,9 @@ export async function fetchUserFarmPositions(
         const positions: FarmPosition[] = [];
         
         // Check each farm for user's NFT positions from API response
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const farm of farms as any[]) {
             // Check if user has NFT positions in this farm
             if (farm.nftInfos && farm.nftInfos.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 for (const nftInfo of farm.nftInfos as any[]) {
                     positions.push({
                         farmAddress: farm.minterAddress,
@@ -333,7 +326,6 @@ export async function getFarmPoolData(farmAddress: string) {
         const stonApi = new StonApiClient();
         const farms = await stonApi.getFarms({});
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const farm = (farms as any[]).find((f: any) => f.minterAddress === farmAddress);
         
         if (farm) {

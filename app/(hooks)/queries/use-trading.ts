@@ -12,7 +12,6 @@ import {
 import type { Token } from "@/types/trading";
 import { DEFAULT_BONDING_CURVE, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function docToToken(doc: any): Token {
     const data = doc.data();
     return {

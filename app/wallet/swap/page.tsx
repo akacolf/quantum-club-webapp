@@ -52,12 +52,14 @@ import { swapSchema } from "@/lib/validations";
 // Custom hook for debouncing values
 function useDebounce<T>(value: T, delay: number): T {
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
-    
+
     useEffect(() => {
-        const timer = setTimeout(() => setDebouncedValue(value), delay);
+        const timer = setTimeout(() => {
+            requestAnimationFrame(() => setDebouncedValue(value));
+        }, delay);
         return () => clearTimeout(timer);
     }, [value, delay]);
-    
+
     return debouncedValue;
 }
 
@@ -235,14 +237,16 @@ export default function SwapPage() {
             // Refresh wallet assets on page load to get latest balances
             fetchWalletAssets();
         }
-    }, [router, fetchWalletAssets]);
+    }, [router, fetchWalletAssets, telegramId]);
 
     // Load swappable assets on mount
     useEffect(() => {
+        let cancelled = false;
         const loadAssets = async () => {
             setIsLoadingAssets(true);
             try {
                 const assets = await fetchSwappableAssets();
+                if (cancelled) return;
                 setSwapAssets(assets);
 
                 // Set default assets (TON as from, first jetton as to)
@@ -253,13 +257,14 @@ export default function SwapPage() {
                 if (firstJetton) setToAsset(firstJetton);
             } catch (error) {
                 console.error("Failed to load assets:", error);
-                toast.error("Failed to load swap assets");
+                if (!cancelled) toast.error("Failed to load swap assets");
             } finally {
-                setIsLoadingAssets(false);
+                if (!cancelled) setIsLoadingAssets(false);
             }
         };
 
         loadAssets();
+        return () => { cancelled = true; };
     }, []);
 
     // Helper to convert address to raw format for comparison

@@ -71,6 +71,7 @@ async function fetchAndDecrypt(
 function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [isGesturing, setIsGesturing] = useState(false);
   const gestureRef = useRef<{
     initialDist: number;
     initialScale: number;
@@ -99,6 +100,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         isPanning: false,
         startTouch: { x: 0, y: 0 },
       };
+      setIsGesturing(true);
     } else if (e.touches.length === 1 && scale > 1) {
       gestureRef.current = {
         initialDist: 0,
@@ -109,6 +111,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         isPanning: true,
         startTouch: { x: e.touches[0].clientX, y: e.touches[0].clientY },
       };
+      setIsGesturing(true);
     }
   }, [scale, translate]);
 
@@ -155,6 +158,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
     }
     if (e.touches.length === 0) {
       gestureRef.current = null;
+      setIsGesturing(false);
     }
   }, [scale]);
 
@@ -212,7 +216,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
           className="max-w-full max-h-full object-contain select-none"
           style={{
             transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-            transition: gestureRef.current ? "none" : "transform 0.2s ease-out",
+            transition: isGesturing ? "none" : "transform 0.2s ease-out",
           }}
           draggable={false}
           onClick={handleClick}
@@ -267,18 +271,18 @@ export default function FileMessage({
   useEffect(() => {
     if (!isImage || !isVisible) return;
     if (!file.encrypted || !participantIds || !chatId) {
-      setDecryptedUrl(file.url);
+      queueMicrotask(() => setDecryptedUrl(file.url));
       return;
     }
 
     const cached = decryptedUrlCache.get(file.url);
     if (cached) {
-      setDecryptedUrl(cached);
+      queueMicrotask(() => setDecryptedUrl(cached));
       return;
     }
 
     let cancelled = false;
-    setIsLoading(true);
+    queueMicrotask(() => setIsLoading(true));
 
     fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter)
       .then((url) => { if (!cancelled) setDecryptedUrl(url); })

@@ -21,13 +21,12 @@ const SolveToEarnResults = () => {
 
   useTelegramBackButton();
 
-  const [totalCorrect, setTotalCorrect] = useState("0");
-  const [totalCorrectAnswers, setTotalCorrectAnswers] = useState<string | number>(0);
-
-  useEffect(() => {
-    setTotalCorrect(sessionStorage.getItem("TotalCorrectSolveToEarn") || "0");
-    setTotalCorrectAnswers(sessionStorage.getItem("correctAnswers") || 0);
-  }, []);
+  const [totalCorrect] = useState(() =>
+    typeof window !== "undefined" ? sessionStorage.getItem("TotalCorrectSolveToEarn") || "0" : "0"
+  );
+  const [totalCorrectAnswers] = useState<string | number>(() =>
+    typeof window !== "undefined" ? sessionStorage.getItem("correctAnswers") || 0 : 0
+  );
 
   useEffect(() => {
     router.prefetch("/earn/solvetoearn");

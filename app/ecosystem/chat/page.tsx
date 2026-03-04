@@ -143,12 +143,12 @@ function ChatListItem({
 
   useEffect(() => {
     if (!chat.lastMessage) {
-      setDecryptedPreview("No messages yet");
+      requestAnimationFrame(() => setDecryptedPreview("No messages yet"));
       return;
     }
     // System messages (group creation, join, etc.) are never encrypted
     if (chat.lastMessageBy === "system") {
-      setDecryptedPreview(chat.lastMessage);
+      requestAnimationFrame(() => setDecryptedPreview(chat.lastMessage));
       return;
     }
     // Legacy plaintext markers — can't decrypt these
@@ -157,10 +157,10 @@ function ChatListItem({
       if (isLastMsgByMe) {
         try {
           const cached = localStorage.getItem(`qc-preview-${chat.id}`);
-          if (cached) { setDecryptedPreview(cached); return; }
+          if (cached) { requestAnimationFrame(() => setDecryptedPreview(cached)); return; }
         } catch {}
       }
-      setDecryptedPreview("New message");
+      requestAnimationFrame(() => setDecryptedPreview("New message"));
       return;
     }
     // If it's actual encrypted ciphertext, decrypt it
@@ -187,8 +187,8 @@ function ChatListItem({
       return () => { cancelled = true; };
     }
     // Plain system message
-    setDecryptedPreview(chat.lastMessage);
-  }, [chat.lastMessage, chat.lastMessageBy, chat.id, chat.participants, isLastMsgByMe]);
+    requestAnimationFrame(() => setDecryptedPreview(chat.lastMessage));
+  }, [chat.lastMessage, chat.lastMessageBy, chat.id, chat.participants, isLastMsgByMe, chat.epochCounter, chat.epochNonce, chat.epochNonces, chat.isGlobal, chat.isGroup, chat.lastMessageEpoch, chat.participantNames]);
 
   const previewText = decryptedPreview ?? "New message";
 

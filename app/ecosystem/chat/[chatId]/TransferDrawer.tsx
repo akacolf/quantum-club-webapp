@@ -57,6 +57,7 @@ export default function TransferDrawer({
     if (open) {
       form.reset();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- form.reset is stable; only trigger on open state change
   }, [open]);
 
   const address = useStore(form.store, (s) => s.values.address);

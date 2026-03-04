@@ -63,7 +63,6 @@ function createWalletConnector(
     mnemonic: string[],
     isTestnet: boolean = false
 ): WalletConnectorLike {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let statusCallback: ((wallet: any) => void) | null = null;
 
     return {
@@ -120,7 +119,6 @@ function createWalletConnector(
             });
             
             // Create transfer (use type assertion due to varying wallet contract signatures)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const transfer = (wallet as any).createTransfer({
                 seqno,
                 secretKey: keypair.secretKey,
@@ -182,7 +180,6 @@ export async function getTonStakers(
     const connector = createWalletConnector(walletAddress, mnemonic, isTestnet);
     
     tonstakersInstance = new Tonstakers({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         connector: connector as any,
         tonApiKey: env.NEXT_PUBLIC_TONAPI_KEY,
     });

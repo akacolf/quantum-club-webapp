@@ -20,7 +20,6 @@ interface TradeEvent {
     hash: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseTrades(data: any, isTestnet: boolean): Trade[] {
     const tradeEvents: Trade[] = [];
     for (const tx of data.transactions || []) {
@@ -68,7 +67,6 @@ function parseTrades(data: any, isTestnet: boolean): Trade[] {
     return tradeEvents;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseTradeEvents(data: any): TradeEvent[] {
     const tradeEvents: TradeEvent[] = [];
     for (const tx of data.transactions || []) {
@@ -325,7 +323,6 @@ export function useGlobalTrades(
 
                         for (const tx of (data.transactions || []) as Array<{
                             success?: boolean; hash?: string; utime?: number;
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             in_msg?: any; out_msgs?: any[];
                         }>) {
                             if (!tx.success) continue;

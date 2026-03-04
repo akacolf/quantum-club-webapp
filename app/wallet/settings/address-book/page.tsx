@@ -62,9 +62,11 @@ export default function AddressBookPage() {
     useEffect(() => {
         const stored = localStorage.getItem(STORAGE_KEY+`_${telegramId}`);
         if (stored) {
-            setAddresses(JSON.parse(stored));
+            // Use queueMicrotask to avoid synchronous setState in effect body
+            const parsed = JSON.parse(stored);
+            queueMicrotask(() => setAddresses(parsed));
         }
-    }, []);
+    }, [telegramId]);
 
     // Save to localStorage
     const saveAddresses = (newAddresses: SavedAddress[]) => {

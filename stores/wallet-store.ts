@@ -542,7 +542,6 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
         bounce: false,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transferCell = (wallet as any).createTransfer({
         seqno,
         secretKey: keyPair.secretKey,

@@ -385,7 +385,6 @@ export async function buildLiquidityTxParams(
     }
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 async function buildSingleLpTx(
     router: any,
     proxyTon: any,
@@ -396,7 +395,6 @@ async function buildSingleLpTx(
     minLpOut: string,
     isSingleSide: boolean
 ) {
-/* eslint-enable @typescript-eslint/no-explicit-any */
     const baseArgs = {
         userWalletAddress,
         sendAmount,

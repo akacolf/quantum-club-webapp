@@ -53,6 +53,7 @@ export default function MarketplacePage() {
     const collectionsListRef = useRef<HTMLDivElement>(null);
     const listingsListRef = useRef<HTMLDivElement>(null);
 
+    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const collectionsVirtualizer = useWindowVirtualizer({
         count: Math.ceil(filteredCollections.length / 2),
         estimateSize: () => 280,
@@ -66,6 +67,7 @@ export default function MarketplacePage() {
         overscan: 3,
         scrollMargin: listingsListRef.current?.offsetTop ?? 0,
     });
+    /* eslint-enable react-hooks/refs */
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-28">

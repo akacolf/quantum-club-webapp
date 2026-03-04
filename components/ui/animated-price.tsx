@@ -24,21 +24,26 @@ export function AnimatedPrice({
 }: AnimatedPriceProps) {
   const containerRef = useRef<HTMLSpanElement>(null);
   const valueRef = useRef<HTMLSpanElement>(null);
-  const previousValue = useRef<number>(value);
-  const [direction, setDirection] = useState<"up" | "down" | null>(null);
   const animatedValue = useRef<{ val: number }>({ val: value });
+  const [direction, setDirection] = useState<"up" | "down" | null>(null);
+  const directionTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const previousValueRef = useRef<number>(value);
 
   useEffect(() => {
     if (!valueRef.current) return;
 
-    const prevVal = previousValue.current;
+    const prevVal = previousValueRef.current;
     const newVal = value;
 
-    // Determine direction
+    // Determine direction and show indicator
     if (newVal > prevVal) {
-      setDirection("up");
+      queueMicrotask(() => setDirection("up"));
+      clearTimeout(directionTimerRef.current);
+      directionTimerRef.current = setTimeout(() => setDirection(null), 1500);
     } else if (newVal < prevVal) {
-      setDirection("down");
+      queueMicrotask(() => setDirection("down"));
+      clearTimeout(directionTimerRef.current);
+      directionTimerRef.current = setTimeout(() => setDirection(null), 1500);
     }
 
     // Animate the number
@@ -56,10 +61,10 @@ export function AnimatedPrice({
     // Flash animation on the container
     if (containerRef.current && prevVal !== newVal) {
       const color = newVal > prevVal ? "#22c55e" : "#ef4444"; // green or red
-      
+
       gsap.fromTo(
         containerRef.current,
-        { 
+        {
           backgroundColor: `${color}20`,
           scale: 1.02,
         },
@@ -72,14 +77,9 @@ export function AnimatedPrice({
       );
     }
 
-    // Clear direction indicator after animation
-    const timeout = setTimeout(() => {
-      setDirection(null);
-    }, 1500);
+    previousValueRef.current = newVal;
 
-    previousValue.current = newVal;
-
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(directionTimerRef.current);
   }, [value, prefix, decimals]);
 
   return (
@@ -122,21 +122,26 @@ export function AnimatedBalance({
   className = "",
 }: Omit<AnimatedPriceProps, "showDirection">) {
   const valueRef = useRef<HTMLSpanElement>(null);
-  const previousValue = useRef<number>(value);
+  const previousValueRef = useRef<number>(value);
   const animatedValue = useRef<{ val: number }>({ val: value });
   const [flashColor, setFlashColor] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (!valueRef.current) return;
 
-    const prevVal = previousValue.current;
+    const prevVal = previousValueRef.current;
     const newVal = value;
 
     // Set flash color based on direction
     if (newVal > prevVal) {
-      setFlashColor("text-green-400");
+      queueMicrotask(() => setFlashColor("text-green-400"));
+      clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setFlashColor(null), 1000);
     } else if (newVal < prevVal) {
-      setFlashColor("text-red-400");
+      queueMicrotask(() => setFlashColor("text-red-400"));
+      clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setFlashColor(null), 1000);
     }
 
     // Animate the number with GSAP
@@ -151,14 +156,9 @@ export function AnimatedBalance({
       },
     });
 
-    // Clear flash after animation
-    const timeout = setTimeout(() => {
-      setFlashColor(null);
-    }, 1000);
+    previousValueRef.current = newVal;
 
-    previousValue.current = newVal;
-
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(flashTimerRef.current);
   }, [value, prefix, decimals]);
 
   return (

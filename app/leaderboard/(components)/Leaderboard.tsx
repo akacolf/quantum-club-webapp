@@ -11,12 +11,14 @@ export default function LeaderboardList() {
     const { leaderboardContext } = useLeaderboardContext();
     const listRef = useRef<HTMLDivElement>(null);
 
+    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const virtualizer = useWindowVirtualizer({
         count: leaderboardContext?.length ?? 0,
         estimateSize: () => 64,
         overscan: 5,
         scrollMargin: listRef.current?.offsetTop ?? 0,
     });
+    /* eslint-enable react-hooks/refs */
 
     return (
         <div className="mt-6 px-4 pb-24">

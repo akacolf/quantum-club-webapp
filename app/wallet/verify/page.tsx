@@ -80,9 +80,11 @@ export default function VerifyPhrasePage() {
     const mnemonicArr = pendingMnemonic.split(" ");
     const indicesArr: number[] = JSON.parse(indices);
 
-    setMnemonic(mnemonicArr);
-    setWalletAddress(pendingAddress);
-    setVerificationWords(indicesArr.map(i => ({ index: i, word: mnemonicArr[i] })));
+    requestAnimationFrame(() => {
+      setMnemonic(mnemonicArr);
+      setWalletAddress(pendingAddress);
+      setVerificationWords(indicesArr.map(i => ({ index: i, word: mnemonicArr[i] })));
+    });
   }, [router]);
 
   const handleGoBack = () => {

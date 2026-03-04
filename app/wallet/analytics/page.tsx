@@ -100,19 +100,23 @@ export default function AnalyticsPage() {
         // 24h change
         const old24h = history.filter(h => h.timestamp <= twentyFourHoursAgo + 60 * 60 * 1000);
         if (old24h.length > 0 && old24h[0].value > 0) {
-          setChange24h(((currentValue - old24h[0].value) / old24h[0].value) * 100);
+          requestAnimationFrame(() => {
+            setChange24h(((currentValue - old24h[0].value) / old24h[0].value) * 100);
+          });
         }
 
         // 7d change
         const old7d = history.filter(h => h.timestamp <= sevenDaysAgo + 60 * 60 * 1000);
         if (old7d.length > 0 && old7d[0].value > 0) {
-          setChange7d(((currentValue - old7d[0].value) / old7d[0].value) * 100);
+          requestAnimationFrame(() => {
+            setChange7d(((currentValue - old7d[0].value) / old7d[0].value) * 100);
+          });
         }
       }
     } catch {
       // Ignore errors
     }
-  }, [walletAddress, totalUsdBalance]);
+  }, [walletAddress, totalUsdBalance, telegramId]);
 
   // Calculate portfolio allocation
   const portfolioAllocation = useMemo((): AssetAllocation[] => {

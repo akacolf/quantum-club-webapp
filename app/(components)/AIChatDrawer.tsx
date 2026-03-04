@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -215,7 +215,7 @@ export default function AIChatDrawer() {
 
     // Get current session's messages
     const currentSession = sessions.find(s => s.id === currentSessionId);
-    const messages = currentSession?.messages || [];
+    const messages = useMemo(() => currentSession?.messages || [], [currentSession?.messages]);
     const messagesRef = useRef<Message[]>(messages);
     messagesRef.current = messages;
 
@@ -235,9 +235,11 @@ export default function AIChatDrawer() {
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    setSessions(parsed);
-                    // Set the most recent session as current
-                    setCurrentSessionId(parsed[0].id);
+                    requestAnimationFrame(() => {
+                        setSessions(parsed);
+                        // Set the most recent session as current
+                        setCurrentSessionId(parsed[0].id);
+                    });
                 }
             }
         } catch (error) {

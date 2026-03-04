@@ -377,7 +377,6 @@ export default function LiquidityPage() {
       const client = new StonApiClient();
 
       // Check for existing pool
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let pools: any[] = [];
       try {
         pools = await client.getPoolsByAssetPair({

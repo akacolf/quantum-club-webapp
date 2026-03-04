@@ -370,11 +370,11 @@ export default function ChatConversationPage() {
     }
   }, [router, chatMeta?.isGroup, chatMeta?.isGlobal, chatId, otherParticipantId]);
 
-  // Set current chat for presence tracking + mark as read
+  // Load chat theme from localStorage
   useEffect(() => {
     if (!chatId) return;
     const saved = localStorage.getItem(`chatTheme_${chatId}`);
-    if (saved) setChatTheme(saved);
+    if (saved) requestAnimationFrame(() => setChatTheme(saved));
   }, [chatId]);
 
   // Set current chat for presence tracking + mark as read
@@ -537,7 +537,9 @@ export default function ChatConversationPage() {
 
   useEffect(() => {
     if (recipientUsernameQuery.data?.address) {
-      setRecipientWalletAddress(recipientUsernameQuery.data.address);
+      requestAnimationFrame(() => {
+        setRecipientWalletAddress(recipientUsernameQuery.data.address);
+      });
     }
   }, [recipientUsernameQuery.data]);
 
@@ -548,7 +550,9 @@ export default function ChatConversationPage() {
 
   // Wait for initial chatMeta to arrive before subscribing to messages
   useEffect(() => {
-    if (chatMeta && !messagesReady) setMessagesReady(true);
+    if (chatMeta && !messagesReady) {
+      requestAnimationFrame(() => setMessagesReady(true));
+    }
   }, [chatMeta, messagesReady]);
 
   useEffect(() => {
@@ -887,7 +891,7 @@ export default function ChatConversationPage() {
     } finally {
       setLoadingOlder(false);
     }
-  }, [loadingOlder, hasMoreMessages, chatId, messages]);
+  }, [loadingOlder, hasMoreMessages, chatId, messages, messagesVirtualizer]);
 
   // Scroll handler: detect scrolling to top for pagination
   const handleScrollForPagination = useCallback(() => {

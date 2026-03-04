@@ -170,7 +170,6 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
             const s = seriesRef.current;
             if (!s) return;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const d = param.seriesData.get(s) as any;
             const price = d?.close ?? d?.value;
             if (price === undefined) { setTooltip(null); return; }

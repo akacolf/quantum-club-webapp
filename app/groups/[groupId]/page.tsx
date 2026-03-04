@@ -69,9 +69,12 @@ export default function GroupDetailPage() {
         const updates = batchUsernamesQuery.data;
         if (Object.keys(updates).length === 0) return;
 
-        setMembers((prev) =>
-            prev.map((m) => (updates[m.telegramId] ? { ...m, username: updates[m.telegramId] } : m))
-        );
+        // Use queueMicrotask to avoid synchronous setState in effect body
+        queueMicrotask(() => {
+            setMembers((prev) =>
+                prev.map((m) => (updates[m.telegramId] ? { ...m, username: updates[m.telegramId] } : m))
+            );
+        });
         // Persist resolved names to Firestore so future loads don't show "Unknown"
         for (const [uid, name] of Object.entries(updates)) {
             updateDoc(doc(dbfs, `groups/${groupId}/members/${uid}`), { username: name }).catch(() => {});

@@ -45,21 +45,27 @@ export default function CreateTokenPage() {
         // First check localStorage directly (handles SSR hydration timing)
         const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
         if (storedWallet && storedWallet !== "") {
-            setEffectiveWalletAddress(storedWallet);
+            requestAnimationFrame(() => {
+                setEffectiveWalletAddress(storedWallet);
+            });
             // Also update context if needed
             if (!walletAddress || walletAddress === "") {
                 setWalletAddress(storedWallet);
             }
         } else {
             // Wallet was cleared (logout) - update state
-            setEffectiveWalletAddress("");
+            requestAnimationFrame(() => {
+                setEffectiveWalletAddress("");
+            });
         }
-    }, [walletAddress, setWalletAddress]);
+    }, [walletAddress, setWalletAddress, telegramId]);
 
     // Update effectiveWalletAddress when context updates (including when cleared)
     useEffect(() => {
         // Sync with context - handles both setting and clearing
-        setEffectiveWalletAddress(walletAddress || "");
+        requestAnimationFrame(() => {
+            setEffectiveWalletAddress(walletAddress || "");
+        });
     }, [walletAddress]);
 
     // Prefetch trade page for faster navigation after creation

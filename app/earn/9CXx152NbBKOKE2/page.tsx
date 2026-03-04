@@ -31,7 +31,8 @@ export default function AnswerPage() {
         const taskIdCookie = cookies.find(cookie => cookie.startsWith('taskId='));
         if (taskIdCookie) {
             const taskIdValue = taskIdCookie.split('=')[1];
-            setTaskId(taskIdValue);
+            // Use queueMicrotask to avoid synchronous setState in effect body
+            queueMicrotask(() => setTaskId(taskIdValue));
         }
     }, [])
 

@@ -39,14 +39,14 @@ export default function ViewRecoveryPhrasePage() {
         setMnemonic(storedMnemonic.split(" "));
       });
     }
-  }, [router, isAuthorized]);
+  }, [router, isAuthorized, telegramId]);
 
   // Request auth on mount
   useEffect(() => {
     const requestAuthorization = async () => {
       const authenticated = await requestAuth();
       if (authenticated) {
-        setIsAuthorized(true);
+        requestAnimationFrame(() => setIsAuthorized(true));
       } else {
         toast.error("Authentication required to view recovery phrase");
         router.push("/wallet/settings");

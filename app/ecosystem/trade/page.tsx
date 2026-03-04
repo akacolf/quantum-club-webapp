@@ -274,7 +274,7 @@ export default function TradePage() {
         // If context is empty, check localStorage (for SSR hydration)
         // This will be empty after logout due to clearWallet()
         setHasWallet(hasMnemonic(telegramId));
-    }, [walletAddress]);
+    }, [walletAddress, telegramId]);
 
     // Handle retry deployment
     const handleRetryDeploy = async (tokenId: string) => {
@@ -322,12 +322,14 @@ export default function TradePage() {
             ? trendingTokens
             : newTokens;
 
+    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const tokenVirtualizer = useWindowVirtualizer({
         count: displayTokens.length,
         estimateSize: () => 140,
         overscan: 3,
         scrollMargin: tokenListRef.current?.offsetTop ?? 0,
     });
+    /* eslint-enable react-hooks/refs */
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">

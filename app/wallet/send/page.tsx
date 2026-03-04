@@ -160,6 +160,7 @@ export default function SendPage() {
         description: "Please use the Telegram mobile app to scan QR codes",
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setRecipient, setMultiChainRecipient, setSelectedChain are stable useCallback refs; adding them would cause unnecessary re-creation
   }, []);
 
   const {
@@ -380,7 +381,7 @@ export default function SendPage() {
     setRecipientPublicKey(null);
     setCanEncrypt(false);
     setEncryptComment(false); // Disable encryption if we can't get the key
-  }, [isTestnet]);
+  }, [isTestnet, setEncryptComment]);
 
   // Resolve .ton domain addresses
   useEffect(() => {
@@ -447,7 +448,7 @@ export default function SendPage() {
     if (storedAddresses) {
       setSavedAddresses(JSON.parse(storedAddresses));
     }
-  }, [router]);
+  }, [router, telegramId]);
 
   // Get sendable assets from context data - memoized
   const sendableAssets = useMemo((): SendableAsset[] => {
@@ -707,7 +708,6 @@ export default function SendPage() {
         setIsFirstTransaction(isNewWallet);
 
         // Create transfer for emulation
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transfer = (wallet as any).createTransfer({
           seqno,
           secretKey: keyPair.secretKey,
@@ -898,7 +898,6 @@ export default function SendPage() {
         // For first transaction with undeployed wallet, we need to manually send with StateInit
         if (!isWalletDeployed && seqno === 0) {
           // Create the transfer message
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transfer = (wallet as any).createTransfer({
             seqno: 0,
             secretKey: keyPair.secretKey,
@@ -975,7 +974,6 @@ export default function SendPage() {
         // For first transaction with undeployed wallet, we need to manually send with StateInit
         if (!isWalletDeployed && seqno === 0) {
           // Create the transfer message for jetton
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transfer = (wallet as any).createTransfer({
             seqno: 0,
             secretKey: keyPair.secretKey,

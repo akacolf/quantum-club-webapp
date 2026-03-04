@@ -38,7 +38,8 @@ export default function ChatPage() {
     // Subscribe to messages
     useEffect(() => {
         const unsubscribe = subscribeToChat(chatId);
-        setLoading(false);
+        // Use queueMicrotask to avoid synchronous setState in effect body
+        queueMicrotask(() => setLoading(false));
         return unsubscribe;
     }, [chatId, subscribeToChat]);
 

@@ -66,8 +66,10 @@ const HomeCarousel = () => {
       return;
     }
 
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap());
+    requestAnimationFrame(() => {
+      setCount(api.scrollSnapList().length);
+      setCurrent(api.selectedScrollSnap());
+    });
 
     api.on("select", () => {
       setCurrent(api.selectedScrollSnap());

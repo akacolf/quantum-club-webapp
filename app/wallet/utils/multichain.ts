@@ -578,7 +578,6 @@ export function isValidTrxAddress(address: string): boolean {
 /**
  * Estimate ETH gas for a simple transfer
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function estimateEthGas(_from: string, _to: string, _value: string): Promise<{ gasLimit: string; gasPrice: string; estimatedFee: string }> {
     const rpcUrl = "https://cloudflare-eth.com";
     

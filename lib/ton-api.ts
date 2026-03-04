@@ -139,9 +139,7 @@ export async function isContractActive(address: string): Promise<boolean> {
 export async function runGetMethod(
     address: string,
     method: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     args?: any[]
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
     try {
         const adapter = getContractAdapter();

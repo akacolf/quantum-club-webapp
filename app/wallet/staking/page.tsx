@@ -63,7 +63,7 @@ export default function StakingPage() {
     useEffect(() => {
         const tg = window.Telegram?.WebApp;
         tg?.ready();
-        
+
         const handleBackButtonClick = () => {
             if (viewMode === "stake") {
                 // Go back to pool list
@@ -76,13 +76,14 @@ export default function StakingPage() {
                 router.push("/wallet");
             }
         };
-        
+
         tg?.BackButton.show();
         tg?.BackButton.onClick(handleBackButtonClick);
-        
+
         return () => {
             tg?.BackButton.offClick(handleBackButtonClick);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- form is a stable TanStack Form instance; only re-register when viewMode or router changes
     }, [router, viewMode]);
 
 

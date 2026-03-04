@@ -238,8 +238,10 @@ export default function WalletPage() {
   useEffect(() => {
     if (!carouselApi) return;
 
-    setCarouselCount(carouselApi.scrollSnapList().length);
-    setCarouselCurrent(carouselApi.selectedScrollSnap());
+    requestAnimationFrame(() => {
+      setCarouselCount(carouselApi.scrollSnapList().length);
+      setCarouselCurrent(carouselApi.selectedScrollSnap());
+    });
 
     carouselApi.on("select", () => {
       setCarouselCurrent(carouselApi.selectedScrollSnap());
@@ -327,7 +329,7 @@ export default function WalletPage() {
       // Not enough history yet
       setChange24h(0);
     }
-  }, [walletAddress, totalUsdBalance, hasFetched, isLoadingAssets]);
+  }, [walletAddress, totalUsdBalance, hasFetched, isLoadingAssets, telegramId]);
 
   // Fetch price history for selected asset
   const fetchPriceHistory = useCallback(async (asset: AssetDetail, period: ChartPeriod = '1D') => {
@@ -498,6 +500,7 @@ export default function WalletPage() {
         });
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedAsset is intentionally accessed by .symbol only; priceHistory.length avoids deep comparison
   }, [livePrice, selectedAsset?.symbol, chartPeriod, priceHistory.length]);
 
   // Refresh full chart data every 30 seconds when viewing 1H chart
@@ -505,6 +508,7 @@ export default function WalletPage() {
     if (!selectedAsset || chartPeriod !== '1H') return;
     const chartRefreshInterval = setInterval(() => fetchPriceHistory(selectedAsset, chartPeriod), 30000);
     return () => clearInterval(chartRefreshInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-subscribe when symbol changes, not on every asset object reference change
   }, [selectedAsset?.symbol, chartPeriod, fetchPriceHistory]);
 
   useEffect(() => {
@@ -514,8 +518,10 @@ export default function WalletPage() {
       setContextWalletAddress(storedWallet);
       setHasWallet(true);
     }
-    setIsChecking(false);
-  }, [setContextWalletAddress]);
+    requestAnimationFrame(() => {
+      setIsChecking(false);
+    });
+  }, [setContextWalletAddress, telegramId]);
 
   // Fetch NFTs when wallet is loaded
   useEffect(() => {

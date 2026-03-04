@@ -25,7 +25,9 @@ export default function BackupPhrasePage() {
       return;
     }
 
-    setMnemonic(pendingMnemonic.split(" "));
+    requestAnimationFrame(() => {
+      setMnemonic(pendingMnemonic.split(" "));
+    });
 
     // Prefetch verify page for faster navigation
     router.prefetch("/wallet/verify");

@@ -146,7 +146,6 @@ export async function sendBatchTransaction(
         const internalMessages = buildInternalMessages(transactions);
 
         // Create transfer with multiple messages
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transferCell = (wallet as any).createTransfer({
             seqno,
             secretKey: keyPair.secretKey,
