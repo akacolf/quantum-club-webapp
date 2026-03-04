@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { transferQntm } from "@/app/wallet/send-qntm/actions";
 
 interface TransferQntmParams {
   fromQcId: string;
@@ -9,16 +10,13 @@ interface TransferQntmParams {
 export function useTransferQntmMutation() {
   return useMutation({
     mutationFn: async (data: TransferQntmParams) => {
-      const res = await fetch("/api/transfer-qntm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      const result = await transferQntm({
+        recipientQcId: data.toQcId,
+        amount: data.amount,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Transfer failed");
-      }
-      return res.json();
+      if (result?.serverError) throw new Error(result.serverError);
+      if (!result?.data) throw new Error("Transfer failed");
+      return result.data;
     },
   });
 }

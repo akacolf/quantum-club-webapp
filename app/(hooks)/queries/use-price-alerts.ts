@@ -1,27 +1,23 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-interface CreatePriceAlertParams {
-  telegramId: string;
-  symbol: string;
-  targetPrice: number;
-  direction: "above" | "below";
-}
+import { createPriceAlert, deletePriceAlert } from "@/app/wallet/settings/price-alerts/actions";
 
 export function useCreatePriceAlertMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: CreatePriceAlertParams) => {
-      const res = await fetch("/api/price-alerts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
+    mutationFn: async (data: {
+      telegramId: string;
+      symbol: string;
+      targetPrice: number;
+      direction: "above" | "below";
+    }) => {
+      const result = await createPriceAlert({
+        symbol: data.symbol,
+        targetPrice: data.targetPrice,
+        direction: data.direction,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create alert");
-      }
-      return res.json();
+      if (result?.serverError) throw new Error(result.serverError);
+      if (!result?.data) throw new Error("Failed to create alert");
+      return result.data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["priceAlerts", variables.telegramId] });
@@ -33,15 +29,10 @@ export function useDeletePriceAlertMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { alertId: string; telegramId: string }) => {
-      const res = await fetch(
-        `/api/price-alerts?alertId=${data.alertId}&telegramId=${data.telegramId}`,
-        { method: "DELETE", credentials: "include" }
-      );
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete alert");
-      }
-      return res.json();
+      const result = await deletePriceAlert({ alertId: data.alertId });
+      if (result?.serverError) throw new Error(result.serverError);
+      if (!result?.data) throw new Error("Failed to delete alert");
+      return result.data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["priceAlerts", variables.telegramId] });

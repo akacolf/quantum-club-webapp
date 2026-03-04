@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { parseAsString, useQueryState } from "nuqs";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
@@ -36,7 +38,7 @@ import {
   onSnapshot,
   Timestamp,
 } from "firebase/firestore";
-import { registerQcUsername, updateQcUsernameAddress } from "./actions";
+import { registerQcUsername, updateQcUsernameAddress, resolveQcUsername } from "./actions";
 
 const GLOBAL_CHAT_ID = "qc-global";
 
@@ -287,7 +289,7 @@ export default function QCChatListPage() {
   const currentUser = authCtx?.currentUser ?? null;
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [globalChat, setGlobalChat] = useState<ChatConversation | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault("").withOptions({ history: "replace" }));
   const [formMode, setFormMode] = useState<FormMode>("none");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -332,9 +334,9 @@ export default function QCChatListPage() {
     setUsernameAvailability(null);
     setUsernameError(null);
     try {
-      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(val)}`);
-      const data = await res.json();
-      setUsernameAvailability(data.available ? "available" : "taken");
+      const result = await resolveQcUsername({ username: val });
+      const isAvailable = !result?.data?.resolved;
+      setUsernameAvailability(isAvailable ? "available" : "taken");
     } catch {
       setUsernameError("Failed to check availability");
     } finally {
@@ -601,6 +603,15 @@ export default function QCChatListPage() {
     return displayName.includes(searchQuery.toLowerCase());
   });
 
+  // Virtualizer for conversation list
+  const conversationListRef = useRef<HTMLDivElement>(null);
+  const conversationsVirtualizer = useWindowVirtualizer({
+    count: filteredConversations.length,
+    estimateSize: () => 72,
+    overscan: 5,
+    scrollMargin: conversationListRef.current?.offsetTop ?? 0,
+  });
+
   // Prefetch chat routes for visible conversations
   useEffect(() => {
     filteredConversations.slice(0, 10).forEach((chat) => {
@@ -642,18 +653,14 @@ export default function QCChatListPage() {
     setFormError(null);
 
     try {
-      const resolveRes = await fetch(
-        `/api/qc-username?username=${encodeURIComponent(normalizedUsername)}`,
-        { cache: "no-store" }
-      );
-      const resolveData = await resolveRes.json().catch(() => ({}));
+      const resolveResult = await resolveQcUsername({ username: normalizedUsername });
 
-      if (!resolveRes.ok || !resolveData?.resolved || !resolveData?.owner) {
+      if (!resolveResult?.data?.resolved || !resolveResult?.data?.owner) {
         setFormError("Username not found.");
         return;
       }
 
-      const otherUserId = String(resolveData.owner);
+      const otherUserId = String(resolveResult.data.owner);
       const isSelfChat = otherUserId === telegramId;
 
       const existingChat = conversations.find(
@@ -1214,14 +1221,28 @@ export default function QCChatListPage() {
                 </div>
               </div>
             ) : (
-              filteredConversations.map((chat) => (
-                <ChatListItem
-                  key={chat.id}
-                  chat={chat}
-                  telegramId={telegramId || ""}
-                  onNavigate={(chatId) => router.push(`/ecosystem/chat/${chatId}`)}
-                />
-              ))
+              <div ref={conversationListRef}>
+                <div className="relative" style={{ height: `${conversationsVirtualizer.getTotalSize()}px` }}>
+                  {conversationsVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const chat = filteredConversations[virtualItem.index];
+                    return (
+                      <div
+                        key={chat.id}
+                        className="absolute top-0 left-0 w-full"
+                        style={{ transform: `translateY(${virtualItem.start - conversationsVirtualizer.options.scrollMargin}px)` }}
+                        ref={conversationsVirtualizer.measureElement}
+                        data-index={virtualItem.index}
+                      >
+                        <ChatListItem
+                          chat={chat}
+                          telegramId={telegramId || ""}
+                          onNavigate={(chatId) => router.push(`/ecosystem/chat/${chatId}`)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         )}

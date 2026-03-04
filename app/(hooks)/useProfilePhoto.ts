@@ -1,15 +1,11 @@
 "use client";
 
 import { useQuery, useQueries } from "@tanstack/react-query";
+import { getProfilePhoto } from "@/app/(hooks)/actions";
 
 async function fetchProfilePhoto(telegramId: string): Promise<string | null> {
-  const res = await fetch("/api/get-profile-photo", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegramId }),
-  });
-  const data = await res.json();
-  return data.photoUrl || null;
+  const result = await getProfilePhoto({ telegramId });
+  return result?.data?.photoUrl || null;
 }
 
 /**

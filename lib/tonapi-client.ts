@@ -1,190 +1,133 @@
 /**
  * TonAPI Client Utility
- * 
- * Uses server-side proxy to make authenticated requests to TonAPI
+ *
+ * Uses server actions to make authenticated requests to TonAPI
  * This keeps the API key secure and provides higher rate limits
  */
+import { tonApiGet as tonApiGetAction, tonApiPost as tonApiPostAction } from "@/lib/ton-actions";
 
 interface TonApiOptions {
     testnet?: boolean;
 }
 
 /**
- * Make a GET request to TonAPI via the server proxy
+ * Make a GET request to TonAPI via the server action
  * @param path - The API path (e.g., "/v2/accounts/{address}")
  * @param options - Options including testnet flag
  */
 export async function tonApiGet<T>(path: string, options: TonApiOptions = {}): Promise<T> {
     const { testnet = false } = options;
-    
-    const params = new URLSearchParams({
-        path,
-        testnet: String(testnet),
-    });
 
-    const response = await fetch(`/api/tonapi?${params.toString()}`);
-    
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(error.error || `TonAPI request failed: ${response.status}`);
+    const result = await tonApiGetAction({ path, testnet });
+
+    if (result?.serverError) {
+        throw new Error(result.serverError);
     }
 
-    return response.json();
+    if (!result?.data) {
+        throw new Error(`TonAPI request failed for path: ${path}`);
+    }
+
+    return result.data as T;
 }
 
 /**
- * Make a POST request to TonAPI via the server proxy
+ * Make a POST request to TonAPI via the server action
  * @param path - The API path
  * @param body - The request body
  * @param options - Options including testnet flag
  */
 export async function tonApiPost<T>(path: string, body: unknown, options: TonApiOptions = {}): Promise<T> {
     const { testnet = false } = options;
-    
-    const params = new URLSearchParams({
-        path,
-        testnet: String(testnet),
-    });
 
-    const response = await fetch(`/api/tonapi?${params.toString()}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(error.error || `TonAPI request failed: ${response.status}`);
+    const result = await tonApiPostAction({ path, body, testnet });
+
+    if (result?.serverError) {
+        throw new Error(result.serverError);
     }
 
-    return response.json();
+    if (!result?.data) {
+        throw new Error(`TonAPI request failed for path: ${path}`);
+    }
+
+    return result.data as T;
 }
 
-/**
- * Get account information
- */
-export async function getAccount(address: string, testnet = false) {
-    return tonApiGet<{
-        balance: string;
-        status: string;
-        address: { raw: string };
-    }>(`/v2/accounts/${address}`, { testnet });
+// ---- Convenience helpers (same API surface as before) ----
+
+export async function getAccount(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/accounts/${address}`, options);
 }
 
-/**
- * Get account jettons with USD prices
- */
-export async function getAccountJettons(address: string, testnet = false) {
-    return tonApiGet<{
-        balances: Array<{
-            balance: string;
-            wallet_address?: { address?: string };
-            price?: { prices?: { USD?: number } };
-            jetton: {
-                address?: string;
-                symbol?: string;
-                name?: string;
-                decimals?: number;
-                image?: string;
-            };
-        }>;
-    }>(`/v2/accounts/${address}/jettons?currencies=usd`, { testnet });
+export async function getAccountJettons(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/accounts/${address}/jettons`, options);
 }
 
-/**
- * Get account NFTs
- */
-export async function getAccountNfts(address: string, testnet = false, limit = 100) {
-    return tonApiGet<{
-        nft_items: Array<{
-            address: string;
-            metadata?: {
-                name?: string;
-                description?: string;
-                image?: string;
-            };
-            collection?: {
-                address?: string;
-                name?: string;
-            };
-            previews?: Array<{ resolution: string; url: string }>;
-        }>;
-    }>(`/v2/accounts/${address}/nfts?limit=${limit}`, { testnet });
+export async function getAccountNfts(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/accounts/${address}/nfts`, options);
 }
 
-/**
- * Get account transactions
- */
 export async function getAccountTransactions(
     address: string,
-    testnet = false,
-    limit = 50,
-    beforeLt?: string
+    limit = 20,
+    options?: TonApiOptions
 ) {
-    let path = `/v2/accounts/${address}/events?limit=${limit}&subject_only=true`;
-    if (beforeLt) {
-        path += `&before_lt=${beforeLt}`;
-    }
-    return tonApiGet<{
-        events: Array<unknown>;
-        next_from?: string;
-    }>(path, { testnet });
-}
-
-/**
- * Resolve DNS domain
- */
-export async function resolveDns(domain: string) {
-    return tonApiGet<{
-        wallet?: { address: string };
-    }>(`/v2/dns/${encodeURIComponent(domain)}/resolve`);
-}
-
-/**
- * Send a blockchain message (BOC)
- */
-export async function sendBlockchainMessage(boc: string, testnet = false) {
-    return tonApiPost<{ hash?: string }>(
-        `/v2/blockchain/message`,
-        { boc },
-        { testnet }
+    return tonApiGet(
+        `/v2/accounts/${address}/events?limit=${limit}`,
+        options
     );
 }
 
-/**
- * Emulate a message to trace (for fee estimation)
- */
-export async function emulateMessage(boc: string, testnet = false) {
-    return tonApiPost<{
-        transactions: Array<{
-            compute_phase?: { gas_fees?: number };
-            storage_phase?: { storage_fees_collected?: number };
-            action_phase?: { total_action_fees?: number };
-        }>;
-    }>(
-        `/v2/emulation/emulateMessageToTrace`,
-        { boc, ignore_signature_check: true },
-        { testnet }
+export async function getJettonInfo(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/jettons/${address}`, options);
+}
+
+export async function getJettonHolders(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/jettons/${address}/holders`, options);
+}
+
+export async function getNftItem(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/nfts/${address}`, options);
+}
+
+export async function getNftCollection(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/nfts/collections/${address}`, options);
+}
+
+export async function getNftCollectionItems(
+    address: string,
+    limit = 100,
+    offset = 0,
+    options?: TonApiOptions
+) {
+    return tonApiGet(
+        `/v2/nfts/collections/${address}/items?limit=${limit}&offset=${offset}`,
+        options
     );
 }
 
-/**
- * Get NFT details
- */
-export async function getNft(nftAddress: string, testnet = false) {
-    return tonApiGet<{
-        address: string;
-        metadata?: {
-            name?: string;
-            description?: string;
-            image?: string;
-        };
-        collection?: {
-            address?: string;
-            name?: string;
-        };
-        previews?: Array<{ resolution: string; url: string }>;
-    }>(`/v2/nfts/${encodeURIComponent(nftAddress)}`, { testnet });
+export async function getTransactionByHash(hash: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/events/${hash}`, options);
+}
+
+export async function sendBoc(boc: string, options?: TonApiOptions) {
+    return tonApiPost(`/v2/blockchain/message`, { boc }, options);
+}
+
+export async function sendBlockchainMessage(boc: string, testnet?: boolean) {
+    return tonApiPost<{ hash?: string }>(`/v2/blockchain/message`, { boc }, { testnet });
+}
+
+export async function resolveDns(domain: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/dns/${encodeURIComponent(domain)}/resolve`, options);
+}
+
+export async function getStakingInfo(address: string, options?: TonApiOptions) {
+    return tonApiGet(`/v2/staking/nominator/${address}/pools`, options);
+}
+
+export async function getRates(tokens: string[], currencies: string[] = ["usd"]) {
+    return tonApiGet(
+        `/v2/rates?tokens=${tokens.join(",")}&currencies=${currencies.join(",")}`
+    );
 }

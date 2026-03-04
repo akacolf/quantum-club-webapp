@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getPopularCollections, type NftCollection } from "@/lib/nft-marketplace";
+import { getNftListings } from "@/app/wallet/nft/actions";
 
 export function usePopularCollectionsQuery(isTestnet: boolean) {
     return useQuery<NftCollection[]>({
@@ -26,14 +27,9 @@ export function useQCListingsQuery() {
     return useQuery<QCListing[]>({
         queryKey: ["nft-qc-listings"],
         queryFn: async () => {
-            const response = await fetch("/api/nft-marketplace", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "get-listings" }),
-            });
-            if (!response.ok) return [];
-            const data = await response.json();
-            return data.listings ?? [];
+            const result = await getNftListings({});
+            if (!result?.data?.listings) return [];
+            return result.data.listings as QCListing[];
         },
         staleTime: 30_000, // 30 seconds
     });

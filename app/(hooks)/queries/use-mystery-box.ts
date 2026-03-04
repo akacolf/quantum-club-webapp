@@ -1,15 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMysteryBoxes, claimMysteryBox } from "@/app/wallet/marketplace/actions";
 import type { MysteryBox } from "@/types/mystery-box";
 
 async function fetchMysteryBoxes(): Promise<MysteryBox[]> {
-  const res = await fetch("/api/mystery-box", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "get-boxes" }),
-  });
-  if (!res.ok) throw new Error("Failed to fetch mystery boxes");
-  const data = await res.json();
-  return (data.boxes as MysteryBox[]) || [];
+  const result = await getMysteryBoxes({});
+  if (!result?.data?.boxes) return [];
+  return result.data.boxes as MysteryBox[];
 }
 
 export function useMysteryBoxesQuery() {
@@ -39,16 +35,10 @@ export function useClaimMysteryBoxMutation() {
       boxId: string;
       paymentMethod: "ton" | "qntm";
     }) => {
-      const res = await fetch("/api/mystery-box", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "claim-box", ...data }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to claim mystery box");
-      }
-      return res.json();
+      const result = await claimMysteryBox(data);
+      if (result?.serverError) throw new Error(result.serverError);
+      if (!result?.data) throw new Error("Failed to claim mystery box");
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mystery-boxes"] });

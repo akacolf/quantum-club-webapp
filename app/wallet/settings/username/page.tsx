@@ -71,9 +71,9 @@ export default function QCDomainPage() {
     setIsChecking(true);
     setAvailability(null);
     try {
-      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(username)}`);
-      const data = await res.json();
-      setAvailability(data.available ? "available" : "taken");
+      const { resolveQcUsername } = await import("@/app/ecosystem/chat/actions");
+      const result = await resolveQcUsername({ username });
+      setAvailability(result?.data?.available ? "available" : "taken");
     } catch {
       toast.error("Failed to check availability");
     } finally {

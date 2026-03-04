@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -78,7 +79,7 @@ const formatUsd = (value: number | string): string => {
 type NftFilterType = "all" | "gifts" | "collections";
 
 function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string; image?: string; collectionAddress?: string; collectionName?: string; description?: string; ownerAddress?: string; sale?: any; attributes?: any[] }> }) {
-  const [filter, setFilter] = useState<NftFilterType>("all");
+  const [filter, setFilter] = useQueryState("nftFilter", parseAsStringLiteral(["all", "gifts", "collections"] as const).withDefault("all").withOptions({ history: "replace" }));
 
   const filteredNfts = nfts.filter((nft) => {
     if (filter === "all") return true;

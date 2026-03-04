@@ -40,9 +40,9 @@ async function fetchWalletAssetsData(
     let tonUsd = 0;
     try {
         const { getAccount } = await import("@/lib/tonapi-client");
-        const balanceData = await getAccount(walletAddress, isTestnet);
+        const balanceData = await getAccount(walletAddress, { testnet: isTestnet }) as { balance?: string; status?: string };
         tonBalance = parseFloat(fromNano(balanceData.balance || "0")).toFixed(4);
-        walletStatus = balanceData.status;
+        walletStatus = balanceData.status || "nonexist";
         tonUsd = parseFloat(tonBalance) * tonPrice;
     } catch (err) {
         console.error("Failed to fetch balance via TonAPI:", err);
@@ -53,7 +53,7 @@ async function fetchWalletAssetsData(
     let jettons: WalletAssetsData["jettons"] = [];
     try {
         const { getAccountJettons } = await import("@/lib/tonapi-client");
-        const jettonsData = await getAccountJettons(walletAddress, isTestnet);
+        const jettonsData = await getAccountJettons(walletAddress, { testnet: isTestnet }) as { balances?: Record<string, unknown>[] };
         jettons = (jettonsData.balances || []).map((jetton: Record<string, unknown>) => {
             const j = jetton.jetton as Record<string, unknown> | undefined;
             const price = jetton.price as Record<string, unknown> | undefined;
@@ -117,7 +117,7 @@ export function useNftsQuery(walletAddress: string, isTestnet: boolean) {
         queryKey: ["nfts", walletAddress, isTestnet],
         queryFn: async () => {
             const { getAccountNfts } = await import("@/lib/tonapi-client");
-            const data = await getAccountNfts(walletAddress, isTestnet);
+            const data = await getAccountNfts(walletAddress, { testnet: isTestnet }) as { nft_items?: Record<string, unknown>[] };
             return (data.nft_items || []).map((nft: Record<string, unknown>) => {
                 const metadata = nft.metadata as Record<string, string> | undefined;
                 const coll = nft.collection as Record<string, string> | undefined;

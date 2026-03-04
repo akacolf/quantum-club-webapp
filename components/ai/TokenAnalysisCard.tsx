@@ -45,29 +45,25 @@ export function TokenAnalysisCard({
     const [isExpanded, setIsExpanded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const analyzeToken = useCallback(async () => {
+    const runAnalysis = useCallback(async () => {
         if (!tokenAddress) return;
 
         setIsLoading(true);
         setError(null);
 
         try {
-            const response = await fetch("/api/ai/analyze-token", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tokenAddress, tokenData }),
-            });
+            const { analyzeToken: analyzeTokenAction } = await import("@/components/ai/actions");
+            const result = await analyzeTokenAction({ tokenAddress, tokenData });
 
-            if (!response.ok) {
-                throw new Error("Failed to analyze token");
+            if (result?.serverError) {
+                throw new Error(result.serverError);
             }
 
-            const data = await response.json();
-            if (data.success && data.analysis) {
-                setAnalysis(data.analysis);
+            if (result?.data?.success && result.data.analysis) {
+                setAnalysis(result.data.analysis as TokenAnalysis);
                 setIsExpanded(true);
             } else {
-                throw new Error(data.error || "Analysis failed");
+                throw new Error("Analysis failed");
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Analysis failed");
@@ -78,9 +74,9 @@ export function TokenAnalysisCard({
 
     useEffect(() => {
         if (autoAnalyze && tokenAddress) {
-            analyzeToken();
+            runAnalysis();
         }
-    }, [autoAnalyze, tokenAddress, analyzeToken]);
+    }, [autoAnalyze, tokenAddress, runAnalysis]);
 
     const getRiskColor = (score: number) => {
         if (score <= 3) return "text-green-400";
@@ -117,7 +113,7 @@ export function TokenAnalysisCard({
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={analyzeToken}
+                            onClick={runAnalysis}
                             className="h-8 text-xs"
                         >
                             <Icon icon="lucide:refresh-cw" className="w-3 h-3 mr-1" />
@@ -135,7 +131,7 @@ export function TokenAnalysisCard({
                 <CardContent className="p-0">
                     {/* Header - Always visible */}
                     <button
-                        onClick={() => analysis ? setIsExpanded(!isExpanded) : analyzeToken()}
+                        onClick={() => analysis ? setIsExpanded(!isExpanded) : runAnalysis()}
                         className="w-full p-4 flex items-center justify-between hover:bg-[#161616] transition-colors"
                     >
                         <div className="flex items-center gap-3">
@@ -203,7 +199,7 @@ export function TokenAnalysisCard({
                                             size="sm"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                analyzeToken();
+                                                runAnalysis();
                                             }}
                                             className="h-8"
                                         >

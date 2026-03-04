@@ -100,3 +100,47 @@ export const authenticateTelegram = actionClient
 
     return { customToken, telegramIdEncrypted, sessionSetFromInitData };
   });
+
+// ---------------------------------------------------------------------------
+// checkUserRank — calculate and store user rank based on QNTM amount
+// ---------------------------------------------------------------------------
+
+const checkUserRankSchema = z.object({
+  userName: z.string().optional(),
+});
+
+export const checkUserRank = actionClient
+  .schema(checkUserRankSchema)
+  .action(async ({ parsedInput: { userName } }) => {
+    // This action needs a session to determine the user's telegramId
+    const { getSession } = await import("@/utils/session");
+    const session = await getSession();
+    if (!session?.user?.telegramId) {
+      throw new Error("Unauthorized");
+    }
+
+    const rawTelegramId = String(session.user.telegramId);
+    const telegramId = encryptTelegramId(rawTelegramId);
+
+    // Fetch QuantAmount from server, don't trust client
+    const userMiningRef = firestore.doc(`user/${telegramId}/miningData/values`);
+    const userMiningDoc = await userMiningRef.get();
+    const QuantAmount = userMiningDoc.exists ? (userMiningDoc.data()?.QuantAmount || 0) : 0;
+
+    const userRank = await firestore
+      .collection("userRanks")
+      .where("QuantAmount", ">", QuantAmount)
+      .count()
+      .get();
+
+    const rank = userRank.data().count + 1;
+    const userRankRef = firestore.collection("userRanks").doc(telegramId);
+    await userRankRef.set({
+      userId: telegramId,
+      rank,
+      QuantAmount,
+      username: userName,
+    }, { merge: true });
+
+    return { rank };
+  });

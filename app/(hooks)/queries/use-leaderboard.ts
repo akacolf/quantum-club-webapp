@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getLeaderboardData } from "@/app/(hooks)/actions";
 
 interface LeaderboardEntry {
   rank: number;
@@ -15,20 +16,15 @@ interface LeaderboardData {
   userCount: number;
 }
 
-async function fetchLeaderboard(telegramId: string): Promise<LeaderboardData> {
-  const response = await fetch("/api/getUserValues", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegramId }),
-  });
-  if (!response.ok) throw new Error("Failed to fetch leaderboard");
-  return response.json();
-}
-
 export function useLeaderboardQuery(telegramId: string | undefined | null) {
-  return useQuery({
+  return useQuery<LeaderboardData>({
     queryKey: ["leaderboard", telegramId],
-    queryFn: () => fetchLeaderboard(telegramId!),
+    queryFn: async () => {
+      const result = await getLeaderboardData({ telegramId: telegramId || undefined });
+      if (result?.serverError) throw new Error(result.serverError);
+      if (!result?.data) throw new Error("Failed to fetch leaderboard");
+      return result.data as LeaderboardData;
+    },
     enabled: !!telegramId,
     staleTime: 2 * 60 * 1000,
   });

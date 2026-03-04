@@ -37,28 +37,12 @@ export default function LaunchNftPage() {
     const form = useForm({
         defaultValues: { name: "", description: "", price: "", royalty: "" },
         validators: { onSubmit: nftLaunchSchema },
-        onSubmit: async ({ value }) => {
+        onSubmit: async () => {
             if (!imageFile) return;
             setIsDeploying(true);
             try {
-                const formData = new FormData();
-                formData.append("image", imageFile);
-                formData.append("name", value.name.trim());
-                formData.append("description", value.description.trim());
-                formData.append("attributes", JSON.stringify(validAttributes));
-
-                const res = await fetch("/api/nft-mint", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
-                    throw new Error(data.error || "Minting not yet available");
-                }
-
-                setDeploySuccess(true);
-                toast.success("NFT minted successfully!");
+                // NFT minting is not yet available
+                toast.error("NFT minting is coming soon!");
             } catch (error) {
                 toast.error(error instanceof Error ? error.message : "Failed to mint NFT");
             } finally {

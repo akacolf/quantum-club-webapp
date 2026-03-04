@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { parseAsString, parseAsInteger, useQueryState } from "nuqs";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -255,8 +257,8 @@ export default function ChatConversationPage() {
   const justOpenedMenuRef = useRef(false);
   // Search state
   const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchMatchIndex, setSearchMatchIndex] = useState(-1);
+  const [searchQuery, setSearchQuery] = useQueryState("search", parseAsString.withDefault("").withOptions({ history: "replace" }));
+  const [searchMatchIndex, setSearchMatchIndex] = useQueryState("match", parseAsInteger.withDefault(-1).withOptions({ history: "replace" }));
 
   // Forward state
   const [forwardMsgId, setForwardMsgId] = useState<string | null>(null);
@@ -297,6 +299,19 @@ export default function ChatConversationPage() {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef<{ time: number; msgId: string | null }>({ time: 0, msgId: null });
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Ref for scrollToMessage to avoid stale closures
+  const messagesArrayRef = useRef(messages);
+  messagesArrayRef.current = messages;
+
+  // Virtualizer for message list (container-scroll)
+  const messagesVirtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => chatContainerRef.current,
+    estimateSize: () => 60,
+    overscan: 10,
+    getItemKey: (index) => messages[index]?.id ?? String(index),
+  });
 
   // Cleanup long-press timer on unmount
   useEffect(() => {
@@ -859,15 +874,13 @@ export default function ChatConversationPage() {
       // Reverse since we queried desc
       olderDecrypted.reverse();
 
-      const container = chatContainerRef.current;
-      const prevHeight = container?.scrollHeight ?? 0;
+      const anchorIndex = messagesVirtualizer.range?.startIndex ?? 0;
+      const olderCount = olderDecrypted.length;
 
       setMessages((prev) => [...olderDecrypted, ...prev]);
 
       requestAnimationFrame(() => {
-        if (container) {
-          container.scrollTop = container.scrollHeight - prevHeight;
-        }
+        messagesVirtualizer.scrollToIndex(anchorIndex + olderCount, { align: "start" });
       });
     } catch (err) {
       console.error("Failed to load older messages:", err);
@@ -1695,19 +1708,24 @@ export default function ChatConversationPage() {
     [chatId, chatMeta, telegramId, qcUsername]
   );
 
-  // Scroll to a specific message by ID
+  // Scroll to a specific message by ID (uses virtualizer to ensure item is rendered)
   const scrollToMessage = useCallback((msgId: string) => {
-    const el = messageRefs.current[msgId];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Apply highlight to the bubble div (the one with .relative inside the wrapper)
-      const bubble = el.querySelector("[data-bubble]") as HTMLElement | null;
-      const target = bubble || el;
-      target.style.animation = "none";
-      void target.offsetHeight;
-      target.style.animation = "highlightMessage 2s ease-in-out";
+    const idx = messagesArrayRef.current.findIndex(m => m.id === msgId);
+    if (idx >= 0) {
+      messagesVirtualizer.scrollToIndex(idx, { align: "center" });
+      // Wait for virtual item to render, then highlight
+      setTimeout(() => {
+        const el = messageRefs.current[msgId];
+        if (el) {
+          const bubble = el.querySelector("[data-bubble]") as HTMLElement | null;
+          const target = bubble || el;
+          target.style.animation = "none";
+          void target.offsetHeight;
+          target.style.animation = "highlightMessage 2s ease-in-out";
+        }
+      }, 150);
     }
-  }, []);
+  }, [messagesVirtualizer]);
 
   // Search matches
   const searchMatches = showSearch && searchQuery.trim()
@@ -2439,7 +2457,10 @@ export default function ChatConversationPage() {
             </div>
           </div>
         ) : (
-          messages.map((msg, i) => {
+          <div style={{ height: `${messagesVirtualizer.getTotalSize()}px`, position: "relative", width: "100%" }}>
+          {messagesVirtualizer.getVirtualItems().map((virtualItem) => {
+            const i = virtualItem.index;
+            const msg = messages[i];
             const isSystemMsg = msg.senderId === "system";
             const isOwnMessage = msg.senderId === telegramId;
             const consecutive = isConsecutive(i);
@@ -2447,7 +2468,13 @@ export default function ChatConversationPage() {
             const status = isOwnMessage && !isSystemMsg ? getMessageStatus(msg) : null;
 
             return (
-              <div key={msg.id}>
+              <div
+                key={msg.id}
+                className={`absolute top-0 left-0 w-full ${i > 0 ? (consecutive && !showDate ? "pt-0.5" : "pt-2.5") : ""}`}
+                style={{ transform: `translateY(${virtualItem.start}px)` }}
+                ref={messagesVirtualizer.measureElement}
+                data-index={virtualItem.index}
+              >
                 {showDate && (
                   <div className="flex items-center gap-3 py-3">
                     <div className="flex-1 h-px bg-border/40" />
@@ -2459,7 +2486,7 @@ export default function ChatConversationPage() {
                 )}
 
                 {isSystemMsg ? (
-                  <div className="flex justify-center my-1.5">
+                  <div className="flex justify-center py-1.5">
                     <span className="text-[10px] text-muted-foreground bg-muted/40 rounded-full px-3 py-0.5">
                       {msg.text}
                     </span>
@@ -2467,9 +2494,7 @@ export default function ChatConversationPage() {
                 ) : (
                 <div
                   ref={(el) => { messageRefs.current[msg.id] = el; }}
-                  className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${
-                    consecutive ? "mt-0.5" : "mt-2.5"
-                  } ${reactionPickerMsgId === msg.id ? "relative z-[1000]" : ""}`}
+                  className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${reactionPickerMsgId === msg.id ? "relative z-[1000]" : ""}`}
                   onTouchStart={(e) => {
                     const touch = e.touches[0];
                     swipeRef.current = { startX: touch.clientX, startY: touch.clientY, msgId: msg.id };
@@ -2707,7 +2732,8 @@ export default function ChatConversationPage() {
                 )}
               </div>
             );
-          })
+          })}
+          </div>
         )}
 
         {/* Typing indicator as chat bubble */}

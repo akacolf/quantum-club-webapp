@@ -37,6 +37,7 @@ import {
   buildBurnMessage,
 } from "@/lib/jetton-operations";
 import { uploadTokenImage } from "@/lib/upload-image";
+import { deployJetton as deployJettonAction, confirmJettonDeployment } from "@/app/ecosystem/trade/actions";
 import { FEE_CONFIG } from "@/lib/platform-config";
 import { getBalance, isContractActive } from "@/lib/ton-api";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
@@ -573,40 +574,22 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
         }
       }
 
-      const response = await fetch("/api/deploy-jetton", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: params.name,
-          symbol: params.symbol,
-          description: params.description,
-          image: imageUrl,
-          creatorAddress: walletAddress,
-        }),
+      const deployResult = await deployJettonAction({
+        name: params.name,
+        symbol: params.symbol,
+        description: params.description,
+        image: imageUrl,
+        creatorAddress: walletAddress,
       });
 
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = "Token creation failed";
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          console.error("Token creation failed - raw response:", response.status, responseText);
-        }
-        console.error("Token creation failed:", response.status, errorMessage);
-
-        if (response.status === 409) {
-          throw new Error(`Symbol "${params.symbol}" already exists. Please choose a different symbol.`);
-        } else if (response.status === 429) {
-          throw new Error("Rate limit exceeded. You can create max 3 tokens per hour.");
-        } else {
-          throw new Error(errorMessage);
-        }
+      if (deployResult?.serverError) {
+        throw new Error(deployResult.serverError);
       }
 
-      const { tokenId, jettonAddress, deployTx, success } = await response.json();
-      if (!success || !deployTx) return null;
+      const deployData = deployResult?.data;
+      if (!deployData?.success || !deployData.deployTx || !deployData.tokenId || !deployData.jettonAddress) return null;
+
+      const { tokenId, jettonAddress, deployTx } = deployData;
 
       try {
         let stateInitCell: Cell | undefined;
@@ -620,6 +603,8 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
           const bodyBuffer = Buffer.from(deployTx.body, "base64");
           bodyCell = Cell.fromBoc(bodyBuffer)[0];
         }
+
+        if (!deployTx.to || !deployTx.value) return null;
 
         const txResult = await sendTransaction({
           to: deployTx.to,
@@ -647,11 +632,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
           }
 
           if (isDeployedOnChain) {
-            await fetch("/api/deploy-jetton", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ tokenId, jettonAddress, txHash: txResult.txHash }),
-            }).catch(console.error);
+            await confirmJettonDeployment({ tokenId, jettonAddress, txHash: txResult.txHash }).catch(console.error);
 
             if (params.initialBuyAmount && parseFloat(params.initialBuyAmount) > 0) {
               await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -706,28 +687,25 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
         return { success: false, error: "Token is already deployed" };
       }
 
-      const response = await fetch("/api/deploy-jetton", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: tokenData.name,
-          symbol: tokenData.symbol,
-          description: tokenData.description || "",
-          image: tokenData.image || "",
-          creatorAddress: walletAddress,
-          tokenId: tokenId,
-        }),
+      const retryResult = await deployJettonAction({
+        name: tokenData.name,
+        symbol: tokenData.symbol,
+        description: tokenData.description || "",
+        image: tokenData.image || "",
+        creatorAddress: walletAddress,
+        tokenId: tokenId,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return { success: false, error: errorData.error || "Failed to prepare deployment" };
+      if (retryResult?.serverError) {
+        return { success: false, error: retryResult.serverError };
       }
 
-      const { jettonAddress, deployTx, success } = await response.json();
-      if (!success || !deployTx) {
+      const retryData = retryResult?.data;
+      if (!retryData?.success || !retryData.deployTx || !retryData.jettonAddress) {
         return { success: false, error: "Failed to build deployment transaction" };
       }
+
+      const { jettonAddress, deployTx } = retryData;
 
       let stateInitCell: Cell | undefined;
       if (deployTx.stateInit) {
@@ -739,6 +717,10 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       if (deployTx.body) {
         const bodyBuffer = Buffer.from(deployTx.body, "base64");
         bodyCell = Cell.fromBoc(bodyBuffer)[0];
+      }
+
+      if (!deployTx.to || !deployTx.value) {
+        return { success: false, error: "Invalid deployment transaction" };
       }
 
       const txResult = await sendTransaction({
@@ -770,11 +752,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       }
 
       if (isDeployedOnChain) {
-        await fetch("/api/deploy-jetton", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tokenId, jettonAddress, txHash: txResult.txHash }),
-        }).catch(console.error);
+        await confirmJettonDeployment({ tokenId, jettonAddress, txHash: txResult.txHash }).catch(console.error);
 
         await new Promise((resolve) => setTimeout(resolve, 500));
         await get().fetchMyTokens();

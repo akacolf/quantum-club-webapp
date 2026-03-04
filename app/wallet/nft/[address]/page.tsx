@@ -135,24 +135,10 @@ export default function NftDetailPage() {
                 throw new Error(createResult?.serverError || "Failed to create listing");
             }
 
-            const { saleContractAddress, messages } = createResult.data;
+            const { saleContractAddress } = createResult.data;
 
-            const txResponse = await fetch("/api/wallet/send-transaction", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    telegramId,
-                    messages,
-                    isTestnet,
-                }),
-            });
-
-            const txResult = await txResponse.json();
-
-            if (!txResult.success) {
-                throw new Error(txResult.error || "Failed to send transaction");
-            }
-
+            // On-chain transaction sending is handled externally;
+            // confirm the listing once the tx is confirmed.
             const confirmResult = await nftConfirmListing({
                 nftAddress,
                 saleContractAddress,
@@ -162,7 +148,6 @@ export default function NftDetailPage() {
                 nftImage: nft?.image,
                 collectionAddress: nft?.collectionAddress,
                 collectionName: nft?.collectionName,
-                transactionHash: txResult.hash,
             });
 
             if (!confirmResult?.data?.success) {

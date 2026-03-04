@@ -6,6 +6,7 @@ import { firestore } from "@/app/(firebase)/server";
 import {
   buildListingMessages,
   buildBuyTransaction,
+  buildCancelTransaction,
   calculateFees,
   MIN_LISTING_PRICE,
   QC_MARKETPLACE_FEE_PERCENT,
@@ -287,3 +288,54 @@ async function updateMarketplaceStats(
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// getNftListings — get active QC Marketplace listings
+// ---------------------------------------------------------------------------
+
+const getListingsSchema = z.object({
+  collectionAddress: z.string().optional(),
+  sellerAddress: z.string().optional(),
+  limit: z.number().max(100).optional(),
+});
+
+export const getNftListings = authActionClient
+  .schema(getListingsSchema)
+  .action(async ({ parsedInput: { collectionAddress, sellerAddress, limit: queryLimit = 50 } }) => {
+    let query = firestore
+      .collection("nft_listings")
+      .where("status", "==", "active")
+      .orderBy("createdAt", "desc")
+      .limit(queryLimit);
+
+    if (collectionAddress) {
+      query = query.where("collectionAddress", "==", collectionAddress);
+    }
+    if (sellerAddress) {
+      query = query.where("sellerAddress", "==", sellerAddress);
+    }
+
+    const snapshot = await query.get();
+    const listings = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return { success: true, listings, count: listings.length };
+  });
+
+// ---------------------------------------------------------------------------
+// cancelNftListing — build cancel transaction for an NFT listing
+// ---------------------------------------------------------------------------
+
+const cancelListingSchema = z.object({
+  saleContractAddress: z.string().min(1, "saleContractAddress required"),
+});
+
+export const cancelNftListing = authActionClient
+  .schema(cancelListingSchema)
+  .action(async ({ parsedInput: { saleContractAddress } }) => {
+    const transaction = buildCancelTransaction(saleContractAddress);
+
+    return { success: true, transaction };
+  });

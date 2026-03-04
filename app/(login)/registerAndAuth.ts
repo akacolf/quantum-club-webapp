@@ -465,21 +465,16 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
             const userRank = rankSnapshot.data().rank;
             userData.userRank = userRank;
           } else {
-            const response = await fetch("/api/checkUserRank", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                telegramId: telegramIdEncrypted,
-                userName: username,
-                QuantAmount: Amount,
-              }),
-            });
-            if (!response.ok) {
-              throw new Error("Network response was not okay.");
+            const { checkUserRank } = await import("@/app/(login)/actions");
+            const rankResult = await checkUserRank({ userName: username });
+            if (rankResult?.serverError) {
+              throw new Error(rankResult.serverError);
             }
-            const data = await response.json();
-            sessionStorage.setItem("userLeaderRank", data.rank);
-            userData.userRank = data.rank;
+            const rankData = rankResult?.data;
+            if (rankData) {
+              sessionStorage.setItem("userLeaderRank", String(rankData.rank));
+              userData.userRank = rankData.rank;
+            }
           }
         }
 

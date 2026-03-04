@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { registerQcUsername, updateQcUsernameAddress, resolveQcUsername } from "@/app/ecosystem/chat/actions";
 
 interface QcUsernameByIdResult {
   username: string | null;
@@ -10,28 +11,18 @@ interface QcUsernameByNameResult {
   available: boolean;
   resolved: boolean;
   address?: string | null;
-  owner?: string;
-}
-
-async function fetchQcUsernameById(qcId: string): Promise<QcUsernameByIdResult> {
-  const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(qcId)}`);
-  if (!res.ok) throw new Error("Failed to fetch username");
-  return res.json();
-}
-
-async function fetchQcUsernameByName(username: string): Promise<QcUsernameByNameResult> {
-  const res = await fetch(`/api/qc-username?username=${encodeURIComponent(username)}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("Failed to check username");
-  return res.json();
+  owner?: string | null;
 }
 
 /** Lookup a user's QC username by their telegramId / qcId */
 export function useQcUsernameQuery(qcId: string | undefined | null) {
-  return useQuery({
+  return useQuery<QcUsernameByIdResult>({
     queryKey: ["qc-username", "by-id", qcId],
-    queryFn: () => fetchQcUsernameById(qcId!),
+    queryFn: async () => {
+      const result = await resolveQcUsername({ qcId: qcId! });
+      if (!result?.data) throw new Error("Failed to fetch username");
+      return { username: result.data.username ?? null, address: result.data.address ?? null };
+    },
     enabled: !!qcId,
     staleTime: 5 * 60 * 1000,
   });
@@ -39,9 +30,13 @@ export function useQcUsernameQuery(qcId: string | undefined | null) {
 
 /** Resolve a QC username to check availability / get address */
 export function useQcUsernameResolveQuery(username: string | undefined | null) {
-  return useQuery({
+  return useQuery<QcUsernameByNameResult>({
     queryKey: ["qc-username", "by-name", username?.toLowerCase()],
-    queryFn: () => fetchQcUsernameByName(username!),
+    queryFn: async () => {
+      const result = await resolveQcUsername({ username: username! });
+      if (!result?.data) throw new Error("Failed to check username");
+      return result.data as QcUsernameByNameResult;
+    },
     enabled: !!username && username.length >= 3,
     staleTime: 30_000,
   });
@@ -56,8 +51,8 @@ export function useQcUsernamesBatch(qcIds: string[]) {
       await Promise.all(
         qcIds.map(async (id) => {
           try {
-            const data = await fetchQcUsernameById(id);
-            if (data.username) results[id] = data.username;
+            const result = await resolveQcUsername({ qcId: id });
+            if (result?.data?.username) results[id] = result.data.username;
           } catch {
             // skip failed lookups
           }
@@ -75,16 +70,10 @@ export function useRegisterUsernameMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { username: string; qcId: string; address?: string }) => {
-      const res = await fetch("/api/qc-username", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to register username");
-      }
-      return res.json() as Promise<{ success: boolean; username: string }>;
+      const result = await registerQcUsername(data);
+      if (result?.serverError) throw new Error(result.serverError);
+      if (!result?.data) throw new Error("Failed to register username");
+      return result.data as { success: boolean; username: string };
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["qc-username", "by-id", variables.qcId] });
@@ -98,16 +87,10 @@ export function useUpdateUsernameAddressMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { qcId: string; address: string }) => {
-      const res = await fetch("/api/qc-username", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update address");
-      }
-      return res.json();
+      const result = await updateQcUsernameAddress(data);
+      if (result?.serverError) throw new Error(result.serverError);
+      if (!result?.data) throw new Error("Failed to update address");
+      return result.data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["qc-username", "by-id", variables.qcId] });

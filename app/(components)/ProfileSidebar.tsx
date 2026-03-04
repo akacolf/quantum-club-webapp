@@ -118,9 +118,9 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
     setUsernameAvailability(null);
     setUsernameError(null);
     try {
-      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(currentUsername)}`);
-      const data = await res.json();
-      setUsernameAvailability(data.available ? "available" : "taken");
+      const { resolveQcUsername } = await import("@/app/ecosystem/chat/actions");
+      const result = await resolveQcUsername({ username: currentUsername });
+      setUsernameAvailability(result?.data?.available ? "available" : "taken");
     } catch {
       setUsernameError("Failed to check");
     } finally {

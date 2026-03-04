@@ -12,6 +12,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
+import { Cell } from "@ton/core";
 import { toast } from "sonner";
 import {
     calculateTotalPrice,
@@ -33,7 +34,7 @@ export default function BuyNftPage() {
     const nftAddress = decodeURIComponent(params.address as string);
     useTelegramBackButton(`/wallet/nft/${encodeURIComponent(nftAddress)}`);
     const router = useRouter();
-    const { isTestnet, walletAddress, tonBalance } = useWallet();
+    const { isTestnet, walletAddress, tonBalance, sendTransaction } = useWallet();
     const { telegramId } = useUserContext();
     const {
         isOpen: isAuthOpen,
@@ -108,31 +109,28 @@ export default function BuyNftPage() {
                     throw new Error(buildResult?.serverError || "Failed to build transaction");
                 }
 
-                // Send the transaction via wallet API
-                const response = await fetch("/api/wallet/send-transaction", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        telegramId,
-                        messages: [buildResult.data.transaction],
-                        isTestnet,
-                    }),
+                // Send the transaction via wallet
+                const tx = buildResult.data.transaction;
+                const bodyCell = tx.payload ? Cell.fromBoc(Buffer.from(tx.payload, "base64"))[0] : undefined;
+
+                const txResult = await sendTransaction({
+                    to: tx.address,
+                    value: tx.amount,
+                    body: bodyCell,
                 });
 
-                const result = await response.json();
-
-                if (result.success) {
+                if (txResult.success) {
                     // Confirm the sale in Firebase
                     await nftConfirmSale({
                         listingId: nft.sale.address,
                         buyerAddress: walletAddress!,
-                        transactionHash: result.hash,
+                        transactionHash: txResult.txHash || "",
                     });
 
                     toast.success("NFT purchased successfully!");
                     setViewMode("success");
                 } else {
-                    throw new Error(result.error || "Transaction failed");
+                    throw new Error(txResult.error || "Transaction failed");
                 }
             } else {
                 // NFT is not listed on QC Marketplace - show error instead of external redirect

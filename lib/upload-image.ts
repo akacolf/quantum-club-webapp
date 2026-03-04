@@ -1,5 +1,7 @@
+import { uploadTokenImage as uploadTokenImageAction } from "@/app/ecosystem/trade/actions";
+
 /**
- * Upload token image to Cloudinary via server-side proxy
+ * Upload token image to Cloudinary via server action
  * Cloudinary provides reliable CDN URLs with auto-optimization
  */
 export async function uploadTokenImage(
@@ -14,29 +16,19 @@ export async function uploadTokenImage(
 
         console.log("Uploading image to Cloudinary...");
 
-        const response = await fetch("/api/upload-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                tokenId,
-                imageData,
-            }),
-        });
+        const result = await uploadTokenImageAction({ tokenId, imageData });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error("Image upload failed:", response.status, errorData);
+        if (result?.serverError) {
+            console.error("Image upload failed:", result.serverError);
             return null;
         }
 
-        const result = await response.json();
-
-        if (result.success && result.publicUrl) {
-            console.log("Image uploaded successfully:", result.publicUrl);
-            return result.publicUrl;
+        if (result?.data?.success && result.data.publicUrl) {
+            console.log("Image uploaded successfully:", result.data.publicUrl);
+            return result.data.publicUrl;
         }
 
-        console.error("Upload response missing publicUrl:", result);
+        console.error("Upload response missing publicUrl");
         return null;
     } catch (error) {
         console.error("Failed to upload image:", error);

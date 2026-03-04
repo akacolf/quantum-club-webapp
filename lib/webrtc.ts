@@ -70,13 +70,13 @@ const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.cloudflare.com:3478" },
 ];
 
-/** Fetch TURN credentials from our server-side proxy (keeps API key secret). */
+/** Fetch TURN credentials via server action (keeps API key secret). */
 export async function fetchRtcConfig(): Promise<RTCConfiguration> {
   try {
-    const res = await fetch("/api/turn-credentials");
-    if (res.ok) {
-      const iceServers = await res.json();
-      return { iceServers, iceTransportPolicy: "all" };
+    const { getTurnCredentials } = await import("@/app/ecosystem/chat/actions");
+    const result = await getTurnCredentials({});
+    if (result?.data) {
+      return { iceServers: result.data, iceTransportPolicy: "all" };
     }
   } catch {}
   return { iceServers: FALLBACK_ICE_SERVERS, iceTransportPolicy: "all" };

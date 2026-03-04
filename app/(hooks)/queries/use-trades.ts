@@ -201,12 +201,14 @@ export function usePriceAlerts(telegramId: string | null) {
         queryKey: ["priceAlerts", telegramId],
         queryFn: async () => {
             if (!telegramId) return [];
-            const response = await fetch(`/api/price-alerts?telegramId=${telegramId}`, {
-                credentials: "include",
-            });
-            if (!response.ok) return [];
-            const data = await response.json();
-            return data.alerts || [];
+            const { fetchPriceAlerts } = await import("@/app/(hooks)/actions");
+            const result = await fetchPriceAlerts({});
+            return (result?.data?.alerts || []) as Array<{
+                id: string; telegramId: string; symbol: string;
+                targetPrice: number; direction: "above" | "below";
+                createdAt: number; triggered: boolean; notified: boolean;
+                triggeredAt?: number; triggeredPrice?: number;
+            }>;
         },
         enabled: !!telegramId,
         staleTime: 30_000,

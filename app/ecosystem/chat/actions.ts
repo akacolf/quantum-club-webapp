@@ -221,3 +221,124 @@ export const updateQcUsernameAddress = authActionClient
 
     return { success: true, username: usernameDocId, address };
   });
+
+// ---------------------------------------------------------------------------
+// resolveQcUsername — resolve a QC username to check availability / get address
+// ---------------------------------------------------------------------------
+
+const resolveUsernameSchema = z.object({
+  username: z.string().optional(),
+  qcId: z.string().optional(),
+  address: z.string().optional(),
+}).refine((d) => d.username || d.qcId || d.address, {
+  message: "Provide username, qcId, or address",
+});
+
+export const resolveQcUsername = authActionClient
+  .schema(resolveUsernameSchema)
+  .action(async ({ parsedInput: { username: usernameParam, qcId, address } }) => {
+    if (usernameParam) {
+      const normalizedUsername = usernameParam.toLowerCase().replace(/^@/, "");
+      const doc = await firestore
+        .collection(USERNAMES_COLLECTION)
+        .doc(normalizedUsername)
+        .get();
+
+      if (!doc.exists) {
+        return {
+          username: normalizedUsername,
+          available: true,
+          resolved: false,
+          address: null,
+          owner: null,
+        };
+      }
+
+      const data = doc.data()!;
+      return {
+        username: normalizedUsername,
+        available: false,
+        resolved: true,
+        address: data.address || null,
+        owner: data.qcId,
+      };
+    }
+
+    if (qcId) {
+      const snapshot = await firestore
+        .collection(USERNAMES_COLLECTION)
+        .where("qcId", "==", qcId)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        return { username: null, address: null };
+      }
+
+      const doc = snapshot.docs[0];
+      return {
+        username: doc.data().displayUsername || doc.id,
+        address: doc.data().address || null,
+      };
+    }
+
+    if (address) {
+      const snapshot = await firestore
+        .collection(USERNAMES_COLLECTION)
+        .where("address", "==", address)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        return { username: null, address: null };
+      }
+
+      const doc = snapshot.docs[0];
+      return {
+        username: doc.data().displayUsername || doc.id,
+        address: doc.data().address,
+      };
+    }
+
+    throw new Error("Provide username, qcId, or address parameter");
+  });
+
+// ---------------------------------------------------------------------------
+// getTurnCredentials — get TURN/STUN server credentials for WebRTC
+// ---------------------------------------------------------------------------
+
+export const getTurnCredentials = authActionClient
+  .schema(z.object({}))
+  .action(async () => {
+    const { env } = await import("@/env");
+    const TURN_KEY_ID = env.CLOUDFLARE_TURN_KEY_ID;
+    const TURN_API_TOKEN = env.CLOUDFLARE_TURN_API_TOKEN;
+
+    const FALLBACK_ICE_SERVERS = [
+      { urls: "stun:stun.cloudflare.com:3478" },
+    ];
+
+    if (!TURN_KEY_ID || !TURN_API_TOKEN) {
+      return FALLBACK_ICE_SERVERS;
+    }
+
+    const res = await fetch(
+      `https://rtc.live.cloudflare.com/v1/turn/keys/${TURN_KEY_ID}/credentials/generate-ice-servers`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${TURN_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ttl: 86400 }),
+      },
+    );
+
+    if (!res.ok) {
+      console.error("[turn-credentials] Cloudflare API error:", res.status);
+      return FALLBACK_ICE_SERVERS;
+    }
+
+    const data = await res.json();
+    return data.iceServers;
+  });

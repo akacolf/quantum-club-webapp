@@ -77,26 +77,20 @@ export async function sendAnalyticsEvent(
   }
 
   try {
-    const response = await fetch("/api/analytics", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eventName,
-        userId: telegramInfo.userId,
-        sessionId: getSessionId(),
-        isPremium: telegramInfo.isPremium,
-        platform: telegramInfo.platform,
-        locale: telegramInfo.locale,
-        options,
-      }),
+    const { recordAnalyticsEvent } = await import("@/lib/analytics-action");
+    const result = await recordAnalyticsEvent({
+      eventName,
+      userId: telegramInfo.userId,
+      sessionId: getSessionId(),
+      isPremium: telegramInfo.isPremium,
+      platform: telegramInfo.platform,
+      locale: telegramInfo.locale,
+      options,
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success) {
-        console.log(`[Analytics] Event "${eventName}" recorded`);
-        return true;
-      }
+    if (result?.data?.success) {
+      console.log(`[Analytics] Event "${eventName}" recorded`);
+      return true;
     }
     return false;
   } catch (error) {

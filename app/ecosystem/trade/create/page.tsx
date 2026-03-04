@@ -110,15 +110,16 @@ export default function CreateTokenPage() {
 
         const debounce = setTimeout(async () => {
             try {
-                const response = await fetch(`/api/check-symbol?symbol=${encodeURIComponent(symbol)}`);
-                const data = await response.json();
+                const { checkSymbolAvailability } = await import("@/app/ecosystem/trade/actions");
+                const result = await checkSymbolAvailability({ symbol });
+                const data = result?.data;
 
                 // Only update if the symbol hasn't changed during the request
                 if (watchedSymbol.trim().toUpperCase() === symbol.toUpperCase()) {
-                    setSymbolAvailable(data.available === true);
-                    if (!data.available && data.reason) {
+                    setSymbolAvailable(data?.available === true);
+                    if (!data?.available && data?.reason) {
                         setSymbolError(data.reason);
-                    } else if (data.available) {
+                    } else if (data?.available) {
                         setSymbolError(null);
                     }
                 }

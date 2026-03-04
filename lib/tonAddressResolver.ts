@@ -1,4 +1,5 @@
 import { Address } from "@ton/core";
+import { resolveQcUsername } from "@/app/ecosystem/chat/actions";
 
 export interface ResolvedAddress {
   address: string;
@@ -30,30 +31,28 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
     // Must be at least 3 chars to be a valid username
     if (username.length >= 3 && /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/i.test(username)) {
       try {
-        const response = await fetch(`/api/qc-username?username=${encodeURIComponent(username)}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.resolved && data.address) {
-            try {
-              const parsed = Address.parse(data.address);
-              return {
-                address: parsed.toString({ bounceable: false }),
-                isValid: true,
-                isDomain: false,
-                isUsername: true,
-                originalInput: input
-              };
-            } catch {
-              return {
-                address: "",
-                isValid: false,
-                isDomain: false,
-                isUsername: true,
-                originalInput: input,
-                error: "Invalid address linked to this username"
-              };
-            }
+        const result = await resolveQcUsername({ username });
+        const data = result?.data;
+
+        if (data?.resolved && data?.address) {
+          try {
+            const parsed = Address.parse(data.address);
+            return {
+              address: parsed.toString({ bounceable: false }),
+              isValid: true,
+              isDomain: false,
+              isUsername: true,
+              originalInput: input
+            };
+          } catch {
+            return {
+              address: "",
+              isValid: false,
+              isDomain: false,
+              isUsername: true,
+              originalInput: input,
+              error: "Invalid address linked to this username"
+            };
           }
         }
 

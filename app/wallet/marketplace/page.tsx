@@ -16,25 +16,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { filterCollectionsByName } from "@/lib/nft-marketplace";
 import { usePopularCollectionsQuery, useQCListingsQuery } from "@/app/(hooks)/queries/use-nft-marketplace";
-import { useQuery } from "@tanstack/react-query";
-import type { MysteryBox } from "@/types/mystery-box";
-
-function useMysteryBoxesQuery() {
-    return useQuery<MysteryBox[]>({
-        queryKey: ["mystery-boxes"],
-        queryFn: async () => {
-            const res = await fetch("/api/mystery-box", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "get-boxes" }),
-            });
-            if (!res.ok) return [];
-            const data = await res.json();
-            return data.boxes ?? [];
-        },
-        staleTime: 60_000,
-    });
-}
+import { useMysteryBoxesQuery } from "@/app/(hooks)/queries/use-mystery-box";
 
 export default function MarketplacePage() {
     useTelegramBackButton("/wallet");

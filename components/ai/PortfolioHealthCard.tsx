@@ -50,21 +50,17 @@ export function PortfolioHealthCard({
         setError(null);
 
         try {
-            const response = await fetch("/api/ai/portfolio-health", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ assets, totalValue, stakedAmount }),
-            });
+            const { analyzePortfolioHealth } = await import("@/components/ai/actions");
+            const result = await analyzePortfolioHealth({ assets: assets.map(a => ({ symbol: a.symbol, balance: String(a.value), value: a.value })), totalValue, stakedAmount });
 
-            if (!response.ok) {
-                throw new Error("Failed to analyze portfolio");
+            if (result?.serverError) {
+                throw new Error(result.serverError);
             }
 
-            const data = await response.json();
-            if (data.success && data.analysis) {
-                setAnalysis(data.analysis);
+            if (result?.data?.success && result.data.analysis) {
+                setAnalysis(result.data.analysis as PortfolioAnalysis);
             } else {
-                throw new Error(data.error || "Analysis failed");
+                throw new Error("Analysis failed");
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Analysis failed");
