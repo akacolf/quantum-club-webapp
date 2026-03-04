@@ -14,6 +14,7 @@
 import { useEffect, ReactNode } from "react";
 import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress, type ChainType } from "./utils/multichain";
 import { useUserContext } from "../(contexts)/UserContext";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useWalletAssetsQuery, useNftsQuery, useMultiChainBalancesQuery, useInvalidateWalletQueries } from "@/app/(hooks)/queries/use-wallet";
 import { useWalletStore } from "@/stores/wallet-store";
 import { useShallow } from "zustand/shallow";
@@ -92,10 +93,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Derive multi-chain addresses from mnemonic
   useEffect(() => {
-    if (!telegramId) return;
-    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-    if (storedMnemonic && walletAddress) {
+    if (!telegramId || !walletAddress) return;
+    (async () => {
       try {
+        const storedMnemonic = await getSecureMnemonic(telegramId);
+        if (!storedMnemonic) return;
         const eth = deriveEthAddress(storedMnemonic);
         const btc = deriveBtcAddress(storedMnemonic, false);
         const sol = deriveSolAddress(storedMnemonic);
@@ -109,7 +111,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Failed to derive multi-chain addresses:", error);
       }
-    }
+    })();
   }, [walletAddress, telegramId]);
 
   // Sync TanStack Query results → store

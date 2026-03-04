@@ -15,6 +15,7 @@ import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { walletVerifySchema } from "@/lib/validations";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { setSecureMnemonic } from "@/lib/secure-mnemonic";
 
 export default function VerifyPhrasePage() {
   useTelegramBackButton("/wallet/backup");
@@ -46,7 +47,7 @@ export default function VerifyPhrasePage() {
 
       if (walletAddress && mnemonic.length > 0) {
         localStorage.setItem(`quantum_wallet_address_${telegramId}`, walletAddress);
-        localStorage.setItem(`quantum_wallet_mnemonic_${telegramId}`, mnemonic.join(" "));
+        await setSecureMnemonic(telegramId, mnemonic.join(" "));
 
         const walletName = `Wallet ${storedWallets.length + 1}`;
         addWallet(walletAddress, walletName);

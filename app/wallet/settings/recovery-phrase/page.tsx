@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 
 export default function ViewRecoveryPhrasePage() {
   useTelegramBackButton("/wallet/settings");
@@ -29,13 +30,14 @@ export default function ViewRecoveryPhrasePage() {
   useEffect(() => {
     // Only load mnemonic after authorization
     if (isAuthorized) {
-      const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-      if (!storedMnemonic) {
-        toast.error("No wallet found");
-        router.push("/wallet/settings");
-        return;
-      }
-      setMnemonic(storedMnemonic.split(" "));
+      getSecureMnemonic(telegramId).then((storedMnemonic) => {
+        if (!storedMnemonic) {
+          toast.error("No wallet found");
+          router.push("/wallet/settings");
+          return;
+        }
+        setMnemonic(storedMnemonic.split(" "));
+      });
     }
   }, [router, isAuthorized]);
 

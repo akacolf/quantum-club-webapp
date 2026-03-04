@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -587,9 +588,7 @@ export default function LiquidityPage() {
 
   // Execute add liquidity
   const executeAddLiquidity = async () => {
-    const storedMnemonic = localStorage.getItem(
-      `quantum_wallet_mnemonic_${telegramId}`,
-    );
+    const storedMnemonic = await getSecureMnemonic(telegramId);
     if (
       !storedMnemonic ||
       !simulationResult ||
@@ -732,9 +731,7 @@ export default function LiquidityPage() {
       return;
     }
 
-    const storedMnemonic = localStorage.getItem(
-      `quantum_wallet_mnemonic_${telegramId}`,
-    );
+    const storedMnemonic = await getSecureMnemonic(telegramId);
     if (!storedMnemonic) {
       toast.error("Wallet not found");
       return;

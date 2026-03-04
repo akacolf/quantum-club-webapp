@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { stakeAmountSchema } from "@/lib/validations";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import {
     calculateRewards,
     validateStakeAmount,
@@ -141,7 +142,7 @@ export default function StakingPage() {
         const amount = form.getFieldValue("amount");
 
         try {
-            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+            const storedMnemonic = await getSecureMnemonic(telegramId);
             if (!storedMnemonic) {
                 throw new Error("Wallet not found");
             }

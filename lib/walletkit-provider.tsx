@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { useWalletKitStore } from "@/stores/walletkit-store";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useShallow } from "zustand/shallow";
 
 interface WalletKitProviderProps {
@@ -206,25 +207,16 @@ export function WalletKitProvider({
         if (!isReady || isWalletRegistered || walletRef.current) return;
 
         const telegramId = localStorage.getItem("telegramId") || "";
-        let storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+        if (!telegramId) return;
 
-        // Fallback: scan localStorage for any mnemonic key if primary lookup fails
-        if (!storedMnemonic) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key?.startsWith("quantum_wallet_mnemonic_")) {
-                    storedMnemonic = localStorage.getItem(key);
-                    if (storedMnemonic) break;
-                }
+        getSecureMnemonic(telegramId).then((storedMnemonic) => {
+            if (storedMnemonic) {
+                const mnemonic = storedMnemonic.split(" ");
+                registerWallet(mnemonic).then((ok) => {
+                    if (ok) console.log("[WalletKit] Auto-registered wallet on init");
+                });
             }
-        }
-
-        if (storedMnemonic) {
-            const mnemonic = storedMnemonic.split(" ");
-            registerWallet(mnemonic).then((ok) => {
-                if (ok) console.log("[WalletKit] Auto-registered wallet on init");
-            });
-        }
+        });
     }, [registerWallet]);
 
     // Approve connection request
@@ -242,24 +234,8 @@ export function WalletKitProvider({
         if (!walletRef.current) {
             console.log("[WalletKit] Wallet not registered, attempting to register...");
 
-            // Try to get mnemonic from localStorage and register
             const telegramId = localStorage.getItem("telegramId") || "";
-            let storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-
-            // Fallback: scan localStorage for any mnemonic key if primary lookup fails
-            if (!storedMnemonic) {
-                console.log("[WalletKit] Primary mnemonic lookup failed, scanning localStorage...");
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key?.startsWith("quantum_wallet_mnemonic_")) {
-                        storedMnemonic = localStorage.getItem(key);
-                        if (storedMnemonic) {
-                            console.log("[WalletKit] Found mnemonic under key:", key);
-                            break;
-                        }
-                    }
-                }
-            }
+            const storedMnemonic = telegramId ? await getSecureMnemonic(telegramId) : null;
 
             if (storedMnemonic) {
                 try {

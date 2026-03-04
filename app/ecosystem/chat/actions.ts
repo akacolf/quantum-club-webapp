@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { authActionClient } from "@/lib/safe-action";
+import { authActionClient, authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
 import { sendNotification } from "@/lib/notifications";
 import { env } from "@/env";
@@ -117,7 +117,6 @@ const USERNAMES_COLLECTION = "qcUsernames";
 
 const registerUsernameSchema = z.object({
   username: z.string().min(1, "Username is required"),
-  qcId: z.string().min(1).max(100),
   address: z
     .string()
     .max(100)
@@ -128,9 +127,9 @@ const registerUsernameSchema = z.object({
     .optional(),
 });
 
-export const registerQcUsername = authActionClient
+export const registerQcUsername = authWithQcIdClient
   .schema(registerUsernameSchema)
-  .action(async ({ parsedInput: { username: rawUsername, qcId, address } }) => {
+  .action(async ({ parsedInput: { username: rawUsername, address }, ctx: { qcId } }) => {
     const username = rawUsername.toLowerCase().replace(/^@/, "").trim();
     const displayUsername = rawUsername.replace(/^@/, "").trim();
 
@@ -189,7 +188,6 @@ export const registerQcUsername = authActionClient
 // ---------------------------------------------------------------------------
 
 const updateAddressSchema = z.object({
-  qcId: z.string().min(1).max(100),
   address: z
     .string()
     .min(1)
@@ -200,9 +198,9 @@ const updateAddressSchema = z.object({
     ),
 });
 
-export const updateQcUsernameAddress = authActionClient
+export const updateQcUsernameAddress = authWithQcIdClient
   .schema(updateAddressSchema)
-  .action(async ({ parsedInput: { qcId, address } }) => {
+  .action(async ({ parsedInput: { address }, ctx: { qcId } }) => {
     const snapshot = await firestore
       .collection(USERNAMES_COLLECTION)
       .where("qcId", "==", qcId)

@@ -69,14 +69,14 @@ export function useQcUsernamesBatch(qcIds: string[]) {
 export function useRegisterUsernameMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { username: string; qcId: string; address?: string }) => {
+    mutationFn: async (data: { username: string; address?: string }) => {
       const result = await registerQcUsername(data);
       if (result?.serverError) throw new Error(result.serverError);
       if (!result?.data) throw new Error("Failed to register username");
       return result.data as { success: boolean; username: string };
     },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["qc-username", "by-id", variables.qcId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["qc-username", "by-id"] });
       queryClient.invalidateQueries({ queryKey: ["qc-username", "by-name"] });
     },
   });
@@ -86,14 +86,14 @@ export function useRegisterUsernameMutation() {
 export function useUpdateUsernameAddressMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { qcId: string; address: string }) => {
+    mutationFn: async (data: { address: string }) => {
       const result = await updateQcUsernameAddress(data);
       if (result?.serverError) throw new Error(result.serverError);
       if (!result?.data) throw new Error("Failed to update address");
       return result.data;
     },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["qc-username", "by-id", variables.qcId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["qc-username", "by-id"] });
     },
   });
 }

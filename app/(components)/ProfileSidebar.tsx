@@ -132,7 +132,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
     const currentUsername = usernameForm.getFieldValue("username");
     if (!currentUsername || !telegramId || usernameAvailability !== "available") return;
     registerUsernameMutation.mutate(
-      { username: currentUsername, qcId: telegramId, address: walletAddress || undefined },
+      { username: currentUsername, address: walletAddress || undefined },
       {
         onSuccess: () => {
           setQcUsername(currentUsername);

@@ -14,6 +14,7 @@ import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth"
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { farmStakeSchema } from "@/lib/validations";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import {
     fetchFarmingPools,
     fetchUserFarmPositions,
@@ -152,11 +153,11 @@ export default function FarmingPage() {
         setStep("processing");
         
         try {
-            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+            const storedMnemonic = await getSecureMnemonic(telegramId);
             if (!storedMnemonic) {
                 throw new Error("Wallet not found");
             }
-            
+
             const result = await stakeLpTokens(
                 selectedFarm.address,
                 selectedFarm.lpAddress,
@@ -199,11 +200,11 @@ export default function FarmingPage() {
         setIsProcessing(true);
         
         try {
-            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+            const storedMnemonic = await getSecureMnemonic(telegramId);
             if (!storedMnemonic) {
                 throw new Error("Wallet not found");
             }
-            
+
             const result = await unstakeLpTokens(
                 position.nftAddress,
                 storedMnemonic.split(" "),

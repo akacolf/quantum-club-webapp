@@ -169,13 +169,14 @@ export const nftBuildBuy = authActionClient
 const confirmSaleSchema = z.object({
   listingId: z.string().min(1),
   buyerAddress: z.string().min(1),
-  transactionHash: z.string().optional(),
+  transactionHash: z.string().min(1, "Transaction hash is required"),
 });
 
 export const nftConfirmSale = authActionClient
   .schema(confirmSaleSchema)
   .action(
-    async ({ parsedInput: { listingId, buyerAddress, transactionHash } }) => {
+    async ({ ctx: { session }, parsedInput: { listingId, buyerAddress, transactionHash } }) => {
+      const buyerTelegramId = String(session.user.telegramId);
       const listingRef = firestore
         .collection("nft_listings")
         .doc(listingId);
@@ -193,9 +194,14 @@ export const nftConfirmSale = authActionClient
             throw new Error("This NFT has already been sold");
           }
 
+          if (data?.sellerTelegramId === buyerTelegramId) {
+            throw new Error("Cannot buy your own listing");
+          }
+
           transaction.update(listingRef, {
             status: "sold",
             buyerAddress,
+            buyerTelegramId,
             soldAt: Date.now(),
             soldTransactionHash: transactionHash,
           });

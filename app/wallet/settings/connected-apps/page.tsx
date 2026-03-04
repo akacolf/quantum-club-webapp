@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,7 +81,7 @@ export default function ConnectedAppsPage() {
             try {
                 // Register wallet if not already registered
                 if (!walletKit.isWalletRegistered) {
-                    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+                    const storedMnemonic = await getSecureMnemonic(telegramId);
                     if (storedMnemonic) {
                         console.log("[ConnectedApps] Registering wallet...");
                         const mnemonic = storedMnemonic.split(" ");
@@ -118,7 +119,7 @@ export default function ConnectedAppsPage() {
 
             // Ensure wallet is registered before processing
             if (!walletKit.isWalletRegistered) {
-                const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+                const storedMnemonic = await getSecureMnemonic(telegramId);
                 if (storedMnemonic) {
                     console.log("[ConnectedApps] Registering wallet before connection...");
                     const mnemonic = storedMnemonic.split(" ");

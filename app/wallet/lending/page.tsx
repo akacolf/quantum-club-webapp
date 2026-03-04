@@ -16,6 +16,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import {
     fetchLendingMarkets,
     fetchUserPositions,
@@ -199,7 +200,7 @@ export default function LendingPage() {
         }
         if (!selectedAsset || !amount || parseFloat(amount) <= 0) return;
 
-        const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+        const storedMnemonic = await getSecureMnemonic(telegramId);
         if (!storedMnemonic || !walletAddress) {
             toast.error("Wallet credentials not found");
             return;

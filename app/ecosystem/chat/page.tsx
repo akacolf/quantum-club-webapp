@@ -349,7 +349,7 @@ export default function QCChatListPage() {
     if (!val || !telegramId || usernameAvailability !== "available") return;
     setIsRegisteringUsername(true);
     try {
-      const result = await registerQcUsername({ username: val, qcId: telegramId, address: walletAddress || undefined });
+      const result = await registerQcUsername({ username: val, address: walletAddress || undefined });
       if (result?.data?.success) {
         setQcUsername(val);
         localStorage.setItem(`qcUsername_${telegramId}`, val);
@@ -452,7 +452,7 @@ export default function QCChatListPage() {
     const syncKey = `qcAddr_synced_${telegramId}`;
     if (sessionStorage.getItem(syncKey)) return; // Only once per session
     sessionStorage.setItem(syncKey, "1");
-    updateQcUsernameAddress({ qcId: telegramId, address: walletAddress }).catch(() => {});
+    updateQcUsernameAddress({ address: walletAddress }).catch(() => {});
   }, [qcUsername, walletAddress, telegramId]);
 
   // Ensure global chat exists and user is a participant

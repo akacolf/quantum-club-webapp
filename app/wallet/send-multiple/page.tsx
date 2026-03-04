@@ -17,6 +17,7 @@ import {
   useBiometricAuth,
 } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { Address, toNano } from "@ton/core";
 import {
   sendBatchTransaction,
@@ -204,9 +205,7 @@ export default function SendMultiplePage() {
     setViewMode("processing");
 
     try {
-      const storedMnemonic = localStorage.getItem(
-        `quantum_wallet_mnemonic_${telegramId}`,
-      );
+      const storedMnemonic = await getSecureMnemonic(telegramId);
       if (!storedMnemonic) {
         throw new Error("Wallet not found");
       }

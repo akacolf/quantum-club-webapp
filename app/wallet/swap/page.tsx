@@ -3,6 +3,7 @@
 import { env } from "@/env";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { sendBoc } from "@/lib/tonapi-client";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useForm } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -476,7 +477,7 @@ export default function SwapPage() {
 
     // Execute swap using Omniston
     const executeSwap = async () => {
-        const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+        const storedMnemonic = await getSecureMnemonic(telegramId);
         if (!storedMnemonic || !confirmedQuote || !fromAsset || !toAsset) {
             toast.error("Wallet credentials or quote not found");
             return;

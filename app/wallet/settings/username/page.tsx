@@ -88,7 +88,7 @@ export default function QCDomainPage() {
     if (!result.success || !telegramId) return;
 
     registerUsernameMutation.mutate(
-      { username, qcId: telegramId, address: walletAddress || undefined },
+      { username, address: walletAddress || undefined },
       {
         onSuccess: () => {
           toast.success(`You're now @${username}!`);
@@ -108,7 +108,7 @@ export default function QCDomainPage() {
   const handleUpdateAddress = () => {
     if (!telegramId || !walletAddress) return;
     updateAddressMutation.mutate(
-      { qcId: telegramId, address: walletAddress },
+      { address: walletAddress },
       {
         onSuccess: () => {
           toast.success("Wallet address updated!");

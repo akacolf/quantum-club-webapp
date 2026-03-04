@@ -36,9 +36,7 @@ export const verifyQcId = actionClient
 
 const transferSchema = z.object({
   recipientQcId: z.string().min(1, "recipientQcId is required"),
-  amount: z.coerce.number().refine((val) => val > 0, {
-    message: "Amount must be a positive number",
-  }),
+  amount: z.coerce.number().positive("Amount must be positive").max(1_000_000, "Maximum transfer is 1,000,000 QNTM"),
 });
 
 export const transferQntm = authWithQcIdClient

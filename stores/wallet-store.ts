@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import type { ChainType } from "@/app/wallet/utils/multichain";
+import { getSecureMnemonic, removeSecureMnemonic } from "@/lib/secure-mnemonic";
 
 export interface JettonBalance {
   symbol: string;
@@ -245,16 +246,15 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
     });
 
     // Re-derive TON address with new network flag
-    const storedMnemonic = localStorage.getItem(
-      `quantum_wallet_mnemonic_${_deps.telegramId}`
-    );
     const storedVersion =
       localStorage.getItem(`quantum_wallet_version_${_deps.telegramId}`) ||
       "v5r1";
 
-    if (storedMnemonic && _deps.telegramId) {
+    if (_deps.telegramId) {
       (async () => {
         try {
+          const storedMnemonic = await getSecureMnemonic(_deps.telegramId!);
+          if (!storedMnemonic) return;
           const { mnemonicToWalletKey } = await import("@ton/crypto");
           const mnemonic = storedMnemonic.split(" ");
           const keyPair = await mnemonicToWalletKey(mnemonic);
@@ -395,7 +395,7 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
     const { _deps } = get();
     const tid = _deps.telegramId;
     localStorage.removeItem(`quantum_wallet_address_${tid}`);
-    localStorage.removeItem(`quantum_wallet_mnemonic_${tid}`);
+    if (tid) removeSecureMnemonic(tid);
     localStorage.removeItem(`quantum_wallet_pin_hash_${tid}`);
     localStorage.removeItem(`quantum_wallet_credential_id_${tid}`);
     localStorage.removeItem(`quantum_wallet_version_${tid}`);
@@ -436,17 +436,14 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
       return { success: false, error: "Not authenticated" };
     }
 
-    const storedMnemonic = localStorage.getItem(
-      `quantum_wallet_mnemonic_${telegramId}`
-    );
     const storedVersion =
       localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
 
-    if (!storedMnemonic) {
-      return { success: false, error: "Wallet not found" };
-    }
-
     try {
+      const storedMnemonic = await getSecureMnemonic(telegramId);
+      if (!storedMnemonic) {
+        return { success: false, error: "Wallet not found" };
+      }
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
 

@@ -27,6 +27,7 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { mnemonicToPrivateKey } from "@ton/crypto";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell, Cell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
@@ -603,7 +604,7 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+      const storedMnemonic = await getSecureMnemonic(telegramId);
       if (!storedMnemonic) {
         throw new Error("Wallet not found");
       }
@@ -798,7 +799,7 @@ export default function SendPage() {
   };
 
   const executeSend = async () => {
-    const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+    const storedMnemonic = await getSecureMnemonic(telegramId);
     if (!storedMnemonic) {
       toast.error("Wallet credentials not found");
       analyticsEvents.transactionSigningFailed("Wallet credentials not found");
@@ -1064,7 +1065,7 @@ export default function SendPage() {
     setMultiChainStep("processing");
 
     try {
-      const mnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+      const mnemonic = await getSecureMnemonic(telegramId);
       if (!mnemonic) {
         throw new Error("Wallet not found");
       }

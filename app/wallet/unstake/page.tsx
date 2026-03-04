@@ -16,6 +16,7 @@ import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth"
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { stakeAmountSchema } from "@/lib/validations";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import {
     getTonStakersInfo,
     unstakeTsTon,
@@ -75,9 +76,9 @@ export default function UnstakePage() {
         
         setIsLoading(true);
         try {
-            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+            const storedMnemonic = await getSecureMnemonic(telegramId);
             const storedAddress = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
-            
+
             if (storedMnemonic && storedAddress) {
                 const mnemonic = storedMnemonic.split(" ");
                 const [info, activeWithdrawals] = await Promise.all([
@@ -142,7 +143,7 @@ export default function UnstakePage() {
         const amount = form.getFieldValue("amount");
 
         try {
-            const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+            const storedMnemonic = await getSecureMnemonic(telegramId);
             const storedAddress = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
 
             if (!storedMnemonic || !storedAddress) {

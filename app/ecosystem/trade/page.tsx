@@ -18,6 +18,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { useWallet } from "@/app/wallet/WalletContext";
+import { hasMnemonic } from "@/lib/secure-mnemonic";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -272,8 +273,7 @@ export default function TradePage() {
         
         // If context is empty, check localStorage (for SSR hydration)
         // This will be empty after logout due to clearWallet()
-        const mnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
-        setHasWallet(!!mnemonic);
+        setHasWallet(hasMnemonic(telegramId));
     }, [walletAddress]);
 
     // Handle retry deployment

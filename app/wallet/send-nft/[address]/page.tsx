@@ -18,6 +18,7 @@ import { useWallet } from "../../WalletContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Loader from "@/app/(components)/Loader";
+import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { resolveTonAddress } from "@/lib/tonAddressResolver";
 import { toast } from "sonner";
 import { mnemonicToPrivateKey } from "@ton/crypto";
@@ -138,7 +139,7 @@ export default function SendNftPage() {
     };
 
     const executeNftTransfer = async () => {
-        const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
+        const storedMnemonic = await getSecureMnemonic(telegramId);
         if (!storedMnemonic) {
             toast.error("Wallet credentials not found");
             return;
