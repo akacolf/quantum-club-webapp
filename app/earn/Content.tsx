@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";
 import Loader from "../(components)/Loader";
@@ -28,6 +29,10 @@ const EarnContent = () => {
   } = useUserContext();
   const { totalUsers } = useLeaderboardContext();
   const [activeTaskId, setActiveTaskId] = useState(null);
+  const [tab, setTab] = useQueryState(
+    "tab",
+    parseAsStringLiteral(["Limited", "In-app", "Partners"] as const).withDefault("Limited")
+  );
   const auth = useAuth();
   const router = useRouter();
 
@@ -1080,7 +1085,8 @@ const EarnContent = () => {
             {/* Navigation Tabs */}
             <div className="px-4 mb-6">
               <Tabs
-                defaultValue={limitedTXT}
+                value={tab}
+                onValueChange={(v) => setTab(v as typeof tab)}
                 className="w-full"
               >
                 <TabsList className="w-full bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] p-1 h-auto rounded-xl">

@@ -24,6 +24,7 @@ import {
 } from "@/lib/nft-sale-contracts";
 import { convertTonToStars } from "@/lib/telegram-payments";
 import { nftBuildBuy, nftConfirmSale } from "@/app/wallet/nft/actions";
+import { createStarsInvoice } from "../actions";
 
 type ViewMode = "preview" | "processing" | "success" | "error";
 
@@ -159,32 +160,29 @@ export default function BuyNftPage() {
         setViewMode("processing");
 
         try {
-            // Create Stars invoice via our API
+            // Create Stars invoice via server action
             const tonAmount = Number(priceInfo!.totalPrice) / 1e9;
             const tonPriceUsd = 5.5; // TODO: Get from price API
-            const response = await fetch("/api/payments/telegram-stars", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    action: "create-invoice",
-                    telegramId,
-                    title: `NFT: ${nft.name || "NFT Purchase"}`,
-                    description: `Purchase NFT from ${nft.collectionName || "collection"}`,
-                    payload: JSON.stringify({
-                        type: "nft_purchase",
-                        nftAddress: nftAddress,
-                        buyerId: telegramId,
-                        sellerAddress: nft.sale.owner,
-                        saleContractAddress: nft.sale.address,
-                    }),
-                    tonAmount,
-                    tonPriceUsd,
+            const invoiceResult = await createStarsInvoice({
+                title: `NFT: ${nft.name || "NFT Purchase"}`,
+                description: `Purchase NFT from ${nft.collectionName || "collection"}`,
+                payload: JSON.stringify({
+                    type: "nft_purchase",
+                    nftAddress: nftAddress,
+                    buyerId: telegramId,
+                    sellerAddress: nft.sale.owner,
+                    saleContractAddress: nft.sale.address,
                 }),
+                tonAmount,
+                tonPriceUsd,
             });
 
-            const result = await response.json();
+            if (invoiceResult?.serverError) {
+                throw new Error(invoiceResult.serverError);
+            }
+            const result = invoiceResult?.data;
 
-            if (result.success && result.invoiceLink) {
+            if (result?.success && result.invoiceLink) {
                 // Open Telegram Stars payment in Telegram WebApp
                 if (typeof window !== "undefined" && window.Telegram?.WebApp) {
                     // Use type assertion - openInvoice is available in Telegram WebApp but not in all type definitions
@@ -209,7 +207,7 @@ export default function BuyNftPage() {
                     toast.info("Complete payment in Telegram");
                 }
             } else {
-                throw new Error(result.error || "Failed to create invoice");
+                throw new Error("Failed to create invoice");
             }
         } catch (err) {
             console.error("Stars purchase error:", err);

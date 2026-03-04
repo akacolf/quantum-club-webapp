@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { dbfs } from "@/app/(firebase)/client";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 
@@ -33,8 +34,6 @@ const FrensContent = () => {
   } = useFrenContext();
   const [errorMessage, setErrorMessage] = useState<string | React.ReactNode>("");
   const [loading, setLoading] = useState(true);
-  const [totalReferralSize, setTotalReferralSize] = useState(0)
-  const [viewButton, setViewButton] = useState<string | React.ReactNode>("View more")
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -75,7 +74,6 @@ const FrensContent = () => {
         const snapshot = await getDocs(referralsRef);
         if (!snapshot.empty) {
           const snapshotSize = Number(snapshot.size)
-          setTotalReferralSize(snapshotSize)
 
           sessionStorage.setItem("Num", String(snapshot.size));
           const referralLocalSize = Number(referralsContext.length)
@@ -143,69 +141,13 @@ const FrensContent = () => {
   // Profile photos for referral list — TanStack Query handles caching/dedup
   const photoUrls = useProfilePhotos(referralsContext.map((r) => r.id));
 
-  async function lookViewMore() {
-    try {
-      setViewButton(<ButtonLoader />)
-      const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
-      const snapshot = await getDocs(referralsRef);
-      const checkReferral = referralsContext.length
-      let contextTotal = referralsContext.length
-      if (!snapshot.empty) {
-        try {
-          for (const docSnapshot of snapshot.docs) {
-            const referredTelegramId = docSnapshot.id;
-            try {
-              if (contextTotal >= checkReferral + 20) {
-                return;
-              }
-              let username = "";
-              const foundUser = referralsContext.find(user => user.id === referredTelegramId);
-              if (foundUser) {
-                continue;
-              }
-              const referredRef = doc(dbfs, `user/${referredTelegramId}`)
-              const referredData = await getDoc(referredRef)
-              username = referredData.data()?.username;
-              const coinsRef = doc(
-                dbfs,
-                `user/${referredTelegramId}/miningData/values`
-              );
-              const coinsSnapshot = await getDoc(coinsRef);
-              const coins =
-                coinsSnapshot.exists() && coinsSnapshot.data().firstQuant
-                  ? parseFloat(coinsSnapshot.data().firstQuant).toFixed(0)
-                  : "0.00";
-              const amount = Number(coins);
-              const newReferral = { id: referredTelegramId, username: username, quantamount: amount };
-              addReferral(newReferral);
-              contextTotal++
-            } catch (error) {
-              console.error(error);
-              return {
-                id: referredTelegramId,
-                username: "Error",
-                coins: "0.00",
-              };
-            }
-          }
-        } finally {
-          setViewButton("View more")
-        }
-
-      } else {
-        setLoading(false);
-        sessionStorage.setItem("FrenLoad", "InviteFren");
-        setErrorMessage(
-          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-            <Icon icon="lucide:users" className="w-16 h-16 mb-4 opacity-50" />
-            <span className="font-semibold text-base">Invite some frens to see them here!</span>
-          </div>
-        );
-      }
-    } catch (error) {
-      console.error(error)
-    }
-  }
+  const referralsListRef = useRef<HTMLDivElement>(null);
+  const referralsVirtualizer = useWindowVirtualizer({
+    count: referralsContext.length,
+    estimateSize: () => 72,
+    overscan: 5,
+    scrollMargin: referralsListRef.current?.offsetTop ?? 0,
+  });
 
   async function handleClaimRewards() {
     if (pendingRewards <= 0 || isClaiming) return;
@@ -395,52 +337,56 @@ const FrensContent = () => {
                 <span>Your Referrals</span>
               </div>
 
-              <div className="space-y-3">
+              <div>
                 {referralsContext && referralsContext.length > 0 ? (
-                  referralsContext.map((referral, index) => (
-                    <Card key={index} className="bg-white/5 border-white/5 text-white backdrop-blur-sm hover:bg-white/10 transition-all active:scale-[0.98]">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center border border-[#333] overflow-hidden">
-                            {photoUrls[referral.id] ? (
-                              <Image
-                                src={photoUrls[referral.id]!}
-                                alt={referral.username || "User"}
-                                width={40}
-                                height={40}
-                                className="w-full h-full object-cover"
-                                unoptimized
-                              />
-                            ) : (
-                              <Icon icon="lucide:user" className="w-5 h-5 text-gray-400" />
-                            )}
+                  <div ref={referralsListRef}>
+                    <div className="relative" style={{ height: `${referralsVirtualizer.getTotalSize()}px` }}>
+                      {referralsVirtualizer.getVirtualItems().map((virtualItem) => {
+                        const referral = referralsContext[virtualItem.index];
+                        return (
+                          <div
+                            key={referral.id}
+                            className="absolute top-0 left-0 w-full"
+                            style={{ transform: `translateY(${virtualItem.start - referralsVirtualizer.options.scrollMargin}px)` }}
+                            ref={referralsVirtualizer.measureElement}
+                            data-index={virtualItem.index}
+                          >
+                            <div className="pb-3">
+                              <Card className="bg-white/5 border-white/5 text-white backdrop-blur-sm hover:bg-white/10 transition-all active:scale-[0.98]">
+                                <CardContent className="p-4 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center border border-[#333] overflow-hidden">
+                                      {photoUrls[referral.id] ? (
+                                        <Image
+                                          src={photoUrls[referral.id]!}
+                                          alt={referral.username || "User"}
+                                          width={40}
+                                          height={40}
+                                          className="w-full h-full object-cover"
+                                          unoptimized
+                                        />
+                                      ) : (
+                                        <Icon icon="lucide:user" className="w-5 h-5 text-gray-400" />
+                                      )}
+                                    </div>
+                                    <div className="font-medium text-sm text-gray-200">{referral.username}</div>
+                                  </div>
+                                  <div className="flex items-center gap-2 bg-[#2a2a2a]/50 px-3 py-1.5 rounded-lg border border-[#333]">
+                                    <Icon icon="lucide:trophy" className="w-3.5 h-3.5 text-yellow-500" />
+                                    <span className="font-bold text-sm text-yellow-500">
+                                      +{((referral.quantamount * 10) / 100).toFixed(0)} QNTM
+                                    </span>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
                           </div>
-                          <div className="font-medium text-sm text-gray-200">{referral.username}</div>
-                        </div>
-                        <div className="flex items-center gap-2 bg-[#2a2a2a]/50 px-3 py-1.5 rounded-lg border border-[#333]">
-                          <Icon icon="lucide:trophy" className="w-3.5 h-3.5 text-yellow-500" />
-                          <span className="font-bold text-sm text-yellow-500">
-                            +{((referral.quantamount * 10) / 100).toFixed(0)} QNTM
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                        );
+                      })}
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-8">{errorMessage}</div>
-                )}
-
-                {totalReferralSize >= 20 && totalReferralSize !== referralsContext.length && (
-                  <div className="flex justify-center pt-4">
-                    <Button
-                      variant="outline"
-                      disabled={viewButton !== "View more"}
-                      onClick={() => lookViewMore()}
-                      className="bg-[#1a1a1a] border-[#333] text-white hover:bg-[#2a2a2a] min-w-[120px]"
-                    >
-                      {viewButton}
-                    </Button>
-                  </div>
                 )}
               </div>
             </div>

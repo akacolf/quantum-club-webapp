@@ -21,7 +21,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "@/app/(login)/deviceDetection";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { checkExistingUser } from "@/app/(login)/actions";
+import { checkExistingUser, authenticateTelegram } from "@/app/(login)/actions";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
@@ -126,17 +126,11 @@ export default function SignUp() {
         return;
       }
 
-      const authRes = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData }),
-      });
-
-      if (!authRes.ok) {
-        throw new Error("Telegram session authentication failed");
+      const authResult = await authenticateTelegram({ initData: initData as string });
+      if (authResult?.serverError) {
+        throw new Error(authResult.serverError);
       }
-
-      const { telegramIdEncrypted } = await authRes.json();
+      const telegramIdEncrypted = authResult?.data?.telegramIdEncrypted;
       if (!telegramIdEncrypted) {
         throw new Error("Failed to resolve Telegram ID");
       }
@@ -238,23 +232,12 @@ export default function SignUp() {
           throw new Error("Telegram user data not available. Please try again.");
         }
 
-        const responseAuth = await fetch("/api/auth/telegram", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ initData }),
-        });
-
-        if (!responseAuth.ok) {
-          const errorData = await responseAuth
-            .json()
-            .catch(() => ({ error: "Authentication failed" }));
-          throw new Error(
-            errorData.error ||
-              `Authentication failed (HTTP ${responseAuth.status})`
-          );
+        const authResult = await authenticateTelegram({ initData: initData as string });
+        if (authResult?.serverError) {
+          throw new Error(authResult.serverError);
         }
-
-        const { customToken, telegramIdEncrypted } = await responseAuth.json();
+        const customToken = authResult?.data?.customToken;
+        const telegramIdEncrypted = authResult?.data?.telegramIdEncrypted;
         if (!customToken || !telegramIdEncrypted) {
           throw new Error("Telegram authentication response is incomplete.");
         }

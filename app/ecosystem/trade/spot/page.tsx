@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo, useDeferredValue, useRef } from "react";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Icon } from "@iconify/react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,14 +44,14 @@ export default function SpotTradingPage() {
     useTelegramBackButton("/ecosystem/trade");
     const { data: tokens, isLoading } = useSpotTokens();
     const { jettons, tonPrice } = useWallet();
-    const [searchQuery, setSearchQuery] = useState("");
-    const [debouncedQuery, setDebouncedQuery] = useState("");
-    const [activeTab, setActiveTab] = useState<SpotTab>("tokens");
-
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+    const [{ tab: activeTab, q: searchQuery }, setParams] = useQueryStates({
+        tab: parseAsStringLiteral(["tokens", "positions"] as const).withDefault("tokens"),
+        q: parseAsString.withDefault(""),
+    }, { history: "replace" });
+    const setActiveTab = (value: string) => setParams({ tab: value as SpotTab });
+    const setSearchQuery = (value: string) => setParams({ q: value });
+    const debouncedQuery = useDeferredValue(searchQuery);
+    const listRef = useRef<HTMLDivElement>(null);
 
     // Build a set of raw addresses the user holds for fast lookup
     const holdingsMap = useMemo(() => {
@@ -104,6 +106,13 @@ export default function SpotTradingPage() {
     }, [tokens, holdingsMap]);
 
     const totalPositionValue = positions.reduce((sum, p) => sum + (p.valueUsd || 0), 0);
+
+    const virtualizer = useWindowVirtualizer({
+        count: filtered.length,
+        estimateSize: () => 80,
+        overscan: 5,
+        scrollMargin: listRef.current?.offsetTop ?? 0,
+    });
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
@@ -189,18 +198,32 @@ export default function SpotTradingPage() {
                                 </p>
                             </div>
                         ) : (
-                            filtered.map((token, index) => {
-                                const rawAddr = normalizeAddress(token.contractAddress);
-                                const balance = holdingsMap.get(rawAddr);
-                                return (
-                                    <SpotTokenCard
-                                        key={token.contractAddress}
-                                        token={token}
-                                        index={index}
-                                        userBalance={balance}
-                                    />
-                                );
-                            })
+                            <div ref={listRef}>
+                                <div className="relative" style={{ height: `${virtualizer.getTotalSize()}px` }}>
+                                    {virtualizer.getVirtualItems().map((virtualItem) => {
+                                        const token = filtered[virtualItem.index];
+                                        const rawAddr = normalizeAddress(token.contractAddress);
+                                        const balance = holdingsMap.get(rawAddr);
+                                        return (
+                                            <div
+                                                key={token.contractAddress}
+                                                className="absolute top-0 left-0 w-full"
+                                                style={{ transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)` }}
+                                                ref={virtualizer.measureElement}
+                                                data-index={virtualItem.index}
+                                            >
+                                                <div className="pb-2">
+                                                    <SpotTokenCard
+                                                        token={token}
+                                                        index={virtualItem.index}
+                                                        userBalance={balance}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         )}
                     </>
                 ) : (

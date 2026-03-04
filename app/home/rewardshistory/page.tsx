@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { dbfs } from "@/app/(firebase)/client";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { TaskHistory } from "@/lib/interfaces";
@@ -7,7 +8,6 @@ import { getDocs, collection } from "firebase/firestore";
 import TasksSkeleton from "./(components)/TasksSkeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 function getPlatformIcon(platform: string | null) {
   if (platform === "dailycheck-in-reward") {
@@ -287,6 +287,14 @@ export default function RewardsHistory() {
   const { telegramId } = useUserContext();
   const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useWindowVirtualizer({
+    count: taskhistoryList.length,
+    estimateSize: () => 72,
+    overscan: 5,
+    scrollMargin: listRef.current?.offsetTop ?? 0,
+  });
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -376,33 +384,46 @@ export default function RewardsHistory() {
         {tasksLoading ? (
           <TasksSkeleton />
         ) : taskhistoryList.length > 0 ? (
-          <ScrollArea className="h-[calc(100vh-150px)]">
-            <div className="space-y-3 pr-2">
-              {taskhistoryList.map((task) => (
-                <Card key={task.id} className="bg-[#111] border-[#333] hover:bg-[#161616] transition-colors">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#222] border border-[#333] shrink-0">
-                        {getPlatformIcon(task.platform)}
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <p className="font-semibold text-white text-sm">{task.title}</p>
-                        <p className="text-gray-500 text-xs font-medium">{task.date}</p>
-                      </div>
+          <div ref={listRef}>
+            <div className="relative" style={{ height: `${virtualizer.getTotalSize()}px` }}>
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const task = taskhistoryList[virtualItem.index];
+                return (
+                  <div
+                    key={task.id}
+                    className="absolute top-0 left-0 w-full"
+                    style={{ transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)` }}
+                    ref={virtualizer.measureElement}
+                    data-index={virtualItem.index}
+                  >
+                    <div className="pb-3">
+                      <Card className="bg-[#111] border-[#333] hover:bg-[#161616] transition-colors">
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#222] border border-[#333] shrink-0">
+                              {getPlatformIcon(task.platform)}
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <p className="font-semibold text-white text-sm">{task.title}</p>
+                              <p className="text-gray-500 text-xs font-medium">{task.date}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center gap-1 bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20">
+                              <span className="text-green-400 font-bold text-sm">
+                                +{task.quant}
+                              </span>
+                              <span className="text-green-500/70 text-[10px] font-bold">QNTM</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20">
-                        <span className="text-green-400 font-bold text-sm">
-                          +{task.quant}
-                        </span>
-                        <span className="text-green-500/70 text-[10px] font-bold">QNTM</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
             </div>
-          </ScrollArea>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-[50vh] text-gray-500 gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="3em" height="3em" viewBox="0 0 24 24" className="opacity-20">

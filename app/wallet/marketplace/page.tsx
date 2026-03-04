@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -38,8 +40,12 @@ export default function MarketplacePage() {
     useTelegramBackButton("/wallet");
     const { isTestnet } = useWallet();
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState("trending");
+    const [{ tab: activeTab, q: searchQuery }, setParams] = useQueryStates({
+        tab: parseAsStringLiteral(["trending", "qc-listed"] as const).withDefault("trending"),
+        q: parseAsString.withDefault(""),
+    }, { history: "replace" });
+    const setActiveTab = (value: string) => setParams({ tab: value as typeof activeTab });
+    const setSearchQuery = (value: string) => setParams({ q: value });
 
     const collectionsQuery = usePopularCollectionsQuery(isTestnet);
     const listingsQuery = useQCListingsQuery();
@@ -61,6 +67,23 @@ export default function MarketplacePage() {
                 l.collectionName?.toLowerCase().includes(lower)
         );
     }, [listingsQuery.data, searchQuery]);
+
+    const collectionsListRef = useRef<HTMLDivElement>(null);
+    const listingsListRef = useRef<HTMLDivElement>(null);
+
+    const collectionsVirtualizer = useWindowVirtualizer({
+        count: Math.ceil(filteredCollections.length / 2),
+        estimateSize: () => 280,
+        overscan: 3,
+        scrollMargin: collectionsListRef.current?.offsetTop ?? 0,
+    });
+
+    const listingsVirtualizer = useWindowVirtualizer({
+        count: Math.ceil(filteredListings.length / 2),
+        estimateSize: () => 280,
+        overscan: 3,
+        scrollMargin: listingsListRef.current?.offsetTop ?? 0,
+    });
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-28">
@@ -189,53 +212,66 @@ export default function MarketplacePage() {
                             )}
 
                             {filteredCollections.length > 0 && (
-                                <div className="grid grid-cols-2 gap-3">
-                                    {filteredCollections.map((col, index) => (
-                                        <motion.div
-                                            key={col.address}
-                                            initial={{ opacity: 0, y: 15 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.04 }}
-                                        >
-                                            <Link href={`/wallet/marketplace/collection/${encodeURIComponent(col.address)}`}>
-                                                <Card className="bg-card border-border rounded-2xl overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer">
-                                                    <div className="w-full aspect-square bg-muted relative overflow-hidden">
-                                                        {col.image ? (
-                                                            <Image
-                                                                src={col.image}
-                                                                alt={col.name}
-                                                                fill
-                                                                className="object-cover"
-                                                                unoptimized
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground" />
-                                                            </div>
-                                                        )}
+                                <div ref={collectionsListRef}>
+                                    <div className="relative" style={{ height: `${collectionsVirtualizer.getTotalSize()}px` }}>
+                                        {collectionsVirtualizer.getVirtualItems().map((virtualRow) => {
+                                            const leftIndex = virtualRow.index * 2;
+                                            const rightIndex = leftIndex + 1;
+                                            const leftCol = filteredCollections[leftIndex];
+                                            const rightCol = rightIndex < filteredCollections.length ? filteredCollections[rightIndex] : null;
+                                            return (
+                                                <div
+                                                    key={virtualRow.index}
+                                                    className="absolute top-0 left-0 w-full"
+                                                    style={{ transform: `translateY(${virtualRow.start - collectionsVirtualizer.options.scrollMargin}px)` }}
+                                                    ref={collectionsVirtualizer.measureElement}
+                                                    data-index={virtualRow.index}
+                                                >
+                                                    <div className="grid grid-cols-2 gap-3 pb-3">
+                                                        {[leftCol, rightCol].map((col) => col && (
+                                                            <Link key={col.address} href={`/wallet/marketplace/collection/${encodeURIComponent(col.address)}`}>
+                                                                <Card className="bg-card border-border rounded-2xl overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer">
+                                                                    <div className="w-full aspect-square bg-muted relative overflow-hidden">
+                                                                        {col.image ? (
+                                                                            <Image
+                                                                                src={col.image}
+                                                                                alt={col.name}
+                                                                                fill
+                                                                                className="object-cover"
+                                                                                unoptimized
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                                <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <CardContent className="p-3">
+                                                                        <div className="flex items-center gap-1">
+                                                                            <h4 className="font-bold text-sm truncate">{col.name}</h4>
+                                                                            {col.verified && (
+                                                                                <Icon icon="solar:verified-check-bold" className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                                            <span className="text-xs text-muted-foreground">
+                                                                                {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
+                                                                            </span>
+                                                                            {col.floorPrice && (
+                                                                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                                                    Floor: {(col.floorPrice / 1e9).toFixed(2)} TON
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    </CardContent>
+                                                                </Card>
+                                                            </Link>
+                                                        ))}
                                                     </div>
-                                                    <CardContent className="p-3">
-                                                        <div className="flex items-center gap-1">
-                                                            <h4 className="font-bold text-sm truncate">{col.name}</h4>
-                                                            {col.verified && (
-                                                                <Icon icon="solar:verified-check-bold" className="w-3.5 h-3.5 text-primary shrink-0" />
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
-                                                            </span>
-                                                            {col.floorPrice && (
-                                                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                                                    Floor: {(col.floorPrice / 1e9).toFixed(2)} TON
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            </Link>
-                                        </motion.div>
-                                    ))}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </TabsContent>
@@ -269,44 +305,57 @@ export default function MarketplacePage() {
                             )}
 
                             {filteredListings.length > 0 && (
-                                <div className="grid grid-cols-2 gap-3">
-                                    {filteredListings.map((listing, index) => (
-                                        <motion.div
-                                            key={listing.id}
-                                            initial={{ opacity: 0, y: 15 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.04 }}
-                                        >
-                                            <Link href={`/wallet/marketplace/buy/${encodeURIComponent(listing.nftAddress)}`}>
-                                                <Card className="bg-card border-border rounded-2xl overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer">
-                                                    <div className="w-full aspect-square bg-muted relative overflow-hidden">
-                                                        {listing.nftImage ? (
-                                                            <Image
-                                                                src={listing.nftImage}
-                                                                alt={listing.nftName}
-                                                                fill
-                                                                className="object-cover"
-                                                                unoptimized
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground" />
-                                                            </div>
-                                                        )}
-                                                        <Badge className="absolute top-2 right-2 bg-green-600 text-[10px]">
-                                                            {listing.price} TON
-                                                        </Badge>
+                                <div ref={listingsListRef}>
+                                    <div className="relative" style={{ height: `${listingsVirtualizer.getTotalSize()}px` }}>
+                                        {listingsVirtualizer.getVirtualItems().map((virtualRow) => {
+                                            const leftIndex = virtualRow.index * 2;
+                                            const rightIndex = leftIndex + 1;
+                                            const leftListing = filteredListings[leftIndex];
+                                            const rightListing = rightIndex < filteredListings.length ? filteredListings[rightIndex] : null;
+                                            return (
+                                                <div
+                                                    key={virtualRow.index}
+                                                    className="absolute top-0 left-0 w-full"
+                                                    style={{ transform: `translateY(${virtualRow.start - listingsVirtualizer.options.scrollMargin}px)` }}
+                                                    ref={listingsVirtualizer.measureElement}
+                                                    data-index={virtualRow.index}
+                                                >
+                                                    <div className="grid grid-cols-2 gap-3 pb-3">
+                                                        {[leftListing, rightListing].map((listing) => listing && (
+                                                            <Link key={listing.id} href={`/wallet/marketplace/buy/${encodeURIComponent(listing.nftAddress)}`}>
+                                                                <Card className="bg-card border-border rounded-2xl overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer">
+                                                                    <div className="w-full aspect-square bg-muted relative overflow-hidden">
+                                                                        {listing.nftImage ? (
+                                                                            <Image
+                                                                                src={listing.nftImage}
+                                                                                alt={listing.nftName}
+                                                                                fill
+                                                                                className="object-cover"
+                                                                                unoptimized
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                                <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground" />
+                                                                            </div>
+                                                                        )}
+                                                                        <Badge className="absolute top-2 right-2 bg-green-600 text-[10px]">
+                                                                            {listing.price} TON
+                                                                        </Badge>
+                                                                    </div>
+                                                                    <CardContent className="p-3">
+                                                                        <h4 className="font-bold text-sm truncate">{listing.nftName}</h4>
+                                                                        {listing.collectionName && (
+                                                                            <p className="text-xs text-muted-foreground truncate">{listing.collectionName}</p>
+                                                                        )}
+                                                                    </CardContent>
+                                                                </Card>
+                                                            </Link>
+                                                        ))}
                                                     </div>
-                                                    <CardContent className="p-3">
-                                                        <h4 className="font-bold text-sm truncate">{listing.nftName}</h4>
-                                                        {listing.collectionName && (
-                                                            <p className="text-xs text-muted-foreground truncate">{listing.collectionName}</p>
-                                                        )}
-                                                    </CardContent>
-                                                </Card>
-                                            </Link>
-                                        </motion.div>
-                                    ))}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </TabsContent>
