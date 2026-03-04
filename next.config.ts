@@ -1,5 +1,11 @@
 // Validate env vars at build start (fails fast if any required var is missing)
 import "./env";
+import withSerwistInit from "@serwist/next";
+
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+});
 
 /** @type {import('next').NextConfig} */
 
@@ -76,8 +82,13 @@ const nextConfig: import('next').NextConfig = {
 
 
 
+  // React Compiler - auto-memoizes components/hooks at build time
+  reactCompiler: true,
+
   // Experimental features
   experimental: {
+    // View Transitions API - GPU-composited page transitions
+    viewTransition: true,
     // Optimizations - tree-shake these large packages
     optimizePackageImports: [
       '@radix-ui/react-accordion',
@@ -128,4 +139,4 @@ const nextConfig: import('next').NextConfig = {
   poweredByHeader: false,
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);

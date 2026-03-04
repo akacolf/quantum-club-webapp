@@ -64,6 +64,10 @@ web-build/
 # GitHub Copilot Instructions
 .github/
 
+# Serwist PWA (generated service worker)
+public/sw*
+public/swe-worker*
+
 # Firebase Functions
 functions/node_modules
 functions/lib

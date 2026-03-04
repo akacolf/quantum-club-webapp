@@ -7,7 +7,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { Address } from "@ton/core";
 import { buildJettonDeploy } from "@/lib/jetton-real";
 import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
-import { checkSymbolSchema, uploadImageSchema } from "@/lib/validations";
+import { checkSymbolSchema, uploadImageSchema, graduateSchema } from "@/lib/validations";
+import { calculateGraduationLiquidity } from "@/lib/graduation";
 import { v2 as cloudinary } from "cloudinary";
 import { env } from "@/env";
 
@@ -338,5 +339,109 @@ export const uploadTokenImage = authActionClient
             success: true,
             publicUrl: result.secure_url,
             publicId: result.public_id,
+        };
+    });
+
+// ---------------------------------------------------------------------------
+// graduateToken — admin-only: graduate token from bonding curve to DEX
+// ---------------------------------------------------------------------------
+
+const ADMIN_IDS = env.ADMIN_TELEGRAM_IDS?.split(",") || [];
+
+export const graduateToken = authActionClient
+    .schema(graduateSchema)
+    .action(async ({ ctx: { session }, parsedInput: { tokenId, dexPoolAddress, jettonMasterAddress } }) => {
+        const userId = String(session.user.telegramId);
+
+        if (!ADMIN_IDS.includes(userId)) {
+            throw new Error("Admin access required");
+        }
+
+        const tokenRef = adminDb.collection("tokens").doc(tokenId);
+        const tokenDoc = await tokenRef.get();
+
+        if (!tokenDoc.exists) {
+            throw new Error("Token not found");
+        }
+
+        const tokenData = tokenDoc.data()!;
+
+        if (tokenData.status !== "bonding") {
+            throw new Error("Token is not in bonding phase");
+        }
+
+        const collectedTon = tokenData.collectedTon || "0";
+        const totalSupply = tokenData.totalSupply || "0";
+        const graduation = calculateGraduationLiquidity(
+            collectedTon,
+            totalSupply,
+            FEE_CONFIG.graduationFeePercent,
+        );
+
+        await tokenRef.update({
+            status: "graduated",
+            isGraduated: true,
+            mintable: false,
+            graduatedAt: FieldValue.serverTimestamp(),
+            dexPoolAddress: dexPoolAddress || null,
+            jettonMasterAddress: jettonMasterAddress || null,
+            graduationFee: graduation.platformFee,
+            platformWallet: PLATFORM_WALLET_ADDRESS,
+        });
+
+        await adminDb.collection("graduationLogs").add({
+            tokenId,
+            tokenName: tokenData.name,
+            tokenSymbol: tokenData.symbol,
+            marketCapAtGraduation: tokenData.marketCap,
+            collectedTon,
+            tonForLp: graduation.tonForLp,
+            tokensForLp: graduation.tokensForLp,
+            platformFee: graduation.platformFee,
+            platformWallet: PLATFORM_WALLET_ADDRESS,
+            dexPoolAddress,
+            jettonMasterAddress,
+            graduatedBy: userId,
+            timestamp: FieldValue.serverTimestamp(),
+        });
+
+        return {
+            success: true,
+            message: `Token ${tokenData.symbol} has graduated to DEX`,
+            token: {
+                id: tokenId,
+                symbol: tokenData.symbol,
+                status: "graduated",
+                dexPoolAddress,
+            },
+        };
+    });
+
+// ---------------------------------------------------------------------------
+// checkGraduationStatus — check if a token is ready to graduate
+// ---------------------------------------------------------------------------
+
+export const checkGraduationStatus = authActionClient
+    .schema(z.object({ tokenId: z.string().min(1) }))
+    .action(async ({ parsedInput: { tokenId } }) => {
+        const tokenDoc = await adminDb.collection("tokens").doc(tokenId).get();
+
+        if (!tokenDoc.exists) {
+            throw new Error("Token not found");
+        }
+
+        const tokenData = tokenDoc.data()!;
+        const marketCapTon = parseFloat(tokenData.marketCap || "0") / 1e9;
+        const thresholdTon = parseFloat(tokenData.graduationThreshold || "2000");
+        const isReady = marketCapTon >= thresholdTon;
+
+        return {
+            tokenId,
+            symbol: tokenData.symbol,
+            status: tokenData.status,
+            marketCapTon: marketCapTon.toFixed(2),
+            thresholdTon,
+            isReadyToGraduate: isReady && tokenData.status === "bonding",
+            percentComplete: Math.min(100, (marketCapTon / thresholdTon) * 100).toFixed(1),
         };
     });

@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import React, { useState, useEffect, useCallback } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ interface GraduatedTradingProps {
 
 export default function GraduatedTrading({ token }: GraduatedTradingProps) {
     const { tonBalance, walletAddress, sendTransaction } = useWallet();
-    const [activeTab, setActiveTab] = useState("buy");
+    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"]).withDefault("buy"));
     const [amount, setAmount] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
     const [preview, setPreview] = useState<{
@@ -218,7 +219,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
             {/* DEX Trading Panel */}
             <Card className="bg-white/5 border-white/10 overflow-hidden">
                 <CardContent className="p-4">
-                    <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setAmount(""); setPreview(null); setQuoteParams(null); }}>
+                    <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "buy" | "sell"); setAmount(""); setPreview(null); setQuoteParams(null); }}>
                         <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
                             <TabsTrigger
                                 value="buy"

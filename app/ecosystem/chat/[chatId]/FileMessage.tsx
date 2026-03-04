@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Icon } from "@iconify/react";
-import { decryptBlob } from "@/lib/chat-crypto";
+import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -28,8 +28,6 @@ interface FileMessageProps {
   epochCounter?: number;
 }
 
-const decryptedUrlCache = new Map<string, string>();
-
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -42,29 +40,6 @@ function getFileIcon(mimeType: string): string {
   if (mimeType.includes("word") || mimeType.includes("document")) return "solar:document-text-bold";
   if (mimeType.includes("text")) return "solar:document-text-bold";
   return "solar:file-bold";
-}
-
-async function fetchAndDecrypt(
-  url: string,
-  mimeType: string,
-  participantIds: string[],
-  chatId: string,
-  senderId?: string,
-  isGroup?: boolean,
-  epochNonce?: string,
-  epochCounter?: number,
-): Promise<string> {
-  const cached = decryptedUrlCache.get(url);
-  if (cached) return cached;
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${res.status}`);
-  const encryptedData = await res.arrayBuffer();
-  const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter);
-  const blob = new Blob([decryptedData], { type: mimeType });
-  const blobUrl = URL.createObjectURL(blob);
-  decryptedUrlCache.set(url, blobUrl);
-  return blobUrl;
 }
 
 /** Pinch-to-zoom + pan image lightbox */
@@ -237,21 +212,18 @@ export default function FileMessage({
   epochNonce,
   epochCounter,
 }: FileMessageProps) {
-  const [decryptedUrl, setDecryptedUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfScale, setPdfScale] = useState(1);
   const pinchRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = file.mimeType.startsWith("image/");
+  const isPdf = file.mimeType === "application/pdf";
 
-  // Lazy load images
+  // Lazy load images via IntersectionObserver
   useEffect(() => {
     if (!isImage || !containerRef.current) return;
     const observer = new IntersectionObserver(
@@ -267,48 +239,42 @@ export default function FileMessage({
     return () => observer.disconnect();
   }, [isImage]);
 
-  // Decrypt image when visible
-  useEffect(() => {
-    if (!isImage || !isVisible) return;
-    if (!file.encrypted || !participantIds || !chatId) {
-      queueMicrotask(() => setDecryptedUrl(file.url));
-      return;
-    }
+  // Decrypt image when visible (TanStack Query handles caching, dedup, retry)
+  const imageQuery = useDecryptedMedia({
+    url: file.url,
+    mimeType: file.mimeType,
+    encrypted: file.encrypted,
+    participantIds,
+    chatId,
+    senderId,
+    isGroup,
+    epochNonce,
+    epochCounter,
+    enabled: isImage && isVisible,
+  });
 
-    const cached = decryptedUrlCache.get(file.url);
-    if (cached) {
-      queueMicrotask(() => setDecryptedUrl(cached));
-      return;
-    }
+  // Decrypt PDF on demand (enabled when user opens viewer)
+  const pdfQuery = useDecryptedMedia({
+    url: file.url,
+    mimeType: file.mimeType,
+    encrypted: file.encrypted,
+    participantIds,
+    chatId,
+    senderId,
+    isGroup,
+    epochNonce,
+    epochCounter,
+    enabled: isPdf && showPdfViewer,
+  });
 
-    let cancelled = false;
-    queueMicrotask(() => setIsLoading(true));
+  const decryptedUrl = imageQuery.data ?? null;
+  const isLoading = imageQuery.isLoading || pdfQuery.isLoading;
+  const loadError = imageQuery.isError;
 
-    fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter)
-      .then((url) => { if (!cancelled) setDecryptedUrl(url); })
-      .catch((err) => { console.error("[FileMessage]", err); if (!cancelled) setLoadError(true); })
-      .finally(() => { if (!cancelled) setIsLoading(false); });
-
-    return () => { cancelled = true; };
-  }, [isImage, isVisible, file.url, file.encrypted, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
-
-  const isPdf = file.mimeType === "application/pdf";
-
-  const handleOpenPdf = useCallback(async () => {
+  const handleOpenPdf = useCallback(() => {
     if (!isPdf) return;
-    setIsLoading(true);
-    try {
-      let url = file.url;
-      if (file.encrypted && participantIds && chatId) {
-        url = await fetchAndDecrypt(file.url, file.mimeType, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter);
-      }
-      setPdfUrl(url);
-      setShowPdfViewer(true);
-    } catch (err) {
-      console.error("[FileMessage] open pdf:", err);
-    }
-    setIsLoading(false);
-  }, [isPdf, file, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
+    setShowPdfViewer(true);
+  }, [isPdf]);
 
   if (loadError) {
     return (
@@ -386,7 +352,7 @@ export default function FileMessage({
         )}
       </div>
 
-      {showPdfViewer && pdfUrl && (
+      {showPdfViewer && pdfQuery.data && (
         <div
           className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
           onTouchStart={(e) => e.stopPropagation()}
@@ -447,7 +413,7 @@ export default function FileMessage({
             onTouchEnd={() => { pinchRef.current = 0; }}
           >
             <Document
-              file={pdfUrl}
+              file={pdfQuery.data}
               onLoadSuccess={({ numPages: n }) => setNumPages(n)}
               loading={
                 <div className="flex items-center justify-center py-20">

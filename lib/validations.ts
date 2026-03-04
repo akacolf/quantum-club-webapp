@@ -47,7 +47,13 @@ export const createGroupSchema = z.object({
   description: z
     .string()
     .max(100, "Description must be 100 characters or less"),
-});
+  nftGated: z.boolean(),
+  nftCollection: z.string(),
+  nftCollectionName: z.string(),
+}).refine(
+  (data) => !data.nftGated || (data.nftCollection && data.nftCollection.length > 0),
+  { message: "Please select a collection for NFT gating", path: ["nftCollection"] },
+);
 export type CreateGroupFormData = z.infer<typeof createGroupSchema>;
 
 export const pollSchema = z.object({
@@ -78,6 +84,16 @@ export const createTokenSchema = z.object({
   description: z
     .string()
     .max(500, "Description must be 500 characters or less"),
+  initialBuyAmount: z
+    .string()
+    .refine(
+      (v) => !v || v === "" || v === "0" || (!isNaN(Number(v)) && Number(v) >= 0.1),
+      "Minimum initial buy is 0.1 TON",
+    )
+    .refine(
+      (v) => !v || v === "" || v === "0" || (!isNaN(Number(v)) && Number(v) <= 100),
+      "Maximum initial buy is 100 TON",
+    ),
 });
 export type CreateTokenFormData = z.infer<typeof createTokenSchema>;
 

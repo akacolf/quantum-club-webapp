@@ -25,7 +25,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
-import { MIN_INITIAL_BUY, MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
+import { MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 
@@ -75,7 +75,7 @@ export default function CreateTokenPage() {
     }, [router]);
 
     const form = useForm({
-        defaultValues: { name: "", symbol: "", description: "" },
+        defaultValues: { name: "", symbol: "", description: "", initialBuyAmount: "" },
         validators: { onSubmit: createTokenSchema },
         onSubmit: async ({ value }) => {
             await onSubmit(value);
@@ -86,14 +86,13 @@ export default function CreateTokenPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [imageBase64, setImageBase64] = useState("");
-    const [initialBuyAmount, setInitialBuyAmount] = useState("");
-    const [initialBuyError, setInitialBuyError] = useState("");
     const [isCheckingSymbol, setIsCheckingSymbol] = useState(false);
     const [symbolAvailable, setSymbolAvailable] = useState<boolean | null>(null);
     const [symbolError, setSymbolError] = useState<string | null>(null);
 
-    // Check symbol availability with debounce
+    // Watch form values
     const watchedSymbol = useStore(form.store, (s) => s.values.symbol);
+    const initialBuyAmount = useStore(form.store, (s) => s.values.initialBuyAmount ?? "");
     useEffect(() => {
         const symbol = watchedSymbol.trim();
 
@@ -149,24 +148,12 @@ export default function CreateTokenPage() {
             setSymbolError("Please wait while we check symbol availability");
             return false;
         }
-
-        // Validate initial buy amount
-        const buyAmount = parseFloat(initialBuyAmount || "0");
-        if (buyAmount > 0) {
-            if (buyAmount < MIN_INITIAL_BUY) {
-                setInitialBuyError(`Minimum initial buy is ${MIN_INITIAL_BUY} TON`);
-                return false;
-            } else if (buyAmount > MAX_INITIAL_BUY) {
-                setInitialBuyError(`Maximum initial buy is ${MAX_INITIAL_BUY} TON`);
-                return false;
-            }
-        }
-        setInitialBuyError("");
         return true;
     };
 
     // Calculate total cost (deployment + network fees buffer + optional initial buy)
     const initialBuyValue = parseFloat(initialBuyAmount || "0");
+    const initialBuyErrors = useStore(form.store, (s) => s.fieldMeta.initialBuyAmount?.errors ?? []);
     const minBalanceRequired = 0.1; // Minimum 0.1 TON for deployment + network fees
     const totalCost = minBalanceRequired + (initialBuyValue > 0 ? initialBuyValue : 0);
 
@@ -317,12 +304,13 @@ export default function CreateTokenPage() {
         try {
             toast.info("Creating and deploying token...", { duration: 5000 });
 
+            const buyAmt = parseFloat(data.initialBuyAmount || "0");
             const token = await createToken({
                 name: data.name.trim(),
                 symbol: data.symbol.trim().toUpperCase(),
                 description: data.description.trim(),
                 image: imageBase64.trim(),
-                initialBuyAmount: initialBuyValue > 0 ? initialBuyAmount : undefined,
+                initialBuyAmount: buyAmt > 0 ? data.initialBuyAmount : undefined,
             });
 
             if (!token) {
@@ -580,8 +568,8 @@ export default function CreateTokenPage() {
                                     <Switch
                                         checked={parseFloat(initialBuyAmount || "0") > 0}
                                         onCheckedChange={(checked) => {
-                                            if (!checked) setInitialBuyAmount("");
-                                            else setInitialBuyAmount("1");
+                                            if (!checked) form.setFieldValue("initialBuyAmount", "");
+                                            else form.setFieldValue("initialBuyAmount", "1");
                                         }}
                                         className="data-[state=checked]:bg-primary shrink-0"
                                     />
@@ -602,7 +590,7 @@ export default function CreateTokenPage() {
                                     <div className="space-y-4">
                                         <Slider
                                             value={[parseFloat(initialBuyAmount || "0")]}
-                                            onValueChange={([value]) => setInitialBuyAmount(value.toString())}
+                                            onValueChange={([value]) => form.setFieldValue("initialBuyAmount", value.toString())}
                                             min={0}
                                             max={MAX_INITIAL_BUY}
                                             step={0.5}
@@ -617,7 +605,7 @@ export default function CreateTokenPage() {
                                                     type="button"
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => setInitialBuyAmount(amount.toString())}
+                                                    onClick={() => form.setFieldValue("initialBuyAmount", amount.toString())}
                                                     className={`h-9 text-xs font-medium transition-all ${parseFloat(initialBuyAmount) === amount
                                                         ? "bg-primary text-black border-primary hover:bg-primary/90"
                                                         : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
@@ -629,9 +617,9 @@ export default function CreateTokenPage() {
                                         </div>
                                     </div>
 
-                                    {initialBuyError && (
+                                    {initialBuyErrors.length > 0 && (
                                         <p className="text-xs text-red-400 text-center bg-red-500/10 py-2 rounded-lg border border-red-500/20">
-                                            {initialBuyError}
+                                            {String(initialBuyErrors[0])}
                                         </p>
                                     )}
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
-import { decryptBlob } from "@/lib/chat-crypto";
+import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
 
 interface VoiceMessageProps {
   audioUrl: string;
@@ -17,8 +17,6 @@ interface VoiceMessageProps {
   epochNonce?: string;
   epochCounter?: number;
 }
-
-const decryptedUrlCache = new Map<string, string>();
 
 export default function VoiceMessage({
   audioUrl,
@@ -36,85 +34,59 @@ export default function VoiceMessage({
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [ready, setReady] = useState(false);
-  const [decrypting, setDecrypting] = useState(!!encrypted);
-  const [loadError, setLoadError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number>(0);
 
+  const { data: resolvedUrl, isLoading: decrypting, isError: loadError } = useDecryptedMedia({
+    url: audioUrl,
+    mimeType: "audio/webm",
+    encrypted,
+    participantIds,
+    chatId,
+    senderId,
+    isGroup,
+    epochNonce,
+    epochCounter,
+    enabled: true,
+  });
+
   // RAF-based progress loop for smooth updates
-  const updateProgress = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio && !audio.paused && audio.duration && isFinite(audio.duration)) {
-      setProgress(audio.currentTime / audio.duration);
-      setCurrentTime(audio.currentTime);
-    }
-    rafRef.current = requestAnimationFrame(updateProgress);
-  }, []);
-
+  const updateProgressRef = useRef<() => void>(undefined);
   useEffect(() => {
-    let cancelled = false;
-
-    const initAudio = async () => {
-      let src = audioUrl;
-
-      if (encrypted && participantIds && chatId) {
-        const cached = decryptedUrlCache.get(audioUrl);
-        if (cached) {
-          src = cached;
-          if (!cancelled) setDecrypting(false);
-        } else {
-          try {
-            const res = await fetch(audioUrl);
-            if (!res.ok) throw new Error(`${res.status}`);
-            const encryptedData = await res.arrayBuffer();
-            if (cancelled) return;
-            const decryptedData = await decryptBlob(encryptedData, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter);
-            if (cancelled) return;
-            const blob = new Blob([decryptedData], { type: "audio/webm" });
-            src = URL.createObjectURL(blob);
-            decryptedUrlCache.set(audioUrl, src);
-            if (!cancelled) setDecrypting(false);
-          } catch (err) {
-            console.error("[VoiceMessage] decrypt failed:", err);
-            if (!cancelled) setLoadError(true);
-            return;
-          }
-        }
-      } else {
-        if (!cancelled) setDecrypting(false);
+    updateProgressRef.current = () => {
+      const audio = audioRef.current;
+      if (audio && !audio.paused && audio.duration && isFinite(audio.duration)) {
+        setProgress(audio.currentTime / audio.duration);
+        setCurrentTime(audio.currentTime);
       }
-
-      if (cancelled) return;
-
-      const audio = new Audio(src);
-      audio.preload = "auto";
-      audioRef.current = audio;
-
-      audio.addEventListener("canplaythrough", () => {
-        if (!cancelled) setReady(true);
-      });
-
-      audio.addEventListener("ended", () => {
-        setPlaying(false);
-        setProgress(0);
-        setCurrentTime(0);
-        cancelAnimationFrame(rafRef.current);
-      });
-
-      if (!cancelled) setReady(true);
+      rafRef.current = requestAnimationFrame(() => updateProgressRef.current?.());
     };
+  });
 
-    initAudio();
+  // Initialize audio element when URL resolves
+  useEffect(() => {
+    if (!resolvedUrl) return;
+
+    const audio = new Audio(resolvedUrl);
+    audio.preload = "auto";
+    audioRef.current = audio;
+
+    const onReady = () => setReady(true);
+    const onEnded = () => {
+      setPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+      cancelAnimationFrame(rafRef.current);
+    };
+    audio.addEventListener("canplaythrough", onReady);
+    audio.addEventListener("ended", onEnded);
 
     return () => {
-      cancelled = true;
       cancelAnimationFrame(rafRef.current);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      }
+      audio.pause();
+      audio.src = "";
     };
-  }, [audioUrl, encrypted, participantIds, chatId, senderId, isGroup, epochNonce, epochCounter]);
+  }, [resolvedUrl]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -127,7 +99,7 @@ export default function VoiceMessage({
     } else {
       audio.play().catch(() => {});
       setPlaying(true);
-      rafRef.current = requestAnimationFrame(updateProgress);
+      rafRef.current = requestAnimationFrame(() => updateProgressRef.current?.());
     }
   };
 

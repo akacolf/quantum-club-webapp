@@ -31,12 +31,9 @@ export default function CreateGroupPage() {
     }, [router]);
 
     const [isCreating, setIsCreating] = useState(false);
-    const [nftGated, setNftGated] = useState(false);
-    const [selectedCollection, setSelectedCollection] = useState("");
-    const [selectedCollectionName, setSelectedCollectionName] = useState("");
 
     const form = useForm({
-        defaultValues: { name: "", description: "" },
+        defaultValues: { name: "", description: "", nftGated: false, nftCollection: "", nftCollectionName: "" },
         validators: { onSubmit: createGroupSchema },
         onSubmit: async ({ value }) => {
             await handleCreate(value);
@@ -44,13 +41,11 @@ export default function CreateGroupPage() {
     });
 
     const nameValue = useStore(form.store, (s) => s.values.name);
+    const nftGated = useStore(form.store, (s) => s.values.nftGated);
+    const selectedCollection = useStore(form.store, (s) => s.values.nftCollection ?? "");
+    const selectedCollectionName = useStore(form.store, (s) => s.values.nftCollectionName ?? "");
 
     const handleCreate = async (data: CreateGroupFormData) => {
-        if (nftGated && !selectedCollection) {
-            toast.error("Please select a collection for NFT gating");
-            return;
-        }
-
         setIsCreating(true);
         try {
             const groupId = await createGroup(
@@ -58,9 +53,9 @@ export default function CreateGroupPage() {
                 data.description.trim(),
                 undefined,
                 undefined,
-                nftGated || undefined,
-                nftGated ? selectedCollection : undefined,
-                nftGated ? selectedCollectionName : undefined,
+                data.nftGated || undefined,
+                data.nftGated ? (data.nftCollection ?? undefined) : undefined,
+                data.nftGated ? (data.nftCollectionName ?? undefined) : undefined,
             );
             if (groupId) {
                 toast.success("Group created!");
@@ -156,7 +151,13 @@ export default function CreateGroupPage() {
                                 <Label className="text-sm font-medium">NFT-Gated</Label>
                                 <p className="text-xs text-muted-foreground">Require an NFT to join</p>
                             </div>
-                            <Switch checked={nftGated} onCheckedChange={setNftGated} />
+                            <Switch checked={nftGated} onCheckedChange={(v) => {
+                                form.setFieldValue("nftGated", v);
+                                if (!v) {
+                                    form.setFieldValue("nftCollection", "");
+                                    form.setFieldValue("nftCollectionName", "");
+                                }
+                            }} />
                         </div>
 
                         {/* Collection Selector */}
@@ -171,8 +172,8 @@ export default function CreateGroupPage() {
                                             <button
                                                 key={col.address}
                                                 onClick={() => {
-                                                    setSelectedCollection(col.address);
-                                                    setSelectedCollectionName(col.name);
+                                                    form.setFieldValue("nftCollection", col.address);
+                                                    form.setFieldValue("nftCollectionName", col.name);
                                                 }}
                                                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
                                                     selectedCollection === col.address
