@@ -1,3 +1,4 @@
+// @deprecated — use server actions registerQcUsername / updateQcUsernameAddress in app/ecosystem/chat/actions.ts instead
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import admin from 'firebase-admin';

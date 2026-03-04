@@ -36,6 +36,7 @@ import {
   onSnapshot,
   Timestamp,
 } from "firebase/firestore";
+import { registerQcUsername, updateQcUsernameAddress } from "./actions";
 
 const GLOBAL_CHAT_ID = "qc-global";
 
@@ -346,19 +347,14 @@ export default function QCChatListPage() {
     if (!val || !telegramId || usernameAvailability !== "available") return;
     setIsRegisteringUsername(true);
     try {
-      const res = await fetch("/api/qc-username", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: val, qcId: telegramId, address: walletAddress || undefined }),
-      });
-      if (res.ok) {
+      const result = await registerQcUsername({ username: val, qcId: telegramId, address: walletAddress || undefined });
+      if (result?.data?.success) {
         setQcUsername(val);
         localStorage.setItem(`qcUsername_${telegramId}`, val);
         usernameForm.reset();
         setUsernameAvailability(null);
       } else {
-        const data = await res.json();
-        setUsernameError(data.error || "Failed to register username");
+        setUsernameError(result?.serverError || "Failed to register username");
       }
     } catch {
       setUsernameError("Failed to register username");
@@ -454,18 +450,7 @@ export default function QCChatListPage() {
     const syncKey = `qcAddr_synced_${telegramId}`;
     if (sessionStorage.getItem(syncKey)) return; // Only once per session
     sessionStorage.setItem(syncKey, "1");
-    fetch(`/api/qc-username?username=${encodeURIComponent(qcUsername)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.exists && !data.address) {
-          fetch("/api/qc-username", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ qcId: telegramId, address: walletAddress }),
-          }).catch(() => {});
-        }
-      })
-      .catch(() => {});
+    updateQcUsernameAddress({ qcId: telegramId, address: walletAddress }).catch(() => {});
   }, [qcUsername, walletAddress, telegramId]);
 
   // Ensure global chat exists and user is a participant

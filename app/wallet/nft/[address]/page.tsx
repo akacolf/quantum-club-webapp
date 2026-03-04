@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,8 +18,11 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Address, toNano } from "@ton/core";
 import { toast } from "sonner";
 import { nftListingPriceSchema } from "@/lib/validations";
-import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, categorizeNft, type NftItem } from "@/lib/nft-marketplace";
+import { calculateTotalPrice, MARKETPLACE_FEE_PERCENT, categorizeNft } from "@/lib/nft-marketplace";
 import { calculateFees, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
+import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
+import { nftCreateListing, nftConfirmListing } from "../actions";
+import { useQueryClient } from "@tanstack/react-query";
 import ChatPickerModal from "@/app/(components)/ChatPickerModal";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -31,11 +34,10 @@ export default function NftDetailPage() {
     const { telegramId } = useUserContext();
     const nftAddress = decodeURIComponent(params.address as string);
 
-    const [nft, setNft] = useState<NftItem | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
     const [copied, setCopied] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [isBuying, setIsBuying] = useState(false);
     
     // Listing state
@@ -87,35 +89,7 @@ export default function NftDetailPage() {
         }
     }, [isTestnet]);
 
-    // Prefetch send-nft page
-    useEffect(() => {
-        if (nftAddress) {
-            router.prefetch(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`);
-        }
-    }, [router, nftAddress]);
-
-    // Fetch NFT details with sale info
-    useEffect(() => {
-        const fetchNft = async () => {
-            if (!nftAddress) return;
-            setIsLoading(true);
-            setError(null);
-            try {
-                const data = await getNftDetails(nftAddress, isTestnet);
-                if (data) {
-                    setNft(data);
-                } else {
-                    setError("NFT not found");
-                }
-            } catch (err) {
-                console.error("[NFT Detail] Failed to fetch:", err);
-                setError("Failed to load NFT");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchNft();
-    }, [nftAddress, isTestnet]);
+    const error = nftFetchError ? "Failed to load NFT" : (!isLoading && !nft) ? "NFT not found" : null;
 
     const copyAddress = () => {
         if (nftAddress) {
@@ -151,30 +125,24 @@ export default function NftDetailPage() {
     const executeListForSale = async (listingPriceVal: string) => {
         setIsListing(true);
         try {
-            const response = await fetch("/api/nft-marketplace", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    action: "create-listing",
-                    telegramId,
-                    nftAddress,
-                    sellerAddress: walletAddress,
-                    price: listingPriceVal,
-                }),
+            const createResult = await nftCreateListing({
+                nftAddress,
+                sellerAddress: walletAddress!,
+                price: listingPriceVal,
             });
 
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || "Failed to create listing");
+            if (!createResult?.data?.success) {
+                throw new Error(createResult?.serverError || "Failed to create listing");
             }
+
+            const { saleContractAddress, messages } = createResult.data;
 
             const txResponse = await fetch("/api/wallet/send-transaction", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     telegramId,
-                    messages: result.messages,
+                    messages,
                     isTestnet,
                 }),
             });
@@ -185,27 +153,20 @@ export default function NftDetailPage() {
                 throw new Error(txResult.error || "Failed to send transaction");
             }
 
-            const confirmResponse = await fetch("/api/nft-marketplace", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    action: "confirm-listing",
-                    telegramId,
-                    nftAddress,
-                    saleContractAddress: result.saleContractAddress,
-                    sellerAddress: walletAddress,
-                    price: listingPriceVal,
-                    nftName: nft?.name,
-                    nftImage: nft?.image,
-                    collectionAddress: nft?.collectionAddress,
-                    collectionName: nft?.collectionName,
-                    transactionHash: txResult.hash,
-                }),
+            const confirmResult = await nftConfirmListing({
+                nftAddress,
+                saleContractAddress,
+                sellerAddress: walletAddress!,
+                price: listingPriceVal,
+                nftName: nft?.name,
+                nftImage: nft?.image,
+                collectionAddress: nft?.collectionAddress,
+                collectionName: nft?.collectionName,
+                transactionHash: txResult.hash,
             });
 
-            const confirmResult = await confirmResponse.json();
-            if (!confirmResponse.ok || !confirmResult.success) {
-                console.error("Confirm listing failed:", confirmResult);
+            if (!confirmResult?.data?.success) {
+                console.error("Confirm listing failed:", confirmResult?.serverError);
                 toast.warning("NFT listed on-chain but failed to save to marketplace. Please contact support.");
             }
 
@@ -216,8 +177,7 @@ export default function NftDetailPage() {
             setShowListingModal(false);
             form.reset();
 
-            const updatedNft = await getNftDetails(nftAddress, isTestnet);
-            if (updatedNft) setNft(updatedNft);
+            queryClient.invalidateQueries({ queryKey: ["nft-details", nftAddress, isTestnet] });
 
         } catch (error) {
             console.error("Listing error:", error);

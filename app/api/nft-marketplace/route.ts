@@ -1,3 +1,4 @@
+// @deprecated — use server actions in app/wallet/nft/actions.ts instead
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
 import { getSession } from "@/utils/session";

@@ -23,6 +23,7 @@ import {
     QC_MARKETPLACE_FEE_PERCENT,
 } from "@/lib/nft-sale-contracts";
 import { convertTonToStars } from "@/lib/telegram-payments";
+import { nftBuildBuy, nftConfirmSale } from "@/app/wallet/nft/actions";
 
 type ViewMode = "preview" | "processing" | "success" | "error";
 
@@ -97,50 +98,36 @@ export default function BuyNftPage() {
             
             if (saleInfo && saleInfo.isActive) {
                 // Direct purchase through our in-house sale contract
-                // Build buy transaction via API
-                const buildResponse = await fetch("/api/nft-marketplace", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        action: "build-buy",
-                        telegramId,
-                        saleContractAddress: nft.sale.address,
-                        price: (Number(saleInfo.fullPrice) / 1e9).toString(),
-                    }),
+                const buildResult = await nftBuildBuy({
+                    saleContractAddress: nft.sale.address,
+                    price: (Number(saleInfo.fullPrice) / 1e9).toString(),
                 });
-                
-                const buildResult = await buildResponse.json();
-                if (!buildResult.success) {
-                    throw new Error(buildResult.error || "Failed to build transaction");
+
+                if (!buildResult?.data?.success) {
+                    throw new Error(buildResult?.serverError || "Failed to build transaction");
                 }
-                
+
                 // Send the transaction via wallet API
                 const response = await fetch("/api/wallet/send-transaction", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         telegramId,
-                        messages: [buildResult.transaction],
+                        messages: [buildResult.data.transaction],
                         isTestnet,
                     }),
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     // Confirm the sale in Firebase
-                    await fetch("/api/nft-marketplace", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            action: "confirm-sale",
-                            telegramId,
-                            listingId: nft.sale.address,
-                            buyerAddress: walletAddress,
-                            transactionHash: result.hash,
-                        }),
+                    await nftConfirmSale({
+                        listingId: nft.sale.address,
+                        buyerAddress: walletAddress!,
+                        transactionHash: result.hash,
                     });
-                    
+
                     toast.success("NFT purchased successfully!");
                     setViewMode("success");
                 } else {

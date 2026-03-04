@@ -67,6 +67,7 @@ import {
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/app/(firebase)/client";
 import ChatThemePicker from "./ChatThemePicker";
+import { sendChatNotification } from "../actions";
 import PollCreator from "./PollCreator";
 import PollMessage from "./PollMessage";
 import VoiceRecorder from "./VoiceRecorder";
@@ -988,17 +989,13 @@ export default function ChatConversationPage() {
       // Push notification to offline participants (fire-and-forget)
       const recipientIds = participants.filter((p) => p !== telegramId);
       if (recipientIds.length > 0) {
-        fetch("/api/chat-notification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendChatNotification({
             recipientIds,
             senderName,
             chatId,
             chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
             isGroup: !!isGroupChat,
-          }),
-        }).catch(() => {});
+          }).catch(() => {});
       }
 
       scrollToBottom(true);
@@ -1101,17 +1098,13 @@ export default function ChatConversationPage() {
       // Push notification to offline participants (fire-and-forget)
       const recipientIds = participants.filter((p) => p !== telegramId);
       if (recipientIds.length > 0) {
-        fetch("/api/chat-notification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendChatNotification({
             recipientIds,
             senderName,
             chatId,
             chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
             isGroup: !!isGroupChat,
-          }),
-        }).catch(() => {});
+          }).catch(() => {});
       }
 
       scrollToBottom(true);
@@ -1244,17 +1237,13 @@ export default function ChatConversationPage() {
       // Push notification
       const recipientIds = participants.filter((p) => p !== telegramId);
       if (recipientIds.length > 0) {
-        fetch("/api/chat-notification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendChatNotification({
             recipientIds,
             senderName,
             chatId,
             chatName: chatMeta.isGroup ? (chatMeta.groupName || "Group") : senderName,
             isGroup: !!isGroupChat,
-          }),
-        }).catch(() => {});
+          }).catch(() => {});
       }
 
       scrollToBottom(true);
@@ -1335,17 +1324,13 @@ export default function ChatConversationPage() {
       // Push notification
       const recipientIds = participants.filter((p) => p !== telegramId);
       if (recipientIds.length > 0) {
-        fetch("/api/chat-notification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendChatNotification({
             recipientIds,
             senderName,
             chatId,
             chatName: senderName,
             isGroup: false,
-          }),
-        }).catch(() => {});
+          }).catch(() => {});
       }
 
       scrollToBottom(true);

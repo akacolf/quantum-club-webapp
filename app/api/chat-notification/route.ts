@@ -1,3 +1,4 @@
+// @deprecated — use server action sendChatNotification in app/ecosystem/chat/actions.ts instead
 import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { sendNotification } from "@/lib/notifications";
