@@ -1,3 +1,4 @@
+// @deprecated — use server action sendCallNotification in app/(contexts)/call-actions.ts instead
 import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { sendNotification } from "@/lib/notifications";

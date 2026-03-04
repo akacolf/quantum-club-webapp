@@ -1,3 +1,4 @@
+// @deprecated — use server action checkExistingUser in app/(login)/actions.ts instead
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
 import { checkExistingUserSchema } from "@/lib/validations";

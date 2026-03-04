@@ -1,3 +1,4 @@
+// @deprecated — use server action claimTier2Rewards in app/frens/actions.ts instead
 import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { createCipheriv } from 'node:crypto';

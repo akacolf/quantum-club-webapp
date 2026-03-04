@@ -1,3 +1,4 @@
+// @deprecated — use server action checkMembership in app/earn/actions.ts instead
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/utils/session";
 import { z } from "zod";

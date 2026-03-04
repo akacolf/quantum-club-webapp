@@ -21,6 +21,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "@/app/(login)/deviceDetection";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { checkExistingUser } from "@/app/(login)/actions";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
@@ -86,13 +87,8 @@ export default function SignUp() {
 
     try {
       // Step 1: Check if email is already linked to an existing QC account
-      const checkRes = await fetch("/api/check-existing-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email }),
-      });
-      const { exists } = await checkRes.json();
-      if (exists) {
+      const checkResult = await checkExistingUser({ email: data.email });
+      if (checkResult?.data?.exists) {
         setRootError("An account with this email already exists. Please sign in instead.");
         setIsLoading(false);
         return;
@@ -146,13 +142,8 @@ export default function SignUp() {
       }
 
       // Step 3: Check if this Telegram user already has an account
-      const tgCheckRes = await fetch("/api/check-existing-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qcId: telegramIdEncrypted }),
-      });
-      const { exists: tgExists } = await tgCheckRes.json();
-      if (tgExists) {
+      const tgCheckResult = await checkExistingUser({ qcId: telegramIdEncrypted });
+      if (tgCheckResult?.data?.exists) {
         setRootError("You already have an account. Please sign in instead.");
         setIsLoading(false);
         return;
@@ -269,13 +260,8 @@ export default function SignUp() {
         }
 
         // Check if this Telegram user already has an account
-        const checkRes = await fetch("/api/check-existing-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ qcId: telegramIdEncrypted }),
-        });
-        const { exists } = await checkRes.json();
-        if (exists) {
+        const existsResult = await checkExistingUser({ qcId: telegramIdEncrypted });
+        if (existsResult?.data?.exists) {
           setRootError("You already have an account. Please sign in instead.");
           setIsLoading(false);
           return;

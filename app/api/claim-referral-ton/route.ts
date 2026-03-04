@@ -1,3 +1,4 @@
+// @deprecated (POST) — use server action claimReferralTon in app/frens/actions.ts instead
 "use server";
 
 import { NextResponse } from "next/server";

@@ -20,6 +20,7 @@ import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
+import { claimTier2Rewards, claimReferralTon } from "./actions";
 
 const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
@@ -211,27 +212,26 @@ const FrensContent = () => {
 
     setIsClaiming(true);
     try {
-      const response = await fetch("/api/claim-tier2-rewards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // telegramId is derived server-side from session
-      });
+      const result = await claimTier2Rewards();
 
-      const data = await response.json();
+      if (result?.serverError) {
+        toast.error(result.serverError);
+        return;
+      }
 
-      if (data.success && data.claimedAmount > 0) {
+      const data = result?.data;
+      if (data?.success && data.claimedAmount > 0) {
         toast.success(`Claimed ${data.claimedAmount.toFixed(0)} QNTM!`);
         setPendingRewards(0);
-        // Update local storage balance
         const currentBalance = Number(String(localStorage.getItem(`QAmount_${telegramId}`) || "0").replace(/,/g, ""));
         const newBalance = currentBalance + data.claimedAmount;
         const formattedBalance = newBalance.toLocaleString("en-US", { maximumFractionDigits: 0 });
         localStorage.setItem(`QAmount_${telegramId}`, formattedBalance);
         SetMainQuantAmount(formattedBalance);
-      } else if (data.claimedAmount === 0) {
+      } else if (data?.claimedAmount === 0) {
         toast.info("No pending rewards to claim");
       } else {
-        toast.error(data.error || "Failed to claim rewards");
+        toast.error("Failed to claim rewards");
       }
     } catch (error) {
       console.error("Claim error:", error);
@@ -246,21 +246,21 @@ const FrensContent = () => {
 
     setIsClaimingTon(true);
     try {
-      const response = await fetch("/api/claim-referral-ton", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
+      const result = await claimReferralTon();
 
-      const data = await response.json();
+      if (result?.serverError) {
+        toast.error(result.serverError);
+        return;
+      }
 
-      if (data.success && data.claimedAmount > 0) {
+      const data = result?.data;
+      if (data?.success && data.claimedAmount > 0) {
         toast.success(`Claimed ${data.claimedAmount.toFixed(4)} TON!`);
         setTonEarnings(0);
-      } else if (data.claimedAmount === 0) {
+      } else if (data?.claimedAmount === 0) {
         toast.info("No pending TON to claim");
       } else {
-        toast.error(data.error || "Failed to claim TON");
+        toast.error("Failed to claim TON");
       }
     } catch (error) {
       console.error("Claim TON error:", error);

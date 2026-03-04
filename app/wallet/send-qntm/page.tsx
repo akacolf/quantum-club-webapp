@@ -16,6 +16,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { sendQntmSchema } from "@/lib/validations";
+import { verifyQcId, transferQntm } from "./actions";
 
 export default function SendQNTMPage() {
   useTelegramBackButton("/wallet");
@@ -94,22 +95,21 @@ export default function SendQNTMPage() {
       setIsVerifyingQcId(true);
       setQcIdError(null);
 
-      const response = await fetch("/api/verify-qc-id", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qcId: recipientQcId.trim() }),
-      });
+      const result = await verifyQcId({ qcId: recipientQcId.trim() });
 
-      const data = await response.json();
+      if (result?.serverError) {
+        setQcIdError("Failed to verify QC ID. Please try again.");
+        toast.error("Failed to verify QC ID");
+        return false;
+      }
 
-      if (!data.exists) {
+      if (!result?.data?.exists) {
         setQcIdError("This QC ID doesn't exist. Please check and try again.");
         toast.error("Recipient QC ID not found");
         return false;
       }
 
-      // Store the recipient's username
-      setRecipientUsername(data.username || "Quantum User");
+      setRecipientUsername(result.data.username || "Quantum User");
       return true;
     } catch (error) {
       console.error("Error verifying QC ID:", error);
@@ -138,23 +138,21 @@ export default function SendQNTMPage() {
     setStep("processing");
 
     try {
-      const response = await fetch("/api/transfer-qntm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipientQcId: recipientQcId.trim(),
-          amount: parseFloat(amount),
-        }),
+      const result = await transferQntm({
+        recipientQcId: recipientQcId.trim(),
+        amount: parseFloat(amount),
       });
 
-      const data = await response.json();
+      if (result?.serverError) {
+        throw new Error(result.serverError);
+      }
 
-      if (!response.ok) {
-        throw new Error(data.error || "Transfer failed");
+      if (!result?.data?.success) {
+        throw new Error("Transfer failed");
       }
 
       // Update local balance
-      const newBalance = data.newBalance;
+      const newBalance = result.data.newBalance;
       const formattedBalance = newBalance.toLocaleString("en-US", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,

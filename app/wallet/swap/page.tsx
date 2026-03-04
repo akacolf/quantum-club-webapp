@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useForm } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -114,13 +115,17 @@ export default function SwapPage() {
         ? "https://testnet.tonapi.io"
         : "https://tonapi.io";
 
+    // Swap form — TanStack Form for amount field; full validation via swapSchema at submit boundary
+    const form = useForm({ defaultValues: { amount: "" } });
+    const amount = form.state.values.amount;
+    const setAmount = useCallback((val: string) => form.setFieldValue("amount", val), [form]);
+
     // State
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
     const [swapAssets, setSwapAssets] = useState<SwapAsset[]>([]);
     const [isLoadingAssets, setIsLoadingAssets] = useState(true);
     const [fromAsset, setFromAsset] = useState<SwapAsset | null>(null);
     const [toAsset, setToAsset] = useState<SwapAsset | null>(null);
-    const [amount, setAmount] = useState("");
     const [isSwapping, setIsSwapping] = useState(false);
     const [lastTxHash, setLastTxHash] = useState<string | null>(null);
     const [slippage, setSlippage] = useState("1"); // 1% default
@@ -440,11 +445,10 @@ export default function SwapPage() {
         return true;
     }, [fromAsset, toAsset, amount, omnistonQuote, getAssetBalance, tonBalance, swapDetails, isCrossChain, toChain, tronDestAddress]);
 
-    // Handle continue to confirm
+    // Handle continue to confirm — validates form values via Zod
     const handleContinue = () => {
-        // Zod schema validation at submit boundary
         const parsed = swapSchema.safeParse({
-            amount: amount || "",
+            amount: form.getFieldValue("amount") || "",
             fromAsset: fromAsset?.symbol || "",
             toAsset: toAsset?.symbol || "",
         });
@@ -453,7 +457,7 @@ export default function SwapPage() {
             return;
         }
         if (canProceed && omnistonQuote) {
-            setConfirmedQuote(omnistonQuote); // Store quote before changing step
+            setConfirmedQuote(omnistonQuote);
             setStep("confirm");
         }
     };

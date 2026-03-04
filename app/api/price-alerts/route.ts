@@ -1,3 +1,4 @@
+// @deprecated (POST, DELETE) — use server actions createPriceAlert/deletePriceAlert in app/wallet/settings/price-alerts/actions.ts instead
 import { NextRequest, NextResponse } from "next/server";
 import { firestore as db } from "@/app/(firebase)/server";
 import { getSession } from "@/utils/session";

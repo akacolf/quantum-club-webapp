@@ -3,7 +3,8 @@
 import { z } from "zod";
 import { FieldValue } from "firebase-admin/firestore";
 import { auth, firestore } from "../(firebase)/server";
-import { actionClient } from "@/lib/safe-action";
+import { actionClient, authActionClient } from "@/lib/safe-action";
+import { env } from "@/env";
 
 export const confirmTask = actionClient
     .schema(z.object({
@@ -42,4 +43,45 @@ export const confirmTask = actionClient
         });
 
         return { error: false, message: "Task confirmed" };
+    });
+
+// ---------------------------------------------------------------------------
+// checkMembership — authenticated, checks Telegram channel membership
+// ---------------------------------------------------------------------------
+
+const checkMembershipSchema = z.object({
+    tgIdNumerical: z.union([z.string(), z.number()]).pipe(
+        z.coerce.string().min(1, "telegramId is required")
+    ),
+    channelUsername: z.string().min(1, "channelUsername is required"),
+});
+
+export const checkMembership = authActionClient
+    .schema(checkMembershipSchema)
+    .action(async ({ parsedInput: { tgIdNumerical, channelUsername } }) => {
+        const botToken = env.BOT_TOKEN;
+
+        let formattedChatId = channelUsername;
+        if (!channelUsername.startsWith("@") && !channelUsername.startsWith("-100")) {
+            formattedChatId = "@" + channelUsername;
+        }
+
+        const url = `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(
+            formattedChatId
+        )}&user_id=${tgIdNumerical}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Telegram API error: ${response.status} ${errorText}`);
+        }
+
+        const data = await response.json();
+        if (!data.ok) {
+            throw new Error(`Telegram API returned false: ${JSON.stringify(data)}`);
+        }
+
+        const status = data.result.status;
+        const isMember = ["creator", "administrator", "member"].includes(status);
+        return { isMember };
     });

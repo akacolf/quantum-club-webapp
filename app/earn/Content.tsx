@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "../(contexts)/auth";
 import { toast } from "sonner";
-import { confirmTask } from "./actions";
+import { confirmTask, checkMembership } from "./actions";
 import { useEarnTasksQuery } from "@/app/(hooks)/queries/use-earn-tasks";
 
 const EarnContent = () => {
@@ -199,18 +199,9 @@ const EarnContent = () => {
             )
           );
           try {
-            const response = await fetch("/api/checkmembership", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                tgIdNumerical,
-                channelUsername,
-              }),
-            });
-            if (!response.ok) {
-              const errorData = await response.json();
+            if (!tgIdNumerical) throw new Error("Telegram user ID not available");
+            const memberResult = await checkMembership({ tgIdNumerical, channelUsername });
+            if (memberResult?.serverError) {
               setTasks((items) =>
                 items.map((item) =>
                   item.id === task.id
@@ -220,10 +211,9 @@ const EarnContent = () => {
               );
               setActiveTaskId(null);
               task.completed = false;
-              throw new Error(errorData.error || "Failed to check membership");
+              throw new Error(memberResult.serverError);
             }
-            const data = await response.json();
-            if (data.isMember) {
+            if (memberResult?.data?.isMember) {
               if (!taskSnapshot.exists()) {
                 
                 const miningSnapshot = await getDoc(miningData);
@@ -316,18 +306,9 @@ const EarnContent = () => {
                   : item
               )
             );
-            const response = await fetch("/api/checkmembership", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                tgIdNumerical,
-                channelUsername,
-              }),
-            });
-            if (!response.ok) {
-              const errorData = await response.json();
+            if (!tgIdNumerical) throw new Error("Telegram user ID not available");
+            const memberResult2 = await checkMembership({ tgIdNumerical, channelUsername });
+            if (memberResult2?.serverError) {
               setTasks((items) =>
                 items.map((item) =>
                   item.id === task.id
@@ -337,10 +318,9 @@ const EarnContent = () => {
               );
               setActiveTaskId(null);
               task.completed = false;
-              throw new Error(errorData.error || "Failed to check membership");
+              throw new Error(memberResult2.serverError);
             }
-            const data = await response.json();
-            if (data.isMember) {
+            if (memberResult2?.data?.isMember) {
               setTasks((items) =>
                 items.map((item) =>
                   item.id === task.id

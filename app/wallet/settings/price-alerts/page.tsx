@@ -11,8 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { authenticateUser } from "@/lib/telegramAuth";
 import { toast } from "sonner";
+import { createPriceAlert, deletePriceAlert } from "./actions";
 import Image from "next/image";
 import { useAllPrices } from "@/app/(hooks)/queries/use-prices";
 import { usePriceAlerts } from "@/app/(hooks)/queries/use-trades";
@@ -93,57 +93,22 @@ export default function PriceAlertsPage() {
 
         setIsSaving(true);
         try {
-            // Ensure we have a valid session before making the request
-            await authenticateUser();
-
-            const response = await fetch("/api/price-alerts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                    telegramId,
-                    symbol: value.symbol,
-                    targetPrice: price,
-                    direction: value.direction,
-                }),
+            const result = await createPriceAlert({
+                symbol: value.symbol,
+                targetPrice: price,
+                direction: value.direction,
             });
 
-            const data = await response.json();
+            if (result?.serverError) {
+                toast.error(result.serverError);
+                return;
+            }
 
-            if (response.ok) {
+            if (result?.data?.success) {
                 queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
                 form.reset();
                 setIsAdding(false);
                 toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
-            } else if (response.status === 401 || response.status === 403) {
-                // Try re-authenticating and retry once
-                const reauthed = await authenticateUser();
-                if (reauthed) {
-                    const retryResponse = await fetch("/api/price-alerts", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify({
-                            telegramId,
-                            symbol: value.symbol,
-                            targetPrice: price,
-                            direction: value.direction,
-                        }),
-                    });
-                    const retryData = await retryResponse.json();
-                    if (retryResponse.ok) {
-                        queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
-                        form.reset();
-                        setIsAdding(false);
-                        toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
-                    } else {
-                        toast.error(retryData.error || "Failed to create alert");
-                    }
-                } else {
-                    toast.error("Authentication failed. Please restart the app.");
-                }
-            } else {
-                toast.error(data.error || "Failed to create alert");
             }
         } catch (error) {
             console.error("Error creating alert:", error);
@@ -157,16 +122,16 @@ export default function PriceAlertsPage() {
         if (!telegramId) return;
 
         try {
-            const response = await fetch(
-                `/api/price-alerts?alertId=${alertId}&telegramId=${telegramId}`,
-                { method: "DELETE", credentials: "include" }
-            );
+            const result = await deletePriceAlert({ alertId });
 
-            if (response.ok) {
+            if (result?.serverError) {
+                toast.error(result.serverError);
+                return;
+            }
+
+            if (result?.data?.success) {
                 queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
                 toast.success("Alert removed");
-            } else {
-                toast.error("Failed to delete alert");
             }
         } catch (error) {
             console.error("Error deleting alert:", error);

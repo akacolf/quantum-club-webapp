@@ -1,3 +1,4 @@
+// @deprecated — use server action verifyQcId in app/wallet/send-qntm/actions.ts instead
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import { z } from 'zod';
