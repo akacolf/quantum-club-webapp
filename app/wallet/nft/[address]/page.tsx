@@ -45,6 +45,10 @@ export default function NftDetailPage() {
     const form = useForm({
         defaultValues: { price: "" },
         validators: { onSubmit: nftListingPriceSchema },
+        onSubmit: async ({ value }) => {
+            if (!walletAddress || !nftAddress || !telegramId) return;
+            await executeListForSale(value.price);
+        },
     });
 
     const listingPrice = useStore(form.store, (s) => s.values.price);
@@ -143,20 +147,10 @@ export default function NftDetailPage() {
         }
     };
 
-    // Handle List NFT for Sale
-    const handleListForSale = async () => {
-        const listingPriceVal = form.getFieldValue("price");
-        if (!walletAddress || !nftAddress || !listingPriceVal || !telegramId) return;
-
-        const priceNum = parseFloat(listingPriceVal);
-        if (isNaN(priceNum) || priceNum < 0.1) {
-            toast.error("Minimum listing price is 0.1 TON");
-            return;
-        }
-
+    // Execute listing (called from form.onSubmit after Zod validation passes)
+    const executeListForSale = async (listingPriceVal: string) => {
         setIsListing(true);
         try {
-            // Call API to build listing messages
             const response = await fetch("/api/nft-marketplace", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -175,7 +169,6 @@ export default function NftDetailPage() {
                 throw new Error(result.error || "Failed to create listing");
             }
 
-            // Send the transactions via wallet API
             const txResponse = await fetch("/api/wallet/send-transaction", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -192,7 +185,6 @@ export default function NftDetailPage() {
                 throw new Error(txResult.error || "Failed to send transaction");
             }
 
-            // Confirm the listing in Firebase
             const confirmResponse = await fetch("/api/nft-marketplace", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -223,11 +215,10 @@ export default function NftDetailPage() {
 
             setShowListingModal(false);
             form.reset();
-            
-            // Refresh NFT data
+
             const updatedNft = await getNftDetails(nftAddress, isTestnet);
             if (updatedNft) setNft(updatedNft);
-            
+
         } catch (error) {
             console.error("Listing error:", error);
             toast.error(error instanceof Error ? error.message : "Failed to list NFT");
@@ -235,6 +226,8 @@ export default function NftDetailPage() {
             setIsListing(false);
         }
     };
+
+    const handleListForSale = () => form.handleSubmit();
 
     // Handle Share to Chat
     const handleShareToChat = async (chatId: string, chatName: string) => {

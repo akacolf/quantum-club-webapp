@@ -33,16 +33,45 @@ export default function VerifyPhrasePage() {
   const form = useForm({
     defaultValues: { word0: "", word1: "", word2: "" },
     validators: { onSubmit: walletVerifySchema },
+    onSubmit: async ({ value }) => {
+      const userInputs = [value.word0, value.word1, value.word2];
+      const allCorrect = verificationWords.every((item, i) =>
+        userInputs[i].toLowerCase().trim() === item.word.toLowerCase()
+      );
+
+      if (!allCorrect) {
+        toast.error("Incorrect words. Please check your recovery phrase and try again.");
+        return;
+      }
+
+      if (walletAddress && mnemonic.length > 0) {
+        localStorage.setItem(`quantum_wallet_address_${telegramId}`, walletAddress);
+        localStorage.setItem(`quantum_wallet_mnemonic_${telegramId}`, mnemonic.join(" "));
+
+        const walletName = `Wallet ${storedWallets.length + 1}`;
+        addWallet(walletAddress, walletName);
+        switchWallet(walletAddress);
+
+        sessionStorage.removeItem("pending_wallet_mnemonic");
+        sessionStorage.removeItem("pending_wallet_address");
+        sessionStorage.removeItem("verification_indices");
+
+        analyticsEvents.walletCreated(walletAddress);
+
+        toast.success("Wallet created successfully!");
+        router.push("/wallet");
+      } else {
+        toast.error("Error confirming wallet. Please try again.");
+      }
+    },
   });
 
   useEffect(() => {
-    // Get the pending wallet data and verification indices from session storage
     const pendingMnemonic = sessionStorage.getItem("pending_wallet_mnemonic");
     const pendingAddress = sessionStorage.getItem("pending_wallet_address");
     const indices = sessionStorage.getItem("verification_indices");
 
     if (!pendingMnemonic || !pendingAddress || !indices) {
-      // No pending wallet or indices, redirect back
       router.push("/wallet");
       return;
     }
@@ -54,44 +83,6 @@ export default function VerifyPhrasePage() {
     setWalletAddress(pendingAddress);
     setVerificationWords(indicesArr.map(i => ({ index: i, word: mnemonicArr[i] })));
   }, [router]);
-
-  const verifyAndSaveWallet = () => {
-    // Check if all inputs match the expected words
-    const { word0, word1, word2 } = form.state.values;
-    const userInputs = [word0, word1, word2];
-    const allCorrect = verificationWords.every((item, i) =>
-      userInputs[i].toLowerCase().trim() === item.word.toLowerCase()
-    );
-
-    if (!allCorrect) {
-      toast.error("Incorrect words. Please check your recovery phrase and try again.");
-      return;
-    }
-
-    // Save to local storage ONLY after user confirms they have saved the phrase
-    if (walletAddress && mnemonic.length > 0) {
-      localStorage.setItem(`quantum_wallet_address_${telegramId}`, walletAddress);
-      localStorage.setItem(`quantum_wallet_mnemonic_${telegramId}`, mnemonic.join(" "));
-
-      // Add to multi-wallet storage
-      const walletName = `Wallet ${storedWallets.length + 1}`;
-      addWallet(walletAddress, walletName);
-      switchWallet(walletAddress);
-
-      // Clean up session storage
-      sessionStorage.removeItem("pending_wallet_mnemonic");
-      sessionStorage.removeItem("pending_wallet_address");
-      sessionStorage.removeItem("verification_indices");
-
-      // Track wallet creation event
-      analyticsEvents.walletCreated(walletAddress);
-
-      toast.success("Wallet created successfully!");
-      router.push("/wallet");
-    } else {
-      toast.error("Error confirming wallet. Please try again.");
-    }
-  };
 
   const handleGoBack = () => {
     form.reset();
@@ -168,7 +159,7 @@ export default function VerifyPhrasePage() {
             <form.Subscribe selector={(state) => state.values}>
               {(values) => (
                 <Button
-                  onClick={verifyAndSaveWallet}
+                  onClick={() => form.handleSubmit()}
                   disabled={!values.word0.trim() || !values.word1.trim() || !values.word2.trim()}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
