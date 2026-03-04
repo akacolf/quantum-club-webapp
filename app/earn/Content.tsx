@@ -31,7 +31,7 @@ const EarnContent = () => {
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [tab, setTab] = useQueryState(
     "tab",
-    parseAsStringLiteral(["Limited", "In-app", "Partners"] as const).withDefault("Limited")
+    { ...parseAsStringLiteral(["Limited", "In-app", "Partners"] as const).withDefault("Limited"), history: "replace" as const }
   );
   const auth = useAuth();
   const router = useRouter();
