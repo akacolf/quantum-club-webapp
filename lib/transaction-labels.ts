@@ -18,7 +18,7 @@ const STORAGE_KEY = "quantum_transaction_labels";
 /**
  * Get all transaction labels from storage
  */
-export function getTransactionLabels(telegramId: string): Record<string, TransactionLabel> {
+function getTransactionLabels(telegramId: string): Record<string, TransactionLabel> {
     if (typeof window === "undefined") return {};
     
     try {
@@ -27,14 +27,6 @@ export function getTransactionLabels(telegramId: string): Record<string, Transac
     } catch {
         return {};
     }
-}
-
-/**
- * Get label for a specific transaction
- */
-export function getTransactionLabel(txHash: string, telegramId: string): TransactionLabel | null {
-    const labels = getTransactionLabels(telegramId);
-    return labels[txHash] || null;
 }
 
 /**
@@ -85,49 +77,6 @@ export function deleteTransactionLabel(txHash: string, telegramId: string): bool
     } catch {
         return false;
     }
-}
-
-/**
- * Search transactions by label or tag
- */
-export function searchTransactionLabels(
-    query: string,
-    telegramId: string
-): TransactionLabel[] {
-    const labels = getTransactionLabels(telegramId);
-    const normalizedQuery = query.toLowerCase().trim();
-    
-    if (!normalizedQuery) return Object.values(labels);
-    
-    return Object.values(labels).filter(label => {
-        // Search in label text
-        if (label.label.toLowerCase().includes(normalizedQuery)) {
-            return true;
-        }
-        // Search in tags
-        if (label.tags.some(tag => tag.includes(normalizedQuery))) {
-            return true;
-        }
-        // Search in tx hash
-        if (label.txHash.toLowerCase().includes(normalizedQuery)) {
-            return true;
-        }
-        return false;
-    });
-}
-
-/**
- * Get all unique tags across all transactions
- */
-export function getAllTags(telegramId: string): string[] {
-    const labels = getTransactionLabels(telegramId);
-    const tagSet = new Set<string>();
-    
-    Object.values(labels).forEach(label => {
-        label.tags.forEach(tag => tagSet.add(tag));
-    });
-    
-    return Array.from(tagSet).sort();
 }
 
 /**

@@ -32,10 +32,6 @@ export function convertTonToStars(tonAmount: number, tonPriceUsd: number): numbe
   return Math.max(1, starsAmount);
 }
 
-export function convertStarsToUsd(starsAmount: number): number {
-  return starsAmount * STARS_TO_USD_RATE;
-}
-
 /**
  * Create a Telegram Stars invoice link
  * This uses the Bot API to create an invoice that can be paid with Stars
@@ -171,36 +167,3 @@ export async function answerPreCheckoutQuery(
   }
 }
 
-/**
- * Refund a Stars payment
- */
-export async function refundStarsPayment(
-  botToken: string,
-  userId: string | number,
-  telegramPaymentChargeId: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${botToken}/refundStarPayment`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId,
-          telegram_payment_charge_id: telegramPaymentChargeId,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (data.ok) {
-      return { success: true };
-    } else {
-      return { success: false, error: data.description };
-    }
-  } catch (error) {
-    console.error("Error refunding payment:", error);
-    return { success: false, error: "Failed to process refund" };
-  }
-}
