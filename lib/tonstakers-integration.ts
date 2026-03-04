@@ -262,31 +262,6 @@ export async function stakeTon(
 }
 
 /**
- * Stake maximum available TON
- */
-export async function stakeMaxTon(
-    walletAddress: string,
-    mnemonic: string[],
-    isTestnet: boolean = false
-): Promise<StakingOperationResult> {
-    try {
-        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet);
-        const result = await sdk.stakeMax();
-        
-        return {
-            success: true,
-            txHash: result.boc ? Cell.fromBase64(result.boc).hash().toString("hex") : undefined,
-        };
-    } catch (error) {
-        console.error("[TonStakers] StakeMax failed:", error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : "Staking failed",
-        };
-    }
-}
-
-/**
  * Unstake tsTON (standard unstake - best rate, takes ~18-36 hours)
  */
 export async function unstakeTsTon(

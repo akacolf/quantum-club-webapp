@@ -16,7 +16,6 @@ import {
     storeStateInit,
     Dictionary
 } from "@ton/core";
-import { runGetMethod, isContractActive as checkContractActive } from "@/lib/ton-api";
 
 // Import compiled contract bytecode
 import {
@@ -24,7 +23,7 @@ import {
     JETTON_WALLET_CODE_HEX
 } from "@/contracts/build/contract-code";
 
-export interface JettonDeployConfig {
+interface JettonDeployConfig {
     owner: Address;
     name: string;
     symbol: string;
@@ -34,7 +33,7 @@ export interface JettonDeployConfig {
     totalSupply?: bigint; // Initial total supply (0 for mint-on-demand)
 }
 
-export interface JettonDeployResult {
+interface JettonDeployResult {
     success: boolean;
     jettonMasterAddress?: string;
     stateInit?: Cell;
@@ -195,140 +194,3 @@ export function buildJettonDeploy(config: JettonDeployConfig, platformWallet?: s
     }
 }
 
-/**
- * Build mint message for minting tokens to an address
- */
-export function buildMintMessage(
-    toAddress: Address,
-    amount: bigint,
-    forwardTonAmount: bigint = toNano("0.05")
-): Cell {
-    // Mint opcode: 21
-    const MINT_OP = 21;
-
-    return beginCell()
-        .storeUint(MINT_OP, 32) // op: mint
-        .storeUint(0, 64) // query_id
-        .storeAddress(toAddress) // to_address
-        .storeCoins(forwardTonAmount) // forward_ton_amount
-        .storeRef(
-            beginCell()
-                .storeUint(0x178d4519, 32) // internal_transfer op
-                .storeUint(0, 64) // query_id
-                .storeCoins(amount) // jetton_amount
-                .storeAddress(null) // from_address
-                .storeAddress(toAddress) // response_destination
-                .storeCoins(0) // forward_ton_amount
-                .storeBit(false) // forward_payload
-                .endCell()
-        )
-        .endCell();
-}
-
-/**
- * Build transfer message for sending Jettons between wallets
- */
-export function buildTransferMessage(
-    toAddress: Address,
-    amount: bigint,
-    responseAddress: Address,
-    forwardTonAmount: bigint = BigInt(0),
-    forwardPayload?: Cell
-): Cell {
-    // Transfer opcode: 0xf8a7ea5
-    const TRANSFER_OP = 0xf8a7ea5;
-
-    return beginCell()
-        .storeUint(TRANSFER_OP, 32) // op: transfer
-        .storeUint(0, 64) // query_id
-        .storeCoins(amount) // amount (in jettons)
-        .storeAddress(toAddress) // destination
-        .storeAddress(responseAddress) // response_destination
-        .storeBit(false) // null custom_payload
-        .storeCoins(forwardTonAmount) // forward_ton_amount
-        .storeBit(forwardPayload ? true : false) // forward_payload flag
-        .storeMaybeRef(forwardPayload)
-        .endCell();
-}
-
-/**
- * Get Jetton wallet address for a user
- */
-export async function getJettonWalletAddress(
-    jettonMasterAddress: string,
-    ownerAddress: string
-): Promise<string | null> {
-    try {
-        const owner = Address.parse(ownerAddress);
-        const result = await runGetMethod(
-            jettonMasterAddress,
-            "get_wallet_address",
-            [{ type: "slice", cell: beginCell().storeAddress(owner).endCell() }]
-        );
-        
-        if (result.stack) {
-            const walletAddress = result.stack.readAddress();
-            return walletAddress?.toString({ bounceable: true }) || null;
-        }
-        return null;
-    } catch {
-        return null;
-    }
-}
-
-/**
- * Get Jetton balance for a wallet
- */
-export async function getJettonBalance(
-    jettonWalletAddress: string
-): Promise<bigint> {
-    try {
-        const result = await runGetMethod(jettonWalletAddress, "get_wallet_data");
-
-        if (result.stack) {
-            return result.stack.readBigNumber();
-        }
-        return BigInt(0);
-    } catch {
-        return BigInt(0);
-    }
-}
-
-/**
- * Check if Jetton contract is deployed and active
- */
-export async function isJettonDeployed(
-    jettonAddress: string
-): Promise<boolean> {
-    return checkContractActive(jettonAddress);
-}
-
-/**
- * Get full Jetton data from the master contract
- */
-export async function getJettonData(
-    jettonAddress: string
-): Promise<{
-    totalSupply: bigint;
-    mintable: boolean;
-    adminAddress: string;
-} | null> {
-    try {
-        const result = await runGetMethod(jettonAddress, "get_jetton_data");
-
-        if (result.stack) {
-            const totalSupply = result.stack.readBigNumber();
-            const mintable = result.stack.readBoolean();
-            const adminAddress = result.stack.readAddress();
-
-            return {
-                totalSupply,
-                mintable,
-                adminAddress: adminAddress?.toString({ bounceable: true }) || "",
-            };
-        }
-        return null;
-    } catch {
-        return null;
-    }
-}

@@ -304,44 +304,6 @@ export async function executeStake(
 }
 
 /**
- * Build unstake transaction
- * For liquid staking, unstake means burning the liquid token to get TON back
- */
-export async function buildUnstakeTransaction(
-    pool: StakingPool,
-    liquidTokenAmount: string,
-    userWalletAddress: string,
-    jettonWalletAddress: string
-): Promise<{
-    to: Address;
-    value: bigint;
-    body: Cell;
-} | null> {
-    try {
-        const amount = toNano(liquidTokenAmount);
-        const jettonWallet = Address.parse(jettonWalletAddress);
-
-        // Build burn body - standard jetton burn message
-        const body = beginCell()
-            .storeUint(0x595f07bc, 32) // op: burn
-            .storeUint(0, 64) // query_id
-            .storeCoins(amount) // amount to burn
-            .storeAddress(Address.parse(userWalletAddress)) // response_destination
-            .storeUint(0, 1) // custom_payload (empty)
-            .endCell();
-
-        return {
-            to: jettonWallet,
-            value: toNano("0.1"), // Gas for burn
-            body,
-        };
-    } catch (error) {
-        console.error("Failed to build unstake transaction:", error);
-        return null;
-    }
-}
-
-/**
  * Fetch live APY data from staking pools
  * Tries to fetch from provider APIs, falls back to static values
  */
@@ -417,13 +379,6 @@ export function calculateRewards(
         monthly: yearlyRewards / 12,
         yearly: yearlyRewards,
     };
-}
-
-/**
- * Get staking pool by ID
- */
-export function getPoolById(poolId: string): StakingPool | undefined {
-    return STAKING_POOLS.find(p => p.id === poolId);
 }
 
 /**

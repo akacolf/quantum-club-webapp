@@ -23,15 +23,6 @@ export const FEE_CONFIG = {
     graduationFeePercent: 2,     // 2% on graduation to DEX
 };
 
-export const TRADING_FEE_PERCENT = FEE_CONFIG.totalTradingFeePercent;
-
-// Total cost for token creation (gas for deployment)
-export const TOTAL_CREATION_FEE = FEE_CONFIG.tokenDeployment;
-export const DEPLOYMENT_GAS = FEE_CONFIG.tokenDeployment;
-
-// Minimum balance required (deployment + network fees buffer)
-export const MIN_BALANCE_FOR_CREATION = 0.1; // 0.1 TON minimum recommended
-
 // DEX graduation settings (STON.fi)
 export const DEX_CONFIG = {
   routerAddress: "EQB3ncyBUTjZUA5EnFKR5_EnOMI9V1tTEAAPaiU71gc4TiUt", // STON.fi v2 Router
@@ -40,12 +31,3 @@ export const DEX_CONFIG = {
   lpBurnPercent: 100, // 100% of LP tokens burned (locked forever)
 };
 
-// Token supply configuration
-export const TOKEN_CONFIG = {
-  maxSupply: BigInt("1000000000000000000"), // 1 billion tokens * 10^9 (with 9 decimals)
-  maxSupplyFormatted: "1,000,000,000", // 1 billion tokens for display
-  decimals: 9,
-  // Default slippage tolerance options (in percentage)
-  slippageOptions: [0.5, 1, 3, 5],
-  defaultSlippage: 1, // 1% default slippage
-};

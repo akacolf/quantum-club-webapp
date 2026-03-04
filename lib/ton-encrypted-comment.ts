@@ -23,9 +23,6 @@ import { getSecureRandomBytes, keyPairFromSeed, sha512 } from "@ton/crypto";
 import { x25519, edwardsToMontgomeryPub, edwardsToMontgomeryPriv } from "@noble/curves/ed25519";
 import aesjs from "aes-js";
 
-// Op-code for encrypted text comment
-const ENCRYPTED_COMMENT_OPCODE = 0x2167da4b;
-
 /**
  * HMAC-SHA512 implementation
  */
@@ -70,14 +67,6 @@ async function hmacSha512(key: Uint8Array, data: Uint8Array): Promise<Uint8Array
 function aesCbcEncrypt(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
     return aesCbc.encrypt(data);
-}
-
-/**
- * AES-CBC decryption
- */
-function aesCbcDecrypt(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
-    const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
-    return aesCbc.decrypt(data);
 }
 
 /**
@@ -230,146 +219,6 @@ export async function encryptComment(
     payload.set(encryptedPayload, 4);
     
     return makeSnakeCells(payload);
-}
-
-/**
- * Read all data from snake cells
- */
-function readSnakeCells(cell: Cell): Uint8Array {
-    const slice = cell.beginParse();
-    const chunks: Buffer[] = [];
-    
-    // Read data from current cell
-    if (slice.remainingBits > 0) {
-        chunks.push(slice.loadBuffer(Math.floor(slice.remainingBits / 8)));
-    }
-    
-    // Read data from referenced cells
-    while (slice.remainingRefs > 0) {
-        const refCell = slice.loadRef();
-        const refData = readSnakeCells(refCell);
-        chunks.push(Buffer.from(refData));
-    }
-    
-    return new Uint8Array(Buffer.concat(chunks));
-}
-
-/**
- * Decrypt an encrypted comment from a TON transfer (Tonkeeper compatible)
- * 
- * @param encryptedData The encrypted data (without opcode) or Cell
- * @param myPublicKey The recipient's Ed25519 public key (32 bytes)
- * @param myPrivateKey The recipient's Ed25519 private key (32 or 64 bytes)
- * @param senderAddress The sender's wallet address (used as salt)
- * @returns The decrypted comment string, or null if decryption fails
- */
-export async function decryptComment(
-    encryptedDataOrCell: Uint8Array | Cell,
-    myPublicKey: Uint8Array,
-    myPrivateKey: Uint8Array,
-    senderAddress: string | Address
-): Promise<string | null> {
-    try {
-        let data: Uint8Array;
-        
-        // Handle Cell input
-        if (encryptedDataOrCell instanceof Cell) {
-            const fullData = readSnakeCells(encryptedDataOrCell);
-            // Check and skip opcode
-            if (fullData[0] === 0x21 && fullData[1] === 0x67 && fullData[2] === 0xda && fullData[3] === 0x4b) {
-                data = fullData.slice(4);
-            } else {
-                return null; // Not an encrypted comment
-            }
-        } else {
-            data = encryptedDataOrCell;
-        }
-        
-        // Normalize private key
-        const privateKey = myPrivateKey.length === 64 ? myPrivateKey.slice(0, 32) : myPrivateKey;
-        
-        // Create salt from sender address
-        const address = senderAddress instanceof Address ? senderAddress : Address.parse(senderAddress);
-        const salt = new TextEncoder().encode(
-            address.toString({ bounceable: true, urlSafe: true, testOnly: false })
-        );
-        
-        if (data.length < 48) { // 32 (xor) + 16 (msgKey) minimum
-            throw new Error("Data too small");
-        }
-        
-        // Extract XOR'd public key to get sender's public key (Ed25519)
-        const theirPublicKey = new Uint8Array(32);
-        for (let i = 0; i < 32; i++) {
-            theirPublicKey[i] = data[i] ^ myPublicKey[i];
-        }
-        
-        // Convert Ed25519 keys to X25519 for ECDH
-        const myX25519Private = edwardsToMontgomeryPriv(privateKey);
-        const theirX25519Public = edwardsToMontgomeryPub(theirPublicKey);
-        
-        // Get shared secret using X25519
-        const sharedSecret = x25519.getSharedSecret(myX25519Private, theirX25519Public);
-        
-        // Extract message key and encrypted data
-        const msgKey = data.slice(32, 48);
-        const encryptedData = data.slice(48);
-        
-        if (encryptedData.length % 16 !== 0) {
-            throw new Error("Encrypted data size not divisible by 16");
-        }
-        
-        // Derive decryption key
-        const cbcStateSecret = await hmacSha512(sharedSecret, msgKey);
-        const aesKey = cbcStateSecret.slice(0, 32);
-        const aesIv = cbcStateSecret.slice(32, 48);
-        
-        // Decrypt with AES-CBC
-        const decrypted = aesCbcDecrypt(encryptedData, aesKey, aesIv);
-        
-        // Verify hash
-        const dataHash = await hmacSha512(salt, decrypted);
-        const gotMsgKey = dataHash.slice(0, 16);
-        
-        let keysMatch = true;
-        for (let i = 0; i < 16; i++) {
-            if (msgKey[i] !== gotMsgKey[i]) {
-                keysMatch = false;
-                break;
-            }
-        }
-        
-        if (!keysMatch) {
-            throw new Error("Hash mismatch");
-        }
-        
-        // Remove prefix
-        const prefixLength = decrypted[0];
-        if (prefixLength > decrypted.length || prefixLength < 16) {
-            throw new Error("Invalid prefix size");
-        }
-        
-        const messageBytes = decrypted.slice(prefixLength);
-        return new TextDecoder().decode(messageBytes);
-    } catch (error) {
-        console.error("Failed to decrypt comment:", error);
-        return null;
-    }
-}
-
-/**
- * Check if a cell contains an encrypted comment
- * @param cell The cell to check
- * @returns True if the cell starts with the encrypted comment opcode
- */
-export function isEncryptedComment(cell: Cell): boolean {
-    try {
-        const slice = cell.beginParse();
-        const opcode = slice.loadUint(32);
-        return opcode === ENCRYPTED_COMMENT_OPCODE;
-    } catch {
-        return false;
-    }
 }
 
 /**

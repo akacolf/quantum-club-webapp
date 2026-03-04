@@ -12,5 +12,4 @@
  */
 
 export const APP_VERSION = "3.4.0";
-export const APP_NAME = "Quantum Club";
 export const APP_BUILD_DATE = "2026-03-02";
