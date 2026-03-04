@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useUserStatsQuery } from "@/app/(hooks)/queries/use-user-stats";
+import { useProfilePhotoQuery } from "@/app/(hooks)/queries/use-profile-photo";
 import Loader from "@/app/(components)/Loader";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,11 +27,14 @@ export default function ProfilePage() {
     const router = useRouter();
     const { telegramId, username, MainQuantAmount, daily } = useUserContext();
 
-    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [displayName, setDisplayName] = useState<string>("");
+
+    const tgUser = useMemo(() => window.Telegram?.WebApp?.initDataUnsafe?.user, []);
+    const displayName = username || tgUser?.username || tgUser?.first_name || "";
+    const { data: profilePhotoData } = useProfilePhotoQuery(tgUser?.photo_url ? undefined : telegramId);
+    const photoUrl = tgUser?.photo_url || profilePhotoData || null;
 
     const { data: stats, isLoading: statsLoading } = useUserStatsQuery(telegramId, daily || 0);
 
@@ -56,34 +60,11 @@ export default function ProfilePage() {
         setIsSheetOpen(true);
     };
 
-    // Fetch display name and photo URL (separate from stats)
+    // Prefetch legal pages
     useEffect(() => {
-        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-
-        // Prefer DB-stored username (works for email login from different TG account)
-        if (username) {
-            setDisplayName(username);
-        } else if (tgUser?.username) {
-            setDisplayName(tgUser.username);
-        } else if (tgUser?.first_name) {
-            setDisplayName(tgUser.first_name);
-        }
-
-        // Fetch photo — use DB telegramId as fallback
-        if (tgUser?.photo_url) {
-            setPhotoUrl(tgUser.photo_url);
-        } else if (telegramId) {
-            import("@/app/(hooks)/actions").then(({ getProfilePhoto }) =>
-                getProfilePhoto({ telegramId })
-                    .then((result) => { if (result?.data?.photoUrl) setPhotoUrl(result.data.photoUrl); })
-                    .catch(() => { })
-            );
-        }
-
-        // Prefetch legal pages
         router.prefetch("/wallet/settings/terms");
         router.prefetch("/wallet/settings/privacy");
-    }, [telegramId, username, router]);
+    }, [router]);
 
     const unlockedAchievements = getUnlockedAchievements(resolvedStats);
     const lockedAchievements = getLockedAchievements(resolvedStats);
