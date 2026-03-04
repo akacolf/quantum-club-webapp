@@ -88,12 +88,13 @@ export default function GroupInfoPage() {
   }, [chatId]);
 
   // Resolve "Unknown" participant names via batch query
+  const participantNames = chatMeta?.participantNames;
   const unknownUids = useMemo(() => {
-    if (!chatMeta?.participantNames) return [];
-    return Object.entries(chatMeta.participantNames)
+    if (!participantNames) return [];
+    return Object.entries(participantNames)
       .filter(([, name]) => name === "Unknown")
       .map(([uid]) => uid);
-  }, [chatMeta?.participantNames]);
+  }, [participantNames]);
 
   const batchUsernamesQuery = useQcUsernamesBatch(unknownUids);
 
