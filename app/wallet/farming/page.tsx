@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useFarmingDataQuery } from "@/app/(hooks)/queries/use-farming";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,8 +18,6 @@ import { useRouter } from "next/navigation";
 import { farmStakeSchema } from "@/lib/validations";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import {
-    fetchFarmingPools,
-    fetchUserFarmPositions,
     stakeLpTokens,
     unstakeLpTokens,
     type FarmPool,
@@ -28,8 +28,17 @@ type ViewMode = "list" | "stake" | "positions" | "details";
 
 export default function FarmingPage() {
     const router = useRouter();
-    const { fetchWalletAssets, jettons } = useWallet();
+    const queryClient = useQueryClient();
+    const { walletAddress, fetchWalletAssets, jettons } = useWallet();
     const { telegramId } = useUserContext();
+
+    const {
+        data: farmingData,
+        isLoading,
+        refetch,
+    } = useFarmingDataQuery(walletAddress);
+    const farms = farmingData?.farms ?? [];
+    const positions = farmingData?.positions ?? [];
     
     const {
         isOpen: isAuthOpen,
@@ -44,10 +53,7 @@ export default function FarmingPage() {
     }, [router]);
 
     const [viewMode, setViewMode] = useState<ViewMode>("list");
-    const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [farms, setFarms] = useState<FarmPool[]>([]);
-    const [positions, setPositions] = useState<FarmPosition[]>([]);
     const [selectedFarm, setSelectedFarm] = useState<FarmPool | null>(null);
     const [stakeAmount, setStakeAmount] = useState("");
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
@@ -75,31 +81,6 @@ export default function FarmingPage() {
             tg?.BackButton.offClick(handleBackButtonClick);
         };
     }, [router, viewMode]);
-
-    // Fetch farming data
-    const fetchData = async () => {
-        setIsLoading(true);
-        try {
-            const [farmsData, positionsData] = await Promise.all([
-                fetchFarmingPools(),
-                telegramId ? fetchUserFarmPositions(
-                    localStorage.getItem(`quantum_wallet_address_${telegramId}`) || ""
-                ) : Promise.resolve([]),
-            ]);
-            setFarms(farmsData);
-            setPositions(positionsData);
-        } catch (error) {
-            console.error("Failed to fetch farming data:", error);
-            toast.error("Failed to load farming pools");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     // Find LP token balance for selected farm
     const lpBalance = selectedFarm 
@@ -171,7 +152,7 @@ export default function FarmingPage() {
                 setStep("success");
                 toast.success("LP tokens staked successfully!");
                 setTimeout(() => {
-                    fetchData();
+                    queryClient.invalidateQueries({ queryKey: ["farming"] });
                     fetchWalletAssets();
                 }, 3000);
             } else {
@@ -215,7 +196,7 @@ export default function FarmingPage() {
             if (result.success) {
                 toast.success("LP tokens unstaked successfully!");
                 setTimeout(() => {
-                    fetchData();
+                    queryClient.invalidateQueries({ queryKey: ["farming"] });
                     fetchWalletAssets();
                 }, 3000);
             } else {
@@ -259,7 +240,7 @@ export default function FarmingPage() {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={fetchData}
+                                    onClick={() => refetch()}
                                     disabled={isLoading}
                                     className="text-gray-400"
                                 >

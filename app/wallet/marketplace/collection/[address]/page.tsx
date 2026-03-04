@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,11 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
-    getCollectionDetails,
-    getCollectionItems,
-    type NftCollection,
-    type NftItem,
-} from "@/lib/nft-marketplace";
+    useNftCollectionQuery,
+    useNftCollectionItemsQuery,
+} from "@/app/(hooks)/queries/use-nft-collection";
 import { useWallet } from "@/app/wallet/WalletContext";
 
 export default function CollectionDetailPage() {
@@ -26,10 +24,8 @@ export default function CollectionDetailPage() {
 
     const collectionAddress = decodeURIComponent(params.address as string);
 
-    const [collection, setCollection] = useState<NftCollection | null>(null);
-    const [items, setItems] = useState<NftItem[]>([]);
-    const [isLoadingCollection, setIsLoadingCollection] = useState(true);
-    const [isLoadingItems, setIsLoadingItems] = useState(true);
+    const { data: collection, isLoading: isLoadingCollection } = useNftCollectionQuery(collectionAddress, isTestnet);
+    const { data: items = [], isLoading: isLoadingItems } = useNftCollectionItemsQuery(collectionAddress, isTestnet);
     const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
@@ -44,37 +40,6 @@ export default function CollectionDetailPage() {
         if (count <= 0) return "∞";
         return count.toLocaleString();
     };
-
-    useEffect(() => {
-        async function fetchCollection() {
-            setIsLoadingCollection(true);
-            try {
-                const data = await getCollectionDetails(collectionAddress, isTestnet);
-                setCollection(data);
-            } catch (error) {
-                console.error("Failed to fetch collection:", error);
-            } finally {
-                setIsLoadingCollection(false);
-            }
-        }
-
-        async function fetchItems() {
-            setIsLoadingItems(true);
-            try {
-                const data = await getCollectionItems(collectionAddress, 100, 0, isTestnet);
-                // Only show items that are for sale
-                const forSaleItems = data.filter(item => item.sale !== null);
-                setItems(forSaleItems);
-            } catch (error) {
-                console.error("Failed to fetch items:", error);
-            } finally {
-                setIsLoadingItems(false);
-            }
-        }
-
-        fetchCollection();
-        fetchItems();
-    }, [collectionAddress, isTestnet]);
 
     if (isLoadingCollection) {
         return (

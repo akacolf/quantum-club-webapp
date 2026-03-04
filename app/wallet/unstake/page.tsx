@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useUnstakeDataQuery } from "@/app/(hooks)/queries/use-unstake";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,8 @@ import { useRouter } from "next/navigation";
 import { stakeAmountSchema } from "@/lib/validations";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import {
-    getTonStakersInfo,
     unstakeTsTon,
     unstakeInstantTsTon,
-    getActiveWithdrawals,
-    type TonStakersInfo,
 } from "@/lib/tonstakers-integration";
 
 type UnstakeMode = "best-rate" | "instant";
@@ -44,13 +42,15 @@ export default function UnstakePage() {
         router.prefetch("/wallet/staking");
     }, [router]);
 
-    const [isLoading, setIsLoading] = useState(true);
+    const {
+        data: unstakeData,
+        isLoading,
+        refetch,
+    } = useUnstakeDataQuery(telegramId);
+    const stakingInfo = unstakeData?.stakingInfo ?? null;
+    const withdrawals = unstakeData?.withdrawals ?? [];
+
     const [isProcessing, setIsProcessing] = useState(false);
-    const [stakingInfo, setStakingInfo] = useState<TonStakersInfo | null>(null);
-    const [withdrawals, setWithdrawals] = useState<Array<{
-        amount: number;
-        estimatedTime: number;
-    }>>([]);
     const [unstakeMode, setUnstakeMode] = useState<UnstakeMode>("best-rate");
 
     // TanStack Form for unstake amount
@@ -69,39 +69,6 @@ export default function UnstakePage() {
     const tsTonBalance = tsTonJetton 
         ? parseFloat(tsTonJetton.balance) / Math.pow(10, tsTonJetton.decimals)
         : 0;
-
-    // Fetch staking info
-    const fetchData = async () => {
-        if (!telegramId) return;
-
-        setIsLoading(true);
-        try {
-            const storedMnemonic = await getSecureMnemonic(telegramId);
-            const storedAddress = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
-
-            if (storedMnemonic && storedAddress) {
-                const mnemonic = storedMnemonic.split(" ");
-                const [info, activeWithdrawals] = await Promise.all([
-                    getTonStakersInfo(storedAddress, mnemonic),
-                    getActiveWithdrawals(storedAddress, mnemonic),
-                ]);
-                setStakingInfo(info);
-                setWithdrawals(activeWithdrawals.map(w => ({
-                    amount: w.tsTONAmount || 0,
-                    estimatedTime: w.estimatedPayoutDateTime || 0,
-                })));
-            }
-        } catch (error) {
-            console.error("Failed to fetch staking info:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     // Parse amount from form
     const unstakeAmount = form.getFieldValue("amount");
@@ -174,7 +141,7 @@ export default function UnstakePage() {
                 );
                 setTimeout(() => {
                     fetchWalletAssets();
-                    fetchData();
+                    refetch();
                 }, 3000);
             } else {
                 throw new Error(result.error || "Unstaking failed");
@@ -217,7 +184,7 @@ export default function UnstakePage() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={fetchData}
+                        onClick={() => refetch()}
                         disabled={isLoading}
                         className="text-gray-400"
                     >

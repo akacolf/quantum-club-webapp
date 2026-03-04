@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,14 +18,12 @@ import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth"
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
+import { useLendingDataQuery } from "@/app/(hooks)/queries/use-lending";
 import {
-    fetchLendingMarkets,
-    fetchUserPositions,
     buildSupplyParams,
     buildWithdrawParams,
     initEvaaMaster,
     type LendingAsset,
-    type UserLendingData,
 } from "@/lib/evaa-service";
 import { lendingSchema } from "@/lib/validations";
 import { mnemonicToPrivateKey } from "@ton/crypto";
@@ -85,6 +84,8 @@ export default function LendingPage() {
         isTestnet,
     } = useWallet();
 
+    const queryClient = useQueryClient();
+
     const TON_API_BASE_URL = isTestnet
         ? "https://testnet.tonapi.io"
         : "https://tonapi.io";
@@ -93,9 +94,10 @@ export default function LendingPage() {
         router.prefetch("/wallet");
     }, [router]);
 
-    const [isLoading, setIsLoading] = useState(true);
-    const [markets, setMarkets] = useState<LendingAsset[]>([]);
-    const [userPositions, setUserPositions] = useState<UserLendingData | null>(null);
+    const { data: lendingData, isLoading } = useLendingDataQuery(walletAddress);
+    const markets = lendingData?.markets ?? [];
+    const userPositions = lendingData?.userPositions ?? null;
+
     const [viewMode, setViewMode] = useState<ViewMode>("markets");
     const [selectedAsset, setSelectedAsset] = useState<LendingAsset | null>(null);
     const [amount, setAmount] = useState("");
@@ -124,31 +126,11 @@ export default function LendingPage() {
         };
     }, [router, viewMode]);
 
-    const loadMarketData = async () => {
-        try {
-            setIsLoading(true);
-            const [marketsData, positions] = await Promise.all([
-                fetchLendingMarkets(),
-                walletAddress ? fetchUserPositions(walletAddress).catch(() => null) : null,
-            ]);
-            setMarkets(marketsData);
-            setUserPositions(positions);
-        } catch (error) {
-            console.error("Failed to load lending markets:", error);
-            toast.error("Failed to load lending markets");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     useEffect(() => {
         const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
         if (!storedWallet) {
             router.push("/wallet");
-            return;
         }
-        loadMarketData();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router, telegramId]);
 
     const getWalletBalance = (assetName: string): string => {
@@ -270,7 +252,7 @@ export default function LendingPage() {
             setSelectedAsset(null);
 
             setTimeout(() => {
-                loadMarketData();
+                queryClient.invalidateQueries({ queryKey: ["lending"] });
                 fetchWalletAssets();
             }, 5000);
         } catch (error) {
