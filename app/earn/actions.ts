@@ -3,24 +3,29 @@
 import { z } from "zod";
 import { FieldValue } from "firebase-admin/firestore";
 import { auth, firestore } from "../(firebase)/server";
-import { actionClient, authActionClient } from "@/lib/safe-action";
+import { authActionClient, authWithQcIdClient } from "@/lib/safe-action";
 import { env } from "@/env";
 
-export const confirmTask = actionClient
+export const confirmTask = authWithQcIdClient
     .schema(z.object({
-        task: z.object({
-            id: z.string(),
-            completed: z.boolean(),
-            platform: z.string(),
-            quant: z.number(),
-        }),
-        telegramId: z.string().min(1),
-        authToken: z.string().min(1),
+        taskId: z.string().min(1),
+        platform: z.string().min(1),
     }))
-    .action(async ({ parsedInput: { task, telegramId, authToken } }) => {
-        const verifiedToken = await auth.verifyIdToken(authToken);
-        if (!verifiedToken.uid) {
-            return { error: true, message: "Unauthorized" };
+    .action(async ({ parsedInput: { taskId, platform }, ctx: { telegramId } }) => {
+        // Look up reward amount from server-side task definition — never trust client
+        const taskDoc = await firestore.collection("tasks").doc(taskId).get();
+        if (!taskDoc.exists) {
+            return { error: true, message: "Task not found" };
+        }
+        const quantReward = taskDoc.data()?.quantReward;
+        if (typeof quantReward !== "number" || quantReward <= 0) {
+            return { error: true, message: "Invalid task reward" };
+        }
+
+        // Check if task already completed
+        const existingTask = await firestore.collection("user").doc(telegramId).collection("tasks").doc(taskId).get();
+        if (existingTask.exists && existingTask.data()?.completed) {
+            return { error: true, message: "Task already completed" };
         }
 
         const date = new Date(Date.now());
@@ -31,18 +36,18 @@ export const confirmTask = actionClient
             .toString()
             .padStart(2, "0")}/${date.getFullYear()}`;
 
-        await firestore.collection("user").doc(telegramId).collection("tasks").doc(task.id).set({
+        await firestore.collection("user").doc(telegramId).collection("tasks").doc(taskId).set({
             completed: true,
-            platform: task.platform,
-            quant: task.quant,
+            platform,
+            quant: quantReward,
             date: formattedDate,
         });
 
         await firestore.collection("user").doc(telegramId).collection("miningData").doc("values").update({
-            QuantAmount: FieldValue.increment(task.quant),
+            QuantAmount: FieldValue.increment(quantReward),
         });
 
-        return { error: false, message: "Task confirmed" };
+        return { error: false, message: "Task confirmed", quant: quantReward };
     });
 
 // ---------------------------------------------------------------------------

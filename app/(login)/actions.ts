@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { cookies } from "next/headers";
-import { actionClient } from "@/lib/safe-action";
+import { actionClient, authWithQcIdClient } from "@/lib/safe-action";
 import { firestore, auth as firebaseAuth } from "@/app/(firebase)/server";
 import { encrypt, decrypt, SESSION_DURATION } from "@/utils/session";
 import { validateTelegramWebAppData } from "@/utils/telegramAuth";
@@ -109,18 +109,9 @@ const checkUserRankSchema = z.object({
   userName: z.string().optional(),
 });
 
-export const checkUserRank = actionClient
+export const checkUserRank = authWithQcIdClient
   .schema(checkUserRankSchema)
-  .action(async ({ parsedInput: { userName } }) => {
-    // This action needs a session to determine the user's telegramId
-    const { getSession } = await import("@/utils/session");
-    const session = await getSession();
-    if (!session?.user?.telegramId) {
-      throw new Error("Unauthorized");
-    }
-
-    const rawTelegramId = String(session.user.telegramId);
-    const telegramId = encryptTelegramId(rawTelegramId);
+  .action(async ({ parsedInput: { userName }, ctx: { telegramId } }) => {
 
     // Fetch QuantAmount from server, don't trust client
     const userMiningRef = firestore.doc(`user/${telegramId}/miningData/values`);
