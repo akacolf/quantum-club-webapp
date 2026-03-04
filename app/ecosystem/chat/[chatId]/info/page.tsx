@@ -97,25 +97,25 @@ export default function GroupInfoPage() {
   }, [participantNames]);
 
   const batchUsernamesQuery = useQcUsernamesBatch(unknownUids);
+  const batchData = batchUsernamesQuery.data;
 
+  // Merge resolved usernames at render time (no setState needed)
+  const resolvedNames = useMemo(() => {
+    if (!participantNames) return {} as Record<string, string>;
+    if (!batchData || Object.keys(batchData).length === 0) return participantNames;
+    return { ...participantNames, ...batchData };
+  }, [participantNames, batchData]);
+
+  // Persist resolved names to Firestore (external system sync only)
   useEffect(() => {
-    if (!batchUsernamesQuery.data || !chatId) return;
-    const updates = batchUsernamesQuery.data;
-    if (Object.keys(updates).length === 0) return;
-
-    setChatMeta((prev) => {
-      if (!prev) return prev;
-      return { ...prev, participantNames: { ...prev.participantNames, ...updates } };
-    });
-
-    // Persist resolved names to Firestore
+    if (!batchData || !chatId || Object.keys(batchData).length === 0) return;
     const chatRef = doc(dbfs, "qc-chats", chatId);
     const firestoreUpdates: Record<string, string> = {};
-    for (const [uid, name] of Object.entries(updates)) {
+    for (const [uid, name] of Object.entries(batchData)) {
       firestoreUpdates[`participantNames.${uid}`] = name;
     }
     updateDoc(chatRef, firestoreUpdates).catch(() => {});
-  }, [batchUsernamesQuery.data, chatId]);
+  }, [batchData, chatId]);
 
   // Prefetch user profile routes
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function GroupInfoPage() {
               <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Created By</p>
                 <p className="font-bold text-white text-sm">
-                  @{chatMeta.participantNames[chatMeta.createdBy] || "Unknown"}
+                  @{resolvedNames[chatMeta.createdBy] || "Unknown"}
                 </p>
               </div>
             </div>
@@ -223,7 +223,7 @@ export default function GroupInfoPage() {
           <h2 className="text-lg font-semibold text-foreground">Members</h2>
           <div className="space-y-2">
             {chatMeta.participants.map((uid) => {
-              const name = chatMeta.participantNames[uid] || "Unknown";
+              const name = resolvedNames[uid] || "Unknown";
               const isCreator = uid === chatMeta.createdBy;
               const isSelf = uid === telegramId;
               const photo = photos[uid];
