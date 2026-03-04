@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups, GroupMember } from "@/app/(contexts)/GroupsContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useQcUsernamesBatch } from "@/app/(hooks)/queries/use-qc-username";
 import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -54,38 +55,28 @@ export default function GroupDetailPage() {
         loadMembers();
     }, [groupId, getGroupMembers]);
 
-    // Resolve "Unknown" member names from the database
-    const resolvedRef = useRef<Set<string>>(new Set());
-    useEffect(() => {
-        const unknowns = members.filter(
-            (m) => m.username === "Unknown" && !resolvedRef.current.has(m.telegramId)
-        );
-        if (unknowns.length === 0) return;
-        unknowns.forEach((m) => resolvedRef.current.add(m.telegramId));
+    // Resolve "Unknown" member names via batch query
+    const unknownMemberIds = useMemo(() => {
+        return members
+            .filter((m) => m.username === "Unknown")
+            .map((m) => m.telegramId);
+    }, [members]);
 
-        const resolve = async () => {
-            const updates: Record<string, string> = {};
-            await Promise.all(
-                unknowns.map(async (m) => {
-                    try {
-                        const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(m.telegramId)}`);
-                        if (!res.ok) return;
-                        const data = await res.json();
-                        if (data.username) updates[m.telegramId] = data.username;
-                    } catch { /* ignore */ }
-                })
-            );
-            if (Object.keys(updates).length === 0) return;
-            setMembers((prev) =>
-                prev.map((m) => (updates[m.telegramId] ? { ...m, username: updates[m.telegramId] } : m))
-            );
-            // Persist resolved names to Firestore so future loads don't show "Unknown"
-            for (const [uid, name] of Object.entries(updates)) {
-                updateDoc(doc(dbfs, `groups/${groupId}/members/${uid}`), { username: name }).catch(() => {});
-            }
-        };
-        resolve();
-    }, [members, groupId]);
+    const batchUsernamesQuery = useQcUsernamesBatch(unknownMemberIds);
+
+    useEffect(() => {
+        if (!batchUsernamesQuery.data) return;
+        const updates = batchUsernamesQuery.data;
+        if (Object.keys(updates).length === 0) return;
+
+        setMembers((prev) =>
+            prev.map((m) => (updates[m.telegramId] ? { ...m, username: updates[m.telegramId] } : m))
+        );
+        // Persist resolved names to Firestore so future loads don't show "Unknown"
+        for (const [uid, name] of Object.entries(updates)) {
+            updateDoc(doc(dbfs, `groups/${groupId}/members/${uid}`), { username: name }).catch(() => {});
+        }
+    }, [batchUsernamesQuery.data, groupId]);
 
     const handleLeave = async () => {
         if (isAdmin) {

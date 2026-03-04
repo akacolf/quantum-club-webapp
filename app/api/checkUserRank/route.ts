@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import admin from 'firebase-admin';
 import { decrypt } from '@/utils/session';
 import { createCipheriv } from 'node:crypto';
 import { env } from '@/env';
+
+const checkUserRankSchema = z.object({
+    userName: z.string().optional(),
+});
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -45,7 +50,14 @@ export async function POST(request:NextRequest) {
 
     // Get username from request (less sensitive)
     const body = await request.json();
-    const { userName } = body;
+    const parsed = checkUserRankSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0]?.message || 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+    const { userName } = parsed.data;
 
     // IMPORTANT: Fetch QuantAmount from server, don't trust client
     const userMiningRef = admin.firestore().doc(`user/${telegramId}/miningData/values`);

@@ -1,10 +1,15 @@
 import admin from 'firebase-admin';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { decrypt, encrypt, SESSION_DURATION } from '@/utils/session';
 import { validateTelegramWebAppData } from '@/utils/telegramAuth';
 import { createCipheriv } from 'node:crypto';
 import { env } from '@/env';
+
+const telegramAuthSchema = z.object({
+    initData: z.string().min(1, "initData is required"),
+});
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -30,8 +35,9 @@ export async function POST(req:NextRequest) {
         let rawTelegramId: string | null = null;
         let sessionSetFromInitData = false;
 
-        const body = await req.json().catch(() => ({}));
-        const initData = typeof body?.initData === "string" ? body.initData : "";
+        const rawBody = await req.json().catch(() => ({}));
+        const bodyParsed = telegramAuthSchema.safeParse(rawBody);
+        const initData = bodyParsed.success ? bodyParsed.data.initData : "";
 
         // 1) Preferred: existing session cookie
         const sessionCookie = req.cookies.get('session')?.value;

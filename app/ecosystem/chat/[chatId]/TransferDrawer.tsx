@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field";
 import {
   Drawer,
   DrawerContent,
@@ -14,6 +16,7 @@ import {
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toNano, Address } from "@ton/core";
 import { toast } from "sonner";
+import { chatTransferSchema } from "@/lib/validations";
 
 interface TransferDrawerProps {
   open: boolean;
@@ -42,19 +45,24 @@ export default function TransferDrawer({
   onFailed,
 }: TransferDrawerProps) {
   const { tonBalance, tonPrice, sendTransaction, walletAddress } = useWallet();
-  const [amount, setAmount] = useState("");
-  const [manualAddress, setManualAddress] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // Reset fields when drawer opens
+  const form = useForm({
+    defaultValues: { amount: "", address: "" },
+    validators: { onSubmit: chatTransferSchema },
+  });
+
+  // Reset form when drawer opens
   useEffect(() => {
     if (open) {
-      setAmount("");
-      setManualAddress("");
+      form.reset();
     }
   }, [open]);
 
-  const resolvedAddress = recipientAddress || (isValidTonAddress(manualAddress) ? manualAddress : null);
+  const address = useStore(form.store, (s) => s.values.address);
+  const amount = useStore(form.store, (s) => s.values.amount);
+
+  const resolvedAddress = recipientAddress || (isValidTonAddress(address) ? address : null);
 
   const numericBalance = parseFloat(tonBalance) || 0;
   const FEE_RESERVE = 0.05;
@@ -64,7 +72,7 @@ export default function TransferDrawer({
   const isValidAmount = numericAmount > 0 && numericAmount <= maxSendable;
 
   const handleMax = () => {
-    setAmount(maxSendable > 0 ? maxSendable.toFixed(4) : "0");
+    form.setFieldValue("amount", maxSendable > 0 ? maxSendable.toFixed(4) : "0");
   };
 
   const handleSend = async () => {
@@ -79,8 +87,7 @@ export default function TransferDrawer({
 
       if (result.success && result.txHash) {
         onSend(amount, result.txHash, resolvedAddress);
-        setAmount("");
-        setManualAddress("");
+        form.reset();
         onOpenChange(false);
       } else {
         const errorMsg = result.error || "Transaction failed";
@@ -122,58 +129,74 @@ export default function TransferDrawer({
               {recipientAddress ? (
                 <p className="text-[11px] text-muted-foreground font-mono">{truncatedAddress}</p>
               ) : (
-                <div className="mt-1.5">
-                  <Input
-                    type="text"
-                    value={manualAddress}
-                    onChange={(e) => setManualAddress(e.target.value)}
-                    placeholder="Paste TON address (EQ/UQ...)"
-                    className="text-base h-9 rounded-lg font-mono"
-                  />
-                  {manualAddress && !isValidTonAddress(manualAddress) && (
-                    <p className="text-[10px] text-red-500 mt-1">Invalid TON address</p>
+                <form.Field name="address">
+                  {(field) => (
+                    <div className="mt-1.5">
+                      <Input
+                        type="text"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="Paste TON address (EQ/UQ...)"
+                        className="text-base h-9 rounded-lg font-mono"
+                      />
+                      {field.state.value && !isValidTonAddress(field.state.value) && (
+                        <p className="text-[10px] text-red-500 mt-1">Invalid TON address</p>
+                      )}
+                      {field.state.meta.errors.length > 0 && (
+                        <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} className="text-[10px] mt-1" />
+                      )}
+                    </div>
                   )}
-                </div>
+                </form.Field>
               )}
             </div>
 
             {/* Amount input */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Amount</p>
-                <button
-                  onClick={handleMax}
-                  className="text-[10px] text-primary font-semibold hover:underline"
-                >
-                  MAX ({maxSendable.toFixed(4)} TON)
-                </button>
-              </div>
-              <div className="relative">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="pr-14 text-lg font-semibold h-12 rounded-xl"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-                  TON
-                </span>
-              </div>
-              {numericAmount > 0 && (
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  ≈ ${usdValue.toFixed(2)} USD
-                </p>
+            <form.Field name="amount">
+              {(field) => (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Amount</p>
+                    <button
+                      onClick={handleMax}
+                      className="text-[10px] text-primary font-semibold hover:underline"
+                    >
+                      MAX ({maxSendable.toFixed(4)} TON)
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      min="0"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="0.00"
+                      className="pr-14 text-lg font-semibold h-12 rounded-xl"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+                      TON
+                    </span>
+                  </div>
+                  {numericAmount > 0 && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      ≈ ${usdValue.toFixed(2)} USD
+                    </p>
+                  )}
+                  {numericAmount > maxSendable && numericAmount > 0 && (
+                    <p className="text-[11px] text-red-500 mt-1">
+                      Insufficient balance
+                    </p>
+                  )}
+                  {field.state.meta.errors.length > 0 && (
+                    <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} className="text-[11px] mt-1" />
+                  )}
+                </div>
               )}
-              {numericAmount > maxSendable && numericAmount > 0 && (
-                <p className="text-[11px] text-red-500 mt-1">
-                  Insufficient balance
-                </p>
-              )}
-            </div>
+            </form.Field>
 
             {/* Fee estimate */}
             <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">

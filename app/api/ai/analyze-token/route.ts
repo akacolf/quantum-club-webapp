@@ -3,6 +3,7 @@ import { getSession } from "@/utils/session";
 import { NextRequest, NextResponse } from "next/server";
 import { AI_MODEL } from "@/lib/ai/system-prompt";
 import { env } from "@/env";
+import { analyzeTokenSchema } from "@/lib/validations";
 
 const ANALYSIS_SYSTEM_PROMPT = `You are a crypto token analyst AI for Quantum Club. Analyze the provided token data and give a concise, helpful assessment.
 
@@ -37,11 +38,14 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { tokenAddress, tokenData } = body;
-
-        if (!tokenAddress) {
-            return NextResponse.json({ error: "Token address required" }, { status: 400 });
+        const parsed = analyzeTokenSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.errors[0].message },
+                { status: 400 }
+            );
         }
+        const { tokenAddress, tokenData } = parsed.data;
 
         // Build token context for AI
         const tokenContext = `Analyze this TON token:

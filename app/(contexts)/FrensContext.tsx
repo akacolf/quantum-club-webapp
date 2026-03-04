@@ -1,6 +1,5 @@
 "use client";
 
-import { ReactNode } from "react";
 import { useFrensStore } from "@/stores/frens-store";
 import { useShallow } from "zustand/shallow";
 
@@ -14,7 +13,3 @@ export const useFrenContext = () =>
       setReferralNum: s.setReferralNum,
     }))
   );
-
-export const FrensProvider = ({ children }: { children: ReactNode }) => {
-  return <>{children}</>;
-};

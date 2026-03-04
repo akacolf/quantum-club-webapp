@@ -7,14 +7,17 @@ import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
+import { useForm, useStore } from "@tanstack/react-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Field, FieldError } from "@/components/ui/field";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useWallet } from "../WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
+import { walletImportSchema } from "@/lib/validations";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,10 +55,19 @@ export default function ImportWalletPage() {
 
   const { setWalletAddress, addWallet, switchWallet, storedWallets, isTestnet } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
-  const [seedPhrase, setSeedPhrase] = useState<string[]>(Array(24).fill(""));
   const [isValidPhrase, setIsValidPhrase] = useState<boolean | null>(null);
-  const [walletVersion, setWalletVersion] = useState("v5r1");
   const [previewAddresses, setPreviewAddresses] = useState<{ version: string; address: string }[]>([]);
+
+  const form = useForm({
+    defaultValues: {
+      seedPhrase: Array(24).fill("") as string[],
+      walletVersion: "v5r1" as "v5r1" | "v4r2" | "v3r2",
+    },
+    validators: { onSubmit: walletImportSchema },
+  });
+
+  const seedPhrase = useStore(form.store, (s) => s.values.seedPhrase);
+  const walletVersion = useStore(form.store, (s) => s.values.walletVersion);
 
   useEffect(() => {
     router.prefetch("/wallet/settings/wallets");
@@ -118,7 +130,7 @@ export default function ImportWalletPage() {
   const handleWordChange = (index: number, value: string) => {
     const newPhrase = [...seedPhrase];
     newPhrase[index] = value;
-    setSeedPhrase(newPhrase);
+    form.setFieldValue("seedPhrase", newPhrase);
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLInputElement>, index: number) => {
@@ -132,20 +144,21 @@ export default function ImportWalletPage() {
         const targetIndex = index + i;
         if (targetIndex < 24) newPhrase[targetIndex] = word.toLowerCase().trim();
       });
-      setSeedPhrase(newPhrase);
+      form.setFieldValue("seedPhrase", newPhrase);
       if (words.length >= 24) toast.success("Recovery phrase sequence matched");
     }
   };
 
   const handleClear = () => {
-    setSeedPhrase(Array(24).fill(""));
+    form.setFieldValue("seedPhrase", Array(24).fill(""));
     setPreviewAddresses([]);
     toast.success("All inputs reset");
   };
 
   const handleImport = async () => {
     setIsLoading(true);
-    const cleanedPhrase = seedPhrase.map(word => word.trim().toLowerCase());
+    const { seedPhrase: formSeedPhrase, walletVersion: formWalletVersion } = form.state.values;
+    const cleanedPhrase = formSeedPhrase.map(word => word.trim().toLowerCase());
 
     try {
       const isValid = await mnemonicValidate(cleanedPhrase);
@@ -159,7 +172,7 @@ export default function ImportWalletPage() {
       let wallet;
       let versionLabel;
 
-      switch (walletVersion) {
+      switch (formWalletVersion) {
         case "v4r2":
           wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
           versionLabel = "V4R2";
@@ -178,7 +191,7 @@ export default function ImportWalletPage() {
       const address = wallet.address.toString({ bounceable: false, testOnly: isTestnet });
       localStorage.setItem(`quantum_wallet_address_${telegramId}`, address);
       localStorage.setItem(`quantum_wallet_mnemonic_${telegramId}`, cleanedPhrase.join(" "));
-      localStorage.setItem(`quantum_wallet_version_${telegramId}`, walletVersion);
+      localStorage.setItem(`quantum_wallet_version_${telegramId}`, formWalletVersion);
       setWalletAddress(address);
 
       const walletName = `Wallet ${storedWallets.length + 1} (${versionLabel})`;
@@ -261,7 +274,7 @@ export default function ImportWalletPage() {
                   {WALLET_VERSIONS.map((version) => (
                     <DropdownMenuItem
                       key={version.id}
-                      onClick={() => setWalletVersion(version.id)}
+                      onClick={() => form.setFieldValue("walletVersion", version.id as "v5r1" | "v4r2" | "v3r2")}
                       className={`flex flex-col items-start gap-1 p-3 rounded-xl cursor-default mb-1 last:mb-0 transition-all ${walletVersion === version.id
                         ? "bg-muted border-border"
                         : "hover:bg-muted/50 border-transparent"

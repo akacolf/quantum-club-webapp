@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useForm } from "@tanstack/react-form";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -10,9 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { stakeAmountSchema } from "@/lib/validations";
 import {
     getTonStakersInfo,
     unstakeTsTon,
@@ -47,8 +50,13 @@ export default function UnstakePage() {
         amount: number;
         estimatedTime: number;
     }>>([]);
-    const [unstakeAmount, setUnstakeAmount] = useState("");
     const [unstakeMode, setUnstakeMode] = useState<UnstakeMode>("best-rate");
+
+    // TanStack Form for unstake amount
+    const form = useForm({
+        defaultValues: { amount: "" },
+        validators: { onSubmit: stakeAmountSchema },
+    });
     const [step, setStep] = useState<"input" | "processing" | "success">("input");
 
     // Find tsTON balance
@@ -93,8 +101,9 @@ export default function UnstakePage() {
         fetchData();
     }, [fetchData]);
 
-    // Parse amount
-    const unstakeAmountNum = parseFloat(unstakeAmount) || 0;
+    // Parse amount from form
+    const unstakeAmount = form.getFieldValue("amount");
+    const unstakeAmountNum = parseFloat(unstakeAmount || "0") || 0;
     const isValidAmount = unstakeAmountNum > 0 && unstakeAmountNum <= tsTonBalance;
 
     // Calculate received TON
@@ -107,7 +116,7 @@ export default function UnstakePage() {
 
     // Handle max
     const handleMax = () => {
-        setUnstakeAmount(tsTonBalance.toFixed(6));
+        form.setFieldValue("amount", tsTonBalance.toFixed(6));
     };
 
     // Handle unstake
@@ -126,25 +135,27 @@ export default function UnstakePage() {
     // Execute unstake
     const executeUnstake = async () => {
         if (!telegramId) return;
-        
+
         setIsProcessing(true);
         setStep("processing");
-        
+
+        const amount = form.getFieldValue("amount");
+
         try {
             const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
             const storedAddress = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
-            
+
             if (!storedMnemonic || !storedAddress) {
                 throw new Error("Wallet not found");
             }
-            
+
             const mnemonic = storedMnemonic.split(" ");
-            
+
             let result;
             if (unstakeMode === "instant") {
-                result = await unstakeInstantTsTon(unstakeAmount, storedAddress, mnemonic, false);
+                result = await unstakeInstantTsTon(amount, storedAddress, mnemonic, false);
             } else {
-                result = await unstakeTsTon(unstakeAmount, storedAddress, mnemonic, false);
+                result = await unstakeTsTon(amount, storedAddress, mnemonic, false);
             }
             
             if (result.success) {
@@ -309,20 +320,35 @@ export default function UnstakePage() {
                                             MAX
                                         </button>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-1">
-                                            <Input
-                                                type="number"
-                                                placeholder="0.0"
-                                                value={unstakeAmount}
-                                                onChange={(e) => setUnstakeAmount(e.target.value)}
-                                                className="bg-black border-[#333] text-xl font-bold"
-                                            />
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-medium text-white">tsTON</p>
-                                        </div>
-                                    </div>
+                                    <form.Field name="amount">
+                                        {(field) => (
+                                            <>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-1">
+                                                        <Input
+                                                            type="text"
+                                                            inputMode="decimal"
+                                                            placeholder="0.0"
+                                                            value={field.state.value}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value.replace(",", ".");
+                                                                if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                                                    field.handleChange(value);
+                                                                }
+                                                            }}
+                                                            className="bg-black border-[#333] text-xl font-bold"
+                                                        />
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-medium text-white">tsTON</p>
+                                                    </div>
+                                                </div>
+                                                {field.state.meta.errors.length > 0 && (
+                                                    <FieldError errors={field.state.meta.errors.map((e) => ({ message: typeof e === "string" ? e : String(e) }))} />
+                                                )}
+                                            </>
+                                        )}
+                                    </form.Field>
                                 </CardContent>
                             </Card>
 

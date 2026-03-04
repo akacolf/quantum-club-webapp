@@ -2,12 +2,19 @@ import { encrypt, SESSION_DURATION } from "@/utils/session"
 import { validateTelegramWebAppData } from "@/utils/telegramAuth"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
+
+const authSchema = z.object({
+    initData: z.string().min(1, "initData is required"),
+})
 
 export async function POST(request:NextRequest) {
-    const {initData} =await request.json()
-    if(!initData) {
-        return NextResponse.json({message:'No initData provided'},{status:400})
+    const body = await request.json()
+    const parsed = authSchema.safeParse(body)
+    if(!parsed.success) {
+        return NextResponse.json({message: parsed.error.errors[0]?.message || 'Invalid request body'},{status:400})
     }
+    const { initData } = parsed.data
     const validationResult = validateTelegramWebAppData(initData)
     if(validationResult.validatedData) {
         const user = {telegramId: (validationResult.user as { id: string }).id}

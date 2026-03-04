@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -17,6 +17,9 @@ import Image from "next/image";
 import { useAllPrices } from "@/app/(hooks)/queries/use-prices";
 import { usePriceAlerts } from "@/app/(hooks)/queries/use-trades";
 import { useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
+import { priceAlertSchema } from "@/lib/validations";
+import { Field, FieldError } from "@/components/ui/field";
 
 interface PriceAlert {
     id: string;
@@ -63,17 +66,25 @@ export default function PriceAlertsPage() {
 
     const [isAdding, setIsAdding] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [selectedToken, setSelectedToken] = useState<TokenOption>(SUPPORTED_TOKENS[0]);
     const [showTokenPicker, setShowTokenPicker] = useState(false);
-    const [targetPrice, setTargetPrice] = useState("");
-    const [direction, setDirection] = useState<"above" | "below">("above");
 
-    const handleAdd = async () => {
-        const price = parseFloat(targetPrice);
-        if (isNaN(price) || price <= 0) {
-            toast.error("Please enter a valid price");
-            return;
-        }
+    const form = useForm({
+        defaultValues: {
+            symbol: "TON",
+            targetPrice: "",
+            direction: "above" as "above" | "below",
+        },
+        validators: { onSubmit: priceAlertSchema },
+        onSubmit: async ({ value }) => {
+            await handleAdd(value);
+        },
+    });
+
+    const selectedToken = SUPPORTED_TOKENS.find((t) => t.symbol === form.state.values.symbol) || SUPPORTED_TOKENS[0];
+    const direction = form.state.values.direction;
+
+    const handleAdd = async (value: { symbol: string; targetPrice: string; direction: "above" | "below" }) => {
+        const price = parseFloat(value.targetPrice);
 
         if (!telegramId) {
             toast.error("Not logged in");
@@ -84,16 +95,16 @@ export default function PriceAlertsPage() {
         try {
             // Ensure we have a valid session before making the request
             await authenticateUser();
-            
+
             const response = await fetch("/api/price-alerts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify({
                     telegramId,
-                    symbol: selectedToken.symbol,
+                    symbol: value.symbol,
                     targetPrice: price,
-                    direction,
+                    direction: value.direction,
                 }),
             });
 
@@ -101,7 +112,7 @@ export default function PriceAlertsPage() {
 
             if (response.ok) {
                 queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
-                setTargetPrice("");
+                form.reset();
                 setIsAdding(false);
                 toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
             } else if (response.status === 401 || response.status === 403) {
@@ -114,15 +125,15 @@ export default function PriceAlertsPage() {
                         credentials: "include",
                         body: JSON.stringify({
                             telegramId,
-                            symbol: selectedToken.symbol,
+                            symbol: value.symbol,
                             targetPrice: price,
-                            direction,
+                            direction: value.direction,
                         }),
                     });
                     const retryData = await retryResponse.json();
                     if (retryResponse.ok) {
                         queryClient.invalidateQueries({ queryKey: ["priceAlerts", telegramId] });
-                        setTargetPrice("");
+                        form.reset();
                         setIsAdding(false);
                         toast.success("Price alert created! You'll receive a Telegram notification when triggered.");
                     } else {
@@ -268,7 +279,7 @@ export default function PriceAlertsPage() {
                                                         <button
                                                             key={token.symbol}
                                                             onClick={() => {
-                                                                setSelectedToken(token);
+                                                                form.setFieldValue("symbol", token.symbol);
                                                                 setShowTokenPicker(false);
                                                             }}
                                                             className={`w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors ${
@@ -303,7 +314,7 @@ export default function PriceAlertsPage() {
                                     <div className="grid grid-cols-2 gap-2">
                                         <Button
                                             variant="ghost"
-                                            onClick={() => setDirection("above")}
+                                            onClick={() => form.setFieldValue("direction", "above")}
                                             className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${
                                                 direction === "above"
                                                     ? "bg-green-500/20 border-green-500/50 text-green-500 hover:bg-green-500/30 hover:text-green-600"
@@ -315,7 +326,7 @@ export default function PriceAlertsPage() {
                                         </Button>
                                         <Button
                                             variant="ghost"
-                                            onClick={() => setDirection("below")}
+                                            onClick={() => form.setFieldValue("direction", "below")}
                                             className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${
                                                 direction === "below"
                                                     ? "bg-destructive/20 border-destructive/50 text-destructive hover:bg-destructive/30"
@@ -328,20 +339,33 @@ export default function PriceAlertsPage() {
                                     </div>
 
                                     {/* Price Input */}
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                                        <Input
-                                            type="number"
-                                            value={targetPrice}
-                                            onChange={(e) => setTargetPrice(e.target.value)}
-                                            placeholder={`Target price (e.g., ${
-                                                currentPrices[selectedToken.symbol]
-                                                    ? (currentPrices[selectedToken.symbol] * (direction === "above" ? 1.1 : 0.9)).toFixed(2)
-                                                    : "0.00"
-                                            })`}
-                                            className="bg-muted border-border text-foreground pl-7"
-                                        />
-                                    </div>
+                                    <form.Field name="targetPrice">
+                                        {(field) => {
+                                            const hasErrors = field.state.meta.errors.length > 0;
+                                            return (
+                                                <Field data-invalid={hasErrors}>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                                        <Input
+                                                            id={field.name}
+                                                            type="number"
+                                                            value={field.state.value}
+                                                            onBlur={field.handleBlur}
+                                                            onChange={(e) => field.handleChange(e.target.value)}
+                                                            aria-invalid={hasErrors}
+                                                            placeholder={`Target price (e.g., ${
+                                                                currentPrices[selectedToken.symbol]
+                                                                    ? (currentPrices[selectedToken.symbol] * (direction === "above" ? 1.1 : 0.9)).toFixed(2)
+                                                                    : "0.00"
+                                                            })`}
+                                                            className="bg-muted border-border text-foreground pl-7"
+                                                        />
+                                                    </div>
+                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                </Field>
+                                            );
+                                        }}
+                                    </form.Field>
 
                                     {/* Helper text */}
                                     {currentPrices[selectedToken.symbol] && (
@@ -356,7 +380,7 @@ export default function PriceAlertsPage() {
                                             variant="outline"
                                             onClick={() => {
                                                 setIsAdding(false);
-                                                setTargetPrice("");
+                                                form.reset();
                                                 setShowTokenPicker(false);
                                             }}
                                             className="flex-1 bg-muted border-border text-foreground"
@@ -365,7 +389,7 @@ export default function PriceAlertsPage() {
                                             Cancel
                                         </Button>
                                         <Button
-                                            onClick={handleAdd}
+                                            onClick={() => form.handleSubmit()}
                                             className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                                             disabled={isSaving}
                                         >

@@ -7,7 +7,8 @@ import { useFrenContext } from "@/app/(contexts)/FrensContext";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
-import { collection, doc, getDoc, getDocs, getCountFromServer, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { useFrensDataQuery } from "@/app/(hooks)/queries/use-frens-data";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import InvitePopup from "./(components)/InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
@@ -33,7 +34,6 @@ const FrensContent = () => {
   const [loading, setLoading] = useState(true);
   const [totalReferralSize, setTotalReferralSize] = useState(0)
   const [viewButton, setViewButton] = useState<string | React.ReactNode>("View more")
-  const [secondTierCount, setSecondTierCount] = useState(0);
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -41,38 +41,21 @@ const FrensContent = () => {
   const [tonEarnings, setTonEarnings] = useState(0);
   const [isClaimingTon, setIsClaimingTon] = useState(false);
 
+  // Fetch referral counts, pending rewards, and TON earnings via TanStack Query
+  const { data: frensData } = useFrensDataQuery(telegramId);
+  const secondTierCount = frensData?.secondTierCount ?? 0;
+
+  // Sync query data into local state and context
+  useEffect(() => {
+    if (!frensData) return;
+    setReferralNum(frensData.referralCount);
+    setPendingRewards(frensData.pendingRewards);
+    setTonEarnings(frensData.tonEarnings);
+  }, [frensData, setReferralNum]);
+
+  // Fetch referral list (separate from counts)
   useEffect(() => {
     router.prefetch("/frens/referrals");
-    const getReferralsNum = async () => {
-      const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
-      const snapshot = await getCountFromServer(referralsRef);
-      setReferralNum(snapshot.data().count);
-
-      const secondTierRef = collection(dbfs, `user/${telegramId}/secondTierReferrals`);
-      const secondTierSnapshot = await getCountFromServer(secondTierRef);
-      setSecondTierCount(secondTierSnapshot.data().count);
-
-      // Fetch pending (unclaimed) tier 2 rewards
-      const unclaimedQuery = query(secondTierRef, where("claimed", "==", false));
-      const unclaimedSnapshot = await getDocs(unclaimedQuery);
-      let totalPending = 0;
-      unclaimedSnapshot.forEach((doc) => {
-        totalPending += Number(doc.data().reward) || 0;
-      });
-      setPendingRewards(totalPending);
-      
-      // Fetch TON referral earnings
-      try {
-        const referralEarningsRef = doc(dbfs, `user/${telegramId}/referralEarnings/ton`);
-        const earningsDoc = await getDoc(referralEarningsRef);
-        if (earningsDoc.exists()) {
-          setTonEarnings(Number(earningsDoc.data()?.pendingAmount) || 0);
-        }
-      } catch (e) {
-        console.error("Error fetching TON earnings:", e);
-      }
-    };
-    getReferralsNum();
     const fetchReferralsData = async () => {
       try {
         if (referralsContext.length > 0) return;
@@ -154,7 +137,7 @@ const FrensContent = () => {
     };
 
     fetchReferralsData();
-  }, [telegramId, addReferral, referralsContext, setReferralNum, router]);
+  }, [telegramId, addReferral, referralsContext, router]);
 
   // Profile photos for referral list — TanStack Query handles caching/dedup
   const photoUrls = useProfilePhotos(referralsContext.map((r) => r.id));

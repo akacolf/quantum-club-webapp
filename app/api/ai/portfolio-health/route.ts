@@ -3,6 +3,7 @@ import { getSession } from "@/utils/session";
 import { NextRequest, NextResponse } from "next/server";
 import { AI_MODEL } from "@/lib/ai/system-prompt";
 import { env } from "@/env";
+import { portfolioHealthSchema } from "@/lib/validations";
 
 const PORTFOLIO_PROMPT = `You are a crypto portfolio analyst AI for Quantum Club. Analyze the user's portfolio and provide actionable insights.
 
@@ -39,25 +40,27 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { assets, totalValue, stakedAmount } = body;
-
-        if (!assets || !Array.isArray(assets)) {
-            return NextResponse.json({ error: "Assets data required" }, { status: 400 });
+        const parsed = portfolioHealthSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.errors[0].message },
+                { status: 400 }
+            );
         }
+        const { assets, totalValue, stakedAmount } = parsed.data;
 
         // Build portfolio context
-        const assetList = assets.map((a: { symbol: string; value: number; percentage: number }) => 
-            `- ${a.symbol}: $${a.value?.toFixed(2) || "0"} (${a.percentage?.toFixed(1) || "0"}%)`
+        const assetList = assets.map((a) =>
+            `- ${a.symbol}: $${a.value || "0"} (balance: ${a.balance})`
         ).join("\n");
 
         const portfolioContext = `Analyze this crypto portfolio:
 
-Total Value: $${totalValue?.toFixed(2) || "0"}
-Staked Amount: $${stakedAmount?.toFixed(2) || "0"}
-
 Assets:
 ${assetList || "No assets"}
 
+Total Value: $${totalValue || "Unknown"}
+Staked Amount: $${stakedAmount || "0"}
 Number of different assets: ${assets.length}`;
 
         const ai = new GoogleGenAI({ apiKey });

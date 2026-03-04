@@ -1,6 +1,5 @@
 "use client";
 
-import { ReactNode } from "react";
 import { useLeaderboardStore } from "@/stores/leaderboard-store";
 import { useShallow } from "zustand/shallow";
 
@@ -17,7 +16,3 @@ export const useLeaderboardContext = () =>
       setTotalQuant: s.setTotalQuant,
     }))
   );
-
-export const LeaderboardProvider = ({ children }: { children: ReactNode }) => {
-  return <>{children}</>;
-};

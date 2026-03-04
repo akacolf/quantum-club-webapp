@@ -3,6 +3,7 @@ import admin from "firebase-admin";
 import { sendNotification } from "@/lib/notifications";
 import { decrypt } from "@/utils/session";
 import { env } from "@/env";
+import { callNotificationSchema } from "@/lib/validations";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -42,15 +43,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { calleeId, callerName, chatId } = body as {
-      calleeId: string;
-      callerName: string;
-      chatId: string;
-    };
-
-    if (!calleeId || !callerName || !chatId) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const parsed = callNotificationSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0].message },
+        { status: 400 }
+      );
     }
+    const { calleeId, callerName, chatId } = parsed.data;
 
     try {
       // Check presence — skip if user is currently online in-app

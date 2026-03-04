@@ -3,11 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { FieldError } from "@/components/ui/field";
+import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema } from "@/lib/validations";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -286,30 +290,41 @@ export default function QCChatListPage() {
   const [formMode, setFormMode] = useState<FormMode>("none");
   const [isLoading, setIsLoading] = useState(true);
 
-  // DM form state
-  const [newChatUsername, setNewChatUsername] = useState("");
+  // DM form
+  const dmForm = useForm({
+    defaultValues: { username: "" },
+    validators: { onSubmit: chatDmSchema },
+  });
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Group form state
-  const [groupName, setGroupName] = useState("");
+  // Group form
+  const groupForm = useForm({
+    defaultValues: { name: "" },
+    validators: { onSubmit: chatGroupSchema },
+  });
 
-  // Join group state
-  const [joinCode, setJoinCode] = useState("");
+  // Join group form
+  const joinForm = useForm({
+    defaultValues: { code: "" },
+    validators: { onSubmit: chatJoinSchema },
+  });
 
   // Username creation state (for users without a QC username)
-  const [usernameInput, setUsernameInput] = useState("");
+  const usernameForm = useForm({
+    defaultValues: { username: "" },
+    validators: { onSubmit: z.object({ username: usernameSchema }) },
+  });
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isRegisteringUsername, setIsRegisteringUsername] = useState(false);
   const [usernameAvailability, setUsernameAvailability] = useState<"available" | "taken" | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
-  const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
-
   const checkUsernameAvailability = async () => {
-    const val = usernameInput.trim();
-    if (!val || val.length < 3 || val.length > 20 || !USERNAME_REGEX.test(val)) {
-      setUsernameError(val.length < 3 ? "Min 3 characters" : val.length > 20 ? "Max 20 characters" : "Letters, numbers, dots, underscores & hyphens only");
+    const val = usernameForm.getFieldValue("username").trim();
+    const result = usernameSchema.safeParse(val);
+    if (!result.success) {
+      setUsernameError(result.error.errors[0]?.message ?? "Invalid username");
       return;
     }
     setIsCheckingUsername(true);
@@ -327,7 +342,7 @@ export default function QCChatListPage() {
   };
 
   const handleRegisterUsername = async () => {
-    const val = usernameInput.trim();
+    const val = usernameForm.getFieldValue("username").trim();
     if (!val || !telegramId || usernameAvailability !== "available") return;
     setIsRegisteringUsername(true);
     try {
@@ -339,7 +354,7 @@ export default function QCChatListPage() {
       if (res.ok) {
         setQcUsername(val);
         localStorage.setItem(`qcUsername_${telegramId}`, val);
-        setUsernameInput("");
+        usernameForm.reset();
         setUsernameAvailability(null);
       } else {
         const data = await res.json();
@@ -424,14 +439,14 @@ export default function QCChatListPage() {
         } catch (err) {
           console.error("Deep link auto-join failed:", err);
           // Fallback: show join form with pre-filled code
-          setJoinCode(code);
+          joinForm.setFieldValue("code", code);
           setFormMode("join");
         } finally {
           setIsStartingChat(false);
         }
       })();
     } catch {}
-  }, [currentUser, telegramId, qcUsername, conversations, router]);
+  }, [currentUser, telegramId, qcUsername, conversations, router, joinForm]);
 
   // Sync wallet address to QC username if missing
   useEffect(() => {
@@ -618,22 +633,23 @@ export default function QCChatListPage() {
   const toggleForm = useCallback((mode: FormMode) => {
     setFormMode((prev) => (prev === mode ? "none" : mode));
     setFormError(null);
-    setNewChatUsername("");
-    setGroupName("");
-    setJoinCode("");
-  }, []);
+    dmForm.reset();
+    groupForm.reset();
+    joinForm.reset();
+  }, [dmForm, groupForm, joinForm]);
 
   // Start DM
   const handleStartChat = async () => {
-    const normalizedUsername = newChatUsername.trim().replace(/^@+/, "").toLowerCase();
+    const rawUsername = dmForm.getFieldValue("username").trim();
+    const parsed = chatDmSchema.safeParse({ username: rawUsername });
+    if (!parsed.success) {
+      setFormError(parsed.error.errors[0].message);
+      return;
+    }
+    const normalizedUsername = rawUsername.replace(/^@+/, "").toLowerCase();
 
     if (!telegramId) {
       setFormError("Please sign in to start a chat.");
-      return;
-    }
-
-    if (!normalizedUsername) {
-      setFormError("Enter a QC username.");
       return;
     }
 
@@ -667,7 +683,7 @@ export default function QCChatListPage() {
 
       if (existingChat) {
         setFormMode("none");
-        setNewChatUsername("");
+        dmForm.reset();
         router.push(`/ecosystem/chat/${existingChat.id}`);
         return;
       }
@@ -719,7 +735,7 @@ export default function QCChatListPage() {
       );
 
       setFormMode("none");
-      setNewChatUsername("");
+      dmForm.reset();
       router.push(`/ecosystem/chat/${chatId}`);
     } catch (error) {
       console.error("Failed to start direct chat:", error);
@@ -731,9 +747,14 @@ export default function QCChatListPage() {
 
   // Create group
   const handleCreateGroup = async () => {
-    const name = groupName.trim();
-    if (!telegramId || !name) {
-      setFormError(name ? "Please sign in." : "Enter a group name.");
+    const name = groupForm.getFieldValue("name").trim();
+    const parsed = chatGroupSchema.safeParse({ name });
+    if (!parsed.success) {
+      setFormError(parsed.error.errors[0].message);
+      return;
+    }
+    if (!telegramId) {
+      setFormError("Please sign in.");
       return;
     }
 
@@ -760,7 +781,7 @@ export default function QCChatListPage() {
       });
 
       setFormMode("none");
-      setGroupName("");
+      groupForm.reset();
       router.push(`/ecosystem/chat/${chatId}`);
     } catch (error) {
       console.error("Failed to create group:", error);
@@ -772,9 +793,14 @@ export default function QCChatListPage() {
 
   // Join group by code
   const handleJoinGroup = async () => {
-    const code = joinCode.trim().toUpperCase();
-    if (!telegramId || !code) {
-      setFormError(code ? "Please sign in." : "Enter a join code.");
+    const code = joinForm.getFieldValue("code").trim().toUpperCase();
+    const parsed = chatJoinSchema.safeParse({ code });
+    if (!parsed.success) {
+      setFormError(parsed.error.errors[0].message);
+      return;
+    }
+    if (!telegramId) {
+      setFormError("Please sign in.");
       return;
     }
 
@@ -788,7 +814,7 @@ export default function QCChatListPage() {
       );
       if (localMatch) {
         setFormMode("none");
-        setJoinCode("");
+        joinForm.reset();
         router.push(`/ecosystem/chat/${localMatch.id}`);
         return;
       }
@@ -815,7 +841,7 @@ export default function QCChatListPage() {
 
       if (groupData.participants?.includes(telegramId)) {
         setFormMode("none");
-        setJoinCode("");
+        joinForm.reset();
         router.push(`/ecosystem/chat/${groupDoc.id}`);
         return;
       }
@@ -831,7 +857,7 @@ export default function QCChatListPage() {
       });
 
       setFormMode("none");
-      setJoinCode("");
+      joinForm.reset();
       router.push(`/ecosystem/chat/${groupDoc.id}`);
     } catch (error) {
       console.error("Failed to join group:", error);
@@ -888,72 +914,86 @@ export default function QCChatListPage() {
                 <p className="text-[10px] text-muted-foreground">You need a QC username to use QC Chat</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-                <Input
-                  value={usernameInput}
-                  onChange={(e) => {
-                    setUsernameInput(e.target.value.replace(/^@+/, "").replace(/\s/g, ""));
-                    setUsernameAvailability(null);
-                    setUsernameError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (usernameAvailability === "available") handleRegisterUsername();
-                      else checkUsernameAvailability();
-                    }
-                  }}
-                  placeholder="username"
-                  className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
-                  disabled={isRegisteringUsername}
-                  maxLength={20}
-                />
-              </div>
-              {usernameAvailability === "available" ? (
-                <Button
-                  onClick={handleRegisterUsername}
-                  disabled={isRegisteringUsername}
-                  size="sm"
-                  className="h-9 px-4 rounded-lg"
-                >
-                  {isRegisteringUsername ? (
-                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  ) : "Claim"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={checkUsernameAvailability}
-                  disabled={isCheckingUsername || !usernameInput.trim()}
-                  size="sm"
-                  variant="secondary"
-                  className="h-9 px-4 rounded-lg"
-                >
-                  {isCheckingUsername ? (
-                    <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
-                  ) : "Check"}
-                </Button>
-              )}
-            </div>
-            {usernameAvailability === "available" && (
-              <p className="text-[10px] text-green-400 flex items-center gap-1">
-                <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
-                @{usernameInput} is available!
-              </p>
-            )}
-            {usernameAvailability === "taken" && (
-              <p className="text-[10px] text-red-400 flex items-center gap-1">
-                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                @{usernameInput} is already taken
-              </p>
-            )}
-            {usernameError && (
-              <p className="text-[10px] text-red-400 flex items-center gap-1">
-                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                {usernameError}
-              </p>
-            )}
+            <usernameForm.Field name="username">
+              {(field) => {
+                const hasErrors = field.state.meta.errors.length > 0;
+                return (
+                  <>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                        <Input
+                          value={field.state.value}
+                          onChange={(e) => {
+                            const filtered = e.target.value.replace(/^@+/, "").replace(/\s/g, "");
+                            field.handleChange(filtered);
+                            setUsernameAvailability(null);
+                            setUsernameError(null);
+                          }}
+                          onBlur={field.handleBlur}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (usernameAvailability === "available") handleRegisterUsername();
+                              else checkUsernameAvailability();
+                            }
+                          }}
+                          placeholder="username"
+                          className={`h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono ${hasErrors ? "border-destructive" : ""}`}
+                          disabled={isRegisteringUsername}
+                          maxLength={USERNAME_MAX_LENGTH}
+                        />
+                      </div>
+                      {usernameAvailability === "available" ? (
+                        <Button
+                          onClick={handleRegisterUsername}
+                          disabled={isRegisteringUsername}
+                          size="sm"
+                          className="h-9 px-4 rounded-lg"
+                        >
+                          {isRegisteringUsername ? (
+                            <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          ) : "Claim"}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={checkUsernameAvailability}
+                          disabled={isCheckingUsername || !field.state.value.trim()}
+                          size="sm"
+                          variant="secondary"
+                          className="h-9 px-4 rounded-lg"
+                        >
+                          {isCheckingUsername ? (
+                            <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                          ) : "Check"}
+                        </Button>
+                      )}
+                    </div>
+                    {hasErrors && (
+                      <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} className="text-[10px]" />
+                    )}
+                    {usernameAvailability === "available" && (
+                      <p className="text-[10px] text-green-400 flex items-center gap-1">
+                        <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
+                        @{field.state.value} is available!
+                      </p>
+                    )}
+                    {usernameAvailability === "taken" && (
+                      <p className="text-[10px] text-red-400 flex items-center gap-1">
+                        <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                        @{field.state.value} is already taken
+                      </p>
+                    )}
+                    {usernameError && (
+                      <p className="text-[10px] text-red-400 flex items-center gap-1">
+                        <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                        {usernameError}
+                      </p>
+                    )}
+                  </>
+                );
+              }}
+            </usernameForm.Field>
           </div>
         )}
 
@@ -998,37 +1038,42 @@ export default function QCChatListPage() {
             {/* DM Form */}
             {formMode === "dm" && (
               <>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-                    <Input
-                      value={newChatUsername}
-                      onChange={(e) => {
-                        setNewChatUsername(e.target.value.replace(/^@+/, ""));
-                        setFormError(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") { e.preventDefault(); handleStartChat(); }
-                      }}
-                      placeholder="username"
-                      className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
-                      disabled={isStartingChat}
-                      autoFocus
-                    />
-                  </div>
-                  <Button
-                    onClick={handleStartChat}
-                    disabled={isStartingChat || !newChatUsername.trim()}
-                    size="sm"
-                    className="h-9 px-4 rounded-lg"
-                  >
-                    {isStartingChat ? (
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    ) : (
-                      "Chat"
-                    )}
-                  </Button>
-                </div>
+                <dmForm.Field name="username">
+                  {(field) => (
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                        <Input
+                          value={field.state.value}
+                          onChange={(e) => {
+                            field.handleChange(e.target.value.replace(/^@+/, ""));
+                            setFormError(null);
+                          }}
+                          onBlur={field.handleBlur}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { e.preventDefault(); handleStartChat(); }
+                          }}
+                          placeholder="username"
+                          className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
+                          disabled={isStartingChat}
+                          autoFocus
+                        />
+                      </div>
+                      <Button
+                        onClick={handleStartChat}
+                        disabled={isStartingChat || !field.state.value.trim()}
+                        size="sm"
+                        className="h-9 px-4 rounded-lg"
+                      >
+                        {isStartingChat ? (
+                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        ) : (
+                          "Chat"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </dmForm.Field>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   Enter a QC username to start a direct conversation.
                 </p>
@@ -1042,35 +1087,40 @@ export default function QCChatListPage() {
             {/* Create Group Form */}
             {formMode === "group" && (
               <>
-                <div className="flex gap-2">
-                  <Input
-                    value={groupName}
-                    onChange={(e) => {
-                      setGroupName(e.target.value);
-                      setFormError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") { e.preventDefault(); handleCreateGroup(); }
-                    }}
-                    placeholder="Group name"
-                    maxLength={50}
-                    className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm"
-                    disabled={isStartingChat}
-                    autoFocus
-                  />
-                  <Button
-                    onClick={handleCreateGroup}
-                    disabled={isStartingChat || !groupName.trim()}
-                    size="sm"
-                    className="h-9 px-4 rounded-lg"
-                  >
-                    {isStartingChat ? (
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    ) : (
-                      "Create"
-                    )}
-                  </Button>
-                </div>
+                <groupForm.Field name="name">
+                  {(field) => (
+                    <div className="flex gap-2">
+                      <Input
+                        value={field.state.value}
+                        onChange={(e) => {
+                          field.handleChange(e.target.value);
+                          setFormError(null);
+                        }}
+                        onBlur={field.handleBlur}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); handleCreateGroup(); }
+                        }}
+                        placeholder="Group name"
+                        maxLength={50}
+                        className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm"
+                        disabled={isStartingChat}
+                        autoFocus
+                      />
+                      <Button
+                        onClick={handleCreateGroup}
+                        disabled={isStartingChat || !field.state.value.trim()}
+                        size="sm"
+                        className="h-9 px-4 rounded-lg"
+                      >
+                        {isStartingChat ? (
+                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        ) : (
+                          "Create"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </groupForm.Field>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   Create a group and share the join code with others to invite them.
                 </p>
@@ -1080,35 +1130,40 @@ export default function QCChatListPage() {
             {/* Join Group Form */}
             {formMode === "join" && (
               <>
-                <div className="flex gap-2">
-                  <Input
-                    value={joinCode}
-                    onChange={(e) => {
-                      setJoinCode(e.target.value.toUpperCase());
-                      setFormError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") { e.preventDefault(); handleJoinGroup(); }
-                    }}
-                    placeholder="Enter join code"
-                    maxLength={6}
-                    className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm font-mono tracking-widest text-center uppercase"
-                    disabled={isStartingChat}
-                    autoFocus
-                  />
-                  <Button
-                    onClick={handleJoinGroup}
-                    disabled={isStartingChat || !joinCode.trim()}
-                    size="sm"
-                    className="h-9 px-4 rounded-lg"
-                  >
-                    {isStartingChat ? (
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    ) : (
-                      "Join"
-                    )}
-                  </Button>
-                </div>
+                <joinForm.Field name="code">
+                  {(field) => (
+                    <div className="flex gap-2">
+                      <Input
+                        value={field.state.value}
+                        onChange={(e) => {
+                          field.handleChange(e.target.value.toUpperCase());
+                          setFormError(null);
+                        }}
+                        onBlur={field.handleBlur}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); handleJoinGroup(); }
+                        }}
+                        placeholder="Enter join code"
+                        maxLength={6}
+                        className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm font-mono tracking-widest text-center uppercase"
+                        disabled={isStartingChat}
+                        autoFocus
+                      />
+                      <Button
+                        onClick={handleJoinGroup}
+                        disabled={isStartingChat || !field.state.value.trim()}
+                        size="sm"
+                        className="h-9 px-4 rounded-lg"
+                      >
+                        {isStartingChat ? (
+                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        ) : (
+                          "Join"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </joinForm.Field>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   Enter a 6-character join code to join an existing group.
                 </p>

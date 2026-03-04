@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { decrypt } from "@/utils/session";
 import { env } from "@/env";
+
+const analyticsEventSchema = z.object({
+    eventName: z.string().min(1),
+    sessionId: z.string().min(1),
+    userId: z.union([z.string().min(1), z.number()]),
+    isPremium: z.boolean().optional(),
+    platform: z.string().optional(),
+    locale: z.string().optional(),
+    options: z.object({
+        isSuccess: z.boolean().optional(),
+        errorMessage: z.string().optional(),
+        errorCode: z.number().optional(),
+        walletAddress: z.string().optional(),
+        walletType: z.string().optional(),
+        from: z.string().optional(),
+        messages: z.array(z.object({ address: z.string(), amount: z.string() })).optional(),
+    }).optional(),
+});
 
 const SDK_AUTH_TOKEN = env.TGA_AUTH_TOKEN ?? "";
 const APP_NAME = "qntm_club";
@@ -42,11 +61,14 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { eventName, userId, sessionId, isPremium, platform, locale, options } = body;
-
-        if (!eventName || !sessionId || !userId) {
-            return NextResponse.json({ success: false }, { status: 200 });
+        const parsed = analyticsEventSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.errors[0]?.message || "Invalid request body" },
+                { status: 400 }
+            );
         }
+        const { eventName, userId, sessionId, isPremium, platform, locale, options } = parsed.data;
 
         const payload: EventPayload[] = [{
             event_name: String(eventName),

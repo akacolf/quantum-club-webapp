@@ -11,6 +11,13 @@ import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_TOKENS_PER_WINDOW = 3;
 
+// Zod schema for PATCH deploy-jetton (confirm deployment)
+const confirmDeploySchema = z.object({
+    tokenId: z.string().min(1, "Token ID is required"),
+    jettonAddress: z.string().optional(),
+    txHash: z.string().optional(),
+});
+
 // Zod schema for deploy-jetton request body
 const deployJettonSchema = z.object({
     name: z.string().min(1, "Name is required").max(32, "Name must be 32 characters or less"),
@@ -288,11 +295,14 @@ export async function PATCH(request: NextRequest) {
 
         const userId = String(session.user?.telegramId || "");
         const body = await request.json();
-        const { tokenId, jettonAddress, txHash } = body;
-
-        if (!tokenId) {
-            return NextResponse.json({ error: "Token ID required" }, { status: 400 });
+        const parsed = confirmDeploySchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.errors[0]?.message || "Invalid request body" },
+                { status: 400 }
+            );
         }
+        const { tokenId, jettonAddress, txHash } = parsed.data;
 
         // Get token document and verify ownership
         const tokenRef = adminDb.collection("tokens").doc(tokenId);

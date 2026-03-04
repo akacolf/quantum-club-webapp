@@ -3,6 +3,7 @@ import admin from "firebase-admin";
 import { sendNotification } from "@/lib/notifications";
 import { decrypt } from "@/utils/session";
 import { env } from "@/env";
+import { chatNotificationSchema } from "@/lib/validations";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -68,17 +69,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { recipientIds, senderName, chatId, chatName, isGroup } = body as {
-      recipientIds: string[];
-      senderName: string;
-      chatId: string;
-      chatName: string;
-      isGroup: boolean;
-    };
-
-    if (!recipientIds?.length || !senderName || !chatId) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const parsed = chatNotificationSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0].message },
+        { status: 400 }
+      );
     }
+    const { recipientIds, senderName, chatId, chatName, isGroup } = parsed.data;
 
     // Process notifications in parallel (fire-and-forget style but within route)
     const promises = recipientIds.map(async (encryptedId) => {

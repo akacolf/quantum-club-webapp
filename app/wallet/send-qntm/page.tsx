@@ -1,18 +1,21 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import { useForm } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { sendQntmSchema } from "@/lib/validations";
 
 export default function SendQNTMPage() {
   useTelegramBackButton("/wallet");
@@ -26,11 +29,14 @@ export default function SendQNTMPage() {
     router.prefetch("/wallet");
   }, [router]);
 
-  // State
+  // Form state (TanStack Form + Zod validation)
+  const form = useForm({
+    defaultValues: { recipientQcId: "", amount: "" },
+    validators: { onSubmit: sendQntmSchema },
+  });
 
+  // UI state
   const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
-  const [recipientQcId, setRecipientQcId] = useState("");
-  const [amount, setAmount] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
   const [qcIdCopied, setQcIdCopied] = useState(false);
@@ -43,23 +49,25 @@ export default function SendQNTMPage() {
     parseFloat(MainQuantAmount.replace(/,/g, '')) || 0
     , [MainQuantAmount]);
 
-  const handleAmountChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+  const handleAmountChange = useCallback((value: string, fieldHandleChange: (val: string) => void) => {
     // Remove commas and minus signs, convert comma decimal separator to dot
-    const value = e.target.value.replace(',', '.').replace(/-/g, '');
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      setAmount(value);
+    const sanitized = value.replace(',', '.').replace(/-/g, '');
+    if (sanitized === '' || /^\d*\.?\d*$/.test(sanitized)) {
+      fieldHandleChange(sanitized);
       // Check if exceeds balance
-      const numValue = parseFloat(value) || 0;
+      const numValue = parseFloat(sanitized) || 0;
       setInsufficientFunds(numValue > currentBalance);
     }
   }, [currentBalance]);
 
   const handleMaxAmount = useCallback(() => {
-    setAmount(currentBalance.toString());
+    form.setFieldValue("amount", currentBalance.toString());
     setInsufficientFunds(false);
-  }, [currentBalance]);
+  }, [currentBalance, form]);
 
   const validateInput = useCallback(() => {
+    const recipientQcId = form.getFieldValue("recipientQcId");
+    const amount = form.getFieldValue("amount");
     if (!recipientQcId.trim()) {
       toast.error("Please enter recipient's QC ID");
       return false;
@@ -78,9 +86,10 @@ export default function SendQNTMPage() {
       return false;
     }
     return true;
-  }, [recipientQcId, telegramId, amount, currentBalance]);
+  }, [form, telegramId, currentBalance]);
 
   const verifyQcIdExists = useCallback(async (): Promise<boolean> => {
+    const recipientQcId = form.getFieldValue("recipientQcId");
     try {
       setIsVerifyingQcId(true);
       setQcIdError(null);
@@ -110,7 +119,7 @@ export default function SendQNTMPage() {
     } finally {
       setIsVerifyingQcId(false);
     }
-  }, [recipientQcId]);
+  }, [form]);
 
   const handleContinue = useCallback(async () => {
     if (validateInput()) {
@@ -123,6 +132,8 @@ export default function SendQNTMPage() {
   }, [validateInput, verifyQcIdExists]);
 
   const executeTransfer = useCallback(async () => {
+    const recipientQcId = form.getFieldValue("recipientQcId");
+    const amount = form.getFieldValue("amount");
     setIsTransferring(true);
     setStep("processing");
 
@@ -160,7 +171,7 @@ export default function SendQNTMPage() {
     } finally {
       setIsTransferring(false);
     }
-  }, [recipientQcId, amount, SetMainQuantAmount]);
+  }, [form, SetMainQuantAmount, telegramId]);
 
   const handleConfirmTransfer = useCallback(async () => {
     // Request biometric/PIN authentication
@@ -219,30 +230,40 @@ export default function SendQNTMPage() {
               </Card>
 
               {/* Recipient QC ID */}
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground ml-1">Recipient&apos;s QC ID</Label>
-                <div className="relative">
-                  <Input
-                    value={recipientQcId}
-                    onChange={(e) => {
-                      setRecipientQcId(e.target.value);
-                      setQcIdError(null); // Clear error when user types
-                    }}
-                    placeholder="Enter recipient's Quantum Club ID"
-                    className={`bg-card border-border h-14 pl-4 pr-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all ${qcIdError ? 'border-destructive focus:border-destructive' : 'focus:border-primary/50'
-                      }`}
-                  />
-                  <Icon icon="lucide:user" className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
-                </div>
-                {qcIdError ? (
-                  <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                    <Icon icon="lucide:info" className="w-3 h-3"/>
-                    {qcIdError}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground ml-1">Ask the recipient to share their QC ID from the Frens section</p>
-                )}
-              </div>
+              <form.Field name="recipientQcId">
+                {(field) => {
+                  const hasErrors = field.state.meta.errors.length > 0;
+                  return (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground ml-1">Recipient&apos;s QC ID</Label>
+                      <div className="relative">
+                        <Input
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => {
+                            field.handleChange(e.target.value);
+                            setQcIdError(null); // Clear error when user types
+                          }}
+                          placeholder="Enter recipient's Quantum Club ID"
+                          aria-invalid={hasErrors || !!qcIdError}
+                          className={`bg-card border-border h-14 pl-4 pr-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all ${qcIdError ? 'border-destructive focus:border-destructive' : 'focus:border-primary/50'
+                            }`}
+                        />
+                        <Icon icon="lucide:user" className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
+                      </div>
+                      {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      {qcIdError ? (
+                        <p className="text-xs text-destructive ml-1 flex items-center gap-1">
+                          <Icon icon="lucide:info" className="w-3 h-3"/>
+                          {qcIdError}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground ml-1">Ask the recipient to share their QC ID from the Frens section</p>
+                      )}
+                    </div>
+                  );
+                }}
+              </form.Field>
 
               {/* Your QC ID - for sharing */}
               <div className="bg-card rounded-xl p-4 border border-border">
@@ -263,57 +284,71 @@ export default function SendQNTMPage() {
               </div>
 
               {/* Amount */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <Label className="text-sm text-gray-400">Amount</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{MainQuantAmount} QNTM</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleMaxAmount}
-                      className="h-auto p-0 text-xs font-bold text-primary hover:text-primary/80 hover:bg-transparent transition-colors uppercase"
-                    >
-                      Max
-                    </Button>
-                  </div>
-                </div>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    placeholder="0"
-                    className={`bg-card border-border h-14 pl-4 pr-20 text-2xl font-bold text-foreground placeholder:text-muted-foreground/30 rounded-xl transition-all ${insufficientFunds ? 'border-destructive focus:border-destructive' : 'focus:border-primary/50'
-                      }`}
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <div className="text-sm font-bold text-primary">QNTM</div>
-                  </div>
-                </div>
-                {insufficientFunds && (
-                  <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                    <Icon icon="lucide:info" className="w-3 h-3"/>
-                    Insufficient funds. You have {MainQuantAmount} QNTM available.
-                  </p>
-                )}
-              </div>
+              <form.Field name="amount">
+                {(field) => {
+                  const hasErrors = field.state.meta.errors.length > 0;
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <Label className="text-sm text-gray-400">Amount</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">{MainQuantAmount} QNTM</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleMaxAmount}
+                            className="h-auto p-0 text-xs font-bold text-primary hover:text-primary/80 hover:bg-transparent transition-colors uppercase"
+                          >
+                            Max
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => handleAmountChange(e.target.value, field.handleChange)}
+                          placeholder="0"
+                          aria-invalid={hasErrors || insufficientFunds}
+                          className={`bg-card border-border h-14 pl-4 pr-20 text-2xl font-bold text-foreground placeholder:text-muted-foreground/30 rounded-xl transition-all ${insufficientFunds ? 'border-destructive focus:border-destructive' : 'focus:border-primary/50'
+                            }`}
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          <div className="text-sm font-bold text-primary">QNTM</div>
+                        </div>
+                      </div>
+                      {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      {insufficientFunds && (
+                        <p className="text-xs text-destructive ml-1 flex items-center gap-1">
+                          <Icon icon="lucide:info" className="w-3 h-3"/>
+                          Insufficient funds. You have {MainQuantAmount} QNTM available.
+                        </p>
+                      )}
+                    </div>
+                  );
+                }}
+              </form.Field>
 
-              <Button
-                onClick={handleContinue}
-                disabled={!recipientQcId || !amount || parseFloat(amount) <= 0 || insufficientFunds || isVerifyingQcId}
-                className="w-full h-14 bg-primary text-primary-foreground rounded-xl font-bold text-lg mt-8 disabled:opacity-50 border-0 shadow-lg transition-opacity duration-200 hover:opacity-90"
-              >
-                {isVerifyingQcId ? (
-                  <>
-                    <ButtonLoader />
-                    Verifying...
-                  </>
-                ) : (
-                  "Continue"
+              <form.Subscribe selector={(state) => state.values}>
+                {(values) => (
+                  <Button
+                    onClick={handleContinue}
+                    disabled={!values.recipientQcId || !values.amount || parseFloat(values.amount) <= 0 || insufficientFunds || isVerifyingQcId}
+                    className="w-full h-14 bg-primary text-primary-foreground rounded-xl font-bold text-lg mt-8 disabled:opacity-50 border-0 shadow-lg transition-opacity duration-200 hover:opacity-90"
+                  >
+                    {isVerifyingQcId ? (
+                      <>
+                        <ButtonLoader />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Continue"
+                    )}
+                  </Button>
                 )}
-              </Button>
+              </form.Subscribe>
             </motion.div>
           )}
 
@@ -325,46 +360,50 @@ export default function SendQNTMPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <Card className="bg-card border-border overflow-hidden">
-                <CardContent className="p-6 space-y-6">
-                  <div className="text-center space-y-1">
-                    <div className="text-sm text-muted-foreground">You are sending</div>
-                    <div className="text-3xl font-bold text-foreground">
-                      {parseFloat(amount).toLocaleString()} <span className="text-primary">QNTM</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-center gap-4 py-4">
-                    <div className="text-center">
-                      <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Icon icon="lucide:user" className="w-6 h-6 text-muted-foreground"/>
+              <form.Subscribe selector={(state) => state.values}>
+                {(values) => (
+                  <Card className="bg-card border-border overflow-hidden">
+                    <CardContent className="p-6 space-y-6">
+                      <div className="text-center space-y-1">
+                        <div className="text-sm text-muted-foreground">You are sending</div>
+                        <div className="text-3xl font-bold text-foreground">
+                          {parseFloat(values.amount).toLocaleString()} <span className="text-primary">QNTM</span>
+                        </div>
                       </div>
-                      <span className="text-xs text-muted-foreground truncate max-w-[80px]">{username || "You"}</span>
-                    </div>
-                    <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary self-start mt-3"/>
-                    <div className="text-center">
-                      <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Icon icon="lucide:user" className="w-6 h-6 text-primary"/>
-                      </div>
-                      <span className="text-xs text-muted-foreground truncate max-w-[80px]">{recipientUsername || "Recipient"}</span>
-                    </div>
-                  </div>
 
-                  <div className="space-y-4 pt-4 border-t border-border">
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm text-muted-foreground">To (QC ID)</span>
-                      <div className="text-right flex-1 pl-8">
-                        <div className="text-sm font-mono text-foreground break-all">{recipientQcId}</div>
+                      <div className="flex items-center justify-center gap-4 py-4">
+                        <div className="text-center">
+                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
+                            <Icon icon="lucide:user" className="w-6 h-6 text-muted-foreground"/>
+                          </div>
+                          <span className="text-xs text-muted-foreground truncate max-w-[80px]">{username || "You"}</span>
+                        </div>
+                        <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary self-start mt-3"/>
+                        <div className="text-center">
+                          <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <Icon icon="lucide:user" className="w-6 h-6 text-primary"/>
+                          </div>
+                          <span className="text-xs text-muted-foreground truncate max-w-[80px]">{recipientUsername || "Recipient"}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Network Fee</span>
-                      <span className="text-sm text-green-500 font-bold">Free</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="space-y-4 pt-4 border-t border-border">
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm text-muted-foreground">To (QC ID)</span>
+                          <div className="text-right flex-1 pl-8">
+                            <div className="text-sm font-mono text-foreground break-all">{values.recipientQcId}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Network Fee</span>
+                          <span className="text-sm text-green-500 font-bold">Free</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </form.Subscribe>
 
               <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
                 <Icon icon="lucide:info" className="w-5 h-5 text-primary mt-0.5 shrink-0"/>
@@ -433,9 +472,13 @@ export default function SendQNTMPage() {
               </div>
               <div className="text-center space-y-2">
                 <h3 className="text-xl font-bold text-foreground">Transfer Complete!</h3>
-                <p className="text-muted-foreground text-sm">
-                  {parseFloat(amount).toLocaleString()} QNTM sent successfully
-                </p>
+                <form.Subscribe selector={(state) => state.values.amount}>
+                  {(amount) => (
+                    <p className="text-muted-foreground text-sm">
+                      {parseFloat(amount).toLocaleString()} QNTM sent successfully
+                    </p>
+                  )}
+                </form.Subscribe>
               </div>
               <Button
                 onClick={() => router.push("/wallet")}

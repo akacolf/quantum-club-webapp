@@ -1,8 +1,13 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { decrypt } from "@/utils/session";
 import { env } from "@/env";
+
+const getProfilePhotoSchema = z.object({
+    telegramId: z.string().min(1),
+});
 
 /**
  * API endpoint to fetch a Telegram user's profile photo.
@@ -34,14 +39,14 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { telegramId } = body;
-
-        if (!telegramId) {
+        const parsed = getProfilePhotoSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "telegramId is required" },
+                { error: parsed.error.errors[0]?.message || "Invalid request body" },
                 { status: 400 }
             );
         }
+        const { telegramId } = parsed.data;
 
         // Step 1: Get user profile photos
         const photosUrl = `https://api.telegram.org/bot${botToken}/getUserProfilePhotos?user_id=${telegramId}&limit=1`;

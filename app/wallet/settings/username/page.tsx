@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+import { usernameSchema, USERNAME_MAX_LENGTH } from "@/lib/validations";
+import { Field, FieldError } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useQcUsernameQuery, useRegisterUsernameMutation, useUpdateUsernameAddressMutation } from "@/app/(hooks)/queries/use-qc-username";
 import { toast } from "sonner";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Loader from "@/app/(components)/Loader";
@@ -21,63 +26,52 @@ export default function QCDomainPage() {
   const { walletAddress } = useWallet();
   const { telegramId, qcUsername, setQcUsername } = useUserContext();
 
-  const [newUsername, setNewUsername] = useState("");
   const [isChecking, setIsChecking] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
   const [availability, setAvailability] = useState<"available" | "taken" | null>(null);
-  const [isLoadingExisting, setIsLoadingExisting] = useState(true);
-  const [existingAddress, setExistingAddress] = useState<string | null>(null);
 
-  // Validation rules
-  const MIN_LENGTH = 3;
-  const MAX_LENGTH = 20;
-  const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
-  const RESERVED = [
-    'admin', 'support', 'help', 'quantum', 'quantumclub', 'qc', 'system',
-    'root', 'official', 'team', 'mod', 'moderator', 'bot', 'wallet',
-  ];
+  const form = useForm({
+    defaultValues: { username: "" },
+    validators: {
+      onSubmit: z.object({ username: usernameSchema }),
+    },
+  });
 
-  // Load existing username/domain on mount
+  // Load existing username via TanStack Query
+  const qcUsernameQuery = useQcUsernameQuery(telegramId);
+  const registerUsernameMutation = useRegisterUsernameMutation();
+  const updateAddressMutation = useUpdateUsernameAddressMutation();
+
+  const isLoadingExisting = qcUsernameQuery.isLoading;
+  const existingAddress = qcUsernameQuery.data?.address ?? null;
+
+  // Sync query result into UserContext (once)
   useEffect(() => {
-    const loadExisting = async () => {
-      if (!telegramId) return;
-      try {
-        const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(telegramId)}`);
-        const data = await res.json();
-        if (data.username) {
-          setQcUsername(data.username);
-          localStorage.setItem(`qcUsername_${telegramId}`, data.username);
-          setExistingAddress(data.address || walletAddress);
-        }
-      } catch {
-        // No existing username
-      } finally {
-        setIsLoadingExisting(false);
+    if (qcUsernameQuery.data?.username && !qcUsername) {
+      setQcUsername(qcUsernameQuery.data.username);
+      if (telegramId) {
+        localStorage.setItem(`qcUsername_${telegramId}`, qcUsernameQuery.data.username);
       }
-    };
-    loadExisting();
-  }, [telegramId, setQcUsername, walletAddress]);
+    }
+  }, [qcUsernameQuery.data, qcUsername, setQcUsername, telegramId]);
 
-  // Validate username input
-  const getValidationError = (name: string): string | null => {
-    if (!name) return null;
-    if (name.length < MIN_LENGTH) return `Minimum ${MIN_LENGTH} characters`;
-    if (name.length > MAX_LENGTH) return `Maximum ${MAX_LENGTH} characters`;
-    if (!USERNAME_REGEX.test(name)) return "Letters, numbers, dots, underscores & hyphens only";
-    if (RESERVED.includes(name.toLowerCase())) return "This username is reserved";
-    return null;
-  };
-
-  const validationError = getValidationError(newUsername);
-  const isValidInput = newUsername.length >= MIN_LENGTH && !validationError;
+  // Real-time validation for display
+  const currentUsername = form.getFieldValue("username");
+  const parseResult = currentUsername ? usernameSchema.safeParse(currentUsername) : null;
+  const validationError = parseResult && !parseResult.success
+    ? parseResult.error.errors[0]?.message ?? null
+    : null;
+  const isValidInput = parseResult?.success ?? false;
 
   // Check availability
   const checkAvailability = async () => {
-    if (!isValidInput) return;
+    const username = form.getFieldValue("username");
+    const result = usernameSchema.safeParse(username);
+    if (!result.success) return;
+
     setIsChecking(true);
     setAvailability(null);
     try {
-      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(newUsername)}`);
+      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(username)}`);
       const data = await res.json();
       setAvailability(data.available ? "available" : "taken");
     } catch {
@@ -88,59 +82,42 @@ export default function QCDomainPage() {
   };
 
   // Register username (and auto-create domain)
-  const handleRegister = async () => {
-    if (!isValidInput || !telegramId) return;
-    setIsRegistering(true);
-    try {
-      const res = await fetch("/api/qc-username", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: newUsername,
-          qcId: telegramId,
-          address: walletAddress || undefined,
-        }),
-      });
+  const handleRegister = () => {
+    const username = form.getFieldValue("username");
+    const result = usernameSchema.safeParse(username);
+    if (!result.success || !telegramId) return;
 
-      const data = await res.json();
-
-      if (res.ok) {
-        toast.success(`You're now @${newUsername}!`);
-        setQcUsername(newUsername);
-        localStorage.setItem(`qcUsername_${telegramId}`, newUsername);
-        setExistingAddress(walletAddress);
-        setNewUsername("");
-        setAvailability(null);
-      } else {
-        toast.error(data.error || "Failed to register");
-        if (data.existingUsername) {
-          setQcUsername(data.existingUsername);
-          localStorage.setItem(`qcUsername_${telegramId}`, data.existingUsername);
-        }
+    registerUsernameMutation.mutate(
+      { username, qcId: telegramId, address: walletAddress || undefined },
+      {
+        onSuccess: () => {
+          toast.success(`You're now @${username}!`);
+          setQcUsername(username);
+          localStorage.setItem(`qcUsername_${telegramId}`, username);
+          form.setFieldValue("username", "");
+          setAvailability(null);
+        },
+        onError: (err) => {
+          toast.error(err.message || "Failed to register username");
+        },
       }
-    } catch {
-      toast.error("Failed to register username");
-    } finally {
-      setIsRegistering(false);
-    }
+    );
   };
 
   // Update wallet address for existing domain
-  const handleUpdateAddress = async () => {
+  const handleUpdateAddress = () => {
     if (!telegramId || !walletAddress) return;
-    try {
-      const res = await fetch("/api/qc-username", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qcId: telegramId, address: walletAddress }),
-      });
-      if (res.ok) {
-        setExistingAddress(walletAddress);
-        toast.success("Wallet address updated!");
+    updateAddressMutation.mutate(
+      { qcId: telegramId, address: walletAddress },
+      {
+        onSuccess: () => {
+          toast.success("Wallet address updated!");
+        },
+        onError: () => {
+          toast.error("Failed to update address");
+        },
       }
-    } catch {
-      toast.error("Failed to update address");
-    }
+    );
   };
 
   // Copy username
@@ -244,44 +221,53 @@ export default function QCDomainPage() {
                 <CardContent className="p-5 space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Choose your username</Label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-                        <Input
-                          placeholder="yourname"
-                          value={newUsername}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^a-zA-Z0-9._-]/g, "");
-                            setNewUsername(val);
-                            setAvailability(null);
-                          }}
-                          maxLength={MAX_LENGTH}
-                          className="pl-8 font-mono"
-                          disabled={isRegistering}
-                        />
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={checkAvailability}
-                        disabled={!isValidInput || isChecking}
-                        className="px-4 shrink-0"
-                      >
-                        {isChecking ? (
-                          <ButtonLoader size="sm" />
-                        ) : (
-                          "Check"
-                        )}
-                      </Button>
-                    </div>
+                    <form.Field name="username">
+                      {(field) => (
+                        <Field>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                              <Input
+                                placeholder="yourname"
+                                value={field.state.value}
+                                onChange={(e) => {
+                                  const filtered = e.target.value.replace(/[^a-zA-Z0-9._-]/g, "");
+                                  field.handleChange(filtered);
+                                  setAvailability(null);
+                                }}
+                                onBlur={field.handleBlur}
+                                maxLength={USERNAME_MAX_LENGTH}
+                                className="pl-8 font-mono"
+                                disabled={registerUsernameMutation.isPending}
+                              />
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={checkAvailability}
+                              disabled={!isValidInput || isChecking}
+                              className="px-4 shrink-0"
+                            >
+                              {isChecking ? (
+                                <ButtonLoader size="sm" />
+                              ) : (
+                                "Check"
+                              )}
+                            </Button>
+                          </div>
 
-                    {/* Validation error */}
-                    {validationError && newUsername.length > 0 && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                        {validationError}
-                      </p>
-                    )}
+                          {/* Validation error */}
+                          {validationError && field.state.value.length > 0 && (
+                            <FieldError>
+                              <span className="text-xs flex items-center gap-1">
+                                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                                {validationError}
+                              </span>
+                            </FieldError>
+                          )}
+                        </Field>
+                      )}
+                    </form.Field>
 
                     {/* Availability feedback */}
                     {availability === "available" && (
@@ -291,7 +277,7 @@ export default function QCDomainPage() {
                         className="text-xs text-green-400 flex items-center gap-1"
                       >
                         <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
-                        @{newUsername} is available!
+                        @{currentUsername} is available!
                       </motion.p>
                     )}
                     {availability === "taken" && (
@@ -301,16 +287,16 @@ export default function QCDomainPage() {
                         className="text-xs text-destructive flex items-center gap-1"
                       >
                         <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                        @{newUsername} is already taken
+                        @{currentUsername} is already taken
                       </motion.p>
                     )}
                   </div>
 
                   {/* Username preview */}
-                  {newUsername && !validationError && (
+                  {currentUsername && !validationError && (
                     <div className="bg-muted/50 rounded-xl p-4 text-center space-y-1">
                       <p className="text-lg font-bold text-foreground">
-                        @{newUsername}
+                        @{currentUsername}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         Others can send funds to your @username
@@ -332,14 +318,14 @@ export default function QCDomainPage() {
                   <Button
                     className="w-full"
                     onClick={handleRegister}
-                    disabled={availability !== "available" || isRegistering}
+                    disabled={availability !== "available" || registerUsernameMutation.isPending}
                   >
-                    {isRegistering ? (
+                    {registerUsernameMutation.isPending ? (
                       <ButtonLoader size="sm" />
                     ) : (
                       <>
                         <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
-                        Claim @{newUsername || "username"}
+                        Claim @{currentUsername || "username"}
                       </>
                     )}
                   </Button>

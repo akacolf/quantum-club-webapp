@@ -1,15 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import { useForm } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Field, FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
+import { walletVerifySchema } from "@/lib/validations";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 
@@ -26,7 +29,11 @@ export default function VerifyPhrasePage() {
   const [mnemonic, setMnemonic] = useState<string[]>([]);
   const [walletAddress, setWalletAddress] = useState("");
   const [verificationWords, setVerificationWords] = useState<{ index: number, word: string }[]>([]);
-  const [userInputs, setUserInputs] = useState<string[]>(["", "", ""]);
+
+  const form = useForm({
+    defaultValues: { word0: "", word1: "", word2: "" },
+    validators: { onSubmit: walletVerifySchema },
+  });
 
   useEffect(() => {
     // Get the pending wallet data and verification indices from session storage
@@ -50,6 +57,8 @@ export default function VerifyPhrasePage() {
 
   const verifyAndSaveWallet = () => {
     // Check if all inputs match the expected words
+    const { word0, word1, word2 } = form.state.values;
+    const userInputs = [word0, word1, word2];
     const allCorrect = verificationWords.every((item, i) =>
       userInputs[i].toLowerCase().trim() === item.word.toLowerCase()
     );
@@ -85,7 +94,7 @@ export default function VerifyPhrasePage() {
   };
 
   const handleGoBack = () => {
-    setUserInputs(["", "", ""]);
+    form.reset();
     router.push("/wallet/backup");
   };
 
@@ -114,28 +123,36 @@ export default function VerifyPhrasePage() {
 
           {/* Verification Inputs */}
           <div className="space-y-4">
-            {verificationWords.map((item, i) => (
-              <div key={item.index} className="space-y-2">
-                <Label className="text-sm text-muted-foreground ml-1">
-                  Word #{item.index + 1}
-                </Label>
-                <Input
-                  type="text"
-                  value={userInputs[i]}
-                  onChange={(e) => {
-                    const newInputs = [...userInputs];
-                    newInputs[i] = e.target.value;
-                    setUserInputs(newInputs);
+            {verificationWords.map((item, i) => {
+              const fieldName = `word${i}` as "word0" | "word1" | "word2";
+              return (
+                <form.Field key={item.index} name={fieldName}>
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field data-invalid={hasErrors}>
+                        <Label className="text-sm text-muted-foreground ml-1">
+                          Word #{item.index + 1}
+                        </Label>
+                        <Input
+                          type="text"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder={`Enter word #${item.index + 1}`}
+                          className="w-full bg-muted border border-border rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-mono transition-colors"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                        />
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
                   }}
-                  placeholder={`Enter word #${item.index + 1}`}
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-mono transition-colors"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                />
-              </div>
-            ))}
+                </form.Field>
+              );
+            })}
           </div>
 
           {/* Actions */}
@@ -148,13 +165,17 @@ export default function VerifyPhrasePage() {
               Go Back
             </Button>
 
-            <Button
-              onClick={verifyAndSaveWallet}
-              disabled={userInputs.some(input => !input.trim())}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Verify & Create Wallet
-            </Button>
+            <form.Subscribe selector={(state) => state.values}>
+              {(values) => (
+                <Button
+                  onClick={verifyAndSaveWallet}
+                  disabled={!values.word0.trim() || !values.word1.trim() || !values.word2.trim()}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Verify & Create Wallet
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         </motion.div>
       </div>

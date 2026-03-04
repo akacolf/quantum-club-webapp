@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
+import { checkExistingUserSchema } from "@/lib/validations";
 
 // Rate limiting to prevent enumeration
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -25,7 +26,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const { email, qcId } = await request.json();
+    const body = await request.json();
+    const parsed = checkExistingUserSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0].message },
+        { status: 400 }
+      );
+    }
+    const { email, qcId } = parsed.data;
 
     // Check by email
     if (email) {

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import admin from 'firebase-admin';
 import { decrypt } from '@/utils/session';
 import { env } from '@/env';
+import { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_REGEX, RESERVED_USERNAMES } from '@/lib/validations';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -16,17 +17,6 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 const USERNAMES_COLLECTION = 'qcUsernames';
-
-// Validation rules
-const USERNAME_MIN_LENGTH = 3;
-const USERNAME_MAX_LENGTH = 20;
-// Username validation — case-insensitive storage, allow input with capitals and limited special chars
-const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
-const RESERVED_USERNAMES = [
-  'admin', 'support', 'help', 'quantum', 'quantumclub', 'qc', 'system',
-  'root', 'official', 'team', 'mod', 'moderator', 'bot', 'wallet',
-  'send', 'receive', 'swap', 'trade', 'stake', 'earn', 'null', 'undefined',
-];
 
 const CACHE_HEADERS = { 'Cache-Control': 'no-store, no-cache, must-revalidate' };
 

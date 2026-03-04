@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import { tonSendSchema, multiChainSendSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -493,8 +494,14 @@ export default function SendPage() {
   };
 
   const validateInput = () => {
-    if (!recipient) {
-      toast.error("Please enter a recipient address or .ton domain");
+    // Zod schema validation at submit boundary
+    const parsed = tonSendSchema.safeParse({
+      recipient,
+      resolvedAddress: resolvedAddress || "",
+      amount: amount || "",
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0].message);
       return false;
     }
 
@@ -521,11 +528,6 @@ export default function SendPage() {
       } catch {
         // If address parsing fails, continue with other validations
       }
-    }
-
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return false;
     }
 
     // Check that amount doesn't exceed balance
@@ -1132,16 +1134,17 @@ export default function SendPage() {
 
   // Validate multi-chain input
   const validateMultiChainInput = (): boolean => {
-    if (!multiChainRecipient.trim()) {
-      toast.error("Please enter a recipient address");
+    // Zod schema validation at submit boundary
+    const parsed = multiChainSendSchema.safeParse({
+      recipient: multiChainRecipient.trim(),
+      amount: multiChainAmount || "",
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0].message);
       return false;
     }
     if (multiChainAddressError) {
       toast.error(multiChainAddressError);
-      return false;
-    }
-    if (!multiChainAmount || parseFloat(multiChainAmount) <= 0) {
-      toast.error("Please enter a valid amount");
       return false;
     }
     if (parseFloat(multiChainAmount) > currentChain.balance) {

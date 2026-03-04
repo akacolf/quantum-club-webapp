@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
+import { useQcUsernamesBatch } from "@/app/(hooks)/queries/use-qc-username";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, onSnapshot, updateDoc, Timestamp } from "firebase/firestore";
 import Loader from "@/app/(components)/Loader";
@@ -86,49 +87,34 @@ export default function GroupInfoPage() {
     return () => unsub();
   }, [chatId]);
 
-  // Resolve "Unknown" participant names from the database
-  const resolvedNamesRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!chatMeta?.participantNames || !chatId) return;
-
-    const unknownUids = Object.entries(chatMeta.participantNames)
-      .filter(([uid, name]) => name === "Unknown" && !resolvedNamesRef.current.has(uid))
+  // Resolve "Unknown" participant names via batch query
+  const unknownUids = useMemo(() => {
+    if (!chatMeta?.participantNames) return [];
+    return Object.entries(chatMeta.participantNames)
+      .filter(([, name]) => name === "Unknown")
       .map(([uid]) => uid);
+  }, [chatMeta?.participantNames]);
 
-    if (unknownUids.length === 0) return;
-    unknownUids.forEach((uid) => resolvedNamesRef.current.add(uid));
+  const batchUsernamesQuery = useQcUsernamesBatch(unknownUids);
 
-    const resolveNames = async () => {
-      const updates: Record<string, string> = {};
-      await Promise.all(
-        unknownUids.map(async (uid) => {
-          try {
-            const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(uid)}`);
-            if (!res.ok) return;
-            const data = await res.json();
-            if (data.username) updates[uid] = data.username;
-          } catch { /* ignore */ }
-        })
-      );
-      if (Object.keys(updates).length === 0) return;
+  useEffect(() => {
+    if (!batchUsernamesQuery.data || !chatId) return;
+    const updates = batchUsernamesQuery.data;
+    if (Object.keys(updates).length === 0) return;
 
-      setChatMeta((prev) => {
-        if (!prev) return prev;
-        return { ...prev, participantNames: { ...prev.participantNames, ...updates } };
-      });
+    setChatMeta((prev) => {
+      if (!prev) return prev;
+      return { ...prev, participantNames: { ...prev.participantNames, ...updates } };
+    });
 
-      try {
-        const chatRef = doc(dbfs, "qc-chats", chatId);
-        const firestoreUpdates: Record<string, string> = {};
-        for (const [uid, name] of Object.entries(updates)) {
-          firestoreUpdates[`participantNames.${uid}`] = name;
-        }
-        await updateDoc(chatRef, firestoreUpdates);
-      } catch { /* non-critical */ }
-    };
-
-    resolveNames();
-  }, [chatMeta?.participantNames, chatId]);
+    // Persist resolved names to Firestore
+    const chatRef = doc(dbfs, "qc-chats", chatId);
+    const firestoreUpdates: Record<string, string> = {};
+    for (const [uid, name] of Object.entries(updates)) {
+      firestoreUpdates[`participantNames.${uid}`] = name;
+    }
+    updateDoc(chatRef, firestoreUpdates).catch(() => {});
+  }, [batchUsernamesQuery.data, chatId]);
 
   // Prefetch user profile routes
   useEffect(() => {

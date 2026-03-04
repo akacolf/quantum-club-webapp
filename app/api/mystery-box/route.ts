@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
 import { getSession } from "@/utils/session";
+import { mysteryBoxActionSchema } from "@/lib/validations";
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 20;
@@ -32,9 +33,16 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { action } = body;
+        const parsed = mysteryBoxActionSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.errors[0].message },
+                { status: 400 }
+            );
+        }
+        const data = parsed.data;
 
-        switch (action) {
+        switch (data.action) {
             case "get-boxes": {
                 const snapshot = await firestore
                     .collection("mystery_boxes")
@@ -50,10 +58,7 @@ export async function POST(request: NextRequest) {
             }
 
             case "claim-box": {
-                const { boxId, paymentMethod } = body;
-                if (!boxId || !paymentMethod) {
-                    return NextResponse.json({ error: "Missing boxId or paymentMethod" }, { status: 400 });
-                }
+                const { boxId, paymentMethod } = data;
 
                 // Use Firestore transaction for atomic claim
                 const result = await firestore.runTransaction(async (transaction) => {

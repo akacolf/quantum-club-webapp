@@ -3,6 +3,7 @@ import { getSession } from "@/utils/session";
 import { NextRequest, NextResponse } from "next/server";
 import { AI_MODEL } from "@/lib/ai/system-prompt";
 import { env } from "@/env";
+import { explainTransactionSchema } from "@/lib/validations";
 
 const TX_EXPLAIN_PROMPT = `You are a helpful AI that explains blockchain transactions in simple terms for Quantum Club wallet users.
 
@@ -37,23 +38,22 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { txHash, txData, walletAddress } = body;
-
-        if (!txData) {
-            return NextResponse.json({ error: "Transaction data required" }, { status: 400 });
+        const parsed = explainTransactionSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.errors[0].message },
+                { status: 400 }
+            );
         }
+        const { hash, type, amount, from, to } = parsed.data;
 
-        const txContext = `Explain this TON blockchain transaction for a user with wallet ${walletAddress || "unknown"}:
+        const txContext = `Explain this TON blockchain transaction:
 
-Transaction Hash: ${txHash || "N/A"}
-Type: ${txData.type || "unknown"}
-From: ${txData.from || "unknown"}
-To: ${txData.to || "unknown"}
-Amount: ${txData.amount || "unknown"} ${txData.symbol || "TON"}
-Fee: ${txData.fee || "unknown"} TON
-Timestamp: ${txData.timestamp || "unknown"}
-Status: ${txData.status || "unknown"}
-${txData.comment ? `Comment/Memo: ${txData.comment}` : ""}`;
+Transaction Hash: ${hash}
+Type: ${type || "unknown"}
+From: ${from || "unknown"}
+To: ${to || "unknown"}
+Amount: ${amount || "unknown"}`;
 
         const ai = new GoogleGenAI({ apiKey });
 
@@ -94,32 +94,30 @@ ${txData.comment ? `Comment/Memo: ${txData.comment}` : ""}`;
             return NextResponse.json({
                 success: true,
                 explanation: {
-                    type: typeof explanation.type === 'string' ? explanation.type : txData.type || "Transaction",
+                    type: typeof explanation.type === 'string' ? explanation.type : type || "Transaction",
                     summary: typeof explanation.summary === 'string' ? explanation.summary : "This transaction was processed successfully.",
-                    participants: explanation.participants || { from: txData.from, to: txData.to },
-                    amount: typeof explanation.amount === 'string' ? explanation.amount : `${txData.amount || "0"} ${txData.symbol || "TON"}`,
+                    participants: explanation.participants || { from, to },
+                    amount: typeof explanation.amount === 'string' ? explanation.amount : amount || "0",
                     fee: typeof explanation.fee === 'string' ? explanation.fee : "",
-                    txHash,
+                    txHash: hash,
                     explainedAt: new Date().toISOString(),
                 },
             });
         } catch (parseError) {
             console.error("JSON parse error:", parseError, "Response:", responseText);
-            
+
             // Return a default explanation if parsing fails
-            const txType = txData.type || "transaction";
-            const amount = txData.amount || "some";
-            const symbol = txData.symbol || "TON";
-            
+            const txType = type || "transaction";
+
             return NextResponse.json({
                 success: true,
                 explanation: {
                     type: txType,
-                    summary: `You ${txData.type === 'Received' ? 'received' : 'sent'} ${amount} ${symbol}. This transaction has been confirmed on the TON blockchain.`,
-                    participants: { from: txData.from, to: txData.to },
-                    amount: `${amount} ${symbol}`,
+                    summary: `You ${type === 'Received' ? 'received' : 'sent'} ${amount || "some"} TON. This transaction has been confirmed on the TON blockchain.`,
+                    participants: { from, to },
+                    amount: amount || "0",
                     fee: "",
-                    txHash,
+                    txHash: hash,
                     explainedAt: new Date().toISOString(),
                 },
             });

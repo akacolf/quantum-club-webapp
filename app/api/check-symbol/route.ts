@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firestore } from "@/app/(firebase)/server";
 import { decrypt } from "@/utils/session";
+import { checkSymbolSchema } from "@/lib/validations";
 
 // Rate limiting to prevent symbol scraping
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -54,30 +55,18 @@ export async function GET(request: NextRequest) {
         }
         
         const { searchParams } = new URL(request.url);
-        const symbol = searchParams.get("symbol");
         const excludeTokenId = searchParams.get("excludeTokenId");
 
-        if (!symbol) {
+        const parsed = checkSymbolSchema.safeParse({
+            symbol: searchParams.get("symbol"),
+        });
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Symbol parameter is required" },
+                { error: parsed.error.errors[0].message },
                 { status: 400 }
             );
         }
-
-        // Validate symbol format
-        if (!/^[A-Za-z0-9]+$/.test(symbol)) {
-            return NextResponse.json({
-                available: false,
-                reason: "Symbol can only contain letters and numbers"
-            });
-        }
-
-        if (symbol.length > 10) {
-            return NextResponse.json({
-                available: false,
-                reason: "Symbol must be 10 characters or less"
-            });
-        }
+        const { symbol } = parsed.data;
 
         // Check for duplicate symbol (case-insensitive)
         const symbolLower = symbol.toLowerCase();

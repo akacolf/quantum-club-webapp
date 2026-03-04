@@ -1,6 +1,5 @@
 "use client";
 
-import { ReactNode } from "react";
 import { useUserStore } from "@/stores/user-store";
 import { useShallow } from "zustand/shallow";
 
@@ -44,10 +43,3 @@ export const useUserContext = () =>
     }))
   );
 
-/**
- * Pass-through wrapper kept so ClientProviders.tsx import doesn't break.
- * Will be removed once ClientProviders no longer references it.
- */
-export const UserDataProvider = ({ children }: { children: ReactNode }) => {
-  return <>{children}</>;
-};

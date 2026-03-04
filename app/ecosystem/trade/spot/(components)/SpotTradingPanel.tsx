@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
+import { tradeAmountSchema } from "@/lib/validations";
 import { simulateSwap, toUnits, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
 import { useOmnistonSwap, type QuoteParams } from "@/app/wallet/swap/hooks/useOmnistonSwap";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -155,6 +156,13 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
     const isLoading = simLoading || isQuoting;
 
     const handleSwap = useCallback(async () => {
+        // Zod schema validation at submit boundary
+        const parsed = tradeAmountSchema.safeParse({ amount: amount || "" });
+        if (!parsed.success) {
+            toast.error(parsed.error.errors[0].message);
+            return;
+        }
+
         if (!quote || !walletAddress) {
             toast.error("No quote available. Please try again.");
             return;
@@ -206,7 +214,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
         } finally {
             setIsExecuting(false);
         }
-    }, [quote, walletAddress, buildAndExecute, sendTransaction, activeTab, token, resolverName, onOpenChange]);
+    }, [amount, quote, walletAddress, buildAndExecute, sendTransaction, activeTab, token, resolverName, onOpenChange]);
 
     const buyPresets = ["1", "5", "10", "MAX"];
     const sellPresets = ["25%", "50%", "75%", "MAX"];

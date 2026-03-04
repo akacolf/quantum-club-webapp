@@ -30,6 +30,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { categorizeNft } from "@/lib/nft-marketplace";
 import { WalletPriceChart } from "./WalletPriceChart";
 import { useLivePrice } from "@/app/(hooks)/queries/use-trades";
+import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
 
 // Asset detail types
 interface PricePoint {
@@ -218,7 +219,8 @@ export default function WalletPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [bestApy, setBestApy] = useState<number>(5.0); // Dynamic best APY
+  const { data: stakingApyData } = useStakingApyQuery(hasWallet);
+  const bestApy = stakingApyData?.bestApy ?? 5.0;
 
   // Features Carousel state (timed with dots)
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -543,27 +545,6 @@ export default function WalletPage() {
     }
   }, [hasWallet, walletAddress, router]);
 
-  // Fetch best APY for Earn & Stake card
-  useEffect(() => {
-    const fetchBestApy = async () => {
-      try {
-        const { fetchLiveApyData } = await import("@/lib/staking-service");
-        const apyData = await fetchLiveApyData();
-        // Get the best APY from all pools
-        const apyValues = Array.from(apyData.values());
-        if (apyValues.length > 0) {
-          const best = Math.max(...apyValues);
-          setBestApy(best > 0 ? best : 5.0);
-        }
-      } catch (error) {
-        console.warn("Failed to fetch live APY:", error);
-      }
-    };
-    
-    if (hasWallet) {
-      fetchBestApy();
-    }
-  }, [hasWallet]);
 
   const createWallet = async () => {
     setIsLoading(true);

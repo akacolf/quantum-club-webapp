@@ -3,6 +3,11 @@ import admin from 'firebase-admin';
 import { decrypt } from '@/utils/session';
 import { createCipheriv } from 'node:crypto';
 import { env } from '@/env';
+import { z } from 'zod';
+
+const getUserValuesSchema = z.object({
+  telegramId: z.string().min(1).optional(),
+});
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -91,10 +96,14 @@ async function resolveTelegramId(
 export async function POST(request:NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const requestedTelegramId =
-      typeof body?.telegramId === "string" && body.telegramId.trim() !== ""
-        ? body.telegramId
-        : null;
+    const parsed = getUserValuesSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0].message },
+        { status: 400 }
+      );
+    }
+    const requestedTelegramId = parsed.data.telegramId ?? null;
     const telegramId = await resolveTelegramId(request, requestedTelegramId);
 
     const valuesSnapshot = await admin.firestore()

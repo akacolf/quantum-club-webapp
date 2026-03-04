@@ -23,6 +23,7 @@ import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { toast } from "sonner";
+import { tradeAmountSchema } from "@/lib/validations";
 import TokenChat from "@/app/ecosystem/trade/(components)/TokenChat";
 import LiveTrades from "@/app/ecosystem/trade/(components)/LiveTrades";
 import PriceChart from "@/app/ecosystem/trade/(components)/PriceChart";
@@ -142,8 +143,10 @@ export default function TokenDetailPage() {
             return;
         }
 
-        if (!amount || parseFloat(amount) <= 0) {
-            toast.error("Please enter a valid amount");
+        // Zod schema validation at submit boundary
+        const parsed = tradeAmountSchema.safeParse({ amount: amount || "" });
+        if (!parsed.success) {
+            toast.error(parsed.error.errors[0].message);
             return;
         }
 

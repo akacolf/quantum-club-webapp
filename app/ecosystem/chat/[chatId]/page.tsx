@@ -80,6 +80,7 @@ import GroupCallBanner from "@/app/(components)/GroupCallBanner";
 import { useCallContext } from "@/app/(contexts)/CallContext";
 import TransferDrawer from "./TransferDrawer";
 import { useWallet } from "@/app/wallet/WalletContext";
+import { useQcUsernamesBatch, useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
 import { toast } from "sonner";
 
 interface ChatMessage {
@@ -442,60 +443,44 @@ export default function ChatConversationPage() {
     return () => unsub();
   }, [currentUser, chatId]);
 
-  // Resolve "Unknown" participant names from the database
-  const resolvedNamesRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!chatMeta?.participantNames || !chatId) return;
-
-    const unknownUids = Object.entries(chatMeta.participantNames)
-      .filter(([uid, name]) => name === "Unknown" && !resolvedNamesRef.current.has(uid))
+  // Resolve "Unknown" participant names via batch query
+  const unknownUids = useMemo(() => {
+    if (!chatMeta?.participantNames) return [];
+    return Object.entries(chatMeta.participantNames)
+      .filter(([, name]) => name === "Unknown")
       .map(([uid]) => uid);
+  }, [chatMeta?.participantNames]);
 
-    if (unknownUids.length === 0) return;
+  const batchUsernamesQuery = useQcUsernamesBatch(unknownUids);
 
-    // Mark as being resolved to avoid duplicate fetches
-    unknownUids.forEach((uid) => resolvedNamesRef.current.add(uid));
+  // Apply resolved names to local state and persist to Firestore
+  const appliedBatchRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!batchUsernamesQuery.data || !chatId) return;
+    const updates = batchUsernamesQuery.data;
+    if (Object.keys(updates).length === 0) return;
 
-    const resolveNames = async () => {
-      const updates: Record<string, string> = {};
+    // Deduplicate: only apply once per unique result set
+    const key = JSON.stringify(updates);
+    if (appliedBatchRef.current === key) return;
+    appliedBatchRef.current = key;
 
-      await Promise.all(
-        unknownUids.map(async (uid) => {
-          try {
-            const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(uid)}`);
-            if (!res.ok) return;
-            const data = await res.json();
-            if (data.username) {
-              updates[uid] = data.username;
-            }
-          } catch { /* ignore individual failures */ }
-        })
-      );
+    setChatMeta((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        participantNames: { ...prev.participantNames, ...updates },
+      };
+    });
 
-      if (Object.keys(updates).length === 0) return;
-
-      // Update local state immediately
-      setChatMeta((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          participantNames: { ...prev.participantNames, ...updates },
-        };
-      });
-
-      // Persist resolved names to Firestore
-      try {
-        const chatRef = doc(dbfs, "qc-chats", chatId);
-        const firestoreUpdates: Record<string, string> = {};
-        for (const [uid, name] of Object.entries(updates)) {
-          firestoreUpdates[`participantNames.${uid}`] = name;
-        }
-        await updateDoc(chatRef, firestoreUpdates);
-      } catch { /* non-critical, local state is already updated */ }
-    };
-
-    resolveNames();
-  }, [chatMeta?.participantNames, chatId]);
+    // Persist resolved names to Firestore
+    const chatRef = doc(dbfs, "qc-chats", chatId);
+    const firestoreUpdates: Record<string, string> = {};
+    for (const [uid, name] of Object.entries(updates)) {
+      firestoreUpdates[`participantNames.${uid}`] = name;
+    }
+    updateDoc(chatRef, firestoreUpdates).catch(() => {});
+  }, [batchUsernamesQuery.data, chatId]);
 
   // Auto-initialize epoch if this chat doesn't have one (required for v6 encryption)
   const ensureEpochRef = useRef<Promise<{ nonce: string; counter: number }> | null>(null);
@@ -526,24 +511,19 @@ export default function ChatConversationPage() {
     ensureEpoch().catch((err) => console.error("Failed to init epoch:", err));
   }, [chatMeta, chatId, currentUser, ensureEpoch]);
 
-  // Resolve recipient's wallet address for DM transfers
-  useEffect(() => {
-    if (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId) return;
-    const recipientId = chatMeta.participants.find((p) => p !== telegramId);
-    if (!recipientId) return;
-
-    let cancelled = false;
-    fetch(`/api/qc-username?qcId=${encodeURIComponent(recipientId)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data.address) {
-          setRecipientWalletAddress(data.address);
-        }
-      })
-      .catch(() => {});
-
-    return () => { cancelled = true; };
+  // Resolve recipient's wallet address for DM transfers via TanStack Query
+  const recipientId = useMemo(() => {
+    if (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId) return null;
+    return chatMeta.participants.find((p) => p !== telegramId) ?? null;
   }, [chatMeta, telegramId]);
+
+  const recipientUsernameQuery = useQcUsernameQuery(recipientId);
+
+  useEffect(() => {
+    if (recipientUsernameQuery.data?.address) {
+      setRecipientWalletAddress(recipientUsernameQuery.data.address);
+    }
+  }, [recipientUsernameQuery.data]);
 
   // Subscribe to messages and decrypt them
   const isGroupChat = chatMeta?.isGroup || chatMeta?.isGlobal;

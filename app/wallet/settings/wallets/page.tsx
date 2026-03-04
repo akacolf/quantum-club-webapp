@@ -10,6 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
+import { useForm } from "@tanstack/react-form";
+import { walletRenameSchema } from "@/lib/validations";
+import { Field, FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
   AlertDialog,
@@ -40,7 +43,18 @@ export default function ManageWalletsPage() {
   }, [router]);
 
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
+
+  const renameForm = useForm({
+    defaultValues: { name: "" },
+    validators: { onSubmit: walletRenameSchema },
+    onSubmit: async ({ value }) => {
+      if (editingWallet) {
+        renameWallet(editingWallet, value.name.trim());
+        toast.success("Wallet renamed!");
+        setEditingWallet(null);
+      }
+    },
+  });
 
   // Scroll to top on navigation
   useEffect(() => {
@@ -60,15 +74,8 @@ export default function ManageWalletsPage() {
 
   const handleStartRename = (wallet: StoredWallet) => {
     setEditingWallet(wallet.address);
-    setEditName(wallet.name);
-  };
-
-  const handleSaveRename = (address: string) => {
-    if (editName.trim()) {
-      renameWallet(address, editName.trim());
-      toast.success("Wallet renamed!");
-    }
-    setEditingWallet(null);
+    renameForm.reset();
+    renameForm.setFieldValue("name", wallet.name);
   };
 
   const handleDeleteWallet = (address: string) => {
@@ -120,21 +127,29 @@ export default function ManageWalletsPage() {
                         <div className="flex-1 min-w-0">
                           {editingWallet === wallet.address ? (
                             <div className="flex items-center gap-2">
-                              <Input
-                                type="text"
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                className="bg-muted border border-border rounded-lg px-3 py-1.5 text-foreground text-sm flex-1 min-w-0 focus:outline-none focus:border-primary"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") handleSaveRename(wallet.address);
-                                  if (e.key === "Escape") setEditingWallet(null);
-                                }}
-                              />
+                              <renameForm.Field name="name">
+                                {(field) => (
+                                  <Field>
+                                    <Input
+                                      type="text"
+                                      value={field.state.value}
+                                      onChange={(e) => field.handleChange(e.target.value)}
+                                      onBlur={field.handleBlur}
+                                      className="bg-muted border border-border rounded-lg px-3 py-1.5 text-foreground text-sm flex-1 min-w-0 focus:outline-none focus:border-primary"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") renameForm.handleSubmit();
+                                        if (e.key === "Escape") setEditingWallet(null);
+                                      }}
+                                    />
+                                    <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                  </Field>
+                                )}
+                              </renameForm.Field>
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                onClick={() => handleSaveRename(wallet.address)}
+                                onClick={() => renameForm.handleSubmit()}
                                 className="h-8 w-8 shrink-0 text-green-500 hover:bg-green-500/20"
                               >
                                 <Icon icon="lucide:check" className="w-4 h-4" />

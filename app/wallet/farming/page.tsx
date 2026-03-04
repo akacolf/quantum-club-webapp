@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { farmStakeSchema } from "@/lib/validations";
 import {
     fetchFarmingPools,
     fetchUserFarmPositions,
@@ -125,14 +126,21 @@ export default function FarmingPage() {
 
     // Handle stake
     const handleStake = async () => {
+        // Zod schema validation at submit boundary
+        const parsed = farmStakeSchema.safeParse({ amount: stakeAmount || "" });
+        if (!parsed.success) {
+            toast.error(parsed.error.errors[0].message);
+            return;
+        }
+
         if (!selectedFarm || !isValidStake || !telegramId) return;
-        
+
         const authenticated = await requestAuth();
         if (!authenticated) {
             toast.error("Authentication required");
             return;
         }
-        
+
         await executeStake();
     };
 

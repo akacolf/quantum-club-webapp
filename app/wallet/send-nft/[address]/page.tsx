@@ -5,11 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useForm, useStore } from "@tanstack/react-form";
+import { sendNftSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Field, FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
@@ -23,13 +26,7 @@ import { toNano, Address, beginCell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-
-interface NftDetails {
-    address: string;
-    name: string;
-    image?: string;
-    collectionName?: string;
-}
+import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
 
 export default function SendNftPage() {
     const params = useParams();
@@ -45,10 +42,15 @@ export default function SendNftPage() {
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
     const MIN_TON_FOR_NFT = 0.05;
 
+    const form = useForm({
+        defaultValues: { recipient: "" },
+        validators: { onSubmit: sendNftSchema },
+    });
+
+    const watchedRecipient = useStore(form.store, (s) => s.values.recipient);
+
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
-    const [nft, setNft] = useState<NftDetails | null>(null);
-    const [isLoadingNft, setIsLoadingNft] = useState(true);
-    const [recipient, setRecipient] = useState("");
+    const { data: nft, isLoading: isLoadingNft } = useNftDetailsQuery(nftAddress, isTestnet);
     const [resolvedAddress, setResolvedAddress] = useState("");
     const [isResolvingAddress, setIsResolvingAddress] = useState(false);
     const [addressError, setAddressError] = useState("");
@@ -58,60 +60,21 @@ export default function SendNftPage() {
 
     const insufficientTonForGas = parseFloat(tonBalance) < MIN_TON_FOR_NFT;
 
-    // Track if wallet context is ready
-    const [isWalletReady, setIsWalletReady] = useState(false);
-    
-    // Wait for wallet context to be ready before fetching NFT
-    useEffect(() => {
-        // isTestnet will be undefined until context loads, then boolean
-        if (typeof isTestnet === 'boolean') {
-            setIsWalletReady(true);
-        }
-    }, [isTestnet]);
-
-    // Fetch NFT details - only when wallet context is ready
-    useEffect(() => {
-        const fetchNft = async () => {
-            if (!nftAddress || !isWalletReady) return;
-            setIsLoadingNft(true);
-            try {
-                const response = await fetch(`${TON_API_BASE_URL}/v2/nfts/${encodeURIComponent(nftAddress)}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const preview = data.previews?.find((p: { resolution: string }) => p.resolution === '500x500')
-                        || data.previews?.find((p: { resolution: string }) => p.resolution === '100x100')
-                        || data.previews?.[0];
-                    setNft({
-                        address: data.address,
-                        name: data.metadata?.name || 'Unnamed NFT',
-                        image: preview?.url || data.metadata?.image,
-                        collectionName: data.collection?.name,
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to fetch NFT:", error);
-            } finally {
-                setIsLoadingNft(false);
-            }
-        };
-        fetchNft();
-    }, [nftAddress, TON_API_BASE_URL, isWalletReady]);
-
     // Resolve .ton domain addresses
     useEffect(() => {
         const resolveAddress = async () => {
-            if (!recipient.trim()) {
+            if (!watchedRecipient.trim()) {
                 setResolvedAddress("");
                 setAddressError("");
                 setIsDomainAddress(false);
                 return;
             }
 
-            if (recipient.trim().toLowerCase().endsWith(".ton")) {
+            if (watchedRecipient.trim().toLowerCase().endsWith(".ton")) {
                 setIsDomainAddress(true);
                 setIsResolvingAddress(true);
                 setAddressError("");
-                const result = await resolveTonAddress(recipient);
+                const result = await resolveTonAddress(watchedRecipient);
                 if (result.isValid) {
                     setResolvedAddress(result.address);
                     setAddressError("");
@@ -122,11 +85,11 @@ export default function SendNftPage() {
                 setIsResolvingAddress(false);
             } else {
                 setIsDomainAddress(false);
-                const result = await resolveTonAddress(recipient);
+                const result = await resolveTonAddress(watchedRecipient);
                 if (result.isValid) {
                     setResolvedAddress(result.address);
                     setAddressError("");
-                } else if (recipient.trim().length > 0) {
+                } else if (watchedRecipient.trim().length > 0) {
                     setResolvedAddress("");
                     setAddressError(result.error || "Invalid address");
                 }
@@ -135,10 +98,11 @@ export default function SendNftPage() {
 
         const debounceTimer = setTimeout(resolveAddress, 500);
         return () => clearTimeout(debounceTimer);
-    }, [recipient]);
+    }, [watchedRecipient]);
 
     const validateInput = () => {
-        if (!recipient) {
+        const recipientValue = form.getFieldValue("recipient");
+        if (!recipientValue) {
             toast.error("Please enter a recipient address");
             return false;
         }
@@ -351,39 +315,50 @@ export default function SendNftPage() {
                             </Card>
 
                             {/* Recipient */}
-                            <div className="space-y-2">
-                                <Label className="text-sm text-muted-foreground ml-1">Recipient Address</Label>
-                                <div className="relative">
-                                    <Input
-                                        value={recipient}
-                                        onChange={(e) => setRecipient(e.target.value)}
-                                        placeholder="Enter TON address or name.ton"
-                                        className={`bg-card border-border h-14 pl-4 pr-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl font-mono text-sm ${addressError ? 'border-destructive' : resolvedAddress ? 'border-green-500/50' : ''
-                                            }`}
-                                    />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        {isResolvingAddress ? (
-                                            <ButtonLoader />
-                                        ) : resolvedAddress ? (
-                                            <Icon icon="lucide:check" className="w-4 h-4 text-green-500" />
-                                        ) : (
-                                            <Icon icon="lucide:wallet" className="w-4 h-4 text-muted-foreground" />
-                                        )}
-                                    </div>
-                                </div>
-                                {isDomainAddress && resolvedAddress && (
-                                    <p className="text-xs text-green-400 ml-1 flex items-center gap-1">
-                                        <Icon icon="lucide:check" className="w-3 h-3" />
-                                        Resolved: {resolvedAddress.slice(0, 8)}...{resolvedAddress.slice(-6)}
-                                    </p>
-                                )}
-                                {addressError && (
-                                    <p className="text-xs text-destructive ml-1 flex items-center gap-1">
-                                        <Icon icon="lucide:info" className="w-3 h-3" />
-                                        {addressError}
-                                    </p>
-                                )}
-                            </div>
+                            <form.Field name="recipient">
+                                {(field) => {
+                                    const hasErrors = field.state.meta.errors.length > 0;
+                                    return (
+                                        <Field data-invalid={hasErrors || !!addressError}>
+                                            <Label className="text-sm text-muted-foreground ml-1">Recipient Address</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id={field.name}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) => field.handleChange(e.target.value)}
+                                                    placeholder="Enter TON address or name.ton"
+                                                    aria-invalid={hasErrors || !!addressError}
+                                                    className={`bg-card border-border h-14 pl-4 pr-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl font-mono text-sm ${addressError ? 'border-destructive' : resolvedAddress ? 'border-green-500/50' : ''
+                                                        }`}
+                                                />
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    {isResolvingAddress ? (
+                                                        <ButtonLoader />
+                                                    ) : resolvedAddress ? (
+                                                        <Icon icon="lucide:check" className="w-4 h-4 text-green-500" />
+                                                    ) : (
+                                                        <Icon icon="lucide:wallet" className="w-4 h-4 text-muted-foreground" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                            {isDomainAddress && resolvedAddress && (
+                                                <p className="text-xs text-green-400 ml-1 flex items-center gap-1">
+                                                    <Icon icon="lucide:check" className="w-3 h-3" />
+                                                    Resolved: {resolvedAddress.slice(0, 8)}...{resolvedAddress.slice(-6)}
+                                                </p>
+                                            )}
+                                            {addressError && (
+                                                <p className="text-xs text-destructive ml-1 flex items-center gap-1">
+                                                    <Icon icon="lucide:info" className="w-3 h-3" />
+                                                    {addressError}
+                                                </p>
+                                            )}
+                                        </Field>
+                                    );
+                                }}
+                            </form.Field>
 
                             {/* TON Warning */}
                             {insufficientTonForGas && (
@@ -401,7 +376,7 @@ export default function SendNftPage() {
 
                             <Button
                                 onClick={handleContinue}
-                                disabled={!recipient || !resolvedAddress || isResolvingAddress || insufficientTonForGas}
+                                disabled={!watchedRecipient || !resolvedAddress || isResolvingAddress || insufficientTonForGas}
                                 className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold text-lg mt-8"
                             >
                                 Continue
@@ -441,7 +416,7 @@ export default function SendNftPage() {
                                             <div className="text-right flex-1 pl-8">
                                                 {isDomainAddress ? (
                                                     <div>
-                                                        <div className="text-sm font-medium text-blue-400">{recipient}</div>
+                                                        <div className="text-sm font-medium text-blue-400">{watchedRecipient}</div>
                                                         <div className="text-xs text-gray-500 font-mono break-all mt-1">
                                                             {resolvedAddress.slice(0, 12)}...{resolvedAddress.slice(-8)}
                                                         </div>

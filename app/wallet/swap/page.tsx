@@ -44,6 +44,7 @@ import {
 } from "@/lib/stonfi";
 import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { swapSchema } from "@/lib/validations";
 
 // Custom hook for debouncing values
 function useDebounce<T>(value: T, delay: number): T {
@@ -441,6 +442,16 @@ export default function SwapPage() {
 
     // Handle continue to confirm
     const handleContinue = () => {
+        // Zod schema validation at submit boundary
+        const parsed = swapSchema.safeParse({
+            amount: amount || "",
+            fromAsset: fromAsset?.symbol || "",
+            toAsset: toAsset?.symbol || "",
+        });
+        if (!parsed.success) {
+            toast.error(parsed.error.errors[0].message);
+            return;
+        }
         if (canProceed && omnistonQuote) {
             setConfirmedQuote(omnistonQuote); // Store quote before changing step
             setStep("confirm");

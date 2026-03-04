@@ -80,3 +80,288 @@ export const createTokenSchema = z.object({
     .max(500, "Description must be 500 characters or less"),
 });
 export type CreateTokenFormData = z.infer<typeof createTokenSchema>;
+
+// ---- Shared username constants & schema ----
+
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 20;
+export const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
+export const RESERVED_USERNAMES = [
+  "admin", "support", "help", "quantum", "quantumclub", "qc", "system",
+  "root", "official", "team", "mod", "moderator", "bot", "wallet",
+  "send", "receive", "swap", "trade", "stake", "earn", "null", "undefined",
+];
+
+export const usernameSchema = z
+  .string()
+  .min(USERNAME_MIN_LENGTH, `Minimum ${USERNAME_MIN_LENGTH} characters`)
+  .max(USERNAME_MAX_LENGTH, `Maximum ${USERNAME_MAX_LENGTH} characters`)
+  .regex(USERNAME_REGEX, "Letters, numbers, dots, underscores & hyphens only")
+  .refine((val) => !RESERVED_USERNAMES.includes(val.toLowerCase()), {
+    message: "This username is reserved",
+  });
+
+// ---- Form schemas ----
+
+export const sendQntmSchema = z.object({
+  recipientQcId: z.string().min(1, "Please enter a QC ID"),
+  amount: z
+    .string()
+    .min(1, "Please enter an amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Amount must be greater than 0"),
+});
+export type SendQntmFormData = z.infer<typeof sendQntmSchema>;
+
+export const sendNftSchema = z.object({
+  recipient: z
+    .string()
+    .min(1, "Please enter a recipient address"),
+});
+export type SendNftFormData = z.infer<typeof sendNftSchema>;
+
+export const linkEmailSchema = z.object({
+  email: emailSchema,
+  password: newPasswordSchema,
+});
+export type LinkEmailFormData = z.infer<typeof linkEmailSchema>;
+
+export const stakeAmountSchema = z.object({
+  amount: z
+    .string()
+    .min(1, "Please enter an amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Amount must be greater than 0"),
+});
+export type StakeAmountFormData = z.infer<typeof stakeAmountSchema>;
+
+export const walletRenameSchema = z.object({
+  name: z.string().min(1, "Please enter a wallet name").max(30, "Name must be 30 characters or less"),
+});
+export type WalletRenameFormData = z.infer<typeof walletRenameSchema>;
+
+export const nftLaunchSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  description: z.string().max(500, "Description must be 500 characters or less"),
+  price: z.string(),
+  royalty: z.string(),
+});
+export type NftLaunchFormData = z.infer<typeof nftLaunchSchema>;
+
+export const nftListingPriceSchema = z.object({
+  price: z
+    .string()
+    .min(1, "Please enter a price")
+    .refine((v) => !isNaN(Number(v)) && Number(v) >= 0.1, "Minimum price is 0.1 TON"),
+});
+export type NftListingPriceFormData = z.infer<typeof nftListingPriceSchema>;
+
+export const priceAlertSchema = z.object({
+  symbol: z.string().min(1, "Please select a token"),
+  targetPrice: z
+    .string()
+    .min(1, "Please enter a target price")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Price must be greater than 0"),
+  direction: z.enum(["above", "below"]),
+});
+export type PriceAlertFormData = z.infer<typeof priceAlertSchema>;
+
+export const chatTransferSchema = z.object({
+  amount: z
+    .string()
+    .min(1, "Please enter an amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Amount must be greater than 0"),
+  address: z.string(),
+});
+export type ChatTransferFormData = z.infer<typeof chatTransferSchema>;
+
+export const walletImportSchema = z.object({
+  seedPhrase: z.array(z.string().min(1, "Word is required")).length(24, "All 24 words are required"),
+  walletVersion: z.enum(["v5r1", "v4r2", "v3r2"]),
+});
+export type WalletImportFormData = z.infer<typeof walletImportSchema>;
+
+export const walletVerifySchema = z.object({
+  word0: z.string().min(1, "Please enter the word"),
+  word1: z.string().min(1, "Please enter the word"),
+  word2: z.string().min(1, "Please enter the word"),
+});
+export type WalletVerifyFormData = z.infer<typeof walletVerifySchema>;
+
+// ---- API route schemas ----
+
+export const checkExistingUserSchema = z.object({
+  email: z.string().email().optional(),
+  qcId: z.string().min(1).max(100).optional(),
+}).refine((d) => d.email || d.qcId, { message: "Provide email or qcId" });
+
+export const graduateSchema = z.object({
+  tokenId: z.string().min(1, "Token ID is required"),
+  dexPoolAddress: z.string().optional(),
+  jettonMasterAddress: z.string().optional(),
+});
+
+export const checkSymbolSchema = z.object({
+  symbol: z.string().min(1).max(10),
+});
+
+export const mysteryBoxActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("get-boxes") }),
+  z.object({
+    action: z.literal("claim-box"),
+    boxId: z.string().min(1),
+    paymentMethod: z.enum(["ton", "qntm"]),
+  }),
+  z.object({ action: z.literal("get-claims") }),
+]);
+
+export const uploadImageSchema = z.object({
+  tokenId: z.string().min(1, "Token ID is required"),
+  imageData: z.string().min(1, "Image data is required"),
+});
+
+export const referralSchema = z.object({
+  referrerId: z.string().min(1),
+  referredId: z.string().min(1),
+});
+
+export const callNotificationSchema = z.object({
+  calleeId: z.string().min(1, "Callee ID is required"),
+  callerName: z.string().min(1, "Caller name is required"),
+  chatId: z.string().min(1, "Chat ID is required"),
+});
+
+export const chatNotificationSchema = z.object({
+  recipientIds: z.array(z.string().min(1)).min(1, "At least one recipient is required"),
+  senderName: z.string().min(1, "Sender name is required"),
+  chatId: z.string().min(1, "Chat ID is required"),
+  chatName: z.string().optional().default(""),
+  isGroup: z.boolean().optional().default(false),
+});
+
+export const analyzeTokenSchema = z.object({
+  tokenAddress: z.string().min(1, "Token address is required"),
+  tokenData: z.object({
+    name: z.string().optional(),
+    symbol: z.string().optional(),
+    price: z.union([z.string(), z.number()]).optional(),
+    marketCap: z.union([z.string(), z.number()]).optional(),
+    volume24h: z.union([z.string(), z.number()]).optional(),
+    holders: z.union([z.string(), z.number()]).optional(),
+    createdAt: z.string().optional(),
+  }).optional(),
+});
+
+export const explainTransactionSchema = z.object({
+  hash: z.string().min(1, "Transaction hash is required"),
+  type: z.string().optional().default(""),
+  amount: z.string().optional().default(""),
+  from: z.string().optional().default(""),
+  to: z.string().optional().default(""),
+});
+
+export const portfolioHealthSchema = z.object({
+  assets: z.array(z.object({
+    symbol: z.string(),
+    balance: z.union([z.string(), z.number()]),
+    value: z.union([z.string(), z.number()]).optional(),
+  })).min(1, "Portfolio assets are required"),
+  totalValue: z.union([z.string(), z.number()]).optional(),
+  stakedAmount: z.union([z.string(), z.number()]).optional(),
+});
+
+export const adminGraduateSchema = z.object({
+  tokenId: z.string().min(1, "Token ID is required"),
+  jettonAddress: z.string().min(1, "Jetton address is required"),
+});
+
+export const adminWithdrawFeesSchema = z.object({
+  jettonAddress: z.string().min(1, "Jetton address is required"),
+});
+
+// ---- Submit-boundary schemas for complex forms ----
+
+/** TON send validation */
+export const tonSendSchema = z.object({
+  recipient: z.string().min(1, "Please enter a recipient address or .ton domain"),
+  resolvedAddress: z.string().min(1, "Invalid recipient address"),
+  amount: z
+    .string()
+    .min(1, "Please enter a valid amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Please enter a valid amount"),
+});
+
+/** Multi-chain send validation */
+export const multiChainSendSchema = z.object({
+  recipient: z.string().min(1, "Please enter a recipient address"),
+  amount: z
+    .string()
+    .min(1, "Please enter a valid amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Please enter a valid amount"),
+});
+
+/** Swap validation */
+export const swapSchema = z.object({
+  amount: z
+    .string()
+    .min(1, "Please enter an amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Please enter a valid amount"),
+  fromAsset: z.string().min(1, "Please select a source asset"),
+  toAsset: z.string().min(1, "Please select a destination asset"),
+});
+
+/** Liquidity add validation */
+export const addLiquiditySchema = z.object({
+  tokenA: z.string().min(1, "Please select token A"),
+  tokenB: z.string().min(1, "Please select token B"),
+  amountA: z
+    .string()
+    .min(1, "Please enter an amount for token A")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Amount A must be greater than 0"),
+});
+
+/** Liquidity remove validation */
+export const removeLiquiditySchema = z.object({
+  position: z.string().min(1, "Please select a position to remove"),
+  percent: z
+    .string()
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number(v) <= 100, "Select a valid percentage"),
+});
+
+/** Farming stake validation */
+export const farmStakeSchema = z.object({
+  amount: z
+    .string()
+    .min(1, "Please enter an amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Amount must be greater than 0"),
+});
+
+/** Lending supply/withdraw validation */
+export const lendingSchema = z.object({
+  asset: z.string().min(1, "Please select an asset"),
+  amount: z
+    .string()
+    .min(1, "Please enter an amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Amount must be greater than 0"),
+});
+
+/** Trade (buy/sell) validation */
+export const tradeAmountSchema = z.object({
+  amount: z
+    .string()
+    .min(1, "Please enter an amount")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Please enter a valid amount"),
+});
+
+/** Chat DM validation */
+export const chatDmSchema = z.object({
+  username: z.string().min(1, "Enter a QC username"),
+});
+
+/** Chat group creation validation */
+export const chatGroupSchema = z.object({
+  name: z.string().min(1, "Group name required").max(50, "Group name must be 50 characters or less"),
+});
+
+/** Chat join group validation */
+export const chatJoinSchema = z.object({
+  code: z.string().length(6, "Enter 6-character code"),
+});

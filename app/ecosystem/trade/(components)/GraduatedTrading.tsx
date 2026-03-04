@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Token } from "@/types/trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
+import { tradeAmountSchema } from "@/lib/validations";
 import { simulateSwap, toUnits, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
 import { useOmnistonSwap, type QuoteParams } from "@/app/wallet/swap/hooks/useOmnistonSwap";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -115,6 +116,13 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
     const isLoading = simLoading || isQuoting;
 
     const handleSwap = useCallback(async () => {
+        // Zod schema validation at submit boundary
+        const parsed = tradeAmountSchema.safeParse({ amount: amount || "" });
+        if (!parsed.success) {
+            toast.error(parsed.error.errors[0].message);
+            return;
+        }
+
         if (!quote || !walletAddress) {
             toast.error("No quote available. Please try again.");
             return;
@@ -166,7 +174,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
         } finally {
             setIsExecuting(false);
         }
-    }, [quote, walletAddress, buildAndExecute, sendTransaction, activeTab, token, resolverName]);
+    }, [amount, quote, walletAddress, buildAndExecute, sendTransaction, activeTab, token, resolverName]);
 
     const quickAmounts = activeTab === "buy"
         ? ["0.1", "0.5", "1", "5"]

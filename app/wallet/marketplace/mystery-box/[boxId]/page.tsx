@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,62 +10,36 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useMysteryBoxQuery, useClaimMysteryBoxMutation } from "@/app/(hooks)/queries/use-mystery-box";
 import { toast } from "sonner";
-import type { MysteryBox } from "@/types/mystery-box";
 
 export default function MysteryBoxDetailPage() {
     useTelegramBackButton("/wallet/marketplace");
     const params = useParams();
     const boxId = params.boxId as string;
 
-    const [box, setBox] = useState<MysteryBox | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isClaiming, setIsClaiming] = useState(false);
+    const { data: box, isLoading } = useMysteryBoxQuery(boxId);
+    const claimMutation = useClaimMysteryBoxMutation();
+
     const [showReveal, setShowReveal] = useState(false);
     const [revealComplete, setRevealComplete] = useState(false);
 
-    useEffect(() => {
-        const fetchBox = async () => {
-            try {
-                const res = await fetch("/api/mystery-box", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "get-boxes" }),
-                });
-                const data = await res.json();
-                const found = data.boxes?.find((b: MysteryBox) => b.id === boxId);
-                setBox(found || null);
-            } catch {
-                toast.error("Failed to load mystery box");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchBox();
-    }, [boxId]);
-
     const handleClaim = async (paymentMethod: "ton" | "qntm") => {
         if (!box) return;
-        setIsClaiming(true);
-        try {
-            const res = await fetch("/api/mystery-box", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "claim-box", boxId, paymentMethod }),
-            });
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error);
-
-            setShowReveal(true);
-            // Animate reveal
-            setTimeout(() => setRevealComplete(true), 2000);
-            setBox((prev) => prev ? { ...prev, remaining: data.remaining } : prev);
-            toast.success("Mystery box claimed!");
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Failed to claim");
-        } finally {
-            setIsClaiming(false);
-        }
+        claimMutation.mutate(
+            { boxId, paymentMethod },
+            {
+                onSuccess: () => {
+                    setShowReveal(true);
+                    // Animate reveal
+                    setTimeout(() => setRevealComplete(true), 2000);
+                    toast.success("Mystery box claimed!");
+                },
+                onError: (error) => {
+                    toast.error(error instanceof Error ? error.message : "Failed to claim");
+                },
+            }
+        );
     };
 
     if (isLoading) {
@@ -186,10 +160,10 @@ export default function MysteryBoxDetailPage() {
                     <div className="space-y-3">
                         <Button
                             onClick={() => handleClaim("ton")}
-                            disabled={isClaiming}
+                            disabled={claimMutation.isPending}
                             className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold"
                         >
-                            {isClaiming ? (
+                            {claimMutation.isPending ? (
                                 <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
                             ) : (
                                 <>
@@ -201,7 +175,7 @@ export default function MysteryBoxDetailPage() {
                         {box.price.qntm && (
                             <Button
                                 onClick={() => handleClaim("qntm")}
-                                disabled={isClaiming}
+                                disabled={claimMutation.isPending}
                                 variant="outline"
                                 className="w-full h-12 rounded-xl font-bold"
                             >

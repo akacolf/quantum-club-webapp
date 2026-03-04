@@ -1,17 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { dbfs } from "@/app/(firebase)/client";
-import {
-  doc,
-  getDoc,
-  getDocs,
-  collection,
-} from "firebase/firestore";
+import { doc, getDoc, getDocs, collection } from "firebase/firestore";
 import Loader from "../(components)/Loader";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { getAuth } from "firebase/auth";
 import { ButtonLoader } from "../(components)/ButtonLoader";
-import { getAllTasks } from "./tasks";
 import { useRouter } from "next/navigation";
 import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
 import { EarnTask } from "@/lib/interfaces";
@@ -22,14 +15,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "../(contexts)/auth";
 import { toast } from "sonner";
 import { confirmTask } from "./actions";
+import { useEarnTasksQuery } from "@/app/(hooks)/queries/use-earn-tasks";
 
 const EarnContent = () => {
-  const [tasks, setTasks] = useState<EarnTask[]>([]);
-  const [loading, setLoading] = useState(true);
   const limitedTXT = "Limited";
   const ingameTXT = "In-app";
   const ParnersTXT = "Partners";
-  const [completedTasks, setCompletedTasks] = useState(0);
   const claimTEXT = "Claim";
   const {
     telegramId,
@@ -40,102 +31,26 @@ const EarnContent = () => {
   const auth = useAuth();
   const router = useRouter();
 
+  // Fetch tasks and completed count via TanStack Query
+  const { data: earnData, isLoading: loading } = useEarnTasksQuery(telegramId, totalUsers);
+  // Local state for optimistic UI updates (button text changes during task completion)
+  const [tasks, setTasks] = useState<EarnTask[]>([]);
+  const [completedTasks, setCompletedTasks] = useState(0);
+
+  // Sync query data into local state
   useEffect(() => {
-    const totalCompletedCheck = async () => {
-      const totalCompleted = collection(dbfs, `user/${telegramId}/tasks`);
-      const snapshotTotalCompleted = await getDocs(totalCompleted);
-      if (!snapshotTotalCompleted.empty) {
-        setCompletedTasks(snapshotTotalCompleted.size);
-      } else {
-        setCompletedTasks(0);
-      }
-    };
-    totalCompletedCheck();
-    const fetchTasks = async () => {
-      if (typeof window !== "undefined") {
-        window?.Telegram?.WebApp.BackButton.hide();
-      }
-      setLoading(true);
-      try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (!user) {
-          console.error("Permission denied");
-          return;
-        }
+    if (earnData) {
+      setTasks(earnData.tasks);
+      setCompletedTasks(earnData.completedCount);
+    }
+  }, [earnData]);
 
-        // Verileri sadece bir kez çekmek için
-        const tasksList: EarnTask[] = (
-          await Promise.all(
-            getAllTasks().map(async (task) => {
-              const whichPlatform = task.whichPlatform;
-              let description: string | React.ReactNode;
-              if (whichPlatform == "userMilestone") {
-                description = (
-                  <div>
-                    Road to 1K - <span>{totalUsers} / 1000</span>
-                  </div>
-                );
-              } else {
-                description = task.description;
-              }
-              const quantRef = doc(dbfs, `tasks/${task.id}`);
-              const quantSnapshot = await getDoc(quantRef);
-              const quant = quantSnapshot.data()?.quantReward
-                ? quantSnapshot.data()?.quantReward
-                : 0;
-              const timestamp = quantSnapshot.data()?.timestamp
-                ? quantSnapshot.data()?.timestamp
-                : 0;
-              const platform = task.platform;
-              const category = task.category;
-              const buttontitle = task.buttontitle;
-              const url = task.url;
-              const taskRef = doc(dbfs, `user/${telegramId}/tasks/${task.id}`);
-              const taskSnapshot = await getDoc(taskRef);
-              const completed =
-                taskSnapshot.exists() && taskSnapshot.data().completed;
-              if (Date.now() > timestamp && timestamp !== 0) return null;
-              //if(timestamp > 0){ setLimitedstamp(timestamp)};
-              return {
-                ...task,
-                id: task.id,
-                description,
-                completed,
-                category,
-                platform,
-                buttontitle,
-                buttonText: completed
-                  ? "Joined"
-                  : (whichPlatform === "connectwallet" && typeof window !== "undefined" && localStorage.getItem("walletAddress_"+telegramId))
-                    ? "Claim"
-                    : buttontitle,
-                url,
-                quant,
-                whichPlatform,
-                timestamp,
-              } as EarnTask;
-            })
-          )
-        ).filter((task): task is EarnTask => task !== null);
-
-        sessionStorage.setItem("tasks", JSON.stringify(tasksList));
-
-        // Tüm task'ları state'e kaydet
-        setTasks(tasksList);
-
-        // Button texts setup
-      } catch (error) {
-        if (error instanceof Error) {
-          console.error(error.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, [telegramId, totalUsers]);
+  // Hide Telegram back button on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window?.Telegram?.WebApp.BackButton.hide();
+    }
+  }, []);
 
   // Helper function to render task list
   const renderTaskList = (tasks: EarnTask[]) => (

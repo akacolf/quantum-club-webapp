@@ -5,6 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 import { calculateGraduationLiquidity } from "@/lib/graduation";
 import { env } from "@/env";
+import { graduateSchema } from "@/lib/validations";
 
 // Admin check - only platform admins can graduate tokens
 const ADMIN_IDS = env.ADMIN_TELEGRAM_IDS?.split(",") || [];
@@ -40,14 +41,14 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { tokenId, dexPoolAddress, jettonMasterAddress } = body;
-
-        if (!tokenId) {
+        const parsed = graduateSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Token ID required" },
+                { error: parsed.error.errors[0].message },
                 { status: 400 }
             );
         }
+        const { tokenId, dexPoolAddress, jettonMasterAddress } = parsed.data;
 
         // Get current token data
         const tokenRef = adminDb.collection("tokens").doc(tokenId);

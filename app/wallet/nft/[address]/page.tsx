@@ -5,16 +5,19 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Address, toNano } from "@ton/core";
 import { toast } from "sonner";
+import { nftListingPriceSchema } from "@/lib/validations";
 import { getNftDetails, calculateTotalPrice, MARKETPLACE_FEE_PERCENT, categorizeNft, type NftItem } from "@/lib/nft-marketplace";
 import { calculateFees, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
 import ChatPickerModal from "@/app/(components)/ChatPickerModal";
@@ -37,8 +40,14 @@ export default function NftDetailPage() {
     
     // Listing state
     const [showListingModal, setShowListingModal] = useState(false);
-    const [listingPrice, setListingPrice] = useState("");
     const [isListing, setIsListing] = useState(false);
+
+    const form = useForm({
+        defaultValues: { price: "" },
+        validators: { onSubmit: nftListingPriceSchema },
+    });
+
+    const listingPrice = useStore(form.store, (s) => s.values.price);
 
     // Share to chat state
     const [showShareModal, setShowShareModal] = useState(false);
@@ -136,9 +145,10 @@ export default function NftDetailPage() {
 
     // Handle List NFT for Sale
     const handleListForSale = async () => {
-        if (!walletAddress || !nftAddress || !listingPrice || !telegramId) return;
-        
-        const priceNum = parseFloat(listingPrice);
+        const listingPriceVal = form.getFieldValue("price");
+        if (!walletAddress || !nftAddress || !listingPriceVal || !telegramId) return;
+
+        const priceNum = parseFloat(listingPriceVal);
         if (isNaN(priceNum) || priceNum < 0.1) {
             toast.error("Minimum listing price is 0.1 TON");
             return;
@@ -155,12 +165,12 @@ export default function NftDetailPage() {
                     telegramId,
                     nftAddress,
                     sellerAddress: walletAddress,
-                    price: listingPrice,
+                    price: listingPriceVal,
                 }),
             });
 
             const result = await response.json();
-            
+
             if (!result.success) {
                 throw new Error(result.error || "Failed to create listing");
             }
@@ -177,7 +187,7 @@ export default function NftDetailPage() {
             });
 
             const txResult = await txResponse.json();
-            
+
             if (!txResult.success) {
                 throw new Error(txResult.error || "Failed to send transaction");
             }
@@ -192,7 +202,7 @@ export default function NftDetailPage() {
                     nftAddress,
                     saleContractAddress: result.saleContractAddress,
                     sellerAddress: walletAddress,
-                    price: listingPrice,
+                    price: listingPriceVal,
                     nftName: nft?.name,
                     nftImage: nft?.image,
                     collectionAddress: nft?.collectionAddress,
@@ -208,11 +218,11 @@ export default function NftDetailPage() {
             }
 
             toast.success("NFT listed for sale!", {
-                description: `Listed for ${listingPrice} TON on QC Marketplace`,
+                description: `Listed for ${listingPriceVal} TON on QC Marketplace`,
             });
-            
+
             setShowListingModal(false);
-            setListingPrice("");
+            form.reset();
             
             // Refresh NFT data
             const updatedNft = await getNftDetails(nftAddress, isTestnet);
@@ -582,23 +592,31 @@ export default function NftDetailPage() {
                                 </div>
 
                                 {/* Price Input */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Price (TON)</label>
-                                    <div className="relative">
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            min={0.1}
-                                            placeholder="Min 0.1 TON"
-                                            value={listingPrice}
-                                            onChange={(e) => setListingPrice(e.target.value)}
-                                            className="h-12 text-lg pr-16"
-                                        />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                                            TON
-                                        </span>
-                                    </div>
-                                </div>
+                                <form.Field name="price">
+                                    {(field) => (
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Price (TON)</label>
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min={0.1}
+                                                    placeholder="Min 0.1 TON"
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) => field.handleChange(e.target.value)}
+                                                    className="h-12 text-lg pr-16"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                                                    TON
+                                                </span>
+                                            </div>
+                                            {field.state.meta.errors.length > 0 && (
+                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                            )}
+                                        </div>
+                                    )}
+                                </form.Field>
 
                                 {/* Fee Breakdown */}
                                 {listingPrice && parseFloat(listingPrice) >= 0.1 && listingFeePreview && (

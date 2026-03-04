@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { getSession } from "@/utils/session";
 import { env } from "@/env";
+import { uploadImageSchema } from "@/lib/validations";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -51,21 +52,15 @@ export async function POST(req: NextRequest) {
             uploadRateLimitMap.set(telegramId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
         }
         
-        const { tokenId, imageData } = await req.json();
-
-        if (!tokenId) {
+        const body = await req.json();
+        const parsed = uploadImageSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Token ID is required" },
+                { error: parsed.error.errors[0].message },
                 { status: 400 }
             );
         }
-
-        if (!imageData) {
-            return NextResponse.json(
-                { error: "Image data is required" },
-                { status: 400 }
-            );
-        }
+        const { tokenId, imageData } = parsed.data;
 
         // Validate Cloudinary config
         if (!env.CLOUDINARY_CLOUD_NAME ||

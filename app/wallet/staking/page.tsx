@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
+import { useForm } from "@tanstack/react-form";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -11,18 +12,19 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { stakeAmountSchema } from "@/lib/validations";
 import {
-    STAKING_POOLS,
-    fetchLiveApyData,
     calculateRewards,
     validateStakeAmount,
     executeStake,
     type StakingPool,
 } from "@/lib/staking-service";
+import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
 
 type ViewMode = "list" | "stake";
 
@@ -44,12 +46,17 @@ export default function StakingPage() {
     }, [router]);
 
     const [viewMode, setViewMode] = useState<ViewMode>("list");
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: stakingData, isLoading, refetch: fetchStakingData } = useStakingApyQuery();
+    const pools = stakingData?.pools ?? [];
     const [isStaking, setIsStaking] = useState(false);
-    const [pools, setPools] = useState<(StakingPool & { liveApy: number })[]>([]);
     const [selectedPool, setSelectedPool] = useState<StakingPool | null>(null);
-    const [stakeAmount, setStakeAmount] = useState("");
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
+
+    // TanStack Form for stake amount
+    const form = useForm({
+        defaultValues: { amount: "" },
+        validators: { onSubmit: stakeAmountSchema },
+    });
 
     // Custom Telegram back button that handles internal navigation
     useEffect(() => {
@@ -61,7 +68,7 @@ export default function StakingPage() {
                 // Go back to pool list
                 setViewMode("list");
                 setSelectedPool(null);
-                setStakeAmount("");
+                form.setFieldValue("amount", "");
                 setStep("input");
             } else {
                 // Go back to wallet
@@ -77,31 +84,10 @@ export default function StakingPage() {
         };
     }, [router, viewMode]);
 
-    // Fetch staking data with live APY
-    const fetchStakingData = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const apyData = await fetchLiveApyData();
-            const updatedPools = STAKING_POOLS.map(p => ({
-                ...p,
-                liveApy: apyData.get(p.id) || p.apy,
-            }));
-            setPools(updatedPools);
-        } catch (error) {
-            console.error("Failed to fetch staking data:", error);
-            // Fall back to static data
-            setPools(STAKING_POOLS.map(p => ({ ...p, liveApy: p.apy })));
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchStakingData();
-    }, [fetchStakingData]);
 
     const tonBalanceNum = parseFloat(tonBalance) || 0;
     const tonValueUsd = tonBalanceNum * tonPrice;
+    const stakeAmount = form.getFieldValue("amount");
     const stakeAmountNum = parseFloat(stakeAmount) || 0;
 
     // Average APY
@@ -117,14 +103,14 @@ export default function StakingPage() {
         setSelectedPool(pool);
         setViewMode("stake");
         setStep("input");
-        setStakeAmount("");
+        form.setFieldValue("amount", "");
     };
 
     // Handle max amount
     const handleMax = () => {
         // Leave 0.1 TON for gas
         const maxAmount = Math.max(0, tonBalanceNum - 0.1);
-        setStakeAmount(maxAmount.toFixed(4));
+        form.setFieldValue("amount", maxAmount.toFixed(4));
     };
 
     // Validate current stake
@@ -148,27 +134,29 @@ export default function StakingPage() {
     // Execute stake transaction
     const executeStakeTransaction = async () => {
         if (!selectedPool || !telegramId) return;
-        
+
         setIsStaking(true);
         setStep("processing");
-        
+
+        const amount = form.getFieldValue("amount");
+
         try {
             const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);
             if (!storedMnemonic) {
                 throw new Error("Wallet not found");
             }
-            
+
             const mnemonic = storedMnemonic.split(" ");
-            
+
             const result = await executeStake(
                 selectedPool,
-                stakeAmount,
+                amount,
                 mnemonic
             );
-            
+
             if (result.success) {
                 setStep("success");
-                toast.success(`Staked ${stakeAmount} TON`, {
+                toast.success(`Staked ${amount} TON`, {
                     description: `You'll receive ${result.estimatedLiquidTokens} ${selectedPool.liquidToken}`,
                 });
                 
@@ -216,7 +204,7 @@ export default function StakingPage() {
                                     </p>
                                 </div>
                                 <button
-                                    onClick={fetchStakingData}
+                                    onClick={() => fetchStakingData()}
                                     disabled={isLoading}
                                     className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 active:bg-white/10"
                                 >
@@ -490,39 +478,48 @@ export default function StakingPage() {
                                                         Balance: {tonBalanceNum.toFixed(4)} TON
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#222]">
-                                                        <Image
-                                                            src="/svg/ton-logo.svg"
-                                                            alt="TON"
-                                                            width={24}
-                                                            height={24}
-                                                            className="w-6 h-6"
-                                                        />
-                                                        <span className="font-bold text-white">TON</span>
-                                                    </div>
-                                                    <Input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        placeholder="0.0"
-                                                        value={stakeAmount}
-                                                        onChange={(e) => {
-                                                            const value = e.target.value.replace(",", ".");
-                                                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                                                                setStakeAmount(value);
-                                                            }
-                                                        }}
-                                                        className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-12 focus-visible:ring-0"
-                                                    />
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={handleMax}
-                                                        className="text-primary border-primary/30"
-                                                    >
-                                                        MAX
-                                                    </Button>
-                                                </div>
+                                                <form.Field name="amount">
+                                                    {(field) => (
+                                                        <>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#222]">
+                                                                    <Image
+                                                                        src="/svg/ton-logo.svg"
+                                                                        alt="TON"
+                                                                        width={24}
+                                                                        height={24}
+                                                                        className="w-6 h-6"
+                                                                    />
+                                                                    <span className="font-bold text-white">TON</span>
+                                                                </div>
+                                                                <Input
+                                                                    type="text"
+                                                                    inputMode="decimal"
+                                                                    placeholder="0.0"
+                                                                    value={field.state.value}
+                                                                    onChange={(e) => {
+                                                                        const value = e.target.value.replace(",", ".");
+                                                                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                                                            field.handleChange(value);
+                                                                        }
+                                                                    }}
+                                                                    className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-12 focus-visible:ring-0"
+                                                                />
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={handleMax}
+                                                                    className="text-primary border-primary/30"
+                                                                >
+                                                                    MAX
+                                                                </Button>
+                                                            </div>
+                                                            {field.state.meta.errors.length > 0 && (
+                                                                <FieldError errors={field.state.meta.errors.map((e) => ({ message: typeof e === "string" ? e : String(e) }))} />
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </form.Field>
                                                 {stakeAmountNum > 0 && (
                                                     <p className="text-right text-sm text-gray-500">
                                                         ≈ ${(stakeAmountNum * tonPrice).toFixed(2)}
@@ -644,7 +641,7 @@ export default function StakingPage() {
                                             onClick={() => {
                                                 setViewMode("list");
                                                 setSelectedPool(null);
-                                                setStakeAmount("");
+                                                form.setFieldValue("amount", "");
                                                 setStep("input");
                                             }}
                                             variant="outline"

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { Address, beginCell, toNano } from "@ton/core";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import {
@@ -7,6 +8,13 @@ import {
     DEX_CONFIG
 } from "@/lib/platform-config";
 import { runGetMethod } from "@/lib/ton-api";
+import { adminGraduateSchema } from "@/lib/validations";
+
+const confirmGraduationSchema = z.object({
+    tokenId: z.string().min(1, "Token ID is required"),
+    txHash: z.string().optional(),
+    poolAddress: z.string().optional(),
+});
 
 /**
  * POST /api/admin/graduate
@@ -45,14 +53,14 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { tokenId, jettonAddress } = body;
-
-        if (!tokenId || !jettonAddress) {
+        const parsed = adminGraduateSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Token ID and jetton address required" },
+                { error: parsed.error.errors[0].message },
                 { status: 400 }
             );
         }
+        const { tokenId, jettonAddress } = parsed.data;
 
         // Parse and validate address
         let targetAddress: Address;
@@ -177,14 +185,14 @@ export async function PATCH(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { tokenId, txHash, poolAddress } = body;
-
-        if (!tokenId) {
+        const parsed = confirmGraduationSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Token ID required" },
+                { error: parsed.error.errors[0]?.message || "Invalid request body" },
                 { status: 400 }
             );
         }
+        const { tokenId, txHash, poolAddress } = parsed.data;
 
         // Update token with graduation status
         await adminDb.collection("tokens").doc(tokenId).update({

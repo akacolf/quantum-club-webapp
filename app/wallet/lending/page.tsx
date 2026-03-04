@@ -25,6 +25,7 @@ import {
     type LendingAsset,
     type UserLendingData,
 } from "@/lib/evaa-service";
+import { lendingSchema } from "@/lib/validations";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { type Cell } from "@ton/core";
@@ -187,6 +188,15 @@ export default function LendingPage() {
     };
 
     const executeTransaction = async (mode: "supply" | "withdraw") => {
+        // Zod schema validation at submit boundary
+        const parsed = lendingSchema.safeParse({
+            asset: selectedAsset?.name || "",
+            amount: amount || "",
+        });
+        if (!parsed.success) {
+            toast.error(parsed.error.errors[0].message);
+            return;
+        }
         if (!selectedAsset || !amount || parseFloat(amount) <= 0) return;
 
         const storedMnemonic = localStorage.getItem(`quantum_wallet_mnemonic_${telegramId}`);

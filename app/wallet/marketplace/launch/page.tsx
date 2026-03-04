@@ -4,14 +4,17 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
+import { nftLaunchSchema } from "@/lib/validations";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -26,12 +29,15 @@ export default function LaunchNftPage() {
     const [step, setStep] = useState<Step>(1);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
     const [attributes, setAttributes] = useState<Attribute[]>([{ trait_type: "", value: "" }]);
     const [isDeploying, setIsDeploying] = useState(false);
     const [deploySuccess, setDeploySuccess] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const form = useForm({
+        defaultValues: { name: "", description: "", price: "", royalty: "" },
+        validators: { onSubmit: nftLaunchSchema },
+    });
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -66,18 +72,23 @@ export default function LaunchNftPage() {
 
     const validAttributes = attributes.filter((a) => a.trait_type.trim() && a.value.trim());
 
+    const name = useStore(form.store, (s) => s.values.name);
+    const description = useStore(form.store, (s) => s.values.description);
+
     const canProceedStep1 = !!imageFile;
     const canProceedStep2 = !!name.trim();
 
     const handleDeploy = async () => {
-        if (!imageFile || !name.trim()) return;
+        const formName = form.getFieldValue("name");
+        const formDescription = form.getFieldValue("description");
+        if (!imageFile || !formName.trim()) return;
         setIsDeploying(true);
         try {
             // Upload image
             const formData = new FormData();
             formData.append("image", imageFile);
-            formData.append("name", name.trim());
-            formData.append("description", description.trim());
+            formData.append("name", formName.trim());
+            formData.append("description", formDescription.trim());
             formData.append("attributes", JSON.stringify(validAttributes));
 
             const res = await fetch("/api/nft-mint", {
@@ -207,26 +218,42 @@ export default function LaunchNftPage() {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-4"
                         >
-                            <div className="space-y-2">
-                                <Label>Name *</Label>
-                                <Input
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="My Awesome NFT"
-                                    maxLength={100}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Textarea
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Describe your NFT..."
-                                    maxLength={500}
-                                    rows={3}
-                                    className="resize-none"
-                                />
-                            </div>
+                            <form.Field name="name">
+                                {(field) => (
+                                    <Field>
+                                        <FieldLabel>Name *</FieldLabel>
+                                        <Input
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={(e) => field.handleChange(e.target.value)}
+                                            placeholder="My Awesome NFT"
+                                            maxLength={100}
+                                        />
+                                        {field.state.meta.errors.length > 0 && (
+                                            <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                        )}
+                                    </Field>
+                                )}
+                            </form.Field>
+                            <form.Field name="description">
+                                {(field) => (
+                                    <Field>
+                                        <FieldLabel>Description</FieldLabel>
+                                        <Textarea
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={(e) => field.handleChange(e.target.value)}
+                                            placeholder="Describe your NFT..."
+                                            maxLength={500}
+                                            rows={3}
+                                            className="resize-none"
+                                        />
+                                        {field.state.meta.errors.length > 0 && (
+                                            <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                        )}
+                                    </Field>
+                                )}
+                            </form.Field>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <Label>Attributes</Label>

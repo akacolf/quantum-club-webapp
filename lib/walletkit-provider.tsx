@@ -3,9 +3,13 @@
 /**
  * TON Connect WalletKit Integration
  * Provides full TON Connect wallet protocol support using the official WalletKit SDK
+ *
+ * State lives in stores/walletkit-store.ts (Zustand).
+ * This provider holds kitRef/walletRef as local refs, creates action callbacks,
+ * and syncs them into the store.
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import {
     TonWalletKit,
     CHAIN,
@@ -17,43 +21,12 @@ import {
     type EventTransactionRequest,
     type EventSignDataRequest,
     type EventDisconnect,
-    type SessionInfo,
     type IWallet,
 } from "@ton/walletkit";
 import { toast } from "sonner";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
-
-interface WalletKitContextType {
-    isReady: boolean;
-    isTestnet: boolean;
-    
-    // Connection requests
-    pendingConnection: EventConnectRequest | null;
-    approveConnection: () => Promise<void>;
-    rejectConnection: () => Promise<void>;
-    
-    // Transaction requests
-    pendingTransaction: EventTransactionRequest | null;
-    approveTransaction: () => Promise<void>;
-    rejectTransaction: () => Promise<void>;
-    
-    // Sign data requests
-    pendingSignData: EventSignDataRequest | null;
-    
-    // Sessions
-    sessions: SessionInfo[];
-    refreshSessions: () => Promise<void>;
-    disconnect: (sessionId?: string) => Promise<void>;
-    
-    // Connect from QR code
-    handleTonConnectUrl: (url: string) => Promise<void>;
-    
-    // Wallet registration
-    registerWallet: (mnemonic: string[]) => Promise<boolean>;
-    isWalletRegistered: boolean;
-}
-
-const WalletKitContext = createContext<WalletKitContextType | null>(null);
+import { useWalletKitStore } from "@/stores/walletkit-store";
+import { useShallow } from "zustand/shallow";
 
 interface WalletKitProviderProps {
     children: React.ReactNode;
@@ -69,32 +42,22 @@ export function WalletKitProvider({
 }: WalletKitProviderProps) {
     const kitRef = useRef<TonWalletKit | null>(null);
     const walletRef = useRef<IWallet | null>(null);
-    const [isReady, setIsReady] = useState(false);
-    const [isWalletRegistered, setIsWalletRegistered] = useState(false);
-    
-    // Pending requests
-    const [pendingConnection, setPendingConnection] = useState<EventConnectRequest | null>(null);
-    const [pendingTransaction, setPendingTransaction] = useState<EventTransactionRequest | null>(null);
-    const [pendingSignData, setPendingSignData] = useState<EventSignDataRequest | null>(null);
-    
-    // Sessions
-    const [sessions, setSessions] = useState<SessionInfo[]>([]);
 
     // Initialize WalletKit
     useEffect(() => {
         let mounted = true;
-        
+
         const initKit = async () => {
             try {
                 console.log("[WalletKit] Initializing...");
-                
+
                 const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
-                
+
                 const kit = new TonWalletKit({
                     networks: {
                         [network]: {
                             apiClient: {
-                                url: isTestnet 
+                                url: isTestnet
                                     ? "https://testnet.toncenter.com/api/v3"
                                     : "https://toncenter.com/api/v3",
                             },
@@ -137,7 +100,7 @@ export function WalletKitProvider({
                     console.log("[WalletKit] Connection request received:", event);
                     analyticsEvents.connectionStarted();
                     if (mounted) {
-                        setPendingConnection(event);
+                        useWalletKitStore.setState({ pendingConnection: event });
                     }
                 });
 
@@ -145,7 +108,7 @@ export function WalletKitProvider({
                 kit.onTransactionRequest((event: EventTransactionRequest) => {
                     console.log("[WalletKit] Transaction request received:", event);
                     if (mounted) {
-                        setPendingTransaction(event);
+                        useWalletKitStore.setState({ pendingTransaction: event });
                     }
                 });
 
@@ -153,16 +116,16 @@ export function WalletKitProvider({
                 kit.onSignDataRequest((event: EventSignDataRequest) => {
                     console.log("[WalletKit] Sign data request received:", event);
                     if (mounted) {
-                        setPendingSignData(event);
+                        useWalletKitStore.setState({ pendingSignData: event });
                     }
                 });
 
                 // Handle disconnections
-                kit.onDisconnect((event: EventDisconnect) => {
-                    console.log("[WalletKit] Disconnect event:", event);
+                kit.onDisconnect((_event: EventDisconnect) => {
+                    console.log("[WalletKit] Disconnect event:", _event);
                     analyticsEvents.disconnection();
                     kit.listSessions().then(s => {
-                        if (mounted) setSessions(s);
+                        if (mounted) useWalletKitStore.setState({ sessions: s });
                     });
                 });
 
@@ -175,12 +138,15 @@ export function WalletKitProvider({
                 });
 
                 kitRef.current = kit;
-                
+
                 // Load initial sessions
                 const initialSessions = await kit.listSessions();
                 if (mounted) {
-                    setSessions(initialSessions);
-                    setIsReady(true);
+                    useWalletKitStore.setState({
+                        sessions: initialSessions,
+                        isReady: true,
+                        isTestnet,
+                    });
                     console.log("[WalletKit] Initialized successfully, sessions:", initialSessions.length);
                 }
             } catch (error) {
@@ -201,29 +167,29 @@ export function WalletKitProvider({
             console.error("[WalletKit] Kit not initialized");
             return false;
         }
-        
+
         try {
             console.log("[WalletKit] Registering wallet...");
             const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
-            
+
             // Create signer from mnemonic
             const signer = await Signer.fromMnemonic(mnemonic);
-            
+
             // Get API client from kit
             const client = kitRef.current.getApiClient(network);
-            
+
             // Create wallet adapter
             const wallet = await WalletV5R1Adapter.create(signer, {
                 client,
                 network,
             });
-            
+
             // Register with WalletKit
             const registeredWallet = await kitRef.current.addWallet(wallet);
-            
+
             if (registeredWallet) {
                 walletRef.current = registeredWallet;
-                setIsWalletRegistered(true);
+                useWalletKitStore.setState({ isWalletRegistered: true });
                 console.log("[WalletKit] Wallet registered:", registeredWallet.getAddress());
                 return true;
             }
@@ -236,6 +202,7 @@ export function WalletKitProvider({
 
     // Auto-register wallet on initialization so it's ready before connection requests
     useEffect(() => {
+        const { isReady, isWalletRegistered } = useWalletKitStore.getState();
         if (!isReady || isWalletRegistered || walletRef.current) return;
 
         const telegramId = localStorage.getItem("telegramId") || "";
@@ -258,10 +225,11 @@ export function WalletKitProvider({
                 if (ok) console.log("[WalletKit] Auto-registered wallet on init");
             });
         }
-    }, [isReady, isWalletRegistered, registerWallet]);
+    }, [registerWallet]);
 
     // Approve connection request
     const approveConnection = useCallback(async () => {
+        const { pendingConnection } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingConnection) {
             console.error("[WalletKit] Cannot approve: kit or pending connection missing");
             toast.error("Connection failed", {
@@ -269,7 +237,7 @@ export function WalletKitProvider({
             });
             return;
         }
-        
+
         // Check if wallet is registered, if not try to register it
         if (!walletRef.current) {
             console.log("[WalletKit] Wallet not registered, attempting to register...");
@@ -306,7 +274,7 @@ export function WalletKitProvider({
                     toast.error("Connection failed", {
                         description: "Could not register wallet. Please reload the page and try again.",
                     });
-                    setPendingConnection(null);
+                    useWalletKitStore.setState({ pendingConnection: null });
                     return;
                 }
             } else {
@@ -314,11 +282,11 @@ export function WalletKitProvider({
                 toast.error("Connection failed", {
                     description: "No wallet found. Please create or import a wallet first.",
                 });
-                setPendingConnection(null);
+                useWalletKitStore.setState({ pendingConnection: null });
                 return;
             }
         }
-        
+
         try {
             console.log("[WalletKit] Approving connection with wallet:", walletRef.current?.getAddress());
             await kitRef.current.approveConnectRequest(pendingConnection);
@@ -329,14 +297,14 @@ export function WalletKitProvider({
 
             // Refresh sessions
             const newSessions = await kitRef.current.listSessions();
-            setSessions(newSessions);
+            useWalletKitStore.setState({ sessions: newSessions });
 
             toast.success("Connected successfully");
         } catch (error) {
             console.error("[WalletKit] Failed to approve connection:", error);
             const errorMessage = error instanceof Error ? error.message : "Failed to connect";
             analyticsEvents.connectionError(errorMessage);
-            
+
             // Check for specific error about wallet requirement
             if (errorMessage.toLowerCase().includes("wallet") && errorMessage.toLowerCase().includes("required")) {
                 toast.error("Connection failed", {
@@ -348,34 +316,36 @@ export function WalletKitProvider({
                 });
             }
         } finally {
-            setPendingConnection(null);
+            useWalletKitStore.setState({ pendingConnection: null });
         }
-    }, [pendingConnection, registerWallet]);
+    }, [registerWallet]);
 
     // Reject connection request
     const rejectConnection = useCallback(async () => {
+        const { pendingConnection } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingConnection) {
-            setPendingConnection(null);
+            useWalletKitStore.setState({ pendingConnection: null });
             return;
         }
-        
+
         try {
             console.log("[WalletKit] Rejecting connection...");
             await kitRef.current.rejectConnectRequest(pendingConnection, "User rejected");
         } catch (error) {
             console.error("[WalletKit] Failed to reject connection:", error);
         } finally {
-            setPendingConnection(null);
+            useWalletKitStore.setState({ pendingConnection: null });
         }
-    }, [pendingConnection]);
+    }, []);
 
     // Approve transaction request
     const approveTransaction = useCallback(async () => {
+        const { pendingTransaction } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingTransaction) {
             console.error("[WalletKit] Cannot approve: kit or pending transaction missing");
             return;
         }
-        
+
         try {
             console.log("[WalletKit] Approving transaction...");
             const response = await kitRef.current.approveTransactionRequest(pendingTransaction);
@@ -387,32 +357,33 @@ export function WalletKitProvider({
                 description: error instanceof Error ? error.message : "Failed to send transaction",
             });
         } finally {
-            setPendingTransaction(null);
+            useWalletKitStore.setState({ pendingTransaction: null });
         }
-    }, [pendingTransaction]);
+    }, []);
 
     // Reject transaction request
     const rejectTransaction = useCallback(async () => {
+        const { pendingTransaction } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingTransaction) {
-            setPendingTransaction(null);
+            useWalletKitStore.setState({ pendingTransaction: null });
             return;
         }
-        
+
         try {
             console.log("[WalletKit] Rejecting transaction...");
             await kitRef.current.rejectTransactionRequest(pendingTransaction, "User rejected");
         } catch (error) {
             console.error("[WalletKit] Failed to reject transaction:", error);
         } finally {
-            setPendingTransaction(null);
+            useWalletKitStore.setState({ pendingTransaction: null });
         }
-    }, [pendingTransaction]);
+    }, []);
 
     // Refresh sessions
     const refreshSessions = useCallback(async () => {
         if (!kitRef.current) return;
         const s = await kitRef.current.listSessions();
-        setSessions(s);
+        useWalletKitStore.setState({ sessions: s });
     }, []);
 
     // Disconnect session
@@ -431,44 +402,82 @@ export function WalletKitProvider({
         await kitRef.current.handleTonConnectUrl(url);
     }, []);
 
-    return (
-        <WalletKitContext.Provider
-            value={{
-                isReady,
-                isTestnet,
-                pendingConnection,
-                approveConnection,
-                rejectConnection,
-                pendingTransaction,
-                approveTransaction,
-                rejectTransaction,
-                pendingSignData,
-                sessions,
-                refreshSessions,
-                disconnect,
-                handleTonConnectUrl,
-                registerWallet,
-                isWalletRegistered,
-            }}
-        >
-            {children}
-        </WalletKitContext.Provider>
-    );
+    // Sync actions into the store
+    useEffect(() => {
+        useWalletKitStore.setState({
+            approveConnection,
+            rejectConnection,
+            approveTransaction,
+            rejectTransaction,
+            refreshSessions,
+            disconnect,
+            handleTonConnectUrl,
+            registerWallet,
+        });
+    }, [
+        approveConnection,
+        rejectConnection,
+        approveTransaction,
+        rejectTransaction,
+        refreshSessions,
+        disconnect,
+        handleTonConnectUrl,
+        registerWallet,
+    ]);
+
+    return <>{children}</>;
 }
 
+/**
+ * Backward-compatible hook — same return shape as the original useWalletKit().
+ * Reads from Zustand store via useShallow.
+ */
 export function useWalletKit() {
-    const context = useContext(WalletKitContext);
-    if (!context) {
-        throw new Error("useWalletKit must be used within a WalletKitProvider");
-    }
-    return context;
+    return useWalletKitStore(
+        useShallow((s) => ({
+            isReady: s.isReady,
+            isTestnet: s.isTestnet,
+            pendingConnection: s.pendingConnection,
+            approveConnection: s.approveConnection,
+            rejectConnection: s.rejectConnection,
+            pendingTransaction: s.pendingTransaction,
+            approveTransaction: s.approveTransaction,
+            rejectTransaction: s.rejectTransaction,
+            pendingSignData: s.pendingSignData,
+            sessions: s.sessions,
+            refreshSessions: s.refreshSessions,
+            disconnect: s.disconnect,
+            handleTonConnectUrl: s.handleTonConnectUrl,
+            registerWallet: s.registerWallet,
+            isWalletRegistered: s.isWalletRegistered,
+        }))
+    );
 }
 
 /**
  * Hook to check if WalletKit is available (optional use)
  */
 export function useWalletKitOptional() {
-    return useContext(WalletKitContext);
+    const store = useWalletKitStore(
+        useShallow((s) => ({
+            isReady: s.isReady,
+            isTestnet: s.isTestnet,
+            pendingConnection: s.pendingConnection,
+            approveConnection: s.approveConnection,
+            rejectConnection: s.rejectConnection,
+            pendingTransaction: s.pendingTransaction,
+            approveTransaction: s.approveTransaction,
+            rejectTransaction: s.rejectTransaction,
+            pendingSignData: s.pendingSignData,
+            sessions: s.sessions,
+            refreshSessions: s.refreshSessions,
+            disconnect: s.disconnect,
+            handleTonConnectUrl: s.handleTonConnectUrl,
+            registerWallet: s.registerWallet,
+            isWalletRegistered: s.isWalletRegistered,
+        }))
+    );
+    return store;
 }
 
 export { CHAIN };

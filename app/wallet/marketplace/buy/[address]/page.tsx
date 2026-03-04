@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -14,11 +14,10 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
 import {
-    getNftDetails,
     calculateTotalPrice,
     MARKETPLACE_FEE_PERCENT,
-    type NftItem,
 } from "@/lib/nft-marketplace";
+import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
 import {
     getSaleInfo,
     QC_MARKETPLACE_FEE_PERCENT,
@@ -41,34 +40,16 @@ export default function BuyNftPage() {
         handleCancel: handleAuthCancel,
     } = useBiometricAuth();
 
-    const [nft, setNft] = useState<NftItem | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
     const [viewMode, setViewMode] = useState<ViewMode>("preview");
     const [error, setError] = useState<string | null>(null);
+
+    // Sync fetch error into local error state
+    useEffect(() => {
+        if (nftFetchError) setError("Failed to load NFT");
+    }, [nftFetchError]);
     const [paymentMethod, setPaymentMethod] = useState<"TON" | "STARS">("TON");
     const [starsAmount, setStarsAmount] = useState<number | null>(null);
-
-    // Fetch NFT details
-    const fetchNft = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const data = await getNftDetails(nftAddress, isTestnet);
-            if (data) {
-                setNft(data);
-            } else {
-                setError("NFT not found or not for sale");
-            }
-        } catch (err) {
-            console.error("Failed to fetch NFT:", err);
-            setError("Failed to load NFT");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [nftAddress, isTestnet]);
-
-    useEffect(() => {
-        fetchNft();
-    }, [fetchNft]);
 
     // Calculate price with fee
     const priceInfo = nft?.sale ? calculateTotalPrice(nft.sale.price) : null;

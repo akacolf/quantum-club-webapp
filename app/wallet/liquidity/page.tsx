@@ -44,6 +44,7 @@ import {
   type LiquidityProvisionResult,
 } from "@/lib/stonfi";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { addLiquiditySchema, removeLiquiditySchema } from "@/lib/validations";
 import { StonApiClient } from "@ston-fi/api";
 
 // Format large numbers with K, M, B suffixes
@@ -563,6 +564,17 @@ export default function LiquidityPage() {
 
   // Handle add liquidity
   const handleAddLiquidity = async () => {
+    // Zod schema validation at submit boundary
+    const parsed = addLiquiditySchema.safeParse({
+      tokenA: tokenA?.symbol || "",
+      tokenB: tokenB?.symbol || "",
+      amountA: amountA || "",
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0].message);
+      return;
+    }
+
     const authenticated = await requestAuth();
     if (!authenticated) {
       toast.error("Authentication required");
@@ -693,6 +705,16 @@ export default function LiquidityPage() {
 
   // Handle remove liquidity
   const handleRemoveLiquidity = async () => {
+    // Zod schema validation at submit boundary
+    const parsed = removeLiquiditySchema.safeParse({
+      position: selectedPosition?.poolAddress || "",
+      percent: removePercent || "",
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0].message);
+      return;
+    }
+
     const authenticated = await requestAuth();
     if (!authenticated) {
       toast.error("Authentication required");

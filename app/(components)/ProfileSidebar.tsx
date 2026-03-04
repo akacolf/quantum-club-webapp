@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+import { usernameSchema, linkEmailSchema, USERNAME_MAX_LENGTH } from "@/lib/validations";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Input } from "@/components/ui/input";
+import { Field, FieldError } from "@/components/ui/field";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -22,6 +26,7 @@ import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
 import { toast } from "sonner";
 import { APP_VERSION } from "@/lib/version";
 import { useUserBadgesQuery } from "@/app/(hooks)/queries/use-badges";
+import { useQcUsernameQuery, useRegisterUsernameMutation } from "@/app/(hooks)/queries/use-qc-username";
 import { getBadgeDefinition } from "@/lib/badges";
 
 interface ProfileSidebarProps {
@@ -53,37 +58,43 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Email linking state
-  const [linkEmail, setLinkEmail] = useState("");
-  const [linkPassword, setLinkPassword] = useState("");
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [emailJustLinked, setEmailJustLinked] = useState(false);
 
+  // Link-email form (TanStack Form)
+  const linkEmailForm = useForm({
+    defaultValues: { email: "", password: "" },
+    validators: { onSubmit: linkEmailSchema },
+    onSubmit: async () => {
+      await handleLinkEmail();
+    },
+  });
+
   // QC Username state
   const [showUsernameForm, setShowUsernameForm] = useState(false);
-  const [newUsername, setNewUsername] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isRegisteringUsername, setIsRegisteringUsername] = useState(false);
   const [usernameAvailability, setUsernameAvailability] = useState<"available" | "taken" | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
-  // Load QC username on mount
+  // Username form (TanStack Form)
+  const usernameForm = useForm({
+    defaultValues: { username: "" },
+    validators: { onSubmit: z.object({ username: usernameSchema }) },
+  });
+
+  // Load QC username via TanStack Query (replaces inline useEffect+fetch)
+  const qcUsernameQuery = useQcUsernameQuery(!qcUsername ? telegramId : null);
+  const registerUsernameMutation = useRegisterUsernameMutation();
+
   useEffect(() => {
-    if (!telegramId || qcUsername) return;
-    const loadUsername = async () => {
-      try {
-        const res = await fetch(`/api/qc-username?qcId=${encodeURIComponent(telegramId)}`);
-        const data = await res.json();
-        if (data.username) {
-          setQcUsername(data.username);
-          localStorage.setItem(`qcUsername_${telegramId}`, data.username);
-        }
-      } catch {
-        // No username yet
+    if (qcUsernameQuery.data?.username && !qcUsername) {
+      setQcUsername(qcUsernameQuery.data.username);
+      if (telegramId) {
+        localStorage.setItem(`qcUsername_${telegramId}`, qcUsernameQuery.data.username);
       }
-    };
-    loadUsername();
-  }, [telegramId, qcUsername, setQcUsername]);
+    }
+  }, [qcUsernameQuery.data, qcUsername, setQcUsername, telegramId]);
 
   const handleCopyId = async () => {
     if (!telegramId) return;
@@ -97,25 +108,17 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
     }
   };
 
-  // Username validation
-  const USERNAME_MIN = 3;
-  const USERNAME_MAX = 20;
-  const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/;
-  const validateUsername = (val: string): string | null => {
-    if (!val) return null;
-    if (val.length < USERNAME_MIN) return `Min ${USERNAME_MIN} characters`;
-    if (val.length > USERNAME_MAX) return `Max ${USERNAME_MAX} characters`;
-    if (!USERNAME_REGEX.test(val)) return "Letters, numbers, dots, underscores & hyphens only";
-    return null;
-  };
-
   const checkUsernameAvailability = async () => {
-    if (!newUsername || validateUsername(newUsername)) return;
+    const currentUsername = usernameForm.getFieldValue("username");
+    if (!currentUsername) return;
+    // Validate via schema before checking availability
+    const result = usernameSchema.safeParse(currentUsername);
+    if (!result.success) return;
     setIsCheckingUsername(true);
     setUsernameAvailability(null);
     setUsernameError(null);
     try {
-      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(newUsername)}`);
+      const res = await fetch(`/api/qc-username?username=${encodeURIComponent(currentUsername)}`);
       const data = await res.json();
       setUsernameAvailability(data.available ? "available" : "taken");
     } catch {
@@ -126,34 +129,24 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   };
 
   const handleRegisterUsername = async () => {
-    if (!newUsername || !telegramId || usernameAvailability !== "available") return;
-    setIsRegisteringUsername(true);
-    try {
-      const res = await fetch("/api/qc-username", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: newUsername,
-          qcId: telegramId,
-          address: walletAddress || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setQcUsername(newUsername);
-        localStorage.setItem(`qcUsername_${telegramId}`, newUsername);
-        toast.success(`You're now @${newUsername}!`);
-        setShowUsernameForm(false);
-        setNewUsername("");
-        setUsernameAvailability(null);
-      } else {
-        toast.error(data.error || "Failed to register username");
+    const currentUsername = usernameForm.getFieldValue("username");
+    if (!currentUsername || !telegramId || usernameAvailability !== "available") return;
+    registerUsernameMutation.mutate(
+      { username: currentUsername, qcId: telegramId, address: walletAddress || undefined },
+      {
+        onSuccess: () => {
+          setQcUsername(currentUsername);
+          localStorage.setItem(`qcUsername_${telegramId}`, currentUsername);
+          toast.success(`You're now @${currentUsername}!`);
+          setShowUsernameForm(false);
+          usernameForm.reset();
+          setUsernameAvailability(null);
+        },
+        onError: (err) => {
+          toast.error(err.message || "Failed to register username");
+        },
       }
-    } catch {
-      toast.error("Failed to register username");
-    } finally {
-      setIsRegisteringUsername(false);
-    }
+    );
   };
 
   const handleSignOut = async () => {
@@ -177,24 +170,20 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   };
 
   const handleLinkEmail = async () => {
-    if (!linkEmail || !linkPassword) {
+    const { email, password } = linkEmailForm.state.values;
+    if (!email || !password) {
       toast.error("Please enter email and password");
-      return;
-    }
-    if (linkPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
       return;
     }
     setIsLinkingEmail(true);
     try {
-      await authContext?.linkEmailToAccount(linkEmail, linkPassword);
+      await authContext?.linkEmailToAccount(email, password);
       // Store email in Firestore user doc
       if (telegramId) {
-        await linkEmailToUserDoc(telegramId, linkEmail);
+        await linkEmailToUserDoc(telegramId, email);
       }
       toast.success("Email linked! Verification pending.");
-      setLinkEmail("");
-      setLinkPassword("");
+      linkEmailForm.reset();
       setShowLinkForm(false);
       setEmailJustLinked(true);
     } catch (err) {
@@ -270,67 +259,86 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
         {/* Username Creation Form (inline) */}
         {!qcUsername && showUsernameForm && (
           <div className="px-5 py-3 space-y-2">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">@</span>
-                <Input
-                  placeholder="username"
-                  value={newUsername}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^a-zA-Z0-9._-]/g, "");
-                    setNewUsername(val);
-                    setUsernameAvailability(null);
-                    setUsernameError(null);
-                  }}
-                  maxLength={USERNAME_MAX}
-                  className="h-8 text-xs pl-7 font-mono rounded-full"
-                  disabled={isRegisteringUsername}
-                />
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-[10px] px-2.5 shrink-0 rounded-full"
-                onClick={checkUsernameAvailability}
-                disabled={!newUsername || !!validateUsername(newUsername) || isCheckingUsername}
-              >
-                {isCheckingUsername ? <ButtonLoader size="sm" /> : "Check"}
-              </Button>
-            </div>
-            {/* Validation / availability feedback */}
-            {newUsername && validateUsername(newUsername) && (
-              <p className="text-[10px] text-destructive">{validateUsername(newUsername)}</p>
-            )}
-            {usernameAvailability === "available" && (
-              <p className="text-[10px] text-green-400 flex items-center gap-1">
-                <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
-                @{newUsername} is available!
-              </p>
-            )}
-            {usernameAvailability === "taken" && (
-              <p className="text-[10px] text-destructive flex items-center gap-1">
-                <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                @{newUsername} is taken
-              </p>
-            )}
-            {usernameError && (
-              <p className="text-[10px] text-destructive">{usernameError}</p>
-            )}
-            {usernameAvailability === "available" && (
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-muted-foreground">
-                  Your username will be <span className="text-foreground font-medium">@{newUsername}</span>
-                </p>
-                <Button
-                  size="sm"
-                  className="w-full h-8 text-xs"
-                  onClick={handleRegisterUsername}
-                  disabled={isRegisteringUsername}
-                >
-                  {isRegisteringUsername ? <ButtonLoader size="sm" /> : `Claim @${newUsername}`}
-                </Button>
-              </div>
-            )}
+            <usernameForm.Field name="username">
+              {(field) => {
+                const val = field.state.value;
+                const hasErrors = field.state.meta.errors.length > 0;
+                // Inline validation for real-time feedback (schema validates on submit)
+                const validationResult = val ? usernameSchema.safeParse(val) : null;
+                const realtimeError = validationResult && !validationResult.success
+                  ? validationResult.error.errors[0]?.message ?? null
+                  : null;
+                return (
+                  <>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">@</span>
+                        <Input
+                          placeholder="username"
+                          value={val}
+                          onChange={(e) => {
+                            const filtered = e.target.value.replace(/[^a-zA-Z0-9._-]/g, "");
+                            field.handleChange(filtered);
+                            setUsernameAvailability(null);
+                            setUsernameError(null);
+                          }}
+                          onBlur={field.handleBlur}
+                          maxLength={USERNAME_MAX_LENGTH}
+                          className="h-8 text-xs pl-7 font-mono rounded-full"
+                          disabled={registerUsernameMutation.isPending}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-[10px] px-2.5 shrink-0 rounded-full"
+                        onClick={checkUsernameAvailability}
+                        disabled={!val || !!realtimeError || isCheckingUsername}
+                      >
+                        {isCheckingUsername ? <ButtonLoader size="sm" /> : "Check"}
+                      </Button>
+                    </div>
+                    {/* Validation / availability feedback */}
+                    {val && realtimeError && (
+                      <p className="text-[10px] text-destructive">{realtimeError}</p>
+                    )}
+                    {hasErrors && !realtimeError && (
+                      <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                    )}
+                    {usernameAvailability === "available" && (
+                      <p className="text-[10px] text-green-400 flex items-center gap-1">
+                        <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
+                        @{val} is available!
+                      </p>
+                    )}
+                    {usernameAvailability === "taken" && (
+                      <p className="text-[10px] text-destructive flex items-center gap-1">
+                        <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
+                        @{val} is taken
+                      </p>
+                    )}
+                    {usernameError && (
+                      <p className="text-[10px] text-destructive">{usernameError}</p>
+                    )}
+                    {usernameAvailability === "available" && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-muted-foreground">
+                          Your username will be <span className="text-foreground font-medium">@{val}</span>
+                        </p>
+                        <Button
+                          size="sm"
+                          className="w-full h-8 text-xs"
+                          onClick={handleRegisterUsername}
+                          disabled={registerUsernameMutation.isPending}
+                        >
+                          {registerUsernameMutation.isPending ? <ButtonLoader size="sm" /> : `Claim @${val}`}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                );
+              }}
+            </usernameForm.Field>
           </div>
         )}
 
@@ -442,27 +450,49 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
             {/* Email linking form */}
             {!hasEmail && showLinkForm && (
               <div className="space-y-2 py-2 px-1">
-                <Input
-                  type="email"
-                  placeholder="Your email address"
-                  value={linkEmail}
-                  onChange={(e) => setLinkEmail(e.target.value)}
-                  className="h-8 text-xs"
-                  disabled={isLinkingEmail}
-                />
-                <Input
-                  type="password"
-                  placeholder="Create a password"
-                  value={linkPassword}
-                  onChange={(e) => setLinkPassword(e.target.value)}
-                  className="h-8 text-xs"
-                  disabled={isLinkingEmail}
-                />
+                <linkEmailForm.Field name="email">
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field>
+                        <Input
+                          type="email"
+                          placeholder="Your email address"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                          className="h-8 text-xs"
+                          disabled={isLinkingEmail}
+                        />
+                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
+                  }}
+                </linkEmailForm.Field>
+                <linkEmailForm.Field name="password">
+                  {(field) => {
+                    const hasErrors = field.state.meta.errors.length > 0;
+                    return (
+                      <Field>
+                        <Input
+                          type="password"
+                          placeholder="Create a password"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                          className="h-8 text-xs"
+                          disabled={isLinkingEmail}
+                        />
+                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      </Field>
+                    );
+                  }}
+                </linkEmailForm.Field>
                 <Button
                   size="sm"
                   className="w-full h-8 text-xs"
-                  onClick={handleLinkEmail}
-                  disabled={isLinkingEmail || !linkEmail || !linkPassword}
+                  onClick={() => linkEmailForm.handleSubmit()}
+                  disabled={isLinkingEmail || !linkEmailForm.state.values.email || !linkEmailForm.state.values.password}
                 >
                   {isLinkingEmail ? (
                     <ButtonLoader size="sm" />
