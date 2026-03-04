@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useWallet } from "../WalletContext";
@@ -77,7 +77,7 @@ export default function FarmingPage() {
     }, [router, viewMode]);
 
     // Fetch farming data
-    const fetchData = useCallback(async () => {
+    const fetchData = async () => {
         setIsLoading(true);
         try {
             const [farmsData, positionsData] = await Promise.all([
@@ -94,11 +94,12 @@ export default function FarmingPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [telegramId]);
+    };
 
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Find LP token balance for selected farm
     const lpBalance = selectedFarm 

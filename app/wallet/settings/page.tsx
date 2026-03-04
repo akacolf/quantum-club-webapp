@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -83,12 +83,12 @@ export default function WalletSettingsPage() {
   }, [router]);
 
 
-  const handleDeleteWallet = useCallback(() => {
+  const handleDeleteWallet = () => {
     // Use clearWallet from context to properly reset all state
     clearWallet();
     toast.success("Wallet removed from this device");
     router.push("/wallet");
-  }, [router, clearWallet]);
+  };
 
   const faqItems = [
     {

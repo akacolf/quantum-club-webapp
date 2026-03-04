@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import QRCodeStyling from "qr-code-styling";
@@ -10,10 +10,7 @@ import { Icon } from "@iconify/react";
 
 const InvitePopup = () => {
   const { telegramId } = useUserContext();
-  const inviteLink = useMemo(
-    () => `https://t.me/QuantumClubBot/app?startapp=${telegramId}`,
-    [telegramId]
-  );
+  const inviteLink = `https://t.me/QuantumClubBot/app?startapp=${telegramId}`;
 
   const [isOpen, setIsOpen] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);

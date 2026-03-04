@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,38 +45,36 @@ export default function CollectionDetailPage() {
         return count.toLocaleString();
     };
 
-    // Fetch collection details
-    const fetchCollection = useCallback(async () => {
-        setIsLoadingCollection(true);
-        try {
-            const data = await getCollectionDetails(collectionAddress, isTestnet);
-            setCollection(data);
-        } catch (error) {
-            console.error("Failed to fetch collection:", error);
-        } finally {
-            setIsLoadingCollection(false);
-        }
-    }, [collectionAddress, isTestnet]);
-
-    // Fetch collection items
-    const fetchItems = useCallback(async () => {
-        setIsLoadingItems(true);
-        try {
-            const data = await getCollectionItems(collectionAddress, 100, 0, isTestnet);
-            // Only show items that are for sale
-            const forSaleItems = data.filter(item => item.sale !== null);
-            setItems(forSaleItems);
-        } catch (error) {
-            console.error("Failed to fetch items:", error);
-        } finally {
-            setIsLoadingItems(false);
-        }
-    }, [collectionAddress, isTestnet]);
-
     useEffect(() => {
+        async function fetchCollection() {
+            setIsLoadingCollection(true);
+            try {
+                const data = await getCollectionDetails(collectionAddress, isTestnet);
+                setCollection(data);
+            } catch (error) {
+                console.error("Failed to fetch collection:", error);
+            } finally {
+                setIsLoadingCollection(false);
+            }
+        }
+
+        async function fetchItems() {
+            setIsLoadingItems(true);
+            try {
+                const data = await getCollectionItems(collectionAddress, 100, 0, isTestnet);
+                // Only show items that are for sale
+                const forSaleItems = data.filter(item => item.sale !== null);
+                setItems(forSaleItems);
+            } catch (error) {
+                console.error("Failed to fetch items:", error);
+            } finally {
+                setIsLoadingItems(false);
+            }
+        }
+
         fetchCollection();
         fetchItems();
-    }, [fetchCollection, fetchItems]);
+    }, [collectionAddress, isTestnet]);
 
     if (isLoadingCollection) {
         return (

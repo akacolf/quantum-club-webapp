@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,7 @@ export function PortfolioHealthCard({
     const [showDetails, setShowDetails] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const analyzePortfolio = useCallback(async () => {
+    async function analyzePortfolio() {
         if (!assets || assets.length === 0) return;
 
         setIsLoading(true);
@@ -67,13 +67,14 @@ export function PortfolioHealthCard({
         } finally {
             setIsLoading(false);
         }
-    }, [assets, totalValue, stakedAmount]);
+    }
 
     useEffect(() => {
         if (autoAnalyze && assets.length > 0) {
             analyzePortfolio();
         }
-    }, [autoAnalyze, assets.length, analyzePortfolio]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoAnalyze, assets.length]);
 
     const getHealthColor = (score: number) => {
         if (score >= 70) return "text-green-400";

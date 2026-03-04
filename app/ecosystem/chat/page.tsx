@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
@@ -626,13 +626,13 @@ export default function QCChatListPage() {
     (!searchQuery.trim() ||
       "qc global".includes(searchQuery.toLowerCase()));
 
-  const toggleForm = useCallback((mode: FormMode) => {
+  const toggleForm = (mode: FormMode) => {
     setFormMode((prev) => (prev === mode ? "none" : mode));
     setFormError(null);
     dmForm.reset();
     groupForm.reset();
     joinForm.reset();
-  }, [dmForm, groupForm, joinForm]);
+  };
 
   // Start DM
   const handleStartChat = async () => {

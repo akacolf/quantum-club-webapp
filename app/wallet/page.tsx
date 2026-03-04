@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -332,7 +332,7 @@ export default function WalletPage() {
   }, [walletAddress, totalUsdBalance, hasFetched, isLoadingAssets, telegramId]);
 
   // Fetch price history for selected asset
-  const fetchPriceHistory = useCallback(async (asset: AssetDetail, period: ChartPeriod = '1D') => {
+  const fetchPriceHistory = async (asset: AssetDetail, period: ChartPeriod = '1D') => {
     setIsLoadingPrice(true);
     try {
       // For ETH and BTC, use CoinGecko API
@@ -472,14 +472,15 @@ export default function WalletPage() {
     } finally {
       setIsLoadingPrice(false);
     }
-  }, [isTestnet]);
+  };
 
   // Fetch price when asset is selected or period changes
   useEffect(() => {
     if (selectedAsset) {
       fetchPriceHistory(selectedAsset, chartPeriod);
     }
-  }, [selectedAsset, chartPeriod, fetchPriceHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPriceHistory is stable in behavior, only depends on isTestnet
+  }, [selectedAsset, chartPeriod]);
 
   // Live price updates for selected asset via TanStack Query (5s polling)
   const { data: livePrice } = useLivePrice(selectedAsset?.symbol, 5000);
@@ -508,8 +509,8 @@ export default function WalletPage() {
     if (!selectedAsset || chartPeriod !== '1H') return;
     const chartRefreshInterval = setInterval(() => fetchPriceHistory(selectedAsset, chartPeriod), 30000);
     return () => clearInterval(chartRefreshInterval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-subscribe when symbol changes, not on every asset object reference change
-  }, [selectedAsset?.symbol, chartPeriod, fetchPriceHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-subscribe when symbol changes; fetchPriceHistory is stable in behavior
+  }, [selectedAsset?.symbol, chartPeriod]);
 
   useEffect(() => {
     const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);

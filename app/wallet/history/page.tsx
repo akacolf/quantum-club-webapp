@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -116,39 +116,7 @@ export default function HistoryPage() {
   // Explorer URL based on network
   const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
-  // Fetch QNTM transfer history from Firebase
-  const fetchQntmHistory = useCallback(async () => {
-    if (!telegramId) return;
-
-    setIsLoadingQntm(true);
-    try {
-      const transferHistoryRef = collection(dbfs, `user/${telegramId}/transferHistory`);
-      const q = query(transferHistoryRef, orderBy("timestamp", "desc"), limit(50));
-      const snapshot = await getDocs(q);
-
-      const transfers: QNTMTransfer[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        transfers.push({
-          id: doc.id,
-          type: data.type,
-          amount: data.amount,
-          to: data.to,
-          from: data.from,
-          date: data.date,
-          timestamp: data.timestamp?.seconds || parseInt(doc.id),
-        });
-      });
-
-      setQntmHistory(transfers);
-    } catch (err) {
-      console.error("Failed to fetch QNTM history:", err);
-    } finally {
-      setIsLoadingQntm(false);
-    }
-  }, [telegramId]);
-
-  const fetchHistory = useCallback(async (address: string) => {
+  async function fetchHistory(address: string) {
     if (!address) return;
 
     setIsLoadingHistory(true);
@@ -169,7 +137,7 @@ export default function HistoryPage() {
     } finally {
       setIsLoadingHistory(false);
     }
-  }, [isTestnet]);
+  }
 
   // Fetch history when wallet address is available or network changes
   useEffect(() => {
@@ -179,16 +147,48 @@ export default function HistoryPage() {
     } else {
       setIsLoadingHistory(false);
     }
-  }, [walletAddress, fetchHistory, isTestnet]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchHistory is also used in onClick handler
+  }, [walletAddress, isTestnet]);
 
   // Fetch QNTM history when telegramId is available
   useEffect(() => {
+    async function fetchQntmHistory() {
+      if (!telegramId) return;
+
+      setIsLoadingQntm(true);
+      try {
+        const transferHistoryRef = collection(dbfs, `user/${telegramId}/transferHistory`);
+        const q = query(transferHistoryRef, orderBy("timestamp", "desc"), limit(50));
+        const snapshot = await getDocs(q);
+
+        const transfers: QNTMTransfer[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          transfers.push({
+            id: doc.id,
+            type: data.type,
+            amount: data.amount,
+            to: data.to,
+            from: data.from,
+            date: data.date,
+            timestamp: data.timestamp?.seconds || parseInt(doc.id),
+          });
+        });
+
+        setQntmHistory(transfers);
+      } catch (err) {
+        console.error("Failed to fetch QNTM history:", err);
+      } finally {
+        setIsLoadingQntm(false);
+      }
+    }
+
     if (telegramId) {
       fetchQntmHistory();
     } else {
       setIsLoadingQntm(false);
     }
-  }, [telegramId, fetchQntmHistory]);
+  }, [telegramId]);
 
   // Load transaction labels
   useEffect(() => {
@@ -207,7 +207,7 @@ export default function HistoryPage() {
   }, [telegramId]);
 
   // Handle opening the label editor
-  const handleOpenLabelSheet = useCallback((txHash: string, e: React.MouseEvent) => {
+  const handleOpenLabelSheet = (txHash: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedTxHash(txHash);
     const existingLabel = txLabels[txHash];
@@ -219,22 +219,22 @@ export default function HistoryPage() {
       setTagsInput([]);
     }
     setLabelSheetOpen(true);
-  }, [txLabels]);
+  };
 
   // Handle saving a label
-  const handleSaveLabel = useCallback(() => {
+  const handleSaveLabel = () => {
     if (!selectedTxHash || !telegramId) return;
-    
+
     const newLabel = saveTransactionLabel(selectedTxHash, labelInput, tagsInput, telegramId);
     setTxLabels(prev => ({ ...prev, [selectedTxHash]: newLabel }));
     setLabelSheetOpen(false);
     toast.success(labelInput ? "Label saved" : "Tags saved");
-  }, [selectedTxHash, labelInput, tagsInput, telegramId]);
+  };
 
   // Handle deleting a label
-  const handleDeleteLabel = useCallback(() => {
+  const handleDeleteLabel = () => {
     if (!selectedTxHash || !telegramId) return;
-    
+
     deleteTransactionLabel(selectedTxHash, telegramId);
     setTxLabels(prev => {
       const updated = { ...prev };
@@ -243,16 +243,16 @@ export default function HistoryPage() {
     });
     setLabelSheetOpen(false);
     toast.success("Label removed");
-  }, [selectedTxHash, telegramId]);
+  };
 
   // Toggle a tag
-  const handleToggleTag = useCallback((tag: string) => {
-    setTagsInput(prev => 
-      prev.includes(tag) 
+  const handleToggleTag = (tag: string) => {
+    setTagsInput(prev =>
+      prev.includes(tag)
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
-  }, []);
+  };
 
   const formatAddress = (address: string) => {
     if (!address) return "Unknown";
@@ -271,7 +271,7 @@ export default function HistoryPage() {
   };
 
   // Parse transaction data for filtering and display
-  const parseTransaction = useCallback((event: HistoryEvent) => {
+  const parseTransaction = (event: HistoryEvent) => {
     const action = event.actions && event.actions[0];
     if (!action) return null;
 
@@ -496,74 +496,70 @@ export default function HistoryPage() {
       formattedTime,
       actionType: action.type,
     };
-  }, [walletAddress]);
+  };
 
   // Filter and search transactions
-  const filteredHistory = useMemo(() => {
-    return history
-      .map(parseTransaction)
-      .filter((tx): tx is NonNullable<ReturnType<typeof parseTransaction>> => tx !== null)
-      .filter(tx => {
-        // Apply type filter
-        if (activeFilter !== "all") {
-          switch (activeFilter) {
-            case "sent":
-              if (!tx.type.includes("Sent") && tx.type !== "Deploy") return false;
-              break;
-            case "received":
-              if (!tx.type.includes("Received")) return false;
-              break;
-            case "swap":
-              if (!tx.isSwap) return false;
-              break;
-            case "nft":
-              if (tx.symbol !== "NFT") return false;
-              break;
-          }
-        }
-        
-        // Apply search filter
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          const matchesAddress = tx.address.toLowerCase().includes(query);
-          const matchesSymbol = tx.symbol.toLowerCase().includes(query);
-          const matchesType = tx.type.toLowerCase().includes(query);
-          const matchesAmount = tx.amount.includes(query);
-          
-          if (!matchesAddress && !matchesSymbol && !matchesType && !matchesAmount) {
-            return false;
-          }
-        }
-        
-        return true;
-      });
-  }, [history, parseTransaction, activeFilter, searchQuery]);
-
-  // Filter QNTM history
-  const filteredQntmHistory = useMemo(() => {
-    return qntmHistory.filter(tx => {
+  const filteredHistory = history
+    .map(parseTransaction)
+    .filter((tx): tx is NonNullable<ReturnType<typeof parseTransaction>> => tx !== null)
+    .filter(tx => {
       // Apply type filter
       if (activeFilter !== "all") {
-        if (activeFilter === "sent" && tx.type !== "sent") return false;
-        if (activeFilter === "received" && tx.type !== "received") return false;
-        if (activeFilter === "swap" || activeFilter === "nft") return false; // QNTM doesn't have these
+        switch (activeFilter) {
+          case "sent":
+            if (!tx.type.includes("Sent") && tx.type !== "Deploy") return false;
+            break;
+          case "received":
+            if (!tx.type.includes("Received")) return false;
+            break;
+          case "swap":
+            if (!tx.isSwap) return false;
+            break;
+          case "nft":
+            if (tx.symbol !== "NFT") return false;
+            break;
+        }
       }
-      
+
       // Apply search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const counterparty = tx.type === "sent" ? tx.to : tx.from;
-        const matchesCounterparty = counterparty?.toLowerCase().includes(query);
-        const matchesAmount = tx.amount.toString().includes(query);
-        
-        if (!matchesCounterparty && !matchesAmount) {
+        const matchesAddress = tx.address.toLowerCase().includes(query);
+        const matchesSymbol = tx.symbol.toLowerCase().includes(query);
+        const matchesType = tx.type.toLowerCase().includes(query);
+        const matchesAmount = tx.amount.includes(query);
+
+        if (!matchesAddress && !matchesSymbol && !matchesType && !matchesAmount) {
           return false;
         }
       }
-      
+
       return true;
     });
-  }, [qntmHistory, activeFilter, searchQuery]);
+
+  // Filter QNTM history
+  const filteredQntmHistory = qntmHistory.filter(tx => {
+    // Apply type filter
+    if (activeFilter !== "all") {
+      if (activeFilter === "sent" && tx.type !== "sent") return false;
+      if (activeFilter === "received" && tx.type !== "received") return false;
+      if (activeFilter === "swap" || activeFilter === "nft") return false; // QNTM doesn't have these
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const counterparty = tx.type === "sent" ? tx.to : tx.from;
+      const matchesCounterparty = counterparty?.toLowerCase().includes(query);
+      const matchesAmount = tx.amount.toString().includes(query);
+
+      if (!matchesCounterparty && !matchesAmount) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   const tonVirtualizer = useWindowVirtualizer({
     count: filteredHistory.length,

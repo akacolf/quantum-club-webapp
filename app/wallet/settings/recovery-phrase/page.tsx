@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
@@ -58,14 +58,14 @@ export default function ViewRecoveryPhrasePage() {
     return () => clearTimeout(timer);
   }, [requestAuth, router]);
 
-  const copyMnemonic = useCallback(() => {
+  const copyMnemonic = () => {
     if (mnemonic.length > 0) {
       navigator.clipboard.writeText(mnemonic.join(" "));
       toast.success("Recovery phrase copied! Store it safely.");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [mnemonic]);
+  };
 
   // Show auth modal if not authorized
   if (!isAuthorized) {

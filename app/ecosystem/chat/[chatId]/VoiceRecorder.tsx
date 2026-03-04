@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,7 +27,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
   const startX = useRef(0);
   const cancelledRef = useRef(false);
 
-  const cleanup = useCallback(() => {
+  function cleanup() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
     setRecording(false);
@@ -35,9 +35,9 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     setSlideX(0);
     setCancelled(false);
     cancelledRef.current = false;
-  }, []);
+  }
 
-  const stopRecording = useCallback((send: boolean) => {
+  function stopRecording(send: boolean) {
     const recorder = mediaRecorder.current;
     if (!recorder || recorder.state === "inactive") {
       cleanup();
@@ -64,9 +64,9 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     recorder.stop();
     recorder.stream.getTracks().forEach((t) => t.stop());
     mediaRecorder.current = null;
-  }, [cleanup, onSend]);
+  }
 
-  const startRecording = useCallback(async () => {
+  async function startRecording() {
     if (disabled) return;
 
     try {
@@ -126,21 +126,21 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
       console.error("Microphone access error:", err);
       toast.error("Could not access microphone. Please check permissions.");
     }
-  }, [disabled, stopRecording]);
+  }
 
-  const handleCancel = useCallback(() => {
+  function handleCancel() {
     cancelledRef.current = true;
     setCancelled(true);
     stopRecording(false);
-  }, [stopRecording]);
+  }
 
-  const handleSendVoice = useCallback(() => {
+  function handleSendVoice() {
     if (cancelledRef.current) return;
     stopRecording(true);
-  }, [stopRecording]);
+  }
 
   // Slide-to-cancel touch/mouse tracking on the recording bar
-  const handlePointerMove = useCallback((clientX: number) => {
+  function handlePointerMove(clientX: number) {
     if (!recording) return;
     if (!startX.current) return;
     const delta = startX.current - clientX;
@@ -148,11 +148,11 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     if (delta > CANCEL_SLIDE_PX && !cancelledRef.current) {
       handleCancel();
     }
-  }, [recording, handleCancel]);
+  }
 
-  const handlePointerDown = useCallback((clientX: number) => {
+  function handlePointerDown(clientX: number) {
     startX.current = clientX;
-  }, []);
+  }
 
   // Escape key to cancel
   useEffect(() => {
@@ -162,7 +162,8 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [recording, handleCancel]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- handleCancel is used in multiple event handlers
+  }, [recording]);
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);

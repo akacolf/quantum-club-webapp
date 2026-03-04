@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { parseAsString, parseAsInteger, useQueryState } from "nuqs";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useParams, useRouter } from "next/navigation";
@@ -355,10 +355,9 @@ export default function ChatConversationPage() {
     !chatMeta?.isGroup && !chatMeta?.isGlobal ? otherParticipantId : null
   );
   // Group presence: track online count for non-global group chats (skip for large global chats)
-  const groupParticipantIds = useMemo(() => {
-    if (!chatMeta?.isGroup || chatMeta?.isGlobal) return [];
-    return (chatMeta?.participants || []).filter((p) => p !== telegramId);
-  }, [chatMeta?.isGroup, chatMeta?.isGlobal, chatMeta?.participants, telegramId]);
+  const groupParticipantIds = (!chatMeta?.isGroup || chatMeta?.isGlobal)
+    ? []
+    : (chatMeta?.participants || []).filter((p) => p !== telegramId);
   const groupPresenceMap = useMultiplePresence(groupParticipantIds);
 
   // Prefetch navigation targets for clickable header names
@@ -404,19 +403,19 @@ export default function ChatConversationPage() {
   }, [currentUser, telegramId, chatId, setCurrentChat]);
 
   // Track scroll position
-  const handleScroll = useCallback(() => {
+  function handleScroll() {
     if (!chatContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
     const atBottom = scrollHeight - scrollTop - clientHeight < 80;
     isAtBottomRef.current = atBottom;
     setShowScrollDown(!atBottom);
-  }, []);
+  }
 
-  const scrollToBottom = useCallback((force = false) => {
+  function scrollToBottom(force = false) {
     if (force || isAtBottomRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: force ? "auto" : "smooth" });
     }
-  }, []);
+  }
 
   // Subscribe to chat metadata (real-time for typing + readPositions)
   useEffect(() => {
@@ -460,12 +459,11 @@ export default function ChatConversationPage() {
   }, [currentUser, chatId]);
 
   // Resolve "Unknown" participant names via batch query
-  const unknownUids = useMemo(() => {
-    if (!chatMeta?.participantNames) return [];
-    return Object.entries(chatMeta.participantNames)
-      .filter(([, name]) => name === "Unknown")
-      .map(([uid]) => uid);
-  }, [chatMeta?.participantNames]);
+  const unknownUids = !chatMeta?.participantNames
+    ? []
+    : Object.entries(chatMeta.participantNames)
+        .filter(([, name]) => name === "Unknown")
+        .map(([uid]) => uid);
 
   const batchUsernamesQuery = useQcUsernamesBatch(unknownUids);
 
@@ -501,7 +499,7 @@ export default function ChatConversationPage() {
   // Auto-initialize epoch if this chat doesn't have one (required for v6 encryption)
   const ensureEpochRef = useRef<Promise<{ nonce: string; counter: number }> | null>(null);
 
-  const ensureEpoch = useCallback(async (): Promise<{ nonce: string; counter: number }> => {
+  async function ensureEpoch(): Promise<{ nonce: string; counter: number }> {
     if (chatMeta?.epochNonce && chatMeta.epochCounter !== undefined) {
       return { nonce: chatMeta.epochNonce, counter: chatMeta.epochCounter };
     }
@@ -519,19 +517,19 @@ export default function ChatConversationPage() {
     })();
     ensureEpochRef.current = promise;
     try { return await promise; } finally { ensureEpochRef.current = null; }
-  }, [chatMeta, chatId]);
+  }
 
   useEffect(() => {
     if (!chatMeta || !chatId || !currentUser) return;
     if (chatMeta.epochNonce && chatMeta.epochCounter !== undefined) return;
     ensureEpoch().catch((err) => console.error("Failed to init epoch:", err));
-  }, [chatMeta, chatId, currentUser, ensureEpoch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- ensureEpoch is used in multiple message handlers
+  }, [chatMeta, chatId, currentUser]);
 
   // Resolve recipient's wallet address for DM transfers via TanStack Query
-  const recipientId = useMemo(() => {
-    if (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId) return null;
-    return chatMeta.participants.find((p) => p !== telegramId) ?? null;
-  }, [chatMeta, telegramId]);
+  const recipientId = (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId)
+    ? null
+    : chatMeta.participants.find((p) => p !== telegramId) ?? null;
 
   const recipientUsernameQuery = useQcUsernameQuery(recipientId);
 
@@ -740,7 +738,7 @@ export default function ChatConversationPage() {
     });
 
     return () => unsubscribe();
-  }, [currentUser, chatId, messagesReady, scrollToBottom, telegramId]);
+  }, [currentUser, chatId, messagesReady, telegramId]);
 
   // Initial scroll — wait for DOM paint
   useEffect(() => {
@@ -752,7 +750,7 @@ export default function ChatConversationPage() {
   }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load older messages when scrolling to top
-  const loadOlderMessages = useCallback(async () => {
+  async function loadOlderMessages() {
     if (loadingOlder || !hasMoreMessages || !chatId || messages.length === 0) return;
     const oldestMsg = messages[0];
     if (!oldestMsg?.createdAt) return;
@@ -891,33 +889,30 @@ export default function ChatConversationPage() {
     } finally {
       setLoadingOlder(false);
     }
-  }, [loadingOlder, hasMoreMessages, chatId, messages, messagesVirtualizer]);
+  }
 
   // Scroll handler: detect scrolling to top for pagination
-  const handleScrollForPagination = useCallback(() => {
+  function handleScrollForPagination() {
     if (!chatContainerRef.current) return;
     const { scrollTop } = chatContainerRef.current;
     if (scrollTop <= 50 && !loadingOlder && hasMoreMessages) {
       loadOlderMessages();
     }
-  }, [loadOlderMessages, loadingOlder, hasMoreMessages]);
+  }
 
   // Typing indicator: set/clear typing status
-  const setTyping = useCallback(
-    (typing: boolean) => {
-      if (!telegramId || !chatId) return;
-      if (typing === isTypingRef.current) return;
-      isTypingRef.current = typing;
+  function setTyping(typing: boolean) {
+    if (!telegramId || !chatId) return;
+    if (typing === isTypingRef.current) return;
+    isTypingRef.current = typing;
 
-      const chatRef = doc(dbfs, "qc-chats", chatId);
-      if (typing) {
-        updateDoc(chatRef, { [`typing.${telegramId}`]: serverTimestamp() }).catch(() => {});
-      } else {
-        updateDoc(chatRef, { [`typing.${telegramId}`]: deleteField() }).catch(() => {});
-      }
-    },
-    [telegramId, chatId]
-  );
+    const chatRef = doc(dbfs, "qc-chats", chatId);
+    if (typing) {
+      updateDoc(chatRef, { [`typing.${telegramId}`]: serverTimestamp() }).catch(() => {});
+    } else {
+      updateDoc(chatRef, { [`typing.${telegramId}`]: deleteField() }).catch(() => {});
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
@@ -1428,77 +1423,67 @@ export default function ChatConversationPage() {
   };
 
   // Reaction toggle: add or remove reaction
-  const toggleReaction = useCallback(
-    async (msgId: string, emojiKey: string) => {
-      if (!telegramId || !chatId) return;
-      const msgRef = doc(dbfs, "qc-chats", chatId, "messages", msgId);
-      const msg = messages.find((m) => m.id === msgId);
-      const alreadyReacted = msg?.reactions?.[emojiKey]?.includes(telegramId);
-      try {
-        await updateDoc(msgRef, {
-          [`reactions.${emojiKey}`]: alreadyReacted
-            ? arrayRemove(telegramId)
-            : arrayUnion(telegramId),
-        });
-      } catch (err) {
-        console.error("Failed to toggle reaction:", err);
-      }
-      setReactionPickerMsgId(null);
-    },
-    [telegramId, chatId, messages]
-  );
+  async function toggleReaction(msgId: string, emojiKey: string) {
+    if (!telegramId || !chatId) return;
+    const msgRef = doc(dbfs, "qc-chats", chatId, "messages", msgId);
+    const msg = messages.find((m) => m.id === msgId);
+    const alreadyReacted = msg?.reactions?.[emojiKey]?.includes(telegramId);
+    try {
+      await updateDoc(msgRef, {
+        [`reactions.${emojiKey}`]: alreadyReacted
+          ? arrayRemove(telegramId)
+          : arrayUnion(telegramId),
+      });
+    } catch (err) {
+      console.error("Failed to toggle reaction:", err);
+    }
+    setReactionPickerMsgId(null);
+  }
 
   // Pin message (groups only) — store only ID + senderName to avoid leaking plaintext
-  const handlePinMessage = useCallback(
-    async (msg: ChatMessage) => {
-      if (!chatId) return;
-      const chatRef = doc(dbfs, "qc-chats", chatId);
-      try {
-        await updateDoc(chatRef, {
-          pinnedMessage: { id: msg.id, senderName: msg.senderName },
-        });
-      } catch (err) {
-        console.error("Failed to pin message:", err);
-      }
-      setReactionPickerMsgId(null);
-    },
-    [chatId]
-  );
+  async function handlePinMessage(msg: ChatMessage) {
+    if (!chatId) return;
+    const chatRef = doc(dbfs, "qc-chats", chatId);
+    try {
+      await updateDoc(chatRef, {
+        pinnedMessage: { id: msg.id, senderName: msg.senderName },
+      });
+    } catch (err) {
+      console.error("Failed to pin message:", err);
+    }
+    setReactionPickerMsgId(null);
+  }
 
   // Forward: open dialog with user's chats
-  const handleForwardStart = useCallback(
-    async (msgId: string) => {
-      if (!telegramId) return;
-      setForwardMsgId(msgId);
-      setReactionPickerMsgId(null);
-      try {
-        const chatsRef = collection(dbfs, "qc-chats");
-        const q2 = query(chatsRef, where("participants", "array-contains", telegramId));
-        const snap = await getDocs(q2);
-        const chats: any[] = [];
-        snap.forEach((d) => {
-          if (d.id !== chatId) {
-            const data = d.data();
-            chats.push({ id: d.id, ...data });
-          }
-        });
-        setForwardChats(chats);
-        setShowForwardDialog(true);
-      } catch (err) {
-        console.error("Failed to fetch chats for forwarding:", err);
-      }
-    },
-    [telegramId, chatId]
-  );
+  async function handleForwardStart(msgId: string) {
+    if (!telegramId) return;
+    setForwardMsgId(msgId);
+    setReactionPickerMsgId(null);
+    try {
+      const chatsRef = collection(dbfs, "qc-chats");
+      const q2 = query(chatsRef, where("participants", "array-contains", telegramId));
+      const snap = await getDocs(q2);
+      const chats: any[] = [];
+      snap.forEach((d) => {
+        if (d.id !== chatId) {
+          const data = d.data();
+          chats.push({ id: d.id, ...data });
+        }
+      });
+      setForwardChats(chats);
+      setShowForwardDialog(true);
+    } catch (err) {
+      console.error("Failed to fetch chats for forwarding:", err);
+    }
+  }
 
   // Forward: send message to destination chat
-  const handleForwardTo = useCallback(
-    async (destChat: any) => {
-      if (!forwardMsgId || !telegramId) return;
-      const msg = messages.find((m) => m.id === forwardMsgId);
-      if (!msg) return;
-      setIsForwarding(true);
-      try {
+  async function handleForwardTo(destChat: any) {
+    if (!forwardMsgId || !telegramId) return;
+    const msg = messages.find((m) => m.id === forwardMsgId);
+    if (!msg) return;
+    setIsForwarding(true);
+    try {
         // Fetch fresh destination chat data to get current epoch & participants
         const destSnap = await getDoc(doc(dbfs, "qc-chats", destChat.id));
         const freshDest = destSnap.exists() ? destSnap.data() : destChat;
@@ -1545,84 +1530,72 @@ export default function ChatConversationPage() {
         }
         updateDoc(doc(dbfs, "qc-chats", destChat.id), updates).catch(() => {});
       } catch (err) {
-        console.error("Failed to forward message:", err);
-      } finally {
-        setIsForwarding(false);
-        setShowForwardDialog(false);
-        setForwardMsgId(null);
-      }
-    },
-    [forwardMsgId, messages, telegramId, qcUsername, chatId]
-  );
+      console.error("Failed to forward message:", err);
+    } finally {
+      setIsForwarding(false);
+      setShowForwardDialog(false);
+      setForwardMsgId(null);
+    }
+  }
 
   // Delete message
-  const handleDeleteMessage = useCallback(
-    async (msgId: string) => {
-      if (!chatId) return;
-      try {
-        await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
+  async function handleDeleteMessage(msgId: string) {
+    if (!chatId) return;
+    try {
+      await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
 
-        // If deleting the last message, update chat doc preview
-        const remaining = messages.filter((m) => m.id !== msgId);
-        const lastMsg = remaining[remaining.length - 1];
-        if (!lastMsg || messages[messages.length - 1]?.id === msgId) {
-          if (lastMsg) {
-            updateDoc(doc(dbfs, "qc-chats", chatId), {
-              lastMessage: lastMsg.encrypted ? "New message" : lastMsg.text,
-              lastMessageBy: lastMsg.senderId,
-              lastMessageAt: lastMsg.createdAt || serverTimestamp(),
-            }).catch(() => {});
-          } else {
-            updateDoc(doc(dbfs, "qc-chats", chatId), {
-              lastMessage: "",
-              lastMessageBy: "",
-              lastMessageAt: serverTimestamp(),
-              lastMessageEpoch: deleteField(),
-            }).catch(() => {});
-            try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
-          }
+      // If deleting the last message, update chat doc preview
+      const remaining = messages.filter((m) => m.id !== msgId);
+      const lastMsg = remaining[remaining.length - 1];
+      if (!lastMsg || messages[messages.length - 1]?.id === msgId) {
+        if (lastMsg) {
+          updateDoc(doc(dbfs, "qc-chats", chatId), {
+            lastMessage: lastMsg.encrypted ? "New message" : lastMsg.text,
+            lastMessageBy: lastMsg.senderId,
+            lastMessageAt: lastMsg.createdAt || serverTimestamp(),
+          }).catch(() => {});
+        } else {
+          updateDoc(doc(dbfs, "qc-chats", chatId), {
+            lastMessage: "",
+            lastMessageBy: "",
+            lastMessageAt: serverTimestamp(),
+            lastMessageEpoch: deleteField(),
+          }).catch(() => {});
+          try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
         }
-      } catch (err) {
-        console.error("Failed to delete message:", err);
       }
-      setReactionPickerMsgId(null);
-    },
-    [chatId, messages]
-  );
+    } catch (err) {
+      console.error("Failed to delete message:", err);
+    }
+    setReactionPickerMsgId(null);
+  }
 
   // Copy message text
-  const handleCopyText = useCallback(
-    (msgId: string) => {
-      const msg = messages.find((m) => m.id === msgId);
-      if (!msg) return;
-      navigator.clipboard.writeText(msg.text).then(() => {
-        toast.success("Copied to clipboard");
-      }).catch(() => {});
-      setReactionPickerMsgId(null);
-    },
-    [messages]
-  );
+  function handleCopyText(msgId: string) {
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg) return;
+    navigator.clipboard.writeText(msg.text).then(() => {
+      toast.success("Copied to clipboard");
+    }).catch(() => {});
+    setReactionPickerMsgId(null);
+  }
 
   // Disappearing messages: update setting
-  const handleSetDisappearAfter = useCallback(
-    async (ms: number) => {
-      if (!chatId) return;
-      try {
-        await updateDoc(doc(dbfs, "qc-chats", chatId), { disappearAfter: ms });
-      } catch (err) {
-        console.error("Failed to update disappearing messages:", err);
-      }
-      setTimerPopoverOpen(false);
-    },
-    [chatId]
-  );
+  async function handleSetDisappearAfter(ms: number) {
+    if (!chatId) return;
+    try {
+      await updateDoc(doc(dbfs, "qc-chats", chatId), { disappearAfter: ms });
+    } catch (err) {
+      console.error("Failed to update disappearing messages:", err);
+    }
+    setTimerPopoverOpen(false);
+  }
 
   // Admin actions: kick, ban, mute, unmute
-  const handleAdminAction = useCallback(
-    async (action: "kick" | "ban" | "unban" | "mute" | "unmute", targetUserId: string) => {
-      if (!chatId || !chatMeta || !telegramId) return;
-      if (chatMeta.createdBy !== telegramId) return;
-      if (targetUserId === telegramId) return;
+  async function handleAdminAction(action: "kick" | "ban" | "unban" | "mute" | "unmute", targetUserId: string) {
+    if (!chatId || !chatMeta || !telegramId) return;
+    if (chatMeta.createdBy !== telegramId) return;
+    if (targetUserId === telegramId) return;
 
       const chatRef = doc(dbfs, "qc-chats", chatId);
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
@@ -1705,15 +1678,13 @@ export default function ChatConversationPage() {
             encrypted: false,
           });
         }
-      } catch (err) {
-        console.error(`Failed to ${action} user:`, err);
-      }
-    },
-    [chatId, chatMeta, telegramId, qcUsername]
-  );
+    } catch (err) {
+      console.error(`Failed to ${action} user:`, err);
+    }
+  }
 
   // Scroll to a specific message by ID (uses virtualizer to ensure item is rendered)
-  const scrollToMessage = useCallback((msgId: string) => {
+  function scrollToMessage(msgId: string) {
     const idx = messagesArrayRef.current.findIndex(m => m.id === msgId);
     if (idx >= 0) {
       messagesVirtualizer.scrollToIndex(idx, { align: "center" });
@@ -1729,7 +1700,7 @@ export default function ChatConversationPage() {
         }
       }, 150);
     }
-  }, [messagesVirtualizer]);
+  }
 
   // Search matches
   const searchMatches = showSearch && searchQuery.trim()

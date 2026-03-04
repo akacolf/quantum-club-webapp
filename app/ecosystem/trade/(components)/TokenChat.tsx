@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,7 +80,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
     }, [messages, isExpanded]);
 
     // Send message
-    const sendMessage = useCallback(async () => {
+    const sendMessage = async () => {
         if (!telegramId || !newMessage.trim() || isSending) return;
 
         setIsSending(true);
@@ -103,7 +103,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
         } finally {
             setIsSending(false);
         }
-    }, [tokenId, telegramId, username, newMessage, isSending]);
+    };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {

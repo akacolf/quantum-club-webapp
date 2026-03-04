@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { useWallet } from "@/app/wallet/WalletContext";
@@ -100,25 +100,25 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
     const timeRange = TIME_RANGES[timeRangeIndex];
 
     // Filter data based on time range
-    const filteredTrades = useMemo(() => {
+    const filteredTrades = (() => {
         const now = Date.now();
         const cutoff = now - (timeRange.seconds * 1000);
         return trades.filter(t => t.timestamp >= cutoff);
-    }, [trades, timeRange.seconds]);
+    })();
 
     // Calculate price change
-    const priceChange = useMemo(() => {
+    const priceChange = (() => {
         if (filteredTrades.length < 2) return 0;
         const first = filteredTrades[0].price;
         const last = filteredTrades[filteredTrades.length - 1].price;
         return ((last - first) / first) * 100;
-    }, [filteredTrades]);
+    })();
 
     const isPositive = priceChange >= 0;
     const lineColor = isPositive ? "#22c55e" : "#ef4444";
 
     // Prepare chart data
-    const areaData = useMemo((): AreaData<UTCTimestamp>[] => {
+    const areaData: AreaData<UTCTimestamp>[] = (() => {
         const data = filteredTrades.map(t => ({
             time: Math.floor(t.timestamp / 1000) as UTCTimestamp,
             value: t.price,
@@ -133,11 +133,9 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
         }
 
         return data;
-    }, [filteredTrades, currentPrice]);
+    })();
 
-    const candleData = useMemo((): CandlestickData<UTCTimestamp>[] => {
-        return aggregateToCandles(filteredTrades, timeRange.bucket);
-    }, [filteredTrades, timeRange.bucket]);
+    const candleData: CandlestickData<UTCTimestamp>[] = aggregateToCandles(filteredTrades, timeRange.bucket);
 
     function formatPrice(price: number): string {
         if (price < 0.00001) return price.toFixed(8);
@@ -283,13 +281,13 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
         }
     }, [chartMode, areaData, candleData, lineColor, isPositive]);
 
-    const handleSlide = useCallback((direction: "left" | "right") => {
+    function handleSlide(direction: "left" | "right") {
         if (direction === "left" && timeRangeIndex > 0) {
             setTimeRangeIndex(timeRangeIndex - 1);
         } else if (direction === "right" && timeRangeIndex < TIME_RANGES.length - 1) {
             setTimeRangeIndex(timeRangeIndex + 1);
         }
-    }, [timeRangeIndex]);
+    }
 
     const hasData = chartMode === "area" ? areaData.length > 1 : candleData.length > 0;
 

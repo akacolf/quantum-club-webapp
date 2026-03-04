@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -18,6 +18,8 @@ interface Message {
     role: "user" | "assistant";
     content: string;
 }
+
+const EMPTY_MESSAGES: Message[] = [];
 
 // Memoized logo component for performance
 const QuantumLogoBlackBg = memo(function QuantumLogoBlackBg() {
@@ -41,11 +43,11 @@ const ChatMessage = memo(function ChatMessage({ message }: { message: Message })
     const isUser = message.role === "user";
     const [copied, setCopied] = useState(false);
 
-    const handleCopy = useCallback(() => {
+    function handleCopy() {
         navigator.clipboard.writeText(message.content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-    }, [message.content]);
+    }
 
     return (
         <motion.div
@@ -111,20 +113,20 @@ const ChatInputForm = memo(function ChatInputForm({
     const [input, setInput] = useState("");
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleSubmit = useCallback((e?: React.FormEvent) => {
+    function handleSubmit(e?: React.FormEvent) {
         e?.preventDefault();
         const trimmed = input.trim();
         if (!trimmed || isLoading) return;
         onSubmit(trimmed);
         setInput("");
-    }, [input, isLoading, onSubmit]);
+    }
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    function handleKeyDown(e: React.KeyboardEvent) {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             handleSubmit();
         }
-    }, [handleSubmit]);
+    }
 
     return (
         <div className="p-4 border-t border-border">
@@ -215,7 +217,7 @@ export default function AIChatDrawer() {
 
     // Get current session's messages
     const currentSession = sessions.find(s => s.id === currentSessionId);
-    const messages = useMemo(() => currentSession?.messages || [], [currentSession?.messages]);
+    const messages = currentSession?.messages ?? EMPTY_MESSAGES;
     const messagesRef = useRef<Message[]>(messages);
     messagesRef.current = messages;
 
@@ -259,7 +261,7 @@ export default function AIChatDrawer() {
     }, [sessions]);
 
     // Create a new chat session
-    const handleNewChat = useCallback(() => {
+    function handleNewChat() {
         const newSession: ChatSession = {
             id: Date.now().toString(),
             title: "New Chat",
@@ -270,10 +272,10 @@ export default function AIChatDrawer() {
         setSessions(prev => [newSession, ...prev]);
         setCurrentSessionId(newSession.id);
         setViewMode("chat");
-    }, []);
+    }
 
     // Delete a chat session
-    const handleDeleteSession = useCallback((sessionId: string, e: React.MouseEvent) => {
+    function handleDeleteSession(sessionId: string, e: React.MouseEvent) {
         e.stopPropagation();
         setSessions(prev => {
             const filtered = prev.filter(s => s.id !== sessionId);
@@ -288,16 +290,16 @@ export default function AIChatDrawer() {
             return filtered;
         });
         toast.success("Chat deleted");
-    }, [currentSessionId]);
+    }
 
     // Switch to a session
-    const handleSelectSession = useCallback((sessionId: string) => {
+    function handleSelectSession(sessionId: string) {
         setCurrentSessionId(sessionId);
         setViewMode("chat");
-    }, []);
+    }
 
     // Clear current chat (keep session but clear messages)
-    const handleClearChat = useCallback(() => {
+    function handleClearChat() {
         if (!currentSessionId) return;
         setSessions(prev => prev.map(session =>
             session.id === currentSessionId
@@ -305,16 +307,12 @@ export default function AIChatDrawer() {
                 : session
         ));
         toast.success("Chat cleared");
-    }, [currentSessionId]);
+    }
 
-    // Scroll to bottom
-    const scrollToBottom = useCallback(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, []);
-
+    // Scroll to bottom when messages change
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, isLoading, scrollToBottom]);
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, isLoading]);
 
     // Handle body overflow when drawer opens
     useEffect(() => {
@@ -329,7 +327,7 @@ export default function AIChatDrawer() {
     }, [isOpen]);
 
     // Handle message submission with streaming
-    const handleSendMessage = useCallback(async (messageText: string) => {
+    async function handleSendMessage(messageText: string) {
         // Auto-create a session if none exists
         let sessionId = currentSessionId;
         if (!sessionId) {
@@ -466,11 +464,11 @@ export default function AIChatDrawer() {
         } finally {
             setIsLoading(false);
         }
-    }, [pathname, currentSessionId]);
+    }
 
-    const handlePromptClick = useCallback((prompt: string) => {
+    function handlePromptClick(prompt: string) {
         handleSendMessage(prompt);
-    }, [handleSendMessage]);
+    }
 
     return (
         <>

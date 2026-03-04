@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -108,7 +108,7 @@ export default function ConnectedAppsPage() {
     }, [walletKit?.isReady, walletKit?.isWalletRegistered, telegramId, walletKit]);
 
     // Handle QR code scan result
-    const handleScanResult = useCallback(async (result: string) => {
+    const handleScanResult = async (result: string) => {
         setIsProcessing(true);
         setError(null);
 
@@ -134,7 +134,7 @@ export default function ConnectedAppsPage() {
             // Use WalletKit to handle the TON Connect URL
             console.log("[ConnectedApps] Processing TON Connect URL:", result.substring(0, 50) + "...");
             await walletKit.handleTonConnectUrl(result);
-            
+
             toast.success("Connection request received", {
                 description: "Check the connection dialog",
             });
@@ -146,12 +146,12 @@ export default function ConnectedAppsPage() {
         } finally {
             setIsProcessing(false);
         }
-    }, [walletKit, telegramId]);
+    };
 
     // Open Telegram's native QR scanner
-    const openQRScanner = useCallback(() => {
+    const openQRScanner = () => {
         const WebApp = window?.Telegram?.WebApp;
-        
+
         if (WebApp?.showScanQrPopup) {
             // Use Telegram's native QR scanner
             WebApp.showScanQrPopup(
@@ -174,12 +174,12 @@ export default function ConnectedAppsPage() {
                 description: "Please use the Telegram mobile app to scan QR codes",
             });
         }
-    }, [handleScanResult]);
+    };
 
     // Handle disconnect
-    const handleDisconnect = useCallback(async (sessionId: string, appName: string) => {
+    const handleDisconnect = async (sessionId: string, appName: string) => {
         if (!walletKit) return;
-        
+
         try {
             await walletKit.disconnect(sessionId);
             toast.success(`Disconnected from ${appName}`);
@@ -187,12 +187,12 @@ export default function ConnectedAppsPage() {
             console.error("Error disconnecting:", err);
             toast.error("Failed to disconnect");
         }
-    }, [walletKit]);
+    };
 
     // Handle disconnect all
-    const handleDisconnectAll = useCallback(async () => {
+    const handleDisconnectAll = async () => {
         if (!walletKit) return;
-        
+
         try {
             await walletKit.disconnect(); // No sessionId = disconnect all
             toast.success("Disconnected from all apps");
@@ -200,7 +200,7 @@ export default function ConnectedAppsPage() {
             console.error("Error disconnecting all:", err);
             toast.error("Failed to disconnect");
         }
-    }, [walletKit]);
+    };
 
     // Format time ago
     const formatTimeAgo = (timestamp: number): string => {

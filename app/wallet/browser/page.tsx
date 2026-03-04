@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQueryState, parseAsString } from "nuqs";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -161,17 +161,12 @@ export default function ExplorePage() {
     const [selectedCategory, setSelectedCategory] = useQueryState("category", parseAsString.withDefault("all").withOptions({ history: "replace" }));
 
     // Filter dApps by category
-    const filteredDApps = useMemo(() => {
-        if (selectedCategory === "all") {
-            return POPULAR_DAPPS;
-        }
-        return POPULAR_DAPPS.filter(app => app.category === selectedCategory);
-    }, [selectedCategory]);
+    const filteredDApps = selectedCategory === "all"
+        ? POPULAR_DAPPS
+        : POPULAR_DAPPS.filter(app => app.category === selectedCategory);
 
     // Featured apps
-    const featuredApps = useMemo(() => {
-        return POPULAR_DAPPS.filter(app => app.featured);
-    }, []);
+    const featuredApps = POPULAR_DAPPS.filter(app => app.featured);
 
     // Open dApp using Telegram's native browser
     const openDApp = (url: string) => {

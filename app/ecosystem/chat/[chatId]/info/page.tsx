@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -89,22 +89,22 @@ export default function GroupInfoPage() {
 
   // Resolve "Unknown" participant names via batch query
   const participantNames = chatMeta?.participantNames;
-  const unknownUids = useMemo(() => {
+  const unknownUids = (() => {
     if (!participantNames) return [];
     return Object.entries(participantNames)
       .filter(([, name]) => name === "Unknown")
       .map(([uid]) => uid);
-  }, [participantNames]);
+  })();
 
   const batchUsernamesQuery = useQcUsernamesBatch(unknownUids);
   const batchData = batchUsernamesQuery.data;
 
   // Merge resolved usernames at render time (no setState needed)
-  const resolvedNames = useMemo(() => {
+  const resolvedNames = (() => {
     if (!participantNames) return {} as Record<string, string>;
     if (!batchData || Object.keys(batchData).length === 0) return participantNames;
     return { ...participantNames, ...batchData };
-  }, [participantNames, batchData]);
+  })();
 
   // Persist resolved names to Firestore (external system sync only)
   useEffect(() => {

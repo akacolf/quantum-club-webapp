@@ -13,7 +13,6 @@
 
 import React, {
   useRef,
-  useCallback,
   useEffect,
 } from "react";
 import { dbfs } from "@/app/(firebase)/client";
@@ -94,7 +93,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ── Audio helpers ──────────────────────────────────────────────────────────
 
-  const playRingtone = useCallback(() => {
+  function playRingtone() {
     try {
       if (!ringtoneRef.current) {
         ringtoneRef.current = new Audio("/audio/ringtone.mp3");
@@ -102,16 +101,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
       ringtoneRef.current.play().catch(() => {});
     } catch {}
-  }, []);
+  }
 
-  const stopRingtone = useCallback(() => {
+  function stopRingtone() {
     if (ringtoneRef.current) {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
     }
-  }, []);
+  }
 
-  const playRingback = useCallback(() => {
+  function playRingback() {
     try {
       if (!ringbackRef.current) {
         ringbackRef.current = new Audio("/audio/ringback.mp3");
@@ -119,92 +118,86 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
       ringbackRef.current.play().catch(() => {});
     } catch {}
-  }, []);
+  }
 
-  const stopRingback = useCallback(() => {
+  function stopRingback() {
     if (ringbackRef.current) {
       ringbackRef.current.pause();
       ringbackRef.current.currentTime = 0;
     }
-  }, []);
+  }
 
   // ── Presence: activeCallId ────────────────────────────────────────────────
 
-  const setActiveCall = useCallback(
-    (callId: string | null) => {
-      if (!telegramId) return;
-      const ref = doc(dbfs, "qc-presence", telegramId);
-      setDoc(ref, { activeCallId: callId }, { merge: true }).catch(() => {});
-    },
-    [telegramId]
-  );
+  function setActiveCall(callId: string | null) {
+    if (!telegramId) return;
+    const ref = doc(dbfs, "qc-presence", telegramId);
+    setDoc(ref, { activeCallId: callId }, { merge: true }).catch(() => {});
+  }
 
   // ── Cleanup ─────────────────────────────────────────────────────────────
 
-  const cleanup = useCallback(
-    (opts?: { skipHistoryWrite?: boolean }) => {
-      stopRingtone();
-      stopRingback();
+  function cleanup(opts?: { skipHistoryWrite?: boolean }) {
+    stopRingtone();
+    stopRingback();
 
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
-      if (pcRef.current) {
-        pcRef.current.close();
-        pcRef.current = null;
-      }
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
 
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((t) => t.stop());
-        localStreamRef.current = null;
-      }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    }
 
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.pause();
-        remoteAudioRef.current.srcObject = null;
-        if (remoteAudioRef.current.parentNode) {
-          remoteAudioRef.current.parentNode.removeChild(remoteAudioRef.current);
-        }
-        remoteAudioRef.current = null;
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.pause();
+      remoteAudioRef.current.srcObject = null;
+      if (remoteAudioRef.current.parentNode) {
+        remoteAudioRef.current.parentNode.removeChild(remoteAudioRef.current);
       }
+      remoteAudioRef.current = null;
+    }
 
-      if (unsubCallDocRef.current) {
-        unsubCallDocRef.current();
-        unsubCallDocRef.current = null;
-      }
-      if (unsubICERef.current) {
-        unsubICERef.current();
-        unsubICERef.current = null;
-      }
+    if (unsubCallDocRef.current) {
+      unsubCallDocRef.current();
+      unsubCallDocRef.current = null;
+    }
+    if (unsubICERef.current) {
+      unsubICERef.current();
+      unsubICERef.current = null;
+    }
 
-      setActiveCall(null);
+    setActiveCall(null);
 
-      pendingCandidatesRef.current = [];
-      connectedAtRef.current = 0;
+    pendingCandidatesRef.current = [];
+    connectedAtRef.current = 0;
 
-      if (!opts?.skipHistoryWrite) {
-        useCallStore.setState({
-          callState: "idle",
-          callInfo: null,
-          isMuted: false,
-          isSpeaker: false,
-          isMinimized: false,
-          callDuration: 0,
-        });
-      }
-    },
-    [setActiveCall, stopRingtone, stopRingback]
-  );
+    if (!opts?.skipHistoryWrite) {
+      useCallStore.setState({
+        callState: "idle",
+        callInfo: null,
+        isMuted: false,
+        isSpeaker: false,
+        isMinimized: false,
+        callDuration: 0,
+      });
+    }
+  }
 
   // ── End call ──────────────────────────────────────────────────────────────
 
-  const endCall = useCallback(() => {
+  function endCall() {
     const { callInfo: info, callState: state, _deps } = useCallStore.getState();
     if (!info || state === "idle") return;
 
@@ -243,61 +236,57 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
 
     cleanup();
-  }, [cleanup]);
+  }
 
   // ── Start call timer ────────────────────────────────────────────────────
 
-  const startTimer = useCallback(() => {
+  function startTimer() {
     connectedAtRef.current = Date.now();
     timerRef.current = setInterval(() => {
       useCallStore.setState({
         callDuration: Math.floor((Date.now() - connectedAtRef.current) / 1000),
       });
     }, 1000);
-  }, []);
+  }
 
   // ── Setup ICE connection state monitoring ────────────────────────────────
 
-  const monitorConnection = useCallback(
-    (pc: RTCPeerConnection) => {
-      pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === "failed") {
-          pc.restartIce();
-          setTimeout(() => {
-            if (pc.iceConnectionState === "failed") {
-              toast.error("Call connection failed");
-              const { callInfo: info } = useCallStore.getState();
-              if (info) {
-                updateCallDoc(info.callId, {
-                  status: "ended",
-                  endedAt: serverTimestamp() as any,
-                  endReason: "error",
-                }).catch(() => {});
-              }
-              cleanup();
+  function monitorConnection(pc: RTCPeerConnection) {
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === "failed") {
+        pc.restartIce();
+        setTimeout(() => {
+          if (pc.iceConnectionState === "failed") {
+            toast.error("Call connection failed");
+            const { callInfo: info } = useCallStore.getState();
+            if (info) {
+              updateCallDoc(info.callId, {
+                status: "ended",
+                endedAt: serverTimestamp() as any,
+                endReason: "error",
+              }).catch(() => {});
             }
-          }, 5000);
-        } else if (pc.iceConnectionState === "disconnected") {
-          setTimeout(() => {
-            if (pc.iceConnectionState === "disconnected") {
-              toast.error("Call disconnected");
-              endCall();
-            }
-          }, 10_000);
-        }
-      };
-    },
-    [cleanup, endCall]
-  );
+            cleanup();
+          }
+        }, 5000);
+      } else if (pc.iceConnectionState === "disconnected") {
+        setTimeout(() => {
+          if (pc.iceConnectionState === "disconnected") {
+            toast.error("Call disconnected");
+            endCall();
+          }
+        }, 10_000);
+      }
+    };
+  }
 
   // ── Initiate call (caller) ────────────────────────────────────────────────
 
-  const initiateCall = useCallback(
-    async (params: {
-      calleeId: string;
-      calleeName: string;
-      chatId: string;
-    }) => {
+  async function initiateCall(params: {
+    calleeId: string;
+    calleeName: string;
+    chatId: string;
+  }) {
       const { _deps } = useCallStore.getState();
       if (!_deps.telegramId || useCallStore.getState().callState !== "idle") return;
 
@@ -481,24 +470,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           chatId: params.chatId,
         }).catch(() => {});
       } catch (err) {
-        console.error("[CallContext] initiateCall error:", err);
-        toast.error("Failed to start call");
-        cleanup();
-      }
-    },
-    [
-      setActiveCall,
-      playRingback,
-      stopRingback,
-      monitorConnection,
-      startTimer,
-      cleanup,
-    ]
-  );
+      console.error("[CallContext] initiateCall error:", err);
+      toast.error("Failed to start call");
+      cleanup();
+    }
+  }
 
   // ── Accept call (callee) ──────────────────────────────────────────────────
 
-  const acceptCall = useCallback(async () => {
+  async function acceptCall() {
     const { callInfo: info, _deps } = useCallStore.getState();
     if (!info || !_deps.telegramId) return;
 
@@ -626,17 +606,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       toast.error("Failed to answer call");
       cleanup();
     }
-  }, [
-    stopRingtone,
-    monitorConnection,
-    setActiveCall,
-    startTimer,
-    cleanup,
-  ]);
+  }
 
   // ── Decline call (callee) ─────────────────────────────────────────────────
 
-  const declineCall = useCallback(() => {
+  function declineCall() {
     const { callInfo: info, _deps } = useCallStore.getState();
     if (!info) return;
 
@@ -664,11 +638,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
 
     cleanup();
-  }, [stopRingtone, cleanup]);
+  }
 
   // ── Toggle mute ─────────────────────────────────────────────────────────
 
-  const toggleMute = useCallback(() => {
+  function toggleMute() {
     const stream = localStreamRef.current || groupStreamRef.current;
     if (stream) {
       const audioTrack = stream.getAudioTracks()[0];
@@ -677,11 +651,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         useCallStore.setState({ isMuted: !audioTrack.enabled });
       }
     }
-  }, []);
+  }
 
   // ── Toggle speaker ──────────────────────────────────────────────────────
 
-  const toggleSpeaker = useCallback(() => {
+  function toggleSpeaker() {
     const { isSpeaker } = useCallStore.getState();
     const next = !isSpeaker;
     useCallStore.setState({ isSpeaker: next });
@@ -724,7 +698,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         })
         .catch(() => {});
     }
-  }, []);
+  }
 
   // ── Global incoming call listener ─────────────────────────────────────────
 
@@ -780,11 +754,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsub();
-  }, [telegramId, playRingtone, stopRingtone]);
+  }, [telegramId]);
 
   // ── Group call: cleanup helper ──────────────────────────────────────────
 
-  const cleanupGroupCall = useCallback(() => {
+  function cleanupGroupCall() {
     for (const pc of groupPeersRef.current.values()) {
       pc.close();
     }
@@ -819,19 +793,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       groupCallState: "idle",
       groupCallInfo: null,
     });
-  }, [setActiveCall]);
+  }
 
   // ── Group call: create peer for remote ────────────────────────────────────
 
-  const createPeerForRemote = useCallback(
-    async (
-      callId: string,
-      remoteUserId: string,
-      rtcConfig: RTCConfiguration,
-      isCaller: boolean
-    ) => {
-      const { _deps } = useCallStore.getState();
-      if (!_deps.telegramId || groupPeersRef.current.has(remoteUserId)) return;
+  async function createPeerForRemote(
+    callId: string,
+    remoteUserId: string,
+    rtcConfig: RTCConfiguration,
+    isCaller: boolean
+  ) {
+    const { _deps } = useCallStore.getState();
+    if (!_deps.telegramId || groupPeersRef.current.has(remoteUserId)) return;
 
       const pc = new RTCPeerConnection(rtcConfig);
       groupPeersRef.current.set(remoteUserId, pc);
@@ -884,29 +857,26 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
       };
 
-      if (isCaller) {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await sendSignal(callId, _deps.telegramId!, remoteUserId, "offer", {
-          type: offer.type,
-          sdp: offer.sdp,
-        });
-      }
-    },
-    []
-  );
+    if (isCaller) {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await sendSignal(callId, _deps.telegramId!, remoteUserId, "offer", {
+        type: offer.type,
+        sdp: offer.sdp,
+      });
+    }
+  }
 
   // ── Join group call ─────────────────────────────────────────────────────
 
-  const joinGroupCallFn = useCallback(
-    async (chatId: string, groupName: string) => {
-      const { _deps, groupCallState, callState } = useCallStore.getState();
-      if (!_deps.telegramId || !_deps.qcUsername) return;
-      if (groupCallState !== "idle") return;
-      if (callState !== "idle") {
-        toast.error("End your current call first");
-        return;
-      }
+  async function joinGroupCallFn(chatId: string, groupName: string) {
+    const { _deps, groupCallState, callState } = useCallStore.getState();
+    if (!_deps.telegramId || !_deps.qcUsername) return;
+    if (groupCallState !== "idle") return;
+    if (callState !== "idle") {
+      toast.error("End your current call first");
+      return;
+    }
 
       try {
         let stream: MediaStream;
@@ -1047,17 +1017,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           }
         });
       } catch (err) {
-        console.error("[CallContext] joinGroupCall error:", err);
-        toast.error("Failed to join group call");
-        cleanupGroupCall();
-      }
-    },
-    [setActiveCall, createPeerForRemote, cleanupGroupCall]
-  );
+      console.error("[CallContext] joinGroupCall error:", err);
+      toast.error("Failed to join group call");
+      cleanupGroupCall();
+    }
+  }
 
   // ── Leave group call ────────────────────────────────────────────────────
 
-  const leaveGroupCallFn = useCallback(() => {
+  function leaveGroupCallFn() {
     const { groupCallInfo: info, _deps } = useCallStore.getState();
     if (!info || !_deps.telegramId) return;
 
@@ -1069,7 +1037,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
 
     cleanupGroupCall();
-  }, [cleanupGroupCall]);
+  }
 
   // ── Sync actions into store ─────────────────────────────────────────────
 
@@ -1084,11 +1052,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       joinGroupCall: joinGroupCallFn,
       leaveGroupCall: leaveGroupCallFn,
     });
-  }, [
-    initiateCall, acceptCall, declineCall, endCall,
-    toggleMute, toggleSpeaker,
-    joinGroupCallFn, leaveGroupCallFn,
-  ]);
+  });
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
 

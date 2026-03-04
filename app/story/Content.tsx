@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -74,21 +74,21 @@ const StoryContent = () => {
     }
   ];
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     if (currentStory < stories.length - 1) {
       setCurrentStory(prev => prev + 1);
       setProgress(0);
     } else {
       router.push('/');
     }
-  }, [currentStory, stories.length, router]);
+  };
 
-  const handlePrev = useCallback(() => {
+  const handlePrev = () => {
     if (currentStory > 0) {
       setCurrentStory(prev => prev - 1);
       setProgress(0);
     }
-  }, [currentStory]);
+  };
 
   useEffect(() => {
     if (isPaused) return;
@@ -111,7 +111,8 @@ const StoryContent = () => {
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [progress, handleNext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress]);
 
   const current = stories[currentStory];
 

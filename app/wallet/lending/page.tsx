@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -124,7 +124,7 @@ export default function LendingPage() {
         };
     }, [router, viewMode]);
 
-    const loadMarketData = useCallback(async () => {
+    const loadMarketData = async () => {
         try {
             setIsLoading(true);
             const [marketsData, positions] = await Promise.all([
@@ -139,7 +139,7 @@ export default function LendingPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [walletAddress]);
+    };
 
     useEffect(() => {
         const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
@@ -148,10 +148,10 @@ export default function LendingPage() {
             return;
         }
         loadMarketData();
-    }, [router, telegramId, loadMarketData]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router, telegramId]);
 
-    const getWalletBalance = useCallback(
-        (assetName: string): string => {
+    const getWalletBalance = (assetName: string): string => {
             if (assetName === "TON") return tonBalance;
             const jetton = jettons.find((j) =>
                 j.symbol?.toLowerCase() === assetName.toLowerCase() ||
@@ -161,20 +161,15 @@ export default function LendingPage() {
                 return (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
             }
             return "0";
-        },
-        [tonBalance, jettons]
-    );
+        };
 
-    const getUserSupplied = useCallback(
-        (assetName: string): string => {
+    const getUserSupplied = (assetName: string): string => {
             if (!userPositions) return "0";
             const pos = userPositions.positions.find(
                 (p) => p.assetName.toLowerCase() === assetName.toLowerCase()
             );
             return pos?.supplied ?? "0";
-        },
-        [userPositions]
-    );
+        };
 
     const handleSupply = (asset: LendingAsset) => {
         setSelectedAsset(asset);
@@ -300,7 +295,7 @@ export default function LendingPage() {
         }
     };
 
-    const canProceed = useMemo(() => {
+    const canProceed = (() => {
         if (!selectedAsset || !amount || parseFloat(amount) <= 0) return false;
         if (viewMode === "supply") {
             const balance = parseFloat(getWalletBalance(selectedAsset.name));
@@ -312,7 +307,7 @@ export default function LendingPage() {
             if (parseFloat(amount) > supplied) return false;
         }
         return true;
-    }, [selectedAsset, amount, viewMode, getWalletBalance, getUserSupplied]);
+    })();
 
     if (isLoading || (isContextLoading && !hasFetched)) {
         return <Loader />;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -94,20 +94,20 @@ export default function EarnPage() {
     const [protocols, setProtocols] = useState<YieldProtocol[]>([]);
 
     // Fetch live APY data
-    const fetchYieldData = useCallback(async () => {
+    const fetchYieldData = async () => {
         setIsLoading(true);
         try {
             // Fetch live staking APY for the staking protocol
             const { fetchLiveApyData } = await import("@/lib/staking-service");
             const liveApyData = await fetchLiveApyData();
-            
+
             // Calculate average staking APY from live data
             let stakingApy = 5.0; // Default
             if (liveApyData.size > 0) {
                 const apyValues = Array.from(liveApyData.values());
                 stakingApy = apyValues.reduce((a, b) => a + b, 0) / apyValues.length;
             }
-            
+
             // Update protocols with live data
             const updatedProtocols = YIELD_PROTOCOLS.map(p => {
                 if (p.id === "ton-staking") {
@@ -122,11 +122,11 @@ export default function EarnPage() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    };
 
     useEffect(() => {
         fetchYieldData();
-    }, [fetchYieldData]);
+    }, []);
 
     // Calculate potential earnings
     const calculateMonthlyEarnings = (apy: number, amount: number) => {

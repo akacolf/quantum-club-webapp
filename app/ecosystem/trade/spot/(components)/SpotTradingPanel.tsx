@@ -1,7 +1,7 @@
 "use client";
 
 import { env } from "@/env";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,7 +155,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
     const displayImpact = preview?.priceImpact;
     const isLoading = simLoading || isQuoting;
 
-    const handleSwap = useCallback(async () => {
+    const handleSwap = async () => {
         // Zod schema validation at submit boundary
         const parsed = tradeAmountSchema.safeParse({ amount: amount || "" });
         if (!parsed.success) {
@@ -214,7 +214,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange, defaultTab
         } finally {
             setIsExecuting(false);
         }
-    }, [amount, quote, walletAddress, buildAndExecute, sendTransaction, activeTab, token, resolverName, onOpenChange]);
+    };
 
     const buyPresets = ["1", "5", "10", "MAX"];
     const sellPresets = ["25%", "50%", "75%", "MAX"];

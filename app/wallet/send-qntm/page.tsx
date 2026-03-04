@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -45,12 +45,10 @@ export default function SendQNTMPage() {
   const [qcIdError, setQcIdError] = useState<string | null>(null);
   const [recipientUsername, setRecipientUsername] = useState<string>("");
 
-  // Parse balance (remove commas) - memoized
-  const currentBalance = useMemo(() =>
-    parseFloat(MainQuantAmount.replace(/,/g, '')) || 0
-    , [MainQuantAmount]);
+  // Parse balance (remove commas)
+  const currentBalance = parseFloat(MainQuantAmount.replace(/,/g, '')) || 0;
 
-  const handleAmountChange = useCallback((value: string, fieldHandleChange: (val: string) => void) => {
+  const handleAmountChange = (value: string, fieldHandleChange: (val: string) => void) => {
     // Remove commas and minus signs, convert comma decimal separator to dot
     const sanitized = value.replace(',', '.').replace(/-/g, '');
     if (sanitized === '' || /^\d*\.?\d*$/.test(sanitized)) {
@@ -59,14 +57,14 @@ export default function SendQNTMPage() {
       const numValue = parseFloat(sanitized) || 0;
       setInsufficientFunds(numValue > currentBalance);
     }
-  }, [currentBalance]);
+  };
 
-  const handleMaxAmount = useCallback(() => {
+  const handleMaxAmount = () => {
     form.setFieldValue("amount", currentBalance.toString());
     setInsufficientFunds(false);
-  }, [currentBalance, form]);
+  };
 
-  const validateInput = useCallback(() => {
+  function validateInput() {
     const recipientQcId = form.getFieldValue("recipientQcId");
     const amount = form.getFieldValue("amount");
     if (!recipientQcId.trim()) {
@@ -87,9 +85,9 @@ export default function SendQNTMPage() {
       return false;
     }
     return true;
-  }, [form, telegramId, currentBalance]);
+  }
 
-  const verifyQcIdExists = useCallback(async (): Promise<boolean> => {
+  async function verifyQcIdExists(): Promise<boolean> {
     const recipientQcId = form.getFieldValue("recipientQcId");
     try {
       setIsVerifyingQcId(true);
@@ -119,9 +117,9 @@ export default function SendQNTMPage() {
     } finally {
       setIsVerifyingQcId(false);
     }
-  }, [form]);
+  }
 
-  const handleContinue = useCallback(async () => {
+  async function handleContinue() {
     if (validateInput()) {
       // Verify QC ID exists before proceeding
       const exists = await verifyQcIdExists();
@@ -129,9 +127,9 @@ export default function SendQNTMPage() {
         setStep("confirm");
       }
     }
-  }, [validateInput, verifyQcIdExists]);
+  }
 
-  const executeTransfer = useCallback(async () => {
+  async function executeTransfer() {
     const recipientQcId = form.getFieldValue("recipientQcId");
     const amount = form.getFieldValue("amount");
     setIsTransferring(true);
@@ -169,9 +167,9 @@ export default function SendQNTMPage() {
     } finally {
       setIsTransferring(false);
     }
-  }, [form, SetMainQuantAmount, telegramId]);
+  }
 
-  const handleConfirmTransfer = useCallback(async () => {
+  async function handleConfirmTransfer() {
     // Request biometric/PIN authentication
     const authenticated = await requestAuth();
 
@@ -180,15 +178,15 @@ export default function SendQNTMPage() {
     } else {
       toast.error("Authentication required to transfer QNTM");
     }
-  }, [requestAuth, executeTransfer]);
+  }
 
-  const handleCopyQcId = useCallback(() => {
+  const handleCopyQcId = () => {
     if (telegramId) {
       navigator.clipboard.writeText(telegramId);
       setQcIdCopied(true);
       setTimeout(() => setQcIdCopied(false), 2000);
     }
-  }, [telegramId]);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">

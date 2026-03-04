@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ export default function ReceivePage() {
   });
 
   // Get address for a specific chain
-  const getAddressForChain = useCallback((chain: ChainType) => {
+  const getAddressForChain = (chain: ChainType) => {
     switch (chain) {
       case "ton": return walletAddress;
       case "eth": return ethAddress;
@@ -64,7 +64,7 @@ export default function ReceivePage() {
       case "trx": return trxAddress;
       default: return "";
     }
-  }, [walletAddress, ethAddress, btcAddress, solAddress, trxAddress]);
+  };
 
   // Handle selection
   const handleSelectChain = (chain: ChainType) => {

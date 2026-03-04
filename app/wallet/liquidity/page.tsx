@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { motion, AnimatePresence } from "framer-motion";
@@ -332,8 +332,7 @@ export default function LiquidityPage() {
   }, [walletAddress, swapAssets]);
 
   // Get balance for asset
-  const getAssetBalance = useCallback(
-    (asset: SwapAsset | null): string => {
+  const getAssetBalance = (asset: SwapAsset | null): string => {
       if (!asset) return "0";
 
       if (asset.kind === "Ton") {
@@ -362,152 +361,7 @@ export default function LiquidityPage() {
       }
 
       return "0";
-    },
-    [tonBalance, jettons],
-  );
-
-  // Simulate liquidity provision
-  const simulateProvision = useCallback(async () => {
-    if (!tokenA || !tokenB || !amountA || parseFloat(amountA) <= 0) {
-      return;
-    }
-
-    setIsSimulating(true);
-    try {
-      const client = new StonApiClient();
-
-      // Check for existing pool
-      let pools: any[] = [];
-      try {
-        pools = await client.getPoolsByAssetPair({
-          asset0Address: tokenA.contractAddress,
-          asset1Address: tokenB.contractAddress,
-        });
-      } catch (poolError) {
-        console.warn("Failed to fetch pools:", poolError);
-        pools = [];
-      }
-
-      const pool = pools?.[0];
-
-      // Determine provision type:
-      // - Initial: No pool exists, creating new pool
-      // - Balanced: Pool exists, adding liquidity in balanced ratio
-      // - Arbitrary: Pool exists but single-sided deposit (only one token)
-      const provisionType: ProvisionType = pool
-        ? isSingleSided
-          ? "Arbitrary"
-          : "Balanced"
-        : "Initial";
-
-      if (!pool && provisionType !== "Initial") {
-        throw new Error(
-          "No liquidity pool found for this token pair. Initial liquidity provision is required.",
-        );
-      }
-
-      // Build simulation input based on provision type
-      let result;
-
-      if (provisionType === "Initial") {
-        // Initial provision requires both tokens
-        if (!amountB || parseFloat(amountB) <= 0) {
-          throw new Error(
-            "Initial liquidity provision requires amounts for both tokens.",
-          );
-        }
-        result = await client.simulateLiquidityProvision({
-          tokenA: tokenA.contractAddress,
-          tokenB: tokenB.contractAddress,
-          provisionType: "Initial",
-          slippageTolerance: "0.01",
-          walletAddress: walletAddress || undefined,
-          tokenAUnits: toUnits(amountA, tokenA.decimals),
-          tokenBUnits: toUnits(amountB, tokenB.decimals),
-        });
-      } else if (provisionType === "Balanced") {
-        // Balanced provision - only provide tokenA, tokenB is calculated
-        result = await client.simulateLiquidityProvision({
-          tokenA: tokenA.contractAddress,
-          tokenB: tokenB.contractAddress,
-          provisionType: "Balanced",
-          slippageTolerance: "0.01",
-          walletAddress: walletAddress || undefined,
-          poolAddress: pool?.address || "",
-          tokenAUnits: toUnits(amountA, tokenA.decimals),
-        });
-      } else {
-        // Arbitrary (single-sided) - provide only one token
-        // Note: Single-sided liquidity provision may not be supported by all pools
-        // The SDK will handle the conversion internally
-        try {
-          // For single-sided, we only provide tokenA
-          result = await client.simulateLiquidityProvision({
-            tokenA: tokenA.contractAddress,
-            tokenB: tokenB.contractAddress,
-            provisionType: "Arbitrary",
-            slippageTolerance: "0.05", // Higher slippage for single-sided
-            walletAddress: walletAddress || undefined,
-            poolAddress: pool?.address || "",
-            tokenAUnits: toUnits(amountA, tokenA.decimals),
-            tokenBUnits: "0", // Explicitly zero for single-sided
-          });
-        } catch (singleSidedError) {
-          // Single-sided might not be supported, try balanced approach
-          console.warn(
-            "Single-sided provision failed, trying balanced approach:",
-            singleSidedError,
-          );
-          toast.error("Single-sided deposit not supported for this pool", {
-            description: "Please use balanced deposit or try a different pool.",
-          });
-          throw singleSidedError;
-        }
-      }
-
-      setSimulationResult({
-        minLpUnits: result.minLpUnits,
-        tokenAUnits: result.tokenAUnits,
-        tokenBUnits: result.tokenBUnits,
-        provisionType: result.provisionType as ProvisionType,
-        poolAddress: pool?.address,
-        // Store router info from simulation result (per STON.fi docs)
-        router: result.router,
-      });
-
-      // If balanced, update tokenB amount with raw numeric value (not formatted)
-      // The display formatting happens in the Input value prop
-      if (provisionType === "Balanced" && result.tokenBUnits) {
-        const rawAmount = fromUnits(result.tokenBUnits, tokenB.decimals);
-        setAmountB(rawAmount);
-      }
-    } catch (error) {
-      console.error("Failed to simulate provision:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-
-      // Provide more specific error messages
-      if (errorMessage.includes("pool") || errorMessage.includes("Pool")) {
-        toast.error("Pool not found", {
-          description: "This token pair may not have a liquidity pool yet.",
-        });
-      } else if (
-        errorMessage.includes("single-sided") ||
-        errorMessage.includes("Single")
-      ) {
-        toast.error("Single-sided deposit failed", {
-          description: "Try using balanced deposit mode instead.",
-        });
-      } else {
-        toast.error("Failed to simulate liquidity provision", {
-          description: errorMessage.substring(0, 100),
-        });
-      }
-      setSimulationResult(null);
-    } finally {
-      setIsSimulating(false);
-    }
-  }, [tokenA, tokenB, amountA, amountB, isSingleSided, walletAddress]);
+    };
 
   // Debounce simulation
   useEffect(() => {
@@ -516,12 +370,151 @@ export default function LiquidityPage() {
       return;
     }
 
+    const simulateProvision = async () => {
+      setIsSimulating(true);
+      try {
+        const client = new StonApiClient();
+
+        // Check for existing pool
+        let pools: any[] = [];
+        try {
+          pools = await client.getPoolsByAssetPair({
+            asset0Address: tokenA.contractAddress,
+            asset1Address: tokenB.contractAddress,
+          });
+        } catch (poolError) {
+          console.warn("Failed to fetch pools:", poolError);
+          pools = [];
+        }
+
+        const pool = pools?.[0];
+
+        // Determine provision type:
+        // - Initial: No pool exists, creating new pool
+        // - Balanced: Pool exists, adding liquidity in balanced ratio
+        // - Arbitrary: Pool exists but single-sided deposit (only one token)
+        const provisionType: ProvisionType = pool
+          ? isSingleSided
+            ? "Arbitrary"
+            : "Balanced"
+          : "Initial";
+
+        if (!pool && provisionType !== "Initial") {
+          throw new Error(
+            "No liquidity pool found for this token pair. Initial liquidity provision is required.",
+          );
+        }
+
+        // Build simulation input based on provision type
+        let result;
+
+        if (provisionType === "Initial") {
+          // Initial provision requires both tokens
+          if (!amountB || parseFloat(amountB) <= 0) {
+            throw new Error(
+              "Initial liquidity provision requires amounts for both tokens.",
+            );
+          }
+          result = await client.simulateLiquidityProvision({
+            tokenA: tokenA.contractAddress,
+            tokenB: tokenB.contractAddress,
+            provisionType: "Initial",
+            slippageTolerance: "0.01",
+            walletAddress: walletAddress || undefined,
+            tokenAUnits: toUnits(amountA, tokenA.decimals),
+            tokenBUnits: toUnits(amountB, tokenB.decimals),
+          });
+        } else if (provisionType === "Balanced") {
+          // Balanced provision - only provide tokenA, tokenB is calculated
+          result = await client.simulateLiquidityProvision({
+            tokenA: tokenA.contractAddress,
+            tokenB: tokenB.contractAddress,
+            provisionType: "Balanced",
+            slippageTolerance: "0.01",
+            walletAddress: walletAddress || undefined,
+            poolAddress: pool?.address || "",
+            tokenAUnits: toUnits(amountA, tokenA.decimals),
+          });
+        } else {
+          // Arbitrary (single-sided) - provide only one token
+          // Note: Single-sided liquidity provision may not be supported by all pools
+          // The SDK will handle the conversion internally
+          try {
+            // For single-sided, we only provide tokenA
+            result = await client.simulateLiquidityProvision({
+              tokenA: tokenA.contractAddress,
+              tokenB: tokenB.contractAddress,
+              provisionType: "Arbitrary",
+              slippageTolerance: "0.05", // Higher slippage for single-sided
+              walletAddress: walletAddress || undefined,
+              poolAddress: pool?.address || "",
+              tokenAUnits: toUnits(amountA, tokenA.decimals),
+              tokenBUnits: "0", // Explicitly zero for single-sided
+            });
+          } catch (singleSidedError) {
+            // Single-sided might not be supported, try balanced approach
+            console.warn(
+              "Single-sided provision failed, trying balanced approach:",
+              singleSidedError,
+            );
+            toast.error("Single-sided deposit not supported for this pool", {
+              description: "Please use balanced deposit or try a different pool.",
+            });
+            throw singleSidedError;
+          }
+        }
+
+        setSimulationResult({
+          minLpUnits: result.minLpUnits,
+          tokenAUnits: result.tokenAUnits,
+          tokenBUnits: result.tokenBUnits,
+          provisionType: result.provisionType as ProvisionType,
+          poolAddress: pool?.address,
+          // Store router info from simulation result (per STON.fi docs)
+          router: result.router,
+        });
+
+        // If balanced, update tokenB amount with raw numeric value (not formatted)
+        // The display formatting happens in the Input value prop
+        if (provisionType === "Balanced" && result.tokenBUnits) {
+          const rawAmount = fromUnits(result.tokenBUnits, tokenB.decimals);
+          setAmountB(rawAmount);
+        }
+      } catch (error) {
+        console.error("Failed to simulate provision:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+
+        // Provide more specific error messages
+        if (errorMessage.includes("pool") || errorMessage.includes("Pool")) {
+          toast.error("Pool not found", {
+            description: "This token pair may not have a liquidity pool yet.",
+          });
+        } else if (
+          errorMessage.includes("single-sided") ||
+          errorMessage.includes("Single")
+        ) {
+          toast.error("Single-sided deposit failed", {
+            description: "Try using balanced deposit mode instead.",
+          });
+        } else {
+          toast.error("Failed to simulate liquidity provision", {
+            description: errorMessage.substring(0, 100),
+          });
+        }
+        setSimulationResult(null);
+      } finally {
+        setIsSimulating(false);
+      }
+    };
+
     const timer = setTimeout(() => {
       simulateProvision();
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [tokenA, tokenB, amountA, isSingleSided, simulateProvision]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenA, tokenB, amountA, isSingleSided]);
 
   // Clear amountB when single-sided mode is enabled (user only provides tokenA)
   useEffect(() => {
@@ -531,7 +524,7 @@ export default function LiquidityPage() {
   }, [isSingleSided]);
 
   // Validation
-  const canAddLiquidity = useMemo(() => {
+  const canAddLiquidity = (() => {
     if (!tokenA || !tokenB || !amountA || parseFloat(amountA) <= 0)
       return false;
     if (!simulationResult) return false;
@@ -552,16 +545,7 @@ export default function LiquidityPage() {
     if (tonBal - tonNeededForDeposit < 0.5) return false;
 
     return true;
-  }, [
-    tokenA,
-    tokenB,
-    amountA,
-    amountB,
-    isSingleSided,
-    simulationResult,
-    getAssetBalance,
-    tonBalance,
-  ]);
+  })();
 
   // Handle add liquidity
   const handleAddLiquidity = async () => {

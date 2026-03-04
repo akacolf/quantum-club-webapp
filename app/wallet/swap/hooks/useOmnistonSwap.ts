@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useMemo } from "react";
+import { useState } from "react";
 import { 
     useOmniston, 
     useConnectionStatus,
@@ -72,7 +72,7 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
     const [isBuilding, setIsBuilding] = useState(false);
 
     // Build the quote request from params
-    const quoteRequest = useMemo((): QuoteRequest => {
+    const quoteRequest: QuoteRequest = (() => {
         if (!params) {
             return {
                 settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
@@ -107,7 +107,7 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
                     : GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
             },
         };
-    }, [params]);
+    })();
 
     // Check if we have valid params to enable the query
     const isFormValid = Boolean(
@@ -136,19 +136,19 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
     const isGasless = quote?.gasBudget === "0" || (quote?.gasBudget !== undefined && BigInt(quote.gasBudget) === BigInt(0));
 
     // Calculate price impact (simplified - in production should use pool reserves)
-    const priceImpact = useMemo(() => {
+    const priceImpact = (() => {
         if (!quote || !params) return null;
-        
+
         // Calculate based on bid/ask ratio vs expected 1:1 ratio
         // This is a simplified calculation - real price impact requires pool data
         const bidUnits = BigInt(quote.bidUnits);
-        
+
         if (bidUnits === BigInt(0)) return null;
-        
+
         // Price impact is hard to calculate without market price
         // For now, we'll show 0 and let the UI handle high slippage warnings
         return 0;
-    }, [quote, params]);
+    })();
 
     // Determine error state
     let quoteError: string | null = null;
@@ -166,7 +166,7 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
     // and we don't already have a valid quote
     const isQuoting = rfqResult.isFetching && !quote;
 
-    const buildAndExecute = useCallback(async (
+    async function buildAndExecute(
         quoteToExecute: Quote,
         walletAddress: string,
         sendTransaction: (params: { to: string; value: bigint; body: string }) => Promise<void>,
@@ -175,7 +175,7 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
             destinationAddress?: string;
             destinationBlockchain?: number;
         }
-    ): Promise<string | null> => {
+    ): Promise<string | null> {
         if (!isConnected) {
             throw new Error("Not connected to swap service");
         }
@@ -231,7 +231,7 @@ export function useOmnistonSwap({ params, enabled = true }: UseOmnistonSwapProps
         } finally {
             setIsBuilding(false);
         }
-    }, [omniston, isConnected]);
+    }
 
     return {
         quote,

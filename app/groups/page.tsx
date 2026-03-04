@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect } from "react";
+import { memo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -19,9 +19,9 @@ interface GroupItemProps {
 
 // Memoized group item component for performance
 const GroupItem = memo(function GroupItem({ group, index, onNavigate }: GroupItemProps) {
-    const handleClick = useCallback(() => {
+    const handleClick = () => {
         onNavigate(group.id);
-    }, [group.id, onNavigate]);
+    };
 
     return (
         <motion.div
@@ -60,14 +60,14 @@ export default function GroupsPage() {
     const router = useRouter();
     const { groups, loading } = useGroups();
 
-    // Memoized navigation handlers
-    const handleNavigateToGroup = useCallback((groupId: string) => {
+    // Navigation handlers
+    const handleNavigateToGroup = (groupId: string) => {
         router.push(`/groups/${groupId}`);
-    }, [router]);
+    };
 
-    const handleNavigateToCreate = useCallback(() => {
+    const handleNavigateToCreate = () => {
         router.push("/groups/create");
-    }, [router]);
+    };
 
     // Prefetch group routes
     useEffect(() => {

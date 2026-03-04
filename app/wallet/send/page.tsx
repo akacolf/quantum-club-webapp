@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -88,16 +88,16 @@ export default function SendPage() {
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
   // Telegram native QR scanner handler
-  const openQRScanner = useCallback(() => {
+  function openQRScanner() {
     const WebApp = window?.Telegram?.WebApp;
-    
+
     if (WebApp?.showScanQrPopup) {
       WebApp.showScanQrPopup(
         { text: "Scan wallet address QR code" },
         (result: string) => {
           // Parse the scanned result
           let address = result;
-          
+
           // Handle ton:// deep links
           if (result.startsWith("ton://transfer/")) {
             const url = new URL(result);
@@ -149,7 +149,7 @@ export default function SendPage() {
             // Default to TON
             setRecipient(address);
           }
-          
+
           toast.success("Address scanned!");
           WebApp.closeScanQrPopup();
           return true;
@@ -160,8 +160,7 @@ export default function SendPage() {
         description: "Please use the Telegram mobile app to scan QR codes",
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- setRecipient, setMultiChainRecipient, setSelectedChain are stable useCallback refs; adding them would cause unnecessary re-creation
-  }, []);
+  }
 
   const {
     walletAddress,
@@ -203,10 +202,10 @@ export default function SendPage() {
   const amount = useStore(tonForm.store, s => s.values.amount);
   const comment = useStore(tonForm.store, s => s.values.comment);
   const encryptComment = useStore(tonForm.store, s => s.values.encryptComment);
-  const setRecipient = useCallback((v: string) => tonForm.setFieldValue("recipient", v), [tonForm]);
-  const setAmount = useCallback((v: string) => tonForm.setFieldValue("amount", v), [tonForm]);
-  const setComment = useCallback((v: string) => tonForm.setFieldValue("comment", v), [tonForm]);
-  const setEncryptComment = useCallback((v: boolean) => tonForm.setFieldValue("encryptComment", v), [tonForm]);
+  const setRecipient = (v: string) => tonForm.setFieldValue("recipient", v);
+  const setAmount = (v: string) => tonForm.setFieldValue("amount", v);
+  const setComment = (v: string) => tonForm.setFieldValue("comment", v);
+  const setEncryptComment = (v: boolean) => tonForm.setFieldValue("encryptComment", v);
 
   // ── Multi-chain send form (TanStack Form) ──
   const multiChainForm = useForm({
@@ -215,9 +214,9 @@ export default function SendPage() {
   const multiChainRecipient = useStore(multiChainForm.store, s => s.values.recipient);
   const multiChainAmount = useStore(multiChainForm.store, s => s.values.amount);
   const multiChainComment = useStore(multiChainForm.store, s => s.values.comment);
-  const setMultiChainRecipient = useCallback((v: string) => multiChainForm.setFieldValue("recipient", v), [multiChainForm]);
-  const setMultiChainAmount = useCallback((v: string) => multiChainForm.setFieldValue("amount", v), [multiChainForm]);
-  const setMultiChainComment = useCallback((v: string) => multiChainForm.setFieldValue("comment", v), [multiChainForm]);
+  const setMultiChainRecipient = (v: string) => multiChainForm.setFieldValue("recipient", v);
+  const setMultiChainAmount = (v: string) => multiChainForm.setFieldValue("amount", v);
+  const setMultiChainComment = (v: string) => multiChainForm.setFieldValue("comment", v);
 
   // Network mode state
   const [networkMode, setNetworkMode] = useState<NetworkMode>("ton");
@@ -247,7 +246,7 @@ export default function SendPage() {
   const [savedAddresses, setSavedAddresses] = useState<{ address: string; name: string }[]>([]);
 
   // Multi-chain options
-  const multiChainOptions: MultiChainOption[] = useMemo(() => [
+  const multiChainOptions: MultiChainOption[] = [
     {
       id: "eth" as MultiChainType,
       name: "Ethereum",
@@ -292,7 +291,7 @@ export default function SendPage() {
       color: "#FF0013",
       explorerUrl: "https://tronscan.org/#/transaction/",
     },
-  ], [ethBalance, ethUsdValue, ethPrice, btcBalance, btcUsdValue, btcPrice, solBalance, solUsdValue, solPrice, trxBalance, trxUsdValue, trxPrice, isTestnet]);
+  ];
 
   const currentChain = multiChainOptions.find(c => c.id === selectedChain) || multiChainOptions[0];
 
@@ -351,40 +350,36 @@ export default function SendPage() {
   const DEPLOYMENT_FEE = 0.005;
 
   // Check if TON balance is too low for jetton transfer
-  const insufficientTonForGas = useMemo(() => {
-    if (selectedAsset?.type === "jetton") {
-      return parseFloat(tonBalance) < MIN_TON_FOR_JETTON;
-    }
-    return false;
-  }, [selectedAsset, tonBalance]);
+  const insufficientTonForGas = selectedAsset?.type === "jetton"
+    ? parseFloat(tonBalance) < MIN_TON_FOR_JETTON
+    : false;
 
   // Explorer URL based on network
   const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
-  // Fetch recipient public key for encryption
-  const fetchRecipientPublicKey = useCallback(async (address: string) => {
-    try {
-      const data = await tonApiGet<{ public_key?: string }>(
-        `/v2/accounts/${encodeURIComponent(address)}/publickey`,
-        { testnet: isTestnet }
-      );
-      if (data.public_key) {
-        // Public key is returned as hex string
-        const pubKeyBytes = new Uint8Array(Buffer.from(data.public_key, 'hex'));
-        setRecipientPublicKey(pubKeyBytes);
-        setCanEncrypt(true);
-        return;
-      }
-    } catch (error) {
-      console.log("Could not fetch recipient public key:", error);
-    }
-    setRecipientPublicKey(null);
-    setCanEncrypt(false);
-    setEncryptComment(false); // Disable encryption if we can't get the key
-  }, [isTestnet, setEncryptComment]);
-
   // Resolve .ton domain addresses
   useEffect(() => {
+    async function fetchRecipientPublicKey(address: string) {
+      try {
+        const data = await tonApiGet<{ public_key?: string }>(
+          `/v2/accounts/${encodeURIComponent(address)}/publickey`,
+          { testnet: isTestnet }
+        );
+        if (data.public_key) {
+          // Public key is returned as hex string
+          const pubKeyBytes = new Uint8Array(Buffer.from(data.public_key, 'hex'));
+          setRecipientPublicKey(pubKeyBytes);
+          setCanEncrypt(true);
+          return;
+        }
+      } catch (error) {
+        console.log("Could not fetch recipient public key:", error);
+      }
+      setRecipientPublicKey(null);
+      setCanEncrypt(false);
+      setEncryptComment(false); // Disable encryption if we can't get the key
+    }
+
     const resolveAddress = async () => {
       if (!recipient.trim()) {
         setResolvedAddress("");
@@ -435,7 +430,8 @@ export default function SendPage() {
 
     const debounceTimer = setTimeout(resolveAddress, 500);
     return () => clearTimeout(debounceTimer);
-  }, [recipient, fetchRecipientPublicKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- setEncryptComment is a stable wrapper around form.setFieldValue
+  }, [recipient, isTestnet]);
 
   // Redirect if no wallet
   useEffect(() => {
@@ -450,8 +446,8 @@ export default function SendPage() {
     }
   }, [router, telegramId]);
 
-  // Get sendable assets from context data - memoized
-  const sendableAssets = useMemo((): SendableAsset[] => {
+  // Get sendable assets from context data
+  const sendableAssets: SendableAsset[] = (() => {
     const assets: SendableAsset[] = [
       {
         type: "ton",
@@ -479,7 +475,7 @@ export default function SendPage() {
     });
 
     return assets;
-  }, [tonBalance, jettons, tonPrice]);
+  })();
 
   // Set default asset when data is ready
   useEffect(() => {

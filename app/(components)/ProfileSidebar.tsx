@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
@@ -47,12 +47,12 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const apiPhotoUrl = useProfilePhoto(!tgPhotoUrl ? telegramId : null);
   const photoUrl = tgPhotoUrl || apiPhotoUrl;
 
-  const displayName = useMemo(() => {
+  const displayName = (() => {
     if (username) return username;
     if (tgUser?.username) return tgUser.username;
     if (tgUser?.first_name) return tgUser.first_name;
     return "Quantum User";
-  }, [username, tgUser?.username, tgUser?.first_name]);
+  })();
 
   const [copied, setCopied] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);

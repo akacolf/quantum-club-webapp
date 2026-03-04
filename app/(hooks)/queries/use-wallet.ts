@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
 import { fromNano } from "@ton/core";
 
 interface WalletAssetsData {
@@ -172,12 +171,9 @@ export function useMultiChainBalancesQuery(
  */
 export function useInvalidateWalletQueries() {
     const queryClient = useQueryClient();
-    return useCallback(
-        (walletAddress: string) => {
-            queryClient.invalidateQueries({ queryKey: ["walletAssets", walletAddress] });
-            queryClient.invalidateQueries({ queryKey: ["nfts", walletAddress] });
-            queryClient.invalidateQueries({ queryKey: ["multiChainBalances"] });
-        },
-        [queryClient]
-    );
+    return (walletAddress: string) => {
+        queryClient.invalidateQueries({ queryKey: ["walletAssets", walletAddress] });
+        queryClient.invalidateQueries({ queryKey: ["nfts", walletAddress] });
+        queryClient.invalidateQueries({ queryKey: ["multiChainBalances"] });
+    };
 }

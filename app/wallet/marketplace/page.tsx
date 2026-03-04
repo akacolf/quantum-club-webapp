@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
@@ -34,12 +34,9 @@ export default function MarketplacePage() {
     const mysteryBoxesQuery = useMysteryBoxesQuery();
     const mysteryBoxes = mysteryBoxesQuery.data ?? [];
 
-    const filteredCollections = useMemo(
-        () => filterCollectionsByName(collectionsQuery.data ?? [], searchQuery),
-        [collectionsQuery.data, searchQuery]
-    );
+    const filteredCollections = filterCollectionsByName(collectionsQuery.data ?? [], searchQuery);
 
-    const filteredListings = useMemo(() => {
+    const filteredListings = (() => {
         const listings = listingsQuery.data ?? [];
         if (!searchQuery.trim()) return listings;
         const lower = searchQuery.toLowerCase();
@@ -48,7 +45,7 @@ export default function MarketplacePage() {
                 l.nftName?.toLowerCase().includes(lower) ||
                 l.collectionName?.toLowerCase().includes(lower)
         );
-    }, [listingsQuery.data, searchQuery]);
+    })();
 
     const collectionsListRef = useRef<HTMLDivElement>(null);
     const listingsListRef = useRef<HTMLDivElement>(null);

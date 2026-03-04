@@ -9,7 +9,7 @@
  * and syncs them into the store.
  */
 
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
     TonWalletKit,
     CHAIN,
@@ -163,7 +163,7 @@ export function WalletKitProvider({
     }, [isTestnet]);
 
     // Register wallet with WalletKit
-    const registerWallet = useCallback(async (mnemonic: string[]): Promise<boolean> => {
+    async function registerWallet(mnemonic: string[]): Promise<boolean> {
         if (!kitRef.current) {
             console.error("[WalletKit] Kit not initialized");
             return false;
@@ -199,7 +199,7 @@ export function WalletKitProvider({
             console.error("[WalletKit] Failed to register wallet:", error);
             return false;
         }
-    }, [isTestnet]);
+    }
 
     // Auto-register wallet on initialization so it's ready before connection requests
     useEffect(() => {
@@ -217,10 +217,11 @@ export function WalletKitProvider({
                 });
             }
         });
-    }, [registerWallet]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- registerWallet is stable, depends on refs
+    }, []);
 
     // Approve connection request
-    const approveConnection = useCallback(async () => {
+    async function approveConnection() {
         const { pendingConnection } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingConnection) {
             console.error("[WalletKit] Cannot approve: kit or pending connection missing");
@@ -294,10 +295,10 @@ export function WalletKitProvider({
         } finally {
             useWalletKitStore.setState({ pendingConnection: null });
         }
-    }, [registerWallet]);
+    }
 
     // Reject connection request
-    const rejectConnection = useCallback(async () => {
+    async function rejectConnection() {
         const { pendingConnection } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingConnection) {
             useWalletKitStore.setState({ pendingConnection: null });
@@ -312,10 +313,10 @@ export function WalletKitProvider({
         } finally {
             useWalletKitStore.setState({ pendingConnection: null });
         }
-    }, []);
+    }
 
     // Approve transaction request
-    const approveTransaction = useCallback(async () => {
+    async function approveTransaction() {
         const { pendingTransaction } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingTransaction) {
             console.error("[WalletKit] Cannot approve: kit or pending transaction missing");
@@ -335,10 +336,10 @@ export function WalletKitProvider({
         } finally {
             useWalletKitStore.setState({ pendingTransaction: null });
         }
-    }, []);
+    }
 
     // Reject transaction request
-    const rejectTransaction = useCallback(async () => {
+    async function rejectTransaction() {
         const { pendingTransaction } = useWalletKitStore.getState();
         if (!kitRef.current || !pendingTransaction) {
             useWalletKitStore.setState({ pendingTransaction: null });
@@ -353,30 +354,30 @@ export function WalletKitProvider({
         } finally {
             useWalletKitStore.setState({ pendingTransaction: null });
         }
-    }, []);
+    }
 
     // Refresh sessions
-    const refreshSessions = useCallback(async () => {
+    async function refreshSessions() {
         if (!kitRef.current) return;
         const s = await kitRef.current.listSessions();
         useWalletKitStore.setState({ sessions: s });
-    }, []);
+    }
 
     // Disconnect session
-    const disconnect = useCallback(async (sessionId?: string) => {
+    async function disconnect(sessionId?: string) {
         if (!kitRef.current) return;
         await kitRef.current.disconnect(sessionId);
         await refreshSessions();
-    }, [refreshSessions]);
+    }
 
     // Handle TON Connect URL from QR code
-    const handleTonConnectUrl = useCallback(async (url: string) => {
+    async function handleTonConnectUrl(url: string) {
         if (!kitRef.current) {
             throw new Error("WalletKit not initialized");
         }
         console.log("[WalletKit] Handling TON Connect URL:", url);
         await kitRef.current.handleTonConnectUrl(url);
-    }, []);
+    }
 
     // Sync actions into the store
     useEffect(() => {
@@ -390,16 +391,8 @@ export function WalletKitProvider({
             handleTonConnectUrl,
             registerWallet,
         });
-    }, [
-        approveConnection,
-        rejectConnection,
-        approveTransaction,
-        rejectTransaction,
-        refreshSessions,
-        disconnect,
-        handleTonConnectUrl,
-        registerWallet,
-    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- functions are stable, synced once into store
+    }, []);
 
     return <>{children}</>;
 }

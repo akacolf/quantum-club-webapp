@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,13 +69,13 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
     } | null>(null);
 
     // Price change for header
-    const priceChange = useMemo(() => {
+    const priceChange = (() => {
         if (!candles || candles.length < 2) return null;
         const first = candles[0].open;
         const last = candles[candles.length - 1].close;
         if (first === 0) return null;
         return ((last - first) / first) * 100;
-    }, [candles]);
+    })();
 
     const lastPrice = candles?.[candles.length - 1]?.close;
     const isPositive = (priceChange ?? 0) >= 0;

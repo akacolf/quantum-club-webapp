@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -27,33 +27,33 @@ const LeaderboardContent = () => {
 
   const { data, isLoading } = useLeaderboardQuery(telegramId);
 
-  const formattedAmount = useCallback((total: number) => {
-    const amount = total;
-    if (amount >= 100_000_000_000) {
-      return Math.round(amount / 1_000_000_000) + "B";
-    } else if (amount >= 10_000_000_000) {
-      return Math.round(amount / 1_000_000_000) + "B";
-    } else if (amount >= 1_000_000_000) {
-      return Math.round(amount / 1_000_000) + "M";
-    } else if (amount >= 100_000_000) {
-      return (amount / 1_000_000).toFixed(1) + "M";
-    } else if (amount >= 10_000_000) {
-      return (amount / 1_000_000).toFixed(1) + "M";
-    } else if (amount >= 1_000_000) {
-      return (amount / 1_000_000).toFixed(1) + "M";
-    } else if (amount >= 100_000) {
-      return Math.round(amount / 1_000) + "K";
-    } else if (amount >= 10_000) {
-      return Math.round(amount / 1_000) + "K";
-    } else if (amount >= 1_000) {
-      return Math.round(amount / 1_000) + "K";
-    }
-    return Math.round(amount).toLocaleString("en-US");
-  }, []);
-
   // Sync query data to the Zustand leaderboard store
   useEffect(() => {
     if (!data) return;
+
+    const formattedAmount = (total: number) => {
+      const amount = total;
+      if (amount >= 100_000_000_000) {
+        return Math.round(amount / 1_000_000_000) + "B";
+      } else if (amount >= 10_000_000_000) {
+        return Math.round(amount / 1_000_000_000) + "B";
+      } else if (amount >= 1_000_000_000) {
+        return Math.round(amount / 1_000_000) + "M";
+      } else if (amount >= 100_000_000) {
+        return (amount / 1_000_000).toFixed(1) + "M";
+      } else if (amount >= 10_000_000) {
+        return (amount / 1_000_000).toFixed(1) + "M";
+      } else if (amount >= 1_000_000) {
+        return (amount / 1_000_000).toFixed(1) + "M";
+      } else if (amount >= 100_000) {
+        return Math.round(amount / 1_000) + "K";
+      } else if (amount >= 10_000) {
+        return Math.round(amount / 1_000) + "K";
+      } else if (amount >= 1_000) {
+        return Math.round(amount / 1_000) + "K";
+      }
+      return Math.round(amount).toLocaleString("en-US");
+    };
 
     setLeaderboardContext(data.allValues);
 
@@ -63,7 +63,7 @@ const LeaderboardContent = () => {
 
     setTotalUsers(data.userCount);
     setTotalQuant(formattedAmount(data.totalAmount));
-  }, [data, formattedAmount, setLeaderboardContext, setTotalQuant, setTotalUsers, setUserRank]);
+  }, [data, setLeaderboardContext, setTotalQuant, setTotalUsers, setUserRank]);
 
   // Firestore side-effect: update QuantAmount on the userRank doc
   useEffect(() => {

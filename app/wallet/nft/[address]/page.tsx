@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -71,23 +71,23 @@ export default function NftDetailPage() {
         Address.parse(walletAddress).equals(Address.parse(nft.ownerAddress));
 
     // Helper to format address
-    const formatFriendlyAddress = useCallback((address: string): string => {
+    const formatFriendlyAddress = (address: string): string => {
         try {
             const addr = Address.parse(address);
             return addr.toString({ bounceable: true, testOnly: isTestnet });
         } catch {
             return address;
         }
-    }, [isTestnet]);
+    };
 
-    const formatWalletAddress = useCallback((address: string): string => {
+    const formatWalletAddress = (address: string): string => {
         try {
             const addr = Address.parse(address);
             return addr.toString({ bounceable: false, testOnly: isTestnet });
         } catch {
             return address;
         }
-    }, [isTestnet]);
+    };
 
     const error = nftFetchError ? "Failed to load NFT" : (!isLoading && !nft) ? "NFT not found" : null;
 

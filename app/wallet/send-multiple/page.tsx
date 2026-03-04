@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
@@ -62,7 +62,7 @@ export default function SendMultiplePage() {
   const tonBalanceNum = parseFloat(tonBalance) || 0;
 
   // Add recipient
-  const addRecipient = useCallback(() => {
+  const addRecipient = () => {
     if (recipients.length >= MAX_BATCH_MESSAGES) {
       toast.error(`Maximum ${MAX_BATCH_MESSAGES} recipients allowed per batch`);
       return;
@@ -71,65 +71,59 @@ export default function SendMultiplePage() {
       ...prev,
       { id: Date.now().toString(), address: "", amount: "", isValid: false },
     ]);
-  }, [recipients.length]);
+  };
 
   // Remove recipient
-  const removeRecipient = useCallback(
-    (id: string) => {
-      if (recipients.length <= 2) {
-        toast.error("Minimum 2 recipients required for batch send");
-        return;
-      }
-      setRecipients((prev) => prev.filter((r) => r.id !== id));
-    },
-    [recipients.length],
-  );
+  const removeRecipient = (id: string) => {
+    if (recipients.length <= 2) {
+      toast.error("Minimum 2 recipients required for batch send");
+      return;
+    }
+    setRecipients((prev) => prev.filter((r) => r.id !== id));
+  };
 
   // Update recipient
-  const updateRecipient = useCallback(
-    (id: string, field: "address" | "amount", value: string) => {
-      setRecipients((prev) =>
-        prev.map((r) => {
-          if (r.id !== id) return r;
+  const updateRecipient = (id: string, field: "address" | "amount", value: string) => {
+    setRecipients((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
 
-          const updated = { ...r, [field]: value };
-          let addressValid = false;
-          let amountValid = false;
+        const updated = { ...r, [field]: value };
+        let addressValid = false;
+        let amountValid = false;
 
-          // Check address validity
-          const addressToCheck = field === "address" ? value : r.address;
-          if (addressToCheck.trim()) {
-            try {
-              Address.parse(addressToCheck);
-              addressValid = true;
-            } catch {
-              addressValid = false;
-            }
+        // Check address validity
+        const addressToCheck = field === "address" ? value : r.address;
+        if (addressToCheck.trim()) {
+          try {
+            Address.parse(addressToCheck);
+            addressValid = true;
+          } catch {
+            addressValid = false;
           }
+        }
 
-          // Check amount validity
-          const amountToCheck = field === "amount" ? value : r.amount;
-          const amountNum = parseFloat(amountToCheck);
-          amountValid = !isNaN(amountNum) && amountNum > 0;
+        // Check amount validity
+        const amountToCheck = field === "amount" ? value : r.amount;
+        const amountNum = parseFloat(amountToCheck);
+        amountValid = !isNaN(amountNum) && amountNum > 0;
 
-          // Set error message for current field
-          if (field === "address" && value.trim() && !addressValid) {
-            updated.error = "Invalid address format";
-          } else if (field === "amount" && value.trim() && !amountValid) {
-            updated.error = "Invalid amount";
-          } else {
-            updated.error = undefined;
-          }
+        // Set error message for current field
+        if (field === "address" && value.trim() && !addressValid) {
+          updated.error = "Invalid address format";
+        } else if (field === "amount" && value.trim() && !amountValid) {
+          updated.error = "Invalid amount";
+        } else {
+          updated.error = undefined;
+        }
 
-          // Both must be valid for the recipient to be valid
-          updated.isValid = addressValid && amountValid;
+        // Both must be valid for the recipient to be valid
+        updated.isValid = addressValid && amountValid;
 
-          return updated;
-        }),
-      );
-    },
-    [],
-  );
+        return updated;
+      }),
+    );
+  };
 
   // Calculate totals
   const totalAmount = recipients.reduce(
@@ -160,13 +154,13 @@ export default function SendMultiplePage() {
     validRecipients.length >= 2 && totalWithGas <= tonBalanceNum;
 
   // Build batch transactions
-  const buildTransactions = useCallback((): BatchTransaction[] => {
+  const buildTransactions = (): BatchTransaction[] => {
     return validRecipients.map((r) => ({
       to: r.address,
       value: toNano(r.amount),
       bounce: false,
     }));
-  }, [validRecipients]);
+  };
 
   // Validate before sending
   const validationResult =

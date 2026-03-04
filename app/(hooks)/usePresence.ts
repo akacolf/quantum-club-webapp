@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   doc,
@@ -91,21 +91,15 @@ export function usePresence(telegramId: string | null) {
     };
   }, [telegramId]);
 
-  const setCurrentChat = useCallback(
-    (chatId: string | null) => {
-      if (!presenceRef.current) return;
-      setDoc(presenceRef.current, { currentChatId: chatId }, { merge: true }).catch(() => {});
-    },
-    []
-  );
+  const setCurrentChat = (chatId: string | null) => {
+    if (!presenceRef.current) return;
+    setDoc(presenceRef.current, { currentChatId: chatId }, { merge: true }).catch(() => {});
+  };
 
-  const setActiveCall = useCallback(
-    (callId: string | null) => {
-      if (!presenceRef.current) return;
-      setDoc(presenceRef.current, { activeCallId: callId }, { merge: true }).catch(() => {});
-    },
-    []
-  );
+  const setActiveCall = (callId: string | null) => {
+    if (!presenceRef.current) return;
+    setDoc(presenceRef.current, { activeCallId: callId }, { merge: true }).catch(() => {});
+  };
 
   return { setCurrentChat, setActiveCall, presenceRef };
 }
@@ -123,13 +117,10 @@ export function usePresenceActions(telegramId: string | null) {
     return () => { presenceRef.current = null; };
   }, [telegramId]);
 
-  const setCurrentChat = useCallback(
-    (chatId: string | null) => {
-      if (!presenceRef.current) return;
-      setDoc(presenceRef.current, { currentChatId: chatId }, { merge: true }).catch(() => {});
-    },
-    []
-  );
+  const setCurrentChat = (chatId: string | null) => {
+    if (!presenceRef.current) return;
+    setDoc(presenceRef.current, { currentChatId: chatId }, { merge: true }).catch(() => {});
+  };
 
   return { setCurrentChat };
 }

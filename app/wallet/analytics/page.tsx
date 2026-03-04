@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
   }, [walletAddress, totalUsdBalance, telegramId]);
 
   // Calculate portfolio allocation
-  const portfolioAllocation = useMemo((): AssetAllocation[] => {
+  const portfolioAllocation = ((): AssetAllocation[] => {
     const total = parseFloat(totalUsdBalance) || 0;
     if (total === 0) return [];
 
@@ -202,26 +202,22 @@ export default function AnalyticsPage() {
 
     // Sort by value descending
     return allocations.sort((a, b) => b.value - a.value);
-  }, [totalUsdBalance, tonUsdValue, jettons, isTestnet, btcUsdValue, ethUsdValue, solUsdValue, trxUsdValue]);
+  })();
 
   // Prepare data for pie chart
-  const pieChartData = useMemo(() => {
-    return portfolioAllocation.map((asset) => ({
-      name: asset.symbol,
-      value: asset.value,
-      color: asset.color,
-    }));
-  }, [portfolioAllocation]);
+  const pieChartData = portfolioAllocation.map((asset) => ({
+    name: asset.symbol,
+    value: asset.value,
+    color: asset.color,
+  }));
 
   // Prepare data for bar chart (top 5 assets)
-  const barChartData = useMemo(() => {
-    return portfolioAllocation.slice(0, 5).map((asset) => ({
-      name: asset.symbol,
-      value: asset.value,
-      percentage: asset.percentage,
-      color: asset.color,
-    }));
-  }, [portfolioAllocation]);
+  const barChartData = portfolioAllocation.slice(0, 5).map((asset) => ({
+    name: asset.symbol,
+    value: asset.value,
+    percentage: asset.percentage,
+    color: asset.color,
+  }));
 
   // Custom tooltip for pie chart
   const PieTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; color: string } }> }) => {

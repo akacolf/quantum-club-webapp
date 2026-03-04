@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -56,11 +56,9 @@ export default function GroupDetailPage() {
     }, [groupId, getGroupMembers]);
 
     // Resolve "Unknown" member names via batch query
-    const unknownMemberIds = useMemo(() => {
-        return members
-            .filter((m) => m.username === "Unknown")
-            .map((m) => m.telegramId);
-    }, [members]);
+    const unknownMemberIds = members
+        .filter((m) => m.username === "Unknown")
+        .map((m) => m.telegramId);
 
     const batchUsernamesQuery = useQcUsernamesBatch(unknownMemberIds);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useDeferredValue, useRef } from "react";
+import React, { useState, useDeferredValue, useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Icon } from "@iconify/react";
@@ -54,7 +54,7 @@ export default function SpotTradingPage() {
     const listRef = useRef<HTMLDivElement>(null);
 
     // Build a set of raw addresses the user holds for fast lookup
-    const holdingsMap = useMemo(() => {
+    const holdingsMap = (() => {
         const map = new Map<string, string>(); // rawAddress → balance
         for (const j of jettons) {
             if (j.jettonAddress) {
@@ -67,9 +67,9 @@ export default function SpotTradingPage() {
             }
         }
         return map;
-    }, [jettons]);
+    })();
 
-    const filtered = useMemo(() => {
+    const filtered = (() => {
         if (!tokens) return [];
         let list = tokens;
         if (debouncedQuery) {
@@ -87,10 +87,10 @@ export default function SpotTradingPage() {
             if (aHeld !== bHeld) return bHeld - aHeld;
             return a.symbol.localeCompare(b.symbol);
         });
-    }, [tokens, debouncedQuery, holdingsMap]);
+    })();
 
     // Positions: tokens user holds that match spot tokens
-    const positions = useMemo(() => {
+    const positions = (() => {
         if (!tokens) return [];
         return tokens
             .map((t) => {
@@ -103,7 +103,7 @@ export default function SpotTradingPage() {
                 return { token: t, balance, valueUsd };
             })
             .filter(Boolean) as { token: typeof tokens[0]; balance: number; valueUsd?: number }[];
-    }, [tokens, holdingsMap]);
+    })();
 
     const totalPositionValue = positions.reduce((sum, p) => sum + (p.valueUsd || 0), 0);
 

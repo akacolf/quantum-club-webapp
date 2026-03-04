@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
@@ -89,13 +89,13 @@ export default function TokenDetailPage() {
     );
 
     // Refresh token + stats after a trade without resetting displayed data
-    const refreshAfterTrade = useCallback(() => {
+    const refreshAfterTrade = () => {
         selectToken(tokenId);
         if (selectedToken?.jettonMasterAddress) {
             queryClient.invalidateQueries({ queryKey: ["onChainStats", selectedToken.jettonMasterAddress, isTestnet] });
             queryClient.invalidateQueries({ queryKey: ["liveTrades", selectedToken.jettonMasterAddress, isTestnet] });
         }
-    }, [tokenId, selectToken, selectedToken?.jettonMasterAddress, isTestnet, queryClient]);
+    };
 
     useEffect(() => {
         router.prefetch("/wallet");

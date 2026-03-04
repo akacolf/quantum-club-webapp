@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,7 +45,7 @@ export function TokenAnalysisCard({
     const [isExpanded, setIsExpanded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const runAnalysis = useCallback(async () => {
+    async function runAnalysis() {
         if (!tokenAddress) return;
 
         setIsLoading(true);
@@ -70,13 +70,14 @@ export function TokenAnalysisCard({
         } finally {
             setIsLoading(false);
         }
-    }, [tokenAddress, tokenData]);
+    }
 
     useEffect(() => {
         if (autoAnalyze && tokenAddress) {
             runAnalysis();
         }
-    }, [autoAnalyze, tokenAddress, runAnalysis]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoAnalyze, tokenAddress]);
 
     const getRiskColor = (score: number) => {
         if (score <= 3) return "text-green-400";

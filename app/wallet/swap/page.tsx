@@ -1,7 +1,7 @@
 "use client";
 
 import { env } from "@/env";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { sendBoc } from "@/lib/tonapi-client";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useForm } from "@tanstack/react-form";
@@ -122,7 +122,7 @@ export default function SwapPage() {
     // Swap form — TanStack Form for amount field; full validation via swapSchema at submit boundary
     const form = useForm({ defaultValues: { amount: "" } });
     const amount = form.state.values.amount;
-    const setAmount = useCallback((val: string) => form.setFieldValue("amount", val), [form]);
+    const setAmount = (val: string) => form.setFieldValue("amount", val);
 
     // State
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
@@ -148,7 +148,7 @@ export default function SwapPage() {
     // Build quote params based on current form state
     const referralAddress = env.NEXT_PUBLIC_PLATFORM_WALLET;
 
-    const quoteParams = useMemo((): QuoteParams | null => {
+    const quoteParams: QuoteParams | null = (() => {
         if (!fromAsset || !toAsset || !debouncedAmount || parseFloat(debouncedAmount) <= 0) {
             return null;
         }
@@ -179,7 +179,7 @@ export default function SwapPage() {
             preferGasless, // Pass gasless preference
             ...(referralAddress ? { referrerAddress: referralAddress, referrerFeeBps: 10 } : {}),
         };
-    }, [fromAsset, toAsset, debouncedAmount, slippage, preferGasless, fromChain, toChain, referralAddress]);
+    })();
 
     // Omniston hook for quotes and execution
     const {
@@ -284,34 +284,31 @@ export default function SwapPage() {
     };
 
     // Get user's balance for an asset
-    const getAssetBalance = useCallback(
-        (asset: SwapAsset | null): string => {
-            if (!asset) return "0";
+    const getAssetBalance = (asset: SwapAsset | null): string => {
+        if (!asset) return "0";
 
-            if (asset.kind === "Ton") {
-                return tonBalance;
-            }
+        if (asset.kind === "Ton") {
+            return tonBalance;
+        }
 
-            // Convert STON.fi asset address to raw format
-            const assetRaw = toRawAddress(asset.contractAddress);
+        // Convert STON.fi asset address to raw format
+        const assetRaw = toRawAddress(asset.contractAddress);
 
-            const jetton = jettons.find((j) => {
-                if (!j.jettonAddress) return false;
-                // Convert wallet jetton address to raw format
-                const jettonRaw = toRawAddress(j.jettonAddress);
-                return jettonRaw === assetRaw;
-            });
+        const jetton = jettons.find((j) => {
+            if (!j.jettonAddress) return false;
+            // Convert wallet jetton address to raw format
+            const jettonRaw = toRawAddress(j.jettonAddress);
+            return jettonRaw === assetRaw;
+        });
 
-            if (jetton) {
-                return (
-                    parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)
-                ).toFixed(4);
-            }
+        if (jetton) {
+            return (
+                parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)
+            ).toFixed(4);
+        }
 
-            return "0";
-        },
-        [tonBalance, jettons]
-    );
+        return "0";
+    };
 
     // Handle swap direction toggle (only if it won't set TRON as source)
     const handleToggleDirection = () => {
@@ -348,17 +345,17 @@ export default function SwapPage() {
     };
 
     // Calculate required gas based on Omniston quote
-    const requiredGas = useMemo(() => {
+    const requiredGas = (() => {
         if (omnistonQuote && omnistonQuote.gasBudget) {
             const gasBudget = parseFloat(omnistonQuote.gasBudget) / 1e9;
             // Apply safety multiplier
             return Math.max(gasBudget * GAS_SAFETY_MULTIPLIER, MIN_GAS_RESERVE_TON);
         }
         return MIN_GAS_RESERVE_TON;
-    }, [omnistonQuote]);
+    })();
 
     // Calculate swap details including gas handling
-    const swapDetails = useMemo(() => {
+    const swapDetails = (() => {
         if (!fromAsset || !amount || parseFloat(amount) <= 0) {
             return {
                 swapAmount: 0,
@@ -419,10 +416,10 @@ export default function SwapPage() {
             hasMinBalance: true,
             estimatedGas: requiredGas
         };
-    }, [fromAsset, amount, getAssetBalance, tonBalance, requiredGas]);
+    })();
 
     // Validation
-    const canProceed = useMemo(() => {
+    const canProceed = (() => {
         if (!fromAsset || !toAsset || !amount || parseFloat(amount) <= 0)
             return false;
         if (!omnistonQuote) return false;
@@ -450,7 +447,7 @@ export default function SwapPage() {
             return false;
 
         return true;
-    }, [fromAsset, toAsset, amount, omnistonQuote, getAssetBalance, tonBalance, swapDetails, isCrossChain, toChain, tronDestAddress]);
+    })();
 
     // Handle continue to confirm — validates form values via Zod
     const handleContinue = () => {
@@ -623,16 +620,14 @@ export default function SwapPage() {
     const activeQuote = step === "input" ? omnistonQuote : confirmedQuote;
 
     // Get expected output amount for display
-    const expectedOutput = useMemo(() => {
-        if (!activeQuote || !toAsset) return "0.0";
-        return parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
-    }, [activeQuote, toAsset]);
+    const expectedOutput = (!activeQuote || !toAsset)
+        ? "0.0"
+        : parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
 
-    const minimumReceived = useMemo(() => {
-        if (!activeQuote || !toAsset) return "0.0";
+    const minimumReceived = (!activeQuote || !toAsset)
+        ? "0.0"
         // Omniston includes slippage in the quote, askUnits is already the minimum
-        return parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
-    }, [activeQuote, toAsset]);
+        : parseFloat(fromUnits(activeQuote.askUnits, toAsset.decimals)).toFixed(4);
 
     // Loading state
     if (isLoadingAssets || (isContextLoading && !hasFetched)) {

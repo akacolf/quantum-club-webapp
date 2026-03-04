@@ -1,7 +1,7 @@
 "use client";
 
 import { env } from "@/env";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -116,7 +116,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
     const displayImpact = preview?.priceImpact;
     const isLoading = simLoading || isQuoting;
 
-    const handleSwap = useCallback(async () => {
+    const handleSwap = async () => {
         // Zod schema validation at submit boundary
         const parsed = tradeAmountSchema.safeParse({ amount: amount || "" });
         if (!parsed.success) {
@@ -175,7 +175,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
         } finally {
             setIsExecuting(false);
         }
-    }, [amount, quote, walletAddress, buildAndExecute, sendTransaction, activeTab, token, resolverName]);
+    };
 
     const quickAmounts = activeTab === "buy"
         ? ["0.1", "0.5", "1", "5"]

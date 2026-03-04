@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -57,7 +57,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
     startTouch: { x: number; y: number };
   } | null>(null);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  function handleTouchStart(e: React.TouchEvent) {
     e.stopPropagation();
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -88,9 +88,9 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
       };
       setIsGesturing(true);
     }
-  }, [scale, translate]);
+  }
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  function handleTouchMove(e: React.TouchEvent) {
     e.stopPropagation();
     if (!gestureRef.current) return;
 
@@ -120,9 +120,9 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         y: gestureRef.current.startTranslate.y + dy,
       });
     }
-  }, []);
+  }
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+  function handleTouchEnd(e: React.TouchEvent) {
     e.stopPropagation();
     if (gestureRef.current?.isPinching && e.touches.length < 2) {
       // Snap back to 1 if close enough
@@ -135,20 +135,20 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
       gestureRef.current = null;
       setIsGesturing(false);
     }
-  }, [scale]);
+  }
 
-  const handleDoubleTap = useCallback(() => {
+  function handleDoubleTap() {
     if (scale > 1) {
       setScale(1);
       setTranslate({ x: 0, y: 0 });
     } else {
       setScale(2.5);
     }
-  }, [scale]);
+  }
 
   const doubleTapRef = useRef<{ time: number }>({ time: 0 });
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
+  function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
     const now = Date.now();
     if (now - doubleTapRef.current.time < 300) {
@@ -157,7 +157,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
     } else {
       doubleTapRef.current.time = now;
     }
-  }, [handleDoubleTap]);
+  }
 
   return (
     <div
@@ -271,10 +271,10 @@ export default function FileMessage({
   const isLoading = imageQuery.isLoading || pdfQuery.isLoading;
   const loadError = imageQuery.isError;
 
-  const handleOpenPdf = useCallback(() => {
+  function handleOpenPdf() {
     if (!isPdf) return;
     setShowPdfViewer(true);
-  }, [isPdf]);
+  }
 
   if (loadError) {
     return (

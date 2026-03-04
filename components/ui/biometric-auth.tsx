@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,7 @@ export function BiometricAuth({
   const { telegramId } = useUserContext();
 
   // Secure PIN hashing using SHA-256 (Web Crypto API)
-  const hashPin = useCallback(async (pinValue: string): Promise<string> => {
+  async function hashPin(pinValue: string): Promise<string> {
     const encoder = new TextEncoder();
     // Add a salt based on telegramId for additional security
     const salt = telegramId || 'quantum-wallet';
@@ -60,9 +60,9 @@ export function BiometricAuth({
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }, [telegramId]);
+  }
 
-  const getPin = useCallback(async () => {
+  async function getPin() {
     if (!telegramId) {
       return null;
     }
@@ -80,7 +80,7 @@ export function BiometricAuth({
     } else {
       return storedHash;
     }
-  }, [telegramId]);
+  }
 
   // Check available authentication methods on mount
   useEffect(() => {
@@ -105,10 +105,11 @@ export function BiometricAuth({
       }
     };
     checkAuthMethods();
-  }, [isOpen, telegramId, getPin]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getPin is also used in verifyPin
+  }, [isOpen, telegramId]);
 
   // Verify PIN
-  const verifyPin = useCallback(async () => {
+  async function verifyPin() {
     if (pin.length < 4) {
       setPinError("PIN must be at least 4 digits");
       return;
@@ -154,9 +155,9 @@ export function BiometricAuth({
       }
     }
 
-  }, [pin, hashPin, onSuccess, telegramId]);
+  }
   // Biometric authentication using Web Authentication API
-  const authenticateWithBiometric = useCallback(async () => {
+  async function authenticateWithBiometric() {
     if (!hasBiometric) {
       setPinError("Biometric authentication not available on this device");
       setAuthMethod("pin");
@@ -243,7 +244,7 @@ export function BiometricAuth({
     } finally {
       setIsAuthenticating(false);
     }
-  }, [hasBiometric, onSuccess, telegramId]);
+  }
 
   // Handle PIN input (only allow numbers)
   const handlePinChange = (value: string) => {
@@ -450,24 +451,24 @@ export function useBiometricAuth() {
   const [isOpen, setIsOpen] = useState(false);
   const [resolveAuth, setResolveAuth] = useState<((value: boolean) => void) | null>(null);
 
-  const requestAuth = useCallback((): Promise<boolean> => {
+  function requestAuth(): Promise<boolean> {
     return new Promise((resolve) => {
       setResolveAuth(() => resolve);
       setIsOpen(true);
     });
-  }, []);
+  }
 
-  const handleSuccess = useCallback(() => {
+  function handleSuccess() {
     setIsOpen(false);
     resolveAuth?.(true);
     setResolveAuth(null);
-  }, [resolveAuth]);
+  }
 
-  const handleCancel = useCallback(() => {
+  function handleCancel() {
     setIsOpen(false);
     resolveAuth?.(false);
     setResolveAuth(null);
-  }, [resolveAuth]);
+  }
 
   return {
     isOpen,

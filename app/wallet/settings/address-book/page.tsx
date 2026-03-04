@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -43,14 +43,14 @@ export default function AddressBookPage() {
     });
 
     // Format address for display
-    const formatAddress = useCallback((address: string): string => {
+    const formatAddress = (address: string): string => {
         try {
             const addr = Address.parse(address);
             return addr.toString({ bounceable: false, testOnly: isTestnet });
         } catch {
             return address;
         }
-    }, [isTestnet]);
+    };
 
     // Slice address for compact display (e.g., "UQBx...abc1")
     const sliceAddress = (address: string): string => {

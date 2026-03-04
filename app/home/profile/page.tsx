@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -35,10 +35,7 @@ export default function ProfilePage() {
     const { data: stats, isLoading: statsLoading } = useUserStatsQuery(telegramId, daily || 0);
 
     // Derive a stable stats object for achievements (use defaults while loading)
-    const resolvedStats = useMemo(
-        () => stats ?? { totalQntm: 0, referralCount: 0, tasksCompleted: 0, dailyStreak: 0, walletCreated: false },
-        [stats],
-    );
+    const resolvedStats = stats ?? { totalQntm: 0, referralCount: 0, tasksCompleted: 0, dailyStreak: 0, walletCreated: false };
 
     // Copy QC ID to clipboard
     const handleCopyId = async () => {

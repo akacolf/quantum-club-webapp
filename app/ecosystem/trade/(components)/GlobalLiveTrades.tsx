@@ -5,7 +5,7 @@
  * Fetches trade data from TONAPI across multiple tokens
  */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +37,7 @@ export default function GlobalLiveTrades() {
     const { trendingTokens, newTokens } = useTrading();
     const router = useRouter();
 
-    const allTokens = useMemo(() => [...trendingTokens, ...newTokens], [trendingTokens, newTokens]);
+    const allTokens = [...trendingTokens, ...newTokens];
     const { data: trades = [], isFetching: isLoading } = useGlobalTrades(allTokens, isTestnet, 20000);
 
     // Auto-rotate through trades every 4 seconds

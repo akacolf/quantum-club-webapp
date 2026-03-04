@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
@@ -71,9 +71,9 @@ export default function UnstakePage() {
         : 0;
 
     // Fetch staking info
-    const fetchData = useCallback(async () => {
+    const fetchData = async () => {
         if (!telegramId) return;
-        
+
         setIsLoading(true);
         try {
             const storedMnemonic = await getSecureMnemonic(telegramId);
@@ -96,11 +96,12 @@ export default function UnstakePage() {
         } finally {
             setIsLoading(false);
         }
-    }, [telegramId]);
+    };
 
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Parse amount from form
     const unstakeAmount = form.getFieldValue("amount");

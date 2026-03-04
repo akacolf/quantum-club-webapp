@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useCallback } from "react";
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -37,15 +37,15 @@ interface ChatItemProps {
 
 // Memoized chat item component for performance
 const ChatItem = memo(function ChatItem({ chat, index, telegramId, onNavigate }: ChatItemProps) {
-    const participantName = useMemo(() => {
+    const participantName = (() => {
         if (chat.type === "group") return chat.groupName || "Group";
         const otherIndex = chat.participants.findIndex((p) => p !== telegramId);
         return chat.participantNames[otherIndex] || "Unknown";
-    }, [chat, telegramId]);
+    })();
 
-    const handleClick = useCallback(() => {
+    const handleClick = () => {
         onNavigate(chat.id);
-    }, [chat.id, onNavigate]);
+    };
 
     return (
         <motion.div
@@ -106,10 +106,10 @@ export default function ChatListPage() {
     const { chats, loading } = useChat();
     const { telegramId } = useUserContext();
 
-    // Memoized navigation handler
-    const handleNavigate = useCallback((chatId: string) => {
+    // Navigation handler
+    const handleNavigate = (chatId: string) => {
         router.push(`/chat/${chatId}`);
-    }, [router]);
+    };
 
     if (loading) {
         return <Loader />;
