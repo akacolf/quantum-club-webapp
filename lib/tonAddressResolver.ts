@@ -177,25 +177,3 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
   }
 }
 
-export function isValidTonAddressOrDomain(input: string): boolean {
-  const trimmed = input.trim();
-
-  // Check if it's an @username format
-  if (trimmed.startsWith("@")) {
-    const username = trimmed.slice(1).toLowerCase();
-    return username.length >= 3 && /^[a-z0-9][a-z0-9._]*[a-z0-9]$/.test(username);
-  }
-  
-  // Check if it's a .ton domain format
-  if (trimmed.toLowerCase().endsWith(".ton")) {
-    return trimmed.length > 4 && /^[a-zA-Z0-9-]+\.ton$/i.test(trimmed);
-  }
-  
-  // Try to parse as address
-  try {
-    Address.parse(trimmed);
-    return true;
-  } catch {
-    return false;
-  }
-}

@@ -30,13 +30,6 @@ export interface EarnTask {
     timestamp: number;
 }
 
-export interface ConnectWalletButtonProps {
-    walletAddress: string | null;
-    formatAddress: (address: string) => string;
-    handleWalletAction: () => void;
-    setActiveWalletTab: (active: boolean) => void;
-}
-
 export interface DailyCheckInProps {
     loadingButtonDay: boolean;
     daily: number;

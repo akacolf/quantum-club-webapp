@@ -16,21 +16,15 @@ export interface BatchTransaction {
     stateInit?: Cell;
 }
 
-/**
- * Result of a batch transaction
- */
-export interface BatchTransactionResult {
+interface BatchTransactionResult {
     success: boolean;
     txHash?: string;
     error?: string;
     messageCount: number;
 }
 
-/**
- * Configuration for batch transaction
- */
-export interface BatchConfig {
-    maxMessages?: number; // Default 4, max 255 (but practically limited by gas)
+interface BatchConfig {
+    maxMessages?: number;
     sendMode?: SendMode;
 }
 

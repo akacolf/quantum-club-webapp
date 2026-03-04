@@ -10,9 +10,6 @@ import {
     Address,
     beginCell,
     Cell,
-    toNano,
-    contractAddress,
-    StateInit,
     TupleItemSlice
 } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
@@ -21,7 +18,7 @@ import { ContractAdapter } from "@ton-api/ton-adapter";
 // =====================================================
 // Operation Codes (TEP-74 Standard + Blum/BigPump Compatible)
 // =====================================================
-export const JettonOps = {
+const JettonOps = {
     // Standard TEP-74 ops
     TRANSFER: 0xf8a7ea5,
     TRANSFER_NOTIFICATION: 0x7362d09c,
@@ -42,23 +39,7 @@ export const JettonOps = {
 // =====================================================
 // Types
 // =====================================================
-export interface JettonMetadata {
-    name: string;
-    symbol: string;
-    description: string;
-    image: string;
-    decimals?: number;
-}
-
-export interface JettonMasterData {
-    totalSupply: bigint;
-    mintable: boolean;
-    adminAddress: string;
-    content: Cell;
-    walletCode: Cell;
-}
-
-export interface JettonWalletData {
+interface JettonWalletData {
     balance: bigint;
     ownerAddress: string;
     jettonMasterAddress: string;
@@ -73,7 +54,7 @@ export interface BondingCurveData {
     graduationTarget: bigint;
 }
 
-export interface TransactionParams {
+interface TransactionParams {
     to: string;
     value: string;
     body?: Cell;
@@ -83,45 +64,6 @@ export interface TransactionParams {
 // =====================================================
 // Message Builders (TEP-74 Compliant)
 // =====================================================
-
-/**
- * Build transfer message (op 0xf8a7ea5)
- * Used to transfer Jettons between wallets
- */
-export function buildTransferMessage(params: {
-    queryId?: bigint;
-    amount: bigint;
-    destination: Address;
-    responseDestination: Address;
-    customPayload?: Cell;
-    forwardTonAmount: bigint;
-    forwardPayload?: Cell;
-}): Cell {
-    const builder = beginCell()
-        .storeUint(JettonOps.TRANSFER, 32)
-        .storeUint(params.queryId ?? BigInt(0), 64)
-        .storeCoins(params.amount)
-        .storeAddress(params.destination)
-        .storeAddress(params.responseDestination);
-
-    // Custom payload (Maybe ^Cell)
-    if (params.customPayload) {
-        builder.storeBit(true).storeRef(params.customPayload);
-    } else {
-        builder.storeBit(false);
-    }
-
-    builder.storeCoins(params.forwardTonAmount);
-
-    // Forward payload (Either Cell ^Cell)
-    if (params.forwardPayload) {
-        builder.storeBit(true).storeRef(params.forwardPayload);
-    } else {
-        builder.storeBit(false);
-    }
-
-    return builder.endCell();
-}
 
 /**
  * Build burn message (op 0x595f07bc)
@@ -189,64 +131,6 @@ export function buildGraduateMessage(params: {
 }
 
 // =====================================================
-// Jetton Wallet Address Calculation
-// =====================================================
-
-/**
- * Pack Jetton wallet initial data
- */
-function packJettonWalletData(
-    ownerAddress: Address,
-    jettonMasterAddress: Address,
-    walletCode: Cell
-): Cell {
-    return beginCell()
-        .storeCoins(BigInt(0)) // initial balance = 0
-        .storeAddress(ownerAddress)
-        .storeAddress(jettonMasterAddress)
-        .storeRef(walletCode)
-        .endCell();
-}
-
-/**
- * Calculate Jetton wallet StateInit
- */
-export function calculateJettonWalletStateInit(
-    ownerAddress: Address,
-    jettonMasterAddress: Address,
-    walletCode: Cell
-): StateInit {
-    const data = packJettonWalletData(ownerAddress, jettonMasterAddress, walletCode);
-    return {
-        code: walletCode,
-        data: data,
-    };
-}
-
-/**
- * Calculate Jetton wallet address from StateInit
- */
-export function calculateJettonWalletAddress(stateInit: StateInit): Address {
-    return contractAddress(0, stateInit);
-}
-
-/**
- * Get Jetton wallet address for an owner
- */
-export function getJettonWalletAddressLocal(
-    ownerAddress: Address,
-    jettonMasterAddress: Address,
-    walletCode: Cell
-): Address {
-    const stateInit = calculateJettonWalletStateInit(
-        ownerAddress,
-        jettonMasterAddress,
-        walletCode
-    );
-    return calculateJettonWalletAddress(stateInit);
-}
-
-// =====================================================
 // On-Chain Queries (GET Methods) - Using TonAPI
 // =====================================================
 
@@ -282,53 +166,6 @@ export function getContractAdapter(testnet: boolean = false): ContractAdapter {
  */
 export function createTonClient(testnet: boolean = false): ContractAdapter {
     return getContractAdapter(testnet);
-}
-
-/**
- * Create ContractAdapter with async initialization (for compatibility)
- * @deprecated Use getContractAdapter() instead
- */
-export async function createTonClientAsync(testnet: boolean = false): Promise<ContractAdapter> {
-    return getContractAdapter(testnet);
-}
-
-/**
- * Get Jetton master data (TEP-74: get_jetton_data)
- */
-export async function getJettonData(
-    jettonMasterAddress: string,
-    contractAdapter: ContractAdapter
-): Promise<JettonMasterData | null> {
-    try {
-        const address = Address.parse(jettonMasterAddress);
-        const provider = contractAdapter.provider(address);
-        const result = await provider.get("get_jetton_data", []);
-
-        const totalSupply = result.stack.readBigNumber();
-        const mintable = result.stack.readNumber() === -1;
-        const adminAddress = result.stack.readAddress();
-        const content = result.stack.readCell();
-        const walletCode = result.stack.readCell();
-
-        return {
-            totalSupply,
-            mintable,
-            adminAddress: adminAddress?.toString() ?? "",
-            content,
-            walletCode,
-        };
-    } catch (error) {
-        // Silently handle expected errors:
-        // - exit_code: -13 = contract doesn't exist
-        // - 429 = rate limit (expected without API key)
-        const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13") && 
-            !errorMessage.includes("429") && 
-            !errorMessage.includes("rate")) {
-            console.error("Failed to get Jetton data:", error);
-        }
-        return null;
-    }
 }
 
 /**
@@ -404,7 +241,7 @@ export async function getJettonWalletAddress(
 /**
  * Get Jetton wallet data (TEP-74: get_wallet_data)
  */
-export async function getJettonWalletData(
+async function getJettonWalletData(
     jettonWalletAddress: string,
     contractAdapter: ContractAdapter
 ): Promise<JettonWalletData | null> {
@@ -544,109 +381,6 @@ export async function previewSellOnChain(
     }
 }
 
-/**
- * Check if contract is deployed
- * Uses TonAPI to check contract status
- */
-export async function isContractDeployed(
-    address: string,
-    _contractAdapter: ContractAdapter
-): Promise<boolean> {
-    try {
-        const { isContractActive } = await import("@/lib/ton-api");
-        return await isContractActive(address);
-    } catch {
-        return false;
-    }
-}
-
-// =====================================================
-// Transaction Builders for QC Wallet
-// =====================================================
-
-/**
- * Build BUY transaction params for QC Wallet
- * Send TON to Jetton Master to buy tokens
- */
-export function buildBuyTransaction(
-    jettonMasterAddress: string,
-    tonAmount: bigint,
-    minTokensOut?: bigint
-): TransactionParams {
-    return {
-        to: jettonMasterAddress,
-        value: tonAmount.toString(),
-        body: buildBuyMessage({ minTokensOut }),
-    };
-}
-
-/**
- * Build SELL transaction params for QC Wallet
- * Send burn message to Jetton Wallet to sell tokens
- */
-export function buildSellTransaction(
-    jettonWalletAddress: string,
-    tokenAmount: bigint,
-    responseAddress: Address
-): TransactionParams {
-    return {
-        to: jettonWalletAddress,
-        value: toNano("0.1").toString(), // Gas for burn + response
-        body: buildBurnMessage({
-            amount: tokenAmount,
-            responseDestination: responseAddress,
-        }),
-    };
-}
-
-/**
- * Build TRANSFER transaction params for QC Wallet
- * Transfer Jettons to another address
- */
-export function buildTransferTransaction(
-    jettonWalletAddress: string,
-    toAddress: Address,
-    tokenAmount: bigint,
-    responseAddress: Address,
-    forwardTonAmount?: bigint,
-    comment?: string
-): TransactionParams {
-    let forwardPayload: Cell | undefined;
-
-    // Add comment if provided
-    if (comment) {
-        forwardPayload = beginCell()
-            .storeUint(0, 32) // Comment indicator
-            .storeStringTail(comment)
-            .endCell();
-    }
-
-    return {
-        to: jettonWalletAddress,
-        value: toNano("0.1").toString(), // Gas for transfer
-        body: buildTransferMessage({
-            amount: tokenAmount,
-            destination: toAddress,
-            responseDestination: responseAddress,
-            forwardTonAmount: forwardTonAmount ?? BigInt(0),
-            forwardPayload,
-        }),
-    };
-}
-
-/**
- * Build WITHDRAW FEES transaction params
- */
-export function buildWithdrawFeesTransaction(
-    jettonMasterAddress: string
-): TransactionParams {
-    return {
-        to: jettonMasterAddress,
-        value: toNano("0.05").toString(),
-        body: buildWithdrawFeesMessage({}),
-    };
-}
-
 // =====================================================
 // Helper Functions
 // =====================================================
@@ -676,20 +410,6 @@ export function parseTokenAmount(amount: string, decimals: number = 9): bigint {
     const [whole, fraction = ""] = amount.split(".");
     const paddedFraction = fraction.padEnd(decimals, "0").slice(0, decimals);
     return BigInt(whole + paddedFraction);
-}
-
-/**
- * Format TON amount for display
- */
-export function formatTonAmount(nanotons: bigint): string {
-    return formatTokenAmount(nanotons, 9);
-}
-
-/**
- * Generate unique query ID
- */
-export function generateQueryId(): bigint {
-    return BigInt(Date.now()) * BigInt(1000) + BigInt(Math.floor(Math.random() * 1000));
 }
 
 // =====================================================

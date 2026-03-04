@@ -90,29 +90,18 @@ export const STAKING_POOLS: StakingPool[] = [
 ];
 
 // Staking operation result
-export interface StakingResult {
+interface StakingResult {
     success: boolean;
     txHash?: string;
     error?: string;
     estimatedLiquidTokens?: string;
 }
 
-// User's staking position
-export interface StakingPosition {
-    poolId: string;
-    poolName: string;
-    liquidTokenBalance: string;
-    liquidTokenSymbol: string;
-    stakedTonValue: string;
-    earnedRewards: string;
-    apy: number;
-}
-
 /**
  * Build stake transaction for liquid staking pools
  * Most TON liquid staking pools accept TON with a simple transfer with a specific comment/body
  */
-export async function buildStakeTransaction(
+async function buildStakeTransaction(
     pool: StakingPool,
     amountTon: string
 ): Promise<{

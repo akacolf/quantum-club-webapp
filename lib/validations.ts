@@ -239,20 +239,6 @@ export const referralSchema = z.object({
   referredId: z.string().min(1),
 });
 
-export const callNotificationSchema = z.object({
-  calleeId: z.string().min(1, "Callee ID is required"),
-  callerName: z.string().min(1, "Caller name is required"),
-  chatId: z.string().min(1, "Chat ID is required"),
-});
-
-export const chatNotificationSchema = z.object({
-  recipientIds: z.array(z.string().min(1)).min(1, "At least one recipient is required"),
-  senderName: z.string().min(1, "Sender name is required"),
-  chatId: z.string().min(1, "Chat ID is required"),
-  chatName: z.string().optional().default(""),
-  isGroup: z.boolean().optional().default(false),
-});
-
 export const analyzeTokenSchema = z.object({
   tokenAddress: z.string().min(1, "Token address is required"),
   tokenData: z.object({

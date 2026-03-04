@@ -7,7 +7,7 @@
  * and claim farming rewards.
  */
 
-import { FARM, FARM_VERSION } from "@ston-fi/sdk";
+import { FARM } from "@ston-fi/sdk";
 import { StonApiClient } from "@ston-fi/api";
 import { SendMode, WalletContractV5R1 } from "@ton/ton";
 import { toNano, internal } from "@ton/core";
@@ -343,5 +343,3 @@ export async function getFarmPoolData(farmAddress: string) {
     }
 }
 
-// Export FARM_VERSION for reference
-export { FARM_VERSION };

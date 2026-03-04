@@ -60,20 +60,12 @@ export interface NftSale {
     owner?: string;
 }
 
-export interface MarketplaceStats {
-    totalCollections: number;
-    totalNfts: number;
-    totalVolume24h?: number;
-    topCollections: NftCollection[];
-}
-
 // =====================================================
 // Configuration
 // =====================================================
 
 // Low platform fee: 0.5% (0.005)
 export const MARKETPLACE_FEE_PERCENT = 0.5;
-export const MARKETPLACE_FEE_RECIPIENT = "UQC..."; // TODO: Set actual fee recipient address
 
 // Curated list of verified TON collections (from Getgems verified collections)
 // These are popular, authentic collections with blue verification badges
@@ -386,10 +378,7 @@ const TELEGRAM_GIFT_COLLECTIONS_RAW = new Set(
         .filter((addr): addr is string => addr !== null)
 );
 
-/**
- * Check if an NFT collection is a Telegram gift collection
- */
-export function isTelegramGift(collectionAddress?: string): boolean {
+function isTelegramGift(collectionAddress?: string): boolean {
     if (!collectionAddress) return false;
     const normalized = normalizeToRaw(collectionAddress);
     return normalized !== null && TELEGRAM_GIFT_COLLECTIONS_RAW.has(normalized);
@@ -404,18 +393,6 @@ export function categorizeNft(nft: NftItem): "gift" | "sticker" | "regular" {
     const name = (nft.collectionName || nft.name || "").toLowerCase();
     if (name.includes("sticker")) return "sticker";
     return "regular";
-}
-
-// Search functionality - placeholder for future Getgems API integration
-export async function searchNfts(
-    query: string,
-    limit = 20,
-    testnet = false
-): Promise<{ collections: NftCollection[]; items: NftItem[] }> {
-    // TONAPI doesn't have a direct search endpoint
-    // For now, return empty - could integrate Getgems API for search
-    console.log(`[NFT Marketplace] Search not yet implemented: ${query}, limit: ${limit}, testnet: ${testnet}`);
-    return { collections: [], items: [] };
 }
 
 // =====================================================

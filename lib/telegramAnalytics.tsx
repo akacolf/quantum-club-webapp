@@ -55,7 +55,7 @@ function getTelegramInfo(): { userId: number; isPremium: boolean; platform: stri
  * Send event via server-side API route
  * Returns true if event was recorded successfully
  */
-export async function sendAnalyticsEvent(
+async function sendAnalyticsEvent(
   eventName: string,
   options?: {
     isSuccess?: boolean;

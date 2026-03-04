@@ -67,49 +67,6 @@ export async function getAccountNfts(address: string, options?: TonApiOptions) {
     return tonApiGet(`/v2/accounts/${address}/nfts`, options);
 }
 
-export async function getAccountTransactions(
-    address: string,
-    limit = 20,
-    options?: TonApiOptions
-) {
-    return tonApiGet(
-        `/v2/accounts/${address}/events?limit=${limit}`,
-        options
-    );
-}
-
-export async function getJettonInfo(address: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/jettons/${address}`, options);
-}
-
-export async function getJettonHolders(address: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/jettons/${address}/holders`, options);
-}
-
-export async function getNftItem(address: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/nfts/${address}`, options);
-}
-
-export async function getNftCollection(address: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/nfts/collections/${address}`, options);
-}
-
-export async function getNftCollectionItems(
-    address: string,
-    limit = 100,
-    offset = 0,
-    options?: TonApiOptions
-) {
-    return tonApiGet(
-        `/v2/nfts/collections/${address}/items?limit=${limit}&offset=${offset}`,
-        options
-    );
-}
-
-export async function getTransactionByHash(hash: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/events/${hash}`, options);
-}
-
 export async function sendBoc(boc: string, options?: TonApiOptions) {
     return tonApiPost(`/v2/blockchain/message`, { boc }, options);
 }
@@ -118,16 +75,3 @@ export async function sendBlockchainMessage(boc: string, testnet?: boolean) {
     return tonApiPost<{ hash?: string }>(`/v2/blockchain/message`, { boc }, { testnet });
 }
 
-export async function resolveDns(domain: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/dns/${encodeURIComponent(domain)}/resolve`, options);
-}
-
-export async function getStakingInfo(address: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/staking/nominator/${address}/pools`, options);
-}
-
-export async function getRates(tokens: string[], currencies: string[] = ["usd"]) {
-    return tonApiGet(
-        `/v2/rates?tokens=${tokens.join(",")}&currencies=${currencies.join(",")}`
-    );
-}
