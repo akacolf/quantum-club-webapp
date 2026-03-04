@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { sendBoc } from "@/lib/tonapi-client";
 import { useForm } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -574,11 +575,7 @@ export default function SwapPage() {
                         .endCell();
 
                     const boc = externalMessage.toBoc().toString("base64");
-                    await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ boc }),
-                    });
+                    await sendBoc(boc, { testnet: isTestnet });
                 } else {
                     // Normal transfer
                     await contract.sendTransfer({

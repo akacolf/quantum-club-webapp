@@ -27,6 +27,7 @@ import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
+import { sendBoc } from "@/lib/tonapi-client";
 
 export default function SendNftPage() {
     const params = useParams();
@@ -226,11 +227,7 @@ export default function SendNftPage() {
                     .endCell();
 
                 const boc = externalMessage.toBoc().toString('base64');
-                await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ boc })
-                });
+                await sendBoc(boc, { testnet: isTestnet });
             } else {
                 // Normal transfer
                 await contract.sendTransfer({

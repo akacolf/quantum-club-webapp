@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -27,6 +27,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
 import { AnimatedPrice } from "@/components/ui/animated-price";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { categorizeNft } from "@/lib/nft-marketplace";
 import { WalletPriceChart } from "./WalletPriceChart";
@@ -259,9 +260,18 @@ export default function WalletPage() {
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1D');
+  const [chartPeriod, setChartPeriod] = useQueryState("period", parseAsStringLiteral(['1H', '1D', '1W', '1M', '6M', '1Y'] as const).withDefault('1D').withOptions({ history: "replace" }));
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [change24h, setChange24h] = useState<number | null>(null);
+
+  // Virtualized jettons list
+  const jettonsContainerRef = useRef<HTMLDivElement>(null);
+  const jettonsVirtualizer = useWindowVirtualizer({
+    count: jettons.length,
+    estimateSize: () => 72,
+    overscan: 5,
+    scrollMargin: jettonsContainerRef.current?.offsetTop ?? 0,
+  });
 
   // Track wallet balance history for 24h change
   useEffect(() => {
@@ -1075,52 +1085,65 @@ export default function WalletPage() {
               </div>
             )}
 
-            {/* TON Jettons */}
-            {jettons.map((jetton, index) => {
-              const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
-              const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
-              return (
-                <Card
-                  key={index}
-                  className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
-                  onClick={() => {
-                    setSelectedAsset({
-                      name: jetton.name,
-                      symbol: jetton.symbol,
-                      balance: formattedBalance,
-                      value: jetton.usdValue || 0,
-                      priceUsd: jetton.priceUsd || 0,
-                      image: jetton.image,
-                      color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
-                      jettonAddress: jetton.jettonAddress,
-                    }); setChartPeriod('1D');
-                  }}
-                >
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
-                        {jetton.image ? (
-                          <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                        ) : (
-                          <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-white">{jetton.symbol}</h4>
-                        <p className="text-xs text-gray-500 truncate max-w-[120px]">{jetton.name}</p>
-                      </div>
+            {/* TON Jettons (virtualized) */}
+            {jettons.length > 0 && (
+              <div ref={jettonsContainerRef} className="relative w-full" style={{ height: `${jettonsVirtualizer.getTotalSize()}px` }}>
+                {jettonsVirtualizer.getVirtualItems().map((virtualItem) => {
+                  const index = virtualItem.index;
+                  const jetton = jettons[index];
+                  const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
+                  const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
+                  return (
+                    <div
+                      key={index}
+                      className="absolute top-0 left-0 w-full"
+                      style={{ transform: `translateY(${virtualItem.start - (jettonsVirtualizer.options.scrollMargin ?? 0)}px)` }}
+                      ref={jettonsVirtualizer.measureElement}
+                      data-index={virtualItem.index}
+                    >
+                      <Card
+                        className="bg-[#111] border-[#222] rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                        onClick={() => {
+                          setSelectedAsset({
+                            name: jetton.name,
+                            symbol: jetton.symbol,
+                            balance: formattedBalance,
+                            value: jetton.usdValue || 0,
+                            priceUsd: jetton.priceUsd || 0,
+                            image: jetton.image,
+                            color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
+                            jettonAddress: jetton.jettonAddress,
+                          }); setChartPeriod('1D');
+                        }}
+                      >
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border border-[#333]">
+                              {jetton.image ? (
+                                <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                              ) : (
+                                <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                              <p className="text-xs text-gray-500 truncate max-w-[120px]">{jetton.name}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-right min-w-[80px]">
+                              <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
+                              <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
+                            </div>
+                            <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right min-w-[80px]">
-                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
-                        <p className="text-xs text-gray-500">{hideBalance ? "••••" : usdDisplay}</p>
-                      </div>
-                      <Icon icon="lucide:chevron-right" className="w-4 h-4 text-gray-500"/>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
 
             {/* Multi-Chain Section Header - Only show in mainnet when addresses exist */}
             {!isTestnet && (ethAddress || btcAddress || solAddress || trxAddress) && (

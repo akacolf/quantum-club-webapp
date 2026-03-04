@@ -683,15 +683,9 @@ export default function QCChatListPage() {
       let otherDisplayName = normalizedUsername;
       if (!isSelfChat) {
         try {
-          const profileRes = await fetch(
-            `/api/qc-username?qcId=${encodeURIComponent(otherUserId)}`,
-            { cache: "no-store" }
-          );
-          if (profileRes.ok) {
-            const profileData = await profileRes.json();
-            if (profileData?.username && typeof profileData.username === "string") {
-              otherDisplayName = profileData.username.replace(/^@+/, "").trim() || otherDisplayName;
-            }
+          const result = await resolveQcUsername({ qcId: otherUserId });
+          if (result?.data?.username && typeof result.data.username === "string") {
+            otherDisplayName = result.data.username.replace(/^@+/, "").trim() || otherDisplayName;
           }
         } catch {
           // Fallback to normalized username

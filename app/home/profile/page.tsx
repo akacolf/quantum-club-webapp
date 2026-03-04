@@ -76,14 +76,11 @@ export default function ProfilePage() {
         if (tgUser?.photo_url) {
             setPhotoUrl(tgUser.photo_url);
         } else if (telegramId) {
-            fetch('/api/get-profile-photo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telegramId })
-            })
-                .then((res) => res.json())
-                .then((data) => setPhotoUrl(data.photoUrl))
-                .catch(() => { });
+            import("@/app/(hooks)/actions").then(({ getProfilePhoto }) =>
+                getProfilePhoto({ telegramId })
+                    .then((result) => { if (result?.data?.photoUrl) setPhotoUrl(result.data.photoUrl); })
+                    .catch(() => { })
+            );
         }
 
         // Prefetch legal pages

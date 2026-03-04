@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -67,9 +68,17 @@ export default function GroupMembersPanel({
   onAction,
 }: GroupMembersPanelProps) {
   const router = useRouter();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAdmin = chatMeta.createdBy === currentUserId;
   const mutedSet = new Set(chatMeta.mutedUsers || []);
   const bannedList = chatMeta.bannedUsers || [];
+
+  const membersVirtualizer = useVirtualizer({
+    count: chatMeta.participants.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 44,
+    overscan: 10,
+  });
 
   // Prefetch user profile routes for members
   useEffect(() => {
@@ -96,101 +105,109 @@ export default function GroupMembersPanel({
 
         <Separator />
 
-        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-          {chatMeta.participants.map((userId) => {
-            const name = chatMeta.participantNames[userId] || "Unknown";
-            const isCreator = userId === chatMeta.createdBy;
-            const isSelf = userId === currentUserId;
-            const isMuted = mutedSet.has(userId);
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 py-2">
+          <div className="relative w-full" style={{ height: `${membersVirtualizer.getTotalSize()}px` }}>
+            {membersVirtualizer.getVirtualItems().map((virtualItem) => {
+              const userId = chatMeta.participants[virtualItem.index];
+              const name = chatMeta.participantNames[userId] || "Unknown";
+              const isCreator = userId === chatMeta.createdBy;
+              const isSelf = userId === currentUserId;
+              const isMuted = mutedSet.has(userId);
 
-            return (
-              <div
-                key={userId}
-                className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/40 transition-colors"
-              >
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className={`${getAvatarColor(name)} text-white text-[10px] font-semibold`}>
-                    {getInitials(name)}
-                  </AvatarFallback>
-                </Avatar>
+              return (
+                <div
+                  key={userId}
+                  className="absolute top-0 left-0 w-full"
+                  style={{ transform: `translateY(${virtualItem.start}px)` }}
+                  ref={membersVirtualizer.measureElement}
+                  data-index={virtualItem.index}
+                >
+                  <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/40 transition-colors">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className={`${getAvatarColor(name)} text-white text-[10px] font-semibold`}>
+                        {getInitials(name)}
+                      </AvatarFallback>
+                    </Avatar>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    {isSelf ? (
-                      <span className="text-sm font-medium truncate">
-                        @{name}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => router.push(`/user/${userId}`)}
-                        className="text-sm font-medium truncate hover:underline text-left"
-                      >
-                        @{name}
-                      </button>
-                    )}
-                    {isCreator && (
-                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md">
-                        Admin
-                      </Badge>
-                    )}
-                    {isMuted && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md text-orange-500 border-orange-500/30">
-                        Muted
-                      </Badge>
-                    )}
-                    {isSelf && (
-                      <span className="text-[10px] text-muted-foreground">you</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {isSelf ? (
+                          <span className="text-sm font-medium truncate">
+                            @{name}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => router.push(`/user/${userId}`)}
+                            className="text-sm font-medium truncate hover:underline text-left"
+                          >
+                            @{name}
+                          </button>
+                        )}
+                        {isCreator && (
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md">
+                            Admin
+                          </Badge>
+                        )}
+                        {isMuted && (
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md text-orange-500 border-orange-500/30">
+                            Muted
+                          </Badge>
+                        )}
+                        {isSelf && (
+                          <span className="text-[10px] text-muted-foreground">you</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Admin actions — only for admin, not on self or other admins */}
+                    {isAdmin && !isSelf && !isCreator && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isMuted ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-7 h-7 rounded-full"
+                            title="Unmute"
+                            onClick={() => onAction("unmute", userId)}
+                          >
+                            <Icon icon="solar:volume-loud-bold" className="w-4 h-4 text-green-500" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-7 h-7 rounded-full"
+                            title="Mute"
+                            onClick={() => onAction("mute", userId)}
+                          >
+                            <Icon icon="solar:volume-cross-bold" className="w-4 h-4 text-orange-500" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-7 h-7 rounded-full"
+                          title="Kick"
+                          onClick={() => onAction("kick", userId)}
+                        >
+                          <Icon icon="solar:user-minus-bold" className="w-4 h-4 text-yellow-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-7 h-7 rounded-full"
+                          title="Ban"
+                          onClick={() => onAction("ban", userId)}
+                        >
+                          <Icon icon="solar:shield-cross-bold" className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                {/* Admin actions — only for admin, not on self or other admins */}
-                {isAdmin && !isSelf && !isCreator && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    {isMuted ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-7 h-7 rounded-full"
-                        title="Unmute"
-                        onClick={() => onAction("unmute", userId)}
-                      >
-                        <Icon icon="solar:volume-loud-bold" className="w-4 h-4 text-green-500" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-7 h-7 rounded-full"
-                        title="Mute"
-                        onClick={() => onAction("mute", userId)}
-                      >
-                        <Icon icon="solar:volume-cross-bold" className="w-4 h-4 text-orange-500" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-7 h-7 rounded-full"
-                      title="Kick"
-                      onClick={() => onAction("kick", userId)}
-                    >
-                      <Icon icon="solar:user-minus-bold" className="w-4 h-4 text-yellow-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-7 h-7 rounded-full"
-                      title="Ban"
-                      onClick={() => onAction("ban", userId)}
-                    >
-                      <Icon icon="solar:shield-cross-bold" className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Banned users section */}

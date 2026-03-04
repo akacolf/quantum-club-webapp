@@ -50,6 +50,7 @@ import {
   sendBtcTransaction,
 } from "../utils/multichain";
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { tonApiGet, tonApiPost, sendBoc } from "@/lib/tonapi-client";
 
 type NetworkMode = "ton" | "multichain";
 type MultiChainType = "eth" | "sol" | "trx" | "btc";
@@ -343,16 +344,16 @@ export default function SendPage() {
   // Fetch recipient public key for encryption
   const fetchRecipientPublicKey = useCallback(async (address: string) => {
     try {
-      const response = await fetch(`${TON_API_BASE_URL}/v2/accounts/${encodeURIComponent(address)}/publickey`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.public_key) {
-          // Public key is returned as hex string
-          const pubKeyBytes = new Uint8Array(Buffer.from(data.public_key, 'hex'));
-          setRecipientPublicKey(pubKeyBytes);
-          setCanEncrypt(true);
-          return;
-        }
+      const data = await tonApiGet<{ public_key?: string }>(
+        `/v2/accounts/${encodeURIComponent(address)}/publickey`,
+        { testnet: isTestnet }
+      );
+      if (data.public_key) {
+        // Public key is returned as hex string
+        const pubKeyBytes = new Uint8Array(Buffer.from(data.public_key, 'hex'));
+        setRecipientPublicKey(pubKeyBytes);
+        setCanEncrypt(true);
+        return;
       }
     } catch (error) {
       console.log("Could not fetch recipient public key:", error);
@@ -360,7 +361,7 @@ export default function SendPage() {
     setRecipientPublicKey(null);
     setCanEncrypt(false);
     setEncryptComment(false); // Disable encryption if we can't get the key
-  }, [TON_API_BASE_URL]);
+  }, [isTestnet]);
 
   // Resolve .ton domain addresses
   useEffect(() => {
@@ -713,38 +714,30 @@ export default function SendPage() {
 
         // Use TON API emulation for accurate fee
         try {
-          const emulateResponse = await fetch(
-            `${TON_API_BASE_URL}/v2/emulation/emulateMessageToTrace`,
+          const emulateData = await tonApiPost<{ transactions?: Record<string, unknown>[] }>(
+            `/v2/emulation/emulateMessageToTrace`,
             {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                boc: externalMessage.toBoc().toString("base64"),
-                ignore_signature_check: true
-              })
-            }
+              boc: externalMessage.toBoc().toString("base64"),
+              ignore_signature_check: true
+            },
+            { testnet: isTestnet }
           );
 
-          if (emulateResponse.ok) {
-            const emulateData = await emulateResponse.json();
-            const transactions = emulateData.transactions || [];
-            let totalFees = 0;
+          const transactions = emulateData.transactions || [];
+          let totalFees = 0;
 
-            for (const tx of transactions) {
-              const computeFee = tx.compute_phase?.gas_fees || 0;
-              const storageFee = tx.storage_phase?.storage_fees_collected || 0;
-              const actionFee = tx.action_phase?.total_action_fees || 0;
-              totalFees += computeFee + storageFee + actionFee;
-            }
-
-            networkFee = totalFees / 1e9;
-            if (networkFee < 0.001) {
-              networkFee = 0.005;
-            }
-            networkFee = networkFee * 1.15; // 15% buffer
-          } else {
-            throw new Error("Emulation failed");
+          for (const tx of transactions) {
+            const computeFee = (tx.compute_phase as Record<string, number> | undefined)?.gas_fees || 0;
+            const storageFee = (tx.storage_phase as Record<string, number> | undefined)?.storage_fees_collected || 0;
+            const actionFee = (tx.action_phase as Record<string, number> | undefined)?.total_action_fees || 0;
+            totalFees += computeFee + storageFee + actionFee;
           }
+
+          networkFee = totalFees / 1e9;
+          if (networkFee < 0.001) {
+            networkFee = 0.005;
+          }
+          networkFee = networkFee * 1.15; // 15% buffer
         } catch {
           // Fallback to calculated fee
           networkFee = calculateNetworkFee(1, hasComment);
@@ -925,11 +918,7 @@ export default function SendPage() {
 
           // Send the external message via TonAPI
           const boc = externalMessage.toBoc().toString('base64');
-          await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ boc })
-          });
+          await sendBoc(boc, { testnet: isTestnet });
         } else {
           // Normal transfer for deployed wallet
           await contract.sendTransfer({
@@ -1006,11 +995,7 @@ export default function SendPage() {
 
           // Send the external message via TonAPI
           const boc = externalMessage.toBoc().toString('base64');
-          await fetch(`${TON_API_BASE_URL}/v2/blockchain/message`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ boc })
-          });
+          await sendBoc(boc, { testnet: isTestnet });
         } else {
           // Normal transfer for deployed wallet
           await contract.sendTransfer({
