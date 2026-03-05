@@ -155,6 +155,34 @@
       ]
     },
     {
+      "collectionGroup": "priceAlerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "telegramId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "priceAlerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "telegramId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "triggered",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "qc-chats",
       "queryScope": "COLLECTION",
       "fields": [

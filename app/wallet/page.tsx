@@ -271,7 +271,8 @@ export default function WalletPage() {
   const jettonsContainerRef = useRef<HTMLDivElement>(null);
   const jettonsVirtualizer = useWindowVirtualizer({
     count: jettons.length,
-    estimateSize: () => 72,
+    estimateSize: () => 84,
+    gap: 12,
     overscan: 5,
     scrollMargin: jettonsContainerRef.current?.offsetTop ?? 0,
   });

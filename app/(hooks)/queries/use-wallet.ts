@@ -70,7 +70,9 @@ async function fetchWalletAssetsData(
             const decimals = (j?.decimals as number) || 9;
             const rawBalance = parseFloat((jetton.balance as string) || "0");
             const actualBalance = rawBalance / Math.pow(10, decimals);
-            const priceUsd = prices?.USD || 0;
+            const priceUsd = prices
+                ? (prices.USD ?? prices.usd ?? prices.Usd ?? Object.entries(prices).find(([k]) => k.toLowerCase() === "usd")?.[1] ?? 0)
+                : 0;
             const usdValue = actualBalance * priceUsd;
             jettonsUsdTotal += usdValue;
             return {

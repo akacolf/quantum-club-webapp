@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useChat } from "@/app/(contexts)/ChatContext";
 
 interface ChatPickerModalProps {
@@ -13,7 +15,14 @@ interface ChatPickerModalProps {
 }
 
 export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerModalProps) {
-  const { chats } = useChat();
+  const { chats, loading, refreshChats } = useChat();
+
+  // Refresh chats when modal opens to ensure latest data
+  useEffect(() => {
+    if (open && refreshChats) {
+      refreshChats();
+    }
+  }, [open, refreshChats]);
 
   return (
     <AnimatePresence>
@@ -43,7 +52,20 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
 
             {/* Chat list */}
             <div className="overflow-y-auto max-h-[calc(60vh-60px)] p-2">
-              {chats.length === 0 && (
+              {loading && chats.length === 0 && (
+                <div className="space-y-2 p-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 px-3 py-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!loading && chats.length === 0 && (
                 <div className="py-8 text-center">
                   <Icon icon="solar:chat-line-linear" className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No chats yet</p>

@@ -214,6 +214,10 @@ export function usePriceAlerts(telegramId: string | null) {
             if (!telegramId) return [];
             const { fetchPriceAlerts } = await import("@/app/(hooks)/actions");
             const result = await fetchPriceAlerts({});
+            if (result?.serverError) {
+                console.error("Failed to fetch price alerts:", result.serverError);
+                throw new Error(result.serverError);
+            }
             return (result?.data?.alerts || []) as Array<{
                 id: string; telegramId: string; symbol: string;
                 targetPrice: number; direction: "above" | "below";

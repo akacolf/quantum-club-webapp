@@ -59,8 +59,9 @@ export async function getAccount(address: string, options?: TonApiOptions) {
     return tonApiGet(`/v2/accounts/${address}`, options);
 }
 
-export async function getAccountJettons(address: string, options?: TonApiOptions) {
-    return tonApiGet(`/v2/accounts/${address}/jettons`, options);
+export async function getAccountJettons(address: string, options?: TonApiOptions & { currencies?: string }) {
+    const currencies = options?.currencies || "usd";
+    return tonApiGet(`/v2/accounts/${address}/jettons?currencies=${currencies}`, options);
 }
 
 export async function getAccountNfts(address: string, options?: TonApiOptions) {

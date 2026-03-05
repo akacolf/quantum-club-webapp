@@ -24,8 +24,25 @@ export async function resolveTonAddress(input: string): Promise<ResolvedAddress>
     };
   }
 
+  // Try to parse as a raw TON address first (before username check)
+  // This prevents addresses like "UQCy2Q..." from being misidentified as usernames
+  if (!trimmedInput.startsWith("@") && !trimmedInput.endsWith(".ton")) {
+    try {
+      const parsed = Address.parse(trimmedInput);
+      return {
+        address: parsed.toString({ bounceable: false }),
+        isValid: true,
+        isDomain: false,
+        isUsername: false,
+        originalInput: input
+      };
+    } catch {
+      // Not a valid address, continue to username/domain checks
+    }
+  }
+
   // Check if it's a @username (QC username)
-  if (trimmedInput.startsWith("@") || /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/i.test(trimmedInput) && !trimmedInput.includes(".ton")) {
+  if (trimmedInput.startsWith("@") || (/^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$/i.test(trimmedInput) && !trimmedInput.includes(".ton"))) {
     const username = trimmedInput.replace(/^@/, '').toLowerCase();
     
     // Must be at least 3 chars to be a valid username

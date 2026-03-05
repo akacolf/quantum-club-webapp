@@ -58,11 +58,8 @@ export default function NftDetailPage() {
     // Share to chat state
     const [showShareModal, setShowShareModal] = useState(false);
 
-    // Dynamic back button - go to collection page if NFT has a collection, otherwise wallet
-    const backPath = nft?.collectionAddress 
-        ? `/wallet/marketplace/collection/${encodeURIComponent(nft.collectionAddress)}`
-        : "/wallet";
-    useTelegramBackButton(backPath);
+    // Back button goes to wallet page
+    useTelegramBackButton("/wallet");
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
