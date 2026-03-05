@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useQueryClient } from "@tanstack/react-query";

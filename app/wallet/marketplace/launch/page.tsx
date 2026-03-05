@@ -31,7 +31,7 @@ export default function LaunchNftPage() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [attributes, setAttributes] = useState<Attribute[]>([{ trait_type: "", value: "" }]);
     const [isDeploying, setIsDeploying] = useState(false);
-    const [deploySuccess, setDeploySuccess] = useState(false);
+    const [deploySuccess] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const form = useForm({

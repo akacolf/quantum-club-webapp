@@ -1,7 +1,7 @@
 "use client";
 
 import { env } from "@/env";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";

@@ -20,7 +20,7 @@ interface PollMessageProps {
   isOwnMessage: boolean;
 }
 
-export default function PollMessage({ msgId, poll, telegramId, chatId, isOwnMessage }: PollMessageProps) {
+export default function PollMessage({ msgId, poll, telegramId, chatId }: PollMessageProps) {
   const totalVotes = Object.values(poll.votes).reduce((sum, arr) => sum + arr.length, 0);
   const userVotedOption = Object.entries(poll.votes).find(([, voters]) =>
     voters.includes(telegramId)

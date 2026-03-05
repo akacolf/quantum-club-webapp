@@ -55,7 +55,6 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-  setDoc,
   deleteDoc,
   deleteField,
   increment,
@@ -297,7 +296,6 @@ export default function ChatConversationPage() {
 
   // Long-press & double-tap refs for reactions
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTapRef = useRef<{ time: number; msgId: string | null }>({ time: 0, msgId: null });
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Ref for scrollToMessage to avoid stale closures
@@ -1351,7 +1349,7 @@ export default function ChatConversationPage() {
     }
   };
 
-  const handleTransferFailed = async (amount: string, _error: string) => {
+  const handleTransferFailed = async (_amount: string, _error: string) => {
     // Failed transfers only show a toast (already shown by TransferDrawer)
     // No message posted to chat for failed transfers
   };
@@ -2377,7 +2375,7 @@ export default function ChatConversationPage() {
       {/* Messages */}
       <div
         ref={chatContainerRef}
-        onScroll={(e) => { handleScroll(); handleScrollForPagination(); }}
+        onScroll={() => { handleScroll(); handleScrollForPagination(); }}
         className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5"
         style={chatTheme ? { background: chatTheme } : undefined}
       >

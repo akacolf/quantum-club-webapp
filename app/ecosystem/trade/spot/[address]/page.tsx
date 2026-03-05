@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, use } from "react";
+import { useState, use } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +25,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     const { data: dyor } = useSpotTokenDyor(decodedAddress);
 
     const [tradingOpen, setTradingOpen] = useState(false);
-    const [tradingTab, setTradingTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
+    const [, setTradingTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
 
     if (isLoadingTokens) {
         return (

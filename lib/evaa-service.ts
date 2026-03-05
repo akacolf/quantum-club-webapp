@@ -1,4 +1,4 @@
-import { Address, beginCell, type Cell, type OpenedContract } from '@ton/core';
+import { Address, beginCell, type OpenedContract } from '@ton/core';
 import { TonClient } from '@ton/ton';
 import {
   EvaaMasterClassic,

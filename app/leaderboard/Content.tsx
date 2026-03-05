@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";

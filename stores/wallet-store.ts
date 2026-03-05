@@ -429,8 +429,8 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
   },
 
   sendTransaction: async (params) => {
-    const { isTestnet, walletAddress, _deps } = get();
-    const { telegramId, invalidateWalletQueries } = _deps;
+    const { isTestnet, _deps } = get();
+    const { telegramId } = _deps;
 
     if (!telegramId) {
       return { success: false, error: "Not authenticated" };

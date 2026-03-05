@@ -29,7 +29,6 @@
  * v1–v5 deprecated and removed
  */
 
-const SALT_V6_EPOCH = new TextEncoder().encode("qc-chat-v6-epoch");
 const SALT_V6_WRAP = new TextEncoder().encode("qc-chat-v6-wrap");
 const IV_LENGTH = 12;
 const VERSION_V6 = 6;
@@ -54,32 +53,6 @@ if (typeof document !== "undefined") {
 }
 
 // --- Key derivation ---
-
-async function deriveEpochKey(
-  material: string,
-  epochNonce: string,
-  chatId: string,
-  epochCounter: number,
-): Promise<CryptoKey> {
-  const epochMaterial = `${material}:${epochNonce}`;
-  const info = new TextEncoder().encode(`epoch:${chatId}:${epochCounter}`);
-  const cacheKey = `v6epoch:${epochMaterial}:${epochCounter}`;
-  const cached = keyCache.get(cacheKey);
-  if (cached) return cached;
-
-  const rawKey = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(epochMaterial), "HKDF", false, ["deriveKey"]
-  );
-  const key = await crypto.subtle.deriveKey(
-    { name: "HKDF", salt: SALT_V6_EPOCH, info, hash: "SHA-256" },
-    rawKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-  keyCache.set(cacheKey, key);
-  return key;
-}
 
 async function deriveEpochWrapKey(
   material: string,

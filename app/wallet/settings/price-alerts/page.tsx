@@ -21,19 +21,6 @@ import { useForm } from "@tanstack/react-form";
 import { priceAlertSchema } from "@/lib/validations";
 import { Field, FieldError } from "@/components/ui/field";
 
-interface PriceAlert {
-    id: string;
-    telegramId: string;
-    symbol: string;
-    targetPrice: number;
-    direction: "above" | "below";
-    createdAt: number;
-    triggered: boolean;
-    notified: boolean;
-    triggeredAt?: number;
-    triggeredPrice?: number;
-}
-
 interface TokenOption {
     symbol: string;
     name: string;

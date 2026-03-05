@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { motion, AnimatePresence } from "framer-motion";

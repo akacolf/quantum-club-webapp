@@ -54,12 +54,6 @@ export interface BondingCurveData {
     graduationTarget: bigint;
 }
 
-interface TransactionParams {
-    to: string;
-    value: string;
-    body?: Cell;
-    stateInit?: Cell;
-}
 
 // =====================================================
 // Message Builders (TEP-74 Compliant)
@@ -158,14 +152,6 @@ export function getContractAdapter(testnet: boolean = false): ContractAdapter {
     }
     
     return adapter;
-}
-
-/**
- * Create ContractAdapter for blockchain queries
- * @deprecated Use getContractAdapter() instead
- */
-export function createTonClient(testnet: boolean = false): ContractAdapter {
-    return getContractAdapter(testnet);
 }
 
 /**

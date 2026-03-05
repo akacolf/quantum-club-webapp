@@ -12,7 +12,6 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Field, FieldError } from "@/components/ui/field";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useWallet } from "../WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";

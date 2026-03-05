@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";

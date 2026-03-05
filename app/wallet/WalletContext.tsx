@@ -60,7 +60,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Hydrate all wallet settings from localStorage after mount
   useEffect(() => {
     if (!telegramId) return;
-    const store = useWalletStore.getState();
 
     const storedAddress = localStorage.getItem(`quantum_wallet_address_${telegramId}`) || "";
     const storedTestnet = localStorage.getItem("quantum_ton_testnet") === "true";

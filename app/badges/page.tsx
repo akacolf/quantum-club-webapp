@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useUserBadgesQuery } from "@/app/(hooks)/queries/use-badges";
-import { BADGE_DEFINITIONS, RARITY_COLORS, getBadgeDefinition, type BadgeRarity } from "@/lib/badges";
+import { BADGE_DEFINITIONS, RARITY_COLORS } from "@/lib/badges";
 
 export default function BadgesPage() {
     useTelegramBackButton("/home");

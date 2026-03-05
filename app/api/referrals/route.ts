@@ -17,7 +17,7 @@ export async function POST(request:NextRequest) {
             { status: 400 }
         );
     }
-    const { referredId: userId, referrerId } = parsed.data;
+    const { referredId: userId } = parsed.data;
 
     // Only allow users to set their own referrer
     const authenticatedUserId = String(session.user?.telegramId || "");

@@ -52,12 +52,9 @@ import {
   listenToSignals,
   getActiveGroupCall,
 } from "@/lib/group-call";
-import { useCallStore, type CallState, type GroupCallState, type CallInfo, type GroupCallInfo } from "@/stores/call-store";
+import { useCallStore, type CallInfo, type GroupCallInfo } from "@/stores/call-store";
 import { useShallow } from "zustand/shallow";
 import { sendCallNotification } from "./call-actions";
-
-// Re-export types for backward compatibility
-export type { CallState, GroupCallState } from "@/stores/call-store";
 
 // ── Provider ───────────────────────────────────────────────────────────────────
 

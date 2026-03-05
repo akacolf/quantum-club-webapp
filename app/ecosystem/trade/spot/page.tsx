@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useDeferredValue, useRef } from "react";
+import { useDeferredValue, useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Icon } from "@iconify/react";
@@ -43,7 +43,7 @@ function TokenListSkeleton() {
 export default function SpotTradingPage() {
     useTelegramBackButton("/ecosystem/trade");
     const { data: tokens, isLoading } = useSpotTokens();
-    const { jettons, tonPrice } = useWallet();
+    const { jettons } = useWallet();
     const [{ tab: activeTab, q: searchQuery }, setParams] = useQueryStates({
         tab: parseAsStringLiteral(["tokens", "positions"] as const).withDefault("tokens"),
         q: parseAsString.withDefault(""),

@@ -5,7 +5,7 @@
  * Fetches trade data from TONAPI across multiple tokens
  */
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { Badge } from "@/components/ui/badge";
@@ -16,20 +16,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatCompactNumber } from "@/lib/jetton-operations";
 import { Address } from "@ton/core";
 import { useGlobalTrades } from "@/app/(hooks)/queries/use-trades";
-
-interface GlobalTrade {
-    id: string;
-    tokenId: string;
-    tokenSymbol: string;
-    tokenName: string;
-    jettonAddress: string;
-    type: "buy" | "sell";
-    walletAddress: string;
-    tokenAmount: number;
-    tonAmount: number;
-    timestamp: Date;
-    hash: string;
-}
 
 export default function GlobalLiveTrades() {
     const [currentIndex, setCurrentIndex] = useState(0);

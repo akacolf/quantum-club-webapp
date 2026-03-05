@@ -74,7 +74,7 @@ const defaultDeps: CallDeps = {
   qcUsername: null,
 };
 
-export const useCallStore = create<CallStore>()((set, get) => ({
+export const useCallStore = create<CallStore>()((set) => ({
   // State defaults
   callState: "idle" as CallState,
   callInfo: null,

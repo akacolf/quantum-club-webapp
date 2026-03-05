@@ -26,7 +26,6 @@ function formatCallDuration(seconds: number): string {
 export default function CallMessage({
   status,
   duration,
-  callerId,
   isMine,
   chatId,
   remoteUserId,

@@ -45,7 +45,7 @@ async function fetchAndDecrypt({
  * Query cache handles deduplication, caching, and retry automatically.
  */
 export function useDecryptedMedia(params: DecryptParams & { enabled?: boolean }) {
-  const { url, mimeType, encrypted, participantIds, chatId, enabled = true } = params;
+  const { url, encrypted, participantIds, chatId, enabled = true } = params;
 
   const needsDecryption = encrypted && participantIds && chatId;
 

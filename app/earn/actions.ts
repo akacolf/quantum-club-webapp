@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { FieldValue } from "firebase-admin/firestore";
-import { auth, firestore } from "../(firebase)/server";
+import { firestore } from "../(firebase)/server";
 import { authActionClient, authWithQcIdClient } from "@/lib/safe-action";
 import { env } from "@/env";
 

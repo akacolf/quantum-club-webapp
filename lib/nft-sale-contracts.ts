@@ -18,11 +18,8 @@
  * Key Innovation: Lower fees (0.5% vs 5%), instant settlement, Telegram integration
  */
 
-import { beginCell, Cell, Address, toNano, fromNano, contractAddress, storeStateInit } from "@ton/core";
-import { mnemonicToPrivateKey } from "@ton/crypto";
-import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
+import { beginCell, Cell, Address, toNano, contractAddress, storeStateInit } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
-import { ContractAdapter } from "@ton-api/ton-adapter";
 import { NFT_SALE_CODE_HEX } from "@/contracts/build/contract-code";
 
 // =====================================================

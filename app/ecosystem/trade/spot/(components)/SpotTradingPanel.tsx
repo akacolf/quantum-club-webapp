@@ -1,9 +1,8 @@
 "use client";
 
 import { env } from "@/env";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
-import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

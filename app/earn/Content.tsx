@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";

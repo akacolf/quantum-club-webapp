@@ -31,7 +31,7 @@ import {
 } from "@/lib/transaction-labels";
 import { useTonHistoryQuery, useQntmHistoryQuery } from "@/app/(hooks)/queries/use-wallet-history";
 
-import type { HistoryEvent, QNTMTransfer } from "@/app/(hooks)/queries/use-wallet-history";
+import type { HistoryEvent } from "@/app/(hooks)/queries/use-wallet-history";
 
 type FilterType = "all" | "sent" | "received" | "swap" | "nft";
 

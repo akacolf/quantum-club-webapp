@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import Lottie from "lottie-react";
 import constructionAnimation from "@/public/lottie/construction-lottie.json";

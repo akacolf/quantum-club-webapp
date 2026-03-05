@@ -1,6 +1,5 @@
 "use server";
 
-import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import { authActionClient } from "@/lib/safe-action";
 import { AI_MODEL } from "@/lib/ai/system-prompt";

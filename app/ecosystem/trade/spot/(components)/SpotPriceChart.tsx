@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,7 @@ import {
     ColorType,
     CrosshairMode,
 } from "lightweight-charts";
-import { useSpotTokenChart, useSpotTokenDyorChart, type ChartTimeframe, type OHLCVCandle } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokenChart, useSpotTokenDyorChart, type ChartTimeframe } from "@/app/(hooks)/queries/use-spot-trading";
 
 interface SpotPriceChartProps {
     poolAddress?: string;

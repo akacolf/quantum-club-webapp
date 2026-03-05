@@ -61,14 +61,6 @@ export function getContractAdapter(): ContractAdapter {
     return cachedContractAdapter;
 }
 
-/**
- * Create a new ContractAdapter synchronously
- * Used for initial render before async client is ready
- */
-export function createTonClientSync(): ContractAdapter {
-    return getContractAdapter();
-}
-
 // =====================================================
 // Account Queries (using TonAPI REST)
 // =====================================================
@@ -340,43 +332,4 @@ export async function sendBoc(boc: Buffer): Promise<void> {
     });
 }
 
-// =====================================================
-// DNS Resolution
-// =====================================================
 
-/**
- * Resolve TON DNS domain to address
- * Note: DNS resolution requires specialized indexer; 
- * we'll keep using a minimal external call for this specific case
- */
-export async function resolveDns(domain: string): Promise<string | null> {
-    try {
-        // DNS resolution requires indexed data, using tonconsole as fallback
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        const response = await fetch(
-            `https://tonconsole.com/api/v1/dns/resolve?domain=${encodeURIComponent(domain)}`,
-            { 
-                next: { revalidate: 300 }, // Cache for 5 minutes
-                signal: controller.signal
-            }
-        );
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) return null;
-        
-        const data = await response.json();
-        return data.address ?? null;
-    } catch {
-        return null;
-    }
-}
-
-// =====================================================
-// Utility Exports
-// =====================================================
-
-export const TON_NETWORK = NETWORK;
-export const IS_TON_TESTNET = IS_TESTNET;

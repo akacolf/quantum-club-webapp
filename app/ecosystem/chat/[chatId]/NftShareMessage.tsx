@@ -19,7 +19,6 @@ export default function NftShareMessage({
   nftImage,
   nftPrice,
   collectionName,
-  isMine,
 }: NftShareMessageProps) {
   const href = nftPrice
     ? `/wallet/marketplace/buy/${encodeURIComponent(nftAddress)}`
