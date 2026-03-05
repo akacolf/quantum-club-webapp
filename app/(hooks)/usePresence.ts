@@ -210,9 +210,13 @@ export function useMultiplePresence(telegramIds: string[]): Map<string, Presence
   const [presenceMap, setPresenceMap] = useState<Map<string, PresenceData>>(new Map());
   const latestDataRef = useRef<Map<string, Record<string, unknown>>>(new Map());
 
-  useEffect(() => {
-    if (telegramIds.length === 0) return;
+  // Stable key: sort + join to avoid churn from array reference changes
+  const stableKey = [...telegramIds].sort().join(",");
 
+  useEffect(() => {
+    if (!stableKey) return;
+
+    const ids = stableKey.split(",");
     const unsubs: (() => void)[] = [];
 
     const evaluateUser = (d: Record<string, unknown>) => {
@@ -230,7 +234,7 @@ export function useMultiplePresence(telegramIds: string[]): Map<string, Presence
       };
     };
 
-    for (const id of telegramIds) {
+    for (const id of ids) {
       const ref = doc(dbfs, "qc-presence", id);
       const unsub = onSnapshot(ref, (snap) => {
         if (snap.exists()) {
@@ -269,7 +273,7 @@ export function useMultiplePresence(telegramIds: string[]): Map<string, Presence
       clearInterval(interval);
       dataRef.clear();
     };
-  }, [telegramIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stableKey]);
 
   return presenceMap;
 }

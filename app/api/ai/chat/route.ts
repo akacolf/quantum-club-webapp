@@ -1,9 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_PROMPT, AI_MODEL } from "@/lib/ai/system-prompt";
-import { checkRateLimit, getRateLimitStatus } from "@/lib/ai/rate-limiter";
+import { checkRateLimit } from "@/lib/ai/rate-limiter";
 import { getSession } from "@/utils/session";
+import { encryptTelegramId } from "@/utils/encrypt-telegram-id";
 import { NextRequest, NextResponse } from "next/server";
-import { createCipheriv } from "node:crypto";
 import { z } from "zod";
 import { env } from "@/env";
 
@@ -21,16 +21,6 @@ const chatRequestSchema = z.object({
     ).max(MAX_HISTORY_LENGTH).default([]),
     currentPage: z.string().optional(),
 });
-
-// Server-side encryption to get consistent user ID
-function encryptTelegramId(telegramId: string): string {
-    const encryptionKey = Buffer.from(env.AES_ENCRYPTION_KEY, 'base64');
-    const iv = Buffer.from("00000000000000000000000000000000", 'utf8');
-    const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
-    let encrypted = cipher.update(telegramId, 'utf8', 'base64');
-    encrypted += cipher.final('base64');
-    return encrypted.replace(/['\"]+/g, "").replace(/[^a-zA-Z0-9]/g, "");
-}
 
 function sanitizeMessage(message: string): string {
     return message.trim().slice(0, MAX_MESSAGE_LENGTH);
@@ -186,21 +176,4 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// GET endpoint to check rate limit status
-export async function GET() {
-    try {
-        const session = await getSession();
-        if (!session || !session.user?.telegramId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const rawTelegramId = String(session.user.telegramId);
-        const userId = encryptTelegramId(rawTelegramId);
-
-        const status = await getRateLimitStatus(userId);
-        return NextResponse.json(status);
-    } catch {
-        return NextResponse.json({ error: "Failed to get status" }, { status: 500 });
-    }
-}
 
