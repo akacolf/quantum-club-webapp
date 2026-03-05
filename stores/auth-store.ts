@@ -79,6 +79,11 @@ export type AuthStore = AuthState & AuthActions;
  */
 let isExplicitLogin = false;
 
+/** Track the last token sent to setToken to avoid redundant cookie writes.
+ *  Each cookie write triggers a Next.js router refresh, so duplicates cause
+ *  visible "double loader" flashes. */
+let lastSetTokenValue: string | null = null;
+
 export const useAuthStore = create<AuthStore>()((set) => ({
   currentUser: null,
   authLoading: true,
@@ -94,6 +99,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   logout: async () => {
     clearUserLocalStorage();
+    lastSetTokenValue = null;
     try { await removeToken(); } catch {}
     await auth.signOut();
   },
@@ -203,7 +209,10 @@ export function initAuthListener() {
     }
     isExplicitLogin = false;
 
-    if (user) {
+    // Only set authLoading on the INITIAL auth check (when currentUser is null).
+    // Subsequent onAuthStateChanged calls (token refresh) should NOT flash loading.
+    const isInitialAuth = useAuthStore.getState().currentUser === null;
+    if (user && isInitialAuth) {
       useAuthStore.setState({ authLoading: true });
     }
     useAuthStore.setState({ currentUser: user ?? null });
@@ -216,7 +225,9 @@ export function initAuthListener() {
         const claims = tokenResult.claims;
         useAuthStore.setState({ customClaims: claims ?? null });
 
-        if (token && refreshToken) {
+        // Skip redundant setToken calls — each cookie write triggers a
+        // Next.js router refresh which causes a visible loading flash.
+        if (token && refreshToken && token !== lastSetTokenValue) {
           const result = await setToken({ token, refreshToken });
           if (result?.serverError) {
             const freshResult = await user.getIdTokenResult(true);
@@ -236,6 +247,9 @@ export function initAuthListener() {
               });
               return;
             }
+            lastSetTokenValue = freshResult.token;
+          } else {
+            lastSetTokenValue = token;
           }
         }
       } catch {
@@ -249,6 +263,7 @@ export function initAuthListener() {
         return;
       }
     } else {
+      lastSetTokenValue = null;
       try { await removeToken(); } catch {}
     }
     useAuthStore.setState({ authLoading: false });
