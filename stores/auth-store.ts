@@ -207,6 +207,9 @@ export function initAuthListener() {
       });
       return;
     }
+    // Capture before reset — we need to know if this was triggered by
+    // an explicit login or a cached session restore.
+    const wasExplicitLogin = isExplicitLogin;
     isExplicitLogin = false;
 
     // Only set authLoading on the INITIAL auth check (when currentUser is null).
@@ -225,9 +228,12 @@ export function initAuthListener() {
         const claims = tokenResult.claims;
         useAuthStore.setState({ customClaims: claims ?? null });
 
-        // Skip redundant setToken calls — each cookie write triggers a
-        // Next.js router refresh which causes a visible loading flash.
-        if (token && refreshToken && token !== lastSetTokenValue) {
+        // Only write the auth cookie on EXPLICIT logins (user clicked sign-in).
+        // On cached session restores the cookie from the previous login is still
+        // valid (30-day expiry). Writing cookies via server actions triggers a
+        // Next.js router refresh, which causes a visible "double loader" flash
+        // when it races with the redirect to /home.
+        if (token && refreshToken && wasExplicitLogin && token !== lastSetTokenValue) {
           const result = await setToken({ token, refreshToken });
           if (result?.serverError) {
             const freshResult = await user.getIdTokenResult(true);
