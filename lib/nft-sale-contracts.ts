@@ -21,6 +21,7 @@
 import { beginCell, Cell, Address, toNano, contractAddress, storeStateInit } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { NFT_SALE_CODE_HEX } from "@/contracts/build/contract-code";
+import { PLATFORM_WALLET_ADDRESS } from "@/lib/platform-config";
 
 // =====================================================
 // Constants & Configuration
@@ -31,8 +32,7 @@ export const QC_MARKETPLACE_FEE_PERCENT = 0.5;
 export const QC_MARKETPLACE_FEE_NUMERATOR = BigInt(5); // 5/1000 = 0.5%
 export const QC_MARKETPLACE_FEE_DENOMINATOR = BigInt(1000);
 
-// Fee recipient address (TODO: Replace with actual QC treasury)
-export const QC_FEE_RECIPIENT = "UQBqSpvo4S87mX9tjHaG4zhYZeORhVhMapBJpnMZ64jhrP-A"; // Placeholder
+export const QC_FEE_RECIPIENT = PLATFORM_WALLET_ADDRESS;
 
 // Minimum listing price (0.1 TON)
 export const MIN_LISTING_PRICE = toNano("0.1");
