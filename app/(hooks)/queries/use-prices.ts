@@ -30,7 +30,8 @@ async function fetchAllPricesFromApi(): Promise<AllPrices> {
         const tonData = await tonApiGet<TonApiRatesResponse>(
             `/v2/rates?tokens=ton&currencies=usd`
         );
-        tonPrice = tonData.rates?.ton?.prices?.USD ?? 0;
+        // TonAPI returns the key as uppercase "TON"
+        tonPrice = tonData.rates?.TON?.prices?.USD ?? tonData.rates?.ton?.prices?.USD ?? 0;
     } catch {
         // Fallback: fetch from DeFiLlama
         try {

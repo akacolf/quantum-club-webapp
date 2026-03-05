@@ -34,7 +34,8 @@ async function fetchWalletAssetsData(
             const ratesData = await tonApiGet<{ rates: Record<string, { prices: Record<string, number> }> }>(
                 `/v2/rates?tokens=ton&currencies=usd`
             );
-            tonPrice = ratesData.rates?.ton?.prices?.USD ?? 0;
+            // TonAPI returns the key as uppercase "TON"
+            tonPrice = ratesData.rates?.TON?.prices?.USD ?? ratesData.rates?.ton?.prices?.USD ?? 0;
         } catch {
             // Fallback to DeFiLlama
             const { fetchTonPrice } = await import("@/lib/price-api");

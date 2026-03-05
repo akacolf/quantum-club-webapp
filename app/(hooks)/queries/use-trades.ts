@@ -168,7 +168,8 @@ export function useLivePrice(symbol: string | undefined, refetchMs = 5000) {
                 const data = await tonApiGet<{ rates: Record<string, { prices: Record<string, number> }> }>(
                     `/v2/rates?tokens=ton&currencies=usd`
                 );
-                return data.rates?.ton?.prices?.USD ?? null;
+                // TonAPI returns the key as uppercase "TON"
+                return data.rates?.TON?.prices?.USD ?? data.rates?.ton?.prices?.USD ?? null;
             }
 
             // Non-TON chains → DeFiLlama

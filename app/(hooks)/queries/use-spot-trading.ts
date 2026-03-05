@@ -35,6 +35,24 @@ interface TonApiChartResponse {
     points: [number, number][]; // [timestamp, price]
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────
+
+/** TonAPI uppercases response keys — do case-insensitive lookup */
+function findRate(rates: TonApiRatesResponse["rates"] | undefined, key: string) {
+    if (!rates) return undefined;
+    // Try exact match first, then uppercase
+    return rates[key] ?? rates[key.toUpperCase()] ?? rates[key.toLowerCase()];
+}
+
+/** Parse TonAPI percentage strings safely. Handles Unicode minus (−), % suffix, NaN */
+function parsePercent(value: string | undefined): number | undefined {
+    if (!value) return undefined;
+    // Replace Unicode minus (U+2212) with regular hyphen, strip %
+    const cleaned = value.replace(/\u2212/g, "-").replace(/%/g, "").trim();
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? undefined : num;
+}
+
 // ─── Token list hook ──────────────────────────────────────────────────
 
 /**
@@ -67,15 +85,14 @@ export function useSpotTokens() {
                 }
 
                 for (const a of batch) {
-                    const rateData = rates?.rates?.[a.contractAddress];
+                    const rateData = findRate(rates?.rates, a.contractAddress);
                     const priceUsd = rateData?.prices?.USD
                         ?? (a.dexPriceUsd ? parseFloat(a.dexPriceUsd) : undefined);
-                    const diff24h = rateData?.diff_24h?.USD;
 
                     enriched.push({
                         ...a,
                         priceUsd,
-                        priceChange24h: diff24h ? parseFloat(diff24h.replace("%", "")) : undefined,
+                        priceChange24h: parsePercent(rateData?.diff_24h?.USD),
                         volume24h: 0, // TonAPI rates doesn't include volume; detail hooks fetch this
                     });
                 }
@@ -135,7 +152,7 @@ export function useSpotTokenMarket(tokenAddress: string | undefined) {
                 );
             } catch { /* fallback below */ }
 
-            const rateInfo = ratesData?.rates?.[tokenAddress];
+            const rateInfo = findRate(ratesData?.rates, tokenAddress);
 
             // Try GeckoTerminal for volume + liquidity (pool data not available in TonAPI)
             let poolAddress: string | undefined;
@@ -158,16 +175,13 @@ export function useSpotTokenMarket(tokenAddress: string | undefined) {
             } catch { /* GeckoTerminal is optional enrichment */ }
 
             const priceUsd = rateInfo?.prices?.USD;
-            const diff24h = rateInfo?.diff_24h?.USD;
-            const diff7d = rateInfo?.diff_7d?.USD;
-            const diff30d = rateInfo?.diff_30d?.USD;
 
             return {
                 poolAddress,
                 priceUsd: priceUsd !== undefined ? String(priceUsd) : undefined,
-                priceChangeH24: diff24h ?? undefined,
-                priceChangeW7d: diff7d ?? undefined,
-                priceChangeM30d: diff30d ?? undefined,
+                priceChangeH24: parsePercent(rateInfo?.diff_24h?.USD),
+                priceChangeW7d: parsePercent(rateInfo?.diff_7d?.USD),
+                priceChangeM30d: parsePercent(rateInfo?.diff_30d?.USD),
                 volume24HUsd,
                 liquidityUsd,
                 marketCapUsd: undefined,

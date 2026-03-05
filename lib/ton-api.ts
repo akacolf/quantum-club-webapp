@@ -309,9 +309,9 @@ export async function getTonPriceUsd(): Promise<number> {
     try {
         const client = getTonApiClient();
         const data = await client.rates.getRates({ tokens: ["ton"], currencies: ["usd"] });
-        // TokenRates is a Record<string, { prices?: Record<string, number> }>
+        // TonAPI returns the key as uppercase "TON"
         const rates = data.rates as unknown as Record<string, { prices?: Record<string, number> }>;
-        return rates?.ton?.prices?.USD ?? rates?.TON?.prices?.USD ?? 0;
+        return rates?.TON?.prices?.USD ?? rates?.ton?.prices?.USD ?? 0;
     } catch {
         // Fallback to DeFiLlama
         try {

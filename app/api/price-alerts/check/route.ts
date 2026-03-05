@@ -21,8 +21,9 @@ async function fetchPrices(): Promise<PriceData> {
       const { getTonApiClient } = await import("@/lib/ton-api");
       const client = getTonApiClient();
       const data = await client.rates.getRates({ tokens: ["ton"], currencies: ["usd"] });
+      // TonAPI returns the key as uppercase "TON"
       const rates = data.rates as unknown as Record<string, { prices?: Record<string, number> }>;
-      tonPrice = rates?.ton?.prices?.USD ?? 0;
+      tonPrice = rates?.TON?.prices?.USD ?? rates?.ton?.prices?.USD ?? 0;
     } catch { /* fallback below */ }
 
     // Multi-chain prices from DeFiLlama

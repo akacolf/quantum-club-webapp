@@ -21,9 +21,9 @@ interface SpotTokenDetailProps {
     market?: {
         volume24HUsd?: string;
         liquidityUsd?: string;
-        priceChangeH24?: string;
-        priceChangeW7d?: string;
-        priceChangeM30d?: string;
+        priceChangeH24?: number;
+        priceChangeW7d?: number;
+        priceChangeM30d?: number;
         marketCapUsd?: string;
         fdvUsd?: string;
         poolName?: string;
@@ -51,22 +51,29 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
     const priceUsd = token.priceUsd || dyor?.priceUsd || (priceTon && tonPrice ? priceTon * tonPrice : undefined);
     const shortAddr = `${token.contractAddress.slice(0, 6)}...${token.contractAddress.slice(-4)}`;
     const priceChange = dyor?.priceChange24h
-        ?? (market?.priceChangeH24 ? parseFloat(market.priceChangeH24) : undefined)
+        ?? market?.priceChangeH24
         ?? token.priceChange24h;
     const isPositive = (priceChange ?? 0) >= 0;
 
-    const priceChange7d = market?.priceChangeW7d ? parseFloat(market.priceChangeW7d.replace("%", "")) : undefined;
-    const priceChange30d = market?.priceChangeM30d ? parseFloat(market.priceChangeM30d.replace("%", "")) : undefined;
+    const priceChange7d = market?.priceChangeW7d;
+    const priceChange30d = market?.priceChangeM30d;
 
     const copyAddress = () => {
         navigator.clipboard.writeText(token.contractAddress);
         toast.success("Address copied");
     };
 
+    // Compute market cap: prefer DYOR, then GeckoTerminal, then price × supply
     const marketCap = dyor?.marketCapUsd
         ?? (market?.marketCapUsd ? parseFloat(market.marketCapUsd) : undefined)
         ?? (market?.fdvUsd ? parseFloat(market.fdvUsd) : undefined)
-        ?? token.marketCapUsd;
+        ?? token.marketCapUsd
+        ?? (() => {
+            if (!priceUsd || !detail?.totalSupply) return undefined;
+            const decimals = detail.decimals ?? 9;
+            const supply = Number(BigInt(detail.totalSupply) / BigInt(10 ** decimals));
+            return supply > 0 ? priceUsd * supply : undefined;
+        })();
 
     const volume24h = dyor?.volume24hUsd
         ?? (market?.volume24HUsd ? parseFloat(market.volume24HUsd) : undefined)

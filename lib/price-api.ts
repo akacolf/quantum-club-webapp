@@ -84,7 +84,8 @@ export async function fetchTonPrice(): Promise<number> {
         const data = await tonApiGet<{ rates: Record<string, { prices: Record<string, number> }> }>(
             `/v2/rates?tokens=ton&currencies=usd`
         );
-        const price = data.rates?.ton?.prices?.USD ?? 0;
+        // TonAPI returns the key as uppercase "TON"
+        const price = data.rates?.TON?.prices?.USD ?? data.rates?.ton?.prices?.USD ?? 0;
         if (price > 0) {
             priceCache["ton"] = { price, timestamp: now };
             return price;
