@@ -3,60 +3,38 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchSwappableAssets, createStonApiClient, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
 import { tonApiGet } from "@/lib/tonapi-client";
-import { Address } from "@ton/core";
 import type { SpotToken } from "@/types/spot-trading";
 
-function normalizeAddress(addr: string): string {
-    try { return Address.parse(addr).toRawString(); } catch { return addr.toLowerCase(); }
+// ─── TonAPI response types ──────────────────────────────────────────
+
+interface TonApiJettonInfo {
+    mintable: boolean;
+    total_supply: string;
+    holders_count: number;
+    metadata: {
+        address: string;
+        name: string;
+        symbol: string;
+        decimals: string;
+        image?: string;
+        description?: string;
+    };
+    verification: string;
 }
 
-// ─── GeckoTerminal helpers ────────────────────────────────────────────
-
-const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
-
-async function geckoFetch<T>(path: string): Promise<T | null> {
-    try {
-        const res = await fetch(`${GECKO_BASE}${path}`, {
-            headers: { Accept: "application/json" },
-        });
-        if (!res.ok) return null;
-        return res.json();
-    } catch {
-        return null;
-    }
-}
-
-interface GeckoTokenAttributes {
-    name: string;
-    symbol: string;
-    address: string;
-    price_usd: string | null;
-    fdv_usd: string | null;
-    market_cap_usd: string | null;
-    total_reserve_in_usd: string | null;
-    volume_usd: { h24: string | null };
-    price_change_percentage: { h24: string | null };
-}
-
-interface GeckoPoolAttributes {
-    address: string;
-    name: string;
-    base_token_price_usd: string | null;
-    volume_usd: { h24: string | null };
-    reserve_in_usd: string | null;
-    price_change_percentage: { h24: string | null };
-    market_cap_usd: string | null;
-    fdv_usd: string | null;
-}
-
-interface GeckoOHLCV {
-    ohlcv_list: [number, number, number, number, number, number][];
+interface TonApiRatesResponse {
+    rates: Record<string, {
+        prices: Record<string, number>;
+        diff_24h?: Record<string, string>;
+        diff_7d?: Record<string, string>;
+    }>;
 }
 
 // ─── Token list hook ──────────────────────────────────────────────────
 
 /**
- * Fetch swappable Jettons from STON.fi, enriched with GeckoTerminal market data.
+ * Fetch swappable Jettons from STON.fi, enriched with TonAPI market data.
+ * Uses TonAPI /v2/rates for prices + 24h change (batched, up to 100 tokens).
  */
 export function useSpotTokens() {
     return useQuery<SpotToken[]>({
@@ -65,39 +43,41 @@ export function useSpotTokens() {
             const assets = await fetchSwappableAssets();
             const jettons = assets.filter((a) => a.kind === "Jetton");
 
-            // Batch fetch GeckoTerminal data for enrichment
-            // GeckoTerminal supports multi-address token info (up to 30)
+            // Batch fetch rates from TonAPI (supports up to 100 tokens per request)
+            const BATCH = 100;
             const enriched: SpotToken[] = [];
-            const BATCH = 30;
+
             for (let i = 0; i < jettons.length; i += BATCH) {
                 const batch = jettons.slice(i, i + BATCH);
-                const addresses = batch.map((j) => j.contractAddress).join(",");
-                const gecko = await geckoFetch<{
-                    data: { id: string; attributes: GeckoTokenAttributes }[];
-                }>(`/networks/ton/tokens/multi/${encodeURIComponent(addresses)}`);
+                const tokenIds = batch.map((j) => j.contractAddress).join(",");
 
-                // Build address → gecko data map (normalize for format mismatch)
-                const geckoMap = new Map<string, GeckoTokenAttributes>();
-                if (gecko?.data) {
-                    for (const item of gecko.data) {
-                        geckoMap.set(normalizeAddress(item.attributes.address), item.attributes);
-                    }
+                // Fetch rates with 24h diff in a single call
+                let rates: TonApiRatesResponse | null = null;
+                try {
+                    rates = await tonApiGet<TonApiRatesResponse>(
+                        `/v2/rates?tokens=${encodeURIComponent(tokenIds)}&currencies=usd`
+                    );
+                } catch {
+                    // Fall back to STON.fi prices if TonAPI fails
                 }
 
                 for (const a of batch) {
-                    const g = geckoMap.get(normalizeAddress(a.contractAddress));
+                    const rateData = rates?.rates?.[a.contractAddress];
+                    const priceUsd = rateData?.prices?.USD
+                        ?? (a.dexPriceUsd ? parseFloat(a.dexPriceUsd) : undefined);
+                    const diff24h = rateData?.diff_24h?.USD;
+
                     enriched.push({
                         ...a,
-                        priceUsd: g?.price_usd ? parseFloat(g.price_usd) : (a.dexPriceUsd ? parseFloat(a.dexPriceUsd) : undefined),
-                        volume24h: g?.volume_usd?.h24 ? parseFloat(g.volume_usd.h24) : 0,
-                        marketCapUsd: g?.market_cap_usd ? parseFloat(g.market_cap_usd) : (g?.fdv_usd ? parseFloat(g.fdv_usd) : undefined),
-                        priceChange24h: g?.price_change_percentage?.h24 ? parseFloat(g.price_change_percentage.h24) : undefined,
+                        priceUsd,
+                        priceChange24h: diff24h ? parseFloat(diff24h.replace("%", "")) : undefined,
+                        volume24h: 0, // TonAPI rates doesn't include volume; detail hooks fetch this
                     });
                 }
             }
 
-            // Sort by volume descending
-            return enriched.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+            // Sort by price descending (tokens with price first)
+            return enriched.sort((a, b) => (b.priceUsd ?? 0) - (a.priceUsd ?? 0));
         },
         staleTime: 30_000,
         gcTime: 60_000,
@@ -105,21 +85,6 @@ export function useSpotTokens() {
 }
 
 // ─── Token detail hooks ──────────────────────────────────────────────
-
-interface JettonDetailResponse {
-    metadata?: {
-        address?: string;
-        name?: string;
-        symbol?: string;
-        decimals?: string;
-        image?: string;
-        description?: string;
-    };
-    total_supply?: string;
-    holders_count?: number;
-    mintable?: boolean;
-    verification?: string;
-}
 
 /**
  * Fetch on-chain Jetton metadata + holders from TonAPI.
@@ -129,7 +94,7 @@ export function useSpotTokenDetail(address: string | undefined) {
         queryKey: ["spot-token-detail", address],
         queryFn: async () => {
             if (!address) throw new Error("No address");
-            const data = await tonApiGet<JettonDetailResponse>(
+            const data = await tonApiGet<TonApiJettonInfo>(
                 `/v2/jettons/${encodeURIComponent(address)}`
             );
             return {
@@ -147,7 +112,8 @@ export function useSpotTokenDetail(address: string | undefined) {
 }
 
 /**
- * Fetch GeckoTerminal market data for a token (volume, liquidity, market cap, price change).
+ * Fetch market data for a token from TonAPI rates + GeckoTerminal pool data.
+ * TonAPI provides price + diff, GeckoTerminal provides volume + liquidity.
  */
 export function useSpotTokenMarket(tokenAddress: string | undefined) {
     return useQuery({
@@ -155,28 +121,87 @@ export function useSpotTokenMarket(tokenAddress: string | undefined) {
         queryFn: async () => {
             if (!tokenAddress) throw new Error("No address");
 
-            // Get token's top pool on GeckoTerminal
-            const poolsData = await geckoFetch<{
-                data: { id: string; attributes: GeckoPoolAttributes }[];
-            }>(`/networks/ton/tokens/${encodeURIComponent(tokenAddress)}/pools?page=1`);
+            // Fetch rates from TonAPI (price, 24h/7d change)
+            let ratesData: TonApiRatesResponse | null = null;
+            try {
+                ratesData = await tonApiGet<TonApiRatesResponse>(
+                    `/v2/rates?tokens=${encodeURIComponent(tokenAddress)}&currencies=usd`
+                );
+            } catch { /* fallback below */ }
 
-            const topPool = poolsData?.data?.[0];
-            if (!topPool) return null;
+            const rateInfo = ratesData?.rates?.[tokenAddress];
+
+            // Try GeckoTerminal for volume + liquidity (pool data not available in TonAPI)
+            let poolAddress: string | undefined;
+            let volume24HUsd: string | undefined;
+            let liquidityUsd: string | undefined;
+            let poolName: string | undefined;
+
+            try {
+                const poolsData = await geckoFetch<{
+                    data: { id: string; attributes: GeckoPoolAttributes }[];
+                }>(`/networks/ton/tokens/${encodeURIComponent(tokenAddress)}/pools?page=1`);
+
+                const topPool = poolsData?.data?.[0];
+                if (topPool) {
+                    poolAddress = topPool.attributes.address;
+                    volume24HUsd = topPool.attributes.volume_usd?.h24 || undefined;
+                    liquidityUsd = topPool.attributes.reserve_in_usd || undefined;
+                    poolName = topPool.attributes.name;
+                }
+            } catch { /* GeckoTerminal is optional enrichment */ }
+
+            const priceUsd = rateInfo?.prices?.USD;
+            const diff24h = rateInfo?.diff_24h?.USD;
+            const diff7d = rateInfo?.diff_7d?.USD;
 
             return {
-                poolAddress: topPool.attributes.address,
-                volume24HUsd: topPool.attributes.volume_usd?.h24 || undefined,
-                liquidityUsd: topPool.attributes.reserve_in_usd || undefined,
-                priceChangeH24: topPool.attributes.price_change_percentage?.h24 || undefined,
-                marketCapUsd: topPool.attributes.market_cap_usd || undefined,
-                fdvUsd: topPool.attributes.fdv_usd || undefined,
-                poolName: topPool.attributes.name,
+                poolAddress,
+                priceUsd: priceUsd !== undefined ? String(priceUsd) : undefined,
+                priceChangeH24: diff24h ?? undefined,
+                priceChangeW7d: diff7d ?? undefined,
+                volume24HUsd,
+                liquidityUsd,
+                marketCapUsd: undefined, // Computed from price * supply in the UI if needed
+                fdvUsd: undefined,
+                poolName,
             };
         },
         enabled: !!tokenAddress,
         staleTime: 15_000,
         gcTime: 30_000,
     });
+}
+
+// ─── GeckoTerminal helpers (kept for pool/OHLCV data only) ──────────
+
+const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
+
+async function geckoFetch<T>(path: string): Promise<T | null> {
+    try {
+        const res = await fetch(`${GECKO_BASE}${path}`, {
+            headers: { Accept: "application/json" },
+        });
+        if (!res.ok) return null;
+        return res.json();
+    } catch {
+        return null;
+    }
+}
+
+interface GeckoPoolAttributes {
+    address: string;
+    name: string;
+    base_token_price_usd: string | null;
+    volume_usd: { h24: string | null };
+    reserve_in_usd: string | null;
+    price_change_percentage: { h24: string | null };
+    market_cap_usd: string | null;
+    fdv_usd: string | null;
+}
+
+interface GeckoOHLCV {
+    ohlcv_list: [number, number, number, number, number, number][];
 }
 
 // ─── OHLCV chart hook ────────────────────────────────────────────────
@@ -236,6 +261,25 @@ export function useSpotTokenChart(poolAddress: string | undefined, timeframe: Ch
 
 // ─── DYOR chart fallback ─────────────────────────────────────────────
 
+const DYOR_BASE = "https://api.dyor.io/v1";
+
+async function dyorFetch<T>(path: string): Promise<T | null> {
+    try {
+        const res = await fetch(`${DYOR_BASE}${path}`, {
+            headers: { Accept: "application/json" },
+        });
+        if (!res.ok) return null;
+        return res.json();
+    } catch {
+        return null;
+    }
+}
+
+function parseDyorDecimal(val: { value: string; decimals: number } | undefined | null): number | undefined {
+    if (!val?.value) return undefined;
+    return parseInt(val.value) * Math.pow(10, -val.decimals);
+}
+
 const DYOR_TIMEFRAME_MAP: Record<ChartTimeframe, { resolution: string; hours: number }> = {
     "15m": { resolution: "min15", hours: 24 * 7 },
     "1h":  { resolution: "hour1", hours: 24 * 30 },
@@ -245,7 +289,6 @@ const DYOR_TIMEFRAME_MAP: Record<ChartTimeframe, { resolution: string; hours: nu
 
 /**
  * Fetch chart data from DYOR API as fallback when GeckoTerminal has no pool data.
- * Returns line-chart points mapped to OHLCV format (area chart only).
  */
 export function useSpotTokenDyorChart(tokenAddress: string | undefined, timeframe: ChartTimeframe = "1h", enabled: boolean = true) {
     return useQuery<OHLCVCandle[]>({
@@ -281,26 +324,7 @@ export function useSpotTokenDyorChart(tokenAddress: string | undefined, timefram
     });
 }
 
-// ─── DYOR API helpers ────────────────────────────────────────────────
-
-const DYOR_BASE = "https://api.dyor.io/v1";
-
-async function dyorFetch<T>(path: string): Promise<T | null> {
-    try {
-        const res = await fetch(`${DYOR_BASE}${path}`, {
-            headers: { Accept: "application/json" },
-        });
-        if (!res.ok) return null;
-        return res.json();
-    } catch {
-        return null;
-    }
-}
-
-function parseDyorDecimal(val: { value: string; decimals: number } | undefined | null): number | undefined {
-    if (!val?.value) return undefined;
-    return parseInt(val.value) * Math.pow(10, -val.decimals);
-}
+// ─── DYOR enrichment hook ───────────────────────────────────────────
 
 interface DyorJettonResponse {
     address: string;
@@ -335,8 +359,7 @@ interface DyorStatsResponse {
 }
 
 /**
- * Fetch enriched token data from DYOR API (metrics + stats).
- * Provides trust score, reliable 24h stats, and trading activity.
+ * Fetch enriched token data from DYOR API (trust score, volume, trading activity).
  */
 export function useSpotTokenDyor(address: string | undefined) {
     return useQuery({

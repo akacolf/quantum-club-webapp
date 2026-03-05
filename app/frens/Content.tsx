@@ -9,6 +9,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useFrensDataQuery } from "@/app/(hooks)/queries/use-frens-data";
 import { useReferralListQuery } from "@/app/(hooks)/queries/use-referral-list";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import Loader from "@/app/(components)/Loader";
 import InvitePopup from "./(components)/InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
@@ -309,9 +310,7 @@ const FrensContent = () => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center py-20">
-            <ButtonLoader size="lg" />
-          </div>
+          <Loader />
         )}
       </div>
     </div>
