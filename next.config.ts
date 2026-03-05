@@ -5,6 +5,7 @@ import withSerwistInit from "@serwist/next";
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
+  disable: process.env.NODE_ENV !== "production",
 });
 
 /** @type {import('next').NextConfig} */
@@ -137,6 +138,9 @@ const nextConfig: import('next').NextConfig = {
 
   // Disable x-powered-by header for security
   poweredByHeader: false,
+
+  // Turbopack config (used in dev via `next dev --turbopack`)
+  turbopack: {},
 };
 
 export default withSerwist(nextConfig);
