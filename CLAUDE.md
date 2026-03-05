@@ -69,11 +69,9 @@ Route groups (parenthesized, don't affect URLs) organize shared code:
 `/home` (dashboard), `/wallet` (wallet + sub-routes: send, receive, history, swap, browser, staking, nft, settings), `/trade` (bonding curve trading + `[tokenId]`), `/ecosystem` (social hub), `/chat/[chatId]`, `/groups`, `/earn`, `/frens`, `/leaderboard`
 
 ### API Routes (`app/api/`)
-- **Auth**: `/api/auth/telegram/`, `/api/session/`, `/api/check-existing-user/`
-- **Trading**: `/api/deploy-jetton/`, `/api/graduate/`, `/api/check-symbol/`
-- **AI**: `/api/ai/chat/`, `/api/ai/analyze-token/`, `/api/ai/explain-transaction/`
-- **Cron**: `/api/cron/process-tokens/`, `/api/cron/sync-token-data/`, `/api/cron/verify-pending-trades/`
-- **Admin**: `/api/admin/graduate/`, `/api/admin/withdraw-fees/`
+- **Auth**: `/api/auth/telegram/`
+- **AI**: `/api/ai/chat/` (streaming response)
+- **Cron**: `/api/cron/process-tokens/`, `/api/cron/sync-token-data/`, `/api/cron/verify-pending-trades/`, `/api/price-alerts/check/`, `/api/sync-quantum-club-team/`
 
 ### Smart Contracts (`contracts/`)
 FunC contracts for TEP-74 compliant Jetton with bonding curve:

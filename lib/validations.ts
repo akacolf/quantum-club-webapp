@@ -234,11 +234,6 @@ export const uploadImageSchema = z.object({
   imageData: z.string().min(1, "Image data is required"),
 });
 
-export const referralSchema = z.object({
-  referrerId: z.string().min(1),
-  referredId: z.string().min(1),
-});
-
 export const analyzeTokenSchema = z.object({
   tokenAddress: z.string().min(1, "Token address is required"),
   tokenData: z.object({
@@ -268,15 +263,6 @@ export const portfolioHealthSchema = z.object({
   })).min(1, "Portfolio assets are required"),
   totalValue: z.union([z.string(), z.number()]).optional(),
   stakedAmount: z.union([z.string(), z.number()]).optional(),
-});
-
-export const adminGraduateSchema = z.object({
-  tokenId: z.string().min(1, "Token ID is required"),
-  jettonAddress: z.string().min(1, "Jetton address is required"),
-});
-
-export const adminWithdrawFeesSchema = z.object({
-  jettonAddress: z.string().min(1, "Jetton address is required"),
 });
 
 // ---- Submit-boundary schemas for complex forms ----
