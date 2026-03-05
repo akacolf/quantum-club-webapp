@@ -83,7 +83,7 @@ export default function TokenDetailPage() {
     const [tradingOpen, setTradingOpen] = useState(false);
 
     // On-chain stats from TONAPI via TanStack Query
-    const { data: onChainStats = EMPTY_ON_CHAIN_STATS } = useOnChainStats(
+    const { data: onChainStats = EMPTY_ON_CHAIN_STATS, isLoading: isLoadingStats } = useOnChainStats(
         selectedToken?.jettonMasterAddress,
         isTestnet,
     );
@@ -317,9 +317,9 @@ export default function TokenDetailPage() {
                                 </p>
                             </div>
                             <div className="text-right space-y-1.5">
-                                <StatRow label="Holders" value={onChainStats.holders > 0 ? formatCompactNumber(onChainStats.holders, 0) : undefined} />
-                                <StatRow label="Volume 24h" value={onChainStats.volume24h > 0 ? `${formatCompactNumber(onChainStats.volume24h, 1)} TON` : undefined} />
-                                <StatRow label="Transactions" value={onChainStats.trades > 0 ? formatCompactNumber(onChainStats.trades, 0) : undefined} />
+                                <StatRow label="Holders" value={onChainStats.holders > 0 ? formatCompactNumber(onChainStats.holders, 0) : undefined} loading={isLoadingStats} />
+                                <StatRow label="Volume 24h" value={onChainStats.volume24h > 0 ? `${formatCompactNumber(onChainStats.volume24h, 1)} TON` : undefined} loading={isLoadingStats} />
+                                <StatRow label="Transactions" value={onChainStats.trades > 0 ? formatCompactNumber(onChainStats.trades, 0) : undefined} loading={isLoadingStats} />
                             </div>
                         </div>
 
@@ -403,32 +403,59 @@ export default function TokenDetailPage() {
                 <LiveTrades tokenId={tokenId} tokenSymbol={selectedToken.symbol} jettonAddress={selectedToken.jettonMasterAddress} />
 
                 {/* User Position (if exists) */}
-                {position && BigInt(position.balance) > BigInt(0) && (
-                    <Card className="bg-white/5 border-white/5">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-primary" />
-                                <h3 className="font-semibold text-white text-sm">Your Position</h3>
-                            </div>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground mb-0.5">Balance</p>
-                                    <p className="text-lg font-bold text-white">
-                                        {formatCompactNumber(Number(position.balance) / 1e9, 2)}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground">{selectedToken.symbol}</p>
+                {position && BigInt(position.balance) > BigInt(0) && (() => {
+                    const balanceTokens = Number(position.balance) / 1e9;
+                    const pricePerTokenTon = Number(selectedToken.currentPrice) / 1e9;
+                    const currentValueTon = balanceTokens * pricePerTokenTon;
+                    const currentValueUsd = currentValueTon * (tonPrice || 0);
+                    const totalInvested = Number(position.totalInvested || "0") / 1e9;
+                    const hasPnl = totalInvested > 0;
+                    const pnlTon = hasPnl ? currentValueTon - totalInvested : 0;
+                    const pnlPercent = hasPnl && totalInvested > 0 ? (pnlTon / totalInvested) * 100 : 0;
+                    const isPnlPositive = pnlTon >= 0;
+
+                    return (
+                        <Card className="bg-white/5 border-white/5">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-primary" />
+                                    <h3 className="font-semibold text-white text-sm">Your Position</h3>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] text-muted-foreground mb-0.5">Value</p>
-                                    <p className="text-lg font-bold text-white">
-                                        {formatCompactNumber((Number(position.balance) / 1e9) * (Number(selectedToken.currentPrice) / 1e9), 4)}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground">TON</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] text-muted-foreground mb-0.5">Balance</p>
+                                        <p className="text-lg font-bold text-white">
+                                            {formatCompactNumber(balanceTokens, 2)}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground">{selectedToken.symbol}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-muted-foreground mb-0.5">Value</p>
+                                        <p className="text-lg font-bold text-white">
+                                            {formatCompactNumber(currentValueTon, 4)} TON
+                                        </p>
+                                        {currentValueUsd > 0 && (
+                                            <p className="text-[10px] text-muted-foreground">${formatCompactNumber(currentValueUsd, 2)}</p>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                                {hasPnl && (
+                                    <div className="mt-3 pt-3 border-t border-white/5 flex justify-between items-center">
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground mb-0.5">P/L</p>
+                                            <p className={`text-sm font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
+                                                {isPnlPositive ? "+" : ""}{formatCompactNumber(pnlTon, 4)} TON
+                                            </p>
+                                        </div>
+                                        <div className={`px-2 py-1 rounded-lg text-xs font-bold ${isPnlPositive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                                            {isPnlPositive ? "+" : ""}{pnlPercent.toFixed(2)}%
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    );
+                })()}
 
                 {/* Token Description */}
                 {selectedToken.description && (
@@ -757,11 +784,15 @@ export default function TokenDetailPage() {
     );
 }
 
-function StatRow({ label, value }: { label: string; value?: string }) {
+function StatRow({ label, value, loading }: { label: string; value?: string; loading?: boolean }) {
     return (
         <div className="flex items-center justify-end gap-2">
             <span className="text-[10px] text-muted-foreground">{label}</span>
-            <span className="text-sm font-semibold text-white">{value || "--"}</span>
+            {loading ? (
+                <Skeleton className="h-4 w-16" />
+            ) : (
+                <span className="text-sm font-semibold text-white">{value || "--"}</span>
+            )}
         </div>
     );
 }
@@ -769,15 +800,54 @@ function StatRow({ label, value }: { label: string; value?: string }) {
 function TokenDetailSkeleton() {
     return (
         <div className="space-y-4">
+            {/* Token Header */}
             <div className="flex items-center gap-3">
                 <Skeleton className="w-14 h-14 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-3 w-24" />
+                <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="h-5 w-20" />
+                        <Skeleton className="h-4 w-16 rounded-full" />
+                    </div>
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-4 w-24 rounded-full" />
                 </div>
             </div>
-            <Skeleton className="h-24 w-full rounded-xl" />
+            {/* Graduation Progress */}
+            <Skeleton className="h-28 w-full rounded-xl" />
+            {/* Market Stats */}
+            <Card className="bg-white/5 border-white/5">
+                <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                            <Skeleton className="h-3 w-16" />
+                            <Skeleton className="h-8 w-24" />
+                            <Skeleton className="h-3 w-20" />
+                        </div>
+                        <div className="space-y-2 text-right">
+                            <Skeleton className="h-4 w-20 ml-auto" />
+                            <Skeleton className="h-4 w-24 ml-auto" />
+                            <Skeleton className="h-4 w-20 ml-auto" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+            {/* Price row */}
+            <div className="flex items-center gap-3 px-1">
+                <div className="flex-1 space-y-1">
+                    <Skeleton className="h-3 w-10" />
+                    <Skeleton className="h-5 w-28" />
+                </div>
+                <div className="space-y-1 text-right">
+                    <Skeleton className="h-3 w-16 ml-auto" />
+                    <Skeleton className="h-5 w-20 ml-auto" />
+                </div>
+            </div>
+            {/* Chart */}
             <Skeleton className="h-[260px] w-full rounded-xl" />
+            {/* Supply Info */}
+            <Skeleton className="h-48 w-full rounded-xl" />
+            {/* Live Trades */}
+            <Skeleton className="h-48 w-full rounded-xl" />
         </div>
     );
 }

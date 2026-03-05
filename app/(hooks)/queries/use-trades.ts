@@ -279,7 +279,8 @@ export function useOnChainStats(jettonAddress: string | undefined, isTestnet: bo
         },
         enabled: !!jettonAddress,
         retry: false,
-        staleTime: Infinity,
+        staleTime: 30_000,
+        refetchInterval: 60_000,
         placeholderData: keepPreviousData,
     });
 }

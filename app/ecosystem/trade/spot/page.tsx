@@ -231,16 +231,39 @@ export default function SpotTradingPage() {
                 ) : (
                     <>
                         {/* Portfolio Summary */}
-                        {positions.length > 0 && (
-                            <Card className="bg-white/5 border-white/5 mb-3">
-                                <CardContent className="p-4">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Portfolio Value</p>
-                                    <p className="text-2xl font-bold text-white">
-                                        {totalPositionValue > 0 ? `$${totalPositionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "--"}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        )}
+                        {positions.length > 0 && (() => {
+                            const totalPnl24h = positions.reduce((sum, p) => {
+                                if (p.valueUsd && p.token.priceChange24h !== undefined) {
+                                    return sum + p.valueUsd * (p.token.priceChange24h / 100);
+                                }
+                                return sum;
+                            }, 0);
+                            const hasPnlData = positions.some(p => p.token.priceChange24h !== undefined && p.valueUsd);
+                            const isPnlPositive = totalPnl24h >= 0;
+
+                            return (
+                                <Card className="bg-white/5 border-white/5 mb-3">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Portfolio Value</p>
+                                                <p className="text-2xl font-bold text-white">
+                                                    {totalPositionValue > 0 ? `$${totalPositionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "--"}
+                                                </p>
+                                            </div>
+                                            {hasPnlData && (
+                                                <div className="text-right">
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">P/L 24h</p>
+                                                    <p className={`text-lg font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
+                                                        {isPnlPositive ? "+" : ""}${Math.abs(totalPnl24h).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })()}
 
                         {positions.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -284,6 +307,10 @@ function PositionCard({ token, balance, valueUsd, pctOfPortfolio, index }: {
     const change = token.priceChange24h;
     const isPositive = (change ?? 0) >= 0;
     const priceUsd = token.priceUsd;
+    // P/L based on 24h change — approximates gains from price movement
+    const hasPnl = change !== undefined && valueUsd !== undefined && valueUsd > 0;
+    const pnlUsd = hasPnl ? valueUsd * (change / 100) : 0;
+    const isPnlPositive = pnlUsd >= 0;
 
     return (
         <motion.div
@@ -335,14 +362,18 @@ function PositionCard({ token, balance, valueUsd, pctOfPortfolio, index }: {
                             </div>
                         </div>
 
-                        {/* Extra details row */}
+                        {/* P/L + details row */}
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
                             <div className="flex items-center gap-3">
-                                {priceUsd !== undefined && priceUsd > 0 && (
+                                {hasPnl ? (
+                                    <span className={`text-[10px] font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
+                                        P/L 24h: {isPnlPositive ? "+" : ""}${Math.abs(pnlUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                ) : priceUsd !== undefined && priceUsd > 0 ? (
                                     <span className="text-[10px] text-muted-foreground">
                                         Price: ${priceUsd >= 1 ? priceUsd.toFixed(2) : priceUsd.toFixed(6)}
                                     </span>
-                                )}
+                                ) : null}
                             </div>
                             {pctOfPortfolio !== undefined && pctOfPortfolio > 0 && (
                                 <span className="text-[10px] text-muted-foreground">

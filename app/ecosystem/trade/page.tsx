@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrading } from "@/app/(contexts)/TradingContext";
-import { Token, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
+import { Token, DEFAULT_GRADUATION_THRESHOLD_TON, type HolderPosition } from "@/types/trading";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { hasMnemonic } from "@/lib/secure-mnemonic";
@@ -244,6 +244,75 @@ function EmptyState({ message }: { message: string }) {
             </div>
             <p className="text-muted-foreground">{message}</p>
         </div>
+    );
+}
+
+function PositionCard({ position, index }: { position: HolderPosition; index: number }) {
+    const token = position.token!;
+    const balanceTokens = Number(position.balance) / 1e9;
+    const pricePerTokenTon = Number(token.currentPrice || "0") / 1e9;
+    const currentValueTon = balanceTokens * pricePerTokenTon;
+    const totalInvested = Number(position.totalInvested || "0") / 1e9;
+    const hasPnl = totalInvested > 0;
+    const pnlTon = hasPnl ? currentValueTon - totalInvested : 0;
+    const pnlPercent = hasPnl && totalInvested > 0 ? (pnlTon / totalInvested) * 100 : 0;
+    const isPnlPositive = pnlTon >= 0;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: Math.min(index * 0.05, 0.3) }}
+        >
+            <Link href={`/ecosystem/trade/${token.id}`} prefetch={true}>
+                <Card className="bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden group shadow-md hover:shadow-lg hover:bg-white/10">
+                    <CardContent className="p-3">
+                        <div className="flex gap-3 items-center">
+                            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-[#222] ring-1 ring-white/5 flex-shrink-0">
+                                {token.image ? (
+                                    <TokenImageFill src={token.image} alt={token.name} />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-primary font-bold text-lg">
+                                        {token.symbol.slice(0, 2)}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                    <h3 className="font-bold text-white text-sm truncate">{token.symbol}</h3>
+                                    <Badge className="bg-primary/20 text-primary text-[9px] px-1.5 py-0 h-4 border-0 flex-shrink-0">
+                                        {formatCompactNumber(balanceTokens, 1)}
+                                    </Badge>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground">
+                                    {formatCompactNumber(currentValueTon, 4)} TON
+                                </span>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                                <div className="font-medium text-white text-sm">
+                                    {formatPrice(BigInt(token.currentPrice || "0"))}
+                                </div>
+                                {hasPnl ? (
+                                    <div className={`text-[11px] font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
+                                        {isPnlPositive ? "+" : ""}{pnlPercent.toFixed(2)}%
+                                    </div>
+                                ) : (
+                                    <div className="text-[11px] text-muted-foreground/50">--</div>
+                                )}
+                            </div>
+                        </div>
+                        {hasPnl && (
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                                <span className="text-[10px] text-muted-foreground">P/L</span>
+                                <span className={`text-[10px] font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
+                                    {isPnlPositive ? "+" : ""}{formatCompactNumber(pnlTon, 4)} TON
+                                </span>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </Link>
+        </motion.div>
     );
 }
 
@@ -515,19 +584,16 @@ export default function TradePage() {
                         positions.length === 0 ? (
                             <EmptyState message="You don't have any token holdings yet" />
                         ) : (
-                            <div className="space-y-6">
-                                <div className="space-y-3">
-                                    {positions.map((position, index) => (
-                                        position.token && (
-                                            <TokenCard
-                                                key={position.tokenId}
-                                                token={position.token}
-                                                index={index}
-                                                showRank={false}
-                                            />
-                                        )
-                                    ))}
-                                </div>
+                            <div className="space-y-3">
+                                {positions.map((position, index) => (
+                                    position.token && (
+                                        <PositionCard
+                                            key={position.tokenId}
+                                            position={position}
+                                            index={index}
+                                        />
+                                    )
+                                ))}
                             </div>
                         )
                     ) : activeTab === "created" ? (

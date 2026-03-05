@@ -795,14 +795,51 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
                 contractAdapter
               );
               if (balance > BigInt(0)) {
+                // Calculate current value in nanoTON
+                const currentPriceNano = BigInt(token.currentPrice || "0");
+                const currentValueNano = (balance * currentPriceNano) / BigInt(1e9);
+
+                // Try to compute totalInvested from on-chain buy history
+                let totalInvestedNano = BigInt(0);
+                try {
+                  const { tonApiGet } = await import("@/lib/tonapi-client");
+                  const txData = await tonApiGet<{ transactions?: Array<{
+                    success?: boolean;
+                    in_msg?: { op_code?: string; value?: number; source?: { address?: string } };
+                  }> }>(
+                    `/v2/blockchain/accounts/${token.jettonMasterAddress}/transactions?limit=100`,
+                    { testnet: false }
+                  );
+                  for (const tx of txData.transactions || []) {
+                    if (!tx.success) continue;
+                    const inMsg = tx.in_msg;
+                    if (inMsg?.op_code === "0xaf750d34") {
+                      // Check if sender is current user
+                      const senderAddr = inMsg.source?.address || "";
+                      try {
+                        const senderParsed = Address.parse(senderAddr).toString({ bounceable: false });
+                        const userParsed = Address.parse(walletAddress).toString({ bounceable: false });
+                        if (senderParsed === userParsed) {
+                          totalInvestedNano += BigInt(Math.floor((inMsg.value || 0)));
+                        }
+                      } catch { /* address parse error */ }
+                    }
+                  }
+                } catch {
+                  // TonAPI fetch failed, P/L will show as unavailable
+                }
+
+                const pnlNano = totalInvestedNano > BigInt(0) ? Number(currentValueNano) - Number(totalInvestedNano) : 0;
+                const pnlPercent = totalInvestedNano > BigInt(0) ? (pnlNano / Number(totalInvestedNano)) * 100 : 0;
+
                 return {
                   tokenId: token.id,
                   balance: balance.toString(),
                   averageBuyPrice: "0",
-                  totalInvested: "0",
+                  totalInvested: totalInvestedNano.toString(),
                   currentValue: formatTokenAmount(balance),
-                  pnl: 0,
-                  pnlPercent: 0,
+                  pnl: pnlNano / 1e9,
+                  pnlPercent,
                   token,
                 } as HolderPosition;
               }
