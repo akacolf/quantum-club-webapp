@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -31,7 +31,7 @@ export default function ProfilePage() {
     const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-    const tgUser = useMemo(() => window.Telegram?.WebApp?.initDataUnsafe?.user, []);
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     const displayName = username || tgUser?.username || tgUser?.first_name || "";
     const { data: profilePhotoData } = useProfilePhotoQuery(tgUser?.photo_url ? undefined : telegramId);
     const photoUrl = tgUser?.photo_url || profilePhotoData || null;

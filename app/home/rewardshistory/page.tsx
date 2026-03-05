@@ -1,13 +1,11 @@
 'use client'
-import { useEffect, useState, useRef } from "react";
+import { useRef } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { dbfs } from "@/app/(firebase)/client";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { TaskHistory } from "@/lib/interfaces";
-import { getDocs, collection } from "firebase/firestore";
 import TasksSkeleton from "./(components)/TasksSkeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Card, CardContent } from "@/components/ui/card";
+import { useRewardsHistoryQuery } from "@/app/(hooks)/queries/use-rewards-history";
 
 function getPlatformIcon(platform: string | null) {
   if (platform === "dailycheck-in-reward") {
@@ -276,103 +274,19 @@ function getPlatformIcon(platform: string | null) {
   return null;
 }
 
-const convertToDate = (dateStr: string | undefined) => {
-  if (!dateStr || !dateStr.includes("/")) return new Date(0);
-  const [day, month, year] = dateStr.split("/");
-  return new Date(`${year}-${month}-${day}`);
-};
-
 export default function RewardsHistory() {
   useTelegramBackButton();
   const { telegramId } = useUserContext();
-  const [taskhistoryList, setTaskhistoryList] = useState<TaskHistory[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(true);
+  const { data: taskhistoryList = [], isLoading: tasksLoading } = useRewardsHistoryQuery(telegramId);
   const listRef = useRef<HTMLDivElement>(null);
 
+  /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
   const virtualizer = useWindowVirtualizer({
     count: taskhistoryList.length,
     estimateSize: () => 72,
     overscan: 5,
     scrollMargin: listRef.current?.offsetTop ?? 0,
   });
-
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const tasksRef = collection(dbfs, `user/${telegramId}/tasks`);
-        const snapshotTasks = await getDocs(tasksRef);
-        const rewardsRef = collection(
-          dbfs,
-          `user/${telegramId}/rewardsHistory`
-        );
-        const snapshotRewards = await getDocs(rewardsRef);
-
-        // Task History
-        const tasks = !snapshotTasks.empty
-          ? snapshotTasks.docs.map((doc) => {
-              let platform = doc.data().platform;
-              if (
-                platform === "telegram" ||
-                platform === "ic:baseline-telegram"
-              )
-                platform = "telegram";
-              if (platform === "twitter" || platform === "pajamas:twitter")
-                platform = "twitter";
-              if (platform === "chemist") platform = "chemist";
-              if (platform === "instagram") platform = "instagram";
-              if (platform === "referrals") platform = "referrals";
-              if (platform === "referrals10") platform = "referrals10";
-              if (platform === "checktelegramAgain")
-                platform = "checktelegramAgain";
-              if (platform === "onchain") platform = "onchain";
-              if (platform === "userMilestone") platform = "userMilestone";
-              if (platform === "connectwallet") platform = "connectwallet";
-              if (platform === "solvetoearnExplore")
-                platform = "solvetoearnExplore";
-              return {
-                id: doc.id,
-                quant: doc.data().quant,
-                date: doc.data().Date,
-                platform,
-                title: "Task reward",
-              };
-            })
-          : [];
-
-        // Rewards History
-        const rewardsHistory = !snapshotRewards.empty
-          ? snapshotRewards.docs.map((doc) => {
-              let platform = doc.data().platform;
-              if (platform === "dailycheck-in-reward")
-                platform = "dailycheck-in-reward";
-              else platform = "telegram";
-              return {
-                id: doc.id,
-                quant: doc.data().quant,
-                date: doc.data().Date,
-                platform,
-                title: "Daily check-in",
-              };
-            })
-          : [];
-
-        // Combine and sort
-        const combinedList = [...tasks, ...rewardsHistory];
-        const sortedList = combinedList.sort(
-          (a, b) =>
-            convertToDate(b.date).getTime() - convertToDate(a.date).getTime()
-        );
-
-        setTaskhistoryList(sortedList);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setTasksLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, [telegramId]);
 
    return (
       <div className="min-h-screen bg-black text-white p-4 pb-24">

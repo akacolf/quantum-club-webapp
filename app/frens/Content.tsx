@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { dbfs } from "@/app/(firebase)/client";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import Loader from "@/app/(components)/Loader";
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { useFrensDataQuery } from "@/app/(hooks)/queries/use-frens-data";
+import { useReferralListQuery } from "@/app/(hooks)/queries/use-referral-list";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import InvitePopup from "./(components)/InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
@@ -28,12 +26,6 @@ const FrensContent = () => {
   const { referralsNum, setReferralNum } = useFrenContext();
   const router = useRouter();
   const { telegramId, SetMainQuantAmount } = useUserContext();
-  const {
-    referralsContext,
-    addReferral,
-  } = useFrenContext();
-  const [errorMessage, setErrorMessage] = useState<string | React.ReactNode>("");
-  const [loading, setLoading] = useState(true);
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -45,6 +37,9 @@ const FrensContent = () => {
   const { data: frensData } = useFrensDataQuery(telegramId);
   const secondTierCount = frensData?.secondTierCount ?? 0;
 
+  // Fetch referral list via TanStack Query
+  const { data: referralList = [], isLoading: loading } = useReferralListQuery(telegramId);
+
   // Sync query data into local state and context
   useEffect(() => {
     if (!frensData) return;
@@ -53,97 +48,16 @@ const FrensContent = () => {
     setTonEarnings(frensData.tonEarnings);
   }, [frensData, setReferralNum]);
 
-  // Fetch referral list (separate from counts)
   useEffect(() => {
     router.prefetch("/frens/referrals");
-    const fetchReferralsData = async () => {
-      try {
-        if (referralsContext.length > 0) return;
-        if (sessionStorage.getItem("FrenLoad") == "InviteFren") {
-          setErrorMessage(
-            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-              <Icon icon="lucide:user-plus" className="w-16 h-16 mb-4 opacity-50" />
-              <span className="font-semibold text-base">Invite some frens to see them here!</span>
-            </div>
-          );
-          setLoading(false);
-          return;
-        }
-
-        const referralsRef = collection(dbfs, `user/${telegramId}/referrals`);
-        const snapshot = await getDocs(referralsRef);
-        if (!snapshot.empty) {
-          const snapshotSize = Number(snapshot.size)
-
-          sessionStorage.setItem("Num", String(snapshot.size));
-          const referralLocalSize = Number(referralsContext.length)
-          if (snapshotSize === referralLocalSize || (snapshotSize !== referralLocalSize && referralsContext.length % 2 === 0 && referralsContext.length !== 0)) {
-            return;
-          }
-          if (snapshotSize !== referralLocalSize) {
-            let checkUser = 1
-            for (const docSnapshot of snapshot.docs) {
-              if (checkUser === 21) break;
-              const referredTelegramId = docSnapshot.id;
-              try {
-                let username = "";
-                const referredRef = doc(dbfs, `user/${referredTelegramId}`)
-                const referredData = await getDoc(referredRef)
-                username = referredData.data()?.username;
-                const coinsRef = doc(
-                  dbfs,
-                  `user/${referredTelegramId}/miningData/values`
-                );
-                const coinsSnapshot = await getDoc(coinsRef);
-                const coins =
-                  coinsSnapshot.exists() && coinsSnapshot.data().firstQuant
-                    ? parseFloat(coinsSnapshot.data().firstQuant).toFixed(0)
-                    : "0.00";
-                const amount = Number(coins);
-                const newReferral = { id: referredTelegramId, username: username, quantamount: amount };
-                addReferral(newReferral);
-                checkUser++
-              } catch (error) {
-                console.error(error);
-                return {
-                  id: referredTelegramId,
-                  username: "Error",
-                  coins: "0.00",
-                };
-              }
-
-            }
-          }
-
-        } else {
-          setLoading(false);
-          sessionStorage.setItem("FrenLoad", "InviteFren");
-          setErrorMessage(
-            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-              <Icon icon="lucide:user-plus" className="w-16 h-16 mb-4 opacity-50" />
-              <span className="font-semibold text-base">Invite some frens to see them here!</span>
-            </div>
-          );
-        }
-      } catch (error) {
-        console.error(error)
-        setErrorMessage(
-          "There was an error when loading your invited frens: " + error
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReferralsData();
-  }, [telegramId, addReferral, referralsContext, router]);
+  }, [router]);
 
   // Profile photos for referral list — TanStack Query handles caching/dedup
-  const photoUrls = useProfilePhotos(referralsContext.map((r) => r.id));
+  const photoUrls = useProfilePhotos(referralList.map((r) => r.id));
 
   const referralsListRef = useRef<HTMLDivElement>(null);
   const referralsVirtualizer = useWindowVirtualizer({
-    count: referralsContext.length,
+    count: referralList.length,
     estimateSize: () => 72,
     overscan: 5,
     scrollMargin: referralsListRef.current?.offsetTop ?? 0,
@@ -338,11 +252,11 @@ const FrensContent = () => {
               </div>
 
               <div>
-                {referralsContext && referralsContext.length > 0 ? (
+                {referralList && referralList.length > 0 ? (
                   <div ref={referralsListRef}>
                     <div className="relative" style={{ height: `${referralsVirtualizer.getTotalSize()}px` }}>
                       {referralsVirtualizer.getVirtualItems().map((virtualItem) => {
-                        const referral = referralsContext[virtualItem.index];
+                        const referral = referralList[virtualItem.index];
                         return (
                           <div
                             key={referral.id}
@@ -386,14 +300,17 @@ const FrensContent = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">{errorMessage}</div>
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                    <Icon icon="lucide:user-plus" className="w-16 h-16 mb-4 opacity-50" />
+                    <span className="font-semibold text-base">Invite some frens to see them here!</span>
+                  </div>
                 )}
               </div>
             </div>
           </div>
         ) : (
-          <div className="fixed inset-0 flex items-center justify-center bg-black">
-            <Loader />
+          <div className="flex items-center justify-center py-20">
+            <ButtonLoader size="lg" />
           </div>
         )}
       </div>

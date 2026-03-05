@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AIGlowBorder } from "./AIGlow";
+import { usePortfolioHealthQuery } from "@/app/(hooks)/queries/use-portfolio-health";
 
 interface PortfolioAnalysis {
     healthScore: number;
@@ -38,43 +39,22 @@ export function PortfolioHealthCard({
     autoAnalyze = false,
     compact = false,
 }: PortfolioHealthCardProps) {
-    const [analysis, setAnalysis] = useState<PortfolioAnalysis | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [manualEnabled, setManualEnabled] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    async function analyzePortfolio() {
+    const { data: rawAnalysis, isLoading, error: queryError, refetch } = usePortfolioHealthQuery(
+        assets,
+        totalValue,
+        stakedAmount,
+        autoAnalyze || manualEnabled,
+    );
+    const analysis = rawAnalysis as PortfolioAnalysis | undefined;
+    const error = queryError?.message ?? null;
+
+    function analyzePortfolio() {
         if (!assets || assets.length === 0) return;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const { analyzePortfolioHealth } = await import("@/components/ai/actions");
-            const result = await analyzePortfolioHealth({ assets: assets.map(a => ({ symbol: a.symbol, balance: String(a.value), value: a.value })), totalValue, stakedAmount });
-
-            if (result?.serverError) {
-                throw new Error(result.serverError);
-            }
-
-            if (result?.data?.success && result.data.analysis) {
-                setAnalysis(result.data.analysis as PortfolioAnalysis);
-            } else {
-                throw new Error("Analysis failed");
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Analysis failed");
-        } finally {
-            setIsLoading(false);
-        }
+        if (analysis) { refetch(); } else { setManualEnabled(true); }
     }
-
-    useEffect(() => {
-        if (autoAnalyze && assets.length > 0) {
-            analyzePortfolio();
-        }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoAnalyze, assets.length]);
 
     const getHealthColor = (score: number) => {
         if (score >= 70) return "text-green-400";

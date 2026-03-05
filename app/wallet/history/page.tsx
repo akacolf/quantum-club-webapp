@@ -440,6 +440,7 @@ export default function HistoryPage() {
     return true;
   });
 
+  /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
   const tonVirtualizer = useWindowVirtualizer({
     count: filteredHistory.length,
     estimateSize: () => 130,

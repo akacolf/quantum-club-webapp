@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -9,64 +9,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
-// Native yield protocols (all accessible in-app)
-interface YieldProtocol {
-    id: string;
-    name: string;
-    icon: string;
-    type: "staking" | "lp";
-    apy: number;
-    tvl: string;
-    asset: string;
-    description: string;
-    route: string;
-    minAmount?: string;
-    riskLevel: "low" | "medium" | "high";
-}
-
-// Only native protocols that work within our app
-const YIELD_PROTOCOLS: YieldProtocol[] = [
-    {
-        id: "ton-staking",
-        name: "TON Staking",
-        icon: "/svg/ton-logo.svg",
-        type: "staking",
-        apy: 5.0,
-        tvl: "$500M+",
-        asset: "TON",
-        description: "Stake TON and receive liquid staking tokens (tsTON, stTON, hTON)",
-        route: "/wallet/staking",
-        minAmount: "0.5 TON",
-        riskLevel: "low",
-    },
-    {
-        id: "liquidity-provision",
-        name: "Liquidity Pools",
-        icon: "/png/stonfi-logo.png",
-        type: "lp",
-        apy: 12.0,
-        tvl: "$50M+",
-        asset: "TON/USDT",
-        description: "Provide liquidity to DEX pools and earn trading fees",
-        route: "/wallet/liquidity",
-        minAmount: "1 TON",
-        riskLevel: "medium",
-    },
-    {
-        id: "lp-farming",
-        name: "LP Farming",
-        icon: "/png/stonfi-logo.png",
-        type: "lp",
-        apy: 25.0,
-        tvl: "$20M+",
-        asset: "LP Tokens",
-        description: "Stake LP tokens in farms to earn additional STON rewards",
-        route: "/wallet/farming",
-        minAmount: "Any LP",
-        riskLevel: "medium",
-    },
-];
+import { useYieldProtocolsQuery } from "@/app/(hooks)/queries/use-yield-protocols";
 
 // Risk level colors
 const RISK_COLORS = {
@@ -90,43 +33,7 @@ export default function EarnPage() {
         router.prefetch("/wallet/liquidity");
     }, [router]);
 
-    const [isLoading, setIsLoading] = useState(true);
-    const [protocols, setProtocols] = useState<YieldProtocol[]>([]);
-
-    // Fetch live APY data
-    const fetchYieldData = async () => {
-        setIsLoading(true);
-        try {
-            // Fetch live staking APY for the staking protocol
-            const { fetchLiveApyData } = await import("@/lib/staking-service");
-            const liveApyData = await fetchLiveApyData();
-
-            // Calculate average staking APY from live data
-            let stakingApy = 5.0; // Default
-            if (liveApyData.size > 0) {
-                const apyValues = Array.from(liveApyData.values());
-                stakingApy = apyValues.reduce((a, b) => a + b, 0) / apyValues.length;
-            }
-
-            // Update protocols with live data
-            const updatedProtocols = YIELD_PROTOCOLS.map(p => {
-                if (p.id === "ton-staking") {
-                    return { ...p, apy: parseFloat(stakingApy.toFixed(2)) };
-                }
-                return p;
-            });
-            setProtocols(updatedProtocols);
-        } catch (error) {
-            console.error("Failed to fetch yield data:", error);
-            setProtocols(YIELD_PROTOCOLS);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchYieldData();
-    }, []);
+    const { data: protocols = [], isLoading, refetch } = useYieldProtocolsQuery();
 
     // Calculate potential earnings
     const calculateMonthlyEarnings = (apy: number, amount: number) => {
@@ -154,7 +61,7 @@ export default function EarnPage() {
                         </p>
                     </div>
                     <button
-                        onClick={fetchYieldData}
+                        onClick={() => refetch()}
                         disabled={isLoading}
                         className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 active:bg-white/10"
                     >

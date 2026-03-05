@@ -1,6 +1,5 @@
 "use client";
 
-import { memo } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -35,8 +34,7 @@ interface ChatItemProps {
     onNavigate: (chatId: string) => void;
 }
 
-// Memoized chat item component for performance
-const ChatItem = memo(function ChatItem({ chat, index, telegramId, onNavigate }: ChatItemProps) {
+function ChatItem({ chat, index, telegramId, onNavigate }: ChatItemProps) {
     const participantName = (() => {
         if (chat.type === "group") return chat.groupName || "Group";
         const otherIndex = chat.participants.findIndex((p) => p !== telegramId);
@@ -98,7 +96,7 @@ const ChatItem = memo(function ChatItem({ chat, index, telegramId, onNavigate }:
             </Card>
         </motion.div>
     );
-});
+}
 
 export default function ChatListPage() {
     useTelegramBackButton("/home");

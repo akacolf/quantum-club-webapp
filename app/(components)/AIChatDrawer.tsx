@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -21,8 +21,7 @@ interface Message {
 
 const EMPTY_MESSAGES: Message[] = [];
 
-// Memoized logo component for performance
-const QuantumLogoBlackBg = memo(function QuantumLogoBlackBg() {
+function QuantumLogoBlackBg() {
     return (
         <Avatar className="h-7 w-7 shrink-0">
             <AvatarFallback className="bg-background border border-border">
@@ -36,10 +35,9 @@ const QuantumLogoBlackBg = memo(function QuantumLogoBlackBg() {
             </AvatarFallback>
         </Avatar>
     );
-});
+}
 
-// Memoized message component for performance
-const ChatMessage = memo(function ChatMessage({ message }: { message: Message }) {
+function ChatMessage({ message }: { message: Message }) {
     const isUser = message.role === "user";
     const [copied, setCopied] = useState(false);
 
@@ -100,10 +98,9 @@ const ChatMessage = memo(function ChatMessage({ message }: { message: Message })
             </div>
         </motion.div>
     );
-});
+}
 
-// Isolated input form component to prevent re-renders of the message list
-const ChatInputForm = memo(function ChatInputForm({
+function ChatInputForm({
     onSubmit,
     isLoading,
 }: {
@@ -157,7 +154,7 @@ const ChatInputForm = memo(function ChatInputForm({
             </form>
         </div>
     );
-});
+}
 
 // Dynamic suggested prompts based on current page
 function getContextualPrompts(pathname: string): string[] {

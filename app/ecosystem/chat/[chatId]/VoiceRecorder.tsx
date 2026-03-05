@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useDrag } from "@use-gesture/react";
 
 interface VoiceRecorderProps {
   onSend: (blob: Blob, durationSec: number) => void;
@@ -24,7 +25,6 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
   const chunks = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTime = useRef(0);
-  const startX = useRef(0);
   const cancelledRef = useRef(false);
 
   function cleanup() {
@@ -139,20 +139,15 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     stopRecording(true);
   }
 
-  // Slide-to-cancel touch/mouse tracking on the recording bar
-  function handlePointerMove(clientX: number) {
+  // Slide-to-cancel drag gesture on the recording bar
+  const bindDrag = useDrag(({ movement: [mx] }) => {
     if (!recording) return;
-    if (!startX.current) return;
-    const delta = startX.current - clientX;
+    const delta = -mx; // negative because sliding left = cancel
     setSlideX(Math.max(0, delta));
     if (delta > CANCEL_SLIDE_PX && !cancelledRef.current) {
       handleCancel();
     }
-  }
-
-  function handlePointerDown(clientX: number) {
-    startX.current = clientX;
-  }
+  }, { axis: "x" });
 
   // Escape key to cancel
   useEffect(() => {
@@ -180,11 +175,8 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, x: cancelled ? -80 : 40, scale: cancelled ? 0.9 : 1 }}
             transition={{ duration: 0.1 }}
-            className="absolute inset-0 flex items-center gap-2 px-3 bg-card/95 backdrop-blur-sm z-10 rounded-full"
-            onMouseMove={(e) => handlePointerMove(e.clientX)}
-            onMouseDown={(e) => handlePointerDown(e.clientX)}
-            onTouchMove={(e) => handlePointerMove(e.touches[0].clientX)}
-            onTouchStart={(e) => handlePointerDown(e.touches[0].clientX)}
+            className="absolute inset-0 flex items-center gap-2 px-3 bg-card/95 backdrop-blur-sm z-10 rounded-full touch-none"
+            {...(() => { const { onDrag, onDragStart, onDragEnd, ...rest } = bindDrag() as Record<string, unknown>; return rest; })()}
           >
             {/* Recording indicator + timer */}
             <div className="flex items-center gap-2 min-w-0">

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AIGlowBorder } from "./AIGlow";
+import { useTokenAnalysisQuery } from "@/app/(hooks)/queries/use-token-analysis";
 
 interface TokenAnalysis {
     riskScore: number;
@@ -40,44 +41,24 @@ export function TokenAnalysisCard({
     tokenData,
     autoAnalyze = false,
 }: TokenAnalysisCardProps) {
-    const [analysis, setAnalysis] = useState<TokenAnalysis | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [manualEnabled, setManualEnabled] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
-    async function runAnalysis() {
+    const { data: rawAnalysis, isLoading, error: queryError, refetch } = useTokenAnalysisQuery(
+        tokenAddress,
+        tokenData,
+        autoAnalyze || manualEnabled,
+    );
+    const analysis = rawAnalysis as TokenAnalysis | undefined;
+    const error = queryError?.message ?? null;
+
+    // Auto-expand when analysis arrives; user can toggle collapse
+    const isExpanded = !!analysis && !isCollapsed;
+
+    function runAnalysis() {
         if (!tokenAddress) return;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const { analyzeToken: analyzeTokenAction } = await import("@/components/ai/actions");
-            const result = await analyzeTokenAction({ tokenAddress, tokenData });
-
-            if (result?.serverError) {
-                throw new Error(result.serverError);
-            }
-
-            if (result?.data?.success && result.data.analysis) {
-                setAnalysis(result.data.analysis as TokenAnalysis);
-                setIsExpanded(true);
-            } else {
-                throw new Error("Analysis failed");
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Analysis failed");
-        } finally {
-            setIsLoading(false);
-        }
+        if (analysis) { refetch(); } else { setManualEnabled(true); }
     }
-
-    useEffect(() => {
-        if (autoAnalyze && tokenAddress) {
-            runAnalysis();
-        }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoAnalyze, tokenAddress]);
 
     const getRiskColor = (score: number) => {
         if (score <= 3) return "text-green-400";
@@ -132,7 +113,7 @@ export function TokenAnalysisCard({
                 <CardContent className="p-0">
                     {/* Header - Always visible */}
                     <button
-                        onClick={() => analysis ? setIsExpanded(!isExpanded) : runAnalysis()}
+                        onClick={() => analysis ? setIsCollapsed(!isCollapsed) : runAnalysis()}
                         className="w-full p-4 flex items-center justify-between hover:bg-[#161616] transition-colors"
                     >
                         <div className="flex items-center gap-3">

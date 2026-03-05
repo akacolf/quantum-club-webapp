@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
 import { Document, Page, pdfjs } from "react-pdf";
+import { usePinch, useDrag } from "@use-gesture/react";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 
@@ -47,95 +48,31 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [isGesturing, setIsGesturing] = useState(false);
-  const gestureRef = useRef<{
-    initialDist: number;
-    initialScale: number;
-    lastCenter: { x: number; y: number };
-    startTranslate: { x: number; y: number };
-    isPinching: boolean;
-    isPanning: boolean;
-    startTouch: { x: number; y: number };
-  } | null>(null);
 
-  function handleTouchStart(e: React.TouchEvent) {
-    e.stopPropagation();
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      gestureRef.current = {
-        initialDist: Math.hypot(dx, dy),
-        initialScale: scale,
-        lastCenter: {
-          x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-          y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-        },
-        startTranslate: { ...translate },
-        isPinching: true,
-        isPanning: false,
-        startTouch: { x: 0, y: 0 },
-      };
-      setIsGesturing(true);
-    } else if (e.touches.length === 1 && scale > 1) {
-      gestureRef.current = {
-        initialDist: 0,
-        initialScale: scale,
-        lastCenter: { x: 0, y: 0 },
-        startTranslate: { ...translate },
-        isPinching: false,
-        isPanning: true,
-        startTouch: { x: e.touches[0].clientX, y: e.touches[0].clientY },
-      };
-      setIsGesturing(true);
-    }
-  }
-
-  function handleTouchMove(e: React.TouchEvent) {
-    e.stopPropagation();
-    if (!gestureRef.current) return;
-
-    if (gestureRef.current.isPinching && e.touches.length === 2) {
-      e.preventDefault();
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const ratio = dist / gestureRef.current.initialDist;
-      const newScale = Math.min(5, Math.max(1, gestureRef.current.initialScale * ratio));
-      setScale(newScale);
-
-      // Pan with pinch center movement
-      const center = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-      };
-      setTranslate({
-        x: gestureRef.current.startTranslate.x + (center.x - gestureRef.current.lastCenter.x),
-        y: gestureRef.current.startTranslate.y + (center.y - gestureRef.current.lastCenter.y),
-      });
-    } else if (gestureRef.current.isPanning && e.touches.length === 1) {
-      const dx = e.touches[0].clientX - gestureRef.current.startTouch.x;
-      const dy = e.touches[0].clientY - gestureRef.current.startTouch.y;
-      setTranslate({
-        x: gestureRef.current.startTranslate.x + dx,
-        y: gestureRef.current.startTranslate.y + dy,
-      });
-    }
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    e.stopPropagation();
-    if (gestureRef.current?.isPinching && e.touches.length < 2) {
-      // Snap back to 1 if close enough
-      if (scale < 1.1) {
+  const bindPinch = usePinch(({ offset: [s], first, last }) => {
+    if (first) setIsGesturing(true);
+    const newScale = Math.min(5, Math.max(1, s));
+    setScale(newScale);
+    if (last) {
+      setIsGesturing(false);
+      if (newScale < 1.1) {
         setScale(1);
         setTranslate({ x: 0, y: 0 });
       }
     }
-    if (e.touches.length === 0) {
-      gestureRef.current = null;
-      setIsGesturing(false);
+  }, { scaleBounds: { min: 1, max: 5 }, from: () => [scale, 0] });
+
+  const bindDrag = useDrag(({ movement: [mx, my], first, last, memo }) => {
+    if (scale <= 1) return;
+    if (first) {
+      setIsGesturing(true);
+      return translate; // memo = starting translate
     }
-  }
+    const startTranslate = memo ?? translate;
+    setTranslate({ x: startTranslate.x + mx, y: startTranslate.y + my });
+    if (last) setIsGesturing(false);
+    return memo;
+  }, { from: () => [0, 0] });
 
   function handleDoubleTap() {
     if (scale > 1) {
@@ -163,9 +100,6 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
     <div
       className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
       onClick={() => { if (scale <= 1) onClose(); }}
-      onTouchStart={(e) => e.stopPropagation()}
-      onTouchMove={(e) => e.stopPropagation()}
-      onTouchEnd={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
     >
       <div className="absolute top-20 right-4 z-10">
@@ -177,11 +111,9 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         </button>
       </div>
       <div
-        className="w-full h-full flex items-center justify-center overflow-hidden"
-        style={{ touchAction: "none" }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className="w-full h-full flex items-center justify-center overflow-hidden touch-none"
+        {...bindPinch()}
+        {...bindDrag()}
         onContextMenu={(e) => e.preventDefault()}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -217,11 +149,20 @@ export default function FileMessage({
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [numPages, setNumPages] = useState(0);
   const [pdfScale, setPdfScale] = useState(1);
-  const pinchRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = file.mimeType.startsWith("image/");
   const isPdf = file.mimeType === "application/pdf";
+
+  // Pinch-to-zoom for PDF viewer
+  const bindPdfPinch = usePinch(({ offset: [s], event }) => {
+    event?.preventDefault();
+    setPdfScale(Math.min(3, Math.max(0.5, s)));
+  }, {
+    scaleBounds: { min: 0.5, max: 3 },
+    from: () => [pdfScale, 0],
+    eventOptions: { passive: false },
+  });
 
   // Lazy load images via IntersectionObserver
   useEffect(() => {
@@ -391,26 +332,7 @@ export default function FileMessage({
             className="flex-1 overflow-auto bg-neutral-200"
             style={{ touchAction: "pan-x pan-y" }}
             onContextMenu={(e) => e.preventDefault()}
-            onTouchStart={(e) => {
-              if (e.touches.length === 2) {
-                e.preventDefault();
-                const dx = e.touches[0].clientX - e.touches[1].clientX;
-                const dy = e.touches[0].clientY - e.touches[1].clientY;
-                pinchRef.current = Math.hypot(dx, dy);
-              }
-            }}
-            onTouchMove={(e) => {
-              if (e.touches.length === 2 && pinchRef.current > 0) {
-                e.preventDefault();
-                const dx = e.touches[0].clientX - e.touches[1].clientX;
-                const dy = e.touches[0].clientY - e.touches[1].clientY;
-                const dist = Math.hypot(dx, dy);
-                const delta = (dist - pinchRef.current) / 200;
-                setPdfScale((s) => Math.min(3, Math.max(0.5, s + delta)));
-                pinchRef.current = dist;
-              }
-            }}
-            onTouchEnd={() => { pinchRef.current = 0; }}
+            {...bindPdfPinch()}
           >
             <Document
               file={pdfQuery.data}

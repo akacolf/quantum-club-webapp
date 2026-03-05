@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -17,8 +18,7 @@ interface GroupItemProps {
     onNavigate: (groupId: string) => void;
 }
 
-// Memoized group item component for performance
-const GroupItem = memo(function GroupItem({ group, index, onNavigate }: GroupItemProps) {
+function GroupItem({ group, index, onNavigate }: GroupItemProps) {
     const handleClick = () => {
         onNavigate(group.id);
     };
@@ -53,7 +53,7 @@ const GroupItem = memo(function GroupItem({ group, index, onNavigate }: GroupIte
             </Card>
         </motion.div>
     );
-});
+}
 
 export default function GroupsPage() {
     useTelegramBackButton("/ecosystem/trade");
@@ -74,6 +74,15 @@ export default function GroupsPage() {
         groups.slice(0, 10).forEach((g) => router.prefetch(`/groups/${g.id}`));
         router.prefetch("/groups/create");
     }, [groups, router]);
+
+    const listRef = useRef<HTMLDivElement>(null);
+    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
+    const virtualizer = useWindowVirtualizer({
+        count: groups.length,
+        estimateSize: () => 80,
+        overscan: 5,
+        scrollMargin: listRef.current?.offsetTop ?? 0,
+    });
 
     if (loading) {
         return <Loader />;
@@ -119,15 +128,25 @@ export default function GroupsPage() {
                         </Button>
                     </motion.div>
                 ) : (
-                    <div className="space-y-3">
-                        {groups.map((group, index) => (
-                            <GroupItem
-                                key={group.id}
-                                group={group}
-                                index={index}
-                                onNavigate={handleNavigateToGroup}
-                            />
-                        ))}
+                    <div ref={listRef}>
+                        <div className="relative" style={{ height: `${virtualizer.getTotalSize()}px` }}>
+                            {virtualizer.getVirtualItems().map((virtualItem) => {
+                                const group = groups[virtualItem.index];
+                                return (
+                                    <div
+                                        key={group.id}
+                                        className="absolute top-0 left-0 w-full"
+                                        style={{ transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)` }}
+                                        ref={virtualizer.measureElement}
+                                        data-index={virtualItem.index}
+                                    >
+                                        <div className="pb-3">
+                                            <GroupItem group={group} index={virtualItem.index} onNavigate={handleNavigateToGroup} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </div>
