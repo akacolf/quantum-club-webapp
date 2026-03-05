@@ -10,7 +10,6 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useUserStatsQuery } from "@/app/(hooks)/queries/use-user-stats";
 import { useProfilePhotoQuery } from "@/app/(hooks)/queries/use-profile-photo";
 import Loader from "@/app/(components)/Loader";
-import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     Sheet,
@@ -27,7 +26,6 @@ export default function ProfilePage() {
     const router = useRouter();
     const { telegramId, username, MainQuantAmount, daily } = useUserContext();
 
-    const [copied, setCopied] = useState(false);
     const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -40,19 +38,6 @@ export default function ProfilePage() {
 
     // Derive a stable stats object for achievements (use defaults while loading)
     const resolvedStats = stats ?? { totalQntm: 0, referralCount: 0, tasksCompleted: 0, dailyStreak: 0, walletCreated: false };
-
-    // Copy QC ID to clipboard
-    const handleCopyId = async () => {
-        if (!telegramId) return;
-        try {
-            await navigator.clipboard.writeText(telegramId);
-            setCopied(true);
-            toast.success("QC ID copied to clipboard!");
-            setTimeout(() => setCopied(false), 2000);
-        } catch {
-            toast.error("Failed to copy ID");
-        }
-    };
 
     // Open achievement details
     const handleAchievementClick = (achievement: Achievement) => {
@@ -116,22 +101,6 @@ export default function ProfilePage() {
                         </h1>
                     </div>
 
-                    {/* QC ID - Tappable to copy */}
-                    <motion.button
-                        onClick={handleCopyId}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 px-4 py-2 bg-card/80 border border-border rounded-xl backdrop-blur-xl transition-colors hover:bg-accent"
-                    >
-                        <span className="text-sm text-muted-foreground">QC ID:</span>
-                        <span className="text-sm font-mono text-foreground">
-                            {telegramId}
-                        </span>
-                        {copied ? (
-                            <Icon icon="solar:check-circle-bold" className="w-4 h-4 text-green-400" />
-                        ) : (
-                            <Icon icon="solar:copy-bold" className="w-4 h-4 text-muted-foreground" />
-                        )}
-                    </motion.button>
                 </motion.div>
 
                 {/* Stats Grid */}

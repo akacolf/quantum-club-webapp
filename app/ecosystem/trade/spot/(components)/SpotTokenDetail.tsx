@@ -143,9 +143,13 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Market cap</p>
-                            <p className="text-2xl font-bold text-white">
-                                {marketCap ? formatCompactUsd(marketCap) : "--"}
-                            </p>
+                            {(isLoadingDetail || isLoadingMarket) && !marketCap ? (
+                                <Skeleton className="h-8 w-24 mt-1" />
+                            ) : (
+                                <p className="text-2xl font-bold text-white">
+                                    {marketCap ? formatCompactUsd(marketCap) : "--"}
+                                </p>
+                            )}
                         </div>
                         <div className="text-right space-y-1.5">
                             <StatRow label="Holders" value={holders ? holders.toLocaleString() : undefined} loading={isLoadingDetail && !dyor} />
@@ -182,7 +186,18 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
             {/* Price changes + Token info */}
             <div className="flex gap-2 px-1">
                 {/* Price changes over time */}
-                {(priceChange7d !== undefined || priceChange30d !== undefined) && (
+                {isLoadingMarket ? (
+                    <div className="flex gap-3">
+                        <div>
+                            <p className="text-[10px] text-muted-foreground mb-0.5">7d</p>
+                            <Skeleton className="h-4 w-12" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-muted-foreground mb-0.5">30d</p>
+                            <Skeleton className="h-4 w-12" />
+                        </div>
+                    </div>
+                ) : (priceChange7d !== undefined || priceChange30d !== undefined) ? (
                     <div className="flex gap-3">
                         {priceChange7d !== undefined && (
                             <div>
@@ -197,28 +212,43 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                             </div>
                         )}
                     </div>
-                )}
+                ) : null}
 
                 {/* Supply + Mintable */}
                 <div className="flex gap-3 ml-auto">
-                    {formattedSupply && (
+                    {isLoadingDetail ? (
+                        <div className="text-right">
+                            <p className="text-[10px] text-muted-foreground mb-0.5">Supply</p>
+                            <Skeleton className="h-4 w-16 ml-auto" />
+                        </div>
+                    ) : formattedSupply ? (
                         <div className="text-right">
                             <p className="text-[10px] text-muted-foreground mb-0.5">Supply</p>
                             <p className="text-xs font-semibold text-white">{formattedSupply}</p>
                         </div>
-                    )}
+                    ) : null}
                 </div>
             </div>
 
             {/* Description */}
-            {(dyor?.description || detail?.description) && (
+            {isLoadingDetail ? (
+                <Card className="bg-white/5 border-white/5">
+                    <CardContent className="p-3">
+                        <p className="text-xs text-muted-foreground mb-1">About</p>
+                        <div className="space-y-1.5">
+                            <Skeleton className="h-3.5 w-full" />
+                            <Skeleton className="h-3.5 w-4/5" />
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : (dyor?.description || detail?.description) ? (
                 <Card className="bg-white/5 border-white/5">
                     <CardContent className="p-3">
                         <p className="text-xs text-muted-foreground mb-1">About</p>
                         <p className="text-sm text-white/80 line-clamp-3">{dyor?.description || detail?.description}</p>
                     </CardContent>
                 </Card>
-            )}
+            ) : null}
         </div>
     );
 }

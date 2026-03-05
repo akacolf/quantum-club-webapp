@@ -444,6 +444,7 @@ export function formatCompactNumber(num: number, precision: number = 2): string 
     if (Math.abs(num) < 1000) return num.toFixed(precision);
     if (Math.abs(num) < 1000000) return (num / 1000).toFixed(precision) + "K";
     if (Math.abs(num) < 1000000000) return (num / 1000000).toFixed(precision) + "M";
-    return (num / 1000000000).toFixed(precision) + "B";
+    if (Math.abs(num) < 1000000000000) return (num / 1000000000).toFixed(precision) + "B";
+    return (num / 1000000000000).toFixed(precision) + "T";
 }
 

@@ -8,6 +8,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 import { tonSendSchema, multiChainSendSchema } from "@/lib/validations";
+import { env } from "@/env";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -643,7 +644,7 @@ export default function SendPage() {
           break;
       }
 
-      const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
+      const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL, apiKey: env.NEXT_PUBLIC_TONAPI_KEY });
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
       const toAddress = Address.parse(resolvedAddress);
@@ -843,7 +844,7 @@ export default function SendPage() {
           break;
       }
 
-      const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
+      const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL, apiKey: env.NEXT_PUBLIC_TONAPI_KEY });
       const adapter = new ContractAdapter(ta);
       const contract = adapter.open(wallet);
 
