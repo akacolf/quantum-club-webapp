@@ -24,13 +24,22 @@ async function fetchWalletAssetsData(
     walletAddress: string,
     isTestnet: boolean
 ): Promise<WalletAssetsData> {
-    // Fetch price
+    // Fetch TON price from TonAPI
     let tonPrice = 0;
     if (isTestnet) {
         tonPrice = 5.0;
     } else {
-        const { fetchTonPrice } = await import("@/lib/price-api");
-        tonPrice = await fetchTonPrice();
+        try {
+            const { tonApiGet } = await import("@/lib/tonapi-client");
+            const ratesData = await tonApiGet<{ rates: Record<string, { prices: Record<string, number> }> }>(
+                `/v2/rates?tokens=ton&currencies=usd`
+            );
+            tonPrice = ratesData.rates?.ton?.prices?.USD ?? 0;
+        } catch {
+            // Fallback to DeFiLlama
+            const { fetchTonPrice } = await import("@/lib/price-api");
+            tonPrice = await fetchTonPrice();
+        }
     }
 
     // Fetch balance

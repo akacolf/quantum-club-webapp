@@ -12,14 +12,25 @@ interface PriceData {
   };
 }
 
-// Fetch prices from DeFiLlama (free, no rate limits)
+// Fetch prices: TON from TonAPI, others from DeFiLlama
 async function fetchPrices(): Promise<PriceData> {
   try {
+    // TON price from TonAPI (server-side, uses TONAPI_KEY)
+    let tonPrice = 0;
+    try {
+      const { getTonApiClient } = await import("@/lib/ton-api");
+      const client = getTonApiClient();
+      const data = await client.rates.getRates({ tokens: ["ton"], currencies: ["usd"] });
+      const rates = data.rates as unknown as Record<string, { prices?: Record<string, number> }>;
+      tonPrice = rates?.ton?.prices?.USD ?? 0;
+    } catch { /* fallback below */ }
+
+    // Multi-chain prices from DeFiLlama
     const { fetchAllPrices } = await import("@/lib/price-api");
     const prices = await fetchAllPrices();
 
     return {
-      TON: { usd: prices.ton || 0 },
+      TON: { usd: tonPrice || prices.ton || 0 },
       BTC: { usd: prices.btc || 0 },
       ETH: { usd: prices.eth || 0 },
       SOL: { usd: prices.sol || 0 },

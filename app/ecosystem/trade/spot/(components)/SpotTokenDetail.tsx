@@ -13,13 +13,17 @@ interface SpotTokenDetailProps {
     detail?: {
         holders: number;
         totalSupply: string;
+        decimals: number;
         description?: string;
+        mintable?: boolean;
         verification?: string;
     };
     market?: {
         volume24HUsd?: string;
         liquidityUsd?: string;
         priceChangeH24?: string;
+        priceChangeW7d?: string;
+        priceChangeM30d?: string;
         marketCapUsd?: string;
         fdvUsd?: string;
         poolName?: string;
@@ -51,6 +55,9 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
         ?? token.priceChange24h;
     const isPositive = (priceChange ?? 0) >= 0;
 
+    const priceChange7d = market?.priceChangeW7d ? parseFloat(market.priceChangeW7d.replace("%", "")) : undefined;
+    const priceChange30d = market?.priceChangeM30d ? parseFloat(market.priceChangeM30d.replace("%", "")) : undefined;
+
     const copyAddress = () => {
         navigator.clipboard.writeText(token.contractAddress);
         toast.success("Address copied");
@@ -68,6 +75,16 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
         ?? (market?.liquidityUsd ? parseFloat(market.liquidityUsd) : undefined);
     const holders = dyor?.holdersCount ?? detail?.holders;
     const trustScore = dyor?.trustScore;
+
+    // Format total supply with decimals
+    const formattedSupply = (() => {
+        if (!detail?.totalSupply) return undefined;
+        const decimals = detail.decimals ?? 9;
+        const raw = BigInt(detail.totalSupply);
+        const divisor = BigInt(10 ** decimals);
+        const whole = raw / divisor;
+        return formatCompactNumber(Number(whole));
+    })();
 
     return (
         <div className="space-y-3">
@@ -155,6 +172,37 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                 )}
             </div>
 
+            {/* Price changes + Token info */}
+            <div className="flex gap-2 px-1">
+                {/* Price changes over time */}
+                {(priceChange7d !== undefined || priceChange30d !== undefined) && (
+                    <div className="flex gap-3">
+                        {priceChange7d !== undefined && (
+                            <div>
+                                <p className="text-[10px] text-muted-foreground mb-0.5">7d</p>
+                                <ChangeIndicator value={priceChange7d} />
+                            </div>
+                        )}
+                        {priceChange30d !== undefined && (
+                            <div>
+                                <p className="text-[10px] text-muted-foreground mb-0.5">30d</p>
+                                <ChangeIndicator value={priceChange30d} />
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Supply + Mintable */}
+                <div className="flex gap-3 ml-auto">
+                    {formattedSupply && (
+                        <div className="text-right">
+                            <p className="text-[10px] text-muted-foreground mb-0.5">Supply</p>
+                            <p className="text-xs font-semibold text-white">{formattedSupply}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Description */}
             {(dyor?.description || detail?.description) && (
                 <Card className="bg-white/5 border-white/5">
@@ -165,6 +213,15 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                 </Card>
             )}
         </div>
+    );
+}
+
+function ChangeIndicator({ value }: { value: number }) {
+    const positive = value >= 0;
+    return (
+        <span className={`text-xs font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
+            {positive ? "+" : ""}{value.toFixed(2)}%
+        </span>
     );
 }
 
@@ -209,4 +266,12 @@ function formatCompactUsd(value: number): string {
     if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
     if (value >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
     return `$${value.toFixed(0)}`;
+}
+
+function formatCompactNumber(value: number): string {
+    if (value >= 1e12) return `${(value / 1e12).toFixed(1)}T`;
+    if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+    return value.toLocaleString();
 }

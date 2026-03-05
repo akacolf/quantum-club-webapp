@@ -153,28 +153,40 @@ export function useTradeEvents(jettonAddress: string | undefined, refetchMs = 30
 }
 
 /**
- * Fetch live price for a single coin from DeFiLlama (5s refresh).
+ * Fetch live price for a single coin (5s refresh).
+ * TON price from TonAPI, other chains from DeFiLlama.
  */
 export function useLivePrice(symbol: string | undefined, refetchMs = 5000) {
-    const coinIdMap: Record<string, string> = {
-        TON: "coingecko:the-open-network",
-        ETH: "coingecko:ethereum",
-        BTC: "coingecko:bitcoin",
-        SOL: "coingecko:solana",
-        TRX: "coingecko:tron",
-    };
-    const coinId = symbol ? coinIdMap[symbol] : undefined;
-
     return useQuery<number | null>({
         queryKey: ["livePrice", symbol],
         queryFn: async () => {
+            if (!symbol) return null;
+
+            // TON and TON-ecosystem tokens → TonAPI
+            if (symbol === "TON") {
+                const { tonApiGet } = await import("@/lib/tonapi-client");
+                const data = await tonApiGet<{ rates: Record<string, { prices: Record<string, number> }> }>(
+                    `/v2/rates?tokens=ton&currencies=usd`
+                );
+                return data.rates?.ton?.prices?.USD ?? null;
+            }
+
+            // Non-TON chains → DeFiLlama
+            const coinIdMap: Record<string, string> = {
+                ETH: "coingecko:ethereum",
+                BTC: "coingecko:bitcoin",
+                SOL: "coingecko:solana",
+                TRX: "coingecko:tron",
+            };
+            const coinId = coinIdMap[symbol];
             if (!coinId) return null;
+
             const response = await fetch(`https://coins.llama.fi/prices/current/${coinId}`);
             if (!response.ok) return null;
             const data = await response.json();
             return data.coins?.[coinId]?.price ?? null;
         },
-        enabled: !!coinId,
+        enabled: !!symbol,
         staleTime: 3_000,
         refetchInterval: refetchMs,
     });

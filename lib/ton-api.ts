@@ -303,15 +303,24 @@ export async function previewSell(
 // =====================================================
 
 /**
- * Get TON price in USD using DeFiLlama (free, no rate limits)
+ * Get TON price in USD using TonAPI rates endpoint
  */
 export async function getTonPriceUsd(): Promise<number> {
     try {
-        const { fetchTonPrice } = await import("@/lib/price-api");
-        return await fetchTonPrice();
-    } catch (error) {
-        console.error("[TON-API] Error fetching TON price:", error);
-        return 0;
+        const client = getTonApiClient();
+        const data = await client.rates.getRates({ tokens: ["ton"], currencies: ["usd"] });
+        // TokenRates is a Record<string, { prices?: Record<string, number> }>
+        const rates = data.rates as unknown as Record<string, { prices?: Record<string, number> }>;
+        return rates?.ton?.prices?.USD ?? rates?.TON?.prices?.USD ?? 0;
+    } catch {
+        // Fallback to DeFiLlama
+        try {
+            const { fetchTonPrice } = await import("@/lib/price-api");
+            return await fetchTonPrice();
+        } catch (error) {
+            console.error("[TON-API] Error fetching TON price:", error);
+            return 0;
+        }
     }
 }
 

@@ -27,7 +27,12 @@ interface TonApiRatesResponse {
         prices: Record<string, number>;
         diff_24h?: Record<string, string>;
         diff_7d?: Record<string, string>;
+        diff_30d?: Record<string, string>;
     }>;
+}
+
+interface TonApiChartResponse {
+    points: [number, number][]; // [timestamp, price]
 }
 
 // ─── Token list hook ──────────────────────────────────────────────────
@@ -100,6 +105,7 @@ export function useSpotTokenDetail(address: string | undefined) {
             return {
                 holders: data.holders_count ?? 0,
                 totalSupply: data.total_supply ?? "0",
+                decimals: data.metadata?.decimals ? parseInt(data.metadata.decimals) : 9,
                 description: data.metadata?.description,
                 mintable: data.mintable ?? false,
                 verification: data.verification,
@@ -112,8 +118,8 @@ export function useSpotTokenDetail(address: string | undefined) {
 }
 
 /**
- * Fetch market data for a token from TonAPI rates + GeckoTerminal pool data.
- * TonAPI provides price + diff, GeckoTerminal provides volume + liquidity.
+ * Fetch market data for a token from TonAPI rates (price, 24h/7d/30d change)
+ * + GeckoTerminal pool data for volume & liquidity.
  */
 export function useSpotTokenMarket(tokenAddress: string | undefined) {
     return useQuery({
@@ -121,7 +127,7 @@ export function useSpotTokenMarket(tokenAddress: string | undefined) {
         queryFn: async () => {
             if (!tokenAddress) throw new Error("No address");
 
-            // Fetch rates from TonAPI (price, 24h/7d change)
+            // Fetch rates from TonAPI (price, 24h/7d/30d change)
             let ratesData: TonApiRatesResponse | null = null;
             try {
                 ratesData = await tonApiGet<TonApiRatesResponse>(
@@ -154,15 +160,17 @@ export function useSpotTokenMarket(tokenAddress: string | undefined) {
             const priceUsd = rateInfo?.prices?.USD;
             const diff24h = rateInfo?.diff_24h?.USD;
             const diff7d = rateInfo?.diff_7d?.USD;
+            const diff30d = rateInfo?.diff_30d?.USD;
 
             return {
                 poolAddress,
                 priceUsd: priceUsd !== undefined ? String(priceUsd) : undefined,
                 priceChangeH24: diff24h ?? undefined,
                 priceChangeW7d: diff7d ?? undefined,
+                priceChangeM30d: diff30d ?? undefined,
                 volume24HUsd,
                 liquidityUsd,
-                marketCapUsd: undefined, // Computed from price * supply in the UI if needed
+                marketCapUsd: undefined,
                 fdvUsd: undefined,
                 poolName,
             };
@@ -204,7 +212,7 @@ interface GeckoOHLCV {
     ohlcv_list: [number, number, number, number, number, number][];
 }
 
-// ─── OHLCV chart hook ────────────────────────────────────────────────
+// ─── OHLCV chart hook (GeckoTerminal — candlestick fallback) ────────
 
 export type ChartTimeframe = "15m" | "1h" | "4h" | "1d";
 
@@ -226,7 +234,7 @@ export interface OHLCVCandle {
 
 /**
  * Fetch OHLCV chart data from GeckoTerminal.
- * Requires a pool address (fetched via useSpotTokenMarket).
+ * Used as fallback for candlestick charts when TonAPI area chart is insufficient.
  */
 export function useSpotTokenChart(poolAddress: string | undefined, timeframe: ChartTimeframe = "1h") {
     return useQuery<OHLCVCandle[]>({
@@ -259,7 +267,52 @@ export function useSpotTokenChart(poolAddress: string | undefined, timeframe: Ch
     });
 }
 
-// ─── DYOR chart fallback ─────────────────────────────────────────────
+// ─── TonAPI chart hook (primary — area chart) ────────────────────────
+
+const TONAPI_CHART_CONFIG: Record<ChartTimeframe, { hours: number; points: number }> = {
+    "15m": { hours: 24,      points: 96 },   // 24h, ~15min intervals
+    "1h":  { hours: 24 * 7,  points: 168 },  // 7 days, ~1h intervals
+    "4h":  { hours: 24 * 30, points: 180 },  // 30 days, ~4h intervals
+    "1d":  { hours: 24 * 90, points: 90 },   // 90 days, daily intervals
+};
+
+/**
+ * Fetch price chart data from TonAPI /v2/rates/chart.
+ * Returns [timestamp, price] pairs — area chart only (no OHLCV).
+ * Primary chart source — works for any token without needing a pool address.
+ */
+export function useSpotTokenTonApiChart(tokenAddress: string | undefined, timeframe: ChartTimeframe = "1h") {
+    return useQuery<OHLCVCandle[]>({
+        queryKey: ["spot-token-tonapi-chart", tokenAddress, timeframe],
+        queryFn: async () => {
+            if (!tokenAddress) throw new Error("No address");
+            const cfg = TONAPI_CHART_CONFIG[timeframe];
+            const endDate = Math.floor(Date.now() / 1000);
+            const startDate = endDate - cfg.hours * 3600;
+
+            const data = await tonApiGet<TonApiChartResponse>(
+                `/v2/rates/chart?token=${encodeURIComponent(tokenAddress)}&currency=usd&start_date=${startDate}&end_date=${endDate}&points_count=${cfg.points}`
+            );
+
+            if (!data?.points?.length) return [];
+
+            return data.points.map(([ts, price]) => ({
+                time: ts,
+                open: price,
+                high: price,
+                low: price,
+                close: price,
+                volume: 0,
+            })).sort((a, b) => a.time - b.time);
+        },
+        enabled: !!tokenAddress,
+        staleTime: 30_000,
+        gcTime: 60_000,
+        refetchInterval: 60_000,
+    });
+}
+
+// ─── DYOR enrichment hook ───────────────────────────────────────────
 
 const DYOR_BASE = "https://api.dyor.io/v1";
 
@@ -279,52 +332,6 @@ function parseDyorDecimal(val: { value: string; decimals: number } | undefined |
     if (!val?.value) return undefined;
     return parseInt(val.value) * Math.pow(10, -val.decimals);
 }
-
-const DYOR_TIMEFRAME_MAP: Record<ChartTimeframe, { resolution: string; hours: number }> = {
-    "15m": { resolution: "min15", hours: 24 * 7 },
-    "1h":  { resolution: "hour1", hours: 24 * 30 },
-    "4h":  { resolution: "hour1", hours: 24 * 30 },
-    "1d":  { resolution: "day1", hours: 24 * 365 },
-};
-
-/**
- * Fetch chart data from DYOR API as fallback when GeckoTerminal has no pool data.
- */
-export function useSpotTokenDyorChart(tokenAddress: string | undefined, timeframe: ChartTimeframe = "1h", enabled: boolean = true) {
-    return useQuery<OHLCVCandle[]>({
-        queryKey: ["spot-token-dyor-chart", tokenAddress, timeframe],
-        queryFn: async () => {
-            if (!tokenAddress) throw new Error("No address");
-            const cfg = DYOR_TIMEFRAME_MAP[timeframe];
-            const to = new Date().toISOString();
-            const from = new Date(Date.now() - cfg.hours * 3600_000).toISOString();
-
-            const data = await dyorFetch<{
-                points: { value: { value: string; decimals: number }; time: string }[];
-            }>(`/jettons/${encodeURIComponent(tokenAddress)}/price/chart?resolution=${cfg.resolution}&from=${from}&to=${to}&currency=usd`);
-
-            if (!data?.points?.length) return [];
-
-            return data.points.map((p) => {
-                const price = parseDyorDecimal(p.value) ?? 0;
-                return {
-                    time: Math.floor(new Date(p.time).getTime() / 1000),
-                    open: price,
-                    high: price,
-                    low: price,
-                    close: price,
-                    volume: 0,
-                };
-            }).sort((a, b) => a.time - b.time);
-        },
-        enabled: !!tokenAddress && enabled,
-        staleTime: 30_000,
-        gcTime: 60_000,
-        refetchInterval: 60_000,
-    });
-}
-
-// ─── DYOR enrichment hook ───────────────────────────────────────────
 
 interface DyorJettonResponse {
     address: string;

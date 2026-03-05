@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { tonApiGet } from "@/lib/tonapi-client";
 
-// DeFiLlama coin IDs
-const COIN_IDS: Record<string, string> = {
-    ton: "coingecko:the-open-network",
+// DeFiLlama coin IDs (for non-TON chains only)
+const DEFI_LLAMA_COIN_IDS: Record<string, string> = {
     btc: "coingecko:bitcoin",
     eth: "coingecko:ethereum",
     sol: "coingecko:solana",
@@ -17,41 +17,50 @@ interface AllPrices {
     trx: number;
 }
 
-async function fetchAllPricesFromApi(): Promise<AllPrices> {
-    const allCoinIds = Object.values(COIN_IDS).join(",");
-    const response = await fetch(
-        `https://coins.llama.fi/prices/current/${allCoinIds}`
-    );
-
-    if (!response.ok) {
-        throw new Error(`Price API batch fetch failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return {
-        ton: data.coins?.[COIN_IDS.ton]?.price ?? 0,
-        btc: data.coins?.[COIN_IDS.btc]?.price ?? 0,
-        eth: data.coins?.[COIN_IDS.eth]?.price ?? 0,
-        sol: data.coins?.[COIN_IDS.sol]?.price ?? 0,
-        trx: data.coins?.[COIN_IDS.trx]?.price ?? 0,
-    };
+interface TonApiRatesResponse {
+    rates: Record<string, {
+        prices: Record<string, number>;
+    }>;
 }
 
-async function fetchSinglePrice(symbol: string): Promise<number> {
-    const coinId = COIN_IDS[symbol.toLowerCase()];
-    if (!coinId) return 0;
+async function fetchAllPricesFromApi(): Promise<AllPrices> {
+    // Fetch TON price from TonAPI
+    let tonPrice = 0;
+    try {
+        const tonData = await tonApiGet<TonApiRatesResponse>(
+            `/v2/rates?tokens=ton&currencies=usd`
+        );
+        tonPrice = tonData.rates?.ton?.prices?.USD ?? 0;
+    } catch {
+        // Fallback: fetch from DeFiLlama
+        try {
+            const res = await fetch(`https://coins.llama.fi/prices/current/coingecko:the-open-network`);
+            if (res.ok) {
+                const data = await res.json();
+                tonPrice = data.coins?.["coingecko:the-open-network"]?.price ?? 0;
+            }
+        } catch { /* give up */ }
+    }
 
-    const response = await fetch(
-        `https://coins.llama.fi/prices/current/${coinId}`
-    );
-    if (!response.ok) return 0;
+    // Fetch BTC, ETH, SOL, TRX from DeFiLlama (TonAPI only covers TON ecosystem)
+    let btc = 0, eth = 0, sol = 0, trx = 0;
+    try {
+        const allCoinIds = Object.values(DEFI_LLAMA_COIN_IDS).join(",");
+        const response = await fetch(`https://coins.llama.fi/prices/current/${allCoinIds}`);
+        if (response.ok) {
+            const data = await response.json();
+            btc = data.coins?.[DEFI_LLAMA_COIN_IDS.btc]?.price ?? 0;
+            eth = data.coins?.[DEFI_LLAMA_COIN_IDS.eth]?.price ?? 0;
+            sol = data.coins?.[DEFI_LLAMA_COIN_IDS.sol]?.price ?? 0;
+            trx = data.coins?.[DEFI_LLAMA_COIN_IDS.trx]?.price ?? 0;
+        }
+    } catch { /* give up */ }
 
-    const data = await response.json();
-    return data.coins?.[coinId]?.price ?? 0;
+    return { ton: tonPrice, btc, eth, sol, trx };
 }
 
 /**
- * Fetch all crypto prices in a single batch request.
+ * Fetch all crypto prices. TON from TonAPI, others from DeFiLlama.
  * Cached for 60s via TanStack Query staleTime.
  */
 export function useAllPrices() {
@@ -60,35 +69,5 @@ export function useAllPrices() {
         queryFn: fetchAllPricesFromApi,
         staleTime: 60_000,
         refetchInterval: 60_000,
-    });
-}
-
-/**
- * Fetch a single coin price.
- */
-export function useCoinPrice(symbol: string, enabled = true) {
-    return useQuery<number>({
-        queryKey: ["prices", symbol.toLowerCase()],
-        queryFn: () => fetchSinglePrice(symbol),
-        staleTime: 60_000,
-        enabled,
-    });
-}
-
-/**
- * Fetch price chart data from CoinGecko.
- */
-export function usePriceChart(coinId: string, days = 7, enabled = true) {
-    return useQuery<{ prices: [number, number][] } | null>({
-        queryKey: ["priceChart", coinId, days],
-        queryFn: async () => {
-            const response = await fetch(
-                `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
-            );
-            if (!response.ok) return null;
-            return response.json();
-        },
-        staleTime: 5 * 60_000,
-        enabled,
     });
 }

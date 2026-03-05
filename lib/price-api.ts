@@ -1,10 +1,9 @@
 /**
  * Cryptocurrency Price Utilities
- * 
- * Uses DeFiLlama API for price data - free, no API key, generous rate limits.
+ *
+ * TON price: TonAPI (primary), DeFiLlama (fallback)
+ * Multi-chain prices (BTC/ETH/SOL/TRX): DeFiLlama (free, no API key)
  * Caches prices for 60 seconds to minimize API calls.
- * 
- * @see https://defillama.com/docs/api
  */
 
 // Price cache with 60-second TTL
@@ -71,9 +70,28 @@ async function getCachedPrice(symbol: string): Promise<number> {
 }
 
 /**
- * Fetch TON price in USD
+ * Fetch TON price in USD.
+ * Primary: TonAPI, Fallback: DeFiLlama.
  */
 export async function fetchTonPrice(): Promise<number> {
+    const cached = priceCache["ton"];
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < CACHE_TTL_MS) return cached.price;
+
+    // Try TonAPI first (server action — keeps API key secure)
+    try {
+        const { tonApiGet } = await import("@/lib/tonapi-client");
+        const data = await tonApiGet<{ rates: Record<string, { prices: Record<string, number> }> }>(
+            `/v2/rates?tokens=ton&currencies=usd`
+        );
+        const price = data.rates?.ton?.prices?.USD ?? 0;
+        if (price > 0) {
+            priceCache["ton"] = { price, timestamp: now };
+            return price;
+        }
+    } catch { /* fallback below */ }
+
+    // Fallback: DeFiLlama
     return getCachedPrice("ton");
 }
 
@@ -150,30 +168,3 @@ export async function fetchAllPrices(): Promise<{
     }
 }
 
-/**
- * Get price chart data (uses CoinGecko for charts as DeFiLlama doesn't have this)
- * Falls back gracefully on rate limit
- */
-export async function fetchPriceChart(
-    coinId: string, 
-    days: number = 7
-): Promise<{ prices: [number, number][] } | null> {
-    try {
-        const response = await fetch(
-            `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`,
-            { next: { revalidate: 300 } } // Cache for 5 minutes
-        );
-        
-        if (!response.ok) {
-            if (response.status === 429) {
-                console.warn("[Price API] CoinGecko rate limited for chart data");
-            }
-            return null;
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error("[Price API] Chart fetch error:", error);
-        return null;
-    }
-}

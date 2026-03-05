@@ -14,7 +14,7 @@ import {
     ColorType,
     CrosshairMode,
 } from "lightweight-charts";
-import { useSpotTokenChart, useSpotTokenDyorChart, type ChartTimeframe } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokenTonApiChart, useSpotTokenChart, type ChartTimeframe } from "@/app/(hooks)/queries/use-spot-trading";
 
 interface SpotPriceChartProps {
     poolAddress?: string;
@@ -41,20 +41,26 @@ function formatChartPrice(price: number): string {
 
 export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol }: SpotPriceChartProps) {
     const [timeframe, setTimeframe] = useState<ChartTimeframe>("1h");
-    const [chartMode, setChartMode] = useState<ChartMode>("candle");
+    const [chartMode, setChartMode] = useState<ChartMode>("area");
 
-    // Primary: GeckoTerminal (requires pool address)
-    const { data: geckoCandles, isLoading: geckoLoading } = useSpotTokenChart(poolAddress, timeframe);
-    // Fallback: DYOR (uses token address directly, only when gecko has no data)
-    const useDyorFallback = !poolAddress || (!geckoLoading && (!geckoCandles || geckoCandles.length === 0));
-    const { data: dyorCandles, isLoading: dyorLoading } = useSpotTokenDyorChart(tokenAddress, timeframe, useDyorFallback);
+    // Primary: TonAPI chart (area chart — works for any token, no pool needed)
+    const { data: tonApiCandles, isLoading: tonApiLoading } = useSpotTokenTonApiChart(tokenAddress, timeframe);
 
-    const candles = (geckoCandles && geckoCandles.length > 0) ? geckoCandles : dyorCandles;
-    const isLoading = geckoLoading || (useDyorFallback && dyorLoading);
-    const isDyorData = !(geckoCandles && geckoCandles.length > 0) && (dyorCandles && dyorCandles.length > 0);
+    // Fallback: GeckoTerminal OHLCV (requires pool address, provides candlestick data)
+    const useGeckoFallback = chartMode === "candle" && !!poolAddress;
+    const { data: geckoCandles, isLoading: geckoLoading } = useSpotTokenChart(
+        useGeckoFallback ? poolAddress : undefined,
+        timeframe
+    );
 
-    // Force area mode for DYOR data (no OHLCV)
-    const effectiveMode = isDyorData ? "area" : chartMode;
+    // Use TonAPI data by default (area), Gecko for candlestick mode when pool exists
+    const isCandleMode = chartMode === "candle" && geckoCandles && geckoCandles.length > 0;
+    const candles = isCandleMode ? geckoCandles : (tonApiCandles && tonApiCandles.length > 0 ? tonApiCandles : geckoCandles);
+    const isLoading = tonApiLoading || (useGeckoFallback && geckoLoading);
+
+    // Force area mode when only TonAPI data (no OHLCV)
+    const effectiveMode = isCandleMode ? "candle" : "area";
+    const canToggleMode = !!poolAddress && geckoCandles && geckoCandles.length > 0;
 
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
@@ -218,7 +224,7 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
                             </span>
                         )}
                     </div>
-                    {!isDyorData && (
+                    {canToggleMode && (
                         <button
                             onClick={() => setChartMode(chartMode === "candle" ? "area" : "candle")}
                             className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
