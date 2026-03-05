@@ -55,7 +55,7 @@ export default function UserStatsCard() {
             </div>
             <div className="flex flex-col items-end">
               <span className="text-[10px] text-white/40 uppercase tracking-[0.1em] font-bold">Rank</span>
-              <span className="text-2xl font-black text-white italic">#{userRank}</span>
+              <span className="text-2xl font-black text-white">#{userRank}</span>
             </div>
           </div>
         </CardContent>

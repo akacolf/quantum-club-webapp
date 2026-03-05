@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,6 +16,10 @@ interface ChatPickerModalProps {
 
 export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerModalProps) {
   const { chats, loading, refreshChats } = useChat();
+  const hasLoadedOnce = useRef(false);
+
+  // Track if we've ever had chats loaded
+  if (chats.length > 0) hasLoadedOnce.current = true;
 
   // Refresh chats when modal opens to ensure latest data
   useEffect(() => {
@@ -23,6 +27,10 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
       refreshChats();
     }
   }, [open, refreshChats]);
+
+  // Only show skeleton on true initial load, not on background refreshes
+  const showSkeleton = loading && chats.length === 0 && !hasLoadedOnce.current;
+  const showEmpty = !loading && chats.length === 0;
 
   return (
     <AnimatePresence>
@@ -52,7 +60,7 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
 
             {/* Chat list */}
             <div className="overflow-y-auto max-h-[calc(60vh-60px)] p-2">
-              {loading && chats.length === 0 && (
+              {showSkeleton && (
                 <div className="space-y-2 p-2">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-3">
@@ -65,7 +73,7 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                   ))}
                 </div>
               )}
-              {!loading && chats.length === 0 && (
+              {showEmpty && (
                 <div className="py-8 text-center">
                   <Icon icon="solar:chat-line-linear" className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No chats yet</p>

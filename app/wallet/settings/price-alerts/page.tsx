@@ -17,7 +17,7 @@ import Image from "next/image";
 import { useAllPrices } from "@/app/(hooks)/queries/use-prices";
 import { usePriceAlerts } from "@/app/(hooks)/queries/use-trades";
 import { useQueryClient } from "@tanstack/react-query";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { priceAlertSchema } from "@/lib/validations";
 import { Field, FieldError } from "@/components/ui/field";
 
@@ -67,8 +67,9 @@ export default function PriceAlertsPage() {
         },
     });
 
-    const selectedToken = SUPPORTED_TOKENS.find((t) => t.symbol === form.state.values.symbol) || SUPPORTED_TOKENS[0];
-    const direction = form.state.values.direction;
+    const symbol = useStore(form.store, (s) => s.values.symbol);
+    const direction = useStore(form.store, (s) => s.values.direction);
+    const selectedToken = SUPPORTED_TOKENS.find((t) => t.symbol === symbol) || SUPPORTED_TOKENS[0];
 
     const handleAdd = async (value: { symbol: string; targetPrice: string; direction: "above" | "below" }) => {
         const price = parseFloat(value.targetPrice);
