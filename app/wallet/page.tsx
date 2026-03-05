@@ -33,6 +33,8 @@ import { categorizeNft } from "@/lib/nft-marketplace";
 import { WalletPriceChart } from "./WalletPriceChart";
 import { useLivePrice } from "@/app/(hooks)/queries/use-trades";
 import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
+import { usePriceHistoryQuery } from "@/app/(hooks)/queries/use-price-history";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Asset detail types
 interface PricePoint {
@@ -261,9 +263,8 @@ export default function WalletPage() {
 
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
-  const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
   const [chartPeriod, setChartPeriod] = useQueryState("period", parseAsStringLiteral(['1H', '1D', '1W', '1M', '6M', '1Y'] as const).withDefault('1D').withOptions({ history: "replace" }));
-  const [isLoadingPrice, setIsLoadingPrice] = useState(false);
+  const queryClient = useQueryClient();
   const [change24h, setChange24h] = useState<number | null>(null);
 
   // Virtualized jettons list
@@ -331,156 +332,13 @@ export default function WalletPage() {
     }
   }, [walletAddress, totalUsdBalance, hasFetched, isLoadingAssets, telegramId]);
 
-  // Fetch price history for selected asset
-  const fetchPriceHistory = async (asset: AssetDetail, period: ChartPeriod = '1D') => {
-    setIsLoadingPrice(true);
-    try {
-      // For ETH and BTC, use CoinGecko API
-      // For ETH, BTC, SOL, TRX use CoinGecko API
-      if (['ETH', 'BTC', 'SOL', 'TRX'].includes(asset.symbol)) {
-        let coinId = "";
-        switch (asset.symbol) {
-          case "ETH": coinId = "ethereum"; break;
-          case "BTC": coinId = "bitcoin"; break;
-          case "SOL": coinId = "solana"; break;
-          case "TRX": coinId = "tron"; break;
-        }
-        const days = { '1H': '1', '1D': '1', '1W': '7', '1M': '30', '6M': '180', '1Y': '365' }[period];
-
-        const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const prices: [number, number][] = data.prices || [];
-
-          if (prices.length > 0) {
-            // For shorter periods, sample fewer points for better chart readability
-            const maxPoints = period === '1H' ? 60 : period === '1D' ? 96 : 100;
-            const step = Math.max(1, Math.floor(prices.length / maxPoints));
-            const sampledPrices = prices.filter((_, i) => i % step === 0);
-
-            const history: PricePoint[] = sampledPrices.map((point: [number, number]) => {
-              const date = new Date(point[0]);
-              let timeLabel = "";
-
-              // Format label based on period
-              if (period === '1H' || period === '1D') {
-                timeLabel = date.toLocaleTimeString(undefined, {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false
-                });
-              } else if (period === '1W' || period === '1M') {
-                timeLabel = date.toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric'
-                });
-              } else {
-                timeLabel = date.toLocaleDateString(undefined, {
-                  month: 'short',
-                  year: '2-digit'
-                });
-              }
-
-              return {
-                time: timeLabel,
-                price: point[1],
-              };
-            });
-            setPriceHistory(history);
-            setIsLoadingPrice(false);
-            return;
-          }
-        }
-
-        // Fallback empty if no data
-        setPriceHistory([]);
-        setIsLoadingPrice(false);
-        return;
-      }
-
-      // For TON and other tokens, use TonAPI via authenticated proxy
-      const { tonApiGet } = await import("@/lib/tonapi-client");
-
-      // Determine the token for the API call
-      const tokenId = asset.symbol === "TON" ? "ton" : asset.jettonAddress;
-
-      if (!tokenId) {
-        throw new Error("No token identifier");
-      }
-
-      // Calculate start time based on period
-      const now = Math.floor(Date.now() / 1000);
-      let startTime = now - 24 * 60 * 60; // Default 1D
-
-      switch (period) {
-        case '1H': startTime = now - 60 * 60; break;
-        case '1D': startTime = now - 24 * 60 * 60; break;
-        case '1W': startTime = now - 7 * 24 * 60 * 60; break;
-        case '1M': startTime = now - 30 * 24 * 60 * 60; break;
-        case '6M': startTime = now - 180 * 24 * 60 * 60; break;
-        case '1Y': startTime = now - 365 * 24 * 60 * 60; break;
-      }
-
-      // Fetch chart data from TonAPI via proxy
-      const data = await tonApiGet<{ points: [number, number][] }>(
-        `/v2/rates/chart?token=${tokenId}&currency=usd&start_date=${startTime}&end_date=${now}`,
-        { testnet: isTestnet }
-      );
-
-      const points: [number, number][] = data.points || [];
-
-      if (points.length > 0) {
-        const history: PricePoint[] = points.map((point: [number, number]) => {
-          const date = new Date(point[0] * 1000);
-          let timeLabel = "";
-
-          // Format label based on period
-          if (period === '1H' || period === '1D') {
-            timeLabel = date.toLocaleTimeString(undefined, {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            });
-          } else if (period === '1W' || period === '1M') {
-            timeLabel = date.toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric'
-            });
-          } else {
-            timeLabel = date.toLocaleDateString(undefined, {
-              month: 'short',
-              year: '2-digit'
-            });
-          }
-
-          return {
-            time: timeLabel,
-            price: point[1],
-          };
-        });
-        setPriceHistory(history);
-        return;
-      }
-
-      // Fallback empty if no data
-      setPriceHistory([]);
-    } catch {
-      setPriceHistory([]);
-    } finally {
-      setIsLoadingPrice(false);
-    }
-  };
-
-  // Fetch price when asset is selected or period changes
-  useEffect(() => {
-    if (selectedAsset) {
-      fetchPriceHistory(selectedAsset, chartPeriod);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPriceHistory is stable in behavior, only depends on isTestnet
-  }, [selectedAsset, chartPeriod]);
+  // Price history via TanStack Query (auto-refreshes every 30s for 1H period)
+  const { data: priceHistory = [], isLoading: isLoadingPrice } = usePriceHistoryQuery(
+    selectedAsset?.symbol,
+    selectedAsset?.jettonAddress,
+    chartPeriod,
+    isTestnet,
+  );
 
   // Live price updates for selected asset via TanStack Query (5s polling)
   const { data: livePrice } = useLivePrice(selectedAsset?.symbol, 5000);
@@ -490,27 +348,21 @@ export default function WalletPage() {
     if (livePrice !== selectedAsset.priceUsd) {
       setSelectedAsset(prev => prev ? { ...prev, priceUsd: livePrice } : null);
 
-      // Update chart data with new price point for real-time visualization
+      // Update chart cache with new price point for real-time visualization
       if (priceHistory.length > 0 && chartPeriod === '1H') {
-        setPriceHistory(prev => {
-          const updated = [...prev];
-          if (updated.length > 0) {
+        queryClient.setQueryData(
+          ["price-history", selectedAsset.symbol, selectedAsset.jettonAddress, chartPeriod, isTestnet],
+          (prev: PricePoint[] | undefined) => {
+            if (!prev || prev.length === 0) return prev;
+            const updated = [...prev];
             updated[updated.length - 1] = { ...updated[updated.length - 1], price: livePrice };
-          }
-          return updated;
-        });
+            return updated;
+          },
+        );
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedAsset is intentionally accessed by .symbol only; priceHistory.length avoids deep comparison
   }, [livePrice, selectedAsset?.symbol, chartPeriod, priceHistory.length]);
-
-  // Refresh full chart data every 30 seconds when viewing 1H chart
-  useEffect(() => {
-    if (!selectedAsset || chartPeriod !== '1H') return;
-    const chartRefreshInterval = setInterval(() => fetchPriceHistory(selectedAsset, chartPeriod), 30000);
-    return () => clearInterval(chartRefreshInterval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-subscribe when symbol changes; fetchPriceHistory is stable in behavior
-  }, [selectedAsset?.symbol, chartPeriod]);
 
   useEffect(() => {
     const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);

@@ -22,8 +22,6 @@ import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { dbfs } from "@/app/(firebase)/client";
-import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
 import {
   saveTransactionLabel,
   deleteTransactionLabel,
@@ -31,53 +29,9 @@ import {
   formatTag,
   type TransactionLabel,
 } from "@/lib/transaction-labels";
+import { useTonHistoryQuery, useQntmHistoryQuery } from "@/app/(hooks)/queries/use-wallet-history";
 
-interface HistoryEvent {
-  event_id: string;
-  timestamp: number;
-  in_progress?: boolean;
-  is_scam?: boolean;
-  actions?: Array<{
-    type: string;
-    TonTransfer?: {
-      amount?: string;
-      recipient?: { address?: string };
-      sender?: { address?: string };
-    };
-    JettonTransfer?: {
-      amount?: string;
-      recipient?: { address?: string };
-      sender?: { address?: string };
-      jetton?: { decimals?: number; symbol?: string };
-    };
-    JettonSwap?: {
-      dex?: string;
-      amount_in?: string;
-      amount_out?: string;
-      ton_in?: string;
-      ton_out?: string;
-      user_wallet?: { address?: string };
-      router?: { address?: string };
-      jetton_master_in?: { symbol?: string; decimals?: number; address?: string };
-      jetton_master_out?: { symbol?: string; decimals?: number; address?: string };
-    };
-    NftItemTransfer?: {
-      recipient?: { address?: string };
-      sender?: { address?: string };
-      nft?: string;
-    };
-  }>;
-}
-
-interface QNTMTransfer {
-  id: string;
-  type: 'sent' | 'received';
-  amount: number;
-  to?: string;
-  from?: string;
-  date: string;
-  timestamp?: number;
-}
+import type { HistoryEvent, QNTMTransfer } from "@/app/(hooks)/queries/use-wallet-history";
 
 type FilterType = "all" | "sent" | "received" | "swap" | "nft";
 
@@ -85,11 +39,9 @@ export default function HistoryPage() {
   useTelegramBackButton("/wallet");
   const { walletAddress, isTestnet } = useWallet();
   const { telegramId } = useUserContext();
-  const [history, setHistory] = useState<HistoryEvent[]>([]);
-  const [qntmHistory, setQntmHistory] = useState<QNTMTransfer[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [isLoadingQntm, setIsLoadingQntm] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: history = [], isLoading: isLoadingHistory, error: historyError, refetch: refetchHistory } = useTonHistoryQuery(walletAddress, isTestnet);
+  const { data: qntmHistory = [], isLoading: isLoadingQntm } = useQntmHistoryQuery(telegramId);
+  const error = historyError ? "Failed to load transaction history." : null;
 
   // URL search params for tab, filter, and search
   const [{ tab: activeTab, filter: activeFilter, q: searchQuery }, setParams] = useQueryStates({
@@ -116,79 +68,6 @@ export default function HistoryPage() {
   // Explorer URL based on network
   const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
-  async function fetchHistory(address: string) {
-    if (!address) return;
-
-    setIsLoadingHistory(true);
-    setError(null);
-
-    try {
-      const { tonApiGet } = await import("@/lib/tonapi-client");
-      const data = await tonApiGet<{ events: HistoryEvent[] }>(
-        `/v2/accounts/${encodeURIComponent(address)}/events?limit=50&subject_only=true`,
-        { testnet: isTestnet }
-      );
-      setHistory(data.events || []);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError('Failed to load transaction history.');
-        console.error("Failed to fetch history:", err.message);
-      }
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  }
-
-  // Fetch history when wallet address is available or network changes
-  useEffect(() => {
-    if (walletAddress) {
-      setHistory([]); // Clear history when refetching
-      fetchHistory(walletAddress);
-    } else {
-      setIsLoadingHistory(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchHistory is also used in onClick handler
-  }, [walletAddress, isTestnet]);
-
-  // Fetch QNTM history when telegramId is available
-  useEffect(() => {
-    async function fetchQntmHistory() {
-      if (!telegramId) return;
-
-      setIsLoadingQntm(true);
-      try {
-        const transferHistoryRef = collection(dbfs, `user/${telegramId}/transferHistory`);
-        const q = query(transferHistoryRef, orderBy("timestamp", "desc"), limit(50));
-        const snapshot = await getDocs(q);
-
-        const transfers: QNTMTransfer[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          transfers.push({
-            id: doc.id,
-            type: data.type,
-            amount: data.amount,
-            to: data.to,
-            from: data.from,
-            date: data.date,
-            timestamp: data.timestamp?.seconds || parseInt(doc.id),
-          });
-        });
-
-        setQntmHistory(transfers);
-      } catch (err) {
-        console.error("Failed to fetch QNTM history:", err);
-      } finally {
-        setIsLoadingQntm(false);
-      }
-    }
-
-    if (telegramId) {
-      fetchQntmHistory();
-    } else {
-      setIsLoadingQntm(false);
-    }
-  }, [telegramId]);
 
   // Load transaction labels
   useEffect(() => {
@@ -687,7 +566,7 @@ export default function HistoryPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => walletAddress && fetchHistory(walletAddress)}
+                onClick={() => refetchHistory()}
                 className="ml-2 h-auto p-0 underline hover:no-underline text-red-400 hover:text-red-300 hover:bg-transparent"
               >
                 Retry

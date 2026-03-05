@@ -37,7 +37,6 @@ import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { useWallet } from "../WalletContext";
 import {
-  fetchSwappableAssets,
   toUnits,
   fromUnits,
   buildLiquidityTxParams,
@@ -47,6 +46,8 @@ import {
 } from "@/lib/stonfi";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { addLiquiditySchema, removeLiquiditySchema } from "@/lib/validations";
+import { useSwapAssetsQuery, useLPPositionsQuery, type LPPosition } from "@/app/(hooks)/queries/use-liquidity";
+import { useQueryClient } from "@tanstack/react-query";
 import { StonApiClient } from "@ston-fi/api";
 
 // Format large numbers with K, M, B suffixes
@@ -66,32 +67,6 @@ const formatBalance = (balance: string): string => {
   const num = parseFloat(balance) || 0;
   return formatCompactNumber(num);
 };
-
-// Pool info from STON.fi
-interface PoolInfo {
-  address: string;
-  reserve0: string;
-  reserve1: string;
-  token0Address: string;
-  token1Address: string;
-  lpTotalSupply: string;
-  lpFee: string;
-  protocolFee: string;
-  apy?: number;
-  tvl?: string;
-}
-
-// LP Position
-interface LPPosition {
-  poolAddress: string;
-  lpBalance: string;
-  token0: SwapAsset | null;
-  token1: SwapAsset | null;
-  token0Amount: string;
-  token1Amount: string;
-  sharePercent: string;
-  poolInfo: PoolInfo | null;
-}
 
 // Provision type
 type ProvisionType = "Balanced" | "Arbitrary" | "Initial";
@@ -126,10 +101,9 @@ export default function LiquidityPage() {
   const [step, setStep] = useState<
     "input" | "confirm" | "processing" | "success"
   >("input");
-  const [swapAssets, setSwapAssets] = useState<SwapAsset[]>([]);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(true);
-  const [isLoadingPositions, setIsLoadingPositions] = useState(true);
-  const [positions, setPositions] = useState<LPPosition[]>([]);
+  const queryClient = useQueryClient();
+  const { data: swapAssets, isLoading: isLoadingAssets } = useSwapAssetsQuery();
+  const { data: positions = [], isLoading: isLoadingPositions } = useLPPositionsQuery(walletAddress, swapAssets);
 
   // Add liquidity state
   const [tokenA, setTokenA] = useState<SwapAsset | null>(null);
@@ -174,162 +148,15 @@ export default function LiquidityPage() {
     }
   }, [router, telegramId]);
 
-  // Load assets and pools
+  // Set default tokens when assets load
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoadingAssets(true);
-      try {
-        const assets = await fetchSwappableAssets();
-        setSwapAssets(assets);
+    if (!swapAssets || tokenA || tokenB) return;
+    const tonAsset = swapAssets.find((a) => a.kind === "Ton");
+    const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
+    if (tonAsset) setTokenA(tonAsset);
+    if (firstJetton) setTokenB(firstJetton);
+  }, [swapAssets, tokenA, tokenB]);
 
-        // Set default tokens (TON and first jetton)
-        const tonAsset = assets.find((a) => a.kind === "Ton");
-        const firstJetton = assets.find((a) => a.kind === "Jetton");
-
-        if (tonAsset) setTokenA(tonAsset);
-        if (firstJetton) setTokenB(firstJetton);
-      } catch (error) {
-        console.error("Failed to load assets:", error);
-        toast.error("Failed to load assets");
-      } finally {
-        setIsLoadingAssets(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Load LP positions
-  useEffect(() => {
-    const loadPositions = async () => {
-      if (!walletAddress) return;
-
-      setIsLoadingPositions(true);
-      try {
-        // Fetch LP positions from STON.fi API
-        const client = new StonApiClient();
-        const walletPools = await client.getWalletPools({
-          walletAddress,
-          dexV2: true,
-        });
-
-        // Filter pools with balance
-        const poolsWithBalance = walletPools.filter(
-          (pool) => pool.lpBalance && BigInt(pool.lpBalance) > 0
-        );
-
-        // Collect unique token addresses to fetch
-        const tokenAddresses = new Set<string>();
-        poolsWithBalance.forEach((pool) => {
-          tokenAddresses.add(pool.token0Address);
-          tokenAddresses.add(pool.token1Address);
-        });
-
-        // Fetch asset info for tokens we don't have locally
-        const assetMap = new Map<string, SwapAsset>();
-        
-        // First, add local assets to map
-        swapAssets.forEach((asset) => {
-          assetMap.set(asset.contractAddress, asset);
-        });
-
-        // Fetch missing assets from API
-        for (const addr of tokenAddresses) {
-          if (!assetMap.has(addr)) {
-            try {
-              const assetInfo = await client.getAsset(addr);
-              if (assetInfo) {
-                assetMap.set(addr, {
-                  contractAddress: assetInfo.contractAddress,
-                  kind: assetInfo.kind === "Ton" ? "Ton" : "Jetton",
-                  symbol: assetInfo.symbol || "???",
-                  displayName: assetInfo.displayName || assetInfo.symbol || "Unknown",
-                  imageUrl: assetInfo.imageUrl,
-                  decimals: assetInfo.decimals ?? 9,
-                });
-              }
-            } catch (e) {
-              console.warn(`Failed to fetch asset ${addr}:`, e);
-            }
-          }
-        }
-
-        // Map API response to our LPPosition interface
-        const mappedPositions: LPPosition[] = poolsWithBalance.map((pool) => {
-          // Find token info from our asset map
-          const token0Asset = assetMap.get(pool.token0Address);
-          const token1Asset = assetMap.get(pool.token1Address);
-
-          // Calculate share of pool
-          const lpBalance = BigInt(pool.lpBalance || "0");
-          const lpSupply = BigInt(pool.lpTotalSupply || "1");
-          const sharePercent = lpSupply > 0
-            ? ((Number(lpBalance) / Number(lpSupply)) * 100).toFixed(4)
-            : "0";
-
-          // Calculate token amounts based on reserves and share
-          const reserve0 = BigInt(pool.reserve0 || "0");
-          const reserve1 = BigInt(pool.reserve1 || "0");
-          const token0Decimals = token0Asset?.decimals || 9;
-          const token1Decimals = token1Asset?.decimals || 9;
-          const token0Amount = lpSupply > 0
-            ? ((Number(reserve0) * Number(lpBalance)) / Number(lpSupply) / Math.pow(10, token0Decimals)).toFixed(4)
-            : "0";
-          const token1Amount = lpSupply > 0
-            ? ((Number(reserve1) * Number(lpBalance)) / Number(lpSupply) / Math.pow(10, token1Decimals)).toFixed(4)
-            : "0";
-
-          // Get token symbols - prefer asset lookup, fallback to "Token" instead of address
-          const token0Symbol = token0Asset?.symbol || "Token A";
-          const token1Symbol = token1Asset?.symbol || "Token B";
-
-          return {
-            poolAddress: pool.address,
-            lpBalance: pool.lpBalance || "0",
-            token0: token0Asset || {
-              contractAddress: pool.token0Address,
-              kind: "Jetton" as const,
-              symbol: token0Symbol,
-              displayName: token0Symbol,
-              decimals: 9,
-            },
-            token1: token1Asset || {
-              contractAddress: pool.token1Address,
-              kind: "Jetton" as const,
-              symbol: token1Symbol,
-              displayName: token1Symbol,
-              decimals: 9,
-            },
-            token0Amount,
-            token1Amount,
-            sharePercent,
-            poolInfo: {
-              address: pool.address,
-              reserve0: pool.reserve0,
-              reserve1: pool.reserve1,
-              token0Address: pool.token0Address,
-              token1Address: pool.token1Address,
-              lpTotalSupply: pool.lpTotalSupply,
-              lpFee: pool.lpFee || "0.3",
-              protocolFee: pool.protocolFee || "0",
-              apy: parseFloat(pool.apy7D || pool.apy1D || "0"),
-              tvl: pool.lpTotalSupplyUsd,
-            },
-          };
-        });
-
-        setPositions(mappedPositions);
-      } catch (error) {
-        console.error("Failed to load LP positions:", error);
-        setPositions([]);
-      } finally {
-        setIsLoadingPositions(false);
-      }
-    };
-
-
-    loadPositions();
-  }, [walletAddress, swapAssets]);
 
   // Get balance for asset
   const getAssetBalance = (asset: SwapAsset | null): string => {
@@ -789,8 +616,7 @@ export default function LiquidityPage() {
         setTab("positions");
         setSelectedPosition(null);
         setRemovePercent("50");
-        // Trigger positions reload by resetting the state
-        setPositions([]);
+        queryClient.invalidateQueries({ queryKey: ["lp-positions"] });
       }, 3000);
     } catch (error) {
       console.error("Remove liquidity failed:", error);
@@ -1031,7 +857,7 @@ export default function LiquidityPage() {
                           <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
                             <DropdownMenuLabel>Select token</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {swapAssets.map((asset) => (
+                            {swapAssets?.map((asset) => (
                               <DropdownMenuItem
                                 key={asset.contractAddress}
                                 onClick={() => {
@@ -1139,7 +965,7 @@ export default function LiquidityPage() {
                           <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
                             <DropdownMenuLabel>Select token</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {swapAssets.map((asset) => (
+                            {swapAssets?.map((asset) => (
                               <DropdownMenuItem
                                 key={asset.contractAddress}
                                 onClick={() => {
