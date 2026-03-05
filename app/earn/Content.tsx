@@ -1024,34 +1024,6 @@ const EarnContent = () => {
       completeTask(task);
     }
   };
-  /*async function goToSolveToEarn() {
-    const taskElement = document.getElementById("solvetoearnbutton");
-    if (taskElement) {
-      (taskElement as HTMLButtonElement).disabled = true;
-    }
-    const date = new Date(Date.UTC(
-      new Date().getUTCFullYear(),
-      new Date().getUTCMonth(),
-      new Date().getUTCDate()
-    ));
-
-    const formattedDate =
-      `${date.getUTCDate().toString().padStart(2, '0')}/` +
-      `${(date.getUTCMonth() + 1).toString().padStart(2, '0')}/` +
-      `${date.getUTCFullYear()}`;
-    const solveToEarnSet = doc(dbfs, `user/${telegramId}/miningData/values`);
-    const snapshotSolveToEarn = await getDoc(solveToEarnSet);
-    const remainingSolveToEarn: number = snapshotSolveToEarn.data()?.remainingSolveToEarn;
-    if (remainingSolveToEarn > 0) {
-      updateDoc(solveToEarnSet, {
-        remainingSolveToEarn: remainingSolveToEarn - 1,
-        lastSolveToEarnDate: formattedDate,
-      });
-      setRemainingSolveToEarn(remainingSolveToEarn - 1);
-      sessionStorage.setItem("remainingSolveToEarn", `${remainingSolveToEarn - 1}`);
-      router.push("/earn/solvetoearn-page")
-    }
-  };*/
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Background Effects */}
