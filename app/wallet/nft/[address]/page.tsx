@@ -15,10 +15,11 @@ import { FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { Address, toNano } from "@ton/core";
+import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
+import { Address, Cell, toNano } from "@ton/core";
 import { toast } from "sonner";
 import { nftListingPriceSchema } from "@/lib/validations";
-import { calculateTotalPrice, MARKETPLACE_FEE_PERCENT, categorizeNft } from "@/lib/nft-marketplace";
+import { calculateTotalPrice, categorizeNft } from "@/lib/nft-marketplace";
 import { calculateFees, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
 import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
 import { nftCreateListing, nftConfirmListing } from "../actions";
@@ -34,12 +35,19 @@ export default function NftDetailPage() {
     const { telegramId } = useUserContext();
     const nftAddress = decodeURIComponent(params.address as string);
 
+    const { sendTransaction } = useWallet();
+    const {
+        isOpen: isAuthOpen,
+        requestAuth,
+        handleSuccess: handleAuthSuccess,
+        handleCancel: handleAuthCancel,
+    } = useBiometricAuth();
     const queryClient = useQueryClient();
     const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
     const [copied, setCopied] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [isBuying, setIsBuying] = useState(false);
-    
+
     // Listing state
     const [showListingModal, setShowListingModal] = useState(false);
     const [isListing, setIsListing] = useState(false);
@@ -64,8 +72,14 @@ export default function NftDetailPage() {
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
     // Check if current user owns this NFT
-    const isOwner = walletAddress && nft?.ownerAddress && 
-        Address.parse(walletAddress).equals(Address.parse(nft.ownerAddress));
+    const isOwner = (() => {
+        try {
+            return walletAddress && nft?.ownerAddress &&
+                Address.parse(walletAddress).equals(Address.parse(nft.ownerAddress));
+        } catch {
+            return false;
+        }
+    })();
 
     // Helper to format address
     const formatFriendlyAddress = (address: string): string => {
@@ -120,8 +134,16 @@ export default function NftDetailPage() {
 
     // Execute listing (called from form.onSubmit after Zod validation passes)
     const executeListForSale = async (listingPriceVal: string) => {
+        // Authenticate before sending on-chain transaction
+        const authenticated = await requestAuth();
+        if (!authenticated) {
+            toast.error("Authentication required");
+            return;
+        }
+
         setIsListing(true);
         try {
+            // 1. Build listing messages (deploy sale contract + NFT transfer)
             const createResult = await nftCreateListing({
                 nftAddress,
                 sellerAddress: walletAddress!,
@@ -132,10 +154,30 @@ export default function NftDetailPage() {
                 throw new Error(createResult?.serverError || "Failed to create listing");
             }
 
-            const { saleContractAddress } = createResult.data;
+            const { saleContractAddress, messages } = createResult.data;
 
-            // On-chain transaction sending is handled externally;
-            // confirm the listing once the tx is confirmed.
+            // 2. Send on-chain transactions (deploy + NFT transfer)
+            for (const msg of messages) {
+                const bodyCell = msg.payload
+                    ? Cell.fromBoc(Buffer.from(msg.payload, "base64"))[0]
+                    : undefined;
+                const stateInitCell = msg.stateInit
+                    ? Cell.fromBoc(Buffer.from(msg.stateInit, "base64"))[0]
+                    : undefined;
+
+                const txResult = await sendTransaction({
+                    to: msg.address,
+                    value: msg.amount,
+                    body: bodyCell,
+                    stateInit: stateInitCell,
+                });
+
+                if (!txResult.success) {
+                    throw new Error(txResult.error || "On-chain transaction failed");
+                }
+            }
+
+            // 3. Confirm the listing in Firebase after on-chain success
             const confirmResult = await nftConfirmListing({
                 nftAddress,
                 saleContractAddress,
@@ -318,7 +360,7 @@ export default function NftDetailPage() {
                             </div>
                             <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground">
                                 <div className="flex justify-between">
-                                    <span>Platform fee ({MARKETPLACE_FEE_PERCENT}%)</span>
+                                    <span>Platform fee ({QC_MARKETPLACE_FEE_PERCENT}%)</span>
                                     <span>{priceInfo.platformFeeFormatted} TON</span>
                                 </div>
                                 <div className="flex justify-between font-semibold text-foreground mt-1">
@@ -606,6 +648,13 @@ export default function NftDetailPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Biometric Auth Modal */}
+            <BiometricAuth
+                isOpen={isAuthOpen}
+                onSuccess={handleAuthSuccess}
+                onCancel={handleAuthCancel}
+            />
         </div>
     );
 }

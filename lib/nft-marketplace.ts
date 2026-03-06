@@ -11,6 +11,7 @@
 
 import { Address } from "@ton/core";
 import { tonApiGet } from "./tonapi-client";
+import { QC_MARKETPLACE_FEE_PERCENT } from "./nft-sale-contracts";
 
 // Helper to normalize addresses to raw format for comparison
 function normalizeToRaw(address: string): string | null {
@@ -64,8 +65,8 @@ export interface NftSale {
 // Configuration
 // =====================================================
 
-// Low platform fee: 0.5% (0.005)
-export const MARKETPLACE_FEE_PERCENT = 0.5;
+// Re-export from single source of truth (nft-sale-contracts.ts)
+export { QC_MARKETPLACE_FEE_PERCENT as MARKETPLACE_FEE_PERCENT };
 
 // Curated list of verified TON collections (from Getgems verified collections)
 // These are popular, authentic collections with blue verification badges
@@ -411,7 +412,7 @@ export function calculateTotalPrice(priceNanoTon: bigint): {
     totalPriceFormatted: string;
 } {
     const basePrice = priceNanoTon;
-    const platformFee = (basePrice * BigInt(Math.floor(MARKETPLACE_FEE_PERCENT * 100))) / BigInt(10000);
+    const platformFee = (basePrice * BigInt(Math.floor(QC_MARKETPLACE_FEE_PERCENT * 100))) / BigInt(10000);
     const totalPrice = basePrice + platformFee;
 
     return {

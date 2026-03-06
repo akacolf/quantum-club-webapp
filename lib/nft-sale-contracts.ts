@@ -28,6 +28,7 @@ import { PLATFORM_WALLET_ADDRESS } from "@/lib/platform-config";
 // =====================================================
 
 // Quantum Club marketplace fee: 0.5% (much lower than Getgems' 5%)
+// Single source of truth — nft-marketplace.ts re-exports this value
 export const QC_MARKETPLACE_FEE_PERCENT = 0.5;
 export const QC_MARKETPLACE_FEE_NUMERATOR = BigInt(5); // 5/1000 = 0.5%
 export const QC_MARKETPLACE_FEE_DENOMINATOR = BigInt(1000);
@@ -183,8 +184,10 @@ export function calculateFees(price: bigint, royaltyPercent = 0): {
   // Marketplace fee: 0.5%
   const marketplaceFee = (price * QC_MARKETPLACE_FEE_NUMERATOR) / QC_MARKETPLACE_FEE_DENOMINATOR;
   
-  // Royalty (creator fee)
-  const royaltyAmount = BigInt(Math.floor(Number(price) * (royaltyPercent / 100)));
+  // Royalty (creator fee) — pure BigInt arithmetic to avoid precision loss
+  const royaltyAmount = royaltyPercent > 0
+    ? (price * BigInt(Math.round(royaltyPercent * 100))) / BigInt(10000)
+    : BigInt(0);
   
   // Seller receives: price - marketplace fee - royalty
   const sellerReceives = price - marketplaceFee - royaltyAmount;
@@ -443,21 +446,28 @@ export async function getSaleInfo(
       return null;
     }
     
-    // Parse the result based on Getgems sale contract format
+    // Parse the result based on QC sale contract get_sale_data() return order:
+    // [0] magic, [1] is_complete, [2] created_at, [3] marketplace_address,
+    // [4] nft_address, [5] nft_owner_address, [6] full_price,
+    // [7] marketplace_fee_address, [8] marketplace_fee,
+    // [9] royalty_address, [10] royalty_amount
     const stack = result.decoded as unknown[];
-    
-    if (stack.length < 8) {
+
+    if (stack.length < 11) {
       return null;
     }
-    
+
+    const isComplete = Boolean(stack[1]);
+
     return {
-      isActive: true,
-      nftAddress: (stack[2] as { address: string })?.address || "",
-      sellerAddress: (stack[3] as { address: string })?.address || "",
-      fullPrice: BigInt(stack[4] as string || "0"),
-      marketplaceFee: BigInt(stack[5] as string || "0"),
-      royaltyAddress: (stack[6] as { address: string })?.address,
-      royaltyAmount: BigInt(stack[7] as string || "0"),
+      isActive: !isComplete,
+      nftAddress: (stack[4] as { address: string })?.address || "",
+      sellerAddress: (stack[5] as { address: string })?.address || "",
+      fullPrice: BigInt(stack[6] as string || "0"),
+      marketplaceFee: BigInt(stack[8] as string || "0"),
+      royaltyAddress: (stack[9] as { address: string })?.address,
+      royaltyAmount: BigInt(stack[10] as string || "0"),
+      createdAt: Number(stack[2] || 0),
     };
   } catch (error) {
     console.error("[Sale] Error getting sale info:", error);

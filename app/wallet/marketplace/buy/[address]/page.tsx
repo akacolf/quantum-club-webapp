@@ -14,10 +14,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { Cell } from "@ton/core";
 import { toast } from "sonner";
-import {
-    calculateTotalPrice,
-    MARKETPLACE_FEE_PERCENT,
-} from "@/lib/nft-marketplace";
+import { calculateTotalPrice } from "@/lib/nft-marketplace";
 import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
 import {
     getSaleInfo,
@@ -398,7 +395,7 @@ export default function BuyNftPage() {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1">
-                                Platform Fee ({MARKETPLACE_FEE_PERCENT}%)
+                                Platform Fee ({QC_MARKETPLACE_FEE_PERCENT}%)
                                 <Icon icon="lucide:info" className="w-3 h-3" />
                             </span>
                             <span className="text-muted-foreground">{priceInfo.platformFeeFormatted} TON</span>
