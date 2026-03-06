@@ -62,8 +62,9 @@ export default function UserProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <p className="text-muted-foreground">User not found</p>
+      <div className="fixed inset-0 bg-background text-foreground flex flex-col items-center justify-center gap-3">
+        <Icon icon="solar:user-cross-rounded-bold" className="w-12 h-12 text-muted-foreground/50" />
+        <p className="text-muted-foreground text-sm">User not found</p>
       </div>
     );
   }

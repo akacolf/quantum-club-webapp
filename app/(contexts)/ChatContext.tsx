@@ -35,9 +35,9 @@ function useChatBridge() {
     useEffect(() => {
         useChatStore.setState({
             chats: chatsQuery.data ?? [],
-            loading: chatsQuery.isFetching,
+            loading: chatsQuery.isLoading,
         });
-    }, [chatsQuery.data, chatsQuery.isFetching]);
+    }, [chatsQuery.data, chatsQuery.isLoading]);
 
     // Wire up action implementations that depend on React hooks
     useEffect(() => {

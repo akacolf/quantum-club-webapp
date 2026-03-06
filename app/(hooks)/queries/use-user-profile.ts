@@ -38,6 +38,6 @@ export function useUserProfile(userId: string | undefined) {
     queryKey: ["user-profile", userId],
     queryFn: () => fetchUserProfile(userId!),
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: ({ state }) => (state.data ? 5 * 60 * 1000 : 0),
   });
 }
