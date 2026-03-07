@@ -1174,7 +1174,7 @@ export default function SendPage() {
         {/* Network Toggle - Only show on mainnet */}
         {!isTestnet && (
           <Tabs value={networkMode} onValueChange={(v) => setNetworkMode(v as NetworkMode)} className="mb-6">
-            <TabsList className="grid w-full grid-cols-2 h-12 bg-[#111] border border-[#222] rounded-xl p-1">
+            <TabsList className="grid w-full grid-cols-2 h-12">
               <TabsTrigger 
                 value="ton" 
                 className="h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"

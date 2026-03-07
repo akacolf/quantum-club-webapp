@@ -544,7 +544,7 @@ export default function HistoryPage() {
 
       {/* Tabs for Blockchain and QNTM */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="w-full h-12 p-1 bg-background border border-border rounded-xl mb-4">
+        <TabsList className="w-full h-12 mb-4">
           <TabsTrigger
             value="ton"
             className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg text-muted-foreground transition-all"

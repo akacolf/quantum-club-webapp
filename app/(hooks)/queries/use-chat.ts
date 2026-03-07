@@ -7,7 +7,6 @@ import {
     setDoc,
     query,
     where,
-    orderBy,
     limit,
     serverTimestamp,
     Timestamp,
@@ -20,14 +19,15 @@ export function useChatsQuery(telegramId: string | null) {
         queryFn: async () => {
             if (!telegramId) return [];
             const chatsRef = collection(dbfs, "chats");
+            // No orderBy — Firestore excludes docs missing the ordered field,
+            // which breaks chats without messages. Sort client-side instead.
             const q = query(
                 chatsRef,
                 where("participants", "array-contains", telegramId),
-                orderBy("lastMessage.timestamp", "desc"),
                 limit(50)
             );
             const snapshot = await getDocs(q);
-            return snapshot.docs.map((docSnap) => {
+            const chats = snapshot.docs.map((docSnap) => {
                 const data = docSnap.data();
                 return {
                     id: docSnap.id,
@@ -47,6 +47,12 @@ export function useChatsQuery(telegramId: string | null) {
                           }
                         : undefined,
                 } as Chat;
+            });
+            // Sort: chats with recent messages first, then by existence of lastMessage
+            return chats.sort((a, b) => {
+                const aTime = a.lastMessage?.timestamp?.getTime() ?? 0;
+                const bTime = b.lastMessage?.timestamp?.getTime() ?? 0;
+                return bTime - aTime;
             });
         },
         enabled: !!telegramId,

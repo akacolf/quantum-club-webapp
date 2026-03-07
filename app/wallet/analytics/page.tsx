@@ -388,7 +388,7 @@ export default function AnalyticsPage() {
           className="w-full"
         >
           <Tabs defaultValue="allocation" className="w-full">
-            <TabsList className="w-full h-10 p-1 bg-[#111] border border-[#222] rounded-xl">
+            <TabsList className="w-full h-10">
               <TabsTrigger
                 value="allocation"
                 className="flex-1 h-full rounded-lg text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"

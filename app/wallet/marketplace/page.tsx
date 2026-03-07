@@ -212,60 +212,83 @@ export default function MarketplacePage() {
                                                         {[leftCol, rightCol].map((col) => col && (
                                                             <Link key={col.address} href={`/wallet/marketplace/collection/${encodeURIComponent(col.address)}`}>
                                                                 <Card className="bg-card border-border rounded-2xl overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer">
-                                                                    {/* Cover banner + profile avatar overlay */}
-                                                                    <div className="relative">
-                                                                        <div className="w-full aspect-[16/10] bg-muted relative overflow-hidden">
-                                                                            {col.coverImage ? (
-                                                                                <Image
-                                                                                    src={col.coverImage}
-                                                                                    alt=""
-                                                                                    fill
-                                                                                    className="object-cover"
-                                                                                    unoptimized
-                                                                                />
-                                                                            ) : col.image ? (
-                                                                                <Image
-                                                                                    src={col.image}
-                                                                                    alt={col.name}
-                                                                                    fill
-                                                                                    className="object-cover blur-sm scale-110"
-                                                                                    unoptimized
-                                                                                />
-                                                                            ) : (
-                                                                                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
-                                                                            )}
-                                                                        </div>
-                                                                        {col.image && (
-                                                                            <div className="absolute -bottom-5 left-3 w-10 h-10 rounded-lg border-2 border-card overflow-hidden bg-card shadow-sm">
-                                                                                <Image
-                                                                                    src={col.image}
-                                                                                    alt={col.name}
-                                                                                    width={40}
-                                                                                    height={40}
-                                                                                    className="object-cover w-full h-full"
-                                                                                    unoptimized
-                                                                                />
+                                                                    {col.coverImage ? (
+                                                                        <>
+                                                                            {/* Cover banner + profile avatar overlay */}
+                                                                            <div className="relative">
+                                                                                <div className="w-full aspect-[16/10] bg-muted relative overflow-hidden">
+                                                                                    <Image
+                                                                                        src={col.coverImage}
+                                                                                        alt=""
+                                                                                        fill
+                                                                                        className="object-cover"
+                                                                                        unoptimized
+                                                                                    />
+                                                                                </div>
+                                                                                {col.image && (
+                                                                                    <div className="absolute -bottom-5 left-3 w-10 h-10 rounded-lg border-2 border-card overflow-hidden bg-card shadow-sm">
+                                                                                        <Image
+                                                                                            src={col.image}
+                                                                                            alt={col.name}
+                                                                                            width={40}
+                                                                                            height={40}
+                                                                                            className="object-cover w-full h-full"
+                                                                                            unoptimized
+                                                                                        />
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <CardContent className="p-3 pt-7">
-                                                                        <div className="flex items-center gap-1">
-                                                                            <h4 className="font-bold text-sm truncate">{col.name}</h4>
-                                                                            {col.verified && (
-                                                                                <Icon icon="solar:verified-check-bold" className="w-3.5 h-3.5 text-primary shrink-0" />
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                                            <span className="text-xs text-muted-foreground">
-                                                                                {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
-                                                                            </span>
-                                                                            {col.floorPrice && (
-                                                                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                                                                    Floor: {(col.floorPrice / 1e9).toFixed(2)} TON
-                                                                                </Badge>
-                                                                            )}
-                                                                        </div>
-                                                                    </CardContent>
+                                                                            <CardContent className="p-3 pt-7">
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <h4 className="font-bold text-sm truncate">{col.name}</h4>
+                                                                                    {col.verified && (
+                                                                                        <Icon icon="solar:verified-check-bold" className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                                    <span className="text-xs text-muted-foreground">
+                                                                                        {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
+                                                                                    </span>
+                                                                                    {col.floorPrice && (
+                                                                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                                                            Floor: {(col.floorPrice / 1e9).toFixed(2)} TON
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            </CardContent>
+                                                                        </>
+                                                                    ) : (
+                                                                        /* No cover — compact row layout with profile image */
+                                                                        <CardContent className="p-3 flex items-center gap-3">
+                                                                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-muted shrink-0">
+                                                                                {col.image ? (
+                                                                                    <Image
+                                                                                        src={col.image}
+                                                                                        alt={col.name}
+                                                                                        width={48}
+                                                                                        height={48}
+                                                                                        className="object-cover w-full h-full"
+                                                                                        unoptimized
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-full h-full flex items-center justify-center">
+                                                                                        <Icon icon="solar:gallery-minimalistic-linear" className="w-5 h-5 text-muted-foreground" />
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <h4 className="font-bold text-sm truncate">{col.name}</h4>
+                                                                                    {col.verified && (
+                                                                                        <Icon icon="solar:verified-check-bold" className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                                                    )}
+                                                                                </div>
+                                                                                <span className="text-xs text-muted-foreground">
+                                                                                    {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
+                                                                                </span>
+                                                                            </div>
+                                                                        </CardContent>
+                                                                    )}
                                                                 </Card>
                                                             </Link>
                                                         ))}

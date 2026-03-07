@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
     useNftCollectionQuery,
@@ -79,23 +80,21 @@ export default function CollectionDetailPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-28">
-            {/* Cover Image */}
-            <div className="relative h-48 bg-muted">
-                {collection.coverImage || collection.image ? (
+            {/* Cover Image — only show banner if there is a cover image */}
+            {collection.coverImage && (
+                <div className="relative h-48 mx-4 mt-4 rounded-2xl overflow-hidden bg-muted">
                     <Image
-                        src={collection.coverImage || collection.image || ""}
+                        src={collection.coverImage}
                         alt={collection.name}
                         fill
                         className="object-cover"
                         unoptimized
                     />
-                ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-            </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                </div>
+            )}
 
-            <div className="px-4 -mt-16 relative z-10 space-y-6">
+            <div className={cn("px-4 relative z-10 space-y-6", collection.coverImage ? "-mt-12" : "pt-4")}>
                 {/* Collection Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { fromNano } from "@ton/core";
@@ -111,6 +111,21 @@ function TransactionModal() {
         }))
     );
 
+    // Check validUntil expiration (matching demo-wallet pattern)
+    const [isExpired, setIsExpired] = useState(false);
+    useEffect(() => {
+        if (!pendingTransaction) { setIsExpired(false); return; }
+        const checkExpiration = () => {
+            const validUntil = pendingTransaction.request?.valid_until;
+            if (validUntil) {
+                setIsExpired(validUntil < Math.floor(Date.now() / 1000));
+            }
+        };
+        checkExpiration();
+        const interval = setInterval(checkExpiration, 1000);
+        return () => clearInterval(interval);
+    }, [pendingTransaction]);
+
     if (!pendingTransaction) return null;
 
     const { preview, dAppInfo, request } = pendingTransaction;
@@ -192,11 +207,24 @@ function TransactionModal() {
                 )}
             </div>
 
+            {isExpired && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                        <Icon icon="lucide:clock" className="w-4 h-4" />
+                        <span>Transaction has expired</span>
+                    </div>
+                </div>
+            )}
+
             <div className="flex gap-3 mt-6">
                 <Button variant="outline" className="flex-1 h-12" onClick={rejectTransaction}>
                     Reject
                 </Button>
-                <Button className="flex-1 h-12 bg-primary hover:bg-primary/90" onClick={approveTransaction}>
+                <Button
+                    className="flex-1 h-12 bg-primary hover:bg-primary/90"
+                    onClick={approveTransaction}
+                    disabled={isExpired}
+                >
                     <Icon icon="lucide:check" className="w-4 h-4 mr-2" />
                     Approve
                 </Button>

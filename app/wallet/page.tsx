@@ -840,7 +840,7 @@ export default function WalletPage() {
 
 
         <Tabs defaultValue="assets" className="w-full pb-24">
-          <TabsList className="w-full h-12 p-1 bg-[#111] border border-[#222] rounded-xl">
+          <TabsList className="w-full h-12">
             <TabsTrigger
               value="assets"
               className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-gray-400"

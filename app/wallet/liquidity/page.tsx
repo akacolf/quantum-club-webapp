@@ -692,7 +692,7 @@ export default function LiquidityPage() {
           onValueChange={(v) => setTab(v as typeof tab)}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-3 mb-6 bg-card border border-border rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger
               value="positions"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
