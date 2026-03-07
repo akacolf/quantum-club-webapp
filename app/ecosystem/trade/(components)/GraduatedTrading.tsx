@@ -2,7 +2,6 @@
 
 import { env } from "@/env";
 import { useState, useEffect } from "react";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,7 @@ interface GraduatedTradingProps {
 
 export default function GraduatedTrading({ token }: GraduatedTradingProps) {
     const { tonBalance, walletAddress, sendTransaction } = useWallet();
-    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"]).withDefault("buy"));
+    const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
     const [amount, setAmount] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
     const [preview, setPreview] = useState<{

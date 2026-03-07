@@ -1,7 +1,6 @@
 "use client";
 
-import { useDeferredValue, useRef } from "react";
-import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { useState, useDeferredValue, useRef } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Icon } from "@iconify/react";
 import { Input } from "@/components/ui/input";
@@ -44,12 +43,8 @@ export default function SpotTradingPage() {
     useTelegramBackButton("/ecosystem/trade");
     const { data: tokens, isLoading } = useSpotTokens();
     const { jettons } = useWallet();
-    const [{ tab: activeTab, q: searchQuery }, setParams] = useQueryStates({
-        tab: parseAsStringLiteral(["tokens", "positions"] as const).withDefault("tokens"),
-        q: parseAsString.withDefault(""),
-    }, { history: "replace" });
-    const setActiveTab = (value: string) => setParams({ tab: value as SpotTab });
-    const setSearchQuery = (value: string) => setParams({ q: value });
+    const [activeTab, setActiveTab] = useState<SpotTab>("tokens");
+    const [searchQuery, setSearchQuery] = useState("");
     const debouncedQuery = useDeferredValue(searchQuery);
     const listRef = useRef<HTMLDivElement>(null);
 

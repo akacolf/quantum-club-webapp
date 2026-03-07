@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -68,7 +67,7 @@ export default function TokenDetailPage() {
     // Telegram back button
     useTelegramBackButton("/ecosystem/trade");
 
-    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
+    const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
     const [amount, setAmount] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [slippage, setSlippage] = useState(DEFAULT_SLIPPAGE);

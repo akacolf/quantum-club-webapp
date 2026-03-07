@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, use } from "react";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket, useSpotTokenDyor } from "@/app/(hooks)/queries/use-spot-trading";
@@ -25,7 +24,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     const { data: dyor } = useSpotTokenDyor(decodedAddress);
 
     const [tradingOpen, setTradingOpen] = useState(false);
-    const [, setTradingTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
+    const [, setTradingTab] = useState<"buy" | "sell">("buy");
 
     if (isLoadingTokens) {
         return (
