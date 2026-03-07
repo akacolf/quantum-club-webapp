@@ -24,6 +24,7 @@ import {
     type IWallet,
 } from "@ton/walletkit";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { useWalletKitStore } from "@/stores/walletkit-store";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
@@ -289,6 +290,7 @@ export function WalletKitProvider({
             const newSessions = await kitRef.current.listSessions();
             useWalletKitStore.setState({ sessions: newSessions });
 
+            haptics.success();
             toast.success("Connected successfully");
         } catch (error) {
             console.error("[WalletKit] Failed to approve connection:", error);
@@ -340,6 +342,7 @@ export function WalletKitProvider({
             console.log("[WalletKit] Approving transaction...");
             const response = await kitRef.current.approveTransactionRequest(pendingTransaction);
             console.log("[WalletKit] Transaction approved:", response);
+            haptics.success();
             toast.success("Transaction sent");
         } catch (error) {
             console.error("[WalletKit] Failed to approve transaction:", error);
@@ -381,6 +384,7 @@ export function WalletKitProvider({
             console.log("[WalletKit] Approving sign data...");
             const response = await kitRef.current.signDataRequest(pendingSignData);
             console.log("[WalletKit] Sign data approved:", response);
+            haptics.success();
             toast.success("Data signed successfully");
         } catch (error) {
             console.error("[WalletKit] Failed to approve sign data:", error);

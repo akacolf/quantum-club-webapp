@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { fromNano } from "@ton/core";
+import { haptics } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -94,7 +95,7 @@ function ConnectionModal() {
                 <Button variant="outline" className="flex-1 h-12" onClick={rejectConnection}>
                     Cancel
                 </Button>
-                <Button className="flex-1 h-12 bg-primary hover:bg-primary/90" onClick={approveConnection}>
+                <Button className="flex-1 h-12 bg-primary hover:bg-primary/90" onClick={() => { haptics.medium(); approveConnection(); }}>
                     Connect
                 </Button>
             </div>
@@ -222,7 +223,7 @@ function TransactionModal() {
                 </Button>
                 <Button
                     className="flex-1 h-12 bg-primary hover:bg-primary/90"
-                    onClick={approveTransaction}
+                    onClick={() => { haptics.medium(); approveTransaction(); }}
                     disabled={isExpired}
                 >
                     <Icon icon="lucide:check" className="w-4 h-4 mr-2" />
@@ -287,7 +288,7 @@ function SignDataModal() {
                 <Button variant="outline" className="flex-1 h-12" onClick={rejectSignData}>
                     Reject
                 </Button>
-                <Button className="flex-1 h-12 bg-primary hover:bg-primary/90" onClick={approveSignData}>
+                <Button className="flex-1 h-12 bg-primary hover:bg-primary/90" onClick={() => { haptics.medium(); approveSignData(); }}>
                     <Icon icon="lucide:pen-tool" className="w-4 h-4 mr-2" />
                     Sign
                 </Button>

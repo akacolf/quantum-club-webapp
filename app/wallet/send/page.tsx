@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
 import { tonSendSchema, multiChainSendSchema } from "@/lib/validations";
 import { env } from "@/env";
@@ -1038,6 +1039,7 @@ export default function SendPage() {
       setLastTxHash(walletAddress || "");
 
       setStep("success");
+      haptics.success();
       toast.success("Transaction sent!");
 
       // Refresh assets after delay
@@ -1105,6 +1107,7 @@ export default function SendPage() {
       if (result.success && result.txHash) {
         setMultiChainTxHash(result.txHash);
         setMultiChainStep("success");
+        haptics.success();
         toast.success("Transaction sent!");
 
         // Refresh balances after delay

@@ -18,6 +18,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { Address, Cell, toNano } from "@ton/core";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { nftListingPriceSchema } from "@/lib/validations";
 import { calculateTotalPrice, categorizeNft } from "@/lib/nft-marketplace";
 import { calculateFees, QC_MARKETPLACE_FEE_PERCENT } from "@/lib/nft-sale-contracts";
@@ -202,6 +203,7 @@ export default function NftDetailPage() {
                 toast.warning("NFT listed on-chain but failed to save to marketplace. Please contact support.");
             }
 
+            haptics.success();
             toast.success("NFT listed for sale!", {
                 description: `Listed for ${listingPriceVal} TON on QC Marketplace`,
             });
