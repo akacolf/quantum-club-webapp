@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import Image from "next/image";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { stakeAmountSchema } from "@/lib/validations";
@@ -158,6 +159,7 @@ export default function StakingPage() {
             );
 
             if (result.success) {
+                haptics.success();
                 setStep("success");
                 toast.success(`Staked ${amount} TON`, {
                     description: `You'll receive ${result.estimatedLiquidTokens} ${selectedPool.liquidToken}`,
@@ -171,6 +173,7 @@ export default function StakingPage() {
                 throw new Error(result.error || "Transaction failed");
             }
         } catch (error) {
+            haptics.error();
             console.error("Stake failed:", error);
             toast.error("Stake failed", {
                 description: error instanceof Error ? error.message : "Transaction failed",

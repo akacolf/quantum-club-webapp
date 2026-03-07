@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -599,6 +600,7 @@ export default function SwapPage() {
                 destinationAddress: isCrossChain && toChain === "TRON" ? tronDestAddress : walletAddress,
             });
 
+            haptics.success();
             setLastTxHash(walletAddress || "");
             setStep("success");
             toast.success("Swap transaction sent!");
@@ -611,6 +613,7 @@ export default function SwapPage() {
             console.error("Swap failed:", error);
             const errorMessage =
                 error instanceof Error ? error.message : "Swap failed";
+            haptics.error();
             toast.error(`Swap failed: ${errorMessage}`);
             setStep("input");
         } finally {

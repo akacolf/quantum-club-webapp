@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Token } from "@/types/trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { tradeAmountSchema } from "@/lib/validations";
 import { simulateSwap, toUnits, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
 import { useOmnistonSwap, type QuoteParams } from "@/app/wallet/swap/hooks/useOmnistonSwap";
@@ -146,6 +147,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
 
             const quoteId = await buildAndExecute(quote, walletAddress, wrappedSendTx);
 
+            haptics.success();
             toast.success(activeTab === "buy" ? "Buy order executed!" : "Sell order executed!");
 
             // Track the trade in Firestore
@@ -171,6 +173,7 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
             setAmount("");
         } catch (error) {
             console.error("Swap failed:", error);
+            haptics.error();
             toast.error(error instanceof Error ? error.message : "Swap failed. Please try again.");
         } finally {
             setIsExecuting(false);

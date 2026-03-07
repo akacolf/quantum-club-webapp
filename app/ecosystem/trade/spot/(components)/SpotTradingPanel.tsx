@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { tradeAmountSchema } from "@/lib/validations";
 import { simulateSwap, toUnits, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
 import { useOmnistonSwap, type QuoteParams } from "@/app/wallet/swap/hooks/useOmnistonSwap";
@@ -178,6 +179,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange }: SpotTrad
 
             const quoteId = await buildAndExecute(quote, walletAddress, wrappedSendTx);
 
+            haptics.success();
             toast.success(activeTab === "buy" ? "Buy order executed!" : "Sell order executed!");
 
             // Track the trade in Firestore
@@ -204,6 +206,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange }: SpotTrad
             onOpenChange(false);
         } catch (error) {
             console.error("Swap failed:", error);
+            haptics.error();
             toast.error(error instanceof Error ? error.message : "Swap failed. Please try again.");
         } finally {
             setIsExecuting(false);

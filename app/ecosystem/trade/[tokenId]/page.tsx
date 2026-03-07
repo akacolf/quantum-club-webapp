@@ -25,6 +25,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { toast } from "sonner";
 import { tradeAmountSchema } from "@/lib/validations";
+import { haptics } from "@/lib/haptics";
 import TokenChat from "@/app/ecosystem/trade/(components)/TokenChat";
 import LiveTrades from "@/app/ecosystem/trade/(components)/LiveTrades";
 import PriceChart from "@/app/ecosystem/trade/(components)/PriceChart";
@@ -156,6 +157,7 @@ export default function TokenDetailPage() {
             if (activeTab === "buy") {
                 const result = await buyTokens(tokenId, amount, slippage / 100);
                 if (result.success) {
+                    haptics.success();
                     toast.success("Purchase successful!", {
                         description: `Your ${selectedToken?.symbol || 'tokens'} will appear in QC Wallet shortly`,
                         duration: 5000,
@@ -165,11 +167,13 @@ export default function TokenDetailPage() {
                     // Refresh token data from on-chain after trade settles
                     setTimeout(refreshAfterTrade, 3000);
                 } else {
+                    haptics.error();
                     toast.error(result.error || "Transaction failed");
                 }
             } else {
                 const result = await sellTokens(tokenId, amount);
                 if (result.success) {
+                    haptics.success();
                     toast.success("Sale successful!", {
                         description: "TON has been sent to your QC Wallet",
                         duration: 5000,
@@ -179,10 +183,12 @@ export default function TokenDetailPage() {
                     // Refresh token data from on-chain after trade settles
                     setTimeout(refreshAfterTrade, 3000);
                 } else {
+                    haptics.error();
                     toast.error(result.error || "Transaction failed");
                 }
             }
         } catch {
+            haptics.error();
             toast.error("An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
@@ -242,6 +248,7 @@ export default function TokenDetailPage() {
                     <button
                         onClick={() => selectedToken.image && setIsImageViewOpen(true)}
                         className="relative w-14 h-14 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/10 flex-shrink-0 hover:ring-primary/50 transition-all group"
+                        style={{ viewTransitionName: `token-img-${tokenId}` }}
                     >
                         {selectedToken.image ? (
                             <Image src={selectedToken.image} alt={selectedToken.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" unoptimized />

@@ -21,6 +21,7 @@ import Loader from "@/app/(components)/Loader";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { resolveTonAddress } from "@/lib/tonAddressResolver";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell } from "@ton/core";
@@ -246,6 +247,7 @@ export default function SendNftPage() {
                 });
             }
 
+            haptics.success();
             setLastTxHash(walletAddress || "");  // Links to account page on explorer
             setStep("success");
             toast.success("NFT sent successfully!");
@@ -255,6 +257,7 @@ export default function SendNftPage() {
             }, 3000);
 
         } catch (error) {
+            haptics.error();
             console.error("NFT transfer failed:", error);
             const errorMessage = error instanceof Error ? error.message : "Transfer failed";
             toast.error(`Transfer failed: ${errorMessage}`);

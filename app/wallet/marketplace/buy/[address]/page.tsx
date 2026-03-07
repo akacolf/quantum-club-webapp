@@ -14,6 +14,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { Cell } from "@ton/core";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { calculateTotalPrice } from "@/lib/nft-marketplace";
 import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
 import {
@@ -124,6 +125,7 @@ export default function BuyNftPage() {
                         transactionHash: txResult.txHash || "",
                     });
 
+                    haptics.success();
                     toast.success("NFT purchased successfully!");
                     setViewMode("success");
                 } else {
@@ -139,6 +141,7 @@ export default function BuyNftPage() {
             }
 
         } catch (err) {
+            haptics.error();
             console.error("Purchase error:", err);
             if (err instanceof SaleContractError && err.code === "NETWORK_ERROR") {
                 setError("Connection issue while verifying sale. Please check your network and try again.");

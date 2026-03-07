@@ -88,7 +88,7 @@ const nextConfig: import('next').NextConfig = {
 
   // Experimental features
   experimental: {
-    viewTransition: false,
+    viewTransition: true,
     // Optimizations - tree-shake these large packages
     optimizePackageImports: [
       '@radix-ui/react-accordion',

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
@@ -158,9 +159,11 @@ export default function SendQNTMPage() {
       SetMainQuantAmount(formattedBalance);
       localStorage.setItem(`QAmount_${telegramId}`, formattedBalance);
 
+      haptics.success();
       setStep("success");
       toast.success("QNTM transferred successfully!");
     } catch (error) {
+      haptics.error();
       console.error("Transfer failed:", error);
       toast.error(error instanceof Error ? error.message : "Transfer failed");
       setStep("confirm");

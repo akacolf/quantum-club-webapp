@@ -101,7 +101,10 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
                 <CardContent className="p-3 relative z-10">
                     <div className="flex gap-4 items-center">
                         {/* Token Image - Sleek with Rank */}
-                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-[#222] shadow-inner ring-1 ring-white/5 group-hover:ring-white/10 transition-all flex-shrink-0">
+                        <div
+                            className="relative w-16 h-16 rounded-2xl overflow-hidden bg-[#222] shadow-inner ring-1 ring-white/5 group-hover:ring-white/10 transition-all flex-shrink-0"
+                            style={{ viewTransitionName: `token-img-${token.id}` }}
+                        >
                             {token.image ? (
                                 <TokenImageFill
                                     src={token.image}

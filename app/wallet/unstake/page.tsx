@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { useRouter } from "next/navigation";
 import { stakeAmountSchema } from "@/lib/validations";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
@@ -128,6 +129,7 @@ export default function UnstakePage() {
             }
             
             if (result.success) {
+                haptics.success();
                 setStep("success");
                 toast.success(
                     unstakeMode === "instant" 
@@ -147,6 +149,7 @@ export default function UnstakePage() {
                 throw new Error(result.error || "Unstaking failed");
             }
         } catch (error) {
+            haptics.error();
             console.error("Unstake failed:", error);
             toast.error("Unstaking failed", {
                 description: error instanceof Error ? error.message : "Unknown error",

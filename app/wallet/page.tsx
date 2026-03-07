@@ -130,7 +130,7 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
             return (
               <Link key={index} href={`/wallet/nft/${encodeURIComponent(nft.address)}`}>
                 <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
-                  <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden">
+                  <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden" style={{ viewTransitionName: `nft-img-${nft.address.slice(-8)}` }}>
                     {nft.image ? (
                       <Image
                         src={nft.image}

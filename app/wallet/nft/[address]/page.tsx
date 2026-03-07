@@ -296,7 +296,7 @@ export default function NftDetailPage() {
             >
                 {/* NFT Image */}
                 <Card className="bg-card border-border overflow-hidden rounded-2xl">
-                    <div className="relative w-full aspect-square bg-muted">
+                    <div className="relative w-full aspect-square bg-muted" style={{ viewTransitionName: `nft-img-${nftAddress.slice(-8)}` }}>
                         {!imageLoaded && (
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <Skeleton className="w-full h-full bg-muted" />

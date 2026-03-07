@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { useRouter } from "next/navigation";
 import { farmStakeSchema } from "@/lib/validations";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
@@ -149,6 +150,7 @@ export default function FarmingPage() {
             );
             
             if (result.success) {
+                haptics.success();
                 setStep("success");
                 toast.success("LP tokens staked successfully!");
                 setTimeout(() => {
@@ -159,6 +161,7 @@ export default function FarmingPage() {
                 throw new Error(result.error || "Staking failed");
             }
         } catch (error) {
+            haptics.error();
             console.error("Stake failed:", error);
             toast.error("Staking failed", {
                 description: error instanceof Error ? error.message : "Unknown error",
@@ -194,6 +197,7 @@ export default function FarmingPage() {
             );
             
             if (result.success) {
+                haptics.success();
                 toast.success("LP tokens unstaked successfully!");
                 setTimeout(() => {
                     queryClient.invalidateQueries({ queryKey: ["farming"] });
@@ -203,6 +207,7 @@ export default function FarmingPage() {
                 throw new Error(result.error || "Unstaking failed");
             }
         } catch (error) {
+            haptics.error();
             console.error("Unstake failed:", error);
             toast.error("Unstaking failed", {
                 description: error instanceof Error ? error.message : "Unknown error",

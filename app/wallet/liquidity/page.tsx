@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -487,6 +488,7 @@ export default function LiquidityPage() {
         messages,
       });
 
+      haptics.success();
       toast.success("Liquidity added successfully!", {
         description: `Added liquidity to ${tokenA.symbol}/${tokenB.symbol} pool`,
       });
@@ -503,6 +505,7 @@ export default function LiquidityPage() {
       }, 3000);
     } catch (error) {
       console.error("Add liquidity failed:", error);
+      haptics.error();
       toast.error("Failed to add liquidity", {
         description:
           error instanceof Error ? error.message : "Transaction failed",
@@ -604,6 +607,7 @@ export default function LiquidityPage() {
         messages: [message],
       });
 
+      haptics.success();
       toast.success("Liquidity removed successfully!", {
         description: `Removed ${percent}% from ${selectedPosition.token0?.symbol}/${selectedPosition.token1?.symbol} pool`,
       });
@@ -620,6 +624,7 @@ export default function LiquidityPage() {
       }, 3000);
     } catch (error) {
       console.error("Remove liquidity failed:", error);
+      haptics.error();
       toast.error("Failed to remove liquidity", {
         description:
           error instanceof Error ? error.message : "Transaction failed",
