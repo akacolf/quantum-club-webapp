@@ -18,6 +18,7 @@ import { calculateTotalPrice } from "@/lib/nft-marketplace";
 import { useNftDetailsQuery } from "@/app/(hooks)/queries/use-nft-details";
 import {
     getSaleInfo,
+    SaleContractError,
     QC_MARKETPLACE_FEE_PERCENT,
 } from "@/lib/nft-sale-contracts";
 import { convertTonToStars } from "@/lib/telegram-payments";
@@ -31,7 +32,7 @@ export default function BuyNftPage() {
     const nftAddress = decodeURIComponent(params.address as string);
     useTelegramBackButton(`/wallet/nft/${encodeURIComponent(nftAddress)}`);
     const router = useRouter();
-    const { isTestnet, walletAddress, tonBalance, sendTransaction } = useWallet();
+    const { isTestnet, walletAddress, tonBalance, sendTransaction, tonPrice } = useWallet();
     const { telegramId } = useUserContext();
     const {
         isOpen: isAuthOpen,
@@ -54,16 +55,15 @@ export default function BuyNftPage() {
     // Calculate price with fee
     const priceInfo = nft?.sale ? calculateTotalPrice(nft.sale.price) : null;
 
-    // Calculate Stars equivalent when price changes
+    // Calculate Stars equivalent when price or TON price changes
     useEffect(() => {
         if (priceInfo) {
-            // Get TON price from wallet context (approximate $5.50 USD fallback)
-            const tonPriceUsd = 5.5; // TODO: Get from price API
+            const tonPriceUsd = tonPrice > 0 ? tonPrice : 5.5; // Live price from wallet, fallback $5.50
             const tonAmount = Number(priceInfo.totalPrice) / 1e9;
             const stars = convertTonToStars(tonAmount, tonPriceUsd);
             setStarsAmount(stars);
         }
-    }, [priceInfo]);
+    }, [priceInfo, tonPrice]);
 
     // Check balance - tonBalance is a string in WalletContext
     const balanceNum = typeof tonBalance === 'string' ? parseFloat(tonBalance) : tonBalance;
@@ -140,7 +140,11 @@ export default function BuyNftPage() {
 
         } catch (err) {
             console.error("Purchase error:", err);
-            setError(err instanceof Error ? err.message : "Purchase failed");
+            if (err instanceof SaleContractError && err.code === "NETWORK_ERROR") {
+                setError("Connection issue while verifying sale. Please check your network and try again.");
+            } else {
+                setError(err instanceof Error ? err.message : "Purchase failed");
+            }
             setViewMode("error");
         }
     };
@@ -157,7 +161,7 @@ export default function BuyNftPage() {
         try {
             // Create Stars invoice via server action
             const tonAmount = Number(priceInfo!.totalPrice) / 1e9;
-            const tonPriceUsd = 5.5; // TODO: Get from price API
+            const tonPriceUsd = tonPrice > 0 ? tonPrice : 5.5;
             const invoiceResult = await createStarsInvoice({
                 title: `NFT: ${nft.name || "NFT Purchase"}`,
                 description: `Purchase NFT from ${nft.collectionName || "collection"}`,

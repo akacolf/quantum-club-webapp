@@ -54,6 +54,23 @@ export const claimMysteryBox = authActionClient
                 throw new Error("Mystery box is sold out");
             }
 
+            // Check expiration
+            if (boxData.expiresAt && new Date(boxData.expiresAt) < new Date()) {
+                transaction.update(boxRef, { status: "expired" });
+                throw new Error("Mystery box has expired");
+            }
+
+            // Prevent duplicate claims from the same user for the same box
+            const existingClaims = await transaction.get(
+                firestore.collection("mystery_box_claims")
+                    .where("boxId", "==", boxId)
+                    .where("userId", "==", authenticatedTelegramId)
+                    .limit(1)
+            );
+            if (!existingClaims.empty) {
+                throw new Error("You have already claimed this mystery box");
+            }
+
             const newRemaining = boxData.remaining - 1;
             transaction.update(boxRef, {
                 remaining: newRemaining,
@@ -67,6 +84,7 @@ export const claimMysteryBox = authActionClient
                 claimedAt: new Date().toISOString(),
                 paymentMethod,
                 paymentAmount: paymentMethod === "ton" ? boxData.price?.ton : boxData.price?.qntm,
+                status: "pending", // Payment not yet confirmed
                 revealedNft: null,
             });
 

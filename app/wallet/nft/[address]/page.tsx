@@ -148,6 +148,9 @@ export default function NftDetailPage() {
                 nftAddress,
                 sellerAddress: walletAddress!,
                 price: listingPriceVal,
+                // Pass royalty to collection owner for verified collections
+                royaltyAddress: nft?.collectionAddress || undefined,
+                royaltyPercent: nft?.collectionAddress ? 5 : undefined,
             });
 
             if (!createResult?.data?.success) {
@@ -157,6 +160,7 @@ export default function NftDetailPage() {
             const { saleContractAddress, messages } = createResult.data;
 
             // 2. Send on-chain transactions (deploy + NFT transfer)
+            let lastTxHash = "";
             for (const msg of messages) {
                 const bodyCell = msg.payload
                     ? Cell.fromBoc(Buffer.from(msg.payload, "base64"))[0]
@@ -175,6 +179,9 @@ export default function NftDetailPage() {
                 if (!txResult.success) {
                     throw new Error(txResult.error || "On-chain transaction failed");
                 }
+                if (txResult.txHash) {
+                    lastTxHash = txResult.txHash;
+                }
             }
 
             // 3. Confirm the listing in Firebase after on-chain success
@@ -187,6 +194,7 @@ export default function NftDetailPage() {
                 nftImage: nft?.image,
                 collectionAddress: nft?.collectionAddress,
                 collectionName: nft?.collectionName,
+                transactionHash: lastTxHash || undefined,
             });
 
             if (!confirmResult?.data?.success) {
@@ -240,9 +248,10 @@ export default function NftDetailPage() {
         }
     };
 
-    // Calculate listing fee preview
+    // Calculate listing fee preview (include royalty for collection NFTs)
+    const listingRoyaltyPercent = nft?.collectionAddress ? 5 : 0;
     const listingFeePreview = listingPrice && parseFloat(listingPrice) > 0
-        ? calculateFees(toNano(listingPrice))
+        ? calculateFees(toNano(listingPrice), listingRoyaltyPercent)
         : null;
 
     if (isLoading) {
@@ -610,10 +619,16 @@ export default function NftDetailPage() {
                                             <span className="text-muted-foreground">Platform Fee ({QC_MARKETPLACE_FEE_PERCENT}%)</span>
                                             <span className="text-muted-foreground">-{(parseFloat(listingPrice) * QC_MARKETPLACE_FEE_PERCENT / 100).toFixed(4)} TON</span>
                                         </div>
+                                        {listingRoyaltyPercent > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Creator Royalty ({listingRoyaltyPercent}%)</span>
+                                                <span className="text-muted-foreground">-{(parseFloat(listingPrice) * listingRoyaltyPercent / 100).toFixed(4)} TON</span>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between font-semibold pt-2 border-t border-border">
                                             <span>You Receive</span>
                                             <span className="text-green-500">
-                                                {(parseFloat(listingPrice) * (1 - QC_MARKETPLACE_FEE_PERCENT / 100)).toFixed(4)} TON
+                                                {listingFeePreview ? (Number(listingFeePreview.sellerReceives) / 1e9).toFixed(4) : "0"} TON
                                             </span>
                                         </div>
                                     </div>

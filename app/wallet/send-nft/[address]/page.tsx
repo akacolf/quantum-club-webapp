@@ -246,7 +246,7 @@ export default function SendNftPage() {
                 });
             }
 
-            setLastTxHash(walletAddress || "");
+            setLastTxHash(walletAddress || "");  // Links to account page on explorer
             setStep("success");
             toast.success("NFT sent successfully!");
 
@@ -480,7 +480,7 @@ export default function SendNftPage() {
                                 {lastTxHash && (
                                     <Button
                                         variant="outline"
-                                        onClick={() => window.open(`${EXPLORER_BASE_URL}/${lastTxHash}`, "_blank")}
+                                        onClick={() => window.open(`${EXPLORER_BASE_URL}/${walletAddress}`, "_blank")}
                                         className="w-full h-12 bg-card border-border text-foreground hover:bg-muted rounded-xl"
                                     >
                                         <Icon icon="lucide:external-link" className="w-4 h-4 mr-2" />

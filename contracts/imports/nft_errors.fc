@@ -7,3 +7,4 @@ const int error::wrong_nft = 503;
 const int error::unauthorized = 504;
 const int error::sale_not_active = 505;
 const int error::wrong_workchain = 506;
+const int error::invalid_fees = 507;

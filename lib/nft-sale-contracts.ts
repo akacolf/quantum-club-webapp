@@ -419,6 +419,16 @@ export function buildCancelTransaction(
 /**
  * Get sale contract info
  */
+export class SaleContractError extends Error {
+  constructor(
+    message: string,
+    public readonly code: "NOT_FOUND" | "NETWORK_ERROR" | "INVALID_DATA"
+  ) {
+    super(message);
+    this.name = "SaleContractError";
+  }
+}
+
 export async function getSaleInfo(
   saleContractAddress: string,
   isTestnet = false
@@ -426,26 +436,26 @@ export async function getSaleInfo(
   try {
     const baseUrl = isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
     const ta = new TonApiClient({ baseUrl });
-    
+
     // Get account info
     const account = await ta.accounts.getAccount(
       Address.parse(saleContractAddress)
     );
-    
+
     if (account.status !== "active") {
-      return null;
+      return null; // Contract not deployed or inactive — genuinely not found
     }
-    
+
     // Run get_sale_data method
     const result = await ta.blockchain.execGetMethodForBlockchainAccount(
       Address.parse(saleContractAddress),
       "get_sale_data"
     );
-    
+
     if (!result.decoded || !result.success) {
-      return null;
+      return null; // Not a valid sale contract
     }
-    
+
     // Parse the result based on QC sale contract get_sale_data() return order:
     // [0] magic, [1] is_complete, [2] created_at, [3] marketplace_address,
     // [4] nft_address, [5] nft_owner_address, [6] full_price,
@@ -471,6 +481,11 @@ export async function getSaleInfo(
     };
   } catch (error) {
     console.error("[Sale] Error getting sale info:", error);
+    // Distinguish network errors from genuine "not found"
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("fetch") || message.includes("network") || message.includes("timeout") || message.includes("ECONNREFUSED")) {
+      throw new SaleContractError("Network error while checking sale contract", "NETWORK_ERROR");
+    }
     return null;
   }
 }

@@ -261,6 +261,8 @@ async function updateMarketplaceStats(
           lastUpdated: 0,
         };
 
+    const now = Date.now();
+
     if (event === "listing") {
       transaction.set(
         statsRef,
@@ -268,13 +270,20 @@ async function updateMarketplaceStats(
           ...currentStats,
           totalListings: (currentStats?.totalListings || 0) + 1,
           activeListings: (currentStats?.activeListings || 0) + 1,
-          lastUpdated: Date.now(),
+          lastUpdated: now,
         },
         { merge: true },
       );
     } else if (event === "sale" && salePrice) {
       const currentVolume = BigInt(currentStats?.totalVolume || "0");
-      const current24hVolume = BigInt(currentStats?.volume24h || "0");
+
+      // Reset 24h volume if the window has expired (older than 24 hours)
+      const lastVolumeReset = currentStats?.volume24hResetAt || 0;
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+      const isVolumeExpired = now - lastVolumeReset > TWENTY_FOUR_HOURS;
+      const current24hVolume = isVolumeExpired
+        ? BigInt(0)
+        : BigInt(currentStats?.volume24h || "0");
 
       transaction.set(
         statsRef,
@@ -287,7 +296,8 @@ async function updateMarketplaceStats(
           totalSales: (currentStats?.totalSales || 0) + 1,
           totalVolume: (currentVolume + salePrice).toString(),
           volume24h: (current24hVolume + salePrice).toString(),
-          lastUpdated: Date.now(),
+          volume24hResetAt: isVolumeExpired ? now : (currentStats?.volume24hResetAt || now),
+          lastUpdated: now,
         },
         { merge: true },
       );

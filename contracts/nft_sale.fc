@@ -195,6 +195,9 @@ const int gas_for_nft_transfer = 50000000;  ;; 0.05 TON for NFT transfer
     ;; Check sufficient funds
     throw_unless(error::not_enough_funds, msg_value >= full_price + min_gas_amount);
     
+    ;; Validate fees don't exceed price (prevent integer underflow)
+    throw_unless(error::invalid_fees, marketplace_fee + royalty_amount <= full_price);
+
     ;; Calculate seller amount (price - fees)
     int seller_amount = full_price - marketplace_fee - royalty_amount;
     
@@ -366,7 +369,7 @@ const int gas_for_nft_transfer = 50000000;  ;; 0.05 TON for NFT transfer
     
     ;; Unknown operation - accept as buy attempt if enough TON sent
     ;; This allows users to buy by just sending TON without specific op
-    if (msg_value >= full_price) {
+    if (msg_value >= full_price + min_gas_amount) {
         buy_nft(
             sender_address, msg_value,
             is_complete, created_at, marketplace_address,

@@ -491,6 +491,109 @@ describe('NftSale', () => {
         });
     });
 
+    describe('Security', () => {
+        it('should reject buy when fees exceed price (underflow protection)', async () => {
+            // Create sale where marketplace_fee + royalty > full_price
+            const lowPrice = toNano('0.1');
+            const excessiveFee = toNano('1'); // Fee > price
+            const excessiveRoyalty = toNano('1'); // Royalty > price
+
+            const configBadFees: NftSaleConfig = {
+                marketplaceAddress: marketplace.address,
+                nftAddress: nftContract.address,
+                nftOwnerAddress: seller.address,
+                fullPrice: lowPrice,
+                marketplaceFeeAddress: marketplace.address,
+                marketplaceFee: excessiveFee,
+                royaltyAddress: royaltyRecipient.address,
+                royaltyAmount: excessiveRoyalty,
+            };
+
+            const saleBadFees = blockchain.openContract(
+                NftSale.createFromConfig(configBadFees, code)
+            );
+            await saleBadFees.sendDeploy(deployer.getSender(), toNano('0.1'));
+
+            // Simulate NFT ownership
+            await saleBadFees.sendOwnershipAssigned(
+                nftContract.getSender(),
+                toNano('0.1'),
+                seller.address
+            );
+
+            // Buy should fail due to fee underflow protection (error 507)
+            const buyAmount = lowPrice + toNano('0.15');
+            const buyResult = await saleBadFees.sendBuy(buyer.getSender(), buyAmount);
+
+            expect(buyResult.transactions).toHaveTransaction({
+                from: buyer.address,
+                to: saleBadFees.address,
+                success: false,
+                exitCode: 507, // error::invalid_fees
+            });
+
+            // Sale should still be active
+            const isComplete = await saleBadFees.isSaleComplete();
+            expect(isComplete).toBe(false);
+        });
+
+        it('should reject NFT ownership from wrong address', async () => {
+            // Random contract tries to send ownership_assigned
+            const fakeNft = await blockchain.treasury('fake_nft');
+            const result = await nftSale.sendOwnershipAssigned(
+                fakeNft.getSender(),
+                toNano('0.1'),
+                seller.address
+            );
+
+            expect(result.transactions).toHaveTransaction({
+                from: fakeNft.address,
+                to: nftSale.address,
+                success: false,
+                exitCode: 503, // error::wrong_nft
+            });
+        });
+
+        it('should handle buy with exact minimum funds (price + min_gas)', async () => {
+            await nftSale.sendOwnershipAssigned(
+                nftContract.getSender(),
+                toNano('0.1'),
+                seller.address
+            );
+
+            // Send exactly price + min_gas (0.05 TON)
+            const exactAmount = SALE_PRICE + toNano('0.05');
+            const result = await nftSale.sendBuy(buyer.getSender(), exactAmount);
+
+            expect(result.transactions).toHaveTransaction({
+                from: buyer.address,
+                to: nftSale.address,
+                success: true,
+            });
+
+            const isComplete = await nftSale.isSaleComplete();
+            expect(isComplete).toBe(true);
+        });
+
+        it('should reject buy with price but no gas', async () => {
+            await nftSale.sendOwnershipAssigned(
+                nftContract.getSender(),
+                toNano('0.1'),
+                seller.address
+            );
+
+            // Send exactly the price without gas buffer
+            const result = await nftSale.sendBuy(buyer.getSender(), SALE_PRICE);
+
+            expect(result.transactions).toHaveTransaction({
+                from: buyer.address,
+                to: nftSale.address,
+                success: false,
+                exitCode: 502, // error::not_enough_funds
+            });
+        });
+    });
+
     describe('Transaction Validation', () => {
         it('should emit NFT transfer message on buy', async () => {
             // Simulate NFT ownership first

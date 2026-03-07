@@ -193,5 +193,35 @@ service cloud.firestore {
       allow read: if true; // Anyone can check username availability / resolve
       allow write: if false; // Only API routes with Admin SDK can write
     }
+
+    // NFT Marketplace collections - server-only via Admin SDK
+    match /nft_listings/{listingId} {
+      allow read: if true; // Public read for marketplace browsing
+      allow write: if false; // Only server actions with Admin SDK can write
+    }
+
+    match /nft_sales/{saleId} {
+      allow read: if request.auth != null; // Authenticated users can view sales history
+      allow write: if false; // Only server actions with Admin SDK can write
+    }
+
+    match /marketplace_stats/{statId} {
+      allow read: if true; // Public read for stats display
+      allow write: if false; // Only server actions with Admin SDK can write
+    }
+
+    match /mystery_boxes/{boxId} {
+      allow read: if true; // Public read for mystery box browsing
+      allow write: if false; // Only server actions with Admin SDK can write
+    }
+
+    match /mystery_box_claims/{claimId} {
+      allow read: if request.auth != null; // Authenticated users can view own claims
+      allow write: if false; // Only server actions with Admin SDK can write
+    }
+
+    match /pending_star_payments/{paymentId} {
+      allow read, write: if false; // Server-only — sensitive payment data
+    }
   }
 }
