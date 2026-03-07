@@ -4,12 +4,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /users/{userId}/{document=**} {
-      allow read: if request.auth !=null // Sadece kendi verilerini okuyabilir
-      allow write: if request.auth !=null ; // Sadece kendi verilerini yazabilir
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     match /user/{userId}/{document=**} {
-      allow read: if request.auth !=null // Sadece kendi verilerini okuyabilir
-      allow write: if request.auth !=null ; // Sadece kendi verilerini yazabilir
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // AI Usage rate limiting - server-side only via Admin SDK
@@ -22,11 +22,11 @@ service cloud.firestore {
       allow read: if false;
     }
     match /userRanks/{userId}/{document=**}{
-    allow read:if request.auth !=null;
-    allow write:if request.auth !=null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     match /tasks/{document=**}{
-     allow read: if true;
+      allow read: if request.auth != null;
     }
     match /set/{document=**}{
     allow read:if true;
@@ -109,8 +109,8 @@ service cloud.firestore {
     
     // Wallet collection - user wallet data
     match /wallet/{userId}/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Deployment logs - server only
@@ -121,14 +121,14 @@ service cloud.firestore {
     
     // User groups subcollection (already covered by user/{userId}/** but explicit for clarity)
     match /user/{userId}/groups/{groupId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
-    
+
     // User positions subcollection (already covered by users/{userId}/** but explicit for clarity)
     match /users/{userId}/positions/{tokenId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // CollectionGroup queries - allows querying positions across all users
@@ -162,7 +162,7 @@ service cloud.firestore {
     // QC Presence - user online/offline status
     match /qc-presence/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // QC Calls - 1:1 voice calls (WebRTC signaling via Firestore)

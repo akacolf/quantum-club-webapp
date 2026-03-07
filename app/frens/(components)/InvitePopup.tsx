@@ -23,7 +23,7 @@ const InvitePopup = () => {
   useEffect(() => {
     if (isOpen && qrRef.current) {
       // Clear previous QR code
-      qrRef.current.innerHTML = "";
+      qrRef.current.replaceChildren();
 
       const qrCode = new QRCodeStyling({
         width: 250,

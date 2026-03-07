@@ -14,17 +14,18 @@ const nextConfig: import('next').NextConfig = {
   // Enable React Strict Mode for identifying potential problems
   reactStrictMode: true,
 
-  // Image Optimiz1ation Configuration
+  // Image Optimization Configuration
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**', // Be more specific in production
-        port: '',
-        pathname: '**',
-      },
+      { protocol: 'https', hostname: 'ton.org' },
+      { protocol: 'https', hostname: 'cache.tonapi.io' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
+      { protocol: 'https', hostname: 'quantumclub.space' },
+      { protocol: 'https', hostname: 'i.ibb.co' },
+      // Token/NFT metadata images can come from any domain (on-chain URLs)
+      { protocol: 'https', hostname: '**' },
     ],
-    // Limit image sizes to prevent large uploads
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
@@ -71,11 +72,14 @@ const nextConfig: import('next').NextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
-          // Uncomment for strict CSP
-          // {
-          //   key: 'Content-Security-Policy',
-          //   value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'",
-          // },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self), geolocation=()',
+          },
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
         ],
       },
     ];

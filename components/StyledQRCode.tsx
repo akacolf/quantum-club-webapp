@@ -24,7 +24,7 @@ export default function StyledQRCode({ data, image, size = 200 }: StyledQRCodePr
         const renderQR = async () => {
             if (!qrRef.current) return;
 
-            qrRef.current.innerHTML = "";
+            qrRef.current.replaceChildren();
 
             try {
                 const QRCodeStyling = (await import("qr-code-styling")).default;
