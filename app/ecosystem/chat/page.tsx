@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { parseAsString, useQueryState } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
@@ -289,7 +288,7 @@ export default function QCChatListPage() {
   const currentUser = authCtx?.currentUser ?? null;
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [globalChat, setGlobalChat] = useState<ChatConversation | null>(null);
-  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault("").withOptions({ history: "replace" }));
+  const [searchQuery, setSearchQuery] = useState("");
   const [formMode, setFormMode] = useState<FormMode>("none");
   const [isLoading, setIsLoading] = useState(true);
 

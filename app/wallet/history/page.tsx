@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -43,15 +42,10 @@ export default function HistoryPage() {
   const { data: qntmHistory = [], isLoading: isLoadingQntm } = useQntmHistoryQuery(telegramId);
   const error = historyError ? "Failed to load transaction history." : null;
 
-  // URL search params for tab, filter, and search
-  const [{ tab: activeTab, filter: activeFilter, q: searchQuery }, setParams] = useQueryStates({
-    tab: parseAsStringLiteral(["ton", "qntm"]).withDefault("ton"),
-    filter: parseAsStringLiteral(["all", "sent", "received", "swap", "nft"] as const).withDefault("all"),
-    q: parseAsString.withDefault(""),
-  }, { history: "replace" });
-  const setActiveTab = (value: string) => setParams({ tab: value as "ton" | "qntm" });
-  const setActiveFilter = (value: FilterType) => setParams({ filter: value });
-  const setSearchQuery = (value: string) => setParams({ q: value });
+  // Tab, filter, and search state
+  const [activeTab, setActiveTab] = useState<"ton" | "qntm">("ton");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Transaction labeling state
   const [labelSheetOpen, setLabelSheetOpen] = useState(false);
@@ -543,7 +537,7 @@ export default function HistoryPage() {
       </div>
 
       {/* Tabs for Blockchain and QNTM */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "ton" | "qntm")} className="flex-1 flex flex-col">
         <TabsList className="w-full h-12 mb-4">
           <TabsTrigger
             value="ton"

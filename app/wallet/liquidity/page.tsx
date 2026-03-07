@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -97,7 +96,7 @@ export default function LiquidityPage() {
   }, [router]);
 
   // State
-  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(["add", "remove", "positions"] as const).withDefault("positions").withOptions({ history: "replace" }));
+  const [tab, setTab] = useState<"add" | "remove" | "positions">("positions");
   const [step, setStep] = useState<
     "input" | "confirm" | "processing" | "success"
   >("input");

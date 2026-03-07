@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { parseAsString, parseAsInteger, useQueryState } from "nuqs";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -256,8 +255,8 @@ export default function ChatConversationPage() {
   const justOpenedMenuRef = useRef(false);
   // Search state
   const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useQueryState("search", parseAsString.withDefault("").withOptions({ history: "replace" }));
-  const [searchMatchIndex, setSearchMatchIndex] = useQueryState("match", parseAsInteger.withDefault(-1).withOptions({ history: "replace" }));
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatchIndex, setSearchMatchIndex] = useState(-1);
 
   // Forward state
   const [forwardMsgId, setForwardMsgId] = useState<string | null>(null);
