@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
@@ -47,7 +46,7 @@ export default function StakingPage() {
         router.prefetch("/wallet/unstake");
     }, [router]);
 
-    const [viewMode, setViewMode] = useQueryState("view", parseAsStringLiteral(["list", "stake"] as const).withDefault("list").withOptions({ history: "replace" }));
+    const [viewMode, setViewMode] = useState<"list" | "stake">("list");
     const { data: stakingData, isLoading, refetch: fetchStakingData } = useStakingApyQuery();
     const pools = stakingData?.pools ?? [];
     const [isStaking, setIsStaking] = useState(false);
