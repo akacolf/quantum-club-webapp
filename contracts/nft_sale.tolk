@@ -21,90 +21,36 @@ import "imports/nft_errors"
 // =============================================================================
 // Storage Layout
 // =============================================================================
-//
-// Data cell structure:
-// - is_complete: 1 bit (0 = active, 1 = sold/cancelled)
-// - created_at: 32 bits (unix timestamp)
-// - marketplace_address: MsgAddress (QC fee recipient)
-// - nft_address: MsgAddress
-// - nft_owner_address: MsgAddress (seller, receives payment)
-// - full_price: Coins (price buyer pays)
-// - ref -> fees_cell:
-//   - marketplace_fee_address: MsgAddress
-//   - marketplace_fee: Coins (0.5% of price)
-//   - royalty_address: MsgAddress (creator)
-//   - royalty_amount: Coins (creator royalty)
-// =============================================================================
 
 // Gas constants
-const min_gas_amount = 50000000    // 0.05 TON
-const gas_for_nft_transfer = 50000000  // 0.05 TON for NFT transfer
+const min_gas_amount = 50000000       // 0.05 TON
+const gas_for_nft_transfer = 50000000 // 0.05 TON for NFT transfer
 
-// Load contract data
-@inline
-fun loadData(): (int, int, address, address, address, coins, address, coins, address, coins) {
-    var ds: slice = contract.getData().beginParse();
-    
-    var isComplete: int = ds.loadUint(1);
-    var createdAt: int = ds.loadUint(32);
-    var marketplaceAddress: address = ds.loadAddress();
-    var nftAddress: address = ds.loadAddress();
-    var nftOwnerAddress: address = ds.loadAddress();
-    var fullPrice: coins = ds.loadCoins();
-    
-    // Load fees from ref
-    var fees: slice = ds.loadRef().beginParse();
-    var marketplaceFeeAddress: address = fees.loadAddress();
-    var marketplaceFee: coins = fees.loadCoins();
-    var royaltyAddress: address = fees.loadAddress();
-    var royaltyAmount: coins = fees.loadCoins();
-    
-    return (
-        isComplete,
-        createdAt,
-        marketplaceAddress,
-        nftAddress,
-        nftOwnerAddress,
-        fullPrice,
-        marketplaceFeeAddress,
-        marketplaceFee,
-        royaltyAddress,
-        royaltyAmount
-    );
+// Fees data stored as a ref cell
+struct FeesData {
+    marketplaceFeeAddress: address
+    marketplaceFee: coins
+    royaltyAddress: address
+    royaltyAmount: coins
 }
 
-// Save contract data
-@inline
-fun saveData(
-    isComplete: int,
-    createdAt: int,
-    marketplaceAddress: address,
-    nftAddress: address,
-    nftOwnerAddress: address,
-    fullPrice: coins,
-    marketplaceFeeAddress: address,
-    marketplaceFee: coins,
-    royaltyAddress: address,
-    royaltyAmount: coins
-) {
-    var feesCell: cell = beginCell()
-        .storeAddress(marketplaceFeeAddress)
-        .storeCoins(marketplaceFee)
-        .storeAddress(royaltyAddress)
-        .storeCoins(royaltyAmount)
-        .endCell();
-    
-    contract.setData(
-        beginCell()
-            .storeUint(isComplete, 1)
-            .storeUint(createdAt, 32)
-            .storeAddress(marketplaceAddress)
-            .storeAddress(nftAddress)
-            .storeAddress(nftOwnerAddress)
-            .storeCoins(fullPrice)
-            .storeRef(feesCell)
-            .endCell()
-    );
+// Main contract storage
+struct Storage {
+    isComplete: bool
+    createdAt: uint32
+    marketplaceAddress: address
+    nftAddress: address
+    nftOwnerAddress: address
+    fullPrice: coins
+    fees: Cell<FeesData>
+}
+
+fun Storage.load(): Storage {
+    return Storage.fromCell(contract.getData());
+}
+
+fun Storage.save(self) {
+    contract.setData(self.toCell());
 }
 
 // =============================================================================
@@ -115,7 +61,7 @@ fun saveData(
 @inline
 fun sendTon(toAddress: address, amount: int, mode: int) {
     if (amount > 0) {
-        var msg: cell = beginCell()
+        val msg: cell = beginCell()
             .storeUint(0x10, 6)  // nobounce
             .storeAddress(toAddress)
             .storeCoins(amount)
@@ -129,7 +75,7 @@ fun sendTon(toAddress: address, amount: int, mode: int) {
 @inline
 fun sendTonWithComment(toAddress: address, amount: int, comment: slice, mode: int) {
     if (amount > 0) {
-        var msg: cell = beginCell()
+        val msg: cell = beginCell()
             .storeUint(0x10, 6)  // nobounce
             .storeAddress(toAddress)
             .storeCoins(amount)
@@ -154,7 +100,7 @@ fun transferNft(
     responseDestination: address,
     forwardAmount: int
 ) {
-    var nftTransferBody: cell = beginCell()
+    val nftTransferBody: cell = beginCell()
         .storeUint(OP_TRANSFER, 32)
         .storeUint(0, 64)  // query_id
         .storeAddress(newOwner)
@@ -163,15 +109,15 @@ fun transferNft(
         .storeCoins(forwardAmount)
         .storeUint(0, 1)  // no forward_payload
         .endCell();
-    
-    var msg: cell = beginCell()
+
+    val msg: cell = beginCell()
         .storeUint(0x18, 6)  // bounce
         .storeAddress(nftAddress)
         .storeCoins(gas_for_nft_transfer)
         .storeUint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
         .storeRef(nftTransferBody)
         .endCell();
-    
+
     sendRawMessage(msg, 1);  // pay fees separately
 }
 
@@ -182,56 +128,39 @@ fun transferNft(
 fun buyNft(
     senderAddress: address,
     msgValue: int,
-    isComplete: int,
-    createdAt: int,
-    marketplaceAddress: address,
-    nftAddress: address,
-    nftOwnerAddress: address,
-    fullPrice: coins,
-    marketplaceFeeAddress: address,
-    marketplaceFee: coins,
-    royaltyAddress: address,
-    royaltyAmount: coins
+    mutate st: Storage
 ) {
+    val fees = FeesData.fromCell(st.fees);
+
     // Check if sale is active
-    assert(!(isComplete)) throw ERROR_ALREADY_SOLD;
-    
+    assert(!st.isComplete) throw ERROR_ALREADY_SOLD;
+
     // Check sufficient funds
-    assert(msgValue >= fullPrice + min_gas_amount) throw ERROR_NOT_ENOUGH_FUNDS;
-    
+    assert(msgValue >= st.fullPrice + min_gas_amount) throw ERROR_NOT_ENOUGH_FUNDS;
+
     // Validate fees don't exceed price (prevent integer underflow)
-    assert(marketplaceFee + royaltyAmount <= fullPrice) throw ERROR_INVALID_FEES;
+    assert(fees.marketplaceFee + fees.royaltyAmount <= st.fullPrice) throw ERROR_INVALID_FEES;
 
     // Calculate seller amount (price - fees)
-    var sellerAmount: int = fullPrice - marketplaceFee - royaltyAmount;
-    
+    val sellerAmount: int = st.fullPrice - fees.marketplaceFee - fees.royaltyAmount;
+
     // Mark as complete
-    saveData(
-        1,  // is_complete = true
-        createdAt,
-        marketplaceAddress,
-        nftAddress,
-        nftOwnerAddress,
-        fullPrice,
-        marketplaceFeeAddress,
-        marketplaceFee,
-        royaltyAddress,
-        royaltyAmount
-    );
-    
+    st.isComplete = true;
+    st.save();
+
     // 1. Transfer NFT to buyer
-    transferNft(nftAddress, senderAddress, senderAddress, 1);
-    
+    transferNft(st.nftAddress, senderAddress, senderAddress, 1);
+
     // 2. Send marketplace fee
-    sendTon(marketplaceFeeAddress, marketplaceFee, 1);
-    
+    sendTon(fees.marketplaceFeeAddress, fees.marketplaceFee, 1);
+
     // 3. Send royalty to creator (if any)
-    if (royaltyAmount > 0) {
-        sendTon(royaltyAddress, royaltyAmount, 1);
+    if (fees.royaltyAmount > 0) {
+        sendTon(fees.royaltyAddress, fees.royaltyAmount, 1);
     }
-    
+
     // 4. Send remaining to seller (with all remaining balance)
-    sendTon(nftOwnerAddress, 0, 128);  // mode 128 = send remaining balance
+    sendTon(st.nftOwnerAddress, 0, 128);  // mode 128 = send remaining balance
 }
 
 // =============================================================================
@@ -240,42 +169,23 @@ fun buyNft(
 
 fun cancelSale(
     senderAddress: address,
-    isComplete: int,
-    createdAt: int,
-    marketplaceAddress: address,
-    nftAddress: address,
-    nftOwnerAddress: address,
-    fullPrice: coins,
-    marketplaceFeeAddress: address,
-    marketplaceFee: coins,
-    royaltyAddress: address,
-    royaltyAmount: coins
+    mutate st: Storage
 ) {
     // Only seller can cancel (compare by hash)
-    assert(senderAddress.bitsEqual(nftOwnerAddress)) throw ERROR_UNAUTHORIZED;
-    
+    assert(senderAddress.bitsEqual(st.nftOwnerAddress)) throw ERROR_UNAUTHORIZED;
+
     // Check if sale is still active
-    assert(!(isComplete)) throw ERROR_ALREADY_SOLD;
-    
+    assert(!st.isComplete) throw ERROR_ALREADY_SOLD;
+
     // Mark as complete
-    saveData(
-        1,  // is_complete = true
-        createdAt,
-        marketplaceAddress,
-        nftAddress,
-        nftOwnerAddress,
-        fullPrice,
-        marketplaceFeeAddress,
-        marketplaceFee,
-        royaltyAddress,
-        royaltyAmount
-    );
-    
+    st.isComplete = true;
+    st.save();
+
     // Return NFT to seller
-    transferNft(nftAddress, nftOwnerAddress, nftOwnerAddress, 1);
-    
+    transferNft(st.nftAddress, st.nftOwnerAddress, st.nftOwnerAddress, 1);
+
     // Return remaining balance to seller
-    sendTon(nftOwnerAddress, 0, 128 + 32);  // 128 = remaining, 32 = destroy if zero
+    sendTon(st.nftOwnerAddress, 0, 128 + 32);  // 128 = remaining, 32 = destroy if zero
 }
 
 // =============================================================================
@@ -284,18 +194,11 @@ fun cancelSale(
 
 fun onNftReceived(
     senderAddress: address,
-    msgValue: int,
-    inMsgBody: slice,
-    nftAddress: address,
-    nftOwnerAddress: address
+    nftAddress: address
 ) {
     // Verify the NFT address matches (compare by hash)
     assert(senderAddress.bitsEqual(nftAddress)) throw ERROR_WRONG_NFT;
-    
-    // Parse ownership_assigned message
-    // int query_id = in_msg_body~load_uint(64);
-    // slice prev_owner = in_msg_body~load_msg_addr();
-    
+
     // NFT is now held by this contract, sale is active
     // No action needed, contract is ready for buyers
 }
@@ -304,87 +207,48 @@ fun onNftReceived(
 // Main Entry Point
 // =============================================================================
 
-// in the future, use: fun onInternalMessage(in: InMessage) {
-fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody: slice) {
+fun onInternalMessage(in: InMessage) {
     // Ignore empty messages
-    if (inMsgBody.isEmpty()) {
+    if (in.body.isEmpty()) {
         return;
     }
-    
-    // Parse incoming message
-    var cs: slice = inMsgFull.beginParse();
-    var flags: int = cs.loadUint(4);
-    
-    // Ignore bounced messages
-    if (flags & 1) {
-        return;
-    }
-    
-    var senderAddress: address = cs.loadAddress();
-    
-    // Load contract data
-    var (
-        isComplete: int,
-        createdAt: int,
-        marketplaceAddress: address,
-        nftAddress: address,
-        nftOwnerAddress: address,
-        fullPrice: coins,
-        marketplaceFeeAddress: address,
-        marketplaceFee: coins,
-        royaltyAddress: address,
-        royaltyAmount: coins
-    ) = loadData();
-    
+
+    // Bounced messages are auto-filtered with InMessage
+    // (no need for manual bounce flag check)
+
+    val senderAddress: address = in.senderAddress;
+    val msgValue: int = in.valueCoins;
+
+    var st = Storage.load();
+
     // Parse operation code
-    var op: int = inMsgBody.loadUint(32);
-    
+    val op: int = in.body.loadUint(32);
+
     // Handle NFT ownership assigned (NFT transferred to this contract)
     if (op == OP_OWNERSHIP_ASSIGNED) {
-        onNftReceived(
-            senderAddress, msgValue, inMsgBody,
-            nftAddress, nftOwnerAddress
-        );
+        onNftReceived(senderAddress, st.nftAddress);
         return;
     }
-    
+
     // Handle buy
     if (op == OP_BUY) {
-        buyNft(
-            senderAddress, msgValue,
-            isComplete, createdAt, marketplaceAddress,
-            nftAddress, nftOwnerAddress, fullPrice,
-            marketplaceFeeAddress, marketplaceFee,
-            royaltyAddress, royaltyAmount
-        );
+        buyNft(senderAddress, msgValue, mutate st);
         return;
     }
-    
+
     // Handle cancel
     if (op == OP_CANCEL) {
-        cancelSale(
-            senderAddress,
-            isComplete, createdAt, marketplaceAddress,
-            nftAddress, nftOwnerAddress, fullPrice,
-            marketplaceFeeAddress, marketplaceFee,
-            royaltyAddress, royaltyAmount
-        );
+        cancelSale(senderAddress, mutate st);
         return;
     }
-    
+
     // Unknown operation - accept as buy attempt if enough TON sent
     // This allows users to buy by just sending TON without specific op
-    if (msgValue >= fullPrice + min_gas_amount) {
-        buyNft(
-            senderAddress, msgValue,
-            isComplete, createdAt, marketplaceAddress,
-            nftAddress, nftOwnerAddress, fullPrice,
-            marketplaceFeeAddress, marketplaceFee,
-            royaltyAddress, royaltyAmount
-        );
+    if (msgValue >= st.fullPrice + min_gas_amount) {
+        buyNft(senderAddress, msgValue, mutate st);
         return;
     }
-    
+
     // Reject unknown operations with insufficient funds
     throw 0xffff;
 }
@@ -394,56 +258,46 @@ fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody:
 // =============================================================================
 
 // Get sale data - compatible with Getgems format
-get fun get_sale_data(): (int, int, int, address, address, address, coins, address, coins, address, coins) {
-    var (
-        isComplete: int,
-        createdAt: int,
-        marketplaceAddress: address,
-        nftAddress: address,
-        nftOwnerAddress: address,
-        fullPrice: coins,
-        marketplaceFeeAddress: address,
-        marketplaceFee: coins,
-        royaltyAddress: address,
-        royaltyAmount: coins
-    ) = loadData();
-    
+get fun get_sale_data(): (int, bool, uint32, address, address, address, coins, address, coins, address, coins) {
+    val st = Storage.load();
+    val fees = FeesData.fromCell(st.fees);
+
     // Return: magic, is_complete, created_at, marketplace, nft, owner, price, fee_addr, fee, royalty_addr, royalty
     return (
         0x46495850,  // "FIXP" magic number
-        isComplete,
-        createdAt,
-        marketplaceAddress,
-        nftAddress,
-        nftOwnerAddress,
-        fullPrice,
-        marketplaceFeeAddress,
-        marketplaceFee,
-        royaltyAddress,
-        royaltyAmount
+        st.isComplete,
+        st.createdAt,
+        st.marketplaceAddress,
+        st.nftAddress,
+        st.nftOwnerAddress,
+        st.fullPrice,
+        fees.marketplaceFeeAddress,
+        fees.marketplaceFee,
+        fees.royaltyAddress,
+        fees.royaltyAmount
     );
 }
 
 // Get NFT address
 get fun get_nft_address(): address {
-    var (_, _, _, nftAddress: address, _, _, _, _, _, _) = loadData();
-    return nftAddress;
+    val st = Storage.load();
+    return st.nftAddress;
 }
 
 // Get price
 get fun get_full_price(): coins {
-    var (_, _, _, _, _, fullPrice: coins, _, _, _, _) = loadData();
-    return fullPrice;
+    val st = Storage.load();
+    return st.fullPrice;
 }
 
 // Get sale status
-get fun is_sale_complete(): int {
-    var (isComplete: int, _, _, _, _, _, _, _, _, _) = loadData();
-    return isComplete;
+get fun is_sale_complete(): bool {
+    val st = Storage.load();
+    return st.isComplete;
 }
 
 // Get seller address
 get fun get_seller_address(): address {
-    var (_, _, _, _, nftOwnerAddress: address, _, _, _, _, _) = loadData();
-    return nftOwnerAddress;
+    val st = Storage.load();
+    return st.nftOwnerAddress;
 }

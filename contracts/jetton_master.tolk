@@ -2,7 +2,7 @@
 // QC RocketStart - Jetton Master Contract
 // ================================================================
 // TEP-74 Compliant Jetton Master with Bonding Curve Trading
-// 
+//
 // Features:
 // - Automatic bonding curve pricing (linear)
 // - Buy tokens with TON
@@ -21,51 +21,29 @@ import "imports/utils"
 // ================================================================
 // Storage
 // ================================================================
-// total_supply:coins mintable:int1 admin:MsgAddr creator:MsgAddr
-// content:^Cell wallet_code:^Cell ton_reserve:coins 
-// graduated:int1 graduation_target:coins
+// total_supply:coins mintable:bool admin:MsgAddr creator:MsgAddr
+// content:^Cell wallet_code:^Cell ton_reserve:coins
+// graduated:bool graduation_target:coins
 // ================================================================
 
-@inline
-fun loadData(): (coins, int, address, address, cell, cell, coins, int, coins) {
-    var ds: slice = contract.getData().beginParse();
-    return (
-        ds.loadCoins(),      // total_supply
-        ds.loadInt(1),       // mintable
-        ds.loadAddress(),   // admin_address
-        ds.loadAddress(),   // creator_address
-        ds.loadRef(),        // jetton_content
-        ds.loadRef(),        // jetton_wallet_code
-        ds.loadCoins(),      // ton_reserve
-        ds.loadInt(1),       // graduated
-        ds.loadCoins()       // graduation_target
-    );
+struct Storage {
+    totalSupply: coins
+    mintable: bool
+    adminAddress: address
+    creatorAddress: address
+    jettonContent: cell
+    jettonWalletCode: cell
+    tonReserve: coins
+    graduated: bool
+    graduationTarget: coins
 }
 
-@inline
-fun saveData(
-    totalSupply: coins,
-    mintable: int,
-    adminAddress: address,
-    creatorAddress: address,
-    jettonContent: cell,
-    jettonWalletCode: cell,
-    tonReserve: coins,
-    graduated: int,
-    graduationTarget: coins
-) {
-    contract.setData(beginCell()
-        .storeCoins(totalSupply)
-        .storeInt(mintable, 1)
-        .storeAddress(adminAddress)
-        .storeAddress(creatorAddress)
-        .storeRef(jettonContent)
-        .storeRef(jettonWalletCode)
-        .storeCoins(tonReserve)
-        .storeInt(graduated, 1)
-        .storeCoins(graduationTarget)
-        .endCell()
-    );
+fun Storage.load(): Storage {
+    return Storage.fromCell(contract.getData());
+}
+
+fun Storage.save(self) {
+    contract.setData(self.toCell());
 }
 
 // ================================================================
@@ -80,14 +58,14 @@ fun mintTokens(
     jettonWalletCode: cell,
     totalTonAmount: int
 ) {
-    var stateInit: cell = calculateJettonWalletStateInit(
-        toAddress, 
-        contract.getAddress(), 
+    val stateInit = calculateJettonWalletStateInit(
+        toAddress,
+        contract.getAddress(),
         jettonWalletCode
     );
-    var toWallet: address = calculateJettonWalletAddress(stateInit);
-    
-    var body: cell = beginCell()
+    val toWallet = calculateJettonWalletAddress(stateInit);
+
+    val body: cell = beginCell()
         .storeUint(OP_INTERNAL_TRANSFER, 32)
         .storeUint(0, 64)
         .storeCoins(jettonAmount)
@@ -96,8 +74,8 @@ fun mintTokens(
         .storeCoins(forwardTonAmount)
         .storeUint(0, 1)
         .endCell();
-    
-    var message: cell = beginCell()
+
+    val message: cell = beginCell()
         .storeUint(0x18, 6)
         .storeAddress(toWallet)
         .storeCoins(totalTonAmount)
@@ -105,7 +83,7 @@ fun mintTokens(
         .storeRef(stateInit)
         .storeRef(body)
         .endCell();
-    
+
     sendRawMessage(message, 1);
 }
 
@@ -120,77 +98,63 @@ fun handleBuy(
     queryId: int,
     inMsgBody: slice
 ) {
-    var (
-        totalSupply: coins,
-        mintable: int,
-        adminAddress: address,
-        creatorAddress: address,
-        jettonContent: cell,
-        jettonWalletCode: cell,
-        tonReserve: coins,
-        graduated: int,
-        graduationTarget: coins
-    ) = loadData();
-    
+    var st = Storage.load();
+
     // Cannot buy after graduation
-    assert(!(graduated)) throw ERROR_ALREADY_GRADUATED;
-    
+    assert(!st.graduated) throw ERROR_ALREADY_GRADUATED;
+
     // Parse slippage protection (optional)
-    var minTokensOut: int = 0;
+    var minTokensOut = 0;
     if (!inMsgBody.isEmpty()) {
         minTokensOut = inMsgBody.loadCoins();
     }
-    
+
     // Calculate net amount after gas
-    var grossAmount: int = msgValue - GAS_CONSUMPTION;
+    val grossAmount = msgValue - GAS_CONSUMPTION;
     assert(!(grossAmount <= 0)) throw ERROR_INSUFFICIENT_GAS;
-    
+
     // Calculate platform fee (1.1% - includes referral pool distributed off-chain)
-    var platformFee: int = mulDivFloor(grossAmount, PLATFORM_FEE_BPS, 10000);
-    var netAmount: int = grossAmount - platformFee;
-    
+    val platformFee = mulDivFloor(grossAmount, PLATFORM_FEE_BPS, 10000);
+    val netAmount = grossAmount - platformFee;
+
     assert(!(netAmount <= 0)) throw ERROR_ZERO_AMOUNT;
-    
+
     // Calculate tokens using bonding curve
-    var tokensToMint: int = calculateBuyPrice(netAmount, totalSupply);
+    val tokensToMint = calculateBuyPrice(netAmount, st.totalSupply);
     assert(!(tokensToMint <= 0)) throw ERROR_ZERO_AMOUNT;
-    
+
     // Slippage protection
     assert(!((minTokensOut > 0) & (tokensToMint < minTokensOut))) throw ERROR_SLIPPAGE_EXCEEDED;
-    
+
     // Supply cap check
-    assert(!(totalSupply + tokensToMint > MAX_SUPPLY)) throw ERROR_INSUFFICIENT_LIQUIDITY;
-    
+    assert(!(st.totalSupply + tokensToMint > MAX_SUPPLY)) throw ERROR_INSUFFICIENT_LIQUIDITY;
+
     // Update state
-    totalSupply += tokensToMint;
-    tonReserve += netAmount;
-    
+    st.totalSupply += tokensToMint;
+    st.tonReserve += netAmount;
+
     // Check graduation
-    if (tonReserve >= graduationTarget) {
-        graduated = 1;
+    if (st.tonReserve >= st.graduationTarget) {
+        st.graduated = true;
     }
-    
+
     // Save state
-    saveData(
-        totalSupply, mintable, adminAddress, creatorAddress,
-        jettonContent, jettonWalletCode, tonReserve,
-        graduated, graduationTarget
-    );
-    
+    st.save();
+
     // Send platform fee (referral distribution happens off-chain)
-    sendFee(adminAddress, platformFee, queryId);
-    
+    sendFee(st.adminAddress, platformFee, queryId);
+
     // Mint tokens to buyer
     mintTokens(
         senderAddress,
         tokensToMint,
         FORWARD_FEE,
-        jettonWalletCode,
+        st.jettonWalletCode,
         JETTON_WALLET_DEPLOY_GAS
     );
-    
+
     // Emit external log for indexers
-    emitLog(`log::buy`, senderAddress, tokensToMint, getCurrentPrice(totalSupply));
+    emitLog(`log::buy`, senderAddress, tokensToMint, getCurrentPrice(st.totalSupply));
 }
 
 // ================================================================
@@ -204,47 +168,33 @@ fun handleSell(
     jettonAmount: int,
     fromAddress: address
 ) {
-    var (
-        totalSupply: coins,
-        mintable: int,
-        adminAddress: address,
-        creatorAddress: address,
-        jettonContent: cell,
-        jettonWalletCode: cell,
-        tonReserve: coins,
-        graduated: int,
-        graduationTarget: coins
-    ) = loadData();
-    
+    var st = Storage.load();
+
     // Cannot sell after graduation (trade on DEX instead)
-    assert(!(graduated)) throw ERROR_ALREADY_GRADUATED;
+    assert(!st.graduated) throw ERROR_ALREADY_GRADUATED;
     assert(!(jettonAmount <= 0)) throw ERROR_ZERO_AMOUNT;
-    assert(!(jettonAmount > totalSupply)) throw ERROR_INSUFFICIENT_BALANCE;
-    
+    assert(!(jettonAmount > st.totalSupply)) throw ERROR_INSUFFICIENT_BALANCE;
+
     // Calculate TON return using bonding curve
-    var grossReturn: int = calculateSellReturn(jettonAmount, totalSupply);
-    assert(!(grossReturn > tonReserve)) throw ERROR_INSUFFICIENT_LIQUIDITY;
-    
+    val grossReturn = calculateSellReturn(jettonAmount, st.totalSupply);
+    assert(!(grossReturn > st.tonReserve)) throw ERROR_INSUFFICIENT_LIQUIDITY;
+
     // Calculate platform fee (1.1% - includes referral pool distributed off-chain)
-    var platformFee: int = mulDivFloor(grossReturn, PLATFORM_FEE_BPS, 10000);
-    var netReturn: int = grossReturn - platformFee;
-    
+    val platformFee = mulDivFloor(grossReturn, PLATFORM_FEE_BPS, 10000);
+    val netReturn = grossReturn - platformFee;
+
     // Update state
-    totalSupply -= jettonAmount;
-    tonReserve -= grossReturn;
-    
+    st.totalSupply -= jettonAmount;
+    st.tonReserve -= grossReturn;
+
     // Save state
-    saveData(
-        totalSupply, mintable, adminAddress, creatorAddress,
-        jettonContent, jettonWalletCode, tonReserve,
-        graduated, graduationTarget
-    );
-    
+    st.save();
+
     // Send platform fee (referral distribution happens off-chain)
-    sendFee(adminAddress, platformFee, queryId);
-    
+    sendFee(st.adminAddress, platformFee, queryId);
+
     // Send TON to seller
-    var message: cell = beginCell()
+    val message: cell = beginCell()
         .storeUint(0x10, 6)
         .storeAddress(fromAddress)
         .storeCoins(netReturn)
@@ -252,11 +202,11 @@ fun handleSell(
         .storeUint(OP_EXCESSES, 32)
         .storeUint(queryId, 64)
         .endCell();
-    
+
     sendRawMessage(message, 1);
-    
+
     // Emit external log for indexers
-    emitLog(`log::sell`, fromAddress, jettonAmount, getCurrentPrice(totalSupply));
+    emitLog(`log::sell`, fromAddress, jettonAmount, getCurrentPrice(st.totalSupply));
 }
 
 // ================================================================
@@ -269,42 +219,34 @@ fun handleGraduate(
     queryId: int,
     inMsgBody: slice
 ) {
-    var (
-        totalSupply: coins, mintable: int, adminAddress: address, creatorAddress: address,
-        jettonContent: cell, jettonWalletCode: cell, tonReserve: coins,
-        graduated: int, graduationTarget: coins
-    ) = loadData();
-    
+    var st = Storage.load();
+
     // Only admin can trigger graduation
-    assert(senderAddress.bitsEqual(adminAddress)) throw ERROR_NOT_ADMIN;
-    assert(!(graduated)) throw ERROR_ALREADY_GRADUATED;
-    assert(tonReserve >= graduationTarget) throw ERROR_INSUFFICIENT_LIQUIDITY;
-    
+    assert(senderAddress.bitsEqual(st.adminAddress)) throw ERROR_NOT_ADMIN;
+    assert(!st.graduated) throw ERROR_ALREADY_GRADUATED;
+    assert(st.tonReserve >= st.graduationTarget) throw ERROR_INSUFFICIENT_LIQUIDITY;
+
     // Parse DEX router address
-    var dexRouter: address = inMsgBody.loadAddress();
-    
+    val dexRouter = inMsgBody.loadAddress();
+
     // Mark as graduated
-    graduated = 1;
-    
+    st.graduated = true;
+
     // Calculate graduation fee (2%)
-    var graduationFee: int = mulDivFloor(tonReserve, GRADUATION_FEE_BPS, 10000);
-    var liquidityTon: int = tonReserve - graduationFee;
-    
+    val graduationFee = mulDivFloor(st.tonReserve, GRADUATION_FEE_BPS, 10000);
+    val liquidityTon = st.tonReserve - graduationFee;
+
     // Clear reserve
-    tonReserve = 0;
-    
+    st.tonReserve = 0;
+
     // Save state
-    saveData(
-        totalSupply, mintable, adminAddress, creatorAddress,
-        jettonContent, jettonWalletCode, tonReserve,
-        graduated, graduationTarget
-    );
-    
+    st.save();
+
     // Send graduation fee to platform
-    sendFee(adminAddress, graduationFee, queryId);
-    
+    sendFee(st.adminAddress, graduationFee, queryId);
+
     // Send liquidity to DEX router
-    var message: cell = beginCell()
+    val message: cell = beginCell()
         .storeUint(0x10, 6)
         .storeAddress(dexRouter)
         .storeCoins(liquidityTon)
@@ -312,89 +254,76 @@ fun handleGraduate(
         .storeUint(`log::graduate`, 32)
         .storeUint(queryId, 64)
         .endCell();
-    
+
     sendRawMessage(message, 1);
-    
+
     // Emit graduation log
-    emitLog(`log::graduate`, creatorAddress, totalSupply, liquidityTon);
+    emitLog(`log::graduate`, st.creatorAddress, st.totalSupply, liquidityTon);
 }
 
 // ================================================================
 // Main Entry Point
 // ================================================================
 
-// in the future, use: fun onInternalMessage(in: InMessage) {
-fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody: slice) {
-    if (inMsgBody.isEmpty()) {
+fun onInternalMessage(in: InMessage) {
+    if (in.body.isEmpty()) {
         return;
     }
-    
-    var cs: slice = inMsgFull.beginParse();
-    var flags: int = cs.loadUint(4);
-    
-    // Ignore bounced messages
-    if (flags & 1) {
-        return;
-    }
-    
-    var senderAddress: address = cs.loadAddress();
-    cs.loadAddress();   // skip dst
-    cs.loadCoins();      // skip value
-    cs.skipBits(1);      // skip ihr_disabled
-    cs.loadCoins();      // skip ihr_fee
-    cs.loadCoins();      // skip fwd_fee
-    
-    var op: int = inMsgBody.loadUint(32);
-    var queryId: int = inMsgBody.loadUint(64);
-    
+
+    val senderAddress = in.senderAddress;
+    val msgValue = in.valueCoins;
+
+    val op = in.body.loadUint(32);
+    val queryId = in.body.loadUint(64);
+
     // ----- BUY -----
     if (op == OP_BUY) {
-        handleBuy(senderAddress, msgValue, queryId, inMsgBody);
+        handleBuy(senderAddress, msgValue, queryId, in.body);
         return;
     }
-    
+
     // ----- BURN NOTIFICATION (Sell via burn) -----
     if (op == OP_BURN_NOTIFICATION) {
-        var jettonAmount: int = inMsgBody.loadCoins();
-        var fromAddress: address = inMsgBody.loadAddress();
-        
+        val jettonAmount = in.body.loadCoins();
+        val fromAddress = in.body.loadAddress();
+
         // Verify sender is the correct jetton wallet
-        var (_, _, _, _, _, jettonWalletCode: cell, _, _, _) = loadData();
-        var expectedWallet: address = getJettonWalletAddress(fromAddress, contract.getAddress(), jettonWalletCode);
+        val st = lazy Storage.load();
+        val expectedWallet = getJettonWalletAddress(fromAddress, contract.getAddress(), st.jettonWalletCode);
         assert(senderAddress.bitsEqual(expectedWallet)) throw ERROR_NOT_FROM_WALLET;
-        
+
         handleSell(senderAddress, queryId, jettonAmount, fromAddress);
         return;
     }
-    
+
     // ----- SELL NOTIFICATION (Alternative sell path) -----
     if (op == OP_SELL_NOTIFICATION) {
-        var jettonAmount: int = inMsgBody.loadCoins();
-        var fromAddress: address = inMsgBody.loadAddress();
-        
-        var (_, _, _, _, _, jettonWalletCode: cell, _, _, _) = loadData();
-        var expectedWallet: address = getJettonWalletAddress(fromAddress, contract.getAddress(), jettonWalletCode);
+        val jettonAmount = in.body.loadCoins();
+        val fromAddress = in.body.loadAddress();
+
+        val st = lazy Storage.load();
+        val expectedWallet = getJettonWalletAddress(fromAddress, contract.getAddress(), st.jettonWalletCode);
         assert(senderAddress.bitsEqual(expectedWallet)) throw ERROR_NOT_FROM_WALLET;
-        
+
         handleSell(senderAddress, queryId, jettonAmount, fromAddress);
         return;
     }
-    
+
     // ----- GRADUATE -----
     if (op == OP_GRADUATE) {
-        handleGraduate(senderAddress, queryId, inMsgBody);
+        handleGraduate(senderAddress, queryId, in.body);
         return;
     }
-    
+
     // ----- ADMIN: Mint (for initial distribution) -----
     if (op == OP_MINT) {
-        var (_, _, adminAddress: address, _, _, _, _, _, _) = loadData();
-        assert(senderAddress.bitsEqual(adminAddress)) throw ERROR_NOT_ADMIN;
-        
+        val st = lazy Storage.load();
+        assert(senderAddress.bitsEqual(st.adminAddress)) throw ERROR_NOT_ADMIN;
+
         // Admin minting logic here if needed
         return;
     }
-    
+
     throw ERROR_INVALID_OP;
 }
 
@@ -403,57 +332,48 @@ fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody:
 // ================================================================
 
 // TEP-74 Standard: Get Jetton Data
-get fun get_jetton_data(): (coins, int, address, cell, cell) {
-    var (
-        totalSupply: coins, mintable: int, _, creatorAddress: address,
-        jettonContent: cell, jettonWalletCode: cell, _, _, _
-    ) = loadData();
-    
-    return (totalSupply, mintable, creatorAddress, jettonContent, jettonWalletCode);
+get fun get_jetton_data(): (coins, bool, address, cell, cell) {
+    val st = Storage.load();
+    return (st.totalSupply, st.mintable, st.creatorAddress, st.jettonContent, st.jettonWalletCode);
 }
 
 // TEP-74 Standard: Get Wallet Address
 get fun get_wallet_address(ownerAddress: address): address {
-    var (_, _, _, _, _, jettonWalletCode: cell, _, _, _) = loadData();
-    return getJettonWalletAddress(ownerAddress, contract.getAddress(), jettonWalletCode);
+    val st = Storage.load();
+    return getJettonWalletAddress(ownerAddress, contract.getAddress(), st.jettonWalletCode);
 }
 
 // Custom: Get Bonding Curve Data
-get fun get_curve_data(): (int, int, int, int, int) {
-    var (
-        totalSupply: coins, _, _, _,
-        _, _, tonReserve: coins,
-        graduated: int, graduationTarget: coins
-    ) = loadData();
-    
-    var currentPrice: int = getCurrentPrice(totalSupply);
-    
+get fun get_curve_data(): (int, int, int, bool, int) {
+    val st = Storage.load();
+    val currentPrice = getCurrentPrice(st.totalSupply);
+
     return (
-        totalSupply,
-        tonReserve,
+        st.totalSupply,
+        st.tonReserve,
         currentPrice,
-        graduated,
-        graduationTarget
+        st.graduated,
+        st.graduationTarget
     );
 }
 
 // Custom: Preview Buy (for UI)
 get fun preview_buy(tonAmount: int): int {
-    var (totalSupply: coins, _, _, _, _, _, _, _, _) = loadData();
-    
-    var netAmount: int = tonAmount - GAS_CONSUMPTION;
-    var platformFee: int = mulDivFloor(netAmount, PLATFORM_FEE_BPS, 10000);
+    val st = Storage.load();
+
+    var netAmount = tonAmount - GAS_CONSUMPTION;
+    val platformFee = mulDivFloor(netAmount, PLATFORM_FEE_BPS, 10000);
     netAmount -= platformFee;
-    
-    return calculateBuyPrice(netAmount, totalSupply);
+
+    return calculateBuyPrice(netAmount, st.totalSupply);
 }
 
 // Custom: Preview Sell (for UI)
 get fun preview_sell(tokenAmount: int): int {
-    var (totalSupply: coins, _, _, _, _, _, _, _, _) = loadData();
-    
-    var grossReturn: int = calculateSellReturn(tokenAmount, totalSupply);
-    var platformFee: int = mulDivFloor(grossReturn, PLATFORM_FEE_BPS, 10000);
-    
+    val st = Storage.load();
+
+    val grossReturn = calculateSellReturn(tokenAmount, st.totalSupply);
+    val platformFee = mulDivFloor(grossReturn, PLATFORM_FEE_BPS, 10000);
+
     return grossReturn - platformFee;
 }

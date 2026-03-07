@@ -14,8 +14,8 @@ npm run build              # Production build
 npm run lint               # ESLint
 npm run typecheck          # TypeScript check (tsc --noEmit)
 
-# Smart contracts (FunC)
-npm run compile:contracts                                    # Compile FunC to BOC
+# Smart contracts (Tolk)
+npm run compile:contracts                                    # Compile Tolk to BOC
 npm run test:contracts                                       # Run all contract tests
 cd contracts && npx jest --config jest.config.js JettonMaster  # Single test file
 
@@ -74,11 +74,13 @@ Route groups (parenthesized, don't affect URLs) organize shared code:
 - **Cron**: `/api/cron/process-tokens/`, `/api/cron/sync-token-data/`, `/api/cron/verify-pending-trades/`, `/api/price-alerts/check/`, `/api/sync-quantum-club-team/`
 
 ### Smart Contracts (`contracts/`)
-FunC contracts for TEP-74 compliant Jetton with bonding curve:
-- `jetton_master.fc` - Buy (0xaf750d34), Sell/burn (0x7bdd97de), Graduate (0x47524144)
-- `jetton_wallet.fc` - Per-holder wallet
+Tolk contracts for TEP-74 compliant Jetton with bonding curve + NFT marketplace:
+- `jetton_master.tolk` - Buy (0xaf750d34), Sell/burn (0x7bdd97de), Graduate (0x47524144)
+- `jetton_wallet.tolk` - Per-holder wallet
+- `nft_sale.tolk` - Fixed-price NFT sale (0.5% marketplace fee)
+- Uses modern Tolk idioms: struct-based storage with auto-serialization, `InMessage` entry point
 - Bonding curve: `price = INITIAL_PRICE + (total_supply * CURVE_SLOPE / MAX_SUPPLY)`
-- Compiled output: `contracts/build/` (BOC files + `contract-code.ts`)
+- Compiled via `@ton/tolk-js`: `contracts/build/` (BOC files + `contract-code.ts`)
 
 ### Firebase Cloud Functions (`functions/`)
 Single function `onTokenUpdate` - triggers on token document updates, checks graduation threshold ($69K market cap), creates STON.fi liquidity pool.

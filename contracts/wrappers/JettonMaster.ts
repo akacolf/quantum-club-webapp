@@ -16,7 +16,7 @@ import {
  * TEP-74 compliant Jetton Master with bonding curve trading
  */
 
-// Op-codes (matching imports/opcodes.fc)
+// Op-codes (matching imports/opcodes.tolk)
 export const OP_BUY = 0xaf750d34;                    // op::buy
 export const OP_SELL_NOTIFICATION = 0xb7e76bfd;      // op::sell_notification
 export const OP_BURN_NOTIFICATION = 0x7bdd97de;      // op::burn_notification
