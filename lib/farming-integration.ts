@@ -12,8 +12,8 @@ import { StonApiClient } from "@ston-fi/api";
 import { SendMode, WalletContractV5R1 } from "@ton/ton";
 import { toNano, internal } from "@ton/core";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { getContractAdapter } from "@/lib/ton-api";
 
 // Farm pool info
 export interface FarmPool {
@@ -47,13 +47,7 @@ export interface FarmingResult {
     error?: string;
 }
 
-// Initialize TonAPI contract adapter
-function getContractAdapter(isTestnet: boolean = false): ContractAdapter {
-    const tonApiClient = new TonApiClient({
-        baseUrl: isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
-    });
-    return new ContractAdapter(tonApiClient);
-}
+// Note: Uses central getContractAdapter() from ton-api.ts (mainnet only)
 
 // Get wallet from mnemonic
 async function getWallet(mnemonic: string[], contractAdapter: ContractAdapter) {
@@ -181,7 +175,7 @@ export async function stakeLpTokens(
     isTestnet: boolean = false
 ): Promise<FarmingResult> {
     try {
-        const contractAdapter = getContractAdapter(isTestnet);
+        const contractAdapter = getContractAdapter();
         const { keyPair, contract, address } = await getWallet(mnemonic, contractAdapter);
         
         // Get farm NFT minter contract
@@ -232,7 +226,7 @@ export async function unstakeLpTokens(
     isTestnet: boolean = false
 ): Promise<FarmingResult> {
     try {
-        const contractAdapter = getContractAdapter(isTestnet);
+        const contractAdapter = getContractAdapter();
         const { keyPair, contract } = await getWallet(mnemonic, contractAdapter);
         
         // Get farm NFT item contract
@@ -279,7 +273,7 @@ export async function claimFarmingRewards(
     isTestnet: boolean = false
 ): Promise<FarmingResult> {
     try {
-        const contractAdapter = getContractAdapter(isTestnet);
+        const contractAdapter = getContractAdapter();
         const { keyPair, contract } = await getWallet(mnemonic, contractAdapter);
         
         // Get farm NFT item contract

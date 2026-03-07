@@ -54,6 +54,7 @@ export interface TradingDeps {
     value: string;
     body?: Cell;
     stateInit?: Cell;
+    bounce?: boolean;
   }) => Promise<{ success: boolean; txHash?: string; error?: string }>;
   invalidateTokenQueries: () => void;
   refetchMyTokens: () => void;

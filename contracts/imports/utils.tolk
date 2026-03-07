@@ -7,10 +7,7 @@
 import "constants"
 import "opcodes"
 
-// ----- Slice Comparison -----
-@pure
-fun equalSlices(a: slice, b: slice): int
-    asm "SDEQ";
+// (equalSlices removed - use .bitsEqual() instead)
 
 // ----- Pack Jetton Wallet Data -----
 @inline
@@ -90,7 +87,9 @@ fun sendFee(toAddress: address, amount: int, queryId: int) {
             .storeUint(queryId, 64)
             .endCell();
         
-        sendRawMessage(message, 1);
+        // Mode 1 + 2: pay fees separately, ignore errors (non-critical fee send
+        // should not cause the main transaction to fail in action phase)
+        sendRawMessage(message, 1 + 2);
     }
 }
 
@@ -119,5 +118,7 @@ fun emitLog(logOp: int, user: address, amount: int, price: int) {
         .storeRef(log)
         .endCell();
     
-    sendRawMessage(msg, 0);
+    // Mode 2: ignore errors (log messages are non-critical and should never
+    // cause the main transaction to fail)
+    sendRawMessage(msg, 2);
 }

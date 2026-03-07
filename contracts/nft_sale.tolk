@@ -43,6 +43,7 @@ struct Storage {
     nftOwnerAddress: address
     fullPrice: coins
     fees: Cell<FeesData>
+    nftReceived: bool
 }
 
 fun Storage.load(): Storage {
@@ -135,6 +136,9 @@ fun buyNft(
     // Check if sale is active
     assert(!st.isComplete) throw ERROR_ALREADY_SOLD;
 
+    // Check that NFT has been deposited
+    assert(st.nftReceived) throw ERROR_WRONG_NFT;
+
     // Check sufficient funds
     assert(msgValue >= st.fullPrice + min_gas_amount) throw ERROR_NOT_ENOUGH_FUNDS;
 
@@ -159,8 +163,8 @@ fun buyNft(
         sendTon(fees.royaltyAddress, fees.royaltyAmount, 1);
     }
 
-    // 4. Send remaining to seller (with all remaining balance)
-    sendTon(st.nftOwnerAddress, 0, 128);  // mode 128 = send remaining balance
+    // 4. Send remaining to seller (with all remaining balance) and self-destruct
+    sendTon(st.nftOwnerAddress, 0, 128 + 32);  // mode 128 = remaining balance, +32 = destroy if zero
 }
 
 // =============================================================================
@@ -194,13 +198,15 @@ fun cancelSale(
 
 fun onNftReceived(
     senderAddress: address,
-    nftAddress: address
+    nftAddress: address,
+    mutate st: Storage
 ) {
     // Verify the NFT address matches (compare by hash)
     assert(senderAddress.bitsEqual(nftAddress)) throw ERROR_WRONG_NFT;
 
-    // NFT is now held by this contract, sale is active
-    // No action needed, contract is ready for buyers
+    // Mark NFT as received - sale is now active for buyers
+    st.nftReceived = true;
+    st.save();
 }
 
 // =============================================================================
@@ -226,7 +232,7 @@ fun onInternalMessage(in: InMessage) {
 
     // Handle NFT ownership assigned (NFT transferred to this contract)
     if (op == OP_OWNERSHIP_ASSIGNED) {
-        onNftReceived(senderAddress, st.nftAddress);
+        onNftReceived(senderAddress, st.nftAddress, mutate st);
         return;
     }
 
@@ -242,9 +248,9 @@ fun onInternalMessage(in: InMessage) {
         return;
     }
 
-    // Unknown operation - accept as buy attempt if enough TON sent
+    // Unknown operation - accept as buy attempt if enough TON sent and NFT deposited
     // This allows users to buy by just sending TON without specific op
-    if (msgValue >= st.fullPrice + min_gas_amount) {
+    if (st.nftReceived && (msgValue >= st.fullPrice + min_gas_amount)) {
         buyNft(senderAddress, msgValue, mutate st);
         return;
     }

@@ -12,35 +12,19 @@
 import { Address, internal, SendMode, Cell, beginCell } from "@ton/core";
 import { WalletContractV5R1, WalletContractV4 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { TonApiClient } from "@ton-api/client";
-import { ContractAdapter } from "@ton-api/ton-adapter";
 import { PLATFORM_WALLET_ADDRESS } from "./platform-config";
+import { getContractAdapter } from "@/lib/ton-api";
 import { env } from "@/env";
 
 // Platform wallet configuration
 const PLATFORM_MNEMONIC = env.PLATFORM_WALLET_MNEMONIC;
 const PLATFORM_WALLET_VERSION = env.PLATFORM_WALLET_VERSION ?? "v5r1";
 
-// Cache for TonAPI
-let cachedContractAdapter: ContractAdapter | null = null;
-
 /**
  * Check if platform wallet is configured
  */
 export function isPlatformWalletConfigured(): boolean {
     return !!(PLATFORM_MNEMONIC && PLATFORM_WALLET_ADDRESS);
-}
-
-/**
- * Get ContractAdapter instance using TonAPI
- */
-function getContractAdapter(): ContractAdapter {
-    if (!cachedContractAdapter) {
-        const client = new TonApiClient({ baseUrl: "https://tonapi.io" });
-        cachedContractAdapter = new ContractAdapter(client);
-        console.log("[platform-wallet] Using TonAPI");
-    }
-    return cachedContractAdapter;
 }
 
 /**

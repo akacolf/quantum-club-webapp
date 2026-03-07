@@ -67,6 +67,7 @@ export function nftSaleConfigToCell(config: NftSaleConfig): Cell {
         .storeAddress(config.nftOwnerAddress)
         .storeCoins(config.fullPrice)
         .storeRef(feesCell)
+        .storeBit(false) // nft_received = false
         .endCell();
 }
 

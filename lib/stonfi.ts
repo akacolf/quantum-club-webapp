@@ -3,8 +3,7 @@
 import { StonApiClient, AssetTag } from "@ston-fi/api";
 import { dexFactory } from "@ston-fi/sdk";
 import { Address } from "@ton/core";
-import { TonApiClient } from "@ton-api/client";
-import { ContractAdapter } from "@ton-api/ton-adapter";
+import { getContractAdapter } from "@/lib/ton-api";
 
 // Types for swap assets
 export interface SwapAsset {
@@ -189,11 +188,7 @@ export async function buildSwapTxParams(
     body: Buffer | null;
 } | null> {
     try {
-        // Use TonAPI for reliable access
-        const tonApiClient = new TonApiClient({
-            baseUrl: "https://tonapi.io",
-        });
-        const contractAdapter = new ContractAdapter(tonApiClient);
+        const contractAdapter = getContractAdapter();
 
         // Build DEX contracts from simulation router
         const dexContracts = dexFactory(simulation.router);
@@ -322,11 +317,7 @@ export async function buildLiquidityTxParams(
     userWalletAddress: string
 ): Promise<Array<{ to: Address; value: bigint; body: Buffer | null }>> {
     try {
-        // Use TonAPI for reliable access
-        const tonApiClient = new TonApiClient({
-            baseUrl: "https://tonapi.io",
-        });
-        const contractAdapter = new ContractAdapter(tonApiClient);
+        const contractAdapter = getContractAdapter();
 
         const dexContracts = dexFactory(simulation.router);
         const router = contractAdapter.open(
@@ -456,11 +447,7 @@ export async function buildBurnLpTxParams(
             throw new Error("Router metadata not found");
         }
 
-        // Use TonAPI for reliable access
-        const tonApiClient = new TonApiClient({
-            baseUrl: "https://tonapi.io",
-        });
-        const contractAdapter = new ContractAdapter(tonApiClient);
+        const contractAdapter = getContractAdapter();
 
         // Build DEX contracts from router metadata
         const dexContracts = dexFactory(routerMetadata);

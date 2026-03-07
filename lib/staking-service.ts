@@ -13,8 +13,7 @@
 import { Address, toNano, Cell, internal, SendMode, beginCell } from "@ton/core";
 import { WalletContractV5R1 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { TonApiClient } from "@ton-api/client";
-import { ContractAdapter } from "@ton-api/ton-adapter";
+import { getContractAdapter } from "@/lib/ton-api";
 
 // Staking pool configurations
 export interface StakingPool {
@@ -244,11 +243,7 @@ export async function executeStake(
             return { success: false, error: "Failed to build stake transaction" };
         }
 
-        // Initialize clients
-        const tonApiClient = new TonApiClient({
-            baseUrl: "https://tonapi.io",
-        });
-        const contractAdapter = new ContractAdapter(tonApiClient);
+        const contractAdapter = getContractAdapter();
 
         // Create wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(mnemonic);

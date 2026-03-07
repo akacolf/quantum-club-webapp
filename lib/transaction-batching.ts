@@ -42,11 +42,13 @@ function buildInternalMessages(transactions: BatchTransaction[]): ReturnType<typ
         
         // Note: stateInit parsing is handled at send time, not here
         // This allows for cleaner async handling
+        // Default to bounce: true for contract messages (TON standard).
+        // Callers should explicitly set bounce: false for deployments or EOA transfers.
         return internal({
             to: toAddress,
             value: tx.value,
             body: tx.body,
-            bounce: tx.bounce ?? false,
+            bounce: tx.bounce ?? true,
         });
     });
 }

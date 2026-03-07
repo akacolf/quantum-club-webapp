@@ -45,6 +45,7 @@ fun sendTokens(
     jettonMasterAddress: address,
     jettonWalletCode: cell,
     jettonAmount: int,
+    queryId: int,
     responseAddress: address,
     forwardTonAmount: int,
     forwardPayload: cell?,
@@ -59,7 +60,7 @@ fun sendTokens(
 
     var body: cell = beginCell()
         .storeUint(OP_INTERNAL_TRANSFER, 32)
-        .storeUint(0, 64)
+        .storeUint(queryId, 64)
         .storeCoins(jettonAmount)
         .storeAddress(contract.getAddress())
         .storeAddress(responseAddress)
@@ -70,7 +71,7 @@ fun sendTokens(
     if (forwardPayload != null) {
         body = beginCell()
             .storeUint(OP_INTERNAL_TRANSFER, 32)
-            .storeUint(0, 64)
+            .storeUint(queryId, 64)
             .storeCoins(jettonAmount)
             .storeAddress(contract.getAddress())
             .storeAddress(responseAddress)
@@ -111,7 +112,11 @@ fun handleTransfer(
     val jettonAmount = inMsgBody.loadCoins();
     val toAddress = inMsgBody.loadAddress();
     val responseAddress = inMsgBody.loadAddress();
-    inMsgBody.skipBits(1);  // skip custom_payload flag
+    // custom_payload: Maybe ^Cell — skip the flag and the ref cell if present
+    val hasCustomPayload = inMsgBody.loadUint(1);
+    if (hasCustomPayload) {
+        inMsgBody.loadRef(); // skip the custom_payload cell
+    }
     val forwardTonAmount = inMsgBody.loadCoins();
 
     // Calculate gas needed
@@ -139,6 +144,7 @@ fun handleTransfer(
         st.jettonMasterAddress,
         st.jettonWalletCode,
         jettonAmount,
+        queryId,
         responseAddress,
         forwardTonAmount,
         forwardPayload,
@@ -210,7 +216,7 @@ fun handleInternalTransfer(
     }
 
     // Send excesses back if there's remaining value and valid response address
-    if ((!responseAddress.isNone()) & (remainingValue > 0)) {
+    if ((!responseAddress.isNone()) && (remainingValue > 0)) {
         val message: cell = beginCell()
             .storeUint(0x10, 6)
             .storeAddressAny(responseAddress)
@@ -286,8 +292,41 @@ fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody:
     var cs: slice = inMsgFull.beginParse();
     val flags = cs.loadUint(4);
 
-    // Ignore bounced messages
+    // Handle bounced messages - restore balance on failed transfers
     if (flags & 1) {
+        // Bounced message body starts with 0xFFFFFFFF prefix (32 bits)
+        // followed by the original op (32 bits) and query_id (64 bits)
+        if (inMsgBody.remainingBitsCount() < 32) {
+            return; // Too short to parse
+        }
+        inMsgBody.skipBits(32); // skip bounce prefix 0xFFFFFFFF
+
+        if (inMsgBody.remainingBitsCount() < 32 + 64) {
+            return; // Too short to contain op + query_id
+        }
+        val bouncedOp = inMsgBody.loadUint(32);
+        inMsgBody.skipBits(64); // skip query_id
+
+        // Restore balance on failed internal_transfer (outgoing tokens bounced back)
+        if (bouncedOp == OP_INTERNAL_TRANSFER) {
+            if (inMsgBody.remainingBitsCount() >= 4) { // coins need at least a few bits
+                val jettonAmount = inMsgBody.loadCoins();
+                var st = Storage.load();
+                st.balance += jettonAmount;
+                st.save();
+            }
+        }
+
+        // Restore balance on failed burn_notification (burn bounced back from master)
+        if (bouncedOp == OP_BURN_NOTIFICATION) {
+            if (inMsgBody.remainingBitsCount() >= 4) {
+                val jettonAmount = inMsgBody.loadCoins();
+                var st = Storage.load();
+                st.balance += jettonAmount;
+                st.save();
+            }
+        }
+
         return;
     }
 

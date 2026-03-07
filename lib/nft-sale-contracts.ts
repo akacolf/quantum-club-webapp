@@ -170,7 +170,7 @@ export function buildSaleContractData(params: {
     .storeCoins(params.royaltyAmount)
     .endCell();
   
-  return cell1.storeRef(cell2).endCell();
+  return cell1.storeRef(cell2).storeBit(false).endCell(); // nft_received = false
 }
 
 /**

@@ -5,8 +5,7 @@ import { Address, internal, SendMode, Cell, loadStateInit } from "@ton/core";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
-import { TonApiClient } from "@ton-api/client";
-import { ContractAdapter } from "@ton-api/ton-adapter";
+import { getContractAdapter as getCentralAdapter } from "@/lib/ton-api";
 import type { ChainType } from "@/app/wallet/utils/multichain";
 import { getSecureMnemonic, removeSecureMnemonic } from "@/lib/secure-mnemonic";
 
@@ -110,6 +109,7 @@ interface WalletActions {
     value: string;
     body?: Cell;
     stateInit?: Cell;
+    bounce?: boolean;
   }) => Promise<{ success: boolean; txHash?: string; error?: string }>;
 }
 
@@ -470,12 +470,9 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
           break;
       }
 
-      const tonApiClient = new TonApiClient({
-        baseUrl: isTestnet
-          ? "https://testnet.tonapi.io"
-          : "https://tonapi.io",
-      });
-      const contractAdapterInstance = new ContractAdapter(tonApiClient);
+      // Reuse central ContractAdapter singleton (includes API key)
+      // Note: testnet not supported here — wallet sendTransaction always uses mainnet
+      const contractAdapterInstance = getCentralAdapter();
       const contract = contractAdapterInstance.open(wallet);
       const toAddress = Address.parse(params.to);
 
@@ -534,12 +531,16 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
 
       const { beginCell, storeMessage, external } = await import("@ton/core");
 
+      // bounce: true (default) ensures failed contract calls return funds.
+      // Only use bounce: false for deployments (stateInit) or explicit opt-out.
+      const shouldBounce = params.bounce ?? (params.stateInit ? false : true);
+
       const internalMsg = internal({
         to: toAddress,
         value: BigInt(params.value),
         body: params.body,
         init: init,
-        bounce: false,
+        bounce: shouldBounce,
       });
 
       const transferCell = (wallet as any).createTransfer({

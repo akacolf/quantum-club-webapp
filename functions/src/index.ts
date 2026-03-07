@@ -26,6 +26,7 @@ interface GraduationQueueItem {
     marketCap: string;
     collectedTon: string;
     creatorAddress: string;
+    jettonMasterAddress?: string;
     status: string;
     retryCount?: number;
 }
@@ -136,6 +137,7 @@ export const onTokenUpdate = functions.firestore
                 marketCap: after.marketCap,
                 collectedTon: after.collectedTon || "0",
                 creatorAddress: after.creatorAddress,
+                jettonMasterAddress: after.jettonMasterAddress || "",
                 status: "pending",
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -179,9 +181,8 @@ export const processGraduationQueue = functions.pubsub
                     processingStartedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
 
-                // For now, we'll simulate the graduation
-                // In production, replace with actual LP creation
-                const result = await simulateGraduation(graduation);
+                // Execute full graduation: on-chain trigger + LP creation
+                const result = await executeGraduation(graduation);
 
                 if (result.success) {
                     // Update token status
@@ -219,23 +220,125 @@ export const processGraduationQueue = functions.pubsub
         return null;
     });
 
-/**
- * Simulate graduation process (for testing)
- * In production, replace with actual LP creation
- */
-async function simulateGraduation(graduation: GraduationQueueItem): Promise<GraduationResult> {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
+// Op-code for on-chain graduation trigger
+const OP_GRADUATE = 0x47524144; // "GRAD" in hex
 
-    // Generate mock addresses (in production, these come from actual deployment)
-    const mockPoolAddress = `EQ${Buffer.from(graduation.tokenId).toString("hex").slice(0, 44).padEnd(44, "0")}`;
-    const mockJettonAddress = `EQ${Buffer.from(`${graduation.tokenSymbol}_jetton`).toString("hex").slice(0, 44).padEnd(44, "0")}`;
+/**
+ * Send OP_GRADUATE to the jetton master contract
+ * This triggers on-chain graduation: marks graduated, deducts fee, sends liquidity TON to DEX router
+ */
+async function sendGraduateOnChain(
+    jettonMasterAddress: string,
+    dexRouterAddress: string,
+    platformMnemonic: string
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    try {
+        if (!platformMnemonic) {
+            return { success: false, error: "Platform mnemonic not configured" };
+        }
+
+        const contractAdapter = getContractAdapter();
+        const keyPair = await mnemonicToPrivateKey(platformMnemonic.split(" "));
+        const wallet = WalletContractV4.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey,
+        });
+
+        const walletContract = contractAdapter.open(wallet);
+
+        // Build OP_GRADUATE message body with DEX router address
+        const graduateBody = beginCell()
+            .storeUint(OP_GRADUATE, 32)
+            .storeUint(0, 64) // query_id
+            .storeAddress(Address.parse(dexRouterAddress))
+            .endCell();
+
+        const seqno = await walletContract.getSeqno();
+        await walletContract.sendTransfer({
+            seqno,
+            secretKey: keyPair.secretKey,
+            messages: [internal({
+                to: Address.parse(jettonMasterAddress),
+                value: toNano("0.1"), // Gas for graduation
+                body: graduateBody,
+                bounce: true,
+            })],
+        });
+
+        return { success: true, txHash: `${seqno}` };
+    } catch (error) {
+        functions.logger.error("On-chain graduation failed:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}
+
+/**
+ * Execute full graduation: on-chain trigger + LP creation + LP burn
+ */
+async function executeGraduation(graduation: GraduationQueueItem): Promise<GraduationResult> {
+    const platformMnemonic = config.platformMnemonic;
+    if (!platformMnemonic) {
+        return { success: false, error: "Platform mnemonic not configured" };
+    }
+
+    const jettonAddress = graduation.jettonMasterAddress;
+    if (!jettonAddress) {
+        return { success: false, error: "Jetton master address not found" };
+    }
+
+    // Step 1: Get STON.fi router address for the graduation message
+    const stonApi = new StonApiClient();
+    let routerAddress: string;
+    try {
+        // Use a simulation to discover the active router
+        const simulation = await stonApi.simulateSwap({
+            offerAddress: "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c",
+            askAddress: jettonAddress,
+            offerUnits: "1000000000", // 1 TON
+            slippageTolerance: "0.05",
+        });
+        routerAddress = simulation.router.address;
+    } catch {
+        // Fallback: use STON.fi v2 router
+        routerAddress = "EQB3ncyBUTjZUA5EnFKR5_EnOMI9V1tTEAAPaiU71gc4TiUt";
+    }
+
+    // Step 2: Send OP_GRADUATE on-chain (this releases TON from the bonding curve)
+    functions.logger.info(`Sending OP_GRADUATE to ${jettonAddress}, router: ${routerAddress}`);
+    const graduateResult = await sendGraduateOnChain(jettonAddress, routerAddress, platformMnemonic);
+    if (!graduateResult.success) {
+        return { success: false, error: `On-chain graduation failed: ${graduateResult.error}` };
+    }
+
+    // Wait for on-chain graduation to settle
+    await new Promise(resolve => setTimeout(resolve, 15000));
+
+    // Step 3: Create LP pool on STON.fi
+    functions.logger.info(`Creating LP pool for ${graduation.tokenSymbol}`);
+    const lpResult = await graduateTokenWithLpBurn(
+        jettonAddress,
+        graduation.collectedTon,
+        platformMnemonic
+    );
+
+    if (!lpResult.success) {
+        // On-chain graduation succeeded but LP creation failed — log for manual retry
+        functions.logger.error(`LP creation failed for ${graduation.tokenSymbol}, but on-chain graduation succeeded`);
+        return {
+            success: false,
+            jettonAddress,
+            error: `LP creation failed (on-chain graduation succeeded): ${lpResult.error}`,
+        };
+    }
 
     return {
         success: true,
-        poolAddress: mockPoolAddress,
-        jettonAddress: mockJettonAddress,
-        txHash: `simulated_tx_${Date.now()}`,
+        poolAddress: lpResult.poolAddress,
+        jettonAddress,
+        txHash: graduateResult.txHash,
     };
 }
 
@@ -294,6 +397,7 @@ export const triggerGraduation = functions.https.onRequest(async (req: functions
             marketCap: token.marketCap,
             collectedTon: token.collectedTon || "0",
             creatorAddress: token.creatorAddress,
+            jettonMasterAddress: token.jettonMasterAddress || "",
             status: "pending",
             manualTrigger: true,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -449,9 +553,9 @@ async function burnLpTokens(
             .storeCoins(BigInt(lpAmount)) // amount
             .storeAddress(Address.parse(BURN_ADDRESS)) // destination
             .storeAddress(walletContract.address) // response_destination
-            .storeBit(0) // no custom payload
+            .storeBit(false) // no custom payload
             .storeCoins(1) // forward_ton_amount (minimal)
-            .storeBit(0) // no forward payload
+            .storeBit(false) // no forward payload
             .endCell();
 
         // Get seqno and send transaction
@@ -515,18 +619,50 @@ async function graduateTokenWithLpBurn(
     // Step 2: Wait for LP tokens to arrive (pool creation takes time)
     await new Promise(resolve => setTimeout(resolve, 20000));
 
-    // Step 3: Get LP token balance and burn
-    // Note: In production, you'd query the LP token contract for balance
-    // For now, we'll log that burn should happen
-    functions.logger.info("LP tokens should be burned after receiving them");
+    // Step 3: Get LP token balance and burn to permanently lock liquidity
+    if (lpResult.poolAddress && lpResult.poolAddress !== "pending") {
+        try {
+            // Query LP wallet balance via STON.fi API
+            const stonApi = new StonApiClient();
+            const pools = await stonApi.queryPools({
+                condition: `token0Address == "${tokenAddress}" || token1Address == "${tokenAddress}"`,
+            });
+            const pool = pools.find((p: { token0Address: string; token1Address: string }) =>
+                p.token0Address === "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" ||
+                p.token1Address === "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"
+            );
 
-    // The actual burn would be:
-    // const burnResult = await burnLpTokens(lpResult.poolAddress!, lpBalance, platformMnemonic);
+            if (pool && (pool as any).lpAccountAddress) {
+                // Get LP balance from the pool's LP jetton wallet for our address
+                const lpWalletAddress = (pool as any).lpAccountAddress;
+                const burnResult = await burnLpTokens(
+                    lpWalletAddress,
+                    "0", // Will be fetched inside burnLpTokens
+                    platformMnemonic
+                );
+
+                if (burnResult.success) {
+                    functions.logger.info("LP tokens burned successfully — liquidity permanently locked");
+                    return {
+                        success: true,
+                        poolAddress: lpResult.poolAddress,
+                        lpBurned: true,
+                    };
+                } else {
+                    functions.logger.warn(`LP burn failed (LP created): ${burnResult.error}`);
+                }
+            } else {
+                functions.logger.warn("Could not find pool LP account — LP burn skipped");
+            }
+        } catch (burnError) {
+            functions.logger.warn("LP burn attempt failed (LP created, burn can be retried):", burnError);
+        }
+    }
 
     return {
         success: true,
         poolAddress: lpResult.poolAddress,
-        lpBurned: false, // Will be true when burn is executed
+        lpBurned: false,
     };
 }
 

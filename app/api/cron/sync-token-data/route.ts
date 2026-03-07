@@ -182,9 +182,9 @@ async function fetchCurveData(address: string): Promise<CurveData | null> {
         return {
             totalSupply: data.totalSupply.toString(),
             tonReserve: data.tonReserve.toString(),
-            currentPrice: data.basePrice.toString(),
+            currentPrice: data.currentPrice.toString(),
             graduated: data.isGraduated,
-            graduationTarget: data.graduationThreshold.toString(),
+            graduationTarget: data.graduationTarget.toString(),
         };
 
     } catch (error) {

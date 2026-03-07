@@ -4,12 +4,13 @@
 // TEP-74 Compliant Jetton Master with Bonding Curve Trading
 //
 // Features:
-// - Automatic bonding curve pricing (linear)
+// - Automatic bonding curve pricing (linear, integral-based)
 // - Buy tokens with TON
 // - Sell tokens to get TON back
 // - Automatic graduation to DEX at threshold
 // - Platform and creator fee collection
 // - External logging for indexers
+// - Bounce handling for failed mints
 // ================================================================
 
 import "imports/opcodes"
@@ -54,6 +55,7 @@ fun Storage.save(self) {
 fun mintTokens(
     toAddress: address,
     jettonAmount: int,
+    queryId: int,
     forwardTonAmount: int,
     jettonWalletCode: cell,
     totalTonAmount: int
@@ -67,7 +69,7 @@ fun mintTokens(
 
     val body: cell = beginCell()
         .storeUint(OP_INTERNAL_TRANSFER, 32)
-        .storeUint(0, 64)
+        .storeUint(queryId, 64)
         .storeCoins(jettonAmount)
         .storeAddress(contract.getAddress())
         .storeAddress(toAddress)
@@ -119,12 +121,12 @@ fun handleBuy(
 
     assert(!(netAmount <= 0)) throw ERROR_ZERO_AMOUNT;
 
-    // Calculate tokens using bonding curve
+    // Calculate tokens using bonding curve (integral-based)
     val tokensToMint = calculateBuyPrice(netAmount, st.totalSupply);
     assert(!(tokensToMint <= 0)) throw ERROR_ZERO_AMOUNT;
 
     // Slippage protection
-    assert(!((minTokensOut > 0) & (tokensToMint < minTokensOut))) throw ERROR_SLIPPAGE_EXCEEDED;
+    assert(!((minTokensOut > 0) && (tokensToMint < minTokensOut))) throw ERROR_SLIPPAGE_EXCEEDED;
 
     // Supply cap check
     assert(!(st.totalSupply + tokensToMint > MAX_SUPPLY)) throw ERROR_INSUFFICIENT_LIQUIDITY;
@@ -138,22 +140,26 @@ fun handleBuy(
         st.graduated = true;
     }
 
+    // Reserve minimum contract balance to prevent freezing
+    reserveToncoinsOnBalance(MIN_TON_FOR_STORAGE, 0);
+
     // Save state
     st.save();
 
-    // Send platform fee (referral distribution happens off-chain)
+    // Send platform fee with +2 (ignore errors) so fee failure doesn't block the buy
     sendFee(st.adminAddress, platformFee, queryId);
 
     // Mint tokens to buyer
     mintTokens(
         senderAddress,
         tokensToMint,
+        queryId,
         FORWARD_FEE,
         st.jettonWalletCode,
         JETTON_WALLET_DEPLOY_GAS
     );
 
-    // Emit external log for indexers
+    // Emit external log for indexers (mode 2 = ignore errors)
     emitLog(`log::buy`, senderAddress, tokensToMint, getCurrentPrice(st.totalSupply));
 }
 
@@ -187,10 +193,13 @@ fun handleSell(
     st.totalSupply -= jettonAmount;
     st.tonReserve -= grossReturn;
 
+    // Reserve minimum contract balance to prevent freezing
+    reserveToncoinsOnBalance(MIN_TON_FOR_STORAGE, 0);
+
     // Save state
     st.save();
 
-    // Send platform fee (referral distribution happens off-chain)
+    // Send platform fee with +2 (ignore errors) so fee failure doesn't block the sell
     sendFee(st.adminAddress, platformFee, queryId);
 
     // Send TON to seller
@@ -221,16 +230,13 @@ fun handleGraduate(
 ) {
     var st = Storage.load();
 
-    // Only admin can trigger graduation
+    // Only admin can trigger graduation after threshold is reached
     assert(senderAddress.bitsEqual(st.adminAddress)) throw ERROR_NOT_ADMIN;
-    assert(!st.graduated) throw ERROR_ALREADY_GRADUATED;
-    assert(st.tonReserve >= st.graduationTarget) throw ERROR_INSUFFICIENT_LIQUIDITY;
+    assert(st.graduated) throw ERROR_NOT_GRADUATED;
+    assert(st.tonReserve > 0) throw ERROR_INSUFFICIENT_LIQUIDITY;
 
     // Parse DEX router address
     val dexRouter = inMsgBody.loadAddress();
-
-    // Mark as graduated
-    st.graduated = true;
 
     // Calculate graduation fee (2%)
     val graduationFee = mulDivFloor(st.tonReserve, GRADUATION_FEE_BPS, 10000);
@@ -238,6 +244,9 @@ fun handleGraduate(
 
     // Clear reserve
     st.tonReserve = 0;
+
+    // Reserve minimum contract balance to prevent freezing
+    reserveToncoinsOnBalance(MIN_TON_FOR_STORAGE, 0);
 
     // Save state
     st.save();
@@ -262,30 +271,67 @@ fun handleGraduate(
 }
 
 // ================================================================
+// Bounce Handler - Revert state on failed mints
+// ================================================================
+
+@inline
+fun handleBounce(inMsgBody: slice) {
+    // Bounced message body: 0xFFFFFFFF prefix (32 bits) + original op + query_id + data
+    if (inMsgBody.remainingBitsCount() < 32) {
+        return;
+    }
+    inMsgBody.skipBits(32); // skip bounce prefix 0xFFFFFFFF
+
+    if (inMsgBody.remainingBitsCount() < 32 + 64) {
+        return;
+    }
+    val bouncedOp = inMsgBody.loadUint(32);
+    inMsgBody.skipBits(64); // skip query_id
+
+    // If an internal_transfer (mint) bounced, revert totalSupply
+    if (bouncedOp == OP_INTERNAL_TRANSFER) {
+        if (inMsgBody.remainingBitsCount() >= 4) {
+            val jettonAmount = inMsgBody.loadCoins();
+            var st = Storage.load();
+            st.totalSupply -= jettonAmount;
+            st.save();
+        }
+    }
+}
+
+// ================================================================
 // Main Entry Point
 // ================================================================
 
-fun onInternalMessage(in: InMessage) {
-    if (in.body.isEmpty()) {
+fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody: slice) {
+    if (inMsgBody.isEmpty()) {
         return;
     }
 
-    val senderAddress = in.senderAddress;
-    val msgValue = in.valueCoins;
+    var cs: slice = inMsgFull.beginParse();
+    val flags = cs.loadUint(4);
 
-    val op = in.body.loadUint(32);
-    val queryId = in.body.loadUint(64);
+    // Handle bounced messages - revert state on failed mints
+    if (flags & 1) {
+        handleBounce(inMsgBody);
+        return;
+    }
+
+    val senderAddress: address = cs.loadAddress();
+
+    val op = inMsgBody.loadUint(32);
+    val queryId = inMsgBody.loadUint(64);
 
     // ----- BUY -----
     if (op == OP_BUY) {
-        handleBuy(senderAddress, msgValue, queryId, in.body);
+        handleBuy(senderAddress, msgValue, queryId, inMsgBody);
         return;
     }
 
     // ----- BURN NOTIFICATION (Sell via burn) -----
     if (op == OP_BURN_NOTIFICATION) {
-        val jettonAmount = in.body.loadCoins();
-        val fromAddress = in.body.loadAddress();
+        val jettonAmount = inMsgBody.loadCoins();
+        val fromAddress = inMsgBody.loadAddress();
 
         // Verify sender is the correct jetton wallet
         val st = lazy Storage.load();
@@ -298,8 +344,8 @@ fun onInternalMessage(in: InMessage) {
 
     // ----- SELL NOTIFICATION (Alternative sell path) -----
     if (op == OP_SELL_NOTIFICATION) {
-        val jettonAmount = in.body.loadCoins();
-        val fromAddress = in.body.loadAddress();
+        val jettonAmount = inMsgBody.loadCoins();
+        val fromAddress = inMsgBody.loadAddress();
 
         val st = lazy Storage.load();
         val expectedWallet = getJettonWalletAddress(fromAddress, contract.getAddress(), st.jettonWalletCode);
@@ -311,7 +357,7 @@ fun onInternalMessage(in: InMessage) {
 
     // ----- GRADUATE -----
     if (op == OP_GRADUATE) {
-        handleGraduate(senderAddress, queryId, in.body);
+        handleGraduate(senderAddress, queryId, inMsgBody);
         return;
     }
 
@@ -321,6 +367,30 @@ fun onInternalMessage(in: InMessage) {
         assert(senderAddress.bitsEqual(st.adminAddress)) throw ERROR_NOT_ADMIN;
 
         // Admin minting logic here if needed
+        return;
+    }
+
+    // ----- ADMIN: Withdraw excess TON (safety recovery) -----
+    if (op == OP_WITHDRAW_FEES) {
+        val st = lazy Storage.load();
+        assert(senderAddress.bitsEqual(st.adminAddress)) throw ERROR_NOT_ADMIN;
+
+        // Only allow withdrawing excess above reserve + min storage
+        val locked = st.tonReserve + MIN_TON_FOR_STORAGE;
+        val available = myBalance - locked;
+        assert(!(available <= 0)) throw ERROR_INSUFFICIENT_LIQUIDITY;
+
+        // Send available excess to admin
+        val message: cell = beginCell()
+            .storeUint(0x10, 6)
+            .storeAddress(st.adminAddress)
+            .storeCoins(available)
+            .storeUint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .storeUint(OP_EXCESSES, 32)
+            .storeUint(queryId, 64)
+            .endCell();
+
+        sendRawMessage(message, 1);
         return;
     }
 
@@ -334,7 +404,7 @@ fun onInternalMessage(in: InMessage) {
 // TEP-74 Standard: Get Jetton Data
 get fun get_jetton_data(): (coins, bool, address, cell, cell) {
     val st = Storage.load();
-    return (st.totalSupply, st.mintable, st.creatorAddress, st.jettonContent, st.jettonWalletCode);
+    return (st.totalSupply, st.mintable, st.adminAddress, st.jettonContent, st.jettonWalletCode);
 }
 
 // TEP-74 Standard: Get Wallet Address

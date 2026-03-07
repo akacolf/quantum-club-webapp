@@ -23,6 +23,7 @@ export const OP_BURN_NOTIFICATION = 0x7bdd97de;      // op::burn_notification
 export const OP_GRADUATE = 0x47524144;               // op::graduate ("GRAD")
 export const OP_INTERNAL_TRANSFER = 0x178d4519;      // op::internal_transfer
 export const OP_MINT = 0x15;                         // op::mint
+export const OP_WITHDRAW_FEES = 0x46454553;          // op::withdraw_fees ("FEES")
 
 export interface JettonMasterConfig {
     totalSupply: bigint;
@@ -137,6 +138,21 @@ export class JettonMaster implements Contract {
                 .storeUint(OP_GRADUATE, 32)
                 .storeUint(0, 64) // query_id
                 .storeAddress(dexRouterAddress)
+                .endCell(),
+        });
+    }
+
+    /**
+     * Send withdraw fees message (admin only)
+     * Withdraws excess TON above reserve + min storage
+     */
+    async sendWithdrawFees(provider: ContractProvider, via: Sender, value: bigint) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(OP_WITHDRAW_FEES, 32)
+                .storeUint(0, 64) // query_id
                 .endCell(),
         });
     }

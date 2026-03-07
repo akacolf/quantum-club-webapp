@@ -229,29 +229,25 @@ export async function getJettonBalanceForOwner(
 export interface BondingCurveData {
     totalSupply: bigint;
     tonReserve: bigint;
-    basePrice: bigint;
-    slope: bigint;
-    maxSupply: bigint;
+    currentPrice: bigint;
     isGraduated: boolean;
-    graduationThreshold: bigint;
+    graduationTarget: bigint;
 }
 
 /**
  * Get bonding curve data from QC jetton contract
- * Replaces: tonapi.io/v2/blockchain/accounts/{address}/methods/get_curve_data
+ * Contract returns: (total_supply, ton_reserve, current_price, graduated, graduation_target)
  */
 export async function getBondingCurveData(jettonAddress: string): Promise<BondingCurveData | null> {
     try {
         const result = await runGetMethod(jettonAddress, "get_curve_data");
-        
+
         return {
             totalSupply: result.stack.readBigNumber(),
             tonReserve: result.stack.readBigNumber(),
-            basePrice: result.stack.readBigNumber(),
-            slope: result.stack.readBigNumber(),
-            maxSupply: result.stack.readBigNumber(),
+            currentPrice: result.stack.readBigNumber(),
             isGraduated: result.stack.readNumber() === -1,
-            graduationThreshold: result.stack.readBigNumber(),
+            graduationTarget: result.stack.readBigNumber(),
         };
     } catch {
         return null;

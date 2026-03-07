@@ -13,6 +13,7 @@ import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { getContractAdapter as getCentralAdapter } from "@/lib/ton-api";
 
 // Import from official Hipo SDK
 import {
@@ -51,10 +52,9 @@ export async function getHipoTreasuryState(
 ): Promise<HipoTreasuryState | null> {
     try {
         const treasuryAddress = getTreasuryAddress(isTestnet);
-        const tonApiClient = new TonApiClient({
-            baseUrl: isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
-        });
-        const contractAdapter = new ContractAdapter(tonApiClient);
+        const contractAdapter = isTestnet
+            ? new ContractAdapter(new TonApiClient({ baseUrl: "https://testnet.tonapi.io" }))
+            : getCentralAdapter();
 
         // Use SDK's Treasury class
         const treasury = Treasury.createFromAddress(treasuryAddress);
@@ -96,11 +96,9 @@ export async function stakeWithHipo(
     try {
         const treasuryAddress = getTreasuryAddress(isTestnet);
         
-        // Initialize clients
-        const tonApiClient = new TonApiClient({
-            baseUrl: isTestnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
-        });
-        const contractAdapter = new ContractAdapter(tonApiClient);
+        const contractAdapter = isTestnet
+            ? new ContractAdapter(new TonApiClient({ baseUrl: "https://testnet.tonapi.io" }))
+            : getCentralAdapter();
 
         // Create wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(mnemonic);

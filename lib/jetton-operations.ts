@@ -14,6 +14,7 @@ import {
 } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
+import { getContractAdapter as getCentralAdapter } from "@/lib/ton-api";
 
 // =====================================================
 // Operation Codes (TEP-74 Standard + Blum/BigPump Compatible)
@@ -128,30 +129,26 @@ export function buildGraduateMessage(params: {
 // On-Chain Queries (GET Methods) - Using TonAPI
 // =====================================================
 
-// Cached TonAPI adapter
-let cachedContractAdapter: ContractAdapter | null = null;
-
 // Cache for deterministic wallet addresses (owner+jetton -> wallet address)
 const walletAddressCache = new Map<string, string>();
 
+// Testnet adapter cache (separate from mainnet singleton in ton-api.ts)
+let cachedTestnetAdapter: ContractAdapter | null = null;
+
 /**
- * Get or create a ContractAdapter for blockchain queries
- * Uses TonAPI - reliable, fast, and supports all contract methods
+ * Get or create a ContractAdapter for blockchain queries.
+ * Mainnet delegates to the central singleton in ton-api.ts (includes API key).
+ * Testnet creates a separate instance.
  */
 export function getContractAdapter(testnet: boolean = false): ContractAdapter {
-    if (cachedContractAdapter && !testnet) return cachedContractAdapter;
-    
+    if (!testnet) return getCentralAdapter();
+
+    if (cachedTestnetAdapter) return cachedTestnetAdapter;
     const tonApiClient = new TonApiClient({
-        baseUrl: testnet ? "https://testnet.tonapi.io" : "https://tonapi.io",
+        baseUrl: "https://testnet.tonapi.io",
     });
-    
-    const adapter = new ContractAdapter(tonApiClient);
-    
-    if (!testnet) {
-        cachedContractAdapter = adapter;
-    }
-    
-    return adapter;
+    cachedTestnetAdapter = new ContractAdapter(tonApiClient);
+    return cachedTestnetAdapter;
 }
 
 /**
@@ -301,7 +298,7 @@ export async function getBondingCurveData(
         const totalSupply = result.stack.readBigNumber();
         const tonReserve = result.stack.readBigNumber();
         const currentPrice = result.stack.readBigNumber();
-        const graduated = result.stack.readNumber() === 1;
+        const graduated = result.stack.readNumber() === -1;
         const graduationTarget = result.stack.readBigNumber();
 
         return {
