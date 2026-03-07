@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
 import { TokenImageFill } from "@/components/ui/token-image";
@@ -320,8 +321,12 @@ export default function TradePage() {
     useTelegramBackButton("/home");
     const { trendingTokens, newTokens, graduatedTokens, searchResults, isLoading, searchTokens, clearSearch, positions, myTokens, retryDeployToken } = useTrading();
     const { walletAddress } = useWallet();
-    const [activeTab, setActiveTab] = useState<"trending" | "new" | "holdings" | "created" | "dex">("trending");
-    const [searchQuery, setSearchQuery] = useState("");
+    const [{ tab: activeTab, q: searchQuery }, setParams] = useQueryStates({
+        tab: parseAsStringLiteral(["trending", "new", "holdings", "created", "dex"]).withDefault("trending"),
+        q: parseAsString.withDefault(""),
+    }, { history: "replace" });
+    const setActiveTab = (value: string) => setParams({ tab: value as typeof activeTab });
+    const setSearchQuery = (value: string) => setParams({ q: value });
     const [deployingTokenId, setDeployingTokenId] = useState<string | null>(null);
     const tokenListRef = useRef<HTMLDivElement>(null);
     const {telegramId} = useUserContext()
@@ -444,7 +449,7 @@ export default function TradePage() {
 
                     {/* Tabs */}
                     {!searchQuery && (
-                        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full mt-3">
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-3">
                             <TabsList className="w-full bg-black/40 backdrop-blur-md p-1 h-12 rounded-2xl grid grid-cols-5 gap-1 border border-white/5 items-stretch shadow-inner">
                                 <TabsTrigger
                                     value="trending"

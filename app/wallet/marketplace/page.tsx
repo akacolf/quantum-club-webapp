@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -20,8 +21,12 @@ export default function MarketplacePage() {
     useTelegramBackButton("/wallet");
     const { isTestnet } = useWallet();
 
-    const [activeTab, setActiveTab] = useState<"trending" | "qc-listed">("trending");
-    const [searchQuery, setSearchQuery] = useState("");
+    const [{ tab: activeTab, q: searchQuery }, setParams] = useQueryStates({
+        tab: parseAsStringLiteral(["trending", "qc-listed"] as const).withDefault("trending"),
+        q: parseAsString.withDefault(""),
+    }, { history: "replace" });
+    const setActiveTab = (value: string) => setParams({ tab: value as typeof activeTab });
+    const setSearchQuery = (value: string) => setParams({ q: value });
 
     const collectionsQuery = usePopularCollectionsQuery(isTestnet);
     const listingsQuery = useQCListingsQuery();
@@ -107,7 +112,7 @@ export default function MarketplacePage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                 >
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "trending" | "qc-listed")}>
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <TabsList className="w-full">
                             <TabsTrigger value="trending" className="flex-1">Trending</TabsTrigger>
                             <TabsTrigger value="qc-listed" className="flex-1">QC Listed</TabsTrigger>

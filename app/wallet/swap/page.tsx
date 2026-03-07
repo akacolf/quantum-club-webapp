@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import { useState, useEffect } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { sendBoc } from "@/lib/tonapi-client";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useForm } from "@tanstack/react-form";
@@ -136,11 +137,12 @@ export default function SwapPage() {
     const [preferGasless, setPreferGasless] = useState(false); // Gasless swap toggle
     const [confirmedQuote, setConfirmedQuote] = useState<typeof omnistonQuote>(null); // Store quote for confirm step
 
-    // Cross-chain state
+    // Cross-chain state (swap mode synced to URL)
+    const [swapMode, setSwapMode] = useQueryState("mode", parseAsStringLiteral(["ton", "cross-chain"] as const).withDefault("ton").withOptions({ history: "replace" }));
     const [fromChain, setFromChain] = useState<"TON" | "TRON">("TON");
     const [toChain, setToChain] = useState<"TON" | "TRON">("TON");
     const [tronDestAddress, setTronDestAddress] = useState("");
-    const isCrossChain = fromChain !== toChain;
+    const isCrossChain = swapMode === "cross-chain";
 
     // Debounce the amount for quote requests (500ms)
     const debouncedAmount = useDebounce(amount, 500);
@@ -689,8 +691,9 @@ export default function SwapPage() {
                         >
                             {/* Swap Mode Tabs */}
                             <Tabs
-                                value={isCrossChain ? "cross-chain" : "ton"}
+                                value={swapMode}
                                 onValueChange={(val) => {
+                                    setSwapMode(val as typeof swapMode);
                                     if (val === "cross-chain") {
                                         setFromChain("TON");
                                         setToChain("TRON");

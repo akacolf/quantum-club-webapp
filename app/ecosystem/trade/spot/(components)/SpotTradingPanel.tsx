@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import { useState, useEffect } from "react";
+import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +31,7 @@ interface SpotTradingPanelProps {
 
 export default function SpotTradingPanel({ token, open, onOpenChange }: SpotTradingPanelProps) {
     const { tonBalance, walletAddress, sendTransaction, jettons } = useWallet();
-    const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
+    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
     const [amount, setAmount] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
     const [preview, setPreview] = useState<{

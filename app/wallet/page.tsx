@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -81,7 +82,7 @@ const formatUsd = (value: number | string): string => {
 type NftFilterType = "all" | "gifts" | "collections";
 
 function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string; image?: string; collectionAddress?: string; collectionName?: string; description?: string; ownerAddress?: string; sale?: any; attributes?: any[] }> }) {
-  const [filter, setFilter] = useState<NftFilterType>("all");
+  const [filter, setFilter] = useQueryState("nftFilter", parseAsStringLiteral(["all", "gifts", "collections"] as const).withDefault("all").withOptions({ history: "replace" }));
 
   const filteredNfts = nfts.filter((nft) => {
     if (filter === "all") return true;
@@ -260,9 +261,12 @@ export default function WalletPage() {
     return () => clearInterval(timer);
   }, [carouselApi, carouselCurrent]);
 
+  // URL-synced wallet tab (shareable)
+  const [walletTab, setWalletTab] = useQueryState("tab", parseAsStringLiteral(["assets", "nfts"] as const).withDefault("assets").withOptions({ history: "replace" }));
+
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1D');
+  const [chartPeriod, setChartPeriod] = useQueryState("period", parseAsStringLiteral(['1H', '1D', '1W', '1M', '6M', '1Y'] as const).withDefault('1D').withOptions({ history: "replace" }));
   const queryClient = useQueryClient();
   const [change24h, setChange24h] = useState<number | null>(null);
 
@@ -838,7 +842,7 @@ export default function WalletPage() {
         ) : null}
 
 
-        <Tabs defaultValue="assets" className="w-full pb-24">
+        <Tabs value={walletTab} onValueChange={(v) => setWalletTab(v as typeof walletTab)} className="w-full pb-24">
           <TabsList className="w-full h-12">
             <TabsTrigger
               value="assets"

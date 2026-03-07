@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryState, parseAsString } from "nuqs";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -157,7 +158,7 @@ function getCategoryBadgeColor(category: string) {
 
 export default function ExplorePage() {
     useTelegramBackButton("/wallet");
-    const [selectedCategory, setSelectedCategory] = useState("all");
+    const [selectedCategory, setSelectedCategory] = useQueryState("category", parseAsString.withDefault("all").withOptions({ history: "replace" }));
 
     // Filter dApps by category
     const filteredDApps = selectedCategory === "all"
