@@ -219,16 +219,6 @@ export const checkSymbolSchema = z.object({
   symbol: z.string().min(1).max(10),
 });
 
-export const mysteryBoxActionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("get-boxes") }),
-  z.object({
-    action: z.literal("claim-box"),
-    boxId: z.string().min(1),
-    paymentMethod: z.enum(["ton", "qntm"]),
-  }),
-  z.object({ action: z.literal("get-claims") }),
-]);
-
 export const uploadImageSchema = z.object({
   tokenId: z.string().min(1, "Token ID is required"),
   imageData: z.string().min(1, "Image data is required"),

@@ -245,20 +245,6 @@
           "order": "DESCENDING"
         }
       ]
-    },
-    {
-      "collectionGroup": "mystery_box_claims",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "boxId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        }
-      ]
     }
   ],
   "fieldOverrides": [

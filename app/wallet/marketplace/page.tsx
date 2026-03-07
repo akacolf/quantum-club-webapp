@@ -15,7 +15,6 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { filterCollectionsByName } from "@/lib/nft-marketplace";
 import { usePopularCollectionsQuery, useQCListingsQuery } from "@/app/(hooks)/queries/use-nft-marketplace";
-import { useMysteryBoxesQuery } from "@/app/(hooks)/queries/use-mystery-box";
 
 export default function MarketplacePage() {
     useTelegramBackButton("/wallet");
@@ -26,8 +25,6 @@ export default function MarketplacePage() {
 
     const collectionsQuery = usePopularCollectionsQuery(isTestnet);
     const listingsQuery = useQCListingsQuery();
-    const mysteryBoxesQuery = useMysteryBoxesQuery();
-    const mysteryBoxes = mysteryBoxesQuery.data ?? [];
 
     const filteredCollections = filterCollectionsByName(collectionsQuery.data ?? [], searchQuery);
 
@@ -103,52 +100,6 @@ export default function MarketplacePage() {
                         className="pl-9 bg-card border-border"
                     />
                 </motion.div>
-
-                {/* Mystery Boxes */}
-                {mysteryBoxes.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.08 }}
-                        className="space-y-2"
-                    >
-                        <h2 className="text-base font-bold">Mystery Boxes</h2>
-                        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-                            {mysteryBoxes.map((box) => (
-                                <Link
-                                    key={box.id}
-                                    href={`/wallet/marketplace/mystery-box/${box.id}`}
-                                    className="shrink-0"
-                                >
-                                    <Card className="w-[160px] bg-gradient-to-br from-primary/10 to-purple-600/10 border-primary/20 rounded-2xl overflow-hidden hover:border-primary/40 transition-colors">
-                                        <div className="w-full aspect-square relative bg-muted overflow-hidden">
-                                            {box.image ? (
-                                                <Image
-                                                    src={box.image}
-                                                    alt={box.name}
-                                                    fill
-                                                    className="object-cover"
-                                                    unoptimized
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-purple-600/20">
-                                                    <Icon icon="solar:box-bold" className="w-10 h-10 text-primary" />
-                                                </div>
-                                            )}
-                                            <Badge className="absolute top-2 right-2 bg-primary text-[10px]">
-                                                {box.remaining} left
-                                            </Badge>
-                                        </div>
-                                        <CardContent className="p-3">
-                                            <h4 className="font-bold text-sm truncate">{box.name}</h4>
-                                            <p className="text-xs text-primary font-medium">{box.price.ton} TON</p>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
 
                 {/* Tabs */}
                 <motion.div

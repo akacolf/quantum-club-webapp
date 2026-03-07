@@ -1,35 +1,28 @@
 import { useEffect } from "react";
-import deviceTypeDetector from "@/utils/deviceDetection";
+import { detectDeviceType } from "./detectDeviceType";
 
 export function useDeviceDetection() {
   useEffect(() => {
     const deviceDetect = async () => {
       try {
-      type DeviceProps = "mobile" | "desktop"; // Define the DeviceProps type
-      const rawDeviceType = await deviceTypeDetector(); // Get the raw string
-      const validDeviceTypes: DeviceProps[] = ["mobile", "desktop"]; // Define valid types
+        const rawDeviceType = await detectDeviceType();
+        const deviceType = rawDeviceType === "mobile" ? "mobile" : "desktop";
 
-      // Validate the rawDeviceType against the allowed values
-      const deviceType = validDeviceTypes.includes(rawDeviceType as DeviceProps)
-        ? (rawDeviceType as DeviceProps)
-        : "desktop"; // Default to "desktop" if invalid
-
-      if (typeof window !== "undefined") {
-        const WebApp = window?.Telegram?.WebApp;
-        if (!WebApp) return;
-        WebApp.ready();
-        WebApp.setHeaderColor("#000000");
-        WebApp.setBackgroundColor("#000000");
-        WebApp.disableVerticalSwipes();
-        if (deviceType === "mobile") {
-          WebApp.requestFullscreen();
+        if (typeof window !== "undefined") {
+          const WebApp = window?.Telegram?.WebApp;
+          if (!WebApp) return;
+          WebApp.ready();
+          WebApp.setHeaderColor("#000000");
+          WebApp.setBackgroundColor("#000000");
+          WebApp.disableVerticalSwipes();
+          if (deviceType === "mobile") {
+            WebApp.requestFullscreen();
+          }
         }
-        // BackButton visibility is managed by useTelegramBackButton hook per-page
-      };
-    } catch (error) {
-      console.error("Device detection error:", error);
+      } catch (error) {
+        console.error("Device detection error:", error);
       }
     };
     deviceDetect();
   }, []);
-};
+}
