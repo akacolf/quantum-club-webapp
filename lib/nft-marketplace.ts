@@ -197,48 +197,41 @@ export async function getPopularCollections(
  */
 /**
  * Fetch verified collections directly by their addresses
- * Uses concurrency limit to avoid hitting TONAPI rate limits
+ * This is a fallback when filtering doesn't work
  */
 async function fetchVerifiedCollectionsDirectly(
     limit = 20,
     testnet = false
 ): Promise<NftCollection[]> {
     const addressesToFetch = VERIFIED_COLLECTION_ADDRESSES_BASE64.slice(0, limit);
-    const CONCURRENCY = 3;
-    const results: (NftCollection | null)[] = [];
 
-    // Process in batches of CONCURRENCY to avoid rate limits
-    for (let i = 0; i < addressesToFetch.length; i += CONCURRENCY) {
-        const batch = addressesToFetch.slice(i, i + CONCURRENCY);
-        const batchResults = await Promise.all(
-            batch.map(async (address): Promise<NftCollection | null> => {
-                try {
-                    const data = await tonApiGet<{
-                        address: string;
-                        metadata?: { name?: string; description?: string; image?: string; cover_image?: string };
-                        next_item_index?: number;
-                        previews?: Array<{ resolution: string; url: string }>;
-                    }>(`/v2/nfts/collections/${encodeURIComponent(address)}`, { testnet });
+    const results = await Promise.all(
+        addressesToFetch.map(async (address): Promise<NftCollection | null> => {
+            try {
+                const data = await tonApiGet<{
+                    address: string;
+                    metadata?: { name?: string; description?: string; image?: string; cover_image?: string };
+                    next_item_index?: number;
+                    previews?: Array<{ resolution: string; url: string }>;
+                }>(`/v2/nfts/collections/${encodeURIComponent(address)}`, { testnet });
 
-                    return {
-                        address: data.address,
-                        name: data.metadata?.name || "Unknown Collection",
-                        description: data.metadata?.description,
-                        image: data.previews?.find(p => p.resolution === "500x500")?.url
-                            || data.previews?.find(p => p.resolution === "1500x1500")?.url
-                            || data.metadata?.image,
-                        coverImage: data.metadata?.cover_image,
-                        itemsCount: sanitizeItemsCount(data.next_item_index),
-                        verified: true,
-                    };
-                } catch (error) {
-                    console.error(`[NFT Marketplace] Failed to fetch collection ${address}:`, error);
-                    return null;
-                }
-            })
-        );
-        results.push(...batchResults);
-    }
+                return {
+                    address: data.address,
+                    name: data.metadata?.name || "Unknown Collection",
+                    description: data.metadata?.description,
+                    image: data.previews?.find(p => p.resolution === "500x500")?.url
+                        || data.previews?.find(p => p.resolution === "1500x1500")?.url
+                        || data.metadata?.image,
+                    coverImage: data.metadata?.cover_image,
+                    itemsCount: sanitizeItemsCount(data.next_item_index),
+                    verified: true,
+                };
+            } catch (error) {
+                console.error(`[NFT Marketplace] Failed to fetch collection ${address}:`, error);
+                return null;
+            }
+        })
+    );
 
     return results.filter((c): c is NftCollection => c !== null);
 }

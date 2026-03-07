@@ -247,16 +247,6 @@
       ]
     },
     {
-      "collectionGroup": "nft_sales",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "transactionHash",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "mystery_box_claims",
       "queryScope": "COLLECTION",
       "fields": [
