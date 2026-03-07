@@ -1,12 +1,12 @@
 /**
  * QC RocketStart - Contract Compilation Script
- * 
- * Compiles FunC contracts to BOC bytecode using @ton-community/func-js
- * 
+ *
+ * Compiles Tolk contracts to BOC bytecode using @ton/tolk-js
+ *
  * Usage: npx tsx scripts/compile-contracts.ts
  */
 
-import { compileFunc } from "@ton-community/func-js";
+import { runTolkCompiler } from "@ton/tolk-js";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -17,55 +17,28 @@ const __dirname = path.dirname(__filename);
 const CONTRACTS_DIR = path.join(__dirname, "../contracts");
 const OUTPUT_DIR = path.join(CONTRACTS_DIR, "build");
 
-interface CompileResult {
-    status: "ok" | "error";
-    codeBoc?: string;
-    message?: string;
-    fiftCode?: string;
-}
-
-// List of all import files (order matters for dependencies)
-const IMPORT_FILES = [
-    "imports/stdlib.fc",
-    "imports/opcodes.fc",
-    "imports/errors.fc",
-    "imports/constants.fc",
-    "imports/bonding_curve.fc",
-    "imports/utils.fc",
-    "imports/nft_opcodes.fc",
-    "imports/nft_errors.fc",
-];
-
-async function compileContract(name: string, mainFile: string): Promise<Buffer> {
+async function compileContract(name: string, entrypoint: string): Promise<Buffer> {
     console.log(`\n[BUILD] Compiling ${name}...`);
 
-    // Build sources map by reading all needed files upfront
-    const sources: { [key: string]: string } = {};
-    
-    // Read all import files
-    for (const importFile of IMPORT_FILES) {
-        const importPath = path.join(CONTRACTS_DIR, importFile);
-        if (fs.existsSync(importPath)) {
-            sources[importFile] = fs.readFileSync(importPath, "utf-8");
-            console.log(`   [OK] Loaded ${importFile}`);
-        } else {
-            console.warn(`   [WARN] Import file not found: ${importFile}`);
-        }
-    }
-    
-    // Read the main contract file
-    const mainPath = path.join(CONTRACTS_DIR, mainFile);
-    if (fs.existsSync(mainPath)) {
-        sources[mainFile] = fs.readFileSync(mainPath, "utf-8");
-        console.log(`   [OK] Loaded ${mainFile}`);
-    } else {
-        throw new Error(`Contract file not found: ${mainPath}`);
+    const entrypointPath = path.join(CONTRACTS_DIR, entrypoint);
+    if (!fs.existsSync(entrypointPath)) {
+        throw new Error(`Contract file not found: ${entrypointPath}`);
     }
 
-    const result = await compileFunc({
-        targets: [mainFile],
-        sources,
-    }) as CompileResult;
+    const result = await runTolkCompiler({
+        entrypointFileName: entrypoint,
+        fsReadCallback: (filePath: string) => {
+            const fullPath = path.join(CONTRACTS_DIR, filePath);
+            if (!fs.existsSync(fullPath)) {
+                throw new Error(`File not found: ${fullPath}`);
+            }
+            const content = fs.readFileSync(fullPath, "utf-8");
+            console.log(`   [OK] Loaded ${filePath}`);
+            return content;
+        },
+        optimizationLevel: 2,
+        withStackComments: false,
+    });
 
     if (result.status === "error") {
         console.error(`[ERR] Compilation failed for ${name}:`);
@@ -73,16 +46,16 @@ async function compileContract(name: string, mainFile: string): Promise<Buffer> 
         throw new Error(result.message || "Unknown compilation error");
     }
 
-    if (!result.codeBoc) {
+    if (!result.codeBoc64) {
         throw new Error(`No bytecode generated for ${name}`);
     }
 
     console.log(`[OK] ${name} compiled successfully`);
-    return Buffer.from(result.codeBoc, "base64");
+    return Buffer.from(result.codeBoc64, "base64");
 }
 
 async function main(): Promise<void> {
-    console.log("[INFO] QC RocketStart Contract Compiler");
+    console.log("[INFO] QC RocketStart Contract Compiler (Tolk)");
     console.log("====================================\n");
 
     // Ensure output directory exists
@@ -92,19 +65,19 @@ async function main(): Promise<void> {
 
     try {
         // Compile Jetton Wallet first (it's used by Master)
-        const walletCode = await compileContract("JettonWallet", "jetton_wallet.fc");
+        const walletCode = await compileContract("JettonWallet", "jetton_wallet.tolk");
         const walletBocPath = path.join(OUTPUT_DIR, "jetton_wallet.boc");
         fs.writeFileSync(walletBocPath, walletCode);
         console.log(`   Saved: ${walletBocPath}`);
 
         // Compile Jetton Master
-        const masterCode = await compileContract("JettonMaster", "jetton_master.fc");
+        const masterCode = await compileContract("JettonMaster", "jetton_master.tolk");
         const masterBocPath = path.join(OUTPUT_DIR, "jetton_master.boc");
         fs.writeFileSync(masterBocPath, masterCode);
         console.log(`   Saved: ${masterBocPath}`);
 
         // Compile NFT Sale Contract
-        const nftSaleCode = await compileContract("NftSale", "nft_sale.fc");
+        const nftSaleCode = await compileContract("NftSale", "nft_sale.tolk");
         const nftSaleBocPath = path.join(OUTPUT_DIR, "nft_sale.boc");
         fs.writeFileSync(nftSaleBocPath, nftSaleCode);
         console.log(`   Saved: ${nftSaleBocPath}`);
@@ -117,7 +90,7 @@ async function main(): Promise<void> {
         const tsOutput = `/**
  * Compiled Contract Bytecode
  * Generated: ${new Date().toISOString()}
- * 
+ *
  * DO NOT EDIT MANUALLY - Auto-generated by scripts/compile-contracts.ts
  */
 

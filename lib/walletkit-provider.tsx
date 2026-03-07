@@ -28,6 +28,7 @@ import { analyticsEvents } from "@/lib/telegramAnalytics";
 import { useWalletKitStore } from "@/stores/walletkit-store";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useShallow } from "zustand/shallow";
+import { WalletKitModals } from "@/lib/walletkit-modals";
 
 interface WalletKitProviderProps {
     children: React.ReactNode;
@@ -96,47 +97,50 @@ export function WalletKitProvider({
                     },
                 });
 
-                // Handle connection requests
-                kit.onConnectRequest((event: EventConnectRequest) => {
+                // Create named callback refs for proper cleanup
+                const onConnect = (event: EventConnectRequest) => {
                     console.log("[WalletKit] Connection request received:", event);
                     analyticsEvents.connectionStarted();
                     if (mounted) {
                         useWalletKitStore.setState({ pendingConnection: event });
                     }
-                });
+                };
 
-                // Handle transaction requests
-                kit.onTransactionRequest((event: EventTransactionRequest) => {
+                const onTransaction = (event: EventTransactionRequest) => {
                     console.log("[WalletKit] Transaction request received:", event);
                     if (mounted) {
                         useWalletKitStore.setState({ pendingTransaction: event });
                     }
-                });
+                };
 
-                // Handle sign data requests
-                kit.onSignDataRequest((event: EventSignDataRequest) => {
+                const onSignData = (event: EventSignDataRequest) => {
                     console.log("[WalletKit] Sign data request received:", event);
                     if (mounted) {
                         useWalletKitStore.setState({ pendingSignData: event });
                     }
-                });
+                };
 
-                // Handle disconnections
-                kit.onDisconnect((_event: EventDisconnect) => {
+                const onDisconnect = (_event: EventDisconnect) => {
                     console.log("[WalletKit] Disconnect event:", _event);
                     analyticsEvents.disconnection();
                     kit.listSessions().then(s => {
                         if (mounted) useWalletKitStore.setState({ sessions: s });
                     });
-                });
+                };
 
-                // Handle errors
-                kit.onRequestError((error) => {
+                const onError = (error: any) => {
                     console.error("[WalletKit] Request error:", error);
                     toast.error("Connection error", {
                         description: String(error) || "Failed to process request",
                     });
-                });
+                };
+
+                // Register callbacks
+                kit.onConnectRequest(onConnect);
+                kit.onTransactionRequest(onTransaction);
+                kit.onSignDataRequest(onSignData);
+                kit.onDisconnect(onDisconnect);
+                kit.onRequestError(onError);
 
                 kitRef.current = kit;
 
@@ -159,6 +163,15 @@ export function WalletKitProvider({
 
         return () => {
             mounted = false;
+            // Clean up all event listeners on unmount
+            const kit = kitRef.current;
+            if (kit) {
+                kit.removeConnectRequestCallback();
+                kit.removeTransactionRequestCallback();
+                kit.removeSignDataRequestCallback();
+                kit.removeDisconnectCallback();
+                kit.removeErrorCallback();
+            }
         };
     }, [isTestnet]);
 
@@ -356,6 +369,47 @@ export function WalletKitProvider({
         }
     }
 
+    // Approve sign data request
+    async function approveSignData() {
+        const { pendingSignData } = useWalletKitStore.getState();
+        if (!kitRef.current || !pendingSignData) {
+            console.error("[WalletKit] Cannot approve: kit or pending sign data missing");
+            return;
+        }
+
+        try {
+            console.log("[WalletKit] Approving sign data...");
+            const response = await kitRef.current.signDataRequest(pendingSignData);
+            console.log("[WalletKit] Sign data approved:", response);
+            toast.success("Data signed successfully");
+        } catch (error) {
+            console.error("[WalletKit] Failed to approve sign data:", error);
+            toast.error("Signing failed", {
+                description: error instanceof Error ? error.message : "Failed to sign data",
+            });
+        } finally {
+            useWalletKitStore.setState({ pendingSignData: null });
+        }
+    }
+
+    // Reject sign data request
+    async function rejectSignData() {
+        const { pendingSignData } = useWalletKitStore.getState();
+        if (!kitRef.current || !pendingSignData) {
+            useWalletKitStore.setState({ pendingSignData: null });
+            return;
+        }
+
+        try {
+            console.log("[WalletKit] Rejecting sign data...");
+            await kitRef.current.rejectSignDataRequest(pendingSignData, "User rejected");
+        } catch (error) {
+            console.error("[WalletKit] Failed to reject sign data:", error);
+        } finally {
+            useWalletKitStore.setState({ pendingSignData: null });
+        }
+    }
+
     // Refresh sessions
     async function refreshSessions() {
         if (!kitRef.current) return;
@@ -386,6 +440,8 @@ export function WalletKitProvider({
             rejectConnection,
             approveTransaction,
             rejectTransaction,
+            approveSignData,
+            rejectSignData,
             refreshSessions,
             disconnect,
             handleTonConnectUrl,
@@ -394,7 +450,12 @@ export function WalletKitProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- functions are stable, synced once into store
     }, []);
 
-    return <>{children}</>;
+    return (
+        <>
+            {children}
+            <WalletKitModals />
+        </>
+    );
 }
 
 /**
@@ -413,6 +474,8 @@ export function useWalletKit() {
             approveTransaction: s.approveTransaction,
             rejectTransaction: s.rejectTransaction,
             pendingSignData: s.pendingSignData,
+            approveSignData: s.approveSignData,
+            rejectSignData: s.rejectSignData,
             sessions: s.sessions,
             refreshSessions: s.refreshSessions,
             disconnect: s.disconnect,
@@ -438,6 +501,8 @@ export function useWalletKitOptional() {
             approveTransaction: s.approveTransaction,
             rejectTransaction: s.rejectTransaction,
             pendingSignData: s.pendingSignData,
+            approveSignData: s.approveSignData,
+            rejectSignData: s.rejectSignData,
             sessions: s.sessions,
             refreshSessions: s.refreshSessions,
             disconnect: s.disconnect,

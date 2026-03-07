@@ -24,6 +24,8 @@ interface WalletKitStoreActions {
   rejectConnection: () => Promise<void>;
   approveTransaction: () => Promise<void>;
   rejectTransaction: () => Promise<void>;
+  approveSignData: () => Promise<void>;
+  rejectSignData: () => Promise<void>;
   refreshSessions: () => Promise<void>;
   disconnect: (sessionId?: string) => Promise<void>;
   handleTonConnectUrl: (url: string) => Promise<void>;
@@ -47,6 +49,8 @@ export const useWalletKitStore = create<WalletKitStore>()(() => ({
   rejectConnection: async () => {},
   approveTransaction: async () => {},
   rejectTransaction: async () => {},
+  approveSignData: async () => {},
+  rejectSignData: async () => {},
   refreshSessions: async () => {},
   disconnect: async () => {},
   handleTonConnectUrl: async () => {},
