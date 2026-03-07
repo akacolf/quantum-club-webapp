@@ -117,6 +117,17 @@ function isVerifiedCollection(address: string): boolean {
     return normalized !== null && VERIFIED_COLLECTION_ADDRESSES_RAW.has(normalized);
 }
 
+// TONAPI returns cover_image (and some metadata.image) as ipfs:// URIs
+// which browsers can't render. Convert to an HTTP gateway URL.
+function resolveIpfsUrl(url?: string): string | undefined {
+    if (!url) return undefined;
+    if (url.startsWith("ipfs://")) {
+        const path = url.slice("ipfs://".length);
+        return `https://w3s.link/ipfs/${path}`;
+    }
+    return url;
+}
+
 // Helper to format TON amounts
 function formatTon(nanoTon: bigint | number): string {
     const value = typeof nanoTon === "bigint" ? Number(nanoTon) : nanoTon;
@@ -160,11 +171,10 @@ export async function getPopularCollections(
                 address: c.address,
                 name: c.metadata?.name || "Unknown Collection",
                 description: c.metadata?.description,
-                // Use 500x500 for high-quality images, fallback to 1500x1500 or original
-                image: c.previews?.find(p => p.resolution === "500x500")?.url 
-                    || c.previews?.find(p => p.resolution === "1500x1500")?.url 
-                    || c.metadata?.image,
-                coverImage: c.metadata?.cover_image,
+                image: c.previews?.find(p => p.resolution === "500x500")?.url
+                    || c.previews?.find(p => p.resolution === "1500x1500")?.url
+                    || resolveIpfsUrl(c.metadata?.image),
+                coverImage: resolveIpfsUrl(c.metadata?.cover_image),
                 itemsCount: sanitizeItemsCount(c.next_item_index),
                 verified: true, // Only showing verified collections
             }));
@@ -221,8 +231,8 @@ async function fetchVerifiedCollectionsDirectly(
                     description: data.metadata?.description,
                     image: data.previews?.find(p => p.resolution === "500x500")?.url
                         || data.previews?.find(p => p.resolution === "1500x1500")?.url
-                        || data.metadata?.image,
-                    coverImage: data.metadata?.cover_image,
+                        || resolveIpfsUrl(data.metadata?.image),
+                    coverImage: resolveIpfsUrl(data.metadata?.cover_image),
                     itemsCount: sanitizeItemsCount(data.next_item_index),
                     verified: true,
                 };
@@ -255,8 +265,8 @@ export async function getCollectionDetails(
             address: data.address,
             name: data.metadata?.name || "Unknown Collection",
             description: data.metadata?.description,
-            image: data.previews?.find(p => p.resolution === "500x500")?.url || data.metadata?.image,
-            coverImage: data.metadata?.cover_image,
+            image: data.previews?.find(p => p.resolution === "500x500")?.url || resolveIpfsUrl(data.metadata?.image),
+            coverImage: resolveIpfsUrl(data.metadata?.cover_image),
             itemsCount: sanitizeItemsCount(data.next_item_index),
         };
     } catch (error) {
@@ -290,7 +300,7 @@ export async function getCollectionItems(
             address: item.address,
             name: item.metadata?.name || "Unnamed NFT",
             description: item.metadata?.description,
-            image: item.previews?.find(p => p.resolution === "500x500")?.url || item.metadata?.image,
+            image: item.previews?.find(p => p.resolution === "500x500")?.url || resolveIpfsUrl(item.metadata?.image),
             collectionAddress: item.collection?.address,
             collectionName: item.collection?.name,
             ownerAddress: item.owner?.address,
@@ -333,7 +343,7 @@ export async function getNftDetails(
             address: data.address,
             name: data.metadata?.name || "Unnamed NFT",
             description: data.metadata?.description,
-            image: data.previews?.find(p => p.resolution === "500x500")?.url || data.metadata?.image,
+            image: data.previews?.find(p => p.resolution === "500x500")?.url || resolveIpfsUrl(data.metadata?.image),
             collectionAddress: data.collection?.address,
             collectionName: data.collection?.name,
             ownerAddress: data.owner?.address,
@@ -453,7 +463,7 @@ export async function getAccountNfts(
             address: item.address,
             name: item.metadata?.name || "Unnamed NFT",
             description: item.metadata?.description,
-            image: item.previews?.find(p => p.resolution === "500x500")?.url || item.metadata?.image,
+            image: item.previews?.find(p => p.resolution === "500x500")?.url || resolveIpfsUrl(item.metadata?.image),
             collectionAddress: item.collection?.address,
             collectionName: item.collection?.name,
             ownerAddress: item.owner?.address,

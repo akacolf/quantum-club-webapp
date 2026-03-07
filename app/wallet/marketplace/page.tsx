@@ -212,22 +212,43 @@ export default function MarketplacePage() {
                                                         {[leftCol, rightCol].map((col) => col && (
                                                             <Link key={col.address} href={`/wallet/marketplace/collection/${encodeURIComponent(col.address)}`}>
                                                                 <Card className="bg-card border-border rounded-2xl overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer">
-                                                                    <div className="w-full aspect-square bg-muted relative overflow-hidden">
-                                                                        {col.image ? (
-                                                                            <Image
-                                                                                src={col.image}
-                                                                                alt={col.name}
-                                                                                fill
-                                                                                className="object-cover"
-                                                                                unoptimized
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                                <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground" />
+                                                                    {/* Cover banner + profile avatar overlay */}
+                                                                    <div className="relative">
+                                                                        <div className="w-full aspect-[16/10] bg-muted relative overflow-hidden">
+                                                                            {col.coverImage ? (
+                                                                                <Image
+                                                                                    src={col.coverImage}
+                                                                                    alt=""
+                                                                                    fill
+                                                                                    className="object-cover"
+                                                                                    unoptimized
+                                                                                />
+                                                                            ) : col.image ? (
+                                                                                <Image
+                                                                                    src={col.image}
+                                                                                    alt={col.name}
+                                                                                    fill
+                                                                                    className="object-cover blur-sm scale-110"
+                                                                                    unoptimized
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
+                                                                            )}
+                                                                        </div>
+                                                                        {col.image && (
+                                                                            <div className="absolute -bottom-5 left-3 w-10 h-10 rounded-lg border-2 border-card overflow-hidden bg-card shadow-sm">
+                                                                                <Image
+                                                                                    src={col.image}
+                                                                                    alt={col.name}
+                                                                                    width={40}
+                                                                                    height={40}
+                                                                                    className="object-cover w-full h-full"
+                                                                                    unoptimized
+                                                                                />
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                    <CardContent className="p-3">
+                                                                    <CardContent className="p-3 pt-7">
                                                                         <div className="flex items-center gap-1">
                                                                             <h4 className="font-bold text-sm truncate">{col.name}</h4>
                                                                             {col.verified && (
