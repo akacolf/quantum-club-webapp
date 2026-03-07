@@ -17,9 +17,9 @@ const navTabs = [
     icon: "lucide:arrow-left-right" 
   },
   { 
-    id: "browser", 
-    href: "/wallet/browser", 
-    label: "Explore", 
+    id: "explore",
+    href: "/wallet/explore",
+    label: "Explore",
     icon: "lucide:globe" 
   },
   { 

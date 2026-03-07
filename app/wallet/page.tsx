@@ -400,7 +400,7 @@ export default function WalletPage() {
       router.prefetch("/wallet/analytics");
       router.prefetch("/wallet/earn");
       router.prefetch("/wallet/staking");
-      router.prefetch("/wallet/browser");
+      router.prefetch("/wallet/explore");
       router.prefetch("/wallet/send-multiple");
       router.prefetch("/wallet/farming");
       router.prefetch("/wallet/unstake");
