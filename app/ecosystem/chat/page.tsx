@@ -1187,7 +1187,7 @@ export default function QCChatListPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/30">
+          <div>
             {/* Global Chat — always pinned at top */}
             {showGlobalChat && globalChat && (
               <ChatListItem

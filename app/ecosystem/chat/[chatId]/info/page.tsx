@@ -11,7 +11,9 @@ import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
 import { useQcUsernamesBatch } from "@/app/(hooks)/queries/use-qc-username";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, onSnapshot, updateDoc, Timestamp } from "firebase/firestore";
+import Image from "next/image";
 import Loader from "@/app/(components)/Loader";
+import { isQcTeamMember } from "@/lib/qc-team";
 
 interface ChatMeta {
   participants: string[];
@@ -246,6 +248,9 @@ export default function GroupInfoPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <p className="font-bold text-white text-sm">@{name}</p>
+                        {isQcTeamMember(name) && (
+                          <Image src="/png/qc-global-logo.png" alt="QC Team" width={14} height={14} className="rounded-full shrink-0" />
+                        )}
                         {isCreator && (
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md">
                             Admin

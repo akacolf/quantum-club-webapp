@@ -83,6 +83,7 @@ import { useCallContext } from "@/app/(contexts)/CallContext";
 import TransferDrawer from "./TransferDrawer";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useQcUsernamesBatch, useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
+import { isQcTeamMember } from "@/lib/qc-team";
 import { toast } from "sonner";
 
 interface ChatMessage {
@@ -2554,10 +2555,13 @@ export default function ChatConversationPage() {
                       } ${reactionPickerMsgId === msg.id ? "ring-2 ring-primary/40 scale-[1.02]" : ""} px-2.5 py-1.5`}
                     >
                     {!isOwnMessage && !consecutive && isGroupChat && (
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="flex items-center gap-1 mb-0.5">
                         <span className="text-[11px] font-semibold text-primary">
                           @{resolveSenderName(msg)}
                         </span>
+                        {isQcTeamMember(resolveSenderName(msg)) && (
+                          <Image src="/png/qc-global-logo.png" alt="QC Team" width={14} height={14} className="rounded-full shrink-0" />
+                        )}
                       </div>
                     )}
 
