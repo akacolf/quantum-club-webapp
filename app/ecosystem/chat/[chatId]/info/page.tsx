@@ -195,9 +195,18 @@ export default function GroupInfoPage() {
               </div>
               <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Created By</p>
-                <p className="font-bold text-white text-sm">
-                  @{resolvedNames[chatMeta.createdBy] || "Unknown"}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-white text-sm">
+                    @{resolvedNames[chatMeta.createdBy] || "Unknown"}
+                  </p>
+                  {isQcTeamMember(resolvedNames[chatMeta.createdBy]) && (
+                    <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/png/qc-global-logo.png" alt="QC" className="w-2.5 h-2.5 rounded-full" />
+                      QC
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -249,7 +258,10 @@ export default function GroupInfoPage() {
                       <div className="flex items-center gap-1.5">
                         <p className="font-bold text-white text-sm">@{name}</p>
                         {isQcTeamMember(name) && (
-                          <Image src="/png/qc-global-logo.png" alt="QC Team" width={14} height={14} className="rounded-full shrink-0" />
+                          <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
+                                  <Image src="/png/qc-global-logo.png" alt="QC" width={10} height={10} className="rounded-full" />
+                            QC
+                          </Badge>
                         )}
                         {isCreator && (
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md">

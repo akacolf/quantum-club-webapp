@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -2560,7 +2561,10 @@ export default function ChatConversationPage() {
                           @{resolveSenderName(msg)}
                         </span>
                         {isQcTeamMember(resolveSenderName(msg)) && (
-                          <Image src="/png/qc-global-logo.png" alt="QC Team" width={14} height={14} className="rounded-full shrink-0" />
+                          <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
+                            <Image src="/png/qc-global-logo.png" alt="QC" width={10} height={10} className="rounded-full" />
+                            QC
+                          </Badge>
                         )}
                       </div>
                     )}
