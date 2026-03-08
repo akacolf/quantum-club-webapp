@@ -25,10 +25,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
 import { toast } from "sonner";
 import { APP_VERSION } from "@/lib/version";
-import { useServerAchievementsQuery } from "@/app/(hooks)/queries/use-badges";
 import { useQcUsernameQuery, useRegisterUsernameMutation } from "@/app/(hooks)/queries/use-qc-username";
-import { useUserStatsQuery } from "@/app/(hooks)/queries/use-user-stats";
-import { resolveAchievements, RARITY_CONFIG } from "@/lib/achievements";
 
 interface ProfileSidebarProps {
   open: boolean;
@@ -39,12 +36,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const router = useRouter();
   const authContext = useAuth();
   const { telegramId, username, MainQuantAmount, daily, qcUsername, setQcUsername, walletAddress } = useUserContext();
-
-  const { data: serverAchievements } = useServerAchievementsQuery(telegramId ?? null);
-  const { data: stats } = useUserStatsQuery(telegramId, daily || 0);
-  const resolvedStats = stats ?? { totalQntm: 0, referralCount: 0, tasksCompleted: 0, dailyStreak: 0, walletCreated: false };
-  const serverAwardedIds = new Set(serverAchievements?.map((a) => a.achievementId) ?? []);
-  const { unlocked } = resolveAchievements(resolvedStats, serverAwardedIds);
 
   // Profile photo: prefer Telegram SDK photo_url, fall back to API fetch
   const tgUser = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
@@ -364,35 +355,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
             </CardContent>
           </Card>
         </div>
-
-        {/* Achievements Preview */}
-        {unlocked.length > 0 && (
-          <>
-            <div className="px-4 py-2">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Achievements</p>
-                <button
-                  onClick={() => navigateTo("/home/profile")}
-                  className="text-[10px] text-primary hover:underline"
-                >
-                  View All
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {unlocked.slice(0, 4).map((a) => (
-                  <div
-                    key={a.id}
-                    className={`flex items-center gap-1 rounded-full px-2 py-1 ${RARITY_CONFIG[a.rarity].bg}`}
-                  >
-                    <Icon icon={a.icon} className={`w-3 h-3 ${a.color}`} />
-                    <span className="text-[10px] font-medium">{a.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <Separator />
-          </>
-        )}
 
         <Separator />
 

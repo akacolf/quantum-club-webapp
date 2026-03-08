@@ -700,21 +700,21 @@ export default function LiquidityPage() {
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger
               value="positions"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Icon icon="lucide:droplets" className="w-4 h-4 mr-2"/>
               Positions
             </TabsTrigger>
             <TabsTrigger
               value="add"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Icon icon="lucide:plus" className="w-4 h-4 mr-2"/>
               Add
             </TabsTrigger>
             <TabsTrigger
               value="remove"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Icon icon="lucide:minus" className="w-4 h-4 mr-2"/>
               Remove

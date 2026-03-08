@@ -253,13 +253,13 @@ export default function SpotTradingPanel({ token, open, onOpenChange }: SpotTrad
                     <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
                         <TabsTrigger
                             value="buy"
-                            className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg"
+                            className="flex-1 h-full gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white"
                         >
                             Buy
                         </TabsTrigger>
                         <TabsTrigger
                             value="sell"
-                            className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg"
+                            className="flex-1 h-full gap-2 data-[state=active]:bg-red-500 data-[state=active]:text-white"
                         >
                             Sell
                         </TabsTrigger>

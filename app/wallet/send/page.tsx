@@ -1178,15 +1178,15 @@ export default function SendPage() {
         {!isTestnet && (
           <Tabs value={networkMode} onValueChange={(v) => setNetworkMode(v as NetworkMode)} className="mb-6">
             <TabsList className="grid w-full grid-cols-2 h-12">
-              <TabsTrigger 
-                value="ton" 
-                className="h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
+              <TabsTrigger
+                value="ton"
+                className="h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
                 TON
               </TabsTrigger>
-              <TabsTrigger 
-                value="multichain" 
-                className="h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
+              <TabsTrigger
+                value="multichain"
+                className="h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
                 Multi-chain
               </TabsTrigger>

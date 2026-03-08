@@ -1057,7 +1057,7 @@ const EarnContent = () => {
                     <TabsTrigger
                       key={tab}
                       value={tab}
-                      className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black text-gray-400 py-[0.31rem] rounded-lg transition-all duration-300"
+                      className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black text-gray-400 py-[0.31rem]"
                     >
                       <div className="flex items-center justify-center gap-2">
                         {tab}

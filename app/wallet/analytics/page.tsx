@@ -391,14 +391,14 @@ export default function AnalyticsPage() {
             <TabsList className="w-full h-10">
               <TabsTrigger
                 value="allocation"
-                className="flex-1 h-full rounded-lg text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
+                className="flex-1 h-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
                 <Icon icon="lucide:pie-chart" className="w-3.5 h-3.5 mr-1.5"/>
                 Allocation
               </TabsTrigger>
               <TabsTrigger
                 value="holdings"
-                className="flex-1 h-full rounded-lg text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
+                className="flex-1 h-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
               >
                 <Icon icon="lucide:bar-chart-3" className="w-3.5 h-3.5 mr-1.5"/>
                 Holdings

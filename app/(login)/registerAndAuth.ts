@@ -272,123 +272,17 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
         );
         sessionStorage.setItem("firstQuant", formattedQuant);
         localStorage.setItem(`QAmount_${telegramIdEncrypted}`, formattedQuant);
-        if (referrerID) {
-          if (referrerID != telegramIdEncrypted) {
-            const userReference = doc(
-              dbfs,
-              "user",
-              referrerID,
-              "referrals",
-              telegramIdEncrypted
-            );
-            const referredReference = doc(
-              dbfs,
-              "user",
-              referrerID,
-              "miningData",
-              "values"
-            );
-            // Store who referred the new user
-            const newUserReferralInfo = doc(
-              dbfs,
-              "user",
-              telegramIdEncrypted,
-              "miningData",
-              "referralInfo"
-            );
-
-            const [referredSnap, snapshotReference] = await Promise.all([
-              getDoc(userReference),
-              getDoc(referredReference),
-            ]);
-            try {
-
-
-              const referrerIDinDB = referredSnap.exists();
-              if (snapshotReference.exists()) {
-                if (!referrerIDinDB) {
-                  // Store referral info on new user (who referred them)
-                  await setDoc(newUserReferralInfo, {
-                    referredBy: referrerID,
-                    referredAt: new Date().toISOString(),
-                  });
-
-                  await setDoc(userReference, {
-                    telegramId: telegramIdEncrypted,
-                  });
-                  const referredValueData = snapshotReference.data();
-                  const referredAmount = referredValueData?.QuantAmount;
-                  let referredTenAmount = 0;
-                  if (referredAmount) {
-                    referredTenAmount =
-                      ((Number(quantValue) + 122) * 10) / 100;
-                  } else {
-                    referredTenAmount = 0;
-                  }
-                  const referredUpdatedAmount =
-                    Number(referredAmount) + Number(referredTenAmount);
-                  await updateDoc(referredReference, {
-                    QuantAmount: referredUpdatedAmount,
-                  });
-
-                  // 2% reward for referrer's referrer (second-tier referral)
-                  try {
-                    const referrerReferralInfo = doc(
-                      dbfs,
-                      "user",
-                      referrerID,
-                      "miningData",
-                      "referralInfo"
-                    );
-                    const referrerInfoSnap = await getDoc(referrerReferralInfo);
-
-                    if (referrerInfoSnap.exists()) {
-                      const grandReferrerID = referrerInfoSnap.data()?.referredBy;
-
-                      if (grandReferrerID && grandReferrerID !== telegramIdEncrypted && grandReferrerID !== referrerID) {
-                        const grandReferrerValues = doc(
-                          dbfs,
-                          "user",
-                          grandReferrerID,
-                          "miningData",
-                          "values"
-                        );
-                        const grandReferrerSnap = await getDoc(grandReferrerValues);
-
-                        if (grandReferrerSnap.exists()) {
-                          // 2% reward for second-tier referral - stored as pending for user to claim
-                          const secondTierReward = ((Number(quantValue) + 122) * 2) / 100;
-
-                          // Track second-tier referral with unclaimed reward
-                          const grandReferrerSecondTierRef = doc(
-                            dbfs,
-                            "user",
-                            grandReferrerID,
-                            "secondTierReferrals",
-                            telegramIdEncrypted
-                          );
-                          await setDoc(grandReferrerSecondTierRef, {
-                            telegramId: telegramIdEncrypted,
-                            referredBy: referrerID,
-                            reward: secondTierReward,
-                            claimed: false,
-                            createdAt: new Date().toISOString(),
-                          });
-                        }
-                      }
-                    }
-                  } catch (secondTierError) {
-                    console.error("Second-tier referral error:", secondTierError);
-                  }
-                }
-              }
-            } catch (error) {
-              if (error instanceof Error) {
-                console.error(error.message);
-              } else {
-                console.error("An unknown error occurred:", error);
-              }
-            }
+        // Process referral server-side (cross-user writes require Admin SDK)
+        if (referrerID && referrerID !== telegramIdEncrypted) {
+          try {
+            const { processReferral } = await import("@/app/(login)/actions");
+            await processReferral({
+              referrerId: referrerID,
+              newUserQcId: telegramIdEncrypted,
+              quantValue: Number(quantValue),
+            });
+          } catch (err) {
+            console.error("Referral processing error:", err);
           }
         }
 

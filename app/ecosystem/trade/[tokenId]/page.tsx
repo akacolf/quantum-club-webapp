@@ -595,13 +595,13 @@ export default function TokenDetailPage() {
                                 <TabsList className="w-full bg-white/5 p-1 mb-5 h-11 rounded-xl grid grid-cols-2">
                                     <TabsTrigger
                                         value="buy"
-                                        className="h-full rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg duration-200"
+                                        className="h-full text-sm font-semibold data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
                                     >
                                         Buy
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="sell"
-                                        className="h-full rounded-lg text-sm font-semibold transition-all data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg duration-200"
+                                        className="h-full text-sm font-semibold data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
                                         disabled={!position || BigInt(position?.balance || "0") <= BigInt(0)}
                                     >
                                         Sell

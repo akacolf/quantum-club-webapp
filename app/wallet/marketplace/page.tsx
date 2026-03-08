@@ -31,7 +31,13 @@ export default function MarketplacePage() {
     const collectionsQuery = usePopularCollectionsQuery(isTestnet);
     const listingsQuery = useQCListingsQuery();
 
-    const filteredCollections = filterCollectionsByName(collectionsQuery.data ?? [], searchQuery);
+    // Sort collections: cover-image ones first (side by side), then no-cover ones
+    const filteredCollections = (() => {
+        const filtered = filterCollectionsByName(collectionsQuery.data ?? [], searchQuery);
+        const withCover = filtered.filter((c) => c.coverImage);
+        const withoutCover = filtered.filter((c) => !c.coverImage);
+        return [...withCover, ...withoutCover];
+    })();
 
     const filteredListings = (() => {
         const listings = listingsQuery.data ?? [];

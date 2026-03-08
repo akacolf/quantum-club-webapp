@@ -846,13 +846,13 @@ export default function WalletPage() {
           <TabsList className="w-full h-12">
             <TabsTrigger
               value="assets"
-              className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-gray-400"
+              className="flex-1 h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-gray-400"
             >
               Assets
             </TabsTrigger>
             <TabsTrigger
               value="nfts"
-              className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-gray-400 gap-2 group"
+              className="flex-1 h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-gray-400 gap-2 group"
             >
               NFTs
               {nfts.length > 0 && (

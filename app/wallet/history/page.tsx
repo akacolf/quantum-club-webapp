@@ -547,13 +547,13 @@ export default function HistoryPage() {
         <TabsList className="w-full h-12 mb-4">
           <TabsTrigger
             value="ton"
-            className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg text-muted-foreground transition-all"
+            className="flex-1 h-full text-sm font-semibold data-[state=active]:shadow-lg text-muted-foreground"
           >
             Blockchain
           </TabsTrigger>
           <TabsTrigger
             value="qntm"
-            className="flex-1 h-full rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg text-muted-foreground transition-all"
+            className="flex-1 h-full text-sm font-semibold data-[state=active]:shadow-lg text-muted-foreground"
           >
             QNTM
           </TabsTrigger>

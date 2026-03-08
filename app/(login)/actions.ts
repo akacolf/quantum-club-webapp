@@ -110,6 +110,82 @@ const checkUserRankSchema = z.object({
   userName: z.string().optional(),
 });
 
+// ---------------------------------------------------------------------------
+// processReferral — server-side referral processing (Admin SDK bypasses rules)
+// Cross-user writes (referrer's subcollection, reward updates) cannot be done
+// on the client because Firestore rules restrict writes to the document owner.
+// ---------------------------------------------------------------------------
+
+const processReferralSchema = z.object({
+  referrerId: z.string().min(1),
+  newUserQcId: z.string().min(1),
+  quantValue: z.number(),
+});
+
+export const processReferral = actionClient
+  .schema(processReferralSchema)
+  .action(async ({ parsedInput: { referrerId, newUserQcId, quantValue } }) => {
+    // Don't allow self-referral
+    if (referrerId === newUserQcId) return { processed: false };
+
+    // Check referrer exists
+    const referrerValuesRef = firestore.doc(`user/${referrerId}/miningData/values`);
+    const referrerValuesSnap = await referrerValuesRef.get();
+    if (!referrerValuesSnap.exists) return { processed: false };
+
+    // Check if referral already recorded
+    const referralDocRef = firestore.doc(`user/${referrerId}/referrals/${newUserQcId}`);
+    const existingReferral = await referralDocRef.get();
+    if (existingReferral.exists) return { processed: false };
+
+    // Record referral on referrer
+    await referralDocRef.set({ telegramId: newUserQcId });
+
+    // Store who referred the new user
+    const newUserReferralInfo = firestore.doc(`user/${newUserQcId}/miningData/referralInfo`);
+    await newUserReferralInfo.set({
+      referredBy: referrerId,
+      referredAt: new Date().toISOString(),
+    });
+
+    // 10% reward for referrer
+    const referredAmount = referrerValuesSnap.data()?.QuantAmount;
+    if (referredAmount != null) {
+      const referredTenAmount = ((quantValue + 122) * 10) / 100;
+      const referredUpdatedAmount = Number(referredAmount) + referredTenAmount;
+      await referrerValuesRef.update({ QuantAmount: referredUpdatedAmount });
+    }
+
+    // 2% reward for referrer's referrer (second-tier referral)
+    try {
+      const referrerInfoSnap = await firestore.doc(`user/${referrerId}/miningData/referralInfo`).get();
+      if (referrerInfoSnap.exists) {
+        const grandReferrerID = referrerInfoSnap.data()?.referredBy;
+        if (grandReferrerID && grandReferrerID !== newUserQcId && grandReferrerID !== referrerId) {
+          const grandReferrerSnap = await firestore.doc(`user/${grandReferrerID}/miningData/values`).get();
+          if (grandReferrerSnap.exists) {
+            const secondTierReward = ((quantValue + 122) * 2) / 100;
+            await firestore.doc(`user/${grandReferrerID}/secondTierReferrals/${newUserQcId}`).set({
+              telegramId: newUserQcId,
+              referredBy: referrerId,
+              reward: secondTierReward,
+              claimed: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Second-tier referral error:", err);
+    }
+
+    return { processed: true };
+  });
+
+// ---------------------------------------------------------------------------
+// checkUserRank — calculate and store user rank based on QNTM amount
+// ---------------------------------------------------------------------------
+
 export const checkUserRank = authWithQcIdClient
   .schema(checkUserRankSchema)
   .action(async ({ parsedInput: { userName }, ctx: { qcId } }) => {

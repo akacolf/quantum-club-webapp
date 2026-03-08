@@ -1,7 +1,8 @@
 "use client";
 
 import { env } from "@/env";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { sendBoc } from "@/lib/tonapi-client";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
@@ -56,9 +57,7 @@ function useDebounce<T>(value: T, delay: number): T {
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            requestAnimationFrame(() => setDebouncedValue(value));
-        }, delay);
+        const timer = setTimeout(() => setDebouncedValue(value), delay);
         return () => clearTimeout(timer);
     }, [value, delay]);
 
@@ -342,8 +341,8 @@ export default function SwapPage() {
                 return;
             }
 
-            // Set full balance - gas deduction happens during execution
-            setAmount(balance);
+            // Set full balance immediately - gas deduction happens during execution
+            flushSync(() => setAmount(balance));
         }
     };
 
