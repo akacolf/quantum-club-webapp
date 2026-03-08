@@ -215,7 +215,6 @@ export default function SignUp() {
       ) {
         const WebApp = window.Telegram.WebApp;
         await WebApp.ready();
-        console.error(JSON.stringify(WebApp))
         // Wait for initDataUnsafe.user to be available (up to 3s)
         let retries = 0;
         while (

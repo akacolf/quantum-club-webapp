@@ -45,6 +45,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rootError, setRootError] = useState<string | null>(null);
   const hasRedirected = useRef(false);
+  /** Set to true once login data setters have completed (prevents redirect before data is ready) */
+  const dataReady = useRef(false);
 
   const router = useRouter();
   const authContext = useAuth();
@@ -80,8 +82,15 @@ export default function Login() {
   // Auto-redirect if user is already signed in (keepLoggedIn handled in auth context)
   // Uses a ref to prevent multiple redirects / redirect loops
   // Also rehydrates localStorage if it was cleared (e.g. cookies deleted externally)
+  //
+  // For explicit logins (Telegram / email), the login handler sets dataReady.current = true
+  // after all data setters complete, preventing a premature redirect from the
+  // onAuthStateChanged → authLoading=false race.
   useEffect(() => {
     if (!authContext?.authLoading && authContext?.currentUser && !hasRedirected.current) {
+      // If an explicit login is in progress (isLoading=true), wait for dataReady
+      if (isLoading && !dataReady.current) return;
+
       hasRedirected.current = true;
 
       const storedTid = localStorage.getItem("telegramId");
@@ -141,7 +150,7 @@ export default function Login() {
       })();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- setters are stable references
-  }, [authContext?.currentUser, authContext?.authLoading, router]);
+  }, [authContext?.currentUser, authContext?.authLoading, isLoading, router]);
 
   // Show loader while auth is resolving
   const showLoader = isPageLoading || authContext?.authLoading;
@@ -192,8 +201,8 @@ export default function Login() {
           setRemainingSolveToEarn(data.remainingSolveToEarn);
         }
       }
-      // Navigation is handled by the useEffect that waits for authLoading
-      // to become false, ensuring the auth cookie is set before navigating.
+      // Signal that data is ready — the redirect useEffect will pick this up
+      dataReady.current = true;
     } catch (err) {
       console.error("Login error:", err);
       if (err instanceof Error) {
@@ -297,9 +306,9 @@ export default function Login() {
           if (finalData.userRank != null) sessionStorage.setItem("userLeaderRank", String(finalData.userRank));
           setLastActiveTime(finalData.lastActiveTime);
           setRemainingSolveToEarn(finalData.remainingSolveToEarn);
-          // Navigation is handled by the useEffect that waits for authLoading
-          // to become false, ensuring the auth cookie is set before navigating.
         }
+        // Signal that data is ready — the redirect useEffect will pick this up
+        dataReady.current = true;
       } else {
         setRootError("Telegram WebApp is not available. Please open this app from Telegram.");
       }

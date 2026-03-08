@@ -1,24 +1,13 @@
 "use client";
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { queryClient } from "@/lib/query-client";
 import { useUserHydration } from "@/stores/user-store";
 import { hydrateLeaderboardFromSession } from "@/stores/leaderboard-store";
 import { hydrateFrensFromSession } from "@/stores/frens-store";
 import { useTgUsernameSync } from "@/app/(hooks)/useTgUsernameSync";
-
-// Shared QueryClient instance — available to all providers and hooks
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: 3,
-            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-            staleTime: 60_000,
-            refetchOnWindowFocus: false,
-        },
-    },
-});
 
 // Lazy load non-critical providers to reduce initial bundle
 const WalletProvider = dynamic(() => import("../wallet/WalletContext").then(m => ({ default: m.WalletProvider })));

@@ -94,9 +94,10 @@ export const authenticateTelegram = actionClient
       throw new Error("Unauthorized");
     }
 
-    // Create Firebase custom token and deterministic QC ID
-    const customToken = await firebaseAuth.createCustomToken(rawTelegramId);
+    // Create Firebase custom token using encrypted QC ID so that
+    // request.auth.uid matches Firestore document paths (user/{qcId}/...).
     const telegramIdEncrypted = encryptTelegramId(rawTelegramId);
+    const customToken = await firebaseAuth.createCustomToken(telegramIdEncrypted);
 
     return { customToken, telegramIdEncrypted, sessionSetFromInitData };
   });
@@ -111,10 +112,10 @@ const checkUserRankSchema = z.object({
 
 export const checkUserRank = authWithQcIdClient
   .schema(checkUserRankSchema)
-  .action(async ({ parsedInput: { userName }, ctx: { telegramId } }) => {
+  .action(async ({ parsedInput: { userName }, ctx: { qcId } }) => {
 
     // Fetch QuantAmount from server, don't trust client
-    const userMiningRef = firestore.doc(`user/${telegramId}/miningData/values`);
+    const userMiningRef = firestore.doc(`user/${qcId}/miningData/values`);
     const userMiningDoc = await userMiningRef.get();
     const QuantAmount = userMiningDoc.exists ? (userMiningDoc.data()?.QuantAmount || 0) : 0;
 
@@ -125,9 +126,9 @@ export const checkUserRank = authWithQcIdClient
       .get();
 
     const rank = userRank.data().count + 1;
-    const userRankRef = firestore.collection("userRanks").doc(telegramId);
+    const userRankRef = firestore.collection("userRanks").doc(qcId);
     await userRankRef.set({
-      userId: telegramId,
+      userId: qcId,
       rank,
       QuantAmount,
       username: userName,

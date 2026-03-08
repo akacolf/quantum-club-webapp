@@ -17,6 +17,7 @@ import {
 } from "firebase/auth";
 import { removeToken, setToken } from "@/app/(contexts)/actions";
 import { useUserStore } from "@/stores/user-store";
+import { queryClient } from "@/lib/query-client";
 
 // =====================================================
 // Helpers
@@ -99,6 +100,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   logout: async () => {
     clearUserLocalStorage();
+    queryClient.clear();
     lastSetTokenValue = null;
     try { await removeToken(); } catch {}
     await auth.signOut();

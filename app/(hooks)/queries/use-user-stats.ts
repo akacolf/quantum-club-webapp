@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { useUserStore } from "@/stores/user-store";
 
 export interface UserStats {
   totalQntm: number;
@@ -12,7 +13,8 @@ export interface UserStats {
 
 async function fetchUserStats(
   telegramId: string,
-  daily: number
+  daily: number,
+  walletCreated: boolean
 ): Promise<UserStats> {
   const [referralsSnapshot, tasksSnapshot, valuesSnapshot] = await Promise.all([
     getDocs(collection(dbfs, `user/${telegramId}/referrals`)),
@@ -23,10 +25,6 @@ async function fetchUserStats(
   const totalQntm = valuesSnapshot.exists()
     ? valuesSnapshot.data()?.QuantAmount || 0
     : 0;
-
-  const walletCreated =
-    typeof window !== "undefined" &&
-    !!localStorage.getItem(`walletAddress_${telegramId}`);
 
   return {
     totalQntm,
@@ -41,9 +39,10 @@ export function useUserStatsQuery(
   telegramId: string | undefined | null,
   daily: number
 ) {
+  const walletAddress = useUserStore((s) => s.walletAddress);
   return useQuery({
     queryKey: ["user-stats", telegramId],
-    queryFn: () => fetchUserStats(telegramId!, daily),
+    queryFn: () => fetchUserStats(telegramId!, daily, !!walletAddress),
     enabled: !!telegramId,
     staleTime: 2 * 60 * 1000,
   });

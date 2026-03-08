@@ -11,7 +11,7 @@ export const confirmTask = authWithQcIdClient
         taskId: z.string().min(1),
         platform: z.string().min(1),
     }))
-    .action(async ({ parsedInput: { taskId, platform }, ctx: { telegramId } }) => {
+    .action(async ({ parsedInput: { taskId, platform }, ctx: { qcId } }) => {
         // Look up reward amount from server-side task definition — never trust client
         const taskDoc = await firestore.collection("tasks").doc(taskId).get();
         if (!taskDoc.exists) {
@@ -23,7 +23,7 @@ export const confirmTask = authWithQcIdClient
         }
 
         // Check if task already completed
-        const existingTask = await firestore.collection("user").doc(telegramId).collection("tasks").doc(taskId).get();
+        const existingTask = await firestore.collection("user").doc(qcId).collection("tasks").doc(taskId).get();
         if (existingTask.exists && existingTask.data()?.completed) {
             return { error: true, message: "Task already completed" };
         }
@@ -36,14 +36,14 @@ export const confirmTask = authWithQcIdClient
             .toString()
             .padStart(2, "0")}/${date.getFullYear()}`;
 
-        await firestore.collection("user").doc(telegramId).collection("tasks").doc(taskId).set({
+        await firestore.collection("user").doc(qcId).collection("tasks").doc(taskId).set({
             completed: true,
             platform,
             quant: quantReward,
             date: formattedDate,
         });
 
-        await firestore.collection("user").doc(telegramId).collection("miningData").doc("values").update({
+        await firestore.collection("user").doc(qcId).collection("miningData").doc("values").update({
             QuantAmount: FieldValue.increment(quantReward),
         });
 

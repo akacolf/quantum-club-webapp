@@ -34,7 +34,7 @@ export default function ProfilePage() {
     const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    const tgUser = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : undefined;
     const displayName = username || tgUser?.username || tgUser?.first_name || "";
     const { data: profilePhotoData } = useProfilePhotoQuery(tgUser?.photo_url ? undefined : telegramId);
     const photoUrl = tgUser?.photo_url || profilePhotoData || null;

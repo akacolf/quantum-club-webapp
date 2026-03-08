@@ -1,6 +1,6 @@
 "use server";
 
-import { authWithQcIdClient, authActionClient } from "@/lib/safe-action";
+import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
 import admin from "firebase-admin";
@@ -51,14 +51,12 @@ export const claimTier2Rewards = authWithQcIdClient
   });
 
 // ---------------------------------------------------------------------------
-// claimReferralTon — authenticated (uses raw telegramId, not encrypted)
+// claimReferralTon — authenticated (uses encrypted QC ID for Firestore paths)
 // ---------------------------------------------------------------------------
 
-export const claimReferralTon = authActionClient
-  .action(async ({ ctx: { session } }) => {
-    const telegramId = String(session.user.telegramId);
-
-    const earningsRef = firestore.doc(`user/${telegramId}/referralEarnings/ton`);
+export const claimReferralTon = authWithQcIdClient
+  .action(async ({ ctx: { qcId } }) => {
+    const earningsRef = firestore.doc(`user/${qcId}/referralEarnings/ton`);
     const earningsDoc = await earningsRef.get();
 
     if (!earningsDoc.exists) {
@@ -72,7 +70,7 @@ export const claimReferralTon = authActionClient
       return { success: true, claimedAmount: 0, message: "No pending earnings to claim" };
     }
 
-    const userDoc = await firestore.doc(`user/${telegramId}`).get();
+    const userDoc = await firestore.doc(`user/${qcId}`).get();
     const walletAddress = userDoc.data()?.walletAddress;
     if (!walletAddress) {
       throw new Error("No wallet address found. Please set up your QC Wallet first.");
@@ -91,7 +89,7 @@ export const claimReferralTon = authActionClient
         lastClaimAt: FieldValue.serverTimestamp(),
       });
 
-      const claimRef = firestore.collection(`user/${telegramId}/referralClaims`).doc();
+      const claimRef = firestore.collection(`user/${qcId}/referralClaims`).doc();
       transaction.set(claimRef, {
         amount: freshPending,
         walletAddress,
@@ -101,7 +99,7 @@ export const claimReferralTon = authActionClient
 
       const payoutRef = firestore.collection("referralPayouts").doc();
       transaction.set(payoutRef, {
-        telegramId,
+        qcId,
         walletAddress,
         amount: freshPending,
         status: "pending",
