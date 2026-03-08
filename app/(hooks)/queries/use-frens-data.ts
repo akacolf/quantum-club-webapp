@@ -1,14 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { dbfs } from "@/app/(firebase)/client";
-import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    getCountFromServer,
-    query,
-    where,
-} from "firebase/firestore";
+import { fetchFrensData } from "@/app/frens/actions";
 
 export interface FrensData {
     /** Total first-tier referral count */
@@ -23,66 +14,19 @@ export interface FrensData {
 
 /**
  * TanStack Query hook that reads referral counts, pending rewards, and TON
- * earnings from Firestore for the frens page.
- *
- * Used by:
- *  - frens/Content.tsx
+ * earnings via server action (Admin SDK bypasses Firestore rules).
  */
 export function useFrensDataQuery(telegramId: string | null) {
     return useQuery<FrensData>({
         queryKey: ["frens-data", telegramId],
         queryFn: async () => {
-            // First-tier count
-            const referralsRef = collection(
-                dbfs,
-                `user/${telegramId}/referrals`,
-            );
-            const countSnap = await getCountFromServer(referralsRef);
-            const referralCount = countSnap.data().count;
-
-            // Second-tier count
-            const secondTierRef = collection(
-                dbfs,
-                `user/${telegramId}/secondTierReferrals`,
-            );
-            const secondTierSnap = await getCountFromServer(secondTierRef);
-            const secondTierCount = secondTierSnap.data().count;
-
-            // Pending (unclaimed) tier-2 rewards
-            const unclaimedQuery = query(
-                secondTierRef,
-                where("claimed", "==", false),
-            );
-            const unclaimedSnap = await getDocs(unclaimedQuery);
-            let pendingRewards = 0;
-            unclaimedSnap.forEach((d) => {
-                pendingRewards += Number(d.data().reward) || 0;
-            });
-
-            // TON referral earnings
-            let tonEarnings = 0;
-            try {
-                const earningsRef = doc(
-                    dbfs,
-                    `user/${telegramId}/referralEarnings/ton`,
-                );
-                const earningsDoc = await getDoc(earningsRef);
-                if (earningsDoc.exists()) {
-                    tonEarnings =
-                        Number(earningsDoc.data()?.pendingAmount) || 0;
-                }
-            } catch (e) {
-                console.error("Error fetching TON earnings:", e);
-            }
-
-            return {
-                referralCount,
-                secondTierCount,
-                pendingRewards,
-                tonEarnings,
-            };
+            const result = await fetchFrensData();
+            if (result?.serverError) throw new Error(result.serverError);
+            const data = result?.data;
+            if (!data) throw new Error("Failed to fetch frens data");
+            return data;
         },
         enabled: !!telegramId,
-        staleTime: 30_000, // 30 seconds
+        staleTime: 30_000,
     });
 }

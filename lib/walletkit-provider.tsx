@@ -165,13 +165,19 @@ export function WalletKitProvider({
         return () => {
             mounted = false;
             // Clean up all event listeners on unmount
+            // Wrapped in try-catch: if kit.initialize() hasn't completed yet,
+            // eventRouter is undefined and remove* methods will throw.
             const kit = kitRef.current;
             if (kit) {
-                kit.removeConnectRequestCallback();
-                kit.removeTransactionRequestCallback();
-                kit.removeSignDataRequestCallback();
-                kit.removeDisconnectCallback();
-                kit.removeErrorCallback();
+                try {
+                    kit.removeConnectRequestCallback();
+                    kit.removeTransactionRequestCallback();
+                    kit.removeSignDataRequestCallback();
+                    kit.removeDisconnectCallback();
+                    kit.removeErrorCallback();
+                } catch {
+                    // Kit not fully initialized yet — no listeners to clean up
+                }
             }
         };
     }, [isTestnet]);

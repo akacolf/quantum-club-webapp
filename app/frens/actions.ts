@@ -1,9 +1,81 @@
 "use server";
 
+import { z } from "zod";
 import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
 import admin from "firebase-admin";
+
+// ---------------------------------------------------------------------------
+// fetchFrensData — server-side fetch of referral counts, rewards, earnings
+// ---------------------------------------------------------------------------
+
+export const fetchFrensData = authWithQcIdClient
+  .action(async ({ ctx: { qcId } }) => {
+    const referralsRef = firestore.collection(`user/${qcId}/referrals`);
+    const secondTierRef = firestore.collection(`user/${qcId}/secondTierReferrals`);
+
+    const [referralSnap, secondTierSnap, unclaimedSnap, earningsDoc] = await Promise.all([
+      referralsRef.count().get(),
+      secondTierRef.count().get(),
+      secondTierRef.where("claimed", "==", false).get(),
+      firestore.doc(`user/${qcId}/referralEarnings/ton`).get(),
+    ]);
+
+    let pendingRewards = 0;
+    unclaimedSnap.forEach((d: admin.firestore.QueryDocumentSnapshot) => {
+      pendingRewards += Number(d.data().reward) || 0;
+    });
+
+    const tonEarnings = earningsDoc.exists
+      ? Number(earningsDoc.data()?.pendingAmount) || 0
+      : 0;
+
+    return {
+      referralCount: referralSnap.data().count,
+      secondTierCount: secondTierSnap.data().count,
+      pendingRewards,
+      tonEarnings,
+    };
+  });
+
+// ---------------------------------------------------------------------------
+// fetchReferralList — server-side fetch of referral details (cross-user reads)
+// ---------------------------------------------------------------------------
+
+const MAX_REFERRALS = 20;
+
+export const fetchReferralList = authWithQcIdClient
+  .action(async ({ ctx: { qcId } }) => {
+    const referralsSnap = await firestore.collection(`user/${qcId}/referrals`).get();
+
+    if (referralsSnap.empty) return { referrals: [] };
+
+    const referrals: Array<{ id: string; username: string; quantamount: number }> = [];
+    let count = 0;
+
+    for (const docSnapshot of referralsSnap.docs) {
+      if (count >= MAX_REFERRALS) break;
+      const referredId = docSnapshot.id;
+      try {
+        const [referredDoc, coinsDoc] = await Promise.all([
+          firestore.doc(`user/${referredId}`).get(),
+          firestore.doc(`user/${referredId}/miningData/values`).get(),
+        ]);
+        const username = referredDoc.data()?.username ?? "";
+        const coins = coinsDoc.exists && coinsDoc.data()?.firstQuant
+          ? parseFloat(coinsDoc.data()!.firstQuant).toFixed(0)
+          : "0";
+
+        referrals.push({ id: referredId, username, quantamount: Number(coins) });
+        count++;
+      } catch (error) {
+        console.error("Error fetching referral:", error);
+      }
+    }
+
+    return { referrals };
+  });
 
 // ---------------------------------------------------------------------------
 // claimTier2Rewards — authenticated (needs encrypted QC ID)
