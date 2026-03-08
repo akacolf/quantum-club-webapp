@@ -83,16 +83,13 @@ export default function ConnectedAppsPage() {
                 if (!walletKit.isWalletRegistered) {
                     const storedMnemonic = await getSecureMnemonic(telegramId);
                     if (storedMnemonic) {
-                        console.log("[ConnectedApps] Registering wallet...");
                         const mnemonic = storedMnemonic.split(" ");
                         await walletKit.registerWallet(mnemonic);
-                        console.log("[ConnectedApps] Wallet registered successfully");
                     } else {
                         console.warn("[ConnectedApps] No mnemonic found in storage");
                         setError("Wallet not found. Please import or create a wallet first.");
                     }
                 } else {
-                    console.log("[ConnectedApps] Wallet already registered");
                 }
                 
                 await walletKit.refreshSessions();
@@ -121,7 +118,6 @@ export default function ConnectedAppsPage() {
             if (!walletKit.isWalletRegistered) {
                 const storedMnemonic = await getSecureMnemonic(telegramId);
                 if (storedMnemonic) {
-                    console.log("[ConnectedApps] Registering wallet before connection...");
                     const mnemonic = storedMnemonic.split(" ");
                     await walletKit.registerWallet(mnemonic);
                     // Give a moment for registration to complete
@@ -132,7 +128,6 @@ export default function ConnectedAppsPage() {
             }
 
             // Use WalletKit to handle the TON Connect URL
-            console.log("[ConnectedApps] Processing TON Connect URL:", result.substring(0, 50) + "...");
             await walletKit.handleTonConnectUrl(result);
 
             toast.success("Connection request received", {

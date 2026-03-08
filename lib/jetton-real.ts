@@ -137,7 +137,7 @@ function buildJettonMinterData(
 /**
  * Calculate Jetton Master contract address from stateInit
  */
-export function calculateJettonMasterAddress(stateInit: StateInit): Address {
+function calculateJettonMasterAddress(stateInit: StateInit): Address {
     return contractAddress(0, stateInit);
 }
 

@@ -375,7 +375,7 @@ export default function SendPage() {
           return;
         }
       } catch (error) {
-        console.log("Could not fetch recipient public key:", error);
+        console.warn("Could not fetch recipient public key:", error);
       }
       setRecipientPublicKey(null);
       setCanEncrypt(false);
