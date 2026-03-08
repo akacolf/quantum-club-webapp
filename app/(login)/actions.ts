@@ -29,18 +29,18 @@ export const checkExistingUser = actionClient
         .limit(1)
         .get();
       if (!snapshot.empty) {
-        return { exists: true };
+        return { exists: true, qcId: snapshot.docs[0].id };
       }
     }
 
     if (qcId) {
       const doc = await firestore.collection("user").doc(qcId).get();
       if (doc.exists) {
-        return { exists: true };
+        return { exists: true, qcId };
       }
     }
 
-    return { exists: false };
+    return { exists: false, qcId: null };
   });
 
 // ---------------------------------------------------------------------------

@@ -15,11 +15,11 @@ import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useAuth } from "@/app/(contexts)/auth";
-import { UseRegisterAndAuth, lookupUserByEmail, LoadExistingUserByQCId } from "./registerAndAuth";
+import { UseRegisterAndAuth, LoadExistingUserByQCId } from "./registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "./deviceDetection";
-import { authenticateTelegram } from "./actions";
+import { authenticateTelegram, checkExistingUser } from "./actions";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
@@ -106,9 +106,10 @@ export default function Login() {
           const user = authContext.currentUser!;
           let qcId: string | null = null;
 
-          // Email users: look up QC ID by email
+          // Email users: look up QC ID by email (server-side to bypass Firestore rules)
           if (user.email) {
-            qcId = await lookupUserByEmail(user.email);
+            const result = await checkExistingUser({ email: user.email });
+            qcId = result?.data?.qcId ?? null;
           }
 
           // Telegram users: get encrypted ID from auth endpoint
@@ -174,8 +175,9 @@ export default function Login() {
     try {
       await authContext?.loginWithEmail(data.email, data.password);
 
-      // Look up existing QC account by email (independent of Telegram session)
-      const existingQCId = await lookupUserByEmail(data.email);
+      // Look up existing QC account by email (server-side to bypass Firestore rules)
+      const lookupResult = await checkExistingUser({ email: data.email });
+      const existingQCId = lookupResult?.data?.qcId ?? null;
       if (existingQCId) {
         // Load existing user data using their stored QC ID
         const data = await LoadExistingUserByQCId(existingQCId);

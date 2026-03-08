@@ -1,6 +1,6 @@
 "use client"
 import { dbfs } from "@/app/(firebase)/client";
-import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 
 import { getMaintenance } from "@/lib/getMaintenance";
 
@@ -18,25 +18,6 @@ function freshUserData() {
     userRank: 0,
     status: "",
   };
-}
-
-/**
- * Look up a user's QC ID (encrypted TG ID) by their email.
- * Returns the QC ID if found, null otherwise.
- */
-export async function lookupUserByEmail(email: string): Promise<string | null> {
-  try {
-    const usersRef = collection(dbfs, "user");
-    const q = query(usersRef, where("email", "==", email), limit(1));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      return snapshot.docs[0].id; // doc ID is the encrypted TG ID (QC ID)
-    }
-    return null;
-  } catch (error) {
-    console.error("Error looking up user by email:", error);
-    return null;
-  }
 }
 
 /**
