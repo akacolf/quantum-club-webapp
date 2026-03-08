@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,13 +16,6 @@ interface ChatPickerModalProps {
 
 export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerModalProps) {
   const { chats, loading, refreshChats } = useChat();
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-
-  // Track if we've ever had chats loaded
-  useEffect(() => {
-    if (chats.length > 0) setHasLoadedOnce(true);
-  }, [chats.length]);
-
   // Refresh chats when modal opens to ensure latest data
   useEffect(() => {
     if (open && refreshChats) {
@@ -30,8 +23,8 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
     }
   }, [open, refreshChats]);
 
-  // Only show skeleton on true initial load, not on background refreshes
-  const showSkeleton = loading && chats.length === 0 && !hasLoadedOnce;
+  // Show skeleton only on initial load (chats retain data during background refreshes)
+  const showSkeleton = loading && chats.length === 0;
   const showEmpty = !loading && chats.length === 0;
 
   return (
