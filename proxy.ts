@@ -111,7 +111,6 @@ export const config = {
     "/wallet/:path*",
     "/chat/:path*",
     "/groups/:path*",
-    "/badges/:path*",
     "/user/:path*",
     "/unsupported-region",
   ],

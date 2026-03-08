@@ -25,9 +25,10 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
 import { toast } from "sonner";
 import { APP_VERSION } from "@/lib/version";
-import { useUserBadgesQuery } from "@/app/(hooks)/queries/use-badges";
+import { useServerAchievementsQuery } from "@/app/(hooks)/queries/use-badges";
 import { useQcUsernameQuery, useRegisterUsernameMutation } from "@/app/(hooks)/queries/use-qc-username";
-import { getBadgeDefinition } from "@/lib/badges";
+import { useUserStatsQuery } from "@/app/(hooks)/queries/use-user-stats";
+import { resolveAchievements, RARITY_CONFIG } from "@/lib/achievements";
 
 interface ProfileSidebarProps {
   open: boolean;
@@ -39,7 +40,11 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const authContext = useAuth();
   const { telegramId, username, MainQuantAmount, daily, qcUsername, setQcUsername, walletAddress } = useUserContext();
 
-  const badgesQuery = useUserBadgesQuery(telegramId);
+  const { data: serverAchievements } = useServerAchievementsQuery(telegramId ?? null);
+  const { data: stats } = useUserStatsQuery(telegramId, daily || 0);
+  const resolvedStats = stats ?? { totalQntm: 0, referralCount: 0, tasksCompleted: 0, dailyStreak: 0, walletCreated: false };
+  const serverAwardedIds = new Set(serverAchievements?.map((a) => a.achievementId) ?? []);
+  const { unlocked } = resolveAchievements(resolvedStats, serverAwardedIds);
 
   // Profile photo: prefer Telegram SDK photo_url, fall back to API fetch
   const tgUser = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
@@ -360,33 +365,29 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
           </Card>
         </div>
 
-        {/* Badges Section */}
-        {(badgesQuery.data?.length ?? 0) > 0 && (
+        {/* Achievements Preview */}
+        {unlocked.length > 0 && (
           <>
             <div className="px-4 py-2">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Badges</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Achievements</p>
                 <button
-                  onClick={() => navigateTo("/badges")}
+                  onClick={() => navigateTo("/home/profile")}
                   className="text-[10px] text-primary hover:underline"
                 >
                   View All
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {badgesQuery.data!.slice(0, 4).map((ub) => {
-                  const def = getBadgeDefinition(ub.badgeId);
-                  if (!def) return null;
-                  return (
-                    <div
-                      key={ub.badgeId}
-                      className="flex items-center gap-1 bg-primary/10 rounded-full px-2 py-1"
-                    >
-                      <Icon icon={def.icon} className={`w-3 h-3 ${def.color}`} />
-                      <span className="text-[10px] font-medium">{def.name}</span>
-                    </div>
-                  );
-                })}
+                {unlocked.slice(0, 4).map((a) => (
+                  <div
+                    key={a.id}
+                    className={`flex items-center gap-1 rounded-full px-2 py-1 ${RARITY_CONFIG[a.rarity].bg}`}
+                  >
+                    <Icon icon={a.icon} className={`w-3 h-3 ${a.color}`} />
+                    <span className="text-[10px] font-medium">{a.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
             <Separator />

@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
-import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useUserStatsQuery } from "@/app/(hooks)/queries/use-user-stats";
+import { useServerAchievementsQuery } from "@/app/(hooks)/queries/use-badges";
 import { useProfilePhotoQuery } from "@/app/(hooks)/queries/use-profile-photo";
 import Loader from "@/app/(components)/Loader";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
     Sheet,
     SheetContent,
@@ -18,12 +19,16 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
-import { achievements, getUnlockedAchievements, getLockedAchievements, type Achievement } from "@/lib/achievements";
+import {
+    achievements,
+    resolveAchievements,
+    RARITY_CONFIG,
+    type Achievement,
+} from "@/lib/achievements";
 
 
 export default function ProfilePage() {
     useTelegramBackButton("/home");
-    const router = useRouter();
     const { telegramId, username, MainQuantAmount, daily } = useUserContext();
 
     const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
@@ -35,31 +40,23 @@ export default function ProfilePage() {
     const photoUrl = tgUser?.photo_url || profilePhotoData || null;
 
     const { data: stats, isLoading: statsLoading } = useUserStatsQuery(telegramId, daily || 0);
+    const { data: serverAchievements, isLoading: serverLoading } = useServerAchievementsQuery(telegramId ?? null);
 
-    // Derive a stable stats object for achievements (use defaults while loading)
     const resolvedStats = stats ?? { totalQntm: 0, referralCount: 0, tasksCompleted: 0, dailyStreak: 0, walletCreated: false };
+    const serverAwardedIds = new Set(serverAchievements?.map((a) => a.achievementId) ?? []);
+    const serverEarnedDates = new Map(serverAchievements?.map((a) => [a.achievementId, a.earnedAt]) ?? []);
 
-    // Open achievement details
+    const { unlocked, locked } = resolveAchievements(resolvedStats, serverAwardedIds);
+
     const handleAchievementClick = (achievement: Achievement) => {
         setSelectedAchievement(achievement);
         setIsSheetOpen(true);
     };
 
-    // Prefetch legal pages
-    useEffect(() => {
-        router.prefetch("/wallet/settings/terms");
-        router.prefetch("/wallet/settings/privacy");
-    }, [router]);
+    const isUnlocked = (achievement: Achievement) =>
+        unlocked.some((a) => a.id === achievement.id);
 
-    const unlockedAchievements = getUnlockedAchievements(resolvedStats);
-    const lockedAchievements = getLockedAchievements(resolvedStats);
-
-    // Check if a specific achievement is unlocked
-    const isAchievementUnlocked = (achievement: Achievement) => {
-        return unlockedAchievements.some(a => a.id === achievement.id);
-    };
-
-    if (statsLoading) {
+    if (statsLoading || serverLoading) {
         return <Loader />;
     }
 
@@ -78,7 +75,6 @@ export default function ProfilePage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center space-y-4"
                 >
-                    {/* Profile Photo */}
                     <div className="w-28 h-28 rounded-full border-2 border-border bg-card flex items-center justify-center overflow-hidden">
                         {photoUrl ? (
                             <Image
@@ -93,14 +89,11 @@ export default function ProfilePage() {
                             <Icon icon="solar:user-bold" className="w-12 h-12 text-muted-foreground" />
                         )}
                     </div>
-
-                    {/* Username */}
                     <div className="text-center">
                         <h1 className="text-2xl font-bold text-foreground">
                             {displayName || username || "Quantum User"}
                         </h1>
                     </div>
-
                 </motion.div>
 
                 {/* Stats Grid */}
@@ -159,14 +152,12 @@ export default function ProfilePage() {
                         <Icon icon="solar:cup-star-bold" className="w-5 h-5 text-yellow-500" />
                         Achievements
                         <span className="text-sm font-normal text-muted-foreground">
-                            ({unlockedAchievements.length}/{achievements.length})
+                            ({unlocked.length}/{achievements.length})
                         </span>
                     </h2>
 
-                    {/* All Achievements Grid */}
                     <div className="grid grid-cols-3 gap-3">
-                        {/* Unlocked first, then locked */}
-                        {unlockedAchievements.map((achievement) => (
+                        {unlocked.map((achievement) => (
                             <motion.div
                                 key={achievement.id}
                                 whileTap={{ scale: 0.95 }}
@@ -175,13 +166,16 @@ export default function ProfilePage() {
                             >
                                 <Icon
                                     icon={achievement.icon}
-                                    className="w-8 h-8 text-yellow-400 mb-2"
+                                    className={`w-8 h-8 ${achievement.color} mb-1`}
                                 />
-                                <p className="text-xs font-medium text-foreground">{achievement.name}</p>
+                                <p className="text-xs font-medium text-foreground leading-tight">{achievement.name}</p>
+                                <Badge className={`mt-1.5 text-[8px] px-1.5 py-0 ${RARITY_CONFIG[achievement.rarity].bg}`}>
+                                    {RARITY_CONFIG[achievement.rarity].label}
+                                </Badge>
                             </motion.div>
                         ))}
 
-                        {lockedAchievements.map((achievement) => (
+                        {locked.map((achievement) => (
                             <motion.div
                                 key={achievement.id}
                                 whileTap={{ scale: 0.95 }}
@@ -190,15 +184,16 @@ export default function ProfilePage() {
                             >
                                 <Icon
                                     icon="solar:lock-keyhole-bold"
-                                    className="w-8 h-8 text-muted-foreground mb-2"
+                                    className="w-8 h-8 text-muted-foreground mb-1"
                                 />
-                                <p className="text-xs text-muted-foreground">{achievement.name}</p>
+                                <p className="text-xs text-muted-foreground leading-tight">{achievement.name}</p>
+                                <Badge className={`mt-1.5 text-[8px] px-1.5 py-0 ${RARITY_CONFIG[achievement.rarity].bg}`}>
+                                    {RARITY_CONFIG[achievement.rarity].label}
+                                </Badge>
                             </motion.div>
                         ))}
                     </div>
                 </motion.div>
-
-
             </div>
 
             {/* Achievement Detail Sheet */}
@@ -208,17 +203,17 @@ export default function ProfilePage() {
                         <>
                             <SheetHeader className="text-center pb-4">
                                 <div className="flex justify-center mb-4">
-                                    <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isAchievementUnlocked(selectedAchievement)
+                                    <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isUnlocked(selectedAchievement)
                                         ? "bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50"
                                         : "bg-card border-2 border-border"
                                         }`}>
                                         <Icon
-                                            icon={isAchievementUnlocked(selectedAchievement)
+                                            icon={isUnlocked(selectedAchievement)
                                                 ? selectedAchievement.icon
                                                 : "solar:lock-keyhole-bold"
                                             }
-                                            className={`w-10 h-10 ${isAchievementUnlocked(selectedAchievement)
-                                                ? "text-yellow-400"
+                                            className={`w-10 h-10 ${isUnlocked(selectedAchievement)
+                                                ? selectedAchievement.color
                                                 : "text-muted-foreground"
                                                 }`}
                                         />
@@ -230,37 +225,44 @@ export default function ProfilePage() {
                                 <SheetDescription className="text-base">
                                     {selectedAchievement.description}
                                 </SheetDescription>
+                                <Badge className={`mx-auto mt-2 ${RARITY_CONFIG[selectedAchievement.rarity].bg}`}>
+                                    {RARITY_CONFIG[selectedAchievement.rarity].label}
+                                </Badge>
                             </SheetHeader>
 
                             <div className="space-y-4 pt-2">
-                                {/* Status */}
-                                <div className="flex items-center justify-center gap-2">
-                                    {isAchievementUnlocked(selectedAchievement) ? (
+                                {isUnlocked(selectedAchievement) ? (
+                                    <div className="flex flex-col items-center gap-2">
                                         <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
                                             <Icon icon="solar:verified-check-bold" className="w-5 h-5 text-green-500" />
                                             <span className="text-sm font-medium text-green-500">Unlocked!</span>
                                         </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-full">
-                                            <Icon icon="solar:lock-keyhole-bold" className="w-5 h-5 text-muted-foreground" />
-                                            <span className="text-sm font-medium text-muted-foreground">Locked</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* How to unlock */}
-                                {!isAchievementUnlocked(selectedAchievement) && (
-                                    <Card className="bg-card/80">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-start gap-3">
-                                                <Icon icon="solar:lightbulb-bolt-bold" className="w-5 h-5 text-primary mt-0.5" />
-                                                <div>
-                                                    <p className="text-sm font-medium text-foreground mb-1">How to unlock</p>
-                                                    <p className="text-sm text-muted-foreground">{selectedAchievement.howToUnlock}</p>
-                                                </div>
+                                        {selectedAchievement.source === "server" && serverEarnedDates.has(selectedAchievement.id) && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Earned {serverEarnedDates.get(selectedAchievement.id)!.toLocaleDateString()}
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center justify-center">
+                                            <div className="flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-full">
+                                                <Icon icon="solar:lock-keyhole-bold" className="w-5 h-5 text-muted-foreground" />
+                                                <span className="text-sm font-medium text-muted-foreground">Locked</span>
                                             </div>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                        <Card className="bg-card/80">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <Icon icon="solar:lightbulb-bolt-bold" className="w-5 h-5 text-primary mt-0.5" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-foreground mb-1">How to unlock</p>
+                                                        <p className="text-sm text-muted-foreground">{selectedAchievement.howToUnlock}</p>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </>
                                 )}
                             </div>
                         </>
