@@ -1,6 +1,7 @@
 "use client";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useEffect } from "react";
 
 function HomeIcon() {
   return (
@@ -92,8 +93,19 @@ const navTabs = [
   },
 ];
 
+const TAB_ROUTES = ["/home", "/wallet", "/ecosystem", "/earn", "/frens"];
+
 const NavigationBar = () => {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    TAB_ROUTES.forEach((route) => {
+      if (!pathname.startsWith(route)) {
+        router.prefetch(route);
+      }
+    });
+  }, [pathname, router]);
 
   let activeTab = "home";
   if (pathname.includes("/earn")) activeTab = "earn";

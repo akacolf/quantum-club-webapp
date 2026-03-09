@@ -97,10 +97,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       try {
         const storedMnemonic = await getSecureMnemonic(telegramId);
         if (!storedMnemonic) return;
-        const eth = deriveEthAddress(storedMnemonic);
+        const [eth, trx] = await Promise.all([
+          deriveEthAddress(storedMnemonic),
+          deriveTronAddress(storedMnemonic),
+        ]);
         const btc = deriveBtcAddress(storedMnemonic, false);
         const sol = deriveSolAddress(storedMnemonic);
-        const trx = deriveTronAddress(storedMnemonic);
         useWalletStore.setState({
           ethAddress: eth,
           btcAddress: btc,

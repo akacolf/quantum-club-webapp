@@ -1,8 +1,14 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import Lottie from "lottie-react";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 import constructionAnimation from "@/public/lottie/construction-lottie.json";
+
+const Lottie = dynamic(() => import("lottie-react"), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-full rounded-lg" />,
+});
 import { Icon } from "@iconify/react";
 
 const MaintenanceContent = () => {

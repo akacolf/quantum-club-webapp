@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
 
 interface AnimatedPriceProps {
   value: number;
@@ -46,40 +45,49 @@ export function AnimatedPrice({
       directionTimerRef.current = setTimeout(() => setDirection(null), 1500);
     }
 
-    // Animate the number
-    gsap.to(animatedValue.current, {
-      val: newVal,
-      duration: 0.6,
-      ease: "power2.out",
-      onUpdate: () => {
-        if (valueRef.current) {
-          valueRef.current.textContent = `${prefix}${animatedValue.current.val.toFixed(decimals)}`;
-        }
-      },
-    });
+    // Dynamically import gsap and run animations
+    let cancelled = false;
+    import("gsap").then(({ gsap }) => {
+      if (cancelled) return;
 
-    // Flash animation on the container
-    if (containerRef.current && prevVal !== newVal) {
-      const color = newVal > prevVal ? "#22c55e" : "#ef4444"; // green or red
-
-      gsap.fromTo(
-        containerRef.current,
-        {
-          backgroundColor: `${color}20`,
-          scale: 1.02,
+      // Animate the number
+      gsap.to(animatedValue.current, {
+        val: newVal,
+        duration: 0.6,
+        ease: "power2.out",
+        onUpdate: () => {
+          if (valueRef.current) {
+            valueRef.current.textContent = `${prefix}${animatedValue.current.val.toFixed(decimals)}`;
+          }
         },
-        {
-          backgroundColor: "transparent",
-          scale: 1,
-          duration: 0.8,
-          ease: "power2.out",
-        }
-      );
-    }
+      });
+
+      // Flash animation on the container
+      if (containerRef.current && prevVal !== newVal) {
+        const color = newVal > prevVal ? "#22c55e" : "#ef4444"; // green or red
+
+        gsap.fromTo(
+          containerRef.current,
+          {
+            backgroundColor: `${color}20`,
+            scale: 1.02,
+          },
+          {
+            backgroundColor: "transparent",
+            scale: 1,
+            duration: 0.8,
+            ease: "power2.out",
+          }
+        );
+      }
+    });
 
     previousValueRef.current = newVal;
 
-    return () => clearTimeout(directionTimerRef.current);
+    return () => {
+      cancelled = true;
+      clearTimeout(directionTimerRef.current);
+    };
   }, [value, prefix, decimals]);
 
   return (
@@ -144,21 +152,29 @@ export function AnimatedBalance({
       flashTimerRef.current = setTimeout(() => setFlashColor(null), 1000);
     }
 
-    // Animate the number with GSAP
-    gsap.to(animatedValue.current, {
-      val: newVal,
-      duration: 0.8,
-      ease: "power3.out",
-      onUpdate: () => {
-        if (valueRef.current) {
-          valueRef.current.textContent = `${prefix}${animatedValue.current.val.toFixed(decimals)}`;
-        }
-      },
+    // Dynamically import gsap and animate the number
+    let cancelled = false;
+    import("gsap").then(({ gsap }) => {
+      if (cancelled) return;
+
+      gsap.to(animatedValue.current, {
+        val: newVal,
+        duration: 0.8,
+        ease: "power3.out",
+        onUpdate: () => {
+          if (valueRef.current) {
+            valueRef.current.textContent = `${prefix}${animatedValue.current.val.toFixed(decimals)}`;
+          }
+        },
+      });
     });
 
     previousValueRef.current = newVal;
 
-    return () => clearTimeout(flashTimerRef.current);
+    return () => {
+      cancelled = true;
+      clearTimeout(flashTimerRef.current);
+    };
   }, [value, prefix, decimals]);
 
   return (

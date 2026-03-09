@@ -1,6 +1,13 @@
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import dynamic from "next/dynamic";
+import type { LottieRefCurrentProps } from "lottie-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
 import { useRef } from "react";
+
+const Lottie = dynamic(() => import("lottie-react"), {
+  ssr: false,
+  loading: () => <Skeleton className="w-[2.2em] h-[2.2em] rounded" />,
+});
 
 export default function LeaderboardHeader() {
   const lottieRef = useRef<LottieRefCurrentProps>(null);

@@ -91,6 +91,9 @@ const nextConfig: import('next').NextConfig = {
   // React Compiler - auto-memoizes components/hooks at build time
   reactCompiler: true,
 
+  // Partial Prerendering - static shells served instantly, dynamic parts stream in
+  cacheComponents: true,
+
   // Experimental features
   experimental: {
     viewTransition: true,

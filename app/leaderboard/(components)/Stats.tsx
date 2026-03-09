@@ -1,7 +1,14 @@
 import { useRef } from "react";
 import { SvgProps } from "@/types/svg";
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import dynamic from "next/dynamic";
+import type { LottieRefCurrentProps } from "lottie-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import smilingAnimationData from "@/public/lottie/smiling-lottie.json";
+
+const Lottie = dynamic(() => import("lottie-react"), {
+  ssr: false,
+  loading: () => <Skeleton className="w-[2.5em] h-[2.5em] rounded" />,
+});
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 
 function Logo({ width = "2.5em", height = "2.5em"}: SvgProps) {

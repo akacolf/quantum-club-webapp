@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, use } from "react";
+import dynamic from "next/dynamic";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,7 +9,10 @@ import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarke
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import SpotTokenDetail from "../(components)/SpotTokenDetail";
-import SpotPriceChart from "../(components)/SpotPriceChart";
+const SpotPriceChart = dynamic(() => import("../(components)/SpotPriceChart"), {
+    loading: () => <Skeleton className="h-[260px] w-full rounded-xl" />,
+    ssr: false,
+});
 import SpotTradingPanel from "../(components)/SpotTradingPanel";
 
 export default function SpotTokenDetailPage({ params }: { params: Promise<{ address: string }> }) {

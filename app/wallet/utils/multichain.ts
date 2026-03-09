@@ -5,7 +5,6 @@
 
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
-import { privateKeyToAddress } from "viem/accounts";
 import { createHash } from "crypto";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import bs58 from "bs58";
@@ -19,8 +18,9 @@ const TRX_PATH = "m/44'/195'/0'/0/0";
 /**
  * Derive Ethereum address from mnemonic
  */
-export function deriveEthAddress(mnemonic: string): string {
+export async function deriveEthAddress(mnemonic: string): Promise<string> {
     try {
+        const { privateKeyToAddress } = await import("viem/accounts");
         const seed = mnemonicToSeedSync(mnemonic);
         const hdKey = HDKey.fromMasterSeed(seed);
         const derived = hdKey.derive(ETH_PATH);
@@ -182,8 +182,9 @@ export function deriveSolAddress(mnemonic: string): string {
  * Derive Tron address from mnemonic
  * Uses secp256k1 (like ETH) with Base58Check encoding
  */
-export function deriveTronAddress(mnemonic: string): string {
+export async function deriveTronAddress(mnemonic: string): Promise<string> {
     try {
+        const { privateKeyToAddress } = await import("viem/accounts");
         const seed = mnemonicToSeedSync(mnemonic);
         const hdKey = HDKey.fromMasterSeed(seed);
         const derived = hdKey.derive(TRX_PATH);

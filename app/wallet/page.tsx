@@ -26,12 +26,21 @@ import { WalletContractV5R1 } from "@ton/ton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useWallet } from "./WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
-import { AnimatedPrice } from "@/components/ui/animated-price";
+import dynamic from "next/dynamic";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { categorizeNft } from "@/lib/nft-marketplace";
-import { WalletPriceChart } from "./WalletPriceChart";
 import { useLivePrice } from "@/app/(hooks)/queries/use-trades";
+
+const AnimatedPrice = dynamic(
+  () => import("@/components/ui/animated-price").then((mod) => mod.AnimatedPrice),
+  { ssr: false, loading: () => <Skeleton className="h-8 w-24" /> }
+);
+
+const WalletPriceChart = dynamic(
+  () => import("./WalletPriceChart").then((mod) => mod.WalletPriceChart),
+  { ssr: false, loading: () => <Skeleton className="w-full h-full rounded-lg" /> }
+);
 import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
 import { usePriceHistoryQuery } from "@/app/(hooks)/queries/use-price-history";
 import { useQueryClient } from "@tanstack/react-query";

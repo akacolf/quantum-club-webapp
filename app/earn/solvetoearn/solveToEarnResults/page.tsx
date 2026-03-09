@@ -5,8 +5,15 @@ import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import rocketAnimationData from "@/public/lottie/rocket-lottie.json";
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import dynamic from "next/dynamic";
+import type { LottieRefCurrentProps } from "lottie-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useRef, useState } from "react";
+
+const Lottie = dynamic(() => import("lottie-react"), {
+  ssr: false,
+  loading: () => <Skeleton className="w-24 h-24 rounded-full" />,
+});
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

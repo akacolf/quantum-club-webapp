@@ -5,8 +5,14 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import Lottie from "lottie-react";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 import sparklesAnimation from "@/public/lottie/sparkles-lottie.json";
+
+const Lottie = dynamic(() => import("lottie-react"), {
+  ssr: false,
+  loading: () => <Skeleton className="w-24 h-24 rounded-lg" />,
+});
 import trophyAnimation from "@/public/lottie/trophy-lottie.json";
 import { Icon } from "@iconify/react";
 import { useStoryQuantQuery } from "@/app/(hooks)/queries/use-story-quant";
