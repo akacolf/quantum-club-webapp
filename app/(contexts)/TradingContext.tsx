@@ -7,7 +7,7 @@
  * This Provider only:
  * 1. Runs TanStack Query hooks and syncs results into the store
  * 2. Syncs external dependencies (walletAddress, sendTransaction, etc.)
- * 3. Runs side effects (periodic on-chain refresh, position refresh)
+ * 3. Connects TONAPI WebSocket for real-time on-chain updates
  */
 
 import React, { useEffect } from "react";
@@ -22,6 +22,7 @@ import {
   useInvalidateTokenQueries,
 } from "@/app/(hooks)/queries/use-trading";
 import { useTradingStore } from "@/stores/trading-store";
+import { useTonApiStream } from "@/app/(hooks)/use-tonapi-stream";
 import { useShallow } from "zustand/shallow";
 
 export function TradingProvider({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,9 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading =
     trendingQuery.isFetching || newQuery.isFetching || graduatedQuery.isFetching;
+
+  // Real-time on-chain updates via TONAPI WebSocket
+  useTonApiStream();
 
   // Sync external dependencies into the store
   const refetchMyTokens = myTokensQuery.refetch;
@@ -70,7 +74,7 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     }
   }, [walletAddress]);
 
-  // Refresh on-chain data for displayed tokens periodically
+  // Initial on-chain enrichment when token lists first load
   useEffect(() => {
     const trendingLen = trendingQuery.data?.length ?? 0;
     const newLen = newQuery.data?.length ?? 0;
@@ -78,12 +82,6 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     if (trendingLen > 0 || newLen > 0) {
       useTradingStore.getState().refreshTokensOnChain();
     }
-
-    const interval = setInterval(() => {
-      useTradingStore.getState().refreshTokensOnChain();
-    }, 30000);
-
-    return () => clearInterval(interval);
   }, [trendingQuery.data?.length, newQuery.data?.length]);
 
   return <>{children}</>;

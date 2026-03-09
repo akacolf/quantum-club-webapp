@@ -23,7 +23,7 @@ interface LiveTradesProps {
 
 export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesProps) {
     const { tonPrice, isTestnet } = useWallet();
-    const { data: trades = [], isFetching: isLoading } = useLiveTrades(jettonAddress, isTestnet, 15000);
+    const { data: trades = [], isFetching: isLoading } = useLiveTrades(jettonAddress, isTestnet);
 
     const formatTimeAgo = (date: Date) => {
         const now = new Date();

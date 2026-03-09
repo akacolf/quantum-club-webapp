@@ -24,7 +24,7 @@ export default function GlobalLiveTrades() {
     const router = useRouter();
 
     const allTokens = [...trendingTokens, ...newTokens];
-    const { data: trades = [], isFetching: isLoading } = useGlobalTrades(allTokens, isTestnet, 20000);
+    const { data: trades = [], isFetching: isLoading } = useGlobalTrades(allTokens, isTestnet);
 
     // Auto-rotate through trades every 4 seconds
     useEffect(() => {

@@ -81,7 +81,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
     const [timeRangeIndex, setTimeRangeIndex] = useState(2);
     const [chartMode, setChartMode] = useState<ChartMode>("area");
     const { tonPrice } = useWallet();
-    const { data: trades = [], isFetching: isLoading } = useTradeEvents(jettonAddress, 30000);
+    const { data: trades = [], isFetching: isLoading } = useTradeEvents(jettonAddress);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);

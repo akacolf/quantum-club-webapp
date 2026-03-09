@@ -109,7 +109,7 @@ function parseTradeEvents(data: any): TradeEvent[] {
 /**
  * Fetch live trades for a specific token's jetton address.
  */
-export function useLiveTrades(jettonAddress: string | undefined, isTestnet: boolean, refetchMs = 15000) {
+export function useLiveTrades(jettonAddress: string | undefined, isTestnet: boolean) {
     return useQuery<Trade[]>({
         queryKey: ["liveTrades", jettonAddress, isTestnet],
         queryFn: async () => {
@@ -125,14 +125,13 @@ export function useLiveTrades(jettonAddress: string | undefined, isTestnet: bool
         },
         enabled: !!jettonAddress,
         staleTime: 10_000,
-        refetchInterval: refetchMs,
     });
 }
 
 /**
  * Fetch trade events for price chart data.
  */
-export function useTradeEvents(jettonAddress: string | undefined, refetchMs = 30000) {
+export function useTradeEvents(jettonAddress: string | undefined) {
     return useQuery<TradeEvent[]>({
         queryKey: ["tradeEvents", jettonAddress],
         queryFn: async () => {
@@ -148,7 +147,6 @@ export function useTradeEvents(jettonAddress: string | undefined, refetchMs = 30
         },
         enabled: !!jettonAddress,
         staleTime: 15_000,
-        refetchInterval: refetchMs,
     });
 }
 
@@ -280,7 +278,6 @@ export function useOnChainStats(jettonAddress: string | undefined, isTestnet: bo
         enabled: !!jettonAddress,
         retry: false,
         staleTime: 30_000,
-        refetchInterval: 60_000,
         placeholderData: keepPreviousData,
     });
 }
@@ -312,7 +309,6 @@ interface TokenInfo {
 export function useGlobalTrades(
     tokens: TokenInfo[],
     isTestnet: boolean,
-    refetchMs = 20000,
 ) {
     const tokenKeys = tokens.map(t => t.id).sort().join(",");
 
@@ -395,6 +391,5 @@ export function useGlobalTrades(
         },
         enabled: tokens.length > 0,
         staleTime: 10_000,
-        refetchInterval: refetchMs,
     });
 }
