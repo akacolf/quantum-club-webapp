@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups, Group } from "@/app/(contexts)/GroupsContext";
@@ -65,14 +66,9 @@ export default function GroupsPage() {
         router.push(`/groups/${groupId}`);
     };
 
-    const handleNavigateToCreate = () => {
-        router.push("/groups/create");
-    };
-
     // Prefetch group routes
     useEffect(() => {
         groups.slice(0, 10).forEach((g) => router.prefetch(`/groups/${g.id}`));
-        router.prefetch("/groups/create");
     }, [groups, router]);
 
     const listRef = useRef<HTMLDivElement>(null);
@@ -98,11 +94,13 @@ export default function GroupsPage() {
                         <p className="text-sm text-muted-foreground">Connect with your community</p>
                     </div>
                     <Button
-                        onClick={handleNavigateToCreate}
                         className="h-11 px-6 bg-white text-black hover:bg-white/90 font-bold rounded-2xl active:scale-95 transition-all"
+                        asChild
                     >
-                        <Icon icon="lucide:plus" className="w-4 h-4 mr-1" />
-                        Create
+                        <Link href="/groups/create">
+                            <Icon icon="lucide:plus" className="w-4 h-4 mr-1" />
+                            Create
+                        </Link>
                     </Button>
                 </div>
 
@@ -120,11 +118,13 @@ export default function GroupsPage() {
                             You haven&apos;t joined any groups yet
                         </p>
                         <Button
-                            onClick={handleNavigateToCreate}
                             variant="outline"
                             className="text-foreground"
+                            asChild
                         >
-                            Create your first group
+                            <Link href="/groups/create">
+                                Create your first group
+                            </Link>
                         </Button>
                     </motion.div>
                 ) : (

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -36,7 +36,6 @@ const navTabs = [
 
 const EcosystemNavigation = () => {
   const pathname = usePathname();
-  const router = useRouter();
   const { telegramId } = useUserContext();
   const authCtx = useAuth();
   const currentUser = authCtx?.currentUser ?? null;
@@ -62,13 +61,6 @@ const EcosystemNavigation = () => {
     }, () => {});
     return () => unsub();
   }, [currentUser, telegramId]);
-
-  // Prefetch trade routes for popover
-  useEffect(() => {
-    router.prefetch("/ecosystem/trade");
-    router.prefetch("/ecosystem/trade/spot");
-    router.prefetch("/ecosystem/chat");
-  }, [router]);
 
   // Hide navbar when inside an individual chat conversation
   if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
@@ -178,8 +170,9 @@ const EcosystemNavigation = () => {
                     sideOffset={12}
                     className="w-52 p-1.5 bg-[#1a1a1a] border-white/10 rounded-xl ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
                   >
-                    <button
-                      onClick={() => { setTradePopoverOpen(false); router.push("/ecosystem/trade"); }}
+                    <Link
+                      href="/ecosystem/trade"
+                      onClick={() => setTradePopoverOpen(false)}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${!isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -192,9 +185,10 @@ const EcosystemNavigation = () => {
                       {!isOnSpot && (
                         <Icon icon="lucide:check" className="w-4 h-4 text-primary" />
                       )}
-                    </button>
-                    <button
-                      onClick={() => { setTradePopoverOpen(false); router.push("/ecosystem/trade/spot"); }}
+                    </Link>
+                    <Link
+                      href="/ecosystem/trade/spot"
+                      onClick={() => setTradePopoverOpen(false)}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
@@ -207,7 +201,7 @@ const EcosystemNavigation = () => {
                       {isOnSpot && (
                         <Icon icon="lucide:check" className="w-4 h-4 text-green-400" />
                       )}
-                    </button>
+                    </Link>
                   </PopoverContent>
                 </Popover>
               );

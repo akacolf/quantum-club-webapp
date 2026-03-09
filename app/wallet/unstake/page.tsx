@@ -16,6 +16,7 @@ import { FieldError } from "@/components/ui/field";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { stakeAmountSchema } from "@/lib/validations";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
@@ -442,11 +443,13 @@ export default function UnstakePage() {
                                 <p className="text-sm text-gray-500">from {unstakeAmountNum.toFixed(4)} tsTON</p>
                             </div>
                             <Button
-                                onClick={() => router.push("/wallet/staking")}
                                 variant="outline"
                                 className="mt-4"
+                                asChild
                             >
+                                <Link href="/wallet/staking">
                                 Back to Staking
+                                </Link>
                             </Button>
                         </motion.div>
                     )}

@@ -102,6 +102,10 @@ export default function TokenDetailPage() {
         router.prefetch("/wallet");
     }, [router]);
 
+    useEffect(() => {
+        if (tokenGroup?.id) router.prefetch(`/groups/${tokenGroup.id}`);
+    }, [router, tokenGroup?.id]);
+
     // Load token and refresh balance
     useEffect(() => {
         if (tokenId) {

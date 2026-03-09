@@ -52,6 +52,10 @@ export default function NftDetailPage() {
     }, [router, nftAddress]);
 
     const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
+
+    useEffect(() => {
+        if (nft?.collectionAddress) router.prefetch(`/wallet/marketplace/collection/${encodeURIComponent(nft.collectionAddress)}`);
+    }, [router, nft?.collectionAddress]);
     const [copied, setCopied] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [isBuying, setIsBuying] = useState(false);

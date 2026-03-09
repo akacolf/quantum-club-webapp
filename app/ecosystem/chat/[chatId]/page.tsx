@@ -362,12 +362,9 @@ export default function ChatConversationPage() {
 
   // Prefetch navigation targets for clickable header names
   useEffect(() => {
-    if (chatMeta?.isGroup && !chatMeta?.isGlobal) {
-      router.prefetch(`/ecosystem/chat/${chatId}/info`);
-    } else if (otherParticipantId) {
-      router.prefetch(`/user/${otherParticipantId}`);
-    }
-  }, [router, chatMeta?.isGroup, chatMeta?.isGlobal, chatId, otherParticipantId]);
+    if (chatId) router.prefetch(`/ecosystem/chat/${chatId}/info`);
+    if (otherParticipantId) router.prefetch(`/user/${otherParticipantId}`);
+  }, [router, chatId, otherParticipantId]);
 
   // Load chat theme from localStorage
   useEffect(() => {

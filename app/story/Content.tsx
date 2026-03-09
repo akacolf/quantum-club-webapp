@@ -45,9 +45,6 @@ const StoryContent = () => {
   const router = useRouter();
   const { rank, telegramId } = useUserContext();
   const { data: quantValue = "0" } = useStoryQuantQuery(telegramId);
-  useEffect(() => {
-    router.prefetch("/");
-  }, [router]);
 
   const [currentStory, setCurrentStory] = useState(0);
   const [progress, setProgress] = useState(0);

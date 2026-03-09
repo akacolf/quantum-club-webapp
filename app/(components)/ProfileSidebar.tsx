@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { usernameSchema, linkEmailSchema, USERNAME_MAX_LENGTH } from "@/lib/validations";
@@ -57,13 +58,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [emailJustLinked, setEmailJustLinked] = useState(false);
-
-  // Prefetch sidebar navigation destinations
-  useEffect(() => {
-    router.prefetch("/home/profile");
-    router.prefetch("/legal/terms");
-    router.prefetch("/legal/privacy");
-  }, [router]);
 
   // Link-email form (TanStack Form)
   const linkEmailForm = useForm({
@@ -499,20 +493,22 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
 
           <Separator className="my-2" />
 
-          <button
-            onClick={() => { onOpenChange(false); router.push("/legal/terms"); }}
+          <Link
+            href="/legal/terms"
+            onClick={() => onOpenChange(false)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors"
           >
             <Icon icon="solar:document-text-bold" className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm font-medium">Terms of Service</span>
-          </button>
-          <button
-            onClick={() => { onOpenChange(false); router.push("/legal/privacy"); }}
+          </Link>
+          <Link
+            href="/legal/privacy"
+            onClick={() => onOpenChange(false)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-colors"
           >
             <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm font-medium">Privacy Policy</span>
-          </button>
+          </Link>
         </nav>
 
         {/* Footer: Sign Out + Version */}
