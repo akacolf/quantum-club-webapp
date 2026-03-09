@@ -78,8 +78,8 @@ const nextConfig: import('next').NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              // Scripts: self + Telegram SDK + Google Sign-In + react-scan (dev) + inline (Next.js hydration)
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://telegram.org https://accounts.google.com https://unpkg.com",
+              // Scripts: self + Telegram SDK + Google Sign-In + inline (Next.js hydration)
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://telegram.org https://accounts.google.com",
               // Styles: self + inline (Tailwind + component libs)
               "style-src 'self' 'unsafe-inline'",
               // Images: self + all configured remote patterns (tokens can come from any HTTPS domain)

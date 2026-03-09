@@ -46,9 +46,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        {process.env.NODE_ENV === "development" && (
-          <Script src="https://unpkg.com/react-scan/dist/auto.global.js" strategy="lazyOnload" />
-        )}
         {/* Preconnect to critical API domains (includes implicit dns-prefetch) */}
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossOrigin="anonymous" />
