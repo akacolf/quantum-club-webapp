@@ -9,9 +9,11 @@ import type { Metadata } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
-import CallOverlay from "./(components)/CallOverlay";
-import IncomingCallOverlay from "./(components)/IncomingCallOverlay";
-import GroupCallOverlay from "./(components)/GroupCallOverlay";
+import dynamic from "next/dynamic";
+
+const CallOverlay = dynamic(() => import("./(components)/CallOverlay"), { ssr: false });
+const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"), { ssr: false });
+const GroupCallOverlay = dynamic(() => import("./(components)/GroupCallOverlay"), { ssr: false });
 
 
 const onest = Onest({
@@ -36,14 +38,14 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         {process.env.NODE_ENV === "development" && (
-          <script src="https://unpkg.com/react-scan/dist/auto.global.js" async />
+          <Script src="https://unpkg.com/react-scan/dist/auto.global.js" strategy="lazyOnload" />
         )}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         {/* Preconnect to critical API domains (includes implicit dns-prefetch) */}
-        <link rel="preconnect" href="https://firestore.googleapis.com" />
-        <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
-        <link rel="preconnect" href="https://tonapi.io" />
-        <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+        <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://tonapi.io" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
         {/* DNS prefetch for secondary domains */}
         <link rel="dns-prefetch" href="https://cache.tonapi.io" />
         <link rel="dns-prefetch" href="https://toncenter.com" />

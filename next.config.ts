@@ -97,6 +97,8 @@ const nextConfig: import('next').NextConfig = {
   // Experimental features
   experimental: {
     viewTransition: true,
+    // Persist Turbopack compilation cache across production builds
+    turbopackFileSystemCacheForBuild: true,
     // Optimizations - tree-shake these large packages
     optimizePackageImports: [
       '@radix-ui/react-accordion',
@@ -117,13 +119,11 @@ const nextConfig: import('next').NextConfig = {
       '@radix-ui/react-tabs',
       '@radix-ui/react-toast',
       '@radix-ui/react-tooltip',
-      'lucide-react',
+      // lucide-react, recharts, date-fns are auto-optimized by Next.js
       '@iconify/react',
       'lottie-react',
       'framer-motion',
-      'recharts',
       'lightweight-charts',
-      'date-fns',
       'firebase',
       'firebase/auth',
       'firebase/firestore',
