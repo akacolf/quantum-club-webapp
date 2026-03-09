@@ -81,19 +81,19 @@ function WalletIcon() {
 }
 
 const navTabs = [
-  { id: "home", href: "/home", label: "Home", icon: <HomeIcon /> },
-  { id: "earn", href: "/earn", label: "Earn", icon: <EarnIcon /> },
-  { id: "ecosystem", href: "/ecosystem", label: "Ecosystem", icon: <EcosystemIcon /> },
-  { id: "frens", href: "/frens", label: "Frens", icon: <FrensIcon /> },
+  { id: "home", href: "/home" as const, label: "Home", icon: <HomeIcon /> },
+  { id: "earn", href: "/earn" as const, label: "Earn", icon: <EarnIcon /> },
+  { id: "ecosystem", href: "/ecosystem" as const, label: "Ecosystem", icon: <EcosystemIcon /> },
+  { id: "frens", href: "/frens" as const, label: "Frens", icon: <FrensIcon /> },
   {
     id: "wallet",
-    href: "/wallet",
+    href: "/wallet" as const,
     label: "Wallet",
     icon: <WalletIcon />,
   },
 ];
 
-const TAB_ROUTES = ["/home", "/wallet", "/ecosystem", "/earn", "/frens"];
+const TAB_ROUTES = ["/home", "/wallet", "/ecosystem", "/earn", "/frens"] as const;
 
 const NavigationBar = () => {
   const pathname = usePathname();

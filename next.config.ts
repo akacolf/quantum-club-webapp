@@ -115,6 +115,9 @@ const nextConfig: import('next').NextConfig = {
   // Partial Prerendering - static shells served instantly, dynamic parts stream in
   cacheComponents: true,
 
+  // Type-safe route validation — catches broken <Link href> at build time
+  typedRoutes: true,
+
   // Custom cache life profiles for 'use cache' directives
   cacheLife: {
     // Token metadata, leaderboard — changes infrequently
@@ -130,8 +133,6 @@ const nextConfig: import('next').NextConfig = {
     viewTransition: true,
     // Persist Turbopack compilation cache across production builds
     turbopackFileSystemCacheForBuild: true,
-    // Type-safe route validation — catches broken <Link href> at build time
-    typedRoutes: true,
     // Env var IntelliSense in IDE (pairs with t3-env runtime validation)
     typedEnv: true,
     // Inline critical CSS — eliminates render-blocking stylesheets (faster FCP in TG WebView)

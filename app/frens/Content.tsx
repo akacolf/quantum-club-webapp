@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 
-import { useRouter } from "next/navigation";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useFrensDataQuery } from "@/app/(hooks)/queries/use-frens-data";
 import { useReferralListQuery } from "@/app/(hooks)/queries/use-referral-list";
@@ -32,7 +31,6 @@ import { claimTier2Rewards, claimReferralTon } from "./actions";
 const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const { referralsNum, setReferralNum } = useFrenContext();
-  const router = useRouter();
   const { telegramId, SetMainQuantAmount } = useUserContext();
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
@@ -56,9 +54,7 @@ const FrensContent = () => {
     setTonEarnings(frensData.tonEarnings);
   }, [frensData, setReferralNum]);
 
-  useEffect(() => {
-    router.prefetch("/frens/referrals");
-  }, [router]);
+
 
   // Profile photos for referral list — TanStack Query handles caching/dedup
   const photoUrls = useProfilePhotos(referralList.map((r) => r.id));

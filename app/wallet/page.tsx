@@ -427,8 +427,8 @@ export default function WalletPage() {
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
-      router.prefetch("/wallet/settings/terms");
-      router.prefetch("/wallet/settings/privacy");
+      router.prefetch("/legal/terms");
+      router.prefetch("/legal/privacy");
     } else {
       // Prefetch onboarding flow pages for users without wallet
       router.prefetch("/wallet/backup");
@@ -657,12 +657,12 @@ export default function WalletPage() {
 
               {/* Action Grid */}
               <div className="grid grid-cols-4 gap-3 mt-8">
-                {[
-                  { icon: <Icon icon="lucide:send" className="w-5 h-5"/>, label: "Send", path: "/wallet/send", disabled: false },
-                  { icon: <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>, label: "Receive", path: "/wallet/receive", disabled: false },
-                  { icon: <Icon icon="lucide:history" className="w-5 h-5"/>, label: "History", path: "/wallet/history", disabled: false },
-                  { icon: <Icon icon="lucide:pie-chart" className="w-5 h-5"/>, label: "Portfolio", path: "/wallet/analytics", disabled: false },
-                ].map((action, i) => (
+                {([
+                  { icon: <Icon icon="lucide:send" className="w-5 h-5"/>, label: "Send", path: "/wallet/send" as const, disabled: false },
+                  { icon: <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>, label: "Receive", path: "/wallet/receive" as const, disabled: false },
+                  { icon: <Icon icon="lucide:history" className="w-5 h-5"/>, label: "History", path: "/wallet/history" as const, disabled: false },
+                  { icon: <Icon icon="lucide:pie-chart" className="w-5 h-5"/>, label: "Portfolio", path: "/wallet/analytics" as const, disabled: false },
+                ]).map((action, i) => (
                   <Button
                     key={i}
                     variant="ghost"

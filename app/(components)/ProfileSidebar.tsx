@@ -161,7 +161,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
     }
   };
 
-  const navigateTo = (path: string) => {
+  const navigateTo = (path: Parameters<typeof router.push>[0]) => {
     onOpenChange(false);
     router.push(path);
   };

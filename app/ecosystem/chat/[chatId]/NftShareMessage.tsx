@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
@@ -25,7 +26,7 @@ export default function NftShareMessage({
     : `/wallet/nft/${encodeURIComponent(nftAddress)}`;
 
   return (
-    <Link href={href} className="block">
+    <Link href={href as Route} className="block">
       <div className="flex gap-2.5 min-w-[200px] max-w-[260px]">
         <div className="w-12 h-12 rounded-lg shrink-0 overflow-hidden bg-muted">
           {nftImage ? (

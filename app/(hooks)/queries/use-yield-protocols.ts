@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { useQuery } from "@tanstack/react-query";
 import { fetchLiveApyData } from "@/lib/staking-service";
 
@@ -10,7 +11,7 @@ interface YieldProtocol {
     tvl: string;
     asset: string;
     description: string;
-    route: string;
+    route: Route;
     minAmount?: string;
     riskLevel: "low" | "medium" | "high";
 }

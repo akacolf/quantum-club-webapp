@@ -24,19 +24,19 @@ import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 
 /** Resolve deep link destination from Telegram start_param */
-function getDeepLinkDestination(): string {
+/** Resolve deep link destination from Telegram start_param */
+function getDeepLinkDestination() {
   try {
     const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
     if (startParam?.startsWith("chat_")) {
       const chatId = startParam.replace("chat_", "");
-      if (chatId) return `/ecosystem/chat/${chatId}`;
+      if (chatId) return `/ecosystem/chat/${chatId}` as const;
     }
-    // join_ links need the chat list page to process (auto-join logic)
     if (startParam?.startsWith("join_")) {
-      return "/ecosystem/chat";
+      return "/ecosystem/chat" as const;
     }
   } catch {}
-  return "/home";
+  return "/home" as const;
 }
 
 export default function Login() {

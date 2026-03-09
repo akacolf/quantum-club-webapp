@@ -14,19 +14,19 @@ import { collection, query, where, orderBy, onSnapshot } from "firebase/firestor
 const navTabs = [
   {
     id: "trade",
-    href: "/ecosystem/trade",
+    href: "/ecosystem/trade" as const,
     label: "Trade",
     icon: "lucide:arrow-left-right",
   },
   {
     id: "chat",
-    href: "/ecosystem/chat",
+    href: "/ecosystem/chat" as const,
     label: "QC Chat",
     icon: "proicons:chat",
   },
   {
     id: "social",
-    href: "/ecosystem/social",
+    href: "/ecosystem/social" as const,
     label: "QC Social",
     icon: "tabler:social",
     iconClassName: "[&>svg]:stroke-[1.5]",

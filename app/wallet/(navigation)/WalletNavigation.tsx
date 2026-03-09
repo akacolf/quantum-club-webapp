@@ -3,36 +3,36 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 const navTabs = [
-  { 
-    id: "home", 
-    href: "/wallet", 
-    label: "Home", 
+  {
+    id: "home",
+    href: "/wallet" as const,
+    label: "Home",
     icon: "lucide:wallet",
-    exact: true 
+    exact: true
   },
-  { 
-    id: "swap", 
-    href: "/wallet/swap", 
-    label: "Swap", 
-    icon: "lucide:arrow-left-right" 
+  {
+    id: "swap",
+    href: "/wallet/swap" as const,
+    label: "Swap",
+    icon: "lucide:arrow-left-right"
   },
-  { 
+  {
     id: "explore",
-    href: "/wallet/explore",
+    href: "/wallet/explore" as const,
     label: "Explore",
-    icon: "lucide:globe" 
+    icon: "lucide:globe"
   },
-  { 
-    id: "liquidity", 
-    href: "/wallet/liquidity", 
-    label: "Liquidity", 
-    icon: "lucide:droplets" 
+  {
+    id: "liquidity",
+    href: "/wallet/liquidity" as const,
+    label: "Liquidity",
+    icon: "lucide:droplets"
   },
-  { 
-    id: "settings", 
-    href: "/wallet/settings", 
-    label: "Settings", 
-    icon: "lucide:settings" 
+  {
+    id: "settings",
+    href: "/wallet/settings" as const,
+    label: "Settings",
+    icon: "lucide:settings"
   },
 ];
 
