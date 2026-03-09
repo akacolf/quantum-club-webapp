@@ -5,6 +5,7 @@ import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "@tanstack/react-form";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -266,8 +267,8 @@ export default function StakingPage() {
                             </div>
 
                             {/* Unstake Button */}
-                            <button
-                                onClick={() => router.push("/wallet/unstake")}
+                            <Link
+                                href="/wallet/unstake"
                                 className="w-full p-4 rounded-xl bg-[#111] border border-[#222] flex items-center justify-between hover:bg-[#161616] transition-colors"
                             >
                                 <div className="flex items-center gap-3">
@@ -280,7 +281,7 @@ export default function StakingPage() {
                                     </div>
                                 </div>
                                 <Icon icon="lucide:arrow-right" className="w-4 h-4 text-gray-500"/>
-                            </button>
+                            </Link>
 
                             {/* Staking Pools */}
                             <div className="space-y-3">

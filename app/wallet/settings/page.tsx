@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
@@ -71,17 +72,6 @@ export default function WalletSettingsPage() {
   useTelegramBackButton("/wallet");
   const router = useRouter();
   const { clearWallet } = useWallet();
-
-  // Prefetch all settings subpages for faster navigation
-  useEffect(() => {
-    router.prefetch("/wallet/settings/recovery-phrase");
-    router.prefetch("/wallet/settings/wallets");
-    router.prefetch("/wallet/settings/address-book");
-    router.prefetch("/wallet/settings/username");
-    router.prefetch("/wallet/settings/price-alerts");
-    router.prefetch("/wallet/settings/connected-apps");
-  }, [router]);
-
 
   const handleDeleteWallet = () => {
     // Use clearWallet from context to properly reset all state
@@ -186,114 +176,106 @@ export default function WalletSettingsPage() {
               <CardContent className="p-0">
                 <Button
                   variant="ghost"
-                  onClick={() => router.push("/wallet/settings/recovery-phrase")}
+                  asChild
                   className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
-                      <Icon icon="lucide:file-text" className="w-5 h-5 text-green-400" />
+                  <Link href="/wallet/settings/recovery-phrase">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
+                        <Icon icon="lucide:file-text" className="w-5 h-5 text-green-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-foreground">Backup Recovery Phrase</p>
+                        <p className="text-xs text-muted-foreground">View your 24-word seed phrase</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-foreground">Backup Recovery Phrase</p>
-                      <p className="text-xs text-muted-foreground">View your 24-word seed phrase</p>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Link>
                 </Button>
 
                 <div className="border-t border-border" />
 
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/wallet/settings/wallets")}
-                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
-                      <Icon icon="lucide:wallet" className="w-5 h-5 text-blue-400" />
+                <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
+                  <Link href="/wallet/settings/wallets">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
+                        <Icon icon="lucide:wallet" className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-foreground">Manage Wallets</p>
+                        <p className="text-xs text-muted-foreground">Add, switch, or remove wallets</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-foreground">Manage Wallets</p>
-                      <p className="text-xs text-muted-foreground">Add, switch, or remove wallets</p>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Link>
                 </Button>
 
                 <div className="border-t border-border" />
 
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/wallet/settings/address-book")}
-                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
-                      <Icon icon="lucide:book-user" className="w-5 h-5 text-purple-400" />
+                <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
+                  <Link href="/wallet/settings/address-book">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
+                        <Icon icon="lucide:book-user" className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-foreground">Address Book</p>
+                        <p className="text-xs text-muted-foreground">Save frequently used addresses</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium text-foreground">Address Book</p>
-                      <p className="text-xs text-muted-foreground">Save frequently used addresses</p>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Link>
                 </Button>
 
                 <div className="border-t border-border" />
 
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/wallet/settings/username")}
-                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Icon icon="mdi:at" className="w-5 h-5 text-primary" />
+                <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
+                  <Link href="/wallet/settings/username">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Icon icon="mdi:at" className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-foreground">Username</p>
+                        <p className="text-xs text-muted-foreground">Claim your unique @username</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium text-foreground">Username</p>
-                      <p className="text-xs text-muted-foreground">Claim your unique @username</p>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Link>
                 </Button>
 
                 <div className="border-t border-border" />
 
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/wallet/settings/price-alerts")}
-                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center">
-                      <Icon icon="lucide:bell" className="w-5 h-5 text-yellow-400" />
+                <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
+                  <Link href="/wallet/settings/price-alerts">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center">
+                        <Icon icon="lucide:bell" className="w-5 h-5 text-yellow-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-foreground">Price Alerts</p>
+                        <p className="text-xs text-muted-foreground">Get notified when TON hits a target</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium text-foreground">Price Alerts</p>
-                      <p className="text-xs text-muted-foreground">Get notified when TON hits a target</p>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Link>
                 </Button>
 
                 <div className="border-t border-border" />
 
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/wallet/settings/connected-apps")}
-                  className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center">
-                      <Icon icon="lucide:link-2" className="w-5 h-5 text-cyan-400" />
+                <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
+                  <Link href="/wallet/settings/connected-apps">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center">
+                        <Icon icon="lucide:link-2" className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-foreground">Connected Apps</p>
+                        <p className="text-xs text-muted-foreground">Manage TON Connect dApps</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium text-foreground">Connected Apps</p>
-                      <p className="text-xs text-muted-foreground">Manage TON Connect dApps</p>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

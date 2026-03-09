@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -312,18 +313,11 @@ export default function BuyNftPage() {
                         </div>
                     )}
                     <div className="space-y-3">
-                        <Button
-                            onClick={() => router.push("/wallet")}
-                            className="w-full h-12 rounded-xl"
-                        >
-                            View in Wallet
+                        <Button asChild className="w-full h-12 rounded-xl">
+                            <Link href="/wallet">View in Wallet</Link>
                         </Button>
-                        <Button
-                            onClick={() => router.push("/wallet/marketplace")}
-                            variant="outline"
-                            className="w-full h-12 rounded-xl"
-                        >
-                            Back to Marketplace
+                        <Button variant="outline" asChild className="w-full h-12 rounded-xl">
+                            <Link href="/wallet/marketplace">Back to Marketplace</Link>
                         </Button>
                     </div>
                 </motion.div>

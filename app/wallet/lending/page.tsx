@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
@@ -306,7 +307,7 @@ export default function LendingPage() {
                     <p className="text-muted-foreground text-sm">
                         Lending & borrowing is only available on mainnet.
                     </p>
-                    <Button onClick={() => router.push("/wallet")}>Back to Wallet</Button>
+                    <Button asChild><Link href="/wallet">Back to Wallet</Link></Button>
                 </div>
             </div>
         );

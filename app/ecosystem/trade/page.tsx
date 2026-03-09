@@ -418,12 +418,11 @@ export default function TradePage() {
                             </h1>
                             <p className="text-xs text-muted-foreground font-medium tracking-wide">Token Launchpad on TON</p>
                         </div>
-                        <Button
-                            onClick={() => router.push("/ecosystem/trade/create")}
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all rounded-full px-5 h-10"
-                        >
-                            <Icon icon="solar:rocket-bold" className="w-5 h-5" />
-                            Launch
+                        <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all rounded-full px-5 h-10">
+                            <Link href="/ecosystem/trade/create">
+                                <Icon icon="solar:rocket-bold" className="w-5 h-5" />
+                                Launch
+                            </Link>
                         </Button>
                     </div>
 
@@ -609,12 +608,11 @@ export default function TradePage() {
                                 <p className="text-xs text-muted-foreground max-w-[200px] mb-4">
                                     Launch your own token and start building your community
                                 </p>
-                                <Button
-                                    onClick={() => router.push("/ecosystem/trade/create")}
-                                    className="bg-white hover:bg-white/90 text-black gap-2 font-bold rounded-full px-5"
-                                >
-                                    <Icon icon="solar:rocket-bold" className="w-4 h-4" />
-                                    Create token
+                                <Button asChild className="bg-white hover:bg-white/90 text-black gap-2 font-bold rounded-full px-5">
+                                    <Link href="/ecosystem/trade/create">
+                                        <Icon icon="solar:rocket-bold" className="w-4 h-4" />
+                                        Create token
+                                    </Link>
                                 </Button>
                             </div>
                         ) : (
@@ -738,12 +736,8 @@ export default function TradePage() {
                     <div className="bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-full border border-white/20 px-4 py-2.5 flex items-center gap-3 shadow-lg">
                         <Icon icon="solar:wallet-bold" className="w-5 h-5 text-primary" />
                         <span className="flex-1 text-sm text-white">Connect QC Wallet to trade</span>
-                        <Button
-                            onClick={() => router.push("/wallet")}
-                            size="sm"
-                            className="bg-white hover:bg-white/90 text-black font-semibold h-8 px-4 rounded-full"
-                        >
-                            Connect
+                        <Button size="sm" asChild className="bg-white hover:bg-white/90 text-black font-semibold h-8 px-4 rounded-full">
+                            <Link href="/wallet">Connect</Link>
                         </Button>
                     </div>
                 </motion.div>

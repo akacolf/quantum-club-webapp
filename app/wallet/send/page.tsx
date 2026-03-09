@@ -5,6 +5,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
@@ -1522,8 +1523,8 @@ export default function SendPage() {
               className="space-y-6"
             >
               {/* Batch Send Feature Link */}
-              <button
-                onClick={() => router.push("/wallet/send-multiple")}
+              <Link
+                href="/wallet/send-multiple"
                 className="w-full p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between hover:bg-primary/10 transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -1536,7 +1537,7 @@ export default function SendPage() {
                   </div>
                 </div>
                 <Icon icon="lucide:chevron-down" className="w-4 h-4 text-primary rotate-[-90deg]"/>
-              </button>
+              </Link>
 
               {/* Asset Selection */}
               <div className="space-y-2">
@@ -1978,11 +1979,8 @@ export default function SendPage() {
                     View in Explorer
                   </Button>
                 )}
-                <Button
-                  onClick={() => router.push("/wallet")}
-                  className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
-                >
-                  Back to Wallet
+                <Button asChild className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold">
+                  <Link href="/wallet">Back to Wallet</Link>
                 </Button>
               </div>
             </motion.div>

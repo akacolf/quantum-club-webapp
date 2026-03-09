@@ -175,13 +175,11 @@ export default function ForgotPassword() {
                 )}
               </Button>
 
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => router.push("/")}
-              >
-                <Icon icon="solar:arrow-left-linear" className="size-5" />
-                Back to sign in
+              <Button type="button" asChild className="w-full">
+                <Link href="/">
+                  <Icon icon="solar:arrow-left-linear" className="size-5" />
+                  Back to sign in
+                </Link>
               </Button>
             </div>
           ) : (

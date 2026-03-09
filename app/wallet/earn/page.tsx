@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -8,6 +7,7 @@ import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useYieldProtocolsQuery } from "@/app/(hooks)/queries/use-yield-protocols";
 
@@ -27,11 +27,6 @@ export default function EarnPage() {
     useTelegramBackButton("/wallet");
     const router = useRouter();
     const { tonBalance, tonPrice } = useWallet();
-    
-    useEffect(() => {
-        router.prefetch("/wallet/staking");
-        router.prefetch("/wallet/liquidity");
-    }, [router]);
 
     const { data: protocols = [], isLoading, refetch } = useYieldProtocolsQuery();
 
@@ -124,10 +119,9 @@ export default function EarnPage() {
                 <div className="space-y-3">
                     <h2 className="text-base font-semibold text-white">Earning Options</h2>
                     <div className="grid grid-cols-2 gap-3">
-                        <motion.button
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => router.push("/wallet/staking")}
-                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-primary/10 border border-primary/20 text-left"
+                        <Link
+                            href="/wallet/staking"
+                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-primary/10 border border-primary/20 text-left active:scale-[0.98] transition-transform"
                         >
                             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-3">
                                 <Icon icon="lucide:circle-dollar-sign" className="w-5 h-5 text-primary"/>
@@ -138,12 +132,11 @@ export default function EarnPage() {
                                 <span>Stake Now</span>
                                 <Icon icon="lucide:arrow-right" className="w-3 h-3"/>
                             </div>
-                        </motion.button>
+                        </Link>
 
-                        <motion.button
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => router.push("/wallet/liquidity")}
-                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-blue-500/10 border border-blue-500/20 text-left"
+                        <Link
+                            href="/wallet/liquidity"
+                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-blue-500/10 border border-blue-500/20 text-left active:scale-[0.98] transition-transform"
                         >
                             <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
                                 <Icon icon="lucide:droplets" className="w-5 h-5 text-blue-500"/>
@@ -154,7 +147,7 @@ export default function EarnPage() {
                                 <span>Start</span>
                                 <Icon icon="lucide:arrow-right" className="w-3 h-3"/>
                             </div>
-                        </motion.button>
+                        </Link>
                     </div>
                 </div>
 

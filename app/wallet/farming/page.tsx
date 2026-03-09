@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -397,12 +398,14 @@ export default function FarmingPage() {
 
                             {/* Link to Liquidity */}
                             <Button
-                                onClick={() => router.push("/wallet/liquidity")}
                                 variant="outline"
                                 className="w-full border-[#333] text-gray-400"
+                                asChild
                             >
-                                <Icon icon="lucide:coins" className="w-4 h-4 mr-2"/>
-                                Add Liquidity First
+                                <Link href="/wallet/liquidity">
+                                    <Icon icon="lucide:coins" className="w-4 h-4 mr-2"/>
+                                    Add Liquidity First
+                                </Link>
                             </Button>
                         </motion.div>
                     )}

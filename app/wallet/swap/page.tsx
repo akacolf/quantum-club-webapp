@@ -10,6 +10,7 @@ import { useForm } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
@@ -660,11 +661,8 @@ export default function SwapPage() {
                                 Token swapping is only available on mainnet. Switch to mainnet mode in Settings to use this feature.
                             </p>
                         </div>
-                        <Button
-                            onClick={() => router.push("/wallet")}
-                            className="bg-card border border-border text-foreground hover:bg-accent h-12 px-8 rounded-xl"
-                        >
-                            Back to Wallet
+                        <Button asChild className="bg-card border border-border text-foreground hover:bg-accent h-12 px-8 rounded-xl">
+                            <Link href="/wallet">Back to Wallet</Link>
                         </Button>
                     </div>
                 </div>
@@ -1306,11 +1304,8 @@ export default function SwapPage() {
                                 </p>
                             </div>
 
-                            <Button
-                                onClick={() => router.push("/wallet")}
-                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold"
-                            >
-                                Back to Wallet
+                            <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold">
+                                <Link href="/wallet">Back to Wallet</Link>
                             </Button>
 
                             {lastTxHash && (

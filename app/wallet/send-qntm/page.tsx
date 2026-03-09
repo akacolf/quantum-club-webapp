@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
@@ -480,10 +481,10 @@ export default function SendQNTMPage() {
                 </form.Subscribe>
               </div>
               <Button
-                onClick={() => router.push("/wallet")}
                 className="w-full h-14 bg-foreground text-background hover:bg-foreground/90 rounded-xl font-bold mt-4"
+                asChild
               >
-                Back to Wallet
+                <Link href="/wallet">Back to Wallet</Link>
               </Button>
             </motion.div>
           )}

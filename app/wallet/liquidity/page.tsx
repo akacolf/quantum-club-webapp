@@ -5,6 +5,7 @@ import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
@@ -668,10 +669,10 @@ export default function LiquidityPage() {
               </p>
             </div>
             <Button
-              onClick={() => router.push("/wallet")}
               className="bg-card border border-border text-foreground hover:bg-accent h-12 px-8 rounded-xl"
+              asChild
             >
-              Back to Wallet
+              <Link href="/wallet">Back to Wallet</Link>
             </Button>
           </div>
         </div>

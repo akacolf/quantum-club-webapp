@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
@@ -496,10 +497,10 @@ export default function SendNftPage() {
                                     </Button>
                                 )}
                                 <Button
-                                    onClick={() => router.push("/wallet")}
                                     className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
+                                    asChild
                                 >
-                                    Back to Wallet
+                                    <Link href="/wallet">Back to Wallet</Link>
                                 </Button>
                             </div>
                         </motion.div>

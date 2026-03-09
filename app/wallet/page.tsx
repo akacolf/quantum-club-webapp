@@ -522,11 +522,13 @@ export default function WalletPage() {
 
             <Button
               variant="outline"
-              onClick={() => router.push("/wallet/import")}
+              asChild
               className="w-full bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#222] border-[#333] h-12 rounded-xl font-semibold text-base"
             >
-              <Icon icon="lucide:download" className="w-4 h-4 mr-2"/>
-              Import existing wallet
+              <Link href="/wallet/import">
+                <Icon icon="lucide:download" className="w-4 h-4 mr-2"/>
+                Import existing wallet
+              </Link>
             </Button>
           </div>
         </motion.div>
@@ -718,11 +720,13 @@ export default function WalletPage() {
                 </div>
               </div>
               <Button
-                onClick={() => router.push("/wallet/send-qntm")}
+                asChild
                 className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold transform-none hover:transform-none transition-opacity duration-200 hover:opacity-80 border-0 focus:ring-0 focus-visible:ring-0"
               >
-                <Icon icon="lucide:send" className="w-4 h-4 mr-2"/>
-                Send QNTM
+                <Link href="/wallet/send-qntm">
+                  <Icon icon="lucide:send" className="w-4 h-4 mr-2"/>
+                  Send QNTM
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -745,8 +749,8 @@ export default function WalletPage() {
             <CarouselContent className="ml-0">
               {/* Earn & Stake Card */}
               <CarouselItem className="pl-4 pr-4">
-                <button
-                  onClick={() => router.push("/wallet/earn")}
+                <Link
+                  href="/wallet/earn"
                   className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-all hover:border-primary/30 relative overflow-hidden"
                 >
                   {/* Left side - Text and CTA */}
@@ -766,13 +770,13 @@ export default function WalletPage() {
                   </div>
                   {/* Decorative blur */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
-                </button>
+                </Link>
               </CarouselItem>
 
               {/* NFT Marketplace Card */}
               <CarouselItem className="pl-4 pr-4">
-                <button
-                  onClick={() => router.push("/wallet/marketplace")}
+                <Link
+                  href="/wallet/marketplace"
                   className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-all hover:border-white/20 relative overflow-hidden"
                 >
                   {/* Left side - Text and CTA */}
@@ -792,13 +796,13 @@ export default function WalletPage() {
                   </div>
                   {/* Decorative blur */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
-                </button>
+                </Link>
               </CarouselItem>
 
               {/* Lending Card */}
               <CarouselItem className="pl-4 pr-4">
-                <button
-                  onClick={() => router.push("/wallet/lending")}
+                <Link
+                  href="/wallet/lending"
                   className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] flex items-center justify-between active:scale-[0.99] transition-all hover:border-white/20 relative overflow-hidden"
                 >
                   <div className="flex flex-col items-start justify-between h-full z-10">
@@ -815,7 +819,7 @@ export default function WalletPage() {
                     <Icon icon="lucide:landmark" className="w-8 h-8 text-white/70"/>
                   </div>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
-                </button>
+                </Link>
               </CarouselItem>
             </CarouselContent>
           </Carousel>
