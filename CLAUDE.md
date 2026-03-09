@@ -73,7 +73,7 @@ Route groups (parenthesized, don't affect URLs) organize shared code:
 ### API Routes (`app/api/`)
 - **Auth**: `/api/auth/telegram/`
 - **AI**: `/api/ai/chat/` (streaming response)
-- **Cron**: `/api/cron/sync-token-data/`, `/api/cron/leaderboard-update/`, `/api/cron/price-alerts/`
+- **Cron**: `/api/cron/leaderboard-update/`, `/api/cron/price-alerts/`
 
 ### Smart Contracts (`contracts/`)
 Tolk contracts for TEP-74 compliant Jetton with bonding curve + NFT marketplace:
