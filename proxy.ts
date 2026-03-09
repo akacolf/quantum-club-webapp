@@ -72,8 +72,8 @@ export async function proxy(request: NextRequest) {
   if (firebaseToken && !sessionCookie) {
     try {
       decodeJwt(firebaseToken);
-    } catch {
-      // Garbage cookie — redirect to login
+    } catch (err) {
+      console.error("[proxy] Invalid Firebase JWT cookie:", err);
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
@@ -88,8 +88,8 @@ export async function proxy(request: NextRequest) {
   if (sessionCookie) {
     try {
       return await updateSession(request);
-    } catch {
-      // Session JWT is corrupted/expired — clear it and redirect to login
+    } catch (err) {
+      console.error("[proxy] Session update failed:", err);
       const response = NextResponse.redirect(new URL("/", request.url));
       response.cookies.delete("session");
       return response;

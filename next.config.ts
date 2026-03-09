@@ -42,25 +42,12 @@ const nextConfig: import('next').NextConfig = {
     reactRemoveProperties: process.env.NODE_ENV === 'production',
   },
 
-  // Redirect and Rewrite configurations
-  async redirects() {
-    return [
-      // Example redirect
-      // {
-      //   source: '/old-path',
-      //   destination: '/new-path',
-      //   permanent: true,
-      // },
-    ];
-  },
-
   // Headers configuration for security
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
-          // Strict security headers
           {
             key: 'X-Frame-Options',
             value: 'SAMEORIGIN',
@@ -81,6 +68,40 @@ const nextConfig: import('next').NextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
+          // HSTS — enforce HTTPS for 1 year (includeSubDomains for full coverage)
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
+          // CSP — tailored for Telegram Mini App WebView environment
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // Scripts: self + Telegram SDK + Google Sign-In + react-scan (dev) + inline (Next.js hydration)
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://telegram.org https://accounts.google.com https://unpkg.com",
+              // Styles: self + inline (Tailwind + component libs)
+              "style-src 'self' 'unsafe-inline'",
+              // Images: self + all configured remote patterns (tokens can come from any HTTPS domain)
+              "img-src 'self' data: blob: https:",
+              // Fonts: self + Google Fonts CDN
+              "font-src 'self' https://fonts.gstatic.com",
+              // API connections: self + all backend services
+              "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://tonapi.io https://cache.tonapi.io https://toncenter.com https://coins.llama.fi https://firebasestorage.googleapis.com https://res.cloudinary.com https://api.telegram.org wss://tonapi.io https://*.googleapis.com https://generativelanguage.googleapis.com https://api.ston.fi",
+              // Frames: self + Telegram WebView
+              "frame-src 'self' https://telegram.org https://accounts.google.com",
+              // Workers: self (Serwist service worker)
+              "worker-src 'self' blob:",
+              // Media
+              "media-src 'self' blob:",
+              // Object/embed
+              "object-src 'none'",
+              // Base URI
+              "base-uri 'self'",
+              // Form actions
+              "form-action 'self'",
+            ].join('; '),
+          },
         ],
       },
     ];
@@ -94,11 +115,27 @@ const nextConfig: import('next').NextConfig = {
   // Partial Prerendering - static shells served instantly, dynamic parts stream in
   cacheComponents: true,
 
+  // Custom cache life profiles for 'use cache' directives
+  cacheLife: {
+    // Token metadata, leaderboard — changes infrequently
+    tokenData: { stale: 60, revalidate: 120, expire: 3600 },
+    // User profile, settings — moderate staleness OK
+    userData: { stale: 300, revalidate: 600, expire: 7200 },
+    // Price data, charts — needs freshness
+    priceData: { stale: 15, revalidate: 30, expire: 300 },
+  },
+
   // Experimental features
   experimental: {
     viewTransition: true,
     // Persist Turbopack compilation cache across production builds
     turbopackFileSystemCacheForBuild: true,
+    // Type-safe route validation — catches broken <Link href> at build time
+    typedRoutes: true,
+    // Env var IntelliSense in IDE (pairs with t3-env runtime validation)
+    typedEnv: true,
+    // Inline critical CSS — eliminates render-blocking stylesheets (faster FCP in TG WebView)
+    inlineCss: true,
     // Optimizations - tree-shake these large packages
     optimizePackageImports: [
       '@radix-ui/react-accordion',

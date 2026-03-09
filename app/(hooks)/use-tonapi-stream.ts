@@ -89,11 +89,12 @@ export function useTonApiStream() {
         }
       }
 
-      // Invalidate live trades & chart queries for this address
-      // These will refetch on next render of the component that uses them
-      queryClient.invalidateQueries({ queryKey: ["liveTrades"] });
-      queryClient.invalidateQueries({ queryKey: ["tradeEvents"] });
-      queryClient.invalidateQueries({ queryKey: ["onChainStats"] });
+      // Invalidate queries scoped to the affected token's address (matches query key structure)
+      const addr = matchedToken?.jettonMasterAddress ?? accountId;
+      queryClient.invalidateQueries({ queryKey: ["liveTrades", addr] });
+      queryClient.invalidateQueries({ queryKey: ["tradeEvents", addr] });
+      queryClient.invalidateQueries({ queryKey: ["onChainStats", addr] });
+      // Global trades must stay broad — it aggregates across all tokens
       queryClient.invalidateQueries({ queryKey: ["globalTrades"] });
     },
     [queryClient]

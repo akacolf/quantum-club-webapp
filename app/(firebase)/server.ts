@@ -1,3 +1,4 @@
+import "server-only";
 import { Firestore, getFirestore } from "firebase-admin/firestore";
 import { getApps, ServiceAccount } from "firebase-admin/app";
 import admin from 'firebase-admin'

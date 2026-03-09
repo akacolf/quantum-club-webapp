@@ -1,3 +1,4 @@
+import "server-only";
 import { createCipheriv } from "node:crypto";
 import { env } from "@/env";
 

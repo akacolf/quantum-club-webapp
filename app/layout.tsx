@@ -5,12 +5,13 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { Onest } from "next/font/google";
 import ClientProviders from "./(providers)/ClientProviders";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
 import dynamic from "next/dynamic";
 
+const WebVitals = dynamic(() => import("./(components)/WebVitals").then(m => ({ default: m.WebVitals })));
 const CallOverlay = dynamic(() => import("./(components)/CallOverlay"));
 const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"));
 const GroupCallOverlay = dynamic(() => import("./(components)/GroupCallOverlay"));
@@ -23,6 +24,14 @@ const onest = Onest({
   weight: "variable",
 });
 
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "Quantum Club",
@@ -40,7 +49,6 @@ export default function RootLayout({
         {process.env.NODE_ENV === "development" && (
           <Script src="https://unpkg.com/react-scan/dist/auto.global.js" strategy="lazyOnload" />
         )}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         {/* Preconnect to critical API domains (includes implicit dns-prefetch) */}
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossOrigin="anonymous" />
@@ -70,6 +78,7 @@ export default function RootLayout({
           <CallOverlay />
           <IncomingCallOverlay />
           <GroupCallOverlay />
+          <WebVitals />
           <Toaster />
         </ClientProviders>
         </AuthProvider>

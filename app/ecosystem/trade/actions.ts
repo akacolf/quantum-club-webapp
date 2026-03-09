@@ -346,7 +346,7 @@ export const uploadTokenImage = authActionClient
 // graduateToken — admin-only: graduate token from bonding curve to DEX
 // ---------------------------------------------------------------------------
 
-const ADMIN_IDS = env.ADMIN_TELEGRAM_IDS?.split(",") || [];
+const ADMIN_IDS = (env.ADMIN_TELEGRAM_IDS ?? "").split(",").map(id => id.trim()).filter(Boolean);
 
 export const graduateToken = authActionClient
     .schema(graduateSchema)

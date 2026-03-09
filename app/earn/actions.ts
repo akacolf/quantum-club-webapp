@@ -82,8 +82,8 @@ export const checkMembership = authActionClient
         }
 
         const data = await response.json();
-        if (!data.ok) {
-            throw new Error(`Telegram API returned false: ${JSON.stringify(data)}`);
+        if (!data.ok || !data.result?.status) {
+            throw new Error("Invalid Telegram API response");
         }
 
         const status = data.result.status;

@@ -28,21 +28,24 @@ export const setToken = actionClient
             throw new Error("User record not found");
         }
 
-        const expiresIn = 30 * 24 * 60 * 60; // 30 days in seconds
+        // Cap cookie lifetime to token expiry (Firebase ID tokens live ~1 hour,
+        // but client refreshes them — the refresh token cookie keeps the session alive)
+        const tokenExpirySeconds = Math.max(0, verifiedToken.exp - Math.floor(Date.now() / 1000));
+        const maxAge = 30 * 24 * 60 * 60; // 30 days for refresh token
         const cookieStore = await cookies();
         cookieStore.set("firebaseAuthToken", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
             sameSite: "strict",
             path: "/",
-            maxAge: expiresIn,
+            maxAge: tokenExpirySeconds, // Scoped to actual token expiry
         });
         cookieStore.set("firebaseAuthRefreshToken", refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: true,
             sameSite: "strict",
             path: "/",
-            maxAge: expiresIn,
+            maxAge,
         });
     });
 

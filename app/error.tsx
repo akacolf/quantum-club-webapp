@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 
-export default function Error({ reset }: { reset: () => void }) {
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    console.error("[ErrorBoundary]", error);
+  }, [error]);
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4 bg-black text-white overflow-hidden">
        {/* Background Gradients */}

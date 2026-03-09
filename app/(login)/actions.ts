@@ -128,35 +128,42 @@ export const processReferral = actionClient
     // Don't allow self-referral
     if (referrerId === newUserQcId) return { processed: false };
 
-    // Check referrer exists
     const referrerValuesRef = firestore.doc(`user/${referrerId}/miningData/values`);
-    const referrerValuesSnap = await referrerValuesRef.get();
-    if (!referrerValuesSnap.exists) return { processed: false };
-
-    // Check if referral already recorded
     const referralDocRef = firestore.doc(`user/${referrerId}/referrals/${newUserQcId}`);
-    const existingReferral = await referralDocRef.get();
-    if (existingReferral.exists) return { processed: false };
 
-    // Record referral on referrer
-    await referralDocRef.set({ telegramId: newUserQcId });
+    // Use transaction to prevent duplicate referrals from concurrent requests
+    const result = await firestore.runTransaction(async (tx) => {
+      const [referrerValuesSnap, existingReferral] = await Promise.all([
+        tx.get(referrerValuesRef),
+        tx.get(referralDocRef),
+      ]);
 
-    // Store who referred the new user
-    const newUserReferralInfo = firestore.doc(`user/${newUserQcId}/miningData/referralInfo`);
-    await newUserReferralInfo.set({
-      referredBy: referrerId,
-      referredAt: new Date().toISOString(),
+      if (!referrerValuesSnap.exists) return { processed: false };
+      if (existingReferral.exists) return { processed: false };
+
+      // Record referral on referrer
+      tx.set(referralDocRef, { telegramId: newUserQcId });
+
+      // Store who referred the new user
+      tx.set(firestore.doc(`user/${newUserQcId}/miningData/referralInfo`), {
+        referredBy: referrerId,
+        referredAt: new Date().toISOString(),
+      });
+
+      // 10% reward for referrer
+      const referredAmount = referrerValuesSnap.data()?.QuantAmount;
+      if (referredAmount != null) {
+        const referredTenAmount = ((quantValue + 122) * 10) / 100;
+        const referredUpdatedAmount = Number(referredAmount) + referredTenAmount;
+        tx.update(referrerValuesRef, { QuantAmount: referredUpdatedAmount });
+      }
+
+      return { processed: true };
     });
 
-    // 10% reward for referrer
-    const referredAmount = referrerValuesSnap.data()?.QuantAmount;
-    if (referredAmount != null) {
-      const referredTenAmount = ((quantValue + 122) * 10) / 100;
-      const referredUpdatedAmount = Number(referredAmount) + referredTenAmount;
-      await referrerValuesRef.update({ QuantAmount: referredUpdatedAmount });
-    }
+    if (!result.processed) return result;
 
-    // 2% reward for referrer's referrer (second-tier referral)
+    // 2% reward for referrer's referrer (second-tier, outside transaction — non-critical)
     try {
       const referrerInfoSnap = await firestore.doc(`user/${referrerId}/miningData/referralInfo`).get();
       if (referrerInfoSnap.exists) {

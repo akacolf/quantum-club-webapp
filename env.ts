@@ -12,7 +12,7 @@ export const env = createEnv({
 
     // Auth & Encryption
     JWT_SECRET: z.string().min(1),
-    AES_ENCRYPTION_KEY: z.string().min(1),
+    AES_ENCRYPTION_KEY: z.string().min(32, "AES key must be at least 32 characters (256-bit)"),
 
     // Telegram Bot
     BOT_TOKEN: z.string().min(1),
