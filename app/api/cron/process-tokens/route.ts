@@ -282,5 +282,4 @@ export async function GET(request: NextRequest) {
 }
 
 // Vercel cron configuration
-export const runtime = "nodejs";
 export const maxDuration = 60; // Allow up to 60 seconds for processing

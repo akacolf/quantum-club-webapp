@@ -245,5 +245,4 @@ async function verifyTransaction(txHash: string, walletAddress: string): Promise
 }
 
 // Runtime configuration for Vercel
-export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes max

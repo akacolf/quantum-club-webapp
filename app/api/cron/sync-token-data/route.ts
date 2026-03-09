@@ -218,5 +218,4 @@ async function fetchHoldersCount(address: string): Promise<number | null> {
 }
 
 // Runtime configuration for Vercel
-export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes max

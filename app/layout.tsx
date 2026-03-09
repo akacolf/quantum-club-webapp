@@ -11,9 +11,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
 import dynamic from "next/dynamic";
 
-const CallOverlay = dynamic(() => import("./(components)/CallOverlay"), { ssr: false });
-const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"), { ssr: false });
-const GroupCallOverlay = dynamic(() => import("./(components)/GroupCallOverlay"), { ssr: false });
+const CallOverlay = dynamic(() => import("./(components)/CallOverlay"));
+const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"));
+const GroupCallOverlay = dynamic(() => import("./(components)/GroupCallOverlay"));
 
 
 const onest = Onest({
