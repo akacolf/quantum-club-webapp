@@ -367,10 +367,8 @@ export default function TradePage() {
     // Lazy load lottie animations
     const lottieData = useLottieData();
 
-    // Prefetch trade routes
+    // Prefetch first few token detail pages (dynamic routes not covered by Link)
     useEffect(() => {
-        router.prefetch("/ecosystem/trade/create");
-        // Prefetch first few token pages
         trendingTokens.slice(0, 5).forEach(token => {
             router.prefetch(`/ecosystem/trade/${token.id}`);
         });

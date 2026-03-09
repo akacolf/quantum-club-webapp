@@ -218,17 +218,13 @@ export default function WalletPage() {
   // Back button to return to main app
   useTelegramBackButton("/home");
 
-  // Prefetch common wallet sub-routes for faster navigation
+  // Prefetch wallet action routes (not covered by <Link> on this page)
   useEffect(() => {
     router.prefetch("/wallet/send");
     router.prefetch("/wallet/receive");
     router.prefetch("/wallet/history");
     router.prefetch("/wallet/analytics");
     router.prefetch("/wallet/swap");
-    router.prefetch("/wallet/earn");
-    router.prefetch("/wallet/settings");
-    router.prefetch("/wallet/send-qntm");
-    router.prefetch("/wallet/staking");
   }, [router]);
 
   const [hasWallet, setHasWallet] = useState(false);

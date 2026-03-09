@@ -39,12 +39,16 @@ export default function RootLayout({
           <script src="https://unpkg.com/react-scan/dist/auto.global.js" async />
         )}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        {/* Preconnect to critical API domains (includes implicit dns-prefetch) */}
         <link rel="preconnect" href="https://firestore.googleapis.com" />
         <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
         <link rel="preconnect" href="https://tonapi.io" />
-        <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
-        <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
-        <link rel="dns-prefetch" href="https://tonapi.io" />
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+        {/* DNS prefetch for secondary domains */}
+        <link rel="dns-prefetch" href="https://cache.tonapi.io" />
+        <link rel="dns-prefetch" href="https://toncenter.com" />
+        <link rel="dns-prefetch" href="https://coins.llama.fi" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body className={`${onest.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57" strategy="beforeInteractive"></Script>
