@@ -46,6 +46,7 @@ fun sendTokens(
     jettonWalletCode: cell,
     jettonAmount: int,
     queryId: int,
+    ownerAddress: address,
     responseAddress: address,
     forwardTonAmount: int,
     forwardPayload: cell?,
@@ -62,7 +63,7 @@ fun sendTokens(
         .storeUint(OP_INTERNAL_TRANSFER, 32)
         .storeUint(queryId, 64)
         .storeCoins(jettonAmount)
-        .storeAddress(contract.getAddress())
+        .storeAddress(ownerAddress)
         .storeAddress(responseAddress)
         .storeCoins(forwardTonAmount)
         .storeUint(0, 1)
@@ -73,7 +74,7 @@ fun sendTokens(
             .storeUint(OP_INTERNAL_TRANSFER, 32)
             .storeUint(queryId, 64)
             .storeCoins(jettonAmount)
-            .storeAddress(contract.getAddress())
+            .storeAddress(ownerAddress)
             .storeAddress(responseAddress)
             .storeCoins(forwardTonAmount)
             .storeUint(1, 1)
@@ -145,6 +146,7 @@ fun handleTransfer(
         st.jettonWalletCode,
         jettonAmount,
         queryId,
+        st.ownerAddress,
         responseAddress,
         forwardTonAmount,
         forwardPayload,

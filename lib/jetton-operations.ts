@@ -115,13 +115,16 @@ export function buildWithdrawFeesMessage(params: {
 
 /**
  * Build graduation message (triggers DEX listing)
+ * dexRouterAddress is required — the contract reads it from the message body
  */
 export function buildGraduateMessage(params: {
     queryId?: bigint;
+    dexRouterAddress: Address;
 }): Cell {
     return beginCell()
         .storeUint(JettonOps.GRADUATE, 32)
         .storeUint(params.queryId ?? BigInt(0), 64)
+        .storeAddress(params.dexRouterAddress)
         .endCell();
 }
 
