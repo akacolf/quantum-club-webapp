@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
@@ -860,8 +861,7 @@ export default function QCChatListPage() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/30">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/png/qc-chat-logo.png" alt="QC Chat" className="w-6 h-6" />
+              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={24} height={24} />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -1178,8 +1178,7 @@ export default function QCChatListPage() {
         ) : !telegramId ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/png/qc-chat-logo.png" alt="QC Chat" className="w-10 h-10" />
+              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={40} height={40} />
             </div>
             <p className="text-sm font-medium text-foreground">Sign in to chat</p>
             <p className="text-xs text-muted-foreground">
@@ -1200,8 +1199,7 @@ export default function QCChatListPage() {
             {filteredConversations.length === 0 && !showGlobalChat ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/png/qc-chat-logo.png" alt="QC Chat" className="w-10 h-10" />
+                  <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={40} height={40} />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">

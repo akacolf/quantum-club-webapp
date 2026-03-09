@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -248,8 +249,7 @@ const EcosystemNavigation = () => {
               >
                 <div className="scale-100">
                   {tab.id === "chat" ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src="/png/qc-chat-logo.png" alt="QC Chat" style={{ width: "1.6em", height: "1.6em" }} />
+                    <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={26} height={26} />
                   ) : (
                     <Icon
                       icon={tab.icon}

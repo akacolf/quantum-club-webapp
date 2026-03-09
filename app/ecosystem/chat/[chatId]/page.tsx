@@ -2421,8 +2421,7 @@ export default function ChatConversationPage() {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/png/qc-chat-logo.png" alt="QC Chat" className="w-9 h-9" />
+              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={36} height={36} />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">No messages yet</p>

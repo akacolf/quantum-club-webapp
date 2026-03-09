@@ -201,8 +201,7 @@ export default function GroupInfoPage() {
                   </p>
                   {isQcTeamMember(resolvedNames[chatMeta.createdBy]) && (
                     <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="/png/qc-global-logo.png" alt="QC" className="w-2.5 h-2.5 rounded-full" />
+                      <Image src="/png/qc-global-logo.png" alt="QC" width={10} height={10} className="rounded-full" />
                       QC
                     </Badge>
                   )}
