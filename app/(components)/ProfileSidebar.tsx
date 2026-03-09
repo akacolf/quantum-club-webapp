@@ -58,6 +58,13 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [emailJustLinked, setEmailJustLinked] = useState(false);
 
+  // Prefetch sidebar navigation destinations
+  useEffect(() => {
+    router.prefetch("/home/profile");
+    router.prefetch("/legal/terms");
+    router.prefetch("/legal/privacy");
+  }, [router]);
+
   // Link-email form (TanStack Form)
   const linkEmailForm = useForm({
     defaultValues: { email: "", password: "" },

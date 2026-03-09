@@ -38,6 +38,11 @@ export default function SendNftPage() {
     const {telegramId}  = useUserContext();
     useTelegramBackButton(`/wallet/nft/${encodeURIComponent(nftAddress)}`);
 
+    // Prefetch post-send destination
+    useEffect(() => {
+        router.prefetch("/wallet");
+    }, [router]);
+
     const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
     const { walletAddress, tonBalance, fetchWalletAssets, isTestnet } = useWallet();
 

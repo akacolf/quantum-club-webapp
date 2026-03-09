@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,6 +44,13 @@ export default function NftDetailPage() {
         handleCancel: handleAuthCancel,
     } = useBiometricAuth();
     const queryClient = useQueryClient();
+    // Prefetch common NFT action routes
+    useEffect(() => {
+        router.prefetch(`/wallet/marketplace/buy/${encodeURIComponent(nftAddress)}`);
+        router.prefetch(`/wallet/send-nft/${encodeURIComponent(nftAddress)}`);
+        router.prefetch("/wallet");
+    }, [router, nftAddress]);
+
     const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
     const [copied, setCopied] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);

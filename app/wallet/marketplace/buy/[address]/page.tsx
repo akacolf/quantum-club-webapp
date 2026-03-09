@@ -42,6 +42,12 @@ export default function BuyNftPage() {
         handleCancel: handleAuthCancel,
     } = useBiometricAuth();
 
+    // Prefetch post-purchase destinations
+    useEffect(() => {
+        router.prefetch("/wallet");
+        router.prefetch("/wallet/marketplace");
+    }, [router]);
+
     const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
     const [viewMode, setViewMode] = useState<ViewMode>("preview");
     const [error, setError] = useState<string | null>(null);
