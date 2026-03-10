@@ -1,5 +1,5 @@
 // Validate env vars at build start (fails fast if any required var is missing)
-import "./env";
+import { env } from "./env";
 import withSerwistInit from "@serwist/next";
 import createBundleAnalyzer from "@next/bundle-analyzer";
 
@@ -10,7 +10,7 @@ const withSerwist = withSerwistInit({
 });
 
 const withAnalyzer = createBundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
+  enabled: env.ANALYZE === "true",
 });
 
 /** @type {import('next').NextConfig} */

@@ -47,6 +47,9 @@ export const env = createEnv({
 
     // Analytics
     TGA_AUTH_TOKEN: z.string().optional(),
+
+    // Build tools
+    ANALYZE: z.string().optional(),
   },
 
   client: {
@@ -98,6 +101,7 @@ export const env = createEnv({
     CLOUDFLARE_TURN_API_TOKEN: process.env.CLOUDFLARE_TURN_API_TOKEN,
     TONAPI_KEY: process.env.TONAPI_KEY,
     TGA_AUTH_TOKEN: process.env.TGA_AUTH_TOKEN,
+    ANALYZE: process.env.ANALYZE,
     // Client
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     NEXT_PUBLIC_AUTH_DOMAIN: process.env.NEXT_PUBLIC_AUTH_DOMAIN,
