@@ -5,7 +5,7 @@ import {
     OmnistonProvider,
     WebSocketTransport,
 } from "@ston-fi/omniston-sdk-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const OMNISTON_WS_URL = "wss://omni-ws.ston.fi";
 
@@ -28,12 +28,6 @@ export function OmnistonClientProvider({
 }: {
     children: React.ReactNode;
 }) {
-    const [isClient, setIsClient] = useState(false);
-
-    useEffect(() => {
-        queueMicrotask(() => setIsClient(true));
-    }, []);
-
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -43,11 +37,9 @@ export function OmnistonClientProvider({
         };
     }, []);
 
-    // Don't render provider on server or before client mount
-    if (!isClient) {
-        return <>{children}</>;
-    }
-
+    // This component is loaded via dynamic(..., { ssr: false }), so it only
+    // runs on the client. Always wrap children in OmnistonProvider so that
+    // hooks like useOmniston() never throw due to a missing provider.
     const omniston = getOmniston();
 
     return (
