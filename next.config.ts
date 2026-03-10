@@ -1,11 +1,16 @@
 // Validate env vars at build start (fails fast if any required var is missing)
 import "./env";
 import withSerwistInit from "@serwist/next";
+import createBundleAnalyzer from "@next/bundle-analyzer";
 
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV !== "production",
+});
+
+const withAnalyzer = createBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
 });
 
 /** @type {import('next').NextConfig} */
@@ -164,4 +169,4 @@ const nextConfig: import('next').NextConfig = {
   turbopack: {},
 };
 
-export default withSerwist(nextConfig);
+export default withAnalyzer(withSerwist(nextConfig));
