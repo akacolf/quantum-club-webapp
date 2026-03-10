@@ -455,12 +455,19 @@ export default function ChatConversationClient() {
     return () => unsub();
   }, [currentUser, chatId]);
 
-  // Resolve "Unknown" participant names via batch query
-  const unknownUids = !chatMeta?.participantNames
+  // Resolve "Unknown" or missing participant names via batch query
+  const unknownUids = !chatMeta
     ? []
-    : Object.entries(chatMeta.participantNames)
-        .filter(([, name]) => name === "Unknown")
-        .map(([uid]) => uid);
+    : [
+        // Participants whose name is stored as "Unknown"
+        ...Object.entries(chatMeta.participantNames)
+          .filter(([, name]) => name === "Unknown")
+          .map(([uid]) => uid),
+        // Participants missing from participantNames entirely
+        ...chatMeta.participants.filter(
+          (p) => p !== telegramId && !chatMeta.participantNames[p]
+        ),
+      ];
 
   const batchUsernamesQuery = useQcUsernamesBatch(unknownUids);
 
@@ -1781,7 +1788,11 @@ export default function ChatConversationClient() {
       return "Saved Messages";
     }
     const other = chatMeta.participants.find((p) => p !== telegramId);
-    if (other && chatMeta.participantNames[other]) return chatMeta.participantNames[other];
+    if (other && chatMeta.participantNames[other] && chatMeta.participantNames[other] !== "Unknown") {
+      return chatMeta.participantNames[other];
+    }
+    // Fallback: use the individually-resolved username query for DM chats
+    if (recipientUsernameQuery.data?.username) return recipientUsernameQuery.data.username;
     return "Chat";
   };
 
