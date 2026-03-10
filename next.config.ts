@@ -68,39 +68,10 @@ const nextConfig: import('next').NextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
-          // HSTS — enforce HTTPS for 1 year (includeSubDomains for full coverage)
+          // HSTS — enforce HTTPS for 1 year
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains',
-          },
-          // CSP — tailored for Telegram Mini App WebView environment
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              // Scripts: self + Telegram SDK + Google Sign-In + Vercel Analytics + inline (Next.js hydration)
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://telegram.org https://accounts.google.com https://va.vercel-scripts.com",
-              // Styles: self + inline (Tailwind + component libs)
-              "style-src 'self' 'unsafe-inline'",
-              // Images: self + all configured remote patterns (tokens can come from any HTTPS domain)
-              "img-src 'self' data: blob: https:",
-              // Fonts: self + Google Fonts CDN
-              "font-src 'self' https://fonts.gstatic.com",
-              // API connections: self + all backend services
-              "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://tonapi.io https://cache.tonapi.io https://toncenter.com https://coins.llama.fi https://firebasestorage.googleapis.com https://res.cloudinary.com https://api.telegram.org wss://tonapi.io https://*.googleapis.com https://generativelanguage.googleapis.com https://api.ston.fi https://api.iconify.design https://vitals.vercel-insights.com",
-              // Frames: self + Telegram WebView
-              "frame-src 'self' https://telegram.org https://accounts.google.com",
-              // Workers: self (Serwist service worker)
-              "worker-src 'self' blob:",
-              // Media
-              "media-src 'self' blob:",
-              // Object/embed
-              "object-src 'none'",
-              // Base URI
-              "base-uri 'self'",
-              // Form actions
-              "form-action 'self'",
-            ].join('; '),
           },
         ],
       },
