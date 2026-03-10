@@ -36,14 +36,14 @@ export const setToken = actionClient
         cookieStore.set("firebaseAuthToken", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "lax", // "lax" allows cookies on initial navigation from Telegram
             path: "/",
             maxAge: tokenExpirySeconds, // Scoped to actual token expiry
         });
         cookieStore.set("firebaseAuthRefreshToken", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "lax",
             path: "/",
             maxAge,
         });

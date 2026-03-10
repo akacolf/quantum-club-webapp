@@ -17,13 +17,7 @@ const nextConfig: import('next').NextConfig = {
   // Image Optimization Configuration
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'ton.org' },
-      { protocol: 'https', hostname: 'cache.tonapi.io' },
-      { protocol: 'https', hostname: 'res.cloudinary.com' },
-      { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
-      { protocol: 'https', hostname: 'quantumclub.space' },
-      { protocol: 'https', hostname: 'i.ibb.co' },
-      // Token/NFT metadata images can come from any domain (on-chain URLs)
+      // Allow any HTTPS image — token/NFT metadata can come from any domain
       { protocol: 'https', hostname: '**' },
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -43,15 +37,12 @@ const nextConfig: import('next').NextConfig = {
   },
 
   // Headers configuration for security
+  // NOTE: No X-Frame-Options — app runs inside Telegram's iframe/WebView
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
