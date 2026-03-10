@@ -9,6 +9,8 @@
  * affected account ID so callers can refetch data instantly.
  */
 
+import { env } from "@/env";
+
 const WS_URL = "wss://tonapi.io/v2/websocket";
 
 // Trade opcodes
@@ -41,7 +43,7 @@ export class TonApiWebSocket {
     if (this.disposed) return;
     this.cleanup();
 
-    const apiKey = process.env.NEXT_PUBLIC_TONAPI_KEY;
+    const apiKey = env.NEXT_PUBLIC_TONAPI_KEY;
     const url = apiKey ? `${WS_URL}?token=${apiKey}` : WS_URL;
 
     this.ws = new WebSocket(url);

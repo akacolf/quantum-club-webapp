@@ -89,7 +89,6 @@ async function sendAnalyticsEvent(
     });
 
     if (result?.data?.success) {
-      console.log(`[Analytics] Event "${eventName}" recorded`);
       return true;
     }
     return false;

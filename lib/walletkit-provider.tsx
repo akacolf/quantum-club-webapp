@@ -52,8 +52,6 @@ export function WalletKitProvider({
 
         const initKit = async () => {
             try {
-                console.log("[WalletKit] Initializing...");
-
                 const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
 
                 const kit = new TonWalletKit({
@@ -100,7 +98,6 @@ export function WalletKitProvider({
 
                 // Create named callback refs for proper cleanup
                 const onConnect = (event: EventConnectRequest) => {
-                    console.log("[WalletKit] Connection request received:", event);
                     analyticsEvents.connectionStarted();
                     if (mounted) {
                         useWalletKitStore.setState({ pendingConnection: event });
@@ -108,21 +105,18 @@ export function WalletKitProvider({
                 };
 
                 const onTransaction = (event: EventTransactionRequest) => {
-                    console.log("[WalletKit] Transaction request received:", event);
                     if (mounted) {
                         useWalletKitStore.setState({ pendingTransaction: event });
                     }
                 };
 
                 const onSignData = (event: EventSignDataRequest) => {
-                    console.log("[WalletKit] Sign data request received:", event);
                     if (mounted) {
                         useWalletKitStore.setState({ pendingSignData: event });
                     }
                 };
 
                 const onDisconnect = (_event: EventDisconnect) => {
-                    console.log("[WalletKit] Disconnect event:", _event);
                     analyticsEvents.disconnection();
                     kit.listSessions().then(s => {
                         if (mounted) useWalletKitStore.setState({ sessions: s });
@@ -153,7 +147,6 @@ export function WalletKitProvider({
                         isReady: true,
                         isTestnet,
                     });
-                    console.log("[WalletKit] Initialized successfully, sessions:", initialSessions.length);
                 }
             } catch (error) {
                 console.error("[WalletKit] Initialization failed:", error);
@@ -190,7 +183,6 @@ export function WalletKitProvider({
         }
 
         try {
-            console.log("[WalletKit] Registering wallet...");
             const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
 
             // Create signer from mnemonic
@@ -211,7 +203,6 @@ export function WalletKitProvider({
             if (registeredWallet) {
                 walletRef.current = registeredWallet;
                 useWalletKitStore.setState({ isWalletRegistered: true });
-                console.log("[WalletKit] Wallet registered:", registeredWallet.getAddress());
                 return true;
             }
             return false;
@@ -232,9 +223,7 @@ export function WalletKitProvider({
         getSecureMnemonic(telegramId).then((storedMnemonic) => {
             if (storedMnemonic) {
                 const mnemonic = storedMnemonic.split(" ");
-                registerWallet(mnemonic).then((ok) => {
-                    if (ok) console.log("[WalletKit] Auto-registered wallet on init");
-                });
+                registerWallet(mnemonic);
             }
         });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- registerWallet is stable, depends on refs
@@ -253,8 +242,6 @@ export function WalletKitProvider({
 
         // Check if wallet is registered, if not try to register it
         if (!walletRef.current) {
-            console.log("[WalletKit] Wallet not registered, attempting to register...");
-
             const telegramId = localStorage.getItem("telegramId") || "";
             const storedMnemonic = telegramId ? await getSecureMnemonic(telegramId) : null;
 
@@ -285,9 +272,7 @@ export function WalletKitProvider({
         }
 
         try {
-            console.log("[WalletKit] Approving connection with wallet:", walletRef.current?.getAddress());
             await kitRef.current.approveConnectRequest(pendingConnection);
-            console.log("[WalletKit] Connection approved");
 
             const address = walletRef.current?.getAddress();
             if (address) analyticsEvents.connectionCompleted(address.toString());
@@ -327,7 +312,6 @@ export function WalletKitProvider({
         }
 
         try {
-            console.log("[WalletKit] Rejecting connection...");
             await kitRef.current.rejectConnectRequest(pendingConnection, "User rejected");
         } catch (error) {
             console.error("[WalletKit] Failed to reject connection:", error);
@@ -345,9 +329,7 @@ export function WalletKitProvider({
         }
 
         try {
-            console.log("[WalletKit] Approving transaction...");
-            const response = await kitRef.current.approveTransactionRequest(pendingTransaction);
-            console.log("[WalletKit] Transaction approved:", response);
+            await kitRef.current.approveTransactionRequest(pendingTransaction);
             haptics.success();
             toast.success("Transaction sent");
         } catch (error) {
@@ -369,7 +351,6 @@ export function WalletKitProvider({
         }
 
         try {
-            console.log("[WalletKit] Rejecting transaction...");
             await kitRef.current.rejectTransactionRequest(pendingTransaction, "User rejected");
         } catch (error) {
             console.error("[WalletKit] Failed to reject transaction:", error);
@@ -387,9 +368,7 @@ export function WalletKitProvider({
         }
 
         try {
-            console.log("[WalletKit] Approving sign data...");
-            const response = await kitRef.current.signDataRequest(pendingSignData);
-            console.log("[WalletKit] Sign data approved:", response);
+            await kitRef.current.signDataRequest(pendingSignData);
             haptics.success();
             toast.success("Data signed successfully");
         } catch (error) {
@@ -411,7 +390,6 @@ export function WalletKitProvider({
         }
 
         try {
-            console.log("[WalletKit] Rejecting sign data...");
             await kitRef.current.rejectSignDataRequest(pendingSignData, "User rejected");
         } catch (error) {
             console.error("[WalletKit] Failed to reject sign data:", error);
@@ -439,7 +417,6 @@ export function WalletKitProvider({
         if (!kitRef.current) {
             throw new Error("WalletKit not initialized");
         }
-        console.log("[WalletKit] Handling TON Connect URL:", url);
         await kitRef.current.handleTonConnectUrl(url);
     }
 

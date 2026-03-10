@@ -181,7 +181,6 @@ export async function getPopularCollections(
 
         // If filtering returned few results, fetch verified collections directly
         if (verifiedCollections.length < 3 && !testnet) {
-            console.log("[NFT Marketplace] Falling back to direct collection fetch");
             const directCollections = await fetchVerifiedCollectionsDirectly(limit, testnet);
             if (directCollections.length > verifiedCollections.length) {
                 return directCollections;

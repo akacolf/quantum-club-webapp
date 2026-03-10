@@ -14,8 +14,6 @@ export async function uploadTokenImage(
             return imageData;
         }
 
-        console.log("Uploading image to Cloudinary...");
-
         const result = await uploadTokenImageAction({ tokenId, imageData });
 
         if (result?.serverError) {
@@ -24,7 +22,6 @@ export async function uploadTokenImage(
         }
 
         if (result?.data?.success && result.data.publicUrl) {
-            console.log("Image uploaded successfully:", result.data.publicUrl);
             return result.data.publicUrl;
         }
 
