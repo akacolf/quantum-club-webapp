@@ -94,6 +94,11 @@ const nextConfig: import('next').NextConfig = {
     typedEnv: true,
     // Inline critical CSS — eliminates render-blocking stylesheets (faster FCP in TG WebView)
     inlineCss: true,
+    // Client router cache — instant back/forward navigation in TG Mini App
+    staleTimes: {
+      dynamic: 30,   // Dynamic pages (leaderboard, prices) refresh after 30s
+      static: 180,   // Static pages (token info, settings) cached 3 min
+    },
     // Optimizations - tree-shake these large packages
     optimizePackageImports: [
       '@radix-ui/react-accordion',
@@ -139,6 +144,14 @@ const nextConfig: import('next').NextConfig = {
       'nuqs',
       'zod',
     ],
+  },
+
+  // Dev: log fetch cache hits/misses to catch redundant network requests
+  logging: {
+    fetches: {
+      fullUrl: true,
+      hmrRefreshes: true,
+    },
   },
 
   // react-pdf: canvas is not needed in browser, exclude from server bundle
