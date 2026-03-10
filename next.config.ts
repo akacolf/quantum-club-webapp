@@ -68,11 +68,6 @@ const nextConfig: import('next').NextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
-          // HSTS — enforce HTTPS for 1 year
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains',
-          },
         ],
       },
     ];
