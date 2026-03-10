@@ -35,14 +35,14 @@ export const setToken = actionClient
         const cookieStore = await cookies();
         cookieStore.set("firebaseAuthToken", token, {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             path: "/",
             maxAge: tokenExpirySeconds, // Scoped to actual token expiry
         });
         cookieStore.set("firebaseAuthRefreshToken", refreshToken, {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             path: "/",
             maxAge,
