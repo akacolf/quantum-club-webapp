@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,15 @@ export default function CollectionDetailPage() {
     const { data: collection, isLoading: isLoadingCollection } = useNftCollectionQuery(collectionAddress, isTestnet);
     const { data: items = [], isLoading: isLoadingItems } = useNftCollectionItemsQuery(collectionAddress, isTestnet);
     const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+    const gridRef = useRef<HTMLDivElement>(null);
+
+    const rowCount = Math.ceil(items.length / 2);
+    const virtualizer = useWindowVirtualizer({
+        count: rowCount,
+        estimateSize: () => 240,
+        overscan: 3,
+        scrollMargin: gridRef.current?.offsetTop ?? 0,
+    });
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
@@ -200,56 +210,68 @@ export default function CollectionDetailPage() {
                             <p className="text-muted-foreground">No items currently for sale</p>
                         </Card>
                     ) : (
-                        <div className="grid grid-cols-2 gap-3">
-                            {items.map((item, index) => (
-                                <motion.div
-                                    key={item.address}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: index * 0.02 }}
-                                >
-                                    <Link
-                                        href={`/wallet/nft/${encodeURIComponent(item.address)}`}
-                                        prefetch={true}
+                        <div
+                            ref={gridRef}
+                            style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
+                        >
+                            {virtualizer.getVirtualItems().map((virtualRow) => {
+                                const startIdx = virtualRow.index * 2;
+                                const pair = items.slice(startIdx, startIdx + 2);
+                                return (
+                                    <div
+                                        key={virtualRow.key}
+                                        ref={virtualizer.measureElement}
+                                        data-index={virtualRow.index}
+                                        style={{
+                                            position: "absolute",
+                                            top: 0,
+                                            left: 0,
+                                            width: "100%",
+                                            transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+                                        }}
+                                        className="grid grid-cols-2 gap-3 pb-3"
                                     >
-                                        <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all">
-                                            <div className="relative aspect-square bg-muted overflow-hidden">
-                                                {item.image && !imageErrors.has(item.address) ? (
-                                                    <Image
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        fill
-                                                        className="object-cover"
-                                                        unoptimized
-                                                        onError={() => handleImageError(item.address)}
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                                                        <Icon icon="lucide:image" className="w-10 h-10 text-muted-foreground" />
+                                        {pair.map((item) => (
+                                            <Link
+                                                key={item.address}
+                                                href={`/wallet/nft/${encodeURIComponent(item.address)}`}
+                                                prefetch={true}
+                                            >
+                                                <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all">
+                                                    <div className="relative aspect-square bg-muted overflow-hidden">
+                                                        {item.image && !imageErrors.has(item.address) ? (
+                                                            <Image
+                                                                src={item.image}
+                                                                alt={item.name}
+                                                                fill
+                                                                className="object-cover"
+                                                                unoptimized
+                                                                onError={() => handleImageError(item.address)}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                                                                <Icon icon="lucide:image" className="w-10 h-10 text-muted-foreground" />
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                            <CardContent className="p-3">
-                                                <p className="font-semibold text-sm truncate">{item.name}</p>
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <p className="text-sm font-bold text-primary">
-                                                        {item.sale?.priceFormatted} TON
-                                                    </p>
-                                                    <Icon icon="lucide:chevron-right" className="w-4 h-4 text-muted-foreground" />
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </Link>
-                                </motion.div>
-                            ))}
+                                                    <CardContent className="p-3">
+                                                        <p className="font-semibold text-sm truncate">{item.name}</p>
+                                                        <div className="flex items-center justify-between mt-1">
+                                                            <p className="text-sm font-bold text-primary">
+                                                                {item.sale?.priceFormatted} TON
+                                                            </p>
+                                                            <Icon icon="lucide:chevron-right" className="w-4 h-4 text-muted-foreground" />
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 
-                    {isLoadingItems && (
-                        <div className="flex justify-center py-4">
-                            <Icon icon="lucide:loader-2" className="w-6 h-6 animate-spin text-muted-foreground" />
-                        </div>
-                    )}
                 </motion.div>
             </div>
         </div>

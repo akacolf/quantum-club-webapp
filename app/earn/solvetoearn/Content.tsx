@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { dbfs } from "@/app/(firebase)/client";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";
+import { useGameSaveMutation } from "@/app/(hooks)/queries/use-mining-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -335,52 +334,30 @@ const SolveToEarnContent = () => {
       }
     }
   }
+
+  const gameSaveMutation = useGameSaveMutation(telegramId);
+
   useEffect(() => {
-    const dbSave = async (answersR: number, correctR: number) => {
-      try {
-        const date = new Date(Date.now());
-        const formattedDate =
-          `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-
-        const solvetoEarnHistory = doc(dbfs, `user/${telegramId}/solveToEarnHistory/${Date.now()}`);
-
-        const solveToEarnSet = doc(dbfs, `user/${telegramId}/miningData/values`);
-        const snapshotSolveToEarn = await getDoc(solveToEarnSet);
-        const remainingSolveToEarn = snapshotSolveToEarn.data()?.remainingSolveToEarn;
-        const totalQuant = snapshotSolveToEarn.data()?.QuantAmount;
-        const totallyQ = totalQuant + answersR;
-        let formattedQuant = Number(totallyQ);
-        formattedQuant = totallyQ.toLocaleString("en-US", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        });
-        sessionStorage.setItem("correctAnswers", `${correctR}`);
-        if (snapshotSolveToEarn.exists() && remainingSolveToEarn) {
-          if (Number(remainingSolveToEarn) > 0) {
-            updateDoc(solveToEarnSet, {
-              QuantAmount: totallyQ,
-            });
-            setDoc(solvetoEarnHistory, {
-              Date: formattedDate,
-              total: correctR,
-              quant: answersR,
-              platform: "solvetoearn"
-            }, { merge: true });
-            SetMainQuantAmount(`${formattedQuant}`);
-            sessionStorage.setItem("TotalCorrectSolveToEarn", `${answersR}`);
-          }
-        }
-      } finally {
-        router.replace("/earn/solvetoearn/solveToEarnResults")
-      }
-    };
-
     const interval = setInterval(() => {
       setLeftTime(prevTime => {
         if (prevTime <= 0) {
           clearInterval(interval);
           setIsLoading(true);
-          dbSave(answersRef.current, correctRef.current);
+          gameSaveMutation.mutate(
+            {
+              telegramId: telegramId!,
+              earnedQuant: answersRef.current,
+              correctAnswers: correctRef.current,
+            },
+            {
+              onSuccess: (formattedQuant) => {
+                if (formattedQuant) SetMainQuantAmount(formattedQuant);
+              },
+              onSettled: () => {
+                router.replace("/earn/solvetoearn/solveToEarnResults");
+              },
+            },
+          );
           return 0;
         }
         return prevTime - 1;

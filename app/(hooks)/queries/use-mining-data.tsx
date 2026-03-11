@@ -384,6 +384,118 @@ async function performDailyClaim({
     return { newDaily, quantReward, newQuantAmount, passesAdded };
 }
 
+// ---------------------------------------------------------------------------
+// Game save mutation (solve-to-earn timer expiry)
+// ---------------------------------------------------------------------------
+
+interface GameSaveParams {
+    telegramId: string;
+    earnedQuant: number;
+    correctAnswers: number;
+}
+
+async function performGameSave({
+    telegramId,
+    earnedQuant,
+    correctAnswers,
+}: GameSaveParams): Promise<string | null> {
+    const date = new Date();
+    const formattedDate = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
+
+    const historyRef = doc(
+        dbfs,
+        `user/${telegramId}/solveToEarnHistory/${Date.now()}`,
+    );
+    const valuesRef = doc(dbfs, `user/${telegramId}/miningData/values`);
+    const snap = await getDoc(valuesRef);
+    const remaining = snap.data()?.remainingSolveToEarn;
+    const totalQuant = snap.data()?.QuantAmount ?? 0;
+    const newQuant = totalQuant + earnedQuant;
+
+    sessionStorage.setItem("correctAnswers", `${correctAnswers}`);
+
+    if (snap.exists() && remaining && Number(remaining) > 0) {
+        await updateDoc(valuesRef, { QuantAmount: newQuant });
+        await setDoc(
+            historyRef,
+            {
+                Date: formattedDate,
+                total: correctAnswers,
+                quant: earnedQuant,
+                platform: "solvetoearn",
+            },
+            { merge: true },
+        );
+
+        const formattedQuant = newQuant.toLocaleString("en-US", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        });
+        sessionStorage.setItem("TotalCorrectSolveToEarn", `${earnedQuant}`);
+        return formattedQuant;
+    }
+
+    return null;
+}
+
+export function useGameSaveMutation(telegramId: string | null) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (params: GameSaveParams) => performGameSave(params),
+        onSuccess: () => {
+            if (telegramId) {
+                queryClient.invalidateQueries({
+                    queryKey: miningDataKeys.all(telegramId),
+                });
+            }
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Play again mutation (solve-to-earn results → decrement & navigate)
+// ---------------------------------------------------------------------------
+
+export function usePlayAgainMutation(telegramId: string | null) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (): Promise<number> => {
+            if (!telegramId) throw new Error("No telegramId");
+
+            const valuesRef = doc(
+                dbfs,
+                `user/${telegramId}/miningData/values`,
+            );
+            const snap = await getDoc(valuesRef);
+            const remaining = snap.exists()
+                ? (snap.data().remainingSolveToEarn ?? 0)
+                : 0;
+
+            if (remaining > 0) {
+                await updateDoc(valuesRef, {
+                    remainingSolveToEarn: remaining - 1,
+                });
+                return remaining - 1;
+            }
+
+            return 0;
+        },
+        onSuccess: () => {
+            if (telegramId) {
+                queryClient.invalidateQueries({
+                    queryKey: miningDataKeys.all(telegramId),
+                });
+            }
+        },
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Daily claim mutation
+// ---------------------------------------------------------------------------
+
 /**
  * TanStack Query mutation that handles the full daily claim flow:
  * - Awards solve-to-earn passes (+7)

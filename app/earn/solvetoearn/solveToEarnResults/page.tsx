@@ -1,9 +1,8 @@
 'use client';
 
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { dbfs } from "@/app/(firebase)/client";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { usePlayAgainMutation } from "@/app/(hooks)/queries/use-mining-data";
 import rocketAnimationData from "@/public/lottie/rocket-lottie.json";
 import dynamic from "next/dynamic";
 import type { LottieRefCurrentProps } from "lottie-react";
@@ -40,21 +39,24 @@ const SolveToEarnResults = () => {
     router.prefetch("/earn");
   }, [router])
 
-  async function checkRemainingSolveToEarn() {
-    setButtonClicked(true)
-    const solveToEarnRef = doc(dbfs, `user/${telegramId}/miningData/values`);
-    const snapshotSolveToEarn = await getDoc(solveToEarnRef);
-    const remainingSolveToEarnDB = snapshotSolveToEarn.exists() ? snapshotSolveToEarn.data().remainingSolveToEarn : 0;
-    if (remainingSolveToEarnDB > 0) {
-      updateDoc(solveToEarnRef,
-        { remainingSolveToEarn: remainingSolveToEarnDB - 1, }
-      )
-      setRemainingSolveToEarn(remainingSolveToEarnDB - 1)
-      router.push("/earn/solvetoearn");
-    } else {
-      router.push("/earn")
-    }
-  }
+  const playAgainMutation = usePlayAgainMutation(telegramId);
+
+  const handlePlayAgain = () => {
+    setButtonClicked(true);
+    playAgainMutation.mutate(undefined, {
+      onSuccess: (remainingAfter) => {
+        if (remainingAfter > 0) {
+          setRemainingSolveToEarn(remainingAfter);
+          router.push("/earn/solvetoearn");
+        } else {
+          router.push("/earn");
+        }
+      },
+      onError: () => {
+        router.push("/earn");
+      },
+    });
+  };
   return (
     <div className="fixed inset-0 z-100 bg-black text-white p-6 flex flex-col overflow-y-auto h-dvh">
       {/* Background Effects */}
@@ -126,8 +128,8 @@ const SolveToEarnResults = () => {
         {/* Action Button */}
         {remainingSolveToEarn > 0 && (
           <Button 
-            disabled={buttonClicked} 
-            onClick={() => checkRemainingSolveToEarn()} 
+            disabled={buttonClicked}
+            onClick={handlePlayAgain} 
             className="w-full h-14 rounded-xl bg-white text-black hover:bg-gray-200 hover:scale-[1.02] active:scale-95 transition-all duration-300 font-bold text-lg shadow-[0_0_20px_rgba(255,255,255,0.3)]"
           >
             <span className="flex items-center gap-2">
