@@ -216,6 +216,12 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
   clearSearch: () => set({ searchResults: [] }),
 
   selectToken: async (tokenId: string) => {
+    // Clear previous token immediately to prevent stale data during transitions
+    const prev = get().selectedToken;
+    if (prev?.id !== tokenId) {
+      set({ selectedToken: null });
+    }
+
     try {
       const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
       if (!tokenDoc.exists()) {
@@ -250,6 +256,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       set({ selectedToken: token });
     } catch (error) {
       console.error("Error selecting token:", error);
+      set({ selectedToken: null });
     }
   },
 

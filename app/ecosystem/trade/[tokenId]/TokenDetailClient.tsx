@@ -119,6 +119,9 @@ export default function TokenDetailClient() {
         if (walletAddress) {
             fetchWalletAssets();
         }
+        // Reset preview when switching tokens
+        setPreview(null);
+        setAmount("");
     }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
 
     // Get user position
@@ -133,12 +136,16 @@ export default function TokenDetailClient() {
         }
 
         const fetchPreview = async () => {
-            if (activeTab === "buy") {
-                const result = await previewBuy(tokenId, amount);
-                setPreview(result);
-            } else {
-                const result = await previewSell(tokenId, amount);
-                setPreview(result);
+            try {
+                if (activeTab === "buy") {
+                    const result = await previewBuy(tokenId, amount);
+                    setPreview(result);
+                } else {
+                    const result = await previewSell(tokenId, amount);
+                    setPreview(result);
+                }
+            } catch {
+                setPreview(null);
             }
         };
         fetchPreview();

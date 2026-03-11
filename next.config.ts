@@ -165,6 +165,9 @@ const nextConfig: import('next').NextConfig = {
   // Disable x-powered-by header for security
   poweredByHeader: false,
 
+  // Allow cloudflared tunnel origins in dev mode
+  allowedDevOrigins: ['*.trycloudflare.com'],
+
   // Turbopack config (used in dev via `next dev --turbopack`)
   turbopack: {},
 };
