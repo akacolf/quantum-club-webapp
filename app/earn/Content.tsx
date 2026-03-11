@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";
@@ -17,6 +17,64 @@ import { useAuth } from "../(contexts)/auth";
 import { toast } from "sonner";
 import { confirmTask, checkMembership } from "./actions";
 import { useEarnTasksQuery } from "@/app/(hooks)/queries/use-earn-tasks";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { haptics } from "@/lib/haptics";
+
+// -------------------------------------------------------------------
+// Mutation: confirm a task on the server and update local quant balance
+// -------------------------------------------------------------------
+interface CompleteTaskParams {
+  taskId: string;
+  platform: string;
+  telegramId: string;
+}
+
+interface CompleteTaskResult {
+  quant: number;
+  formattedAmount: string;
+}
+
+function useCompleteTaskMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CompleteTaskResult, Error, CompleteTaskParams>({
+    mutationFn: async ({ taskId, platform, telegramId }) => {
+      // Read current quant balance from client cache for optimistic display
+      const miningData = doc(dbfs, `user/${telegramId}/miningData/values`);
+      const miningSnapshot = await getDoc(miningData);
+      const currentQuantAmount = miningSnapshot.exists()
+        ? miningSnapshot.data().QuantAmount
+        : 0;
+
+      const quantRef = doc(dbfs, `tasks/${taskId}`);
+      const quantSnapshot = await getDoc(quantRef);
+      const quantVal = quantSnapshot.data()?.quantReward ?? 0;
+
+      const updatedQuantAmount = Number(currentQuantAmount) + Number(quantVal);
+
+      // Server-side authoritative write
+      const response = await confirmTask({ taskId, platform });
+      if (response?.serverError || response?.data?.error) {
+        throw new Error(
+          response?.serverError ?? response?.data?.message ?? "Error completing task"
+        );
+      }
+
+      const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+
+      return { quant: quantVal, formattedAmount };
+    },
+    onSuccess: (_data, { telegramId }) => {
+      // Invalidate earn tasks so the list refetches with updated completion status
+      queryClient.invalidateQueries({ queryKey: ["earn-tasks"] });
+      // Also invalidate any user-related queries that depend on quant balance
+      queryClient.invalidateQueries({ queryKey: ["user", telegramId] });
+    },
+  });
+}
 
 const EarnContent = () => {
   const limitedTXT = "Limited";
@@ -38,17 +96,57 @@ const EarnContent = () => {
 
   // Fetch tasks and completed count via TanStack Query
   const { data: earnData, isLoading: loading } = useEarnTasksQuery(telegramId, totalUsers);
-  // Local state for optimistic UI updates (button text changes during task completion)
-  const [tasks, setTasks] = useState<EarnTask[]>([]);
-  const [completedTasks, setCompletedTasks] = useState(0);
 
-  // Sync query data into local state
+  // Derive tasks and completedCount directly from query data (no redundant sync)
+  const queryTasks = earnData?.tasks ?? [];
+  const queryCompletedCount = earnData?.completedCount ?? 0;
+
+  // Local overrides for optimistic UI (button text / completed status during flows)
+  // Key: task.id, Value: partial override for buttonText / completed
+  const [taskOverrides, setTaskOverrides] = useState<
+    Record<string, Partial<Pick<EarnTask, "buttonText" | "completed">>>
+  >({});
+
+  // Merge query data with local overrides
+  const tasks = queryTasks.map((task) => {
+    const override = taskOverrides[task.id];
+    return override ? { ...task, ...override } : task;
+  });
+  const completedTasks =
+    queryCompletedCount +
+    Object.values(taskOverrides).filter((o) => o.completed === true).length;
+
+  // Clear overrides when query data refreshes (server is now source of truth)
   useEffect(() => {
     if (earnData) {
-      setTasks(earnData.tasks);
-      setCompletedTasks(earnData.completedCount);
+      setTaskOverrides({});
     }
   }, [earnData]);
+
+  // Mutation for completing tasks
+  const completeTaskMutation = useCompleteTaskMutation();
+
+  // Helper to set button text override for a single task
+  const setButtonText = useCallback(
+    (taskId: string, buttonText: React.ReactNode | string) => {
+      setTaskOverrides((prev) => ({
+        ...prev,
+        [taskId]: { ...prev[taskId], buttonText },
+      }));
+    },
+    []
+  );
+
+  // Helper to mark task completed in overrides
+  const markCompleted = useCallback(
+    (taskId: string) => {
+      setTaskOverrides((prev) => ({
+        ...prev,
+        [taskId]: { ...prev[taskId], buttonText: "Joined", completed: true },
+      }));
+    },
+    []
+  );
 
   // Hide Telegram back button on mount
   useEffect(() => {
@@ -102,7 +200,8 @@ const EarnContent = () => {
                 onClick={() => handleJoinTask(task)}
                 disabled={
                   (activeTaskId !== null && activeTaskId != task.id) ||
-                  task.completed
+                  task.completed ||
+                  completeTaskMutation.isPending
                 }
                 variant={task.completed ? "secondary" : "default"}
                 className={`h-9 px-4 min-w-20 rounded-xl font-bold text-xs transition-all duration-300 active:scale-95 ${task.buttonText === "Claim"
@@ -157,15 +256,45 @@ const EarnContent = () => {
     completeTask(task);
   };
 
+  /**
+   * Runs the confirm-task mutation and handles the shared post-success logic
+   * (update local storage, set quant display, mark task completed).
+   */
+  const claimTask = (task: EarnTask) => {
+    if (!telegramId) return;
+    setButtonText(task.id, <ButtonLoader />);
+
+    completeTaskMutation.mutate(
+      { taskId: task.id, platform: task.whichPlatform, telegramId },
+      {
+        onSuccess: ({ formattedAmount }) => {
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
+          }
+          SetMainQuantAmount(formattedAmount);
+          markCompleted(task.id);
+          setActiveTaskId(null);
+          haptics.success();
+          toast.success("Task completed!");
+        },
+        onError: (error) => {
+          setButtonText(task.id, task.buttontitle);
+          setActiveTaskId(null);
+          haptics.error();
+          toast.error("Error!", { description: error.message });
+        },
+      }
+    );
+  };
+
   const completeTask = async (task: EarnTask) => {
     try {
-      if(!telegramId){
+      if (!telegramId) {
         return router.push("/");
       }
       const taskId = task.id;
       const taskRef = doc(dbfs, `user/${telegramId}/tasks/${taskId}`);
       const taskSnapshot = await getDoc(taskRef);
-      const miningData = doc(dbfs, `user/${telegramId}/miningData/values`);
       let tgIdNumerical;
       const channelUsername = "quantumclubinc";
       router.prefetch("/earn/9CXx152NbBKOKE2");
@@ -173,237 +302,85 @@ const EarnContent = () => {
         tgIdNumerical = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
       }
       const token = await auth?.currentUser?.getIdToken();
-        if(!token){
-            return toast.error("User not authenticated");
-        }
+      if (!token) {
+        haptics.error();
+        return toast.error("User not authenticated");
+      }
       if (task.whichPlatform === "telegram") {
         if (task.buttonText === "Join" && task.url) {
           window.Telegram?.WebApp?.openTelegramLink(task.url);
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
+          setButtonText(task.id, <ButtonLoader />);
           setTimeout(() => {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: claimTEXT } : item
-              )
-            );
+            setButtonText(task.id, claimTEXT);
             return;
           }, 2000);
         }
         if (task.buttonText === claimTEXT) {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
+          setButtonText(task.id, <ButtonLoader />);
           try {
             if (!tgIdNumerical) throw new Error("Telegram user ID not available");
             const memberResult = await checkMembership({ tgIdNumerical, channelUsername });
             if (memberResult?.serverError) {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: task.buttontitle }
-                    : item
-                )
-              );
+              setButtonText(task.id, task.buttontitle);
               setActiveTaskId(null);
               task.completed = false;
+              haptics.error();
               throw new Error(memberResult.serverError);
             }
             if (memberResult?.data?.isMember) {
               if (!taskSnapshot.exists()) {
-                
-                const miningSnapshot = await getDoc(miningData);
-                const currentQuantAmount = miningSnapshot.exists()
-                  ? miningSnapshot.data().QuantAmount
-                  : 0;
-                const quantRef = doc(dbfs, `tasks/${task.id}`);
-                const quantSnapshot = await getDoc(quantRef);
-                const quantVal = quantSnapshot.data()?.quantReward;
-                const updatedQuantAmount =
-                  Number(currentQuantAmount) + Number(quantVal);
-                const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-                const formattedAmount = updatedQuantAmount.toLocaleString(
-                  "en-US",
-                  {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }
-                );
-                if (typeof window !== "undefined") {
-                  localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-                }
-                SetMainQuantAmount(formattedAmount);
-                setTasks((items) =>
-                  items.map((item) =>
-                    item.id === task.id
-                      ? { ...item, buttonText: "Joined" }
-                      : item
-                  )
-                );
-                setTasks((prevTasks) => {
-                  const updatedTasks = prevTasks.map((t) =>
-                    t.id === task.id ? { ...t, completed: true } : t
-                  );
-
-                  setActiveTaskId(null);
-                  sessionStorage.setItem("tasks", JSON.stringify(updatedTasks));
-                  setCompletedTasks(completedTasks + 1);
-                  return updatedTasks;
-                });
+                claimTask(task);
               }
             } else {
               if (task && task.url) {
                 openTelegramGroup(task.url, task);
-                setTasks((items) =>
-                  items.map((item) =>
-                    item.id === task.id
-                      ? { ...item, buttonText: <ButtonLoader /> }
-                      : item
-                  )
-                );
+                setButtonText(task.id, <ButtonLoader />);
                 setTimeout(() => {
-                  setTasks((items) =>
-                    items.map((item) =>
-                      item.id === task.id
-                        ? { ...item, buttonText: task.buttontitle }
-                        : item
-                    )
-                  );
+                  setButtonText(task.id, task.buttontitle);
                   return;
                 }, 2000);
               }
             }
           } catch {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: task.buttontitle }
-                  : item
-              )
-            );
+            setButtonText(task.id, task.buttontitle);
             setActiveTaskId(null);
             task.completed = false;
+            haptics.error();
           }
         }
       }
       if (task.whichPlatform === "checktelegramAgain") {
         if (task.buttonText === "Check") {
           try {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: <ButtonLoader /> }
-                  : item
-              )
-            );
+            setButtonText(task.id, <ButtonLoader />);
             if (!tgIdNumerical) throw new Error("Telegram user ID not available");
             const memberResult2 = await checkMembership({ tgIdNumerical, channelUsername });
             if (memberResult2?.serverError) {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: task.buttontitle }
-                    : item
-                )
-              );
+              setButtonText(task.id, task.buttontitle);
               setActiveTaskId(null);
               task.completed = false;
+              haptics.error();
               throw new Error(memberResult2.serverError);
             }
             if (memberResult2?.data?.isMember) {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: claimTEXT }
-                    : item
-                )
-              );
+              setButtonText(task.id, claimTEXT);
               return;
             } else {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: task.buttontitle }
-                    : item
-                )
-              );
+              setButtonText(task.id, task.buttontitle);
               setActiveTaskId(null);
               task.completed = false;
+              haptics.error();
             }
           } catch {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: task.buttontitle }
-                  : item
-              )
-            );
+            setButtonText(task.id, task.buttontitle);
             setActiveTaskId(null);
             task.completed = false;
+            haptics.error();
           }
         }
         if (task.buttonText === claimTEXT) {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
           if (!taskSnapshot.exists()) {
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-            const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            setTasks((prevTasks) => {
-              const updatedTasks = prevTasks.map((t) =>
-                t.id === task.id ? { ...t, completed: true } : t
-              );
-
-              setActiveTaskId(null);
-              console.error("Task has been completed");
-              sessionStorage.setItem("tasks", JSON.stringify(updatedTasks));
-              setCompletedTasks(completedTasks + 1);
-              return updatedTasks;
-            });
+            claimTask(task);
           }
         }
       }
@@ -421,83 +398,25 @@ const EarnContent = () => {
           ) {
             window.open(task.url, "_blank");
           }
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
+          setButtonText(task.id, <ButtonLoader />);
           setTimeout(() => {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: claimTEXT } : item
-              )
-            );
+            setButtonText(task.id, claimTEXT);
             return;
           }, 2000);
         } else if (task.buttonText === claimTEXT) {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
           if (!taskSnapshot.exists()) {
-            console.error(task.platform);
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-            const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            task.completed = true;
-            setActiveTaskId(null);
-            setCompletedTasks(completedTasks + 1);
-            console.error(
-              "The task has been created and completed successfully."
-            );
-          } else {
-            console.error("This task has already been completed.");
+            claimTask(task);
           }
         }
       }
       if (task.whichPlatform === "chemist") {
         if (task.buttonText === "Check") {
-          console.error(task.buttonText);
           try {
             document.cookie = `taskId=${task.id}; path=@/app/earn/9CXx152NbBKOKE2; secure; SameSite=Strict`;
             router.push("/earn/9CXx152NbBKOKE2");
           } catch (error) {
             if (error instanceof Error) {
-              console.error(error.message);
+              haptics.error();
             }
           }
         }
@@ -513,81 +432,19 @@ const EarnContent = () => {
           if (task.whichPlatform != ("telegram" as string)) {
             window.open(task.url, "_blank");
           }
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
+          setButtonText(task.id, <ButtonLoader />);
           setTimeout(() => {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: claimTEXT } : item
-              )
-            );
+            setButtonText(task.id, claimTEXT);
             return;
           }, 2000);
         } else if (task.buttonText === claimTEXT) {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
           if (!taskSnapshot.exists()) {
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-            const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            setCompletedTasks(completedTasks + 1);
-            task.completed = true;
-            setActiveTaskId(null);
-            console.error(
-              "The task has been successfully created and completed."
-            );
-          } else {
-            console.error("This task has already been completed.");
+            claimTask(task);
           }
         }
       }
       if (task.whichPlatform === "referrals") {
-        setTasks((items) =>
-          items.map((item) =>
-            item.id === task.id
-              ? { ...item, buttonText: <ButtonLoader /> }
-              : item
-          )
-        );
+        setButtonText(task.id, <ButtonLoader />);
         const userReferalls = collection(dbfs, `user/${telegramId}/referrals`);
         const needRefValue = doc(dbfs, `tasks/${task.id}`);
         const snapshotNeedRefValue = await getDoc(needRefValue);
@@ -595,64 +452,16 @@ const EarnContent = () => {
         if (snapshotNeedRefValue.exists() && !snapshotReferrals.empty) {
           const needRef = snapshotNeedRefValue.data().referralValue;
           if (snapshotReferrals.size >= needRef) {
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-            const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            setCompletedTasks(completedTasks + 1);
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            task.completed = true;
-            setActiveTaskId(null);
+            claimTask(task);
           } else {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Check" } : item
-              )
-            );
+            setButtonText(task.id, "Check");
           }
         } else {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id ? { ...item, buttonText: "Check" } : item
-            )
-          );
+          setButtonText(task.id, "Check");
         }
       }
       if (task.whichPlatform === "referrals10") {
-        setTasks((items) =>
-          items.map((item) =>
-            item.id === task.id
-              ? { ...item, buttonText: <ButtonLoader /> }
-              : item
-          )
-        );
+        setButtonText(task.id, <ButtonLoader />);
         const userReferalls = collection(dbfs, `user/${telegramId}/referrals`);
         const needRefValue = doc(dbfs, `tasks/${task.id}`);
         const snapshotNeedRefValue = await getDoc(needRefValue);
@@ -660,56 +469,12 @@ const EarnContent = () => {
         if (snapshotNeedRefValue.exists() && !snapshotReferrals.empty) {
           const needRef = snapshotNeedRefValue.data().referralValue;
           if (snapshotReferrals.size >= needRef) {
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-            const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!",{
-                        description: response?.serverError ?? response?.data?.message,
-                    });
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            setCompletedTasks(completedTasks + 1);
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            task.completed = true;
-            setActiveTaskId(null);
+            claimTask(task);
           } else {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Check" } : item
-              )
-            );
+            setButtonText(task.id, "Check");
           }
         } else {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id ? { ...item, buttonText: "Check" } : item
-            )
-          );
+          setButtonText(task.id, "Check");
         }
       }
       if (task.whichPlatform === "onchain") {
@@ -719,7 +484,7 @@ const EarnContent = () => {
             router.push("/earn/9CXx152NbBKOKE2");
           } catch (error) {
             if (error instanceof Error) {
-              console.error(error.message);
+              haptics.error();
             }
           }
         }
@@ -733,195 +498,51 @@ const EarnContent = () => {
         const value = snapshotValue.exists() && snapshotValue.data().value;
         if (task.buttonText !== claimTEXT) {
           if (totalUserDB >= value) {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: <ButtonLoader /> }
-                  : item
-              )
-            );
+            setButtonText(task.id, <ButtonLoader />);
             setTimeout(() => {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: claimTEXT }
-                    : item
-                )
-              );
+              setButtonText(task.id, claimTEXT);
               return;
             }, 2000);
             return;
           } else {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: task.buttontitle }
-                  : item
-              )
-            );
+            setButtonText(task.id, task.buttontitle);
             return;
           }
         }
         if (task.buttonText === claimTEXT) {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
           if (!taskSnapshot.exists()) {
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-            const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            setCompletedTasks(completedTasks + 1);
-            task.completed = true;
-            setActiveTaskId(null);
-            console.error(
-              "The task has been successfully created and completed."
-            );
+            claimTask(task);
           } else {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            setCompletedTasks(completedTasks + 1);
-            task.completed = true;
+            markCompleted(task.id);
             setActiveTaskId(null);
-            console.error("This task has already been completed.");
           }
         }
       }
       if (task.whichPlatform === "connectwallet") {
         if (task.buttonText === "Check") {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
+          setButtonText(task.id, <ButtonLoader />);
 
           // Check for wallet from localStorage (QC Wallet)
-             const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
+          const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
           if (storedWallet && storedWallet !== "") {
             // User has a wallet - show claim button
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: claimTEXT }
-                  : item
-              )
-            );
+            setButtonText(task.id, claimTEXT);
             return;
           } else {
             // User doesn't have a wallet - navigate to wallet page to create one
             router.push("/wallet");
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: "Check" }
-                  : item
-              )
-            );
+            setButtonText(task.id, "Check");
             return;
           }
         } else if (task.buttonText === claimTEXT) {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
           if (!taskSnapshot.exists()) {
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-            const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            setCompletedTasks(completedTasks + 1);
-            task.completed = true;
-            setActiveTaskId(null);
-            console.error(
-              "The task has been successfully created and completed."
-            );
-          } else {
-            console.error("This task has already been completed.");
+            claimTask(task);
           }
         }
       }
       if (task.whichPlatform === "solvetoearnExplore") {
         if (task.buttonText === "Check") {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
-          console.error(telegramId);
+          setButtonText(task.id, <ButtonLoader />);
           const valueRef = doc(dbfs, `user/${telegramId}/miningData/values`);
           const snapshotWallet = await getDoc(valueRef);
           if (snapshotWallet.exists()) {
@@ -929,88 +550,25 @@ const EarnContent = () => {
             const remainingSolveToEarnDB = valueData.remainingSolveToEarn;
             if (remainingSolveToEarnDB < 7) {
               setTimeout(() => {
-                setTasks((items) =>
-                  items.map((item) =>
-                    item.id === task.id
-                      ? { ...item, buttonText: claimTEXT }
-                      : item
-                  )
-                );
+                setButtonText(task.id, claimTEXT);
                 return;
               }, 1000);
             } else {
-              setTasks((items) =>
-                items.map((item) =>
-                  item.id === task.id
-                    ? { ...item, buttonText: task.buttontitle }
-                    : item
-                )
-              );
+              setButtonText(task.id, task.buttontitle);
             }
           } else {
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id
-                  ? { ...item, buttonText: task.buttontitle }
-                  : item
-              )
-            );
+            setButtonText(task.id, task.buttontitle);
           }
         } else if (task.buttonText === claimTEXT) {
-          setTasks((items) =>
-            items.map((item) =>
-              item.id === task.id
-                ? { ...item, buttonText: <ButtonLoader /> }
-                : item
-            )
-          );
           if (!taskSnapshot.exists()) {
-            const miningSnapshot = await getDoc(miningData);
-            const currentQuantAmount = miningSnapshot.exists()
-              ? miningSnapshot.data().QuantAmount
-              : 0;
-            const quantRef = doc(dbfs, `tasks/${task.id}`);
-            const quantSnapshot = await getDoc(quantRef);
-            const quantVal = quantSnapshot.data()?.quantReward;
-            const updatedQuantAmount =
-              Number(currentQuantAmount) + Number(quantVal);
-              const response = await confirmTask({
-                  taskId: task.id, platform: task.whichPlatform });
-                if(response?.serverError || response?.data?.error){
-                    toast.error("Error!");
-                    return;
-                }
-            const formattedAmount = updatedQuantAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            SetMainQuantAmount(formattedAmount);
-            setTasks((items) =>
-              items.map((item) =>
-                item.id === task.id ? { ...item, buttonText: "Joined" } : item
-              )
-            );
-            const taskElement = document.getElementById(task.id);
-            if (taskElement) {
-              (taskElement as HTMLButtonElement).disabled = true;
-            }
-            setCompletedTasks(completedTasks + 1);
-            task.completed = true;
-            setActiveTaskId(null);
-            console.error(
-              "The task has been successfully created and completed."
-            );
-          } else {
-            console.error("This task has already been completed.");
+            claimTask(task);
           }
         }
       }
     } catch (error) {
       if (error instanceof Error) {
-        console.error("The task could not be completed:", error);
+        haptics.error();
+        toast.error("Task could not be completed", { description: error.message });
       }
     }
   };

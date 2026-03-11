@@ -7,6 +7,7 @@ import { createGroupSchema, type CreateGroupFormData } from "@/lib/validations";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { useWallet } from "@/app/wallet/WalletContext";
+import { haptics } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,12 +59,15 @@ export default function CreateGroupPage() {
                 data.nftGated ? (data.nftCollectionName ?? undefined) : undefined,
             );
             if (groupId) {
+                haptics.success();
                 toast.success("Group created!");
                 router.push(`/groups/${groupId}`);
             } else {
+                haptics.error();
                 toast.error("Failed to create group");
             }
         } catch {
+            haptics.error();
             toast.error("Something went wrong");
         } finally {
             setIsCreating(false);

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, updateDoc } from "firebase/firestore";
@@ -88,9 +89,11 @@ export default function GroupDetailPage() {
         setLeaving(true);
         const success = await leaveGroup(groupId);
         if (success) {
+            haptics.medium();
             toast.success("Left group");
             router.push("/groups");
         } else {
+            haptics.error();
             toast.error("Failed to leave group");
         }
         setLeaving(false);

@@ -20,6 +20,7 @@ import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { useUserPresence } from "@/app/(hooks)/usePresence";
+import { useGlobalChat, useChatConversations, type ChatConversation } from "@/app/(hooks)/queries/use-chat-list";
 import { dbfs } from "@/app/(firebase)/client";
 import {
   decryptMessage,
@@ -29,38 +30,16 @@ import {
   collection,
   doc,
   getDoc,
-  query,
   setDoc,
   updateDoc,
   arrayUnion,
   serverTimestamp,
   where,
-  orderBy,
-  onSnapshot,
-  Timestamp,
+  type Timestamp,
 } from "firebase/firestore";
 import { registerQcUsername, updateQcUsernameAddress, resolveQcUsername } from "./actions";
 
 const GLOBAL_CHAT_ID = "qc-global";
-
-interface ChatConversation {
-  id: string;
-  participants: string[];
-  participantNames: Record<string, string>;
-  lastMessage: string;
-  lastMessageBy: string;
-  lastMessageAt: Timestamp | null;
-  lastMessageEpoch?: number;
-  isGroup: boolean;
-  isGlobal?: boolean;
-  groupName?: string;
-  joinCode?: string;
-  memberCount?: number;
-  unreadCount?: number;
-  epochNonce?: string;
-  epochCounter?: number;
-  epochNonces?: Record<number, string>;
-}
 
 function getInitials(name: string): string {
   if (!name) return "?";
@@ -288,11 +267,12 @@ export default function QCChatListPage() {
   const authCtx = useAuth();
   useTelegramBackButton("/home");
   const currentUser = authCtx?.currentUser ?? null;
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [globalChat, setGlobalChat] = useState<ChatConversation | null>(null);
+  const isAuthenticated = !!currentUser;
+  const { data: conversations = [], isLoading: isConversationsLoading } = useChatConversations(telegramId, isAuthenticated);
+  const { data: globalChat = null } = useGlobalChat(telegramId, isAuthenticated);
   const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault("").withOptions({ history: "replace" }));
   const [formMode, setFormMode] = useState<FormMode>("none");
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = isAuthenticated && isConversationsLoading;
 
   // DM form
   const dmForm = useForm({
@@ -498,90 +478,6 @@ export default function QCChatListPage() {
 
     ensureGlobalChat().catch(console.error);
   }, [currentUser, telegramId, qcUsername]);
-
-  // Subscribe to global chat separately
-  useEffect(() => {
-    if (!currentUser || !telegramId) return;
-    const globalRef = doc(dbfs, "qc-chats", GLOBAL_CHAT_ID);
-    const unsubscribe = onSnapshot(globalRef, (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        setGlobalChat({
-          id: snap.id,
-          participants: data.participants || [],
-          participantNames: data.participantNames || {},
-          lastMessage: data.lastMessage || "",
-          lastMessageBy: data.lastMessageBy || "",
-          lastMessageAt: data.lastMessageAt,
-          lastMessageEpoch: data.lastMessageEpoch,
-          isGroup: true,
-          isGlobal: true,
-          groupName: "QC Global",
-          memberCount: data.participants?.length || 0,
-          unreadCount: data.unreadCounts?.[telegramId] || 0,
-          epochNonce: data.epochNonce,
-          epochCounter: data.epochCounter,
-          epochNonces: data.epochNonces,
-        });
-      }
-    }, (error) => {
-      console.error("Global chat listener error:", error);
-    });
-    return () => unsubscribe();
-  }, [currentUser, telegramId]);
-
-  // Subscribe to user's conversations (DMs + groups)
-  useEffect(() => {
-    if (!currentUser || !telegramId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const chatsRef = collection(dbfs, "qc-chats");
-    const q = query(
-      chatsRef,
-      where("participants", "array-contains", telegramId),
-      orderBy("lastMessageAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const chats: ChatConversation[] = [];
-        snapshot.forEach((docSnap) => {
-          // Skip global chat — it's shown separately
-          if (docSnap.id === GLOBAL_CHAT_ID) return;
-          const data = docSnap.data();
-          chats.push({
-            id: docSnap.id,
-            participants: data.participants || [],
-            participantNames: data.participantNames || {},
-            lastMessage: data.lastMessage || "",
-            lastMessageBy: data.lastMessageBy || "",
-            lastMessageAt: data.lastMessageAt,
-            lastMessageEpoch: data.lastMessageEpoch,
-            isGroup: data.isGroup || false,
-            isGlobal: false,
-            groupName: data.groupName,
-            joinCode: data.joinCode,
-            memberCount: data.isGroup ? data.participants?.length : undefined,
-            unreadCount: data.unreadCounts?.[telegramId] || 0,
-            epochNonce: data.epochNonce,
-            epochCounter: data.epochCounter,
-            epochNonces: data.epochNonces,
-          });
-        });
-        setConversations(chats);
-        setIsLoading(false);
-      },
-      (error) => {
-        console.error("Chat list error:", error);
-        setIsLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [currentUser, telegramId]);
 
   // Get display name for a chat
   const getChatDisplayName = (chat: ChatConversation): string => {

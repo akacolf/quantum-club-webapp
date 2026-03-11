@@ -392,12 +392,41 @@ export default function TradePage() {
             ? trendingTokens
             : newTokens;
 
+    const holdingsListRef = useRef<HTMLDivElement>(null);
+    const dexListRef = useRef<HTMLDivElement>(null);
+    const myTokensListRef = useRef<HTMLDivElement>(null);
+
+    // Filter positions to only those with token data
+    const validPositions = positions.filter(p => p.token);
+    const deployedTokens = myTokens.filter(t => t.isDeployed);
+
     /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const tokenVirtualizer = useWindowVirtualizer({
         count: displayTokens.length,
         estimateSize: () => 140,
         overscan: 3,
         scrollMargin: tokenListRef.current?.offsetTop ?? 0,
+    });
+
+    const holdingsVirtualizer = useWindowVirtualizer({
+        count: validPositions.length,
+        estimateSize: () => 100,
+        overscan: 5,
+        scrollMargin: holdingsListRef.current?.offsetTop ?? 0,
+    });
+
+    const dexVirtualizer = useWindowVirtualizer({
+        count: graduatedTokens.length,
+        estimateSize: () => 140,
+        overscan: 3,
+        scrollMargin: dexListRef.current?.offsetTop ?? 0,
+    });
+
+    const myTokensVirtualizer = useWindowVirtualizer({
+        count: deployedTokens.length,
+        estimateSize: () => 140,
+        overscan: 3,
+        scrollMargin: myTokensListRef.current?.offsetTop ?? 0,
     });
     /* eslint-enable react-hooks/refs */
 
@@ -563,37 +592,61 @@ export default function TradePage() {
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div>
                                 <div className="flex items-center gap-2 mb-2">
                                     <Badge className="bg-green-500/20 text-green-400 border-0">
                                         <Icon icon="solar:verified-check-bold" className="w-3 h-3 mr-1" />
                                         Tradable on STON.fi
                                     </Badge>
                                 </div>
-                                {graduatedTokens.map((token, index) => (
-                                    <TokenCard
-                                        key={token.id}
-                                        token={token}
-                                        index={index}
-                                        showRank={false}
-                                    />
-                                ))}
+                                <div ref={dexListRef}>
+                                    <div className="relative" style={{ height: `${dexVirtualizer.getTotalSize()}px` }}>
+                                        {dexVirtualizer.getVirtualItems().map((virtualItem) => {
+                                            const token = graduatedTokens[virtualItem.index];
+                                            return (
+                                                <div
+                                                    key={token.id}
+                                                    className="absolute top-0 left-0 w-full pb-3"
+                                                    style={{ transform: `translateY(${virtualItem.start - dexVirtualizer.options.scrollMargin}px)` }}
+                                                    data-index={virtualItem.index}
+                                                    ref={dexVirtualizer.measureElement}
+                                                >
+                                                    <TokenCard
+                                                        token={token}
+                                                        index={virtualItem.index}
+                                                        showRank={false}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
                         )
                     ) : activeTab === "holdings" ? (
-                        positions.length === 0 ? (
+                        validPositions.length === 0 ? (
                             <EmptyState message="You don't have any token holdings yet" />
                         ) : (
-                            <div className="space-y-3">
-                                {positions.map((position, index) => (
-                                    position.token && (
-                                        <PositionCard
-                                            key={position.tokenId}
-                                            position={position}
-                                            index={index}
-                                        />
-                                    )
-                                ))}
+                            <div ref={holdingsListRef}>
+                                <div className="relative" style={{ height: `${holdingsVirtualizer.getTotalSize()}px` }}>
+                                    {holdingsVirtualizer.getVirtualItems().map((virtualItem) => {
+                                        const position = validPositions[virtualItem.index];
+                                        return (
+                                            <div
+                                                key={position.tokenId}
+                                                className="absolute top-0 left-0 w-full pb-3"
+                                                style={{ transform: `translateY(${virtualItem.start - holdingsVirtualizer.options.scrollMargin}px)` }}
+                                                data-index={virtualItem.index}
+                                                ref={holdingsVirtualizer.measureElement}
+                                            >
+                                                <PositionCard
+                                                    position={position}
+                                                    index={virtualItem.index}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )
                     ) : activeTab === "created" ? (
@@ -670,7 +723,7 @@ export default function TradePage() {
                                 )}
                                 
                                 {/* Deployed Tokens */}
-                                {myTokens.filter(t => t.isDeployed).length > 0 && (
+                                {deployedTokens.length > 0 && (
                                     <>
                                         <div className="flex items-center gap-2 mb-2">
                                             <Badge className="bg-green-500/20 text-green-400 border-0">
@@ -678,14 +731,28 @@ export default function TradePage() {
                                                 Live Tokens
                                             </Badge>
                                         </div>
-                                        {myTokens.filter(t => t.isDeployed).map((token, index) => (
-                                            <TokenCard
-                                                key={token.id}
-                                                token={token}
-                                                index={index}
-                                                showRank={false}
-                                            />
-                                        ))}
+                                        <div ref={myTokensListRef}>
+                                            <div className="relative" style={{ height: `${myTokensVirtualizer.getTotalSize()}px` }}>
+                                                {myTokensVirtualizer.getVirtualItems().map((virtualItem) => {
+                                                    const token = deployedTokens[virtualItem.index];
+                                                    return (
+                                                        <div
+                                                            key={token.id}
+                                                            className="absolute top-0 left-0 w-full pb-3"
+                                                            style={{ transform: `translateY(${virtualItem.start - myTokensVirtualizer.options.scrollMargin}px)` }}
+                                                            data-index={virtualItem.index}
+                                                            ref={myTokensVirtualizer.measureElement}
+                                                        >
+                                                            <TokenCard
+                                                                token={token}
+                                                                index={virtualItem.index}
+                                                                showRank={false}
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </>
                                 )}
                             </div>

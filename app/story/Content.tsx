@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useDrag } from "@use-gesture/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -123,26 +124,21 @@ const StoryContent = () => {
 
   const current = stories[currentStory];
 
+  const bindPrevDrag = useDrag(({ down }) => setIsPaused(down), { filterTaps: true });
+  const bindNextDrag = useDrag(({ down }) => setIsPaused(down), { filterTaps: true });
+
   return (
     <div className="fixed inset-0 bg-black text-white z-50 flex flex-col">
       <div className="absolute inset-0 z-10 flex">
-        <div 
-          className="w-1/3 h-full" 
+        <div
+          className="w-1/3 h-full touch-none"
           onClick={handlePrev}
-          onTouchStart={() => setIsPaused(true)}
-          onTouchEnd={() => setIsPaused(false)}
-          onMouseDown={() => setIsPaused(true)}
-          onMouseUp={() => setIsPaused(false)}
-          onMouseLeave={() => setIsPaused(false)}
+          {...bindPrevDrag()}
         />
-        <div 
-          className="w-2/3 h-full" 
+        <div
+          className="w-2/3 h-full touch-none"
           onClick={handleNext}
-          onTouchStart={() => setIsPaused(true)}
-          onTouchEnd={() => setIsPaused(false)}
-          onMouseDown={() => setIsPaused(true)}
-          onMouseUp={() => setIsPaused(false)}
-          onMouseLeave={() => setIsPaused(false)}
+          {...bindNextDrag()}
         />
       </div>
 

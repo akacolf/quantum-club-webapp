@@ -1056,8 +1056,9 @@ export default function SendPage() {
       analyticsEvents.transactionSigningFailed(errorMessage);
 
       // Show detailed error to user
+      haptics.error();
       toast.error(`Transaction failed: ${errorMessage}`);
-      
+
       setStep("input");
     } finally {
       setIsSending(false);
@@ -1120,6 +1121,7 @@ export default function SendPage() {
       }
     } catch (error) {
       console.error("Multi-chain send failed:", error);
+      haptics.error();
       toast.error(error instanceof Error ? error.message : "Transaction failed");
       setMultiChainStep("input");
     } finally {

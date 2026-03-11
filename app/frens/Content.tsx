@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import Image from "next/image";
 import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
 import { claimTier2Rewards, claimReferralTon } from "./actions";
@@ -81,6 +82,7 @@ const FrensContent = () => {
 
       const data = result?.data;
       if (data?.success && data.claimedAmount > 0) {
+        haptics.success();
         toast.success(`Claimed ${data.claimedAmount.toFixed(0)} QNTM!`);
         setPendingRewards(0);
         const currentBalance = Number(String(localStorage.getItem(`QAmount_${telegramId}`) || "0").replace(/,/g, ""));
@@ -95,6 +97,7 @@ const FrensContent = () => {
       }
     } catch (error) {
       console.error("Claim error:", error);
+      haptics.error();
       toast.error("Failed to claim rewards");
     } finally {
       setIsClaiming(false);
@@ -115,6 +118,7 @@ const FrensContent = () => {
 
       const data = result?.data;
       if (data?.success && data.claimedAmount > 0) {
+        haptics.success();
         toast.success(`Claimed ${data.claimedAmount.toFixed(4)} TON!`);
         setTonEarnings(0);
       } else if (data?.claimedAmount === 0) {
@@ -124,6 +128,7 @@ const FrensContent = () => {
       }
     } catch (error) {
       console.error("Claim TON error:", error);
+      haptics.error();
       toast.error("Failed to claim TON");
     } finally {
       setIsClaimingTon(false);

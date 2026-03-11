@@ -9,6 +9,90 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { haptics } from '@/lib/haptics';
+import { toast } from 'sonner';
+
+// -------------------------------------------------------------------
+// Mutation: check answer and complete the task
+// -------------------------------------------------------------------
+interface CheckAnswerParams {
+    taskId: string;
+    answer: string;
+    telegramId: string;
+}
+
+interface CheckAnswerResult {
+    formattedAmount: string;
+    alreadyCompleted: boolean;
+}
+
+function useCheckAnswerMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<CheckAnswerResult, Error, CheckAnswerParams>({
+        mutationFn: async ({ taskId, answer, telegramId }) => {
+            const userTaskRef = doc(dbfs, `user/${telegramId}/tasks/${taskId}`);
+            const miningDataValue = doc(dbfs, `user/${telegramId}/miningData/values`);
+            const snapshotUserTask = await getDoc(userTaskRef);
+
+            // If task already completed, signal that to the caller
+            if (snapshotUserTask.exists() && snapshotUserTask.data().completed === true) {
+                return { formattedAmount: "", alreadyCompleted: true };
+            }
+
+            // Fetch task definition
+            const taskRef = doc(dbfs, `tasks/${taskId}`);
+            const snapshotTask = await getDoc(taskRef);
+            if (!snapshotTask.exists()) {
+                throw new Error("Task not found");
+            }
+
+            const quantVal = snapshotTask.data().quantReward;
+            const el = snapshotTask.data().el;
+            const platform = snapshotTask.data().platform;
+
+            // Validate answer
+            if (answer !== el) {
+                throw new Error("WRONG_ANSWER");
+            }
+
+            // Get current quant balance
+            const snapshotValues = await getDoc(miningDataValue);
+            if (!snapshotValues.exists()) {
+                throw new Error("Mining data not found");
+            }
+
+            const quant = snapshotValues.data().QuantAmount;
+            const total = Number(quant) + quantVal;
+
+            // Write task completion
+            const date = new Date(Date.now());
+            const formattedDate =
+                `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+            await setDoc(userTaskRef, {
+                quant: quantVal,
+                completed: true,
+                Date: formattedDate,
+                platform: platform,
+            });
+            await updateDoc(miningDataValue, {
+                QuantAmount: total,
+            });
+
+            const formattedAmount = total.toLocaleString("en-US", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            });
+
+            return { formattedAmount, alreadyCompleted: false };
+        },
+        onSuccess: (_data, { telegramId }) => {
+            queryClient.invalidateQueries({ queryKey: ["earn-tasks"] });
+            queryClient.invalidateQueries({ queryKey: ["user", telegramId] });
+        },
+    });
+}
 
 export default function AnswerPage() {
     const { telegramId, SetMainQuantAmount } = useUserContext();
@@ -24,7 +108,6 @@ export default function AnswerPage() {
     }, [router]);
 
     const [isCorrect, setIsCorrect] = useState(true);
-    const [isLoading] = useState(false);
 
     useEffect(() => {
         const cookies = document.cookie.split('; ');
@@ -36,109 +119,65 @@ export default function AnswerPage() {
         }
     }, [])
 
-    async function check() {
-        const userTaskRef = doc(dbfs, `user/${telegramId}/tasks/${taskId}`);
-        const miningDataValue = doc(dbfs, `user/${telegramId}/miningData/values`);
-        const snapshotUserTask = await getDoc(userTaskRef);
-        if (snapshotUserTask.exists()) {
-            const complete = snapshotUserTask.data().completed;
-            if (complete === true) {
-                router.push("/earn")
-            } else {
+    const checkAnswerMutation = useCheckAnswerMutation();
 
-            }
-        } else {
-            const taskRef = doc(dbfs, `tasks/${taskId}`);
-            const snapshotTask = await getDoc(taskRef);
-            if (snapshotTask.exists()) {
-                const quantVal = snapshotTask.data().quantReward;
-                const el = snapshotTask.data().el;
-                const platform = snapshotTask.data().platform;
-                const snapshotValues = await getDoc(miningDataValue);
-                if (snapshotValues.exists()) {
-                    const quant = snapshotValues.data().QuantAmount;
-                    const total = Number(quant) + quantVal;
-                    if (textBox === el) {
-                        if (snapshotUserTask.exists()) {
-                            const complete = snapshotUserTask.data().completed;
-                            if (complete) {
-                                router.push("/earn")
-                            } else {
-                                const date = new Date(Date.now());
-                                const formattedDate =
-                                    `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-                                await setDoc(userTaskRef, {
-                                    quant: quantVal,
-                                    completed: true,
-                                    Date: formattedDate,
-                                    platform: platform,
-                                });
-                                updateDoc(miningDataValue, {
-                                    QuantAmount: total,
-                                });
-                                const formattedAmount = total.toLocaleString("en-US", {
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0,
-                                });
-                                if (typeof window !== "undefined") {
-                                    localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-                                }
-                                SetMainQuantAmount(formattedAmount);
-                                router.push("/earn")
-                            }
-                        } else {
-                            const date = new Date(Date.now());
-                            const formattedDate =
-                                `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-                            await setDoc(userTaskRef, {
-                                quant: quantVal,
-                                completed: true,
-                                Date: formattedDate,
-                                platform: platform,
-                            });
-                            updateDoc(miningDataValue, {
-                                QuantAmount: total,
-                            });
-                            const formattedAmount = total.toLocaleString("en-US", {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0,
-                            });
-                            if (typeof window !== "undefined") {
-                                localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-                            }
-                            SetMainQuantAmount(formattedAmount);
-                            router.push("/earn")
-                        }
-                    } else {
+    function check() {
+        if (!telegramId || !taskId) return;
 
-                        setIsCorrect(false)
+        checkAnswerMutation.mutate(
+            { taskId, answer: textBox, telegramId },
+            {
+                onSuccess: ({ formattedAmount, alreadyCompleted }) => {
+                    if (alreadyCompleted) {
+                        router.push("/earn");
+                        return;
                     }
-                }
+                    if (typeof window !== "undefined") {
+                        localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
+                    }
+                    SetMainQuantAmount(formattedAmount);
+                    haptics.success();
+                    toast.success("Correct answer!");
+                    router.push("/earn");
+                },
+                onError: (error) => {
+                    if (error.message === "WRONG_ANSWER") {
+                        setIsCorrect(false);
+                        haptics.error();
+                    } else {
+                        haptics.error();
+                        toast.error("Something went wrong", { description: error.message });
+                    }
+                },
             }
-        }
+        );
     }
+
     return (
         <div className='bg-black flex flex-col'>
-            {!isLoading &&
-                (<div> <div className='flex flex-col ml-4 mt-28'>
-                    {/*<button onClick={()=>router.back()}>{"<"}</button> {/*Back Button */}
-                    <Label className='mb-2 text-lg font-medium text-gray-400'>Answer</Label>
-                    <Input
-                        type="text" id="answerWrong"
-                        className={`h-11 ${isCorrect ? "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5" : "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5 border border-red-600"}`}
-                        onInput={(e) => {
-                            const input = e.target as HTMLInputElement;
-                            setTextBox(input.value = input.value.toUpperCase());
-                            ; setIsCorrect(true)
-                        }}>
-                    </Input>
+            <div> <div className='flex flex-col ml-4 mt-28'>
+                {/*<button onClick={()=>router.back()}>{"<"}</button> {/*Back Button */}
+                <Label className='mb-2 text-lg font-medium text-gray-400'>Answer</Label>
+                <Input
+                    type="text" id="answerWrong"
+                    className={`h-11 ${isCorrect ? "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5" : "bg-[#303030] text-white text-sm rounded-lg max-w-80 p-2.5 border border-red-600"}`}
+                    onInput={(e) => {
+                        const input = e.target as HTMLInputElement;
+                        setTextBox(input.value = input.value.toUpperCase());
+                        ; setIsCorrect(true)
+                    }}>
+                </Input>
+            </div>
+                <div className='mt-4 ml-4'>
+                    <Button
+                        onClick={() => check()}
+                        disabled={checkAnswerMutation.isPending}
+                        className='bg-white font-semibold text-black px-8 h-12 rounded-xl'
+                    >
+                        {checkAnswerMutation.isPending ? "Checking..." : "Check"}
+                    </Button>
                 </div>
-                    <div className='mt-4 ml-4'>
-                        <Button onClick={() => check()} className='bg-white font-semibold text-black px-8 h-12 rounded-xl'>
-                            Check
-                        </Button>
-                    </div>
-                </div>)}
+            </div>
         </div>
     )
 }

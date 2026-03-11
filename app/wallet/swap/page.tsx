@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { flushSync } from "react-dom";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { sendBoc } from "@/lib/tonapi-client";
@@ -128,8 +129,6 @@ export default function SwapPage() {
 
     // State
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
-    const [swapAssets, setSwapAssets] = useState<SwapAsset[]>([]);
-    const [isLoadingAssets, setIsLoadingAssets] = useState(true);
     const [fromAsset, setFromAsset] = useState<SwapAsset | null>(null);
     const [toAsset, setToAsset] = useState<SwapAsset | null>(null);
     const [isSwapping, setIsSwapping] = useState(false);
@@ -242,33 +241,22 @@ export default function SwapPage() {
         }
     }, [router, fetchWalletAssets, telegramId]);
 
-    // Load swappable assets on mount
+    // Load swappable assets
+    const { data: swapAssets = [], isLoading: isLoadingAssets } = useQuery({
+        queryKey: ["swap-assets"],
+        queryFn: fetchSwappableAssets,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // Set default assets when data loads
     useEffect(() => {
-        let cancelled = false;
-        const loadAssets = async () => {
-            setIsLoadingAssets(true);
-            try {
-                const assets = await fetchSwappableAssets();
-                if (cancelled) return;
-                setSwapAssets(assets);
-
-                // Set default assets (TON as from, first jetton as to)
-                const tonAsset = assets.find((a) => a.kind === "Ton");
-                const firstJetton = assets.find((a) => a.kind === "Jetton");
-
-                if (tonAsset) setFromAsset(tonAsset);
-                if (firstJetton) setToAsset(firstJetton);
-            } catch (error) {
-                console.error("Failed to load assets:", error);
-                if (!cancelled) toast.error("Failed to load swap assets");
-            } finally {
-                if (!cancelled) setIsLoadingAssets(false);
-            }
-        };
-
-        loadAssets();
-        return () => { cancelled = true; };
-    }, []);
+        if (swapAssets.length > 0 && !fromAsset && !toAsset) {
+            const tonAsset = swapAssets.find((a) => a.kind === "Ton");
+            const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
+            if (tonAsset) setFromAsset(tonAsset);
+            if (firstJetton) setToAsset(firstJetton);
+        }
+    }, [swapAssets, fromAsset, toAsset]);
 
     // Helper to convert address to raw format for comparison
     const toRawAddress = (addr: string): string => {

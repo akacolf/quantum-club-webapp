@@ -25,6 +25,7 @@ import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { MAX_INITIAL_BUY, MAX_SUPPLY_FORMATTED } from "@/types/trading";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -319,6 +320,7 @@ export default function CreateTokenPage() {
                 return;
             }
 
+            haptics.heavy();
             toast.success(`${token.symbol} created on TON!`, {
                 description: token.jettonMasterAddress
                     ? `Contract: ${token.jettonMasterAddress.slice(0, 12)}...`
@@ -329,6 +331,7 @@ export default function CreateTokenPage() {
             router.push(`/ecosystem/trade/${token.id}`);
         } catch (err) {
             console.error("Token creation error:", err);
+            haptics.error();
             const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
             toast.error(errorMessage);
         } finally {

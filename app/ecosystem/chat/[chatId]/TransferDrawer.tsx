@@ -16,6 +16,7 @@ import {
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toNano, Address } from "@ton/core";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { chatTransferSchema } from "@/lib/validations";
 
 interface TransferDrawerProps {
@@ -87,16 +88,19 @@ export default function TransferDrawer({
       });
 
       if (result.success && result.txHash) {
+        haptics.success();
         onSend(amount, result.txHash, resolvedAddress);
         form.reset();
         onOpenChange(false);
       } else {
         const errorMsg = result.error || "Transaction failed";
+        haptics.error();
         toast.error(errorMsg);
         onFailed(amount, errorMsg);
       }
     } catch (err: any) {
       const errorMsg = err?.message || "Transaction failed";
+      haptics.error();
       toast.error(errorMsg);
       onFailed(amount, errorMsg);
     } finally {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -66,25 +67,22 @@ const LeaderboardContent = () => {
   }, [data, setLeaderboardContext, setTotalQuant, setTotalUsers, setUserRank]);
 
   // Firestore side-effect: update QuantAmount on the userRank doc
-  useEffect(() => {
-    if (!telegramId) return;
-
-    const syncQuantAmount = async () => {
-      try {
-        const userRankRef = doc(dbfs, `userRanks/${telegramId}`);
-        const rankSnapshot = await getDoc(userRankRef);
-        if (rankSnapshot.exists()) {
-          const userRef = doc(dbfs, `user/${telegramId}/miningData/values`);
-          const snapshotValue = await getDoc(userRef);
-          const quantValue = snapshotValue.data()?.QuantAmount;
-          updateDoc(userRankRef, { QuantAmount: quantValue });
-        }
-      } catch (error) {
-        console.error("Error syncing QuantAmount:", error);
+  const syncQuantMutation = useMutation({
+    mutationFn: async (tid: string) => {
+      const userRankRef = doc(dbfs, `userRanks/${tid}`);
+      const rankSnapshot = await getDoc(userRankRef);
+      if (rankSnapshot.exists()) {
+        const userRef = doc(dbfs, `user/${tid}/miningData/values`);
+        const snapshotValue = await getDoc(userRef);
+        const quantValue = snapshotValue.data()?.QuantAmount;
+        await updateDoc(userRankRef, { QuantAmount: quantValue });
       }
-    };
+    },
+  });
 
-    syncQuantAmount();
+  useEffect(() => {
+    if (telegramId) syncQuantMutation.mutate(telegramId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [telegramId]);
 
   return (

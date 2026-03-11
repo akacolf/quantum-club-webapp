@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { Address } from "@ton/core";
 import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -98,11 +99,13 @@ export default function AddressBookPage() {
         saveAddresses([...addresses, newEntry]);
         addForm.reset();
         setIsAdding(false);
+        haptics.light();
         toast.success("Address saved!");
     };
 
     const handleDelete = (address: string) => {
         saveAddresses(addresses.filter(a => a.address !== address));
+        haptics.light();
         toast.success("Address removed");
     };
 

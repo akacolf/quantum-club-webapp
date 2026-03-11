@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { parseAsString, parseAsInteger, useQueryState } from "nuqs";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useDrag } from "@use-gesture/react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -321,6 +322,80 @@ export default function ChatConversationClient() {
     };
   }, []);
 
+  // Open the reaction picker for a given message (long-press action)
+  const openReactionPicker = useCallback((msgId: string) => {
+    justOpenedMenuRef.current = true;
+    setReactionPickerMsgId(msgId);
+    const el = messageRefs.current[msgId];
+    if (el) {
+      const bubble = (el.querySelector("[data-bubble]") || el) as HTMLElement;
+      const rect = bubble.getBoundingClientRect();
+      const viewH = window.innerHeight;
+      const showAbove = rect.bottom > viewH * 0.55;
+      setMenuAnchor({
+        y: showAbove ? rect.top : rect.bottom + 8,
+        centerX: Math.max(120, Math.min((rect.left + rect.right) / 2, window.innerWidth - 120)),
+        showAbove,
+      });
+    }
+  }, []);
+
+  // Gesture handler for message bubbles: swipe-right-to-reply + long-press-to-react
+  // bind(msg) in JSX — msg is forwarded via args[0]
+  const bindMessageGesture = useDrag(
+    ({ first, last, movement: [mx, my], event, args, cancel, memo }) => {
+      const msg = args[0] as ChatMessage;
+
+      // --- Start of gesture: kick off long-press timer ---
+      if (first) {
+        longPressTimerRef.current = setTimeout(() => {
+          openReactionPicker(msg.id);
+          longPressTimerRef.current = null;
+          cancel(); // stop drag processing after long-press fires
+        }, 500);
+        return { longPressFired: false };
+      }
+
+      // --- During gesture: cancel long-press if finger moves > 10px ---
+      if (longPressTimerRef.current) {
+        if (Math.abs(mx) > 10 || Math.abs(my) > 10) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+      }
+
+      // --- End of gesture ---
+      if (last) {
+        // Clear any pending long-press timer
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+
+        // If the reaction menu was just opened by long-press, suppress the
+        // synthetic click/touchend that would immediately dismiss it
+        if (justOpenedMenuRef.current) {
+          justOpenedMenuRef.current = false;
+          event?.preventDefault();
+          return memo;
+        }
+
+        // Swipe-to-reply: rightward swipe > 60px with < 40px vertical drift
+        if (mx > 60 && Math.abs(my) < 40) {
+          setReplyTo(msg);
+          inputRef.current?.focus();
+        }
+      }
+
+      return memo;
+    },
+    {
+      // Only track the x-axis for filtering, but keep both axes for long-press cancellation
+      filterTaps: true,
+      // Pointer events are the default; touch-action handled via CSS below
+    },
+  );
+
   // iOS keyboard: resize chat container when virtual keyboard opens/closes
   const chatRootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -343,8 +418,6 @@ export default function ChatConversationClient() {
 
   // Reply state
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
-  // Swipe state for reply gesture
-  const swipeRef = useRef<{ startX: number; startY: number; msgId: string | null }>({ startX: 0, startY: 0, msgId: null });
 
   const otherParticipantId = chatMeta?.participants.find((p) => p !== telegramId) ?? null;
   const myPhoto = useProfilePhoto(telegramId);
@@ -2500,61 +2573,8 @@ export default function ChatConversationClient() {
                 <div
                   ref={(el) => { messageRefs.current[msg.id] = el; }}
                   className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${reactionPickerMsgId === msg.id ? "relative z-[1000]" : ""}`}
-                  onTouchStart={(e) => {
-                    const touch = e.touches[0];
-                    swipeRef.current = { startX: touch.clientX, startY: touch.clientY, msgId: msg.id };
-                    longPressTimerRef.current = setTimeout(() => {
-                      justOpenedMenuRef.current = true;
-                      setReactionPickerMsgId(msg.id);
-                      const el = messageRefs.current[msg.id];
-                      if (el) {
-                        const bubble = (el.querySelector("[data-bubble]") || el) as HTMLElement;
-                        const rect = bubble.getBoundingClientRect();
-                        const viewH = window.innerHeight;
-                        const showAbove = rect.bottom > viewH * 0.55;
-                        setMenuAnchor({
-                          y: showAbove ? rect.top : rect.bottom + 8,
-                          centerX: Math.max(120, Math.min((rect.left + rect.right) / 2, window.innerWidth - 120)),
-                          showAbove,
-                        });
-                      }
-                      longPressTimerRef.current = null;
-                    }, 500);
-                  }}
-                  onTouchMove={(e) => {
-                    if (longPressTimerRef.current) {
-                      const touch = e.touches[0];
-                      const dx = Math.abs(touch.clientX - swipeRef.current.startX);
-                      const dy = Math.abs(touch.clientY - swipeRef.current.startY);
-                      if (dx > 10 || dy > 10) {
-                        clearTimeout(longPressTimerRef.current);
-                        longPressTimerRef.current = null;
-                      }
-                    }
-                  }}
-                  onTouchEnd={(e) => {
-                    if (longPressTimerRef.current) {
-                      clearTimeout(longPressTimerRef.current);
-                      longPressTimerRef.current = null;
-                    }
-                    // Prevent synthetic click from closing menu right after long-press
-                    if (justOpenedMenuRef.current) {
-                      justOpenedMenuRef.current = false;
-                      e.preventDefault();
-                      swipeRef.current = { startX: 0, startY: 0, msgId: null };
-                      return;
-                    }
-                    // Swipe-to-reply
-                    if (swipeRef.current.msgId !== msg.id) return;
-                    const touch = e.changedTouches[0];
-                    const dx = touch.clientX - swipeRef.current.startX;
-                    const dy = Math.abs(touch.clientY - swipeRef.current.startY);
-                    if (dx > 60 && dy < 40) {
-                      setReplyTo(msg);
-                      inputRef.current?.focus();
-                    }
-                    swipeRef.current = { startX: 0, startY: 0, msgId: null };
-                  }}
+                  style={{ touchAction: "pan-y" }}
+                  {...bindMessageGesture(msg)}
                 >
                   {!isOwnMessage && !consecutive && (
                     <Avatar className="h-7 w-7 shrink-0 mt-0.5">

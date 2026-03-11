@@ -1,17 +1,14 @@
 "use client";
 
-import { dbfs } from "@/app/(firebase)/client";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import {
+  useMiningDataQuery,
+  useSolveToEarnMutation,
+  useClaimDailyMutation,
+} from "@/app/(hooks)/queries/use-mining-data";
 
 // Critical above-fold components - load synchronously
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
@@ -148,524 +145,74 @@ const HomeContent = () => {
     _hasHydrated,
   } = useUserContext();
 
-  const [isClaimDay, setIsclaimDay] = useState(true);
-  const [loadingDay, setLoadingDay] = useState(false);
+  // ---------- Mining data query (replaces multiple useEffect + getDoc) ----------
+  const { data: miningData, isLoading: loadingButtonDay } = useMiningDataQuery(telegramId);
+
+  // Sync query results to Zustand store
+  useEffect(() => {
+    if (!miningData) return;
+
+    setRemainingSolveToEarn(miningData.values.remainingSolveToEarn);
+    sessionStorage.setItem(
+      "remainingSolveToEarn",
+      String(miningData.values.remainingSolveToEarn),
+    );
+
+    // Sync daily from Firestore into Zustand
+    setDaily(miningData.checkTime.daily);
+    if (telegramId) {
+      localStorage.setItem(`daily_${telegramId}`, String(miningData.checkTime.daily));
+    }
+  }, [miningData, setRemainingSolveToEarn, setDaily, telegramId]);
+
+  // Prefetch solve-to-earn route when passes are available
+  useEffect(() => {
+    if (remainingSolveToEarn > 0) {
+      router.prefetch("/earn/solvetoearn");
+    }
+  }, [remainingSolveToEarn, router]);
+
+  // Derive claim state from query data
+  const isClaimDay = miningData?.isClaimedToday ?? true;
+
+  // ---------- Solve-to-earn mutation ----------
+  const solveToEarnMutation = useSolveToEarnMutation(telegramId);
+
   async function goToSolveToEarn() {
     const taskElement = document.getElementById("solvetoearnbutton");
     if (taskElement) {
       (taskElement as HTMLButtonElement).disabled = true;
     }
-    const date = new Date(
-      Date.UTC(
-        new Date().getUTCFullYear(),
-        new Date().getUTCMonth(),
-        new Date().getUTCDate()
-      )
-    );
 
-    const formattedDate =
-      `${date.getUTCDate().toString().padStart(2, "0")}/` +
-      `${(date.getUTCMonth() + 1).toString().padStart(2, "0")}/` +
-      `${date.getUTCFullYear()}`;
-    const solveToEarnSet = doc(dbfs, `user/${telegramId}/miningData/values`);
-    const snapshotSolveToEarn = await getDoc(solveToEarnSet);
-    const remainingSolveToEarn: number =
-      snapshotSolveToEarn.data()?.remainingSolveToEarn;
-    if (remainingSolveToEarn > 0) {
-      updateDoc(solveToEarnSet, {
-        remainingSolveToEarn: remainingSolveToEarn - 1,
-        lastSolveToEarnDate: formattedDate,
-      });
-      setRemainingSolveToEarn(remainingSolveToEarn - 1);
-      sessionStorage.setItem(
-        "remainingSolveToEarn",
-        `${remainingSolveToEarn - 1}`
-      );
+    try {
+      const newRemaining = await solveToEarnMutation.mutateAsync();
+      setRemainingSolveToEarn(newRemaining);
+      sessionStorage.setItem("remainingSolveToEarn", String(newRemaining));
       router.push("/earn/solvetoearn");
+    } catch {
+      // Re-enable button on failure
+      if (taskElement) {
+        (taskElement as HTMLButtonElement).disabled = false;
+      }
     }
   }
-  useEffect(() => {
-    try {
-      const checkSolveToEarn = async () => {
-        const solveToEarnRef = doc(
-          dbfs,
-          `user/${telegramId}/miningData/values`
-        );
-        const snapshotSolveToEarn = await getDoc(solveToEarnRef);
-        const remainingSolveToEarnDB = snapshotSolveToEarn.exists()
-          ? snapshotSolveToEarn.data().remainingSolveToEarn
-          : 0;
-        setRemainingSolveToEarn(remainingSolveToEarnDB);
-      };
-      checkSolveToEarn();
-      if (remainingSolveToEarn > 0) {
-        router.prefetch("/earn/solvetoearn");
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(error.message);
-      }
-    }
-  }, [remainingSolveToEarn, router, setRemainingSolveToEarn, telegramId]);
 
-  const [loadingButtonDay, setLoadingButtonDay] = useState(true);
-  useEffect(() => {
-    const checkButton = async () => {
-      setLoadingButtonDay(true);
-      try {
-        if (!telegramId) return;
-        const solveToEarnValue = doc(
-          dbfs,
-          "user",
-          telegramId,
-          "miningData",
-          "values"
-        );
-        const snapshotSolveToEarn = await getDoc(solveToEarnValue);
-        if (snapshotSolveToEarn.exists()) {
-          const remainingSolveToEarn =
-            snapshotSolveToEarn.data()?.remainingSolveToEarn;
-          if (remainingSolveToEarn != null) {
-            setRemainingSolveToEarn(remainingSolveToEarn);
-            sessionStorage.setItem(
-              "remainingSolveToEarn",
-              remainingSolveToEarn
-            );
-          }
-        }
-
-        //dailycheckin
-        const checkTimeRef = doc(
-          dbfs,
-          "user",
-          telegramId,
-          "miningData",
-          "checkTime"
-        );
-        const snapshot = await getDoc(checkTimeRef);
-        if (snapshot.exists()) {
-          const checktime = snapshot.data().checktime;
-          if (checktime) {
-            const formattedDate = new Intl.DateTimeFormat("en-US", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              timeZone: "UTC",
-            }).format(new Date());
-            const [month, day, year] = formattedDate.split("/");
-            const formattedDateISO = `${year}-${month}-${day}`;
-            const diffInMs = Math.abs(
-              new Date(formattedDateISO).getTime() -
-              new Date(checktime).getTime()
-            );
-            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-            if (diffInDays > 2) {
-              setDoc(
-                checkTimeRef,
-                {
-                  daily: 1,
-                },
-                { merge: true }
-              );
-              setDaily(1);
-              localStorage.setItem(`daily_${telegramId}`, "1");
-              setIsclaimDay(false);
-            } else if (diffInDays >= 1 && diffInDays < 2) {
-              setIsclaimDay(false);
-            } else {
-              setIsclaimDay(true);
-            }
-          } else {
-            setDaily(1);
-            setIsclaimDay(false);
-          }
-        } else {
-          setDoc(checkTimeRef, {
-            daily: 1,
-          });
-          setDaily(1);
-          setIsclaimDay(false);
-          localStorage.setItem(`daily_${telegramId}`, "1");
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoadingButtonDay(false);
-      }
-    };
-    checkButton();
-  }, [setDaily, setRemainingSolveToEarn, telegramId]);
-
-  const [toastQueue, setToastQueue] = useState<string[]>([]);
-  const [processing, setProcessing] = useState(false);
+  // ---------- Daily claim mutation ----------
+  const claimDailyMutation = useClaimDailyMutation(telegramId, {
+    setDaily,
+    SetMainQuantAmount,
+    setRemainingSolveToEarn,
+  });
 
   async function ClaimDaily() {
-    const claim = async () => {
-      try {
-        setLoadingDay(true);
-        const date = new Date(
-          Date.UTC(
-            new Date().getUTCFullYear(),
-            new Date().getUTCMonth(),
-            new Date().getUTCDate()
-          )
-        );
-        const formattedDate =
-          `${date.getUTCDate().toString().padStart(2, "0")}/` +
-          `${(date.getUTCMonth() + 1).toString().padStart(2, "0")}/` +
-          `${date.getUTCFullYear()}`;
-        if (!telegramId) return;
-        const solveToEarnValue = doc(
-          dbfs,
-          "user",
-          telegramId,
-          "miningData",
-          "values"
-        );
-        const snapshotSolveToEarn = await getDoc(solveToEarnValue);
-        if (snapshotSolveToEarn.exists()) {
-          const remainingSolveToEarn =
-            snapshotSolveToEarn.data()?.remainingSolveToEarn;
-          const lastSolveToEarnDt =
-            snapshotSolveToEarn.data().lastSolveToEarnDate;
-          if (remainingSolveToEarn != null) {
-            const [day, month, year] = formattedDate.split("/");
-            const formattedDateISO = `${year}-${month}-${day}`;
-            const [daySTE, monthSTE, yearSTE] = lastSolveToEarnDt.split("/");
-            const solveToEarnDateConvert: string = `${yearSTE}-${monthSTE}-${daySTE}`;
-            const diffInMs = Math.abs(
-              new Date(formattedDateISO).getTime() -
-              new Date(solveToEarnDateConvert).getTime()
-            );
-            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-            setRemainingSolveToEarn(remainingSolveToEarn);
-            sessionStorage.setItem(
-              "remainingSolveToEarn",
-              remainingSolveToEarn
-            );
-            if (diffInDays >= 1) {
-              const updatedSolveToEarn = remainingSolveToEarn + 7;
-              updateDoc(solveToEarnValue, {
-                remainingSolveToEarn: updatedSolveToEarn,
-                lastSolveToEarnDate: formattedDate,
-              });
-              setRemainingSolveToEarn(updatedSolveToEarn);
-              sessionStorage.setItem(
-                "remainingSolveToEarn",
-                updatedSolveToEarn
-              );
-              toast.success("+7 passes has been added", {
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fill="#fff"
-                      d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"
-                    />
-                  </svg>
-                ),
-              });
-            }
-          } else {
-            setDoc(
-              solveToEarnValue,
-              {
-                remainingSolveToEarn: 7,
-                lastSolveToEarnDate: formattedDate,
-              },
-              { merge: true }
-            );
-            setRemainingSolveToEarn(7);
-            sessionStorage.setItem("remainingSolveToEarn", "7");
-            toast.success("+7 passes has been added", {
-              icon: (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill="#fff"
-                    d="M7 15q1.25 0 2.125-.875T10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15m0 3q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18"
-                  />
-                </svg>
-              ),
-              duration: 3000,
-            });
-          }
-        }
-
-        //dailycheckin
-        const checkTimeRef = doc(
-          dbfs,
-          "user",
-          telegramId,
-          "miningData",
-          "checkTime"
-        );
-        const snapshot = await getDoc(checkTimeRef);
-        if (snapshot.exists()) {
-          const checktime = snapshot.data().checktime;
-          const dailyDay = snapshot.data().daily;
-          const valueRef = doc(
-            dbfs,
-            "user",
-            telegramId,
-            "miningData",
-            "values"
-          );
-          const rewardsHistory = doc(
-            dbfs,
-            "user",
-            telegramId,
-            "rewardsHistory",
-            crypto.randomUUID()
-          );
-          const snapshotValue = await getDoc(valueRef);
-          let quant;
-          if (snapshotValue.exists()) {
-            quant = snapshotValue.data().QuantAmount;
-          }
-          if (!checktime) {
-            const formattedD = new Intl.DateTimeFormat("tr-TR", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              timeZone: "UTC",
-            }).format(new Date());
-            const [day, month, year] = formattedD.split(".");
-            const formattedDate = `${month}/${day}/${year}`;
-            const formattedslash = `${day}/${month}/${year}`;
-            setDoc(
-              checkTimeRef,
-              {
-                checktime: formattedDate,
-                daily: 1,
-              },
-              { merge: true }
-            );
-            setDaily(1);
-            setTimeout(() => {
-              addToQueue(`You've got +${50} QNTM`);
-            }, 3000);
-            const rewardDay: number = quant + 50;
-            const formattedAmount = rewardDay.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            });
-            updateDoc(valueRef, {
-              QuantAmount: rewardDay,
-            });
-            SetMainQuantAmount(formattedAmount);
-            setDoc(rewardsHistory, {
-              quant: 50,
-              platform: "dailycheck-in-reward",
-              Date: formattedslash,
-            });
-
-
-
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-            }
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`daily_${telegramId}`, "1");
-            }
-          } else {
-            try {
-              const formattedD = new Intl.DateTimeFormat("tr-TR", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                timeZone: "UTC",
-              }).format(new Date());
-              const [day, month, year] = formattedD.split(".");
-              const formattedDateISO = `${year}-${month}-${day}`;
-              const formattedDate = `${month}/${day}/${year}`;
-              const formattedslash = `${day}/${month}/${year}`;
-              const diffInMs = Math.abs(
-                new Date(formattedDateISO).getTime() -
-                new Date(checktime).getTime()
-              );
-              const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-              const quantReward = dailyDay <= 7 ? (daily - 1) * 100 + 50 : 650;
-              const rewardDay = quant + quantReward;
-              if (diffInDays >= 1 && diffInDays < 2) {
-                setDoc(
-                  checkTimeRef,
-                  {
-                    checktime: formattedDate,
-                    daily: dailyDay + 1,
-                  },
-                  { merge: true }
-                );
-                updateDoc(valueRef, {
-                  QuantAmount: rewardDay,
-                });
-                setDoc(rewardsHistory, {
-                  quant: quantReward,
-                  platform: "dailycheck-in-reward",
-                  Date: formattedslash,
-                });
-
-
-
-                const formattedAmount = rewardDay.toLocaleString("en-US", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                });
-
-                SetMainQuantAmount(formattedAmount);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-                }
-                setDaily(dailyDay + 1);
-                setTimeout(() => {
-                  addToQueue(`You've got +${quantReward} QNTM`);
-                }, 3000);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem(`daily_${telegramId}`, dailyDay + 1);
-                }
-              } else if (diffInDays >= 2) {
-                const rewardDay = quant + 50;
-                setDoc(
-                  checkTimeRef,
-                  {
-                    checktime: formattedDate,
-                    daily: 1,
-                  },
-                  { merge: true }
-                );
-                updateDoc(valueRef, {
-                  QuantAmount: rewardDay,
-                });
-                const formattedAmount = rewardDay.toLocaleString("en-US", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                });
-                setDoc(rewardsHistory, {
-                  quant: 50,
-                  platform: "dailycheck-in-reward",
-                  Date: formattedslash,
-                });
-
-
-
-                SetMainQuantAmount(formattedAmount);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-                }
-                setDaily(1);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem(`daily_${telegramId}`, "1");
-                }
-                setTimeout(() => {
-                  addToQueue(`You've got +${50} QNTM`);
-                }, 3000);
-              } else {
-                setIsclaimDay(true);
-              }
-            } catch (error) {
-              console.error(error);
-            }
-          }
-        } else {
-          const formattedDate = new Intl.DateTimeFormat("tr-TR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            timeZone: "UTC",
-          }).format(new Date());
-          const [day, month, year] = formattedDate.split(".");
-          const formattedslash = `${day}/${month}/${year}`;
-          setDoc(
-            checkTimeRef,
-            {
-              checktime: formattedDate,
-              daily: 2,
-            },
-            { merge: true }
-          );
-          const valueRef = doc(
-            dbfs,
-            "user",
-            telegramId,
-            "miningData",
-            "values"
-          );
-          const snapshotValue = await getDoc(valueRef);
-          let quant;
-          if (snapshotValue.exists()) {
-            quant = snapshotValue.data().QuantAmount;
-          }
-          const rewardDay = quant + 50;
-          const formattedAmount = rewardDay.toLocaleString("en-US", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          });
-          updateDoc(valueRef, {
-            QuantAmount: rewardDay,
-          });
-          const rewardsHistory = doc(
-            dbfs,
-            "user",
-            telegramId,
-            "rewardsHistory",
-            crypto.randomUUID()
-          );
-
-          setDoc(rewardsHistory, {
-            quant: 50,
-            platform: "dailycheck-in-reward",
-            Date: formattedslash,
-          });
-
-
-          SetMainQuantAmount(formattedAmount);
-          if (typeof window !== "undefined") {
-            localStorage.setItem(`QAmount_${telegramId}`, formattedAmount);
-          }
-          setDaily(1);
-          if (typeof window !== "undefined") {
-            localStorage.setItem(`daily_${telegramId}`, "1");
-          }
-          setTimeout(() => {
-            addToQueue(`You've got +${50} QNTM`);
-          }, 3000);
-        }
-      } catch (error) {
-        if (error as Error) {
-          console.error((error as Error).message);
-        }
-      } finally {
-        setLoadingDay(false);
-        setIsclaimDay(true);
-      }
-    };
-    claim();
+    if (!telegramId) return;
+    claimDailyMutation.mutate({
+      telegramId,
+      currentDaily: daily,
+    });
   }
 
-  const addToQueue = (message: string) => {
-    setToastQueue((prev) => [...prev, message]);
-  };
-
-  useEffect(() => {
-    if (!processing && toastQueue.length > 0) {
-      setProcessing(true);
-      const currentMessage = toastQueue[0];
-      toast.success(currentMessage, { duration: 3000 });
-      const timer = setTimeout(() => {
-        setToastQueue((prev) => prev.slice(1));
-        setProcessing(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [toastQueue, processing]);
+  const loadingDay = claimDailyMutation.isPending;
 
   const TaskTimer = () => {
     const now = new Date();

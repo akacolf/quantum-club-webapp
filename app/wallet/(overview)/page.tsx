@@ -92,6 +92,7 @@ type NftFilterType = "all" | "gifts" | "collections";
 
 function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string; image?: string; collectionAddress?: string; collectionName?: string; description?: string; ownerAddress?: string; sale?: any; attributes?: any[] }> }) {
   const [filter, setFilter] = useQueryState("nftFilter", parseAsStringLiteral(["all", "gifts", "collections"] as const).withDefault("all").withOptions({ history: "replace" }));
+  const nftGridRef = useRef<HTMLDivElement>(null);
 
   const filteredNfts = nfts.filter((nft) => {
     if (filter === "all") return true;
@@ -100,6 +101,17 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
     if (filter === "collections") return category === "regular";
     return true;
   });
+
+  const rowCount = Math.ceil(filteredNfts.length / 2);
+
+  /* eslint-disable react-hooks/refs -- TanStack Virtual reads ref during render for scrollMargin */
+  const nftVirtualizer = useWindowVirtualizer({
+    count: rowCount,
+    estimateSize: () => 220,
+    overscan: 3,
+    scrollMargin: nftGridRef.current?.offsetTop ?? 0,
+  });
+  /* eslint-enable react-hooks/refs */
 
   const filters: { value: NftFilterType; label: string; icon: string }[] = [
     { value: "all", label: "All", icon: "solar:widget-linear" },
@@ -133,48 +145,107 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
       )}
 
       {filteredNfts.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
-          {filteredNfts.map((nft, index) => {
-            const category = categorizeNft(nft);
-            return (
-              <Link key={index} href={`/wallet/nft/${encodeURIComponent(nft.address)}`}>
-                <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
-                  <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden" style={{ viewTransitionName: `nft-img-${nft.address.slice(-8)}` }}>
-                    {nft.image ? (
-                      <Image
-                        src={nft.image}
-                        alt={nft.name}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Icon icon="lucide:image" className="w-8 h-8 text-gray-600"/>
-                      </div>
-                    )}
-                    {category === "gift" && (
-                      <Badge className="absolute top-2 left-2 bg-purple-600 text-[10px] px-1.5 py-0">
-                        <Icon icon="solar:gift-bold" className="w-3 h-3 mr-0.5" />
-                        Gift
-                      </Badge>
-                    )}
-                    {category === "sticker" && (
-                      <Badge className="absolute top-2 left-2 bg-blue-600 text-[10px] px-1.5 py-0">
-                        Sticker
-                      </Badge>
+        <div ref={nftGridRef}>
+          <div className="relative" style={{ height: `${nftVirtualizer.getTotalSize()}px` }}>
+            {nftVirtualizer.getVirtualItems().map((virtualRow) => {
+              const leftIndex = virtualRow.index * 2;
+              const rightIndex = leftIndex + 1;
+              const leftNft = filteredNfts[leftIndex];
+              const rightNft = rightIndex < filteredNfts.length ? filteredNfts[rightIndex] : null;
+              const leftCategory = categorizeNft(leftNft);
+              const rightCategory = rightNft ? categorizeNft(rightNft) : null;
+
+              return (
+                <div
+                  key={virtualRow.key}
+                  ref={nftVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="absolute top-0 left-0 w-full"
+                  style={{ transform: `translateY(${virtualRow.start - nftVirtualizer.options.scrollMargin}px)` }}
+                >
+                  <div className="grid grid-cols-2 gap-3 pb-3">
+                    {/* Left NFT card */}
+                    <Link href={`/wallet/nft/${encodeURIComponent(leftNft.address)}`}>
+                      <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
+                        <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden" style={{ viewTransitionName: `nft-img-${leftNft.address.slice(-8)}` }}>
+                          {leftNft.image ? (
+                            <Image
+                              src={leftNft.image}
+                              alt={leftNft.name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Icon icon="lucide:image" className="w-8 h-8 text-gray-600"/>
+                            </div>
+                          )}
+                          {leftCategory === "gift" && (
+                            <Badge className="absolute top-2 left-2 bg-purple-600 text-[10px] px-1.5 py-0">
+                              <Icon icon="solar:gift-bold" className="w-3 h-3 mr-0.5" />
+                              Gift
+                            </Badge>
+                          )}
+                          {leftCategory === "sticker" && (
+                            <Badge className="absolute top-2 left-2 bg-blue-600 text-[10px] px-1.5 py-0">
+                              Sticker
+                            </Badge>
+                          )}
+                        </div>
+                        <CardContent className="p-3">
+                          <h4 className="font-bold text-white text-sm truncate">{leftNft.name}</h4>
+                          {leftNft.collectionName && (
+                            <p className="text-xs text-gray-500 truncate">{leftNft.collectionName}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Right NFT card */}
+                    {rightNft && (
+                      <Link href={`/wallet/nft/${encodeURIComponent(rightNft.address)}`}>
+                        <Card className="bg-[#111] border-[#222] rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
+                          <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden" style={{ viewTransitionName: `nft-img-${rightNft.address.slice(-8)}` }}>
+                            {rightNft.image ? (
+                              <Image
+                                src={rightNft.image}
+                                alt={rightNft.name}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Icon icon="lucide:image" className="w-8 h-8 text-gray-600"/>
+                              </div>
+                            )}
+                            {rightCategory === "gift" && (
+                              <Badge className="absolute top-2 left-2 bg-purple-600 text-[10px] px-1.5 py-0">
+                                <Icon icon="solar:gift-bold" className="w-3 h-3 mr-0.5" />
+                                Gift
+                              </Badge>
+                            )}
+                            {rightCategory === "sticker" && (
+                              <Badge className="absolute top-2 left-2 bg-blue-600 text-[10px] px-1.5 py-0">
+                                Sticker
+                              </Badge>
+                            )}
+                          </div>
+                          <CardContent className="p-3">
+                            <h4 className="font-bold text-white text-sm truncate">{rightNft.name}</h4>
+                            {rightNft.collectionName && (
+                              <p className="text-xs text-gray-500 truncate">{rightNft.collectionName}</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Link>
                     )}
                   </div>
-                  <CardContent className="p-3">
-                    <h4 className="font-bold text-white text-sm truncate">{nft.name}</h4>
-                    {nft.collectionName && (
-                      <p className="text-xs text-gray-500 truncate">{nft.collectionName}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </>
