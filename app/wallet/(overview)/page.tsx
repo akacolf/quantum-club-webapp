@@ -24,7 +24,7 @@ import Loader from "@/app/(components)/Loader";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { useWallet } from "./WalletContext";
+import { useWallet } from "../WalletContext";
 import { DeletePin } from "@/components/ui/biometric-auth";
 import dynamic from "next/dynamic";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
@@ -38,7 +38,7 @@ const AnimatedPrice = dynamic(
 );
 
 const WalletPriceChart = dynamic(
-  () => import("./WalletPriceChart").then((mod) => mod.WalletPriceChart),
+  () => import("../WalletPriceChart").then((mod) => mod.WalletPriceChart),
   { ssr: false, loading: () => <Skeleton className="w-full h-full rounded-lg" /> }
 );
 import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
