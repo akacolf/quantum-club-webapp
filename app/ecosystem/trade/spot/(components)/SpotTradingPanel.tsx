@@ -2,7 +2,6 @@
 
 import { env } from "@/env";
 import { useState, useEffect } from "react";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,11 +27,12 @@ interface SpotTradingPanelProps {
     token: SpotToken;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    activeTab: "buy" | "sell";
+    onTabChange: (tab: "buy" | "sell") => void;
 }
 
-export default function SpotTradingPanel({ token, open, onOpenChange }: SpotTradingPanelProps) {
+export default function SpotTradingPanel({ token, open, onOpenChange, activeTab, onTabChange }: SpotTradingPanelProps) {
     const { tonBalance, walletAddress, sendTransaction, jettons } = useWallet();
-    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace" }));
     const [amount, setAmount] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
     const [preview, setPreview] = useState<{
@@ -249,7 +249,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange }: SpotTrad
                     </SheetTitle>
                 </SheetHeader>
 
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "buy" | "sell")}>
+                <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as "buy" | "sell")}>
                     <TabsList className="w-full bg-white/5 p-1 mb-4 h-11 rounded-xl">
                         <TabsTrigger
                             value="buy"
