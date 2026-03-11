@@ -460,7 +460,7 @@ export default function SwapPage() {
             toAsset: toAsset?.symbol || "",
         });
         if (!parsed.success) {
-            toast.error(parsed.error.errors[0].message);
+            toast.error(parsed.error.issues[0].message);
             return;
         }
         if (canProceed && omnistonQuote) {

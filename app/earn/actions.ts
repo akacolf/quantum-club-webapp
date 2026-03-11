@@ -55,9 +55,7 @@ export const confirmTask = authWithQcIdClient
 // ---------------------------------------------------------------------------
 
 const checkMembershipSchema = z.object({
-    tgIdNumerical: z.union([z.string(), z.number()]).pipe(
-        z.coerce.string().min(1, "telegramId is required")
-    ),
+    tgIdNumerical: z.coerce.string().min(1, "telegramId is required"),
     channelUsername: z.string().min(1, "channelUsername is required"),
 });
 

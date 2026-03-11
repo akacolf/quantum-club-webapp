@@ -521,7 +521,7 @@ export default function SendPage() {
       amount: amount || "",
     });
     if (!parsed.success) {
-      toast.error(parsed.error.errors[0].message);
+      toast.error(parsed.error.issues[0].message);
       return false;
     }
 
@@ -1143,7 +1143,7 @@ export default function SendPage() {
       amount: multiChainAmount || "",
     });
     if (!parsed.success) {
-      toast.error(parsed.error.errors[0].message);
+      toast.error(parsed.error.issues[0].message);
       return false;
     }
     if (multiChainAddressError) {

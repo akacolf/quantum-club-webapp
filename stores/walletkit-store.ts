@@ -2,20 +2,20 @@
 
 import { create } from "zustand";
 import type {
-  EventConnectRequest,
-  EventTransactionRequest,
-  EventSignDataRequest,
-  SessionInfo,
+  ConnectionRequestEvent,
+  SendTransactionRequestEvent,
+  SignDataRequestEvent,
+  TONConnectSession,
 } from "@ton/walletkit";
 
 interface WalletKitStoreState {
   isReady: boolean;
   isTestnet: boolean;
   isWalletRegistered: boolean;
-  pendingConnection: EventConnectRequest | null;
-  pendingTransaction: EventTransactionRequest | null;
-  pendingSignData: EventSignDataRequest | null;
-  sessions: SessionInfo[];
+  pendingConnection: ConnectionRequestEvent | null;
+  pendingTransaction: SendTransactionRequestEvent | null;
+  pendingSignData: SignDataRequestEvent | null;
+  sessions: TONConnectSession[];
 }
 
 interface WalletKitStoreActions {

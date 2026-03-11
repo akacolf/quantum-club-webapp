@@ -12,16 +12,16 @@
 import React, { useEffect, useRef } from "react";
 import {
     TonWalletKit,
-    CHAIN,
+    Network,
     createDeviceInfo,
     createWalletManifest,
     Signer,
     WalletV5R1Adapter,
-    type EventConnectRequest,
-    type EventTransactionRequest,
-    type EventSignDataRequest,
-    type EventDisconnect,
-    type IWallet,
+    type ConnectionRequestEvent,
+    type SendTransactionRequestEvent,
+    type SignDataRequestEvent,
+    type DisconnectionEvent,
+    type Wallet,
 } from "@ton/walletkit";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
@@ -44,7 +44,7 @@ export function WalletKitProvider({
     isTestnet,
 }: WalletKitProviderProps) {
     const kitRef = useRef<TonWalletKit | null>(null);
-    const walletRef = useRef<IWallet | null>(null);
+    const walletRef = useRef<Wallet | null>(null);
 
     // Initialize WalletKit
     useEffect(() => {
@@ -52,11 +52,11 @@ export function WalletKitProvider({
 
         const initKit = async () => {
             try {
-                const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
+                const network = isTestnet ? Network.testnet() : Network.mainnet();
 
                 const kit = new TonWalletKit({
                     networks: {
-                        [network]: {
+                        [network.chainId]: {
                             apiClient: {
                                 url: isTestnet
                                     ? "https://testnet.toncenter.com/api/v3"
@@ -97,26 +97,26 @@ export function WalletKitProvider({
                 });
 
                 // Create named callback refs for proper cleanup
-                const onConnect = (event: EventConnectRequest) => {
+                const onConnect = (event: ConnectionRequestEvent) => {
                     analyticsEvents.connectionStarted();
                     if (mounted) {
                         useWalletKitStore.setState({ pendingConnection: event });
                     }
                 };
 
-                const onTransaction = (event: EventTransactionRequest) => {
+                const onTransaction = (event: SendTransactionRequestEvent) => {
                     if (mounted) {
                         useWalletKitStore.setState({ pendingTransaction: event });
                     }
                 };
 
-                const onSignData = (event: EventSignDataRequest) => {
+                const onSignData = (event: SignDataRequestEvent) => {
                     if (mounted) {
                         useWalletKitStore.setState({ pendingSignData: event });
                     }
                 };
 
-                const onDisconnect = (_event: EventDisconnect) => {
+                const onDisconnect = (_event: DisconnectionEvent) => {
                     analyticsEvents.disconnection();
                     kit.listSessions().then(s => {
                         if (mounted) useWalletKitStore.setState({ sessions: s });
@@ -183,7 +183,7 @@ export function WalletKitProvider({
         }
 
         try {
-            const network = isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
+            const network = isTestnet ? Network.testnet() : Network.mainnet();
 
             // Create signer from mnemonic
             const signer = await Signer.fromMnemonic(mnemonic);
@@ -368,7 +368,7 @@ export function WalletKitProvider({
         }
 
         try {
-            await kitRef.current.signDataRequest(pendingSignData);
+            await kitRef.current.approveSignDataRequest(pendingSignData);
             haptics.success();
             toast.success("Data signed successfully");
         } catch (error) {
@@ -501,4 +501,4 @@ export function useWalletKitOptional() {
     return store;
 }
 
-export { CHAIN };
+export { Network };

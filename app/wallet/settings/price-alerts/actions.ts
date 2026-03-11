@@ -12,7 +12,7 @@ const createAlertSchema = z.object({
   symbol: z.string().min(1, "Symbol is required"),
   targetPrice: z.number().positive("Target price must be a positive number"),
   direction: z.enum(["above", "below"], {
-    errorMap: () => ({ message: "Direction must be 'above' or 'below'" }),
+    error: "Direction must be 'above' or 'below'",
   }),
 });
 

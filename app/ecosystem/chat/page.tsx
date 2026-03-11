@@ -328,7 +328,7 @@ export default function QCChatListPage() {
     const val = usernameForm.getFieldValue("username").trim();
     const result = usernameSchema.safeParse(val);
     if (!result.success) {
-      setUsernameError(result.error.errors[0]?.message ?? "Invalid username");
+      setUsernameError(result.error.issues[0]?.message ?? "Invalid username");
       return;
     }
     setIsCheckingUsername(true);
@@ -640,7 +640,7 @@ export default function QCChatListPage() {
     const rawUsername = dmForm.getFieldValue("username").trim();
     const parsed = chatDmSchema.safeParse({ username: rawUsername });
     if (!parsed.success) {
-      setFormError(parsed.error.errors[0].message);
+      setFormError(parsed.error.issues[0].message);
       return;
     }
     const normalizedUsername = rawUsername.replace(/^@+/, "").toLowerCase();
@@ -737,7 +737,7 @@ export default function QCChatListPage() {
     const name = groupForm.getFieldValue("name").trim();
     const parsed = chatGroupSchema.safeParse({ name });
     if (!parsed.success) {
-      setFormError(parsed.error.errors[0].message);
+      setFormError(parsed.error.issues[0].message);
       return;
     }
     if (!telegramId) {
@@ -783,7 +783,7 @@ export default function QCChatListPage() {
     const code = joinForm.getFieldValue("code").trim().toUpperCase();
     const parsed = chatJoinSchema.safeParse({ code });
     if (!parsed.success) {
-      setFormError(parsed.error.errors[0].message);
+      setFormError(parsed.error.issues[0].message);
       return;
     }
     if (!telegramId) {

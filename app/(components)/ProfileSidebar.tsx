@@ -263,7 +263,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                 // Inline validation for real-time feedback (schema validates on submit)
                 const validationResult = val ? usernameSchema.safeParse(val) : null;
                 const realtimeError = validationResult && !validationResult.success
-                  ? validationResult.error.errors[0]?.message ?? null
+                  ? validationResult.error.issues[0]?.message ?? null
                   : null;
                 return (
                   <>

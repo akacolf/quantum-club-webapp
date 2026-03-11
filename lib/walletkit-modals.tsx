@@ -117,7 +117,7 @@ function TransactionModal() {
     useEffect(() => {
         if (!pendingTransaction) { setIsExpired(false); return; }
         const checkExpiration = () => {
-            const validUntil = pendingTransaction.request?.valid_until;
+            const validUntil = pendingTransaction.request?.validUntil;
             if (validUntil) {
                 setIsExpired(validUntil < Math.floor(Date.now() / 1000));
             }
@@ -130,8 +130,9 @@ function TransactionModal() {
     if (!pendingTransaction) return null;
 
     const { preview, dAppInfo, request } = pendingTransaction;
+    const emulationPreview = preview?.data;
     const messages = request?.messages || [];
-    const isEmulationSuccess = preview?.result === "success";
+    const isEmulationSuccess = emulationPreview?.result === "success";
 
     return (
         <ModalBackdrop onClose={rejectTransaction}>
@@ -173,24 +174,24 @@ function TransactionModal() {
                 </ScrollArea>
 
                 {/* Emulation result */}
-                {isEmulationSuccess && preview.result === "success" && (
+                {isEmulationSuccess && emulationPreview?.result === "success" && (
                     <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                         <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                             <Icon icon="lucide:check-circle" className="w-4 h-4" />
                             <span>Transaction simulated successfully</span>
                         </div>
-                        {preview.moneyFlow && (
+                        {emulationPreview.moneyFlow && (
                             <div className="mt-2 space-y-1">
-                                {preview.moneyFlow.outputs && (
+                                {emulationPreview.moneyFlow.outputs && (
                                     <div className="flex justify-between text-xs">
                                         <span className="text-muted-foreground">Total out</span>
-                                        <span className="text-red-400">-{fromNano(preview.moneyFlow.outputs)} TON</span>
+                                        <span className="text-red-400">-{fromNano(emulationPreview.moneyFlow.outputs)} TON</span>
                                     </div>
                                 )}
-                                {preview.moneyFlow.inputs && BigInt(preview.moneyFlow.inputs) > 0n && (
+                                {emulationPreview.moneyFlow.inputs && BigInt(emulationPreview.moneyFlow.inputs) > 0n && (
                                     <div className="flex justify-between text-xs">
                                         <span className="text-muted-foreground">Total in</span>
-                                        <span className="text-green-400">+{fromNano(preview.moneyFlow.inputs)} TON</span>
+                                        <span className="text-green-400">+{fromNano(emulationPreview.moneyFlow.inputs)} TON</span>
                                     </div>
                                 )}
                             </div>
@@ -198,7 +199,7 @@ function TransactionModal() {
                     </div>
                 )}
 
-                {preview?.result === "error" && (
+                {emulationPreview?.result === "failure" && (
                     <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                         <div className="flex items-center gap-2 text-sm text-destructive">
                             <Icon icon="lucide:alert-triangle" className="w-4 h-4" />
@@ -246,12 +247,13 @@ function SignDataModal() {
     if (!pendingSignData) return null;
 
     const { preview, dAppInfo } = pendingSignData;
+    const signDataPreview = preview?.data;
 
     const previewContent = (() => {
-        if (!preview) return null;
-        if (preview.kind === "text") return preview.content;
-        if (preview.kind === "binary") return `Binary data (${preview.content.length} bytes)`;
-        if (preview.kind === "cell") return preview.schema || `Cell data`;
+        if (!signDataPreview) return null;
+        if (signDataPreview.type === "text") return signDataPreview.value.content;
+        if (signDataPreview.type === "binary") return `Binary data (${signDataPreview.value.content.length} bytes)`;
+        if (signDataPreview.type === "cell") return signDataPreview.value.schema || `Cell data`;
         return null;
     })();
 

@@ -385,7 +385,7 @@ export default function LiquidityPage() {
       amountA: amountA || "",
     });
     if (!parsed.success) {
-      toast.error(parsed.error.errors[0].message);
+      toast.error(parsed.error.issues[0].message);
       return;
     }
 
@@ -525,7 +525,7 @@ export default function LiquidityPage() {
       percent: removePercent || "",
     });
     if (!parsed.success) {
-      toast.error(parsed.error.errors[0].message);
+      toast.error(parsed.error.issues[0].message);
       return;
     }
 

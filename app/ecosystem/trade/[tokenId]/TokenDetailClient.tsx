@@ -162,7 +162,7 @@ export default function TokenDetailClient() {
         // Zod schema validation at submit boundary
         const parsed = tradeAmountSchema.safeParse({ amount: amount || "" });
         if (!parsed.success) {
-            toast.error(parsed.error.errors[0].message);
+            toast.error(parsed.error.issues[0].message);
             return;
         }
 

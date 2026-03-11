@@ -58,7 +58,7 @@ export default function QCDomainPage() {
   const currentUsername = form.getFieldValue("username");
   const parseResult = currentUsername ? usernameSchema.safeParse(currentUsername) : null;
   const validationError = parseResult && !parseResult.success
-    ? parseResult.error.errors[0]?.message ?? null
+    ? parseResult.error.issues[0]?.message ?? null
     : null;
   const isValidInput = parseResult?.success ?? false;
 

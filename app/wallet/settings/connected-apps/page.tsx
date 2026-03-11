@@ -379,11 +379,11 @@ export default function ConnectedAppsPage() {
                                                                     {(() => { try { return new URL(session.dAppUrl).hostname; } catch { return session.dAppUrl; } })()}
                                                                 </span>
                                                             )}
-                                                            {session.lastActivity && (
+                                                            {session.lastActivityAt && (
                                                                 <>
                                                                     <span>•</span>
                                                                     <Icon icon="lucide:clock" className="w-3 h-3" />
-                                                                    <span>{formatTimeAgo(new Date(session.lastActivity).getTime())}</span>
+                                                                    <span>{formatTimeAgo(new Date(session.lastActivityAt).getTime())}</span>
                                                                 </>
                                                             )}
                                                         </div>
