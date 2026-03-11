@@ -2,7 +2,6 @@
 
 import { env } from "@/env";
 import { useState, useEffect } from "react";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,14 +31,13 @@ interface SpotTradingPanelProps {
 }
 
 export default function SpotTradingPanel({ token, open, onOpenChange, initialTab }: SpotTradingPanelProps) {
-    const [activeTab, setActiveTab] = useQueryState("side", parseAsStringLiteral(["buy", "sell"] as const).withDefault("buy").withOptions({ history: "replace", shallow: true }));
+    const [activeTab, setActiveTab] = useState<"buy" | "sell">(initialTab ?? "buy");
 
     // Sync tab when the sheet opens with a specific initial tab
     useEffect(() => {
-        if (open && initialTab && initialTab !== activeTab) {
+        if (open && initialTab) {
             setActiveTab(initialTab);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, initialTab]);
     const { tonBalance, walletAddress, sendTransaction, jettons } = useWallet();
     const [amount, setAmount] = useState("");

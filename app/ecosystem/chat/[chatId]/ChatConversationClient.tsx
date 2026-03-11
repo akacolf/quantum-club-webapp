@@ -448,10 +448,13 @@ export default function ChatConversationClient() {
           epochCounter: data.epochCounter,
           epochNonces: data.epochNonces,
         });
+      } else if (!snap.metadata.fromCache) {
+        // Document confirmed missing from server — stop loading
+        setIsLoading(false);
       }
     }, (error) => {
       console.error("Chat meta listener error:", error);
-      // Firestore SDK auto-reconnects for persistent cache, but log for debugging
+      setIsLoading(false);
     });
     return () => unsub();
   }, [currentUser, chatId]);
@@ -568,7 +571,11 @@ export default function ChatConversationClient() {
       // Use participantsRef for latest participants (avoids stale closure)
       const participants = [...participantsRef.current];
       // If participants haven't loaded yet, skip decryption to avoid false "sent a message" failures
-      if (participants.length === 0) return;
+      if (participants.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+      try {
 
       const rawMsgs: {
         id: string;
@@ -740,6 +747,13 @@ export default function ChatConversationClient() {
           [`readPositions.${telegramId}`]: serverTimestamp(),
         }).catch(() => {});
       }
+      } catch (err) {
+        console.error("Messages snapshot processing error:", err);
+        setIsLoading(false);
+      }
+    }, (error) => {
+      console.error("Messages listener error:", error);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
