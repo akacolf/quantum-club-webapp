@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -1921,7 +1922,9 @@ export default function ChatConversationClient() {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            {isGroupChat ? (
+            {!chatMeta ? (
+              <Skeleton className="h-4 w-24 rounded" />
+            ) : isGroupChat ? (
               <button
                 onClick={() => router.push(`/ecosystem/chat/${chatId}/info`)}
                 className="text-sm font-semibold text-foreground truncate hover:underline text-left"
@@ -1946,12 +1949,18 @@ export default function ChatConversationClient() {
             )}
           </div>
           <div className="flex items-center gap-1">
-            {subtitle.color === "text-green-400" && typingUsers.length === 0 && (
-              <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+            {!chatMeta ? (
+              <Skeleton className="h-3 w-16 rounded" />
+            ) : (
+              <>
+                {subtitle.color === "text-green-400" && typingUsers.length === 0 && (
+                  <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+                )}
+                <span className={`text-[11px] ${subtitle.color} leading-none truncate`}>
+                  {subtitle.text}
+                </span>
+              </>
             )}
-            <span className={`text-[11px] ${subtitle.color} leading-none truncate`}>
-              {subtitle.text}
-            </span>
           </div>
         </div>
 

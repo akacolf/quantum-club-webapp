@@ -153,6 +153,9 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     if (!user) throw new Error("No user signed in");
     const credential = EmailAuthProvider.credential(email, password);
     await linkWithCredential(user, credential);
+    // Reload the user so currentUser.email is populated immediately
+    await user.reload();
+    set({ currentUser: { ...auth.currentUser! } as User });
   },
 
   linkGoogleToAccount: async () => {
@@ -169,6 +172,8 @@ export const useAuthStore = create<AuthStore>()((set) => ({
               tokenResponse.access_token
             );
             await linkWithCredential(user, credential);
+            await user.reload();
+            set({ currentUser: { ...auth.currentUser! } as User });
             resolve();
           } catch (error) {
             reject(error);
