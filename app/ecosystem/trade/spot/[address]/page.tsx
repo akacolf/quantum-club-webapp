@@ -28,7 +28,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     const { data: dyor } = useSpotTokenDyor(decodedAddress);
 
     const [tradingOpen, setTradingOpen] = useState(false);
-    const [tradingTab, setTradingTab] = useState<"buy" | "sell">("buy");
+    const [initialTab, setInitialTab] = useState<"buy" | "sell">("buy");
 
     if (isLoadingTokens) {
         return (
@@ -58,7 +58,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     }
 
     const openTrade = (tab: "buy" | "sell") => {
-        setTradingTab(tab);
+        setInitialTab(tab);
         setTradingOpen(true);
     };
 
@@ -105,8 +105,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                 token={token}
                 open={tradingOpen}
                 onOpenChange={setTradingOpen}
-                activeTab={tradingTab}
-                onTabChange={setTradingTab}
+                initialTab={initialTab}
             />
         </div>
     );
