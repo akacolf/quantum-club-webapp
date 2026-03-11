@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -54,7 +55,7 @@ export default function FarmingPage() {
         router.prefetch("/wallet/liquidity");
     }, [router]);
 
-    const [viewMode, setViewMode] = useState<ViewMode>("list");
+    const [viewMode, setViewMode] = useQueryState("view", parseAsStringLiteral(["list", "stake", "positions", "details"] as const).withDefault("list").withOptions({ history: "push" }));
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedFarm, setSelectedFarm] = useState<FarmPool | null>(null);
     const [stakeAmount, setStakeAmount] = useState("");
@@ -82,7 +83,7 @@ export default function FarmingPage() {
         return () => {
             tg?.BackButton.offClick(handleBackButtonClick);
         };
-    }, [router, viewMode]);
+    }, [router, viewMode, setViewMode]);
 
     // Find LP token balance for selected farm
     const lpBalance = selectedFarm 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,7 @@ export default function ConnectedAppsPage() {
             // Use WalletKit to handle the TON Connect URL
             await walletKit.handleTonConnectUrl(result);
 
+            haptics.light();
             toast.success("Connection request received", {
                 description: "Check the connection dialog",
             });
@@ -137,6 +139,7 @@ export default function ConnectedAppsPage() {
             console.error("Error processing TON Connect URL:", err);
             const message = err instanceof Error ? err.message : "Failed to process QR code";
             setError(message);
+            haptics.error();
             toast.error("Connection failed", { description: message });
         } finally {
             setIsProcessing(false);
@@ -177,9 +180,11 @@ export default function ConnectedAppsPage() {
 
         try {
             await walletKit.disconnect(sessionId);
+            haptics.medium();
             toast.success(`Disconnected from ${appName}`);
         } catch (err) {
             console.error("Error disconnecting:", err);
+            haptics.error();
             toast.error("Failed to disconnect");
         }
     };
@@ -190,9 +195,11 @@ export default function ConnectedAppsPage() {
 
         try {
             await walletKit.disconnect(); // No sessionId = disconnect all
+            haptics.medium();
             toast.success("Disconnected from all apps");
         } catch (err) {
             console.error("Error disconnecting all:", err);
+            haptics.error();
             toast.error("Failed to disconnect");
         }
     };

@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { useForm } from "@tanstack/react-form";
 import { walletRenameSchema } from "@/lib/validations";
 import { Field, FieldError } from "@/components/ui/field";
@@ -51,6 +52,7 @@ export default function ManageWalletsPage() {
     onSubmit: async ({ value }) => {
       if (editingWallet) {
         renameWallet(editingWallet, value.name.trim());
+        haptics.light();
         toast.success("Wallet renamed!");
         setEditingWallet(null);
       }
@@ -85,6 +87,7 @@ export default function ManageWalletsPage() {
       return;
     }
     removeWallet(address);
+    haptics.medium();
     toast.success("Wallet removed!");
   };
 

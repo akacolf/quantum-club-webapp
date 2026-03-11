@@ -17,6 +17,7 @@ import {
   useBiometricAuth,
 } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { Address, toNano } from "@ton/core";
 import {
@@ -216,6 +217,7 @@ export default function SendMultiplePage() {
       if (result.success) {
         setTxHash(result.txHash || null);
         setViewMode("success");
+        haptics.success();
         toast.success(`Sent to ${transactions.length} recipients`, {
           description: `Total: ${totalAmount.toFixed(4)} TON`,
         });
@@ -229,6 +231,7 @@ export default function SendMultiplePage() {
       }
     } catch (error) {
       console.error("Batch send failed:", error);
+      haptics.error();
       toast.error("Transaction failed", {
         description: error instanceof Error ? error.message : "Unknown error",
       });

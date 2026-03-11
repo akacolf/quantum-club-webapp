@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,7 +101,7 @@ export default function LendingPage() {
     const markets = lendingData?.markets ?? [];
     const userPositions = lendingData?.userPositions ?? null;
 
-    const [viewMode, setViewMode] = useState<ViewMode>("markets");
+    const [viewMode, setViewMode] = useQueryState("view", parseAsStringLiteral(["markets", "supply", "withdraw"] as const).withDefault("markets").withOptions({ history: "push" }));
     const [selectedAsset, setSelectedAsset] = useState<LendingAsset | null>(null);
     const [amount, setAmount] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
@@ -123,9 +125,8 @@ export default function LendingPage() {
         tg?.BackButton.onClick(handleBack);
         return () => {
             tg?.BackButton.offClick(handleBack);
-            tg?.BackButton.hide();
         };
-    }, [router, viewMode]);
+    }, [router, viewMode, setViewMode]);
 
     useEffect(() => {
         const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
@@ -244,6 +245,7 @@ export default function LendingPage() {
                 messages: [internalMsg],
             });
 
+            haptics.success();
             toast.success(
                 `${mode === "supply" ? "Supply" : "Withdrawal"} transaction sent!`
             );
@@ -258,6 +260,7 @@ export default function LendingPage() {
             }, 5000);
         } catch (error) {
             console.error(`${mode} failed:`, error);
+            haptics.error();
             toast.error(`${mode === "supply" ? "Supply" : "Withdrawal"} failed: ${error instanceof Error ? error.message : "Unknown error"}`);
         } finally {
             setIsProcessing(false);

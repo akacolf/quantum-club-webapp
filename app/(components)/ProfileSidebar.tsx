@@ -25,6 +25,7 @@ import { useAuth } from "@/app/(contexts)/auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
 import { useQcUsernameQuery, useRegisterUsernameMutation } from "@/app/(hooks)/queries/use-qc-username";
 
@@ -132,6 +133,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
       { username: currentUsername, address: walletAddress || undefined },
       {
         onSuccess: () => {
+          haptics.success();
           setQcUsername(currentUsername);
           localStorage.setItem(`qcUsername_${telegramId}`, currentUsername);
           toast.success(`You're now @${currentUsername}!`);
@@ -179,6 +181,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
       if (telegramId) {
         await linkEmailToUserDoc(telegramId, email);
       }
+      haptics.success();
       toast.success("Email linked! Verification pending.");
       linkEmailForm.reset();
       setShowLinkForm(false);

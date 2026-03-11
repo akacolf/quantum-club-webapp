@@ -18,6 +18,7 @@ import { useWallet } from "../../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useQcUsernameQuery, useRegisterUsernameMutation, useUpdateUsernameAddressMutation } from "@/app/(hooks)/queries/use-qc-username";
 import { toast } from "sonner";
+import { haptics } from "@/lib/haptics";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Loader from "@/app/(components)/Loader";
 
@@ -91,6 +92,7 @@ export default function QCDomainPage() {
       { username, address: walletAddress || undefined },
       {
         onSuccess: () => {
+          haptics.success();
           toast.success(`You're now @${username}!`);
           setQcUsername(username);
           localStorage.setItem(`qcUsername_${telegramId}`, username);
@@ -98,6 +100,7 @@ export default function QCDomainPage() {
           setAvailability(null);
         },
         onError: (err) => {
+          haptics.error();
           toast.error(err.message || "Failed to register username");
         },
       }
@@ -111,9 +114,11 @@ export default function QCDomainPage() {
       { address: walletAddress },
       {
         onSuccess: () => {
+          haptics.light();
           toast.success("Wallet address updated!");
         },
         onError: () => {
+          haptics.error();
           toast.error("Failed to update address");
         },
       }
