@@ -205,9 +205,9 @@ export async function fetchUserPositions(userAddress: string): Promise<UserLendi
 
   const totalSupNum = Number(totalSuppliedUsd);
   const totalBorNum = Number(totalBorrowedUsd);
-  const netApy = totalSupNum > 0
-    ? (weightedSupplyApy / totalSupNum) - (totalBorNum > 0 ? weightedBorrowApy / totalBorNum : 0)
-    : 0;
+  const supplyApy = totalSupNum > 0 ? weightedSupplyApy / totalSupNum : 0;
+  const borrowApy = totalBorNum > 0 ? weightedBorrowApy / totalBorNum : 0;
+  const netApy = supplyApy - borrowApy;
 
   return {
     positions,

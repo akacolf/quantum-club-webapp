@@ -247,11 +247,10 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
     });
 
     // Re-derive TON address with new network flag
-    const storedVersion =
-      localStorage.getItem(`quantum_wallet_version_${_deps.telegramId}`) ||
-      "v5r1";
-
     if (_deps.telegramId) {
+      const storedVersion =
+        localStorage.getItem(`quantum_wallet_version_${_deps.telegramId}`) ||
+        "v5r1";
       (async () => {
         try {
           const storedMnemonic = await getSecureMnemonic(_deps.telegramId!);

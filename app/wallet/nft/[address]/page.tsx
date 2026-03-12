@@ -146,14 +146,21 @@ export default function NftDetailPage() {
 
     // Execute listing (called from form.onSubmit after Zod validation passes)
     const executeListForSale = async (listingPriceVal: string) => {
+        if (isListing) return; // Prevent double-submit
+
         // Authenticate before sending on-chain transaction
-        const authenticated = await requestAuth();
-        if (!authenticated) {
-            toast.error("Authentication required");
+        setIsListing(true);
+        try {
+            const authenticated = await requestAuth();
+            if (!authenticated) {
+                toast.error("Authentication required");
+                setIsListing(false);
+                return;
+            }
+        } catch {
+            setIsListing(false);
             return;
         }
-
-        setIsListing(true);
         try {
             // 1. Build listing messages (deploy sale contract + NFT transfer)
             const createResult = await nftCreateListing({

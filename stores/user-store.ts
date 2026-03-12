@@ -213,10 +213,13 @@ export function useUserHydration() {
   const listenerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!telegramId) return;
+    // Always clean up previous listener first (even when telegramId becomes falsy)
+    if (listenerRef.current) {
+      listenerRef.current();
+      listenerRef.current = null;
+    }
 
-    // Clean up previous listener
-    if (listenerRef.current) listenerRef.current();
+    if (!telegramId) return;
 
     const valueRef = doc(dbfs, "user", telegramId, "miningData", "values");
     const unsub = onSnapshot(

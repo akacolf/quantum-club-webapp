@@ -16,6 +16,7 @@ import {
   type ParsedToken,
 } from "firebase/auth";
 import { removeToken, setToken } from "@/app/(contexts)/actions";
+import { clearMnemonicCache } from "@/lib/secure-mnemonic";
 import { useUserStore } from "@/stores/user-store";
 import { useWalletStore } from "@/stores/wallet-store";
 import { useGroupsStore } from "@/stores/groups-store";
@@ -108,6 +109,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   logout: async () => {
     clearUserLocalStorage();
+    clearMnemonicCache();
     // Reset all user-specific stores to prevent stale data on re-login
     useWalletStore.getState().resetBalances();
     useTradingStore.setState({

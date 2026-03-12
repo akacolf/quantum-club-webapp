@@ -397,9 +397,12 @@ export function formatTokenAmount(amount: bigint, decimals: number = 9): string 
  * Parse token amount from string (multiply by 10^decimals)
  */
 export function parseTokenAmount(amount: string, decimals: number = 9): bigint {
-    const [whole, fraction = ""] = amount.split(".");
+    if (!amount || amount.trim() === "") return BigInt(0);
+    // Normalize: add leading zero for inputs like ".123"
+    const normalized = amount.startsWith(".") ? `0${amount}` : amount;
+    const [whole = "0", fraction = ""] = normalized.split(".");
     const paddedFraction = fraction.padEnd(decimals, "0").slice(0, decimals);
-    return BigInt(whole + paddedFraction);
+    return BigInt((whole || "0") + paddedFraction);
 }
 
 // =====================================================

@@ -96,24 +96,31 @@ export async function GET(request: NextRequest) {
       if (shouldTrigger) {
         triggeredCount++;
 
-        // Update alert as triggered
-        batch.update(doc.ref, {
-          triggered: true,
-          triggeredAt: Date.now(),
-          triggeredPrice: currentPrice,
-        });
-
         // Send Telegram notification using centralized notification service
+        if (!alert.telegramId) {
+          console.warn(`Alert ${doc.id} missing telegramId, skipping`);
+          continue;
+        }
+
         const result = await sendPriceAlertNotification(alert.telegramId, {
           symbol: alert.symbol,
           direction: alert.direction,
           targetPrice: alert.targetPrice,
           currentPrice: currentPrice,
         });
-        
+
         if (result.success) {
           notifiedCount++;
-          batch.update(doc.ref, { notified: true });
+          // Only mark as triggered if notification was sent successfully
+          batch.update(doc.ref, {
+            triggered: true,
+            notified: true,
+            triggeredAt: Date.now(),
+            triggeredPrice: currentPrice,
+          });
+        } else {
+          // Notification failed — don't mark as triggered so it retries next run
+          console.warn(`Failed to notify alert ${doc.id}, will retry next run`);
         }
       }
     }

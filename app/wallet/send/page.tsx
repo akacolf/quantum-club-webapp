@@ -801,17 +801,25 @@ export default function SendPage() {
   };
 
   const handleConfirmSend = async () => {
+    if (isSending) return; // Prevent double-submit
+
     analyticsEvents.transactionSentForSignature(
       walletAddress || "",
       [{ address: resolvedAddress, amount: amount }]
     );
 
-    const authenticated = await requestAuth();
+    setIsSending(true);
+    try {
+      const authenticated = await requestAuth();
 
-    if (authenticated) {
-      await executeSend();
-    } else {
-      toast.error("Authentication required to send transaction");
+      if (authenticated) {
+        await executeSend();
+      } else {
+        toast.error("Authentication required to send transaction");
+        setIsSending(false);
+      }
+    } catch {
+      setIsSending(false);
     }
   };
 
@@ -820,10 +828,10 @@ export default function SendPage() {
     if (!storedMnemonic) {
       toast.error("Wallet credentials not found");
       analyticsEvents.transactionSigningFailed("Wallet credentials not found");
+      setIsSending(false);
       return;
     }
 
-    setIsSending(true);
     setStep("processing");
 
     try {

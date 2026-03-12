@@ -222,14 +222,21 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       set({ selectedToken: null });
     }
 
+    // Track request ID to prevent stale async responses from overwriting newer selections
+    const requestId = Date.now();
+    (useTradingStore as any)._lastSelectRequestId = requestId;
+
     try {
       const tokenDoc = await getDoc(doc(dbfs, `tokens/${tokenId}`));
+      // Abort if a newer selectToken call was made while we were fetching
+      if ((useTradingStore as any)._lastSelectRequestId !== requestId) return;
+
       if (!tokenDoc.exists()) {
         set({ selectedToken: null });
         return;
       }
 
-      const token = docToToken(tokenDoc);
+      let token = docToToken(tokenDoc);
 
       if (token.isOnChain && token.jettonMasterAddress) {
         try {
@@ -237,13 +244,19 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
             token.jettonMasterAddress,
             contractAdapter
           );
+          // Abort if a newer selectToken call was made
+          if ((useTradingStore as any)._lastSelectRequestId !== requestId) return;
+
           if (curveData) {
-            token.totalSupply = curveData.totalSupply.toString();
-            token.currentPrice = curveData.currentPrice.toString();
-            token.isGraduated = curveData.graduated;
-            token.tonReserve = curveData.tonReserve.toString();
-            token.marketCap = curveData.tonReserve.toString();
-            token.graduationThreshold = curveData.graduationTarget.toString();
+            token = {
+              ...token,
+              totalSupply: curveData.totalSupply.toString(),
+              currentPrice: curveData.currentPrice.toString(),
+              isGraduated: curveData.graduated,
+              tonReserve: curveData.tonReserve.toString(),
+              marketCap: curveData.tonReserve.toString(),
+              graduationThreshold: curveData.graduationTarget.toString(),
+            };
           }
         } catch (error) {
           console.warn(
@@ -253,10 +266,14 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
         }
       }
 
+      // Final check before writing to state
+      if ((useTradingStore as any)._lastSelectRequestId !== requestId) return;
       set({ selectedToken: token });
     } catch (error) {
       console.error("Error selecting token:", error);
-      set({ selectedToken: null });
+      if ((useTradingStore as any)._lastSelectRequestId === requestId) {
+        set({ selectedToken: null });
+      }
     }
   },
 
@@ -365,6 +382,10 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       return { success: false, error: "Wallet not connected" };
     }
 
+    if (get().isBuying) {
+      return { success: false, error: "Buy already in progress" };
+    }
+
     if (slippageTolerance < 0.001 || slippageTolerance > 0.5) {
       return { success: false, error: "Invalid slippage tolerance. Must be between 0.1% and 50%" };
     }
@@ -425,9 +446,11 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       const preview = await get().previewBuy(tokenId, tonAmount);
       let minTokensOut = BigInt(0);
       if (preview && preview.tokensReceived) {
-        const expectedTokens = BigInt(Math.floor(parseFloat(preview.tokensReceived) * 1e9));
-        const slippageMultiplier = 1 - slippageTolerance;
-        minTokensOut = BigInt(Math.floor(Number(expectedTokens) * slippageMultiplier));
+        // Use BigInt arithmetic to avoid precision loss on large amounts
+        const expectedTokens = parseTokenAmount(preview.tokensReceived);
+        // slippageTolerance is e.g. 0.15 for 15%. Scale to basis points for integer math.
+        const slippageBps = BigInt(Math.round(slippageTolerance * 10000));
+        minTokensOut = expectedTokens * (BigInt(10000) - slippageBps) / BigInt(10000);
       }
 
       const tonNano = toNano(tonAmount);
@@ -464,6 +487,10 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
 
     if (!walletAddress) {
       return { success: false, error: "Wallet not connected" };
+    }
+
+    if (get().isSelling) {
+      return { success: false, error: "Sell already in progress" };
     }
 
     set({ isSelling: true });

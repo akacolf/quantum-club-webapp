@@ -4,6 +4,11 @@ import { env } from "@/env";
 
 export async function GET(req: NextRequest) {
   try {
+    if (!env.CRON_SECRET) {
+      console.error("CRON_SECRET not configured");
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+    }
+
     if (req.headers.get("authorization") !== `Bearer ${env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -23,10 +28,8 @@ export async function GET(req: NextRequest) {
     let batch = adminDb.batch();
     let opsInBatch = 0;
 
-    for (const doc of usersSnapshot.docs) {
-      const userId = doc.ref.path.split("/")[1];
-      const userRankRef = adminDb.collection("userRanks").doc(userId);
-      batch.update(userRankRef, { rank });
+    for (const userDoc of usersSnapshot.docs) {
+      batch.update(userDoc.ref, { rank });
       rank++;
       opsInBatch++;
 
@@ -42,10 +45,11 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: "User ranks have been updated successfully" },
+      { message: "User ranks have been updated successfully", usersRanked: usersSnapshot.size },
       { status: 200 }
     );
-  } catch {
+  } catch (error) {
+    console.error("Leaderboard update failed:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

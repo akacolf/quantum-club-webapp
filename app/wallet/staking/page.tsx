@@ -125,22 +125,27 @@ export default function StakingPage() {
 
     // Handle stake confirmation
     const handleConfirmStake = async () => {
-        if (!selectedPool || !validation.valid) return;
-        
-        const authenticated = await requestAuth();
-        if (!authenticated) {
-            toast.error("Authentication required");
-            return;
+        if (!selectedPool || !validation.valid || isStaking) return;
+
+        setIsStaking(true);
+        try {
+            const authenticated = await requestAuth();
+            if (!authenticated) {
+                toast.error("Authentication required");
+                setIsStaking(false);
+                return;
+            }
+
+            await executeStakeTransaction();
+        } catch {
+            setIsStaking(false);
         }
-        
-        await executeStakeTransaction();
     };
 
     // Execute stake transaction
     const executeStakeTransaction = async () => {
         if (!selectedPool || !telegramId) return;
 
-        setIsStaking(true);
         setStep("processing");
 
         const amount = form.getFieldValue("amount");

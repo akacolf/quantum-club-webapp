@@ -82,12 +82,12 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
         };
     } catch (error) {
         console.error("Rate limit check error:", error);
-        // On error, allow the request but log it
+        // Fail closed: deny the request on error to prevent abuse during outages
         return {
-            allowed: true,
-            remaining: -1,
+            allowed: false,
+            remaining: 0,
             resetAt: tomorrow,
-            error: "Rate limit check failed",
+            error: "Rate limit check temporarily unavailable. Please try again.",
         };
     }
 }

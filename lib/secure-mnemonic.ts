@@ -203,6 +203,13 @@ export function removeSecureMnemonic(telegramId: string | null): void {
 }
 
 /**
+ * Clear the in-memory mnemonic cache (call on logout to prevent leaking to next user).
+ */
+export function clearMnemonicCache(): void {
+    memoryCache.clear();
+}
+
+/**
  * Check if a mnemonic exists (without decrypting). Sync for quick checks.
  */
 export function hasMnemonic(telegramId: string | null): boolean {

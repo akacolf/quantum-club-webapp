@@ -15,11 +15,11 @@ const chatRequestSchema = z.object({
     message: z.string().min(1, "Message cannot be empty").max(MAX_MESSAGE_LENGTH, `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`),
     history: z.array(
         z.object({
-            role: z.string(),
-            content: z.string(),
+            role: z.enum(["user", "model"]),
+            content: z.string().max(MAX_MESSAGE_LENGTH),
         })
     ).max(MAX_HISTORY_LENGTH).default([]),
-    currentPage: z.string().optional(),
+    currentPage: z.string().max(200).optional(),
 });
 
 function sanitizeMessage(message: string): string {
@@ -135,19 +135,29 @@ export async function POST(req: NextRequest) {
         // Create a TransformStream for more reliable streaming
         const encoder = new TextEncoder();
 
+        const STREAM_TIMEOUT_MS = 60_000; // 60 second timeout
         const readable = new ReadableStream({
             async start(controller) {
+                let timeoutId: ReturnType<typeof setTimeout> | undefined;
                 try {
-                    for await (const chunk of streamResponse) {
-                        // Access the text content from the chunk
-                        const text = chunk.text;
-                        if (text) {
-                            controller.enqueue(encoder.encode(text));
+                    const timeoutPromise = new Promise<never>((_, reject) => {
+                        timeoutId = setTimeout(() => reject(new Error("Stream timeout")), STREAM_TIMEOUT_MS);
+                    });
+
+                    const streamPromise = (async () => {
+                        for await (const chunk of streamResponse) {
+                            const text = chunk.text;
+                            if (text) {
+                                controller.enqueue(encoder.encode(text));
+                            }
                         }
-                    }
+                    })();
+
+                    await Promise.race([streamPromise, timeoutPromise]);
                 } catch (streamError) {
                     console.error("Error during streaming:", streamError);
                 } finally {
+                    clearTimeout(timeoutId);
                     controller.close();
                 }
             },

@@ -74,10 +74,17 @@ export async function proxy(request: NextRequest) {
   }
 
   // Basic sanity check: if we only have a Firebase token (no session cookie),
-  // make sure it's a valid JWT
+  // make sure it's a valid JWT and hasn't expired
   if (firebaseToken && !sessionCookie) {
     try {
-      decodeJwt(firebaseToken);
+      const decoded = decodeJwt(firebaseToken);
+      // Check if the token has expired (exp is in seconds)
+      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+        // Token expired — only allow through if refresh token can renew it
+        if (!firebaseRefreshToken) {
+          return NextResponse.redirect(new URL("/", request.url));
+        }
+      }
     } catch (err) {
       console.error("[proxy] Invalid Firebase JWT cookie:", err);
       // Fall through — if refresh token exists, allow the request (client will refresh)
