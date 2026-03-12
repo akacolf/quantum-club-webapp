@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,8 +41,8 @@ function formatChartPrice(price: number): string {
 }
 
 export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol }: SpotPriceChartProps) {
-    const [timeframe, setTimeframe] = useState<ChartTimeframe>("1h");
-    const [chartMode, setChartMode] = useState<ChartMode>("area");
+    const [timeframe, setTimeframe] = useQueryState("tf", parseAsStringLiteral(["15m", "1h", "4h", "1d"] as const).withDefault("1h").withOptions({ history: "replace" }));
+    const [chartMode, setChartMode] = useQueryState("scm", parseAsStringLiteral(["candle", "area"] as const).withDefault("area").withOptions({ history: "replace" }));
 
     // Primary: TonAPI chart (area chart — works for any token, no pool needed)
     const { data: tonApiCandles, isLoading: tonApiLoading } = useSpotTokenTonApiChart(tokenAddress, timeframe);

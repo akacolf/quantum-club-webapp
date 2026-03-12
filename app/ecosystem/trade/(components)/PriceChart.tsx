@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useQueryState, parseAsInteger, parseAsStringLiteral } from "nuqs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { useWallet } from "@/app/wallet/WalletContext";
@@ -78,8 +79,8 @@ function aggregateToCandles(
 }
 
 export default function PriceChart({ currentPrice, jettonAddress }: PriceChartProps) {
-    const [timeRangeIndex, setTimeRangeIndex] = useState(2);
-    const [chartMode, setChartMode] = useState<ChartMode>("area");
+    const [timeRangeIndex, setTimeRangeIndex] = useQueryState("tr", parseAsInteger.withDefault(2).withOptions({ history: "replace" }));
+    const [chartMode, setChartMode] = useQueryState("cm", parseAsStringLiteral(["area", "candlestick"] as const).withDefault("area").withOptions({ history: "replace" }));
     const { tonPrice } = useWallet();
     const { data: trades = [], isFetching: isLoading } = useTradeEvents(jettonAddress);
 
