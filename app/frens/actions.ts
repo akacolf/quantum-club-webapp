@@ -84,42 +84,46 @@ export const fetchReferralList = authWithQcIdClient
 export const claimTier2Rewards = authWithQcIdClient
   .action(async ({ ctx: { qcId: telegramId } }) => {
     const secondTierRef = firestore.collection(`user/${telegramId}/secondTierReferrals`);
-    const unclaimedSnapshot = await secondTierRef.where("claimed", "==", false).get();
+    const valuesRef = firestore.doc(`user/${telegramId}/miningData/values`);
 
-    if (unclaimedSnapshot.empty) {
+    // Pre-check: skip transaction if nothing to claim
+    const preCheck = await secondTierRef.where("claimed", "==", false).limit(1).get();
+    if (preCheck.empty) {
       return { success: true, claimedAmount: 0, message: "No pending rewards to claim" };
     }
 
-    let totalReward = 0;
-    const batch = firestore.batch();
+    // Use transaction to prevent double-claiming
+    const result = await firestore.runTransaction(async (transaction) => {
+      const unclaimedSnapshot = await transaction.get(
+        secondTierRef.where("claimed", "==", false)
+      );
 
-    unclaimedSnapshot.forEach((docSnapshot: admin.firestore.QueryDocumentSnapshot) => {
-      const data = docSnapshot.data();
-      totalReward += Number(data.reward) || 0;
-      batch.update(docSnapshot.ref, {
-        claimed: true,
-        claimedAt: new Date().toISOString(),
+      if (unclaimedSnapshot.empty) {
+        return { claimedAmount: 0, newBalance: 0, claimedCount: 0 };
+      }
+
+      let totalReward = 0;
+      unclaimedSnapshot.forEach((docSnapshot: admin.firestore.QueryDocumentSnapshot) => {
+        totalReward += Number(docSnapshot.data().reward) || 0;
+        transaction.update(docSnapshot.ref, {
+          claimed: true,
+          claimedAt: new Date().toISOString(),
+        });
       });
+
+      const valuesSnapshot = await transaction.get(valuesRef);
+      if (!valuesSnapshot.exists) {
+        throw new Error("User values not found");
+      }
+
+      const currentAmount = valuesSnapshot.data()?.QuantAmount || 0;
+      const newAmount = Number(currentAmount) + totalReward;
+      transaction.update(valuesRef, { QuantAmount: newAmount });
+
+      return { claimedAmount: totalReward, newBalance: newAmount, claimedCount: unclaimedSnapshot.size };
     });
 
-    const valuesRef = firestore.doc(`user/${telegramId}/miningData/values`);
-    const valuesSnapshot = await valuesRef.get();
-    if (!valuesSnapshot.exists) {
-      throw new Error("User values not found");
-    }
-
-    const currentAmount = valuesSnapshot.data()?.QuantAmount || 0;
-    const newAmount = Number(currentAmount) + totalReward;
-    batch.update(valuesRef, { QuantAmount: newAmount });
-
-    await batch.commit();
-
-    return {
-      success: true,
-      claimedAmount: totalReward,
-      newBalance: newAmount,
-      claimedCount: unclaimedSnapshot.size,
-    };
+    return { success: true, ...result };
   });
 
 // ---------------------------------------------------------------------------

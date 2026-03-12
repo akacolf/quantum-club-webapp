@@ -47,7 +47,8 @@ const deployJettonSchema = z.object({
 export const deployJetton = authActionClient
     .schema(deployJettonSchema)
     .action(async ({ ctx: { session }, parsedInput: { name, symbol, description, image, creatorAddress, tokenId: existingTokenId } }) => {
-        const userId = String(session.user?.telegramId || "");
+        if (!session.user?.telegramId) throw new Error("Unauthorized: missing user identity");
+        const userId = String(session.user.telegramId);
 
         // Parse and validate TON address
         let ownerAddress: Address;
@@ -205,7 +206,8 @@ const confirmDeploySchema = z.object({
 export const confirmJettonDeployment = authActionClient
     .schema(confirmDeploySchema)
     .action(async ({ ctx: { session }, parsedInput: { tokenId, jettonAddress, txHash } }) => {
-        const userId = String(session.user?.telegramId || "");
+        if (!session.user?.telegramId) throw new Error("Unauthorized: missing user identity");
+        const userId = String(session.user.telegramId);
 
         const tokenRef = adminDb.collection("tokens").doc(tokenId);
         const tokenDoc = await tokenRef.get();

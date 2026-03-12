@@ -87,9 +87,17 @@ function getTodayDDMMYYYY(): string {
 }
 
 function daysDiff(dateA: string, dateB: string): number {
-    const diffMs = Math.abs(
-        new Date(dateA).getTime() - new Date(dateB).getTime(),
-    );
+    // Parse both formats as UTC to avoid timezone mismatch
+    // (YYYY-MM-DD is parsed as UTC by Date, but MM/DD/YYYY is parsed as local)
+    const parseUTC = (d: string): number => {
+        if (d.includes("-")) {
+            const [y, m, day] = d.split("-").map(Number);
+            return Date.UTC(y, m - 1, day);
+        }
+        const [m, day, y] = d.split("/").map(Number);
+        return Date.UTC(y, m - 1, day);
+    };
+    const diffMs = Math.abs(parseUTC(dateA) - parseUTC(dateB));
     return diffMs / (1000 * 60 * 60 * 24);
 }
 

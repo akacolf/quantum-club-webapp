@@ -59,7 +59,7 @@ export type CreateGroupFormData = z.infer<typeof createGroupSchema>;
 export const pollSchema = z.object({
   question: z.string().min(1, "Question is required").max(200),
   options: z
-    .array(z.object({ value: z.string().max(100) }))
+    .array(z.object({ value: z.string().max(100), id: z.string() }))
     .min(2)
     .max(4),
 });
