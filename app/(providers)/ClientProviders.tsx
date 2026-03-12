@@ -11,7 +11,6 @@ import { useTgUsernameSync } from "@/app/(hooks)/useTgUsernameSync";
 
 // Lazy load non-critical providers to reduce initial bundle
 const WalletProvider = dynamic(() => import("../wallet/WalletContext").then(m => ({ default: m.WalletProvider })));
-const ChatProvider = dynamic(() => import("../(contexts)/ChatContext").then(m => ({ default: m.ChatProvider })));
 const GroupsProvider = dynamic(() => import("../(contexts)/GroupsContext").then(m => ({ default: m.GroupsProvider })));
 const TradingProvider = dynamic(() => import("../(contexts)/TradingContext").then(m => ({ default: m.TradingProvider })));
 const OmnistonClientProvider = dynamic(() => import("./OmnistonProvider").then(m => ({ default: m.OmnistonClientProvider })), { ssr: false });
@@ -63,17 +62,15 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     <NuqsAdapter>
       <QueryClientProvider client={queryClient}>
         <WalletProvider>
-          <ChatProvider>
-            <GroupsProvider>
-              <TradingProvider>
-                <OmnistonClientProvider>
-                  <CallProvider>
-                    {children}
-                  </CallProvider>
-                </OmnistonClientProvider>
-              </TradingProvider>
-            </GroupsProvider>
-          </ChatProvider>
+          <GroupsProvider>
+            <TradingProvider>
+              <OmnistonClientProvider>
+                <CallProvider>
+                  {children}
+                </CallProvider>
+              </OmnistonClientProvider>
+            </TradingProvider>
+          </GroupsProvider>
         </WalletProvider>
       </QueryClientProvider>
     </NuqsAdapter>

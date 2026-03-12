@@ -18,7 +18,6 @@ import {
 import { removeToken, setToken } from "@/app/(contexts)/actions";
 import { useUserStore } from "@/stores/user-store";
 import { useWalletStore } from "@/stores/wallet-store";
-import { useChatStore } from "@/stores/chat-store";
 import { useGroupsStore } from "@/stores/groups-store";
 import { useTradingStore } from "@/stores/trading-store";
 import { useLeaderboardStore } from "@/stores/leaderboard-store";
@@ -115,7 +114,6 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       trendingTokens: [], newTokens: [], graduatedTokens: [],
       searchResults: [], myTokens: [], positions: [], selectedToken: null,
     });
-    useChatStore.setState({ chats: [], currentMessages: [], loading: false });
     useGroupsStore.setState({ groups: [], myGroupIds: new Set<string>(), loading: false });
     useLeaderboardStore.setState({ leaderboardContext: [], userRank: null, totalUsers: null, totalQuant: "" });
     useFrensStore.setState({ referralsContext: [], referralsNum: 0 });

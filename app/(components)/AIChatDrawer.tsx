@@ -166,7 +166,7 @@ function getContextualPrompts(pathname: string): string[] {
             "What are gas fees?",
         ];
     }
-    if (pathname.startsWith("/groups") || pathname.startsWith("/chat")) {
+    if (pathname.startsWith("/groups") || pathname.startsWith("/ecosystem/chat")) {
         return [
             "How do groups work?",
             "What is Quantum Club?",

@@ -33,7 +33,7 @@ function getContextualSystemPrompt(currentPage?: string): string {
     if (currentPage) {
         if (currentPage.startsWith("/wallet")) {
             contextHint = "\n\n[Context: User is currently viewing their wallet. They may have questions about sending/receiving crypto, managing assets, or understanding transaction fees.]";
-        } else if (currentPage.startsWith("/groups") || currentPage.startsWith("/chat")) {
+        } else if (currentPage.startsWith("/groups") || currentPage.startsWith("/ecosystem/chat")) {
             contextHint = "\n\n[Context: User is in the social/community section. They may have questions about groups, messaging, or connecting with others.]";
         } else if (currentPage.startsWith("/earn")) {
             contextHint = "\n\n[Context: User is in the earn section. They may have questions about earning QNTM, daily rewards, referrals, or ranks.]";
