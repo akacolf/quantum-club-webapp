@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import {
     collection,
@@ -31,6 +31,13 @@ function useChatBridge() {
     const chatsQuery = useChatsQuery(telegramId);
     const sendMessageMutation = useSendMessageMutation(telegramId, username);
 
+    // Keep stable refs so the effect closures always access the latest values
+    // without needing the query/mutation objects in the dependency array.
+    const chatsQueryRef = useRef(chatsQuery);
+    chatsQueryRef.current = chatsQuery;
+    const sendMessageMutationRef = useRef(sendMessageMutation);
+    sendMessageMutationRef.current = sendMessageMutation;
+
     // Sync query data into the store
     useEffect(() => {
         useChatStore.setState({
@@ -39,15 +46,16 @@ function useChatBridge() {
         });
     }, [chatsQuery.data, chatsQuery.isLoading]);
 
-    // Wire up action implementations that depend on React hooks
+    // Wire up action implementations that depend on React hooks.
+    // Only re-run when telegramId/username change (identity-level changes).
     useEffect(() => {
         useChatStore.setState({
-            refreshChats: async () => { chatsQuery.refetch(); },
+            refreshChats: async () => { chatsQueryRef.current.refetch(); },
 
             sendMessage: async (chatId: string, text: string): Promise<boolean> => {
                 if (!telegramId || !username || !text.trim()) return false;
                 try {
-                    await sendMessageMutation.mutateAsync({ chatId, text });
+                    await sendMessageMutationRef.current.mutateAsync({ chatId, text });
                     return true;
                 } catch (error) {
                     console.error("Error sending message:", error);
@@ -72,7 +80,7 @@ function useChatBridge() {
                         participantNames: [username || "Unknown", otherUsername],
                         createdAt: serverTimestamp(),
                     });
-                    chatsQuery.refetch();
+                    chatsQueryRef.current.refetch();
                     return chatId;
                 } catch (error) {
                     console.error("Error starting chat:", error);
@@ -103,7 +111,7 @@ function useChatBridge() {
                 return unsubscribe;
             },
         });
-    }, [telegramId, username, chatsQuery, sendMessageMutation]);
+    }, [telegramId, username]);
 }
 
 /**
