@@ -57,14 +57,14 @@ export default function PollMessage({ msgId, poll, telegramId, chatId }: PollMes
       </div>
 
       {poll.options.map((option, i) => {
-        const key = String(i);
-        const count = poll.votes[key]?.length || 0;
+        const voteKey = String(i);
+        const count = poll.votes[voteKey]?.length || 0;
         const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-        const isMyVote = userVotedOption === key;
+        const isMyVote = userVotedOption === voteKey;
 
         return (
           <button
-            key={i}
+            key={`${i}-${option}`}
             onClick={() => handleVote(i)}
             className={`w-full text-left rounded-lg px-3 py-2 relative overflow-hidden transition-colors border ${
               isMyVote

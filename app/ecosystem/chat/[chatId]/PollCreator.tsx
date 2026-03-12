@@ -19,11 +19,14 @@ interface PollCreatorProps {
   onCreatePoll: (question: string, options: string[]) => void;
 }
 
+let optionKeyCounter = 0;
+const nextOptionKey = () => `opt-${++optionKeyCounter}`;
+
 export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCreatorProps) {
   const form = useForm({
     defaultValues: {
       question: "",
-      options: [{ value: "" }, { value: "" }],
+      options: [{ value: "", id: nextOptionKey() }, { value: "", id: nextOptionKey() }],
     },
     validators: { onSubmit: pollSchema },
     onSubmit: async ({ value }) => {
@@ -84,9 +87,9 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
               >
               {(field) => (
                 <>
-                  {field.state.value.map((_, i) => (
+                  {field.state.value.map((opt, i) => (
                     <form.Field
-                      key={i}
+                      key={opt.id}
                       name={`options[${i}].value`}
                       >
                       {(subField) => (
@@ -121,7 +124,7 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
                       variant="ghost"
                       size="sm"
                       className="w-full text-xs text-muted-foreground"
-                      onClick={() => field.pushValue({ value: "" })}
+                      onClick={() => field.pushValue({ value: "", id: nextOptionKey() })}
                     >
                       <Icon icon="lucide:plus" className="w-3.5 h-3.5 mr-1" />
                       Add option

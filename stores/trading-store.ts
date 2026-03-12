@@ -446,6 +446,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       analyticsEvents.tokenBought(tokenId, tonAmount);
 
       get().refreshPositions();
+      get()._deps.invalidateTokenQueries();
       setTimeout(() => get().refreshPositions(), 5000);
 
       return { success: true, txHash: result.txHash };
@@ -551,6 +552,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       analyticsEvents.tokenSold(tokenId, tokenAmount);
 
       get().refreshPositions();
+      get()._deps.invalidateTokenQueries();
       setTimeout(() => get().refreshPositions(), 5000);
 
       return { success: true, txHash: result.txHash };

@@ -187,5 +187,7 @@ export function useInvalidateWalletQueries() {
         queryClient.invalidateQueries({ queryKey: ["walletAssets", walletAddress] });
         queryClient.invalidateQueries({ queryKey: ["nfts", walletAddress] });
         queryClient.invalidateQueries({ queryKey: ["multiChainBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["wallet-history"] });
+        queryClient.invalidateQueries({ queryKey: ["qntm-history"] });
     };
 }
