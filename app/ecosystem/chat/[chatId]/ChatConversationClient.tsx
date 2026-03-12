@@ -707,13 +707,21 @@ export default function ChatConversationClient() {
           let text = msg.rawText;
           const msgEpochNonce = getEpochNonce(msg.encEpoch);
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+            try {
+              text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+            } catch {
+              text = "[Decryption failed]";
+            }
           }
           // Decrypt reply preview if present
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
-            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
-            replyData = { ...replyData, text: decryptedReply };
+            try {
+              const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              replyData = { ...replyData, text: decryptedReply };
+            } catch {
+              replyData = { ...replyData, text: "[Encrypted message]" };
+            }
           }
           // Decrypt poll content if encrypted
           let pollData = msg.poll;
@@ -900,12 +908,20 @@ export default function ChatConversationClient() {
           let text = msg.rawText;
           const msgEpochNonce = getEpochNonceOlder(msg.encEpoch);
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+            try {
+              text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+            } catch {
+              text = "[Decryption failed]";
+            }
           }
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
-            const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
-            replyData = { ...replyData, text: decryptedReply };
+            try {
+              const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              replyData = { ...replyData, text: decryptedReply };
+            } catch {
+              replyData = { ...replyData, text: "[Encrypted message]" };
+            }
           }
           // Decrypt poll content if encrypted
           let pollData = msg.poll;
