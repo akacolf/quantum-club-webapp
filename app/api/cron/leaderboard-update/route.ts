@@ -13,16 +13,33 @@ export async function GET(req: NextRequest) {
       .orderBy("QuantAmount", "desc")
       .get();
 
+    if (usersSnapshot.empty) {
+      return NextResponse.json({ message: "No users to rank" }, { status: 200 });
+    }
+
+    // Firestore batches are limited to 500 operations
+    const BATCH_LIMIT = 500;
     let rank = 1;
-    const batch = adminDb.batch();
+    let batch = adminDb.batch();
+    let opsInBatch = 0;
+
     for (const doc of usersSnapshot.docs) {
       const userId = doc.ref.path.split("/")[1];
       const userRankRef = adminDb.collection("userRanks").doc(userId);
       batch.update(userRankRef, { rank });
       rank++;
+      opsInBatch++;
+
+      if (opsInBatch >= BATCH_LIMIT) {
+        await batch.commit();
+        batch = adminDb.batch();
+        opsInBatch = 0;
+      }
     }
 
-    await batch.commit();
+    if (opsInBatch > 0) {
+      await batch.commit();
+    }
 
     return NextResponse.json(
       { message: "User ranks have been updated successfully" },
