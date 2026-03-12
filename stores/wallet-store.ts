@@ -103,6 +103,7 @@ interface WalletActions {
   removeWallet: (address: string) => void;
   switchWallet: (address: string) => void;
   renameWallet: (address: string, newName: string) => void;
+  resetBalances: () => void;
   clearWallet: () => void;
   sendTransaction: (params: {
     to: string;
@@ -389,6 +390,31 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
       JSON.stringify(updated)
     );
     set({ storedWallets: updated });
+  },
+
+  /** Reset balance/asset state without touching wallet address, mnemonic, or stored wallets.
+   *  Used on logout to ensure fresh data is fetched on re-login. */
+  resetBalances: () => {
+    set({
+      tonBalance: "0",
+      tonPrice: 0,
+      tonUsdValue: "0.00",
+      totalUsdBalance: "0.00",
+      jettons: [],
+      nfts: [],
+      hasFetched: false,
+      isLoadingAssets: false,
+      isLoadingNfts: false,
+      isLoadingMultiChain: false,
+      ethBalance: 0,
+      btcBalance: 0,
+      solBalance: 0,
+      trxBalance: 0,
+      ethUsdValue: 0,
+      btcUsdValue: 0,
+      solUsdValue: 0,
+      trxUsdValue: 0,
+    });
   },
 
   clearWallet: () => {

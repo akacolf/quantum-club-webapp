@@ -17,6 +17,13 @@ import {
 } from "firebase/auth";
 import { removeToken, setToken } from "@/app/(contexts)/actions";
 import { useUserStore } from "@/stores/user-store";
+import { useWalletStore } from "@/stores/wallet-store";
+import { useChatStore } from "@/stores/chat-store";
+import { useGroupsStore } from "@/stores/groups-store";
+import { useTradingStore } from "@/stores/trading-store";
+import { useLeaderboardStore } from "@/stores/leaderboard-store";
+import { useFrensStore } from "@/stores/frens-store";
+import { useCallStore } from "@/stores/call-store";
 import { queryClient } from "@/lib/query-client";
 
 // =====================================================
@@ -102,6 +109,17 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   logout: async () => {
     clearUserLocalStorage();
+    // Reset all user-specific stores to prevent stale data on re-login
+    useWalletStore.getState().resetBalances();
+    useTradingStore.setState({
+      trendingTokens: [], newTokens: [], graduatedTokens: [],
+      searchResults: [], myTokens: [], positions: [], selectedToken: null,
+    });
+    useChatStore.setState({ chats: [], currentMessages: [], loading: false });
+    useGroupsStore.setState({ groups: [], myGroupIds: new Set<string>(), loading: false });
+    useLeaderboardStore.setState({ leaderboardContext: [], userRank: null, totalUsers: null, totalQuant: "" });
+    useFrensStore.setState({ referralsContext: [], referralsNum: 0 });
+    useCallStore.setState({ callState: "idle", callInfo: null, groupCallState: "idle", groupCallInfo: null });
     queryClient.clear();
     lastSetTokenValue = null;
     try { await removeToken(); } catch {}
