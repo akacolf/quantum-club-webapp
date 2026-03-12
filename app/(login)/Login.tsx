@@ -79,6 +79,17 @@ export default function Login() {
     window.Telegram?.WebApp?.BackButton.hide();
   }, []);
 
+  // Reset redirect guards when user signs out (component stays mounted since
+  // the login page is the logout destination). Without this, a re-login attempt
+  // would see stale `true` values and either skip the redirect or skip the
+  // data-ready gate.
+  useEffect(() => {
+    if (!authContext?.currentUser) {
+      hasRedirected.current = false;
+      dataReady.current = false;
+    }
+  }, [authContext?.currentUser]);
+
   // Auto-redirect if user is already signed in (keepLoggedIn handled in auth context)
   // Uses a ref to prevent multiple redirects / redirect loops
   // Also rehydrates localStorage if it was cleared (e.g. cookies deleted externally)
@@ -238,11 +249,11 @@ export default function Login() {
         const WebApp = window.Telegram.WebApp;
         WebApp.ready();
 
-        // Retry briefly if Telegram payload is not ready yet
+        // Retry briefly if Telegram payload is not ready yet (up to 5s)
         let retries = 0;
         while (
           (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
-          retries < 20
+          retries < 50
         ) {
           await new Promise((r) => setTimeout(r, 100));
           retries++;

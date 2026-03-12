@@ -59,22 +59,31 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for either auth system: session cookie (Telegram) or Firebase auth token
+  // Check for either auth system: session cookie (Telegram) or Firebase auth token.
+  // Also check the refresh token: the ID token cookie expires in ~1h (scoped to
+  // Firebase's token lifetime), but the client silently refreshes it. The 30-day
+  // refresh token cookie proves the user has an active session even when the
+  // short-lived ID token cookie has expired.
   const sessionCookie = request.cookies.get("session")?.value;
   const firebaseToken = request.cookies.get("firebaseAuthToken")?.value;
+  const firebaseRefreshToken = request.cookies.get("firebaseAuthRefreshToken")?.value;
 
   // No auth at all → redirect to login (root page)
-  if (!sessionCookie && !firebaseToken) {
+  if (!sessionCookie && !firebaseToken && !firebaseRefreshToken) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Basic sanity check: if we only have a Firebase token, make sure it's a valid JWT
+  // Basic sanity check: if we only have a Firebase token (no session cookie),
+  // make sure it's a valid JWT
   if (firebaseToken && !sessionCookie) {
     try {
       decodeJwt(firebaseToken);
     } catch (err) {
       console.error("[proxy] Invalid Firebase JWT cookie:", err);
-      return NextResponse.redirect(new URL("/", request.url));
+      // Fall through — if refresh token exists, allow the request (client will refresh)
+      if (!firebaseRefreshToken) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
     }
   }
   // Note: Token refresh is handled client-side by Firebase SDK + auth.tsx setToken()
