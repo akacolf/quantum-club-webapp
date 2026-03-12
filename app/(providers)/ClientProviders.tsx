@@ -43,6 +43,22 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     hydrateFrensFromSession();
   }, []);
 
+  // Global Telegram Mini App initialization — colors, fullscreen, swipe behavior
+  useEffect(() => {
+    const WebApp = window.Telegram?.WebApp;
+    if (!WebApp) return;
+
+    WebApp.setHeaderColor("#000000");
+    WebApp.setBackgroundColor("#000000");
+    WebApp.disableVerticalSwipes();
+
+    // Request fullscreen on mobile platforms only
+    const platform = WebApp.platform;
+    if (platform === "android" || platform === "ios") {
+      WebApp.requestFullscreen();
+    }
+  }, []);
+
   return (
     <NuqsAdapter>
       <QueryClientProvider client={queryClient}>

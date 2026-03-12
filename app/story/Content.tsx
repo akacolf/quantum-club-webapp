@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDrag } from "@use-gesture/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
@@ -56,6 +56,12 @@ const StoryContent = () => {
   const [currentStory, setCurrentStory] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+
+  // Prefetch home route so navigation is instant
+  useEffect(() => {
+    router.prefetch("/home");
+  }, [router]);
 
   const stories = [
     {
@@ -82,21 +88,33 @@ const StoryContent = () => {
     }
   ];
 
-  const handleNext = () => {
+  const closeStories = useCallback(() => {
+    if (isExiting) return;
+    setIsExiting(true);
+    setIsPaused(true);
+    // Navigate after the fade-out animation completes
+    setTimeout(() => {
+      router.replace("/home");
+    }, 250);
+  }, [isExiting, router]);
+
+  const handleNext = useCallback(() => {
+    if (isExiting) return;
     if (currentStory < stories.length - 1) {
       setCurrentStory(prev => prev + 1);
       setProgress(0);
     } else {
-      router.push('/');
+      closeStories();
     }
-  };
+  }, [isExiting, currentStory, stories.length, closeStories]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
+    if (isExiting) return;
     if (currentStory > 0) {
       setCurrentStory(prev => prev - 1);
       setProgress(0);
     }
-  };
+  }, [isExiting, currentStory]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -114,13 +132,9 @@ const StoryContent = () => {
 
   useEffect(() => {
     if (progress >= 100) {
-      const timer = setTimeout(() => {
-        handleNext();
-      }, 0);
-      return () => clearTimeout(timer);
+      handleNext();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress]);
+  }, [progress, handleNext]);
 
   const current = stories[currentStory];
 
@@ -128,7 +142,11 @@ const StoryContent = () => {
   const bindNextDrag = useDrag(({ down }) => setIsPaused(down), { filterTaps: true });
 
   return (
-    <div className="fixed inset-0 bg-black text-white z-50 flex flex-col">
+    <motion.div
+      className="fixed inset-0 bg-black text-white z-50 flex flex-col"
+      animate={{ opacity: isExiting ? 0 : 1, scale: isExiting ? 0.95 : 1 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
       <div className="absolute inset-0 z-10 flex">
         <div
           className="w-1/3 h-full touch-none"
@@ -142,13 +160,13 @@ const StoryContent = () => {
         />
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         <motion.div
           key={currentStory}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.15 }}
           className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b ${current.gradient}`}
         >
           <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 ${current.accent} rounded-full blur-[100px] opacity-20`} />
@@ -214,7 +232,7 @@ const StoryContent = () => {
           </div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -190,7 +190,7 @@ export async function getJettonWalletAddress(
     } catch (error) {
         // ContractAdapter failed, try TONAPI fallback
         const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13")) {
+        if (!errorMessage.includes("exit_code: -13") && !errorMessage.includes("entity not found")) {
             console.warn("[getJettonWalletAddress] ContractAdapter failed, trying TONAPI fallback");
         }
     }
@@ -250,10 +250,12 @@ async function getJettonWalletData(
     } catch (error) {
         // Silently handle expected errors:
         // - exit_code: -13 = contract doesn't exist
+        // - "entity not found" = contract not deployed on-chain
         // - 429 = rate limit (expected without API key)
         const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13") && 
-            !errorMessage.includes("429") && 
+        if (!errorMessage.includes("exit_code: -13") &&
+            !errorMessage.includes("entity not found") &&
+            !errorMessage.includes("429") &&
             !errorMessage.includes("rate")) {
             console.error("Failed to get wallet data:", error);
         }
@@ -314,10 +316,12 @@ export async function getBondingCurveData(
     } catch (error) {
         // Silently handle expected errors:
         // - exit_code: -13 = contract doesn't exist
+        // - "entity not found" = contract not deployed on-chain
         // - 429 = rate limit (expected without API key)
         const errorMessage = error instanceof Error ? error.message : "";
-        if (!errorMessage.includes("exit_code: -13") && 
-            !errorMessage.includes("429") && 
+        if (!errorMessage.includes("exit_code: -13") &&
+            !errorMessage.includes("entity not found") &&
+            !errorMessage.includes("429") &&
             !errorMessage.includes("rate")) {
             console.error("Failed to get curve data:", error);
         }
@@ -439,12 +443,22 @@ export function formatMarketCap(marketCap: string | number | bigint): string {
  */
 export function formatCompactNumber(num: number, precision: number = 2): string {
     if (num === 0) return "0";
-    if (Math.abs(num) < 0.01) return num.toFixed(precision > 2 ? precision : 4);
-    if (Math.abs(num) < 1) return num.toFixed(precision);
-    if (Math.abs(num) < 1000) return num.toFixed(precision);
-    if (Math.abs(num) < 1000000) return (num / 1000).toFixed(precision) + "K";
-    if (Math.abs(num) < 1000000000) return (num / 1000000).toFixed(precision) + "M";
-    if (Math.abs(num) < 1000000000000) return (num / 1000000000).toFixed(precision) + "B";
-    return (num / 1000000000000).toFixed(precision) + "T";
+    const abs = Math.abs(num);
+    if (abs < 0.01) return num.toFixed(precision > 2 ? precision : 4);
+    if (abs < 1) return num.toFixed(precision);
+    if (abs < 1000) return num.toFixed(precision);
+    if (abs >= 1_000_000_000_000) return (num / 1_000_000_000_000).toFixed(precision) + "T";
+    if (abs >= 1_000_000) {
+        // Check if rounding would push to the next tier
+        const b = +(num / 1_000_000_000).toFixed(precision);
+        if (Math.abs(b) >= 1) return b.toFixed(precision) + "B";
+        return (num / 1_000_000).toFixed(precision) + "M";
+    }
+    if (abs >= 1_000) {
+        const m = +(num / 1_000_000).toFixed(precision);
+        if (Math.abs(m) >= 1) return m.toFixed(precision) + "M";
+        return (num / 1_000).toFixed(precision) + "K";
+    }
+    return num.toFixed(precision);
 }
 

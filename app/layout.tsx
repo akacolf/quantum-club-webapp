@@ -62,8 +62,8 @@ export default function RootLayout({
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload"></Script>
         <AuthProvider>
         <ClientProviders>
-          <div className="flex justify-center min-h-screen bg-neutral-100 dark:bg-neutral-900">
-            <div className="main-content w-full max-w-md bg-background min-h-screen shadow-2xl relative">
+          <div className="flex justify-center min-h-screen bg-background">
+            <div className="main-content w-full max-w-md bg-background min-h-screen relative">
               <div className="inner-content">
                 {children}
                 <GlobalNavigation />

@@ -34,9 +34,9 @@ input, textarea, select {
 
 .inner-content {
   /* Content safe area for Telegram UI elements */
-  /* Top: Space for Telegram header buttons + extra breathing room */
+  /* Top: uses Telegram's dynamic CSS variable — adjusts automatically for fullscreen vs non-fullscreen */
   /* Bottom: Space for navigation bar */
-  padding-top: 72px;
+  padding-top: var(--tg-content-safe-area-inset-top, 0px);
   padding-bottom: 96px;
   background-color: var(--background);
 }

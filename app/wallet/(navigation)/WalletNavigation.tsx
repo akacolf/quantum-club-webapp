@@ -2,6 +2,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { useWalletStore } from "@/stores/wallet-store";
 const navTabs = [
   {
     id: "home",
@@ -36,8 +37,17 @@ const navTabs = [
   },
 ];
 
+// Routes where the wallet navbar should be hidden (onboarding flow)
+const HIDDEN_ROUTES = ["/wallet/import", "/wallet/backup", "/wallet/verify"];
+
 const WalletNavigation = () => {
   const pathname = usePathname();
+  const walletAddress = useWalletStore((s) => s.walletAddress);
+
+  // Hide navbar during wallet creation/import flow or when no wallet exists
+  if (!walletAddress || HIDDEN_ROUTES.some((route) => pathname.startsWith(route))) {
+    return null;
+  }
 
   const getActiveTab = () => {
     // Check for exact match first (wallet home)

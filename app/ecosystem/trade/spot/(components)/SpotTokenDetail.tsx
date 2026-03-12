@@ -299,16 +299,31 @@ function formatTonPrice(price: number): string {
 }
 
 function formatCompactUsd(value: number): string {
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
-    if (value >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
+    if (value >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
+    if (value >= 1e6) {
+        const b = +(value / 1e9).toFixed(1);
+        if (b >= 1) return `$${b}B`;
+        return `$${(value / 1e6).toFixed(1)}M`;
+    }
+    if (value >= 1e3) {
+        const m = +(value / 1e6).toFixed(1);
+        if (m >= 1) return `$${m}M`;
+        return `$${(value / 1e3).toFixed(1)}K`;
+    }
     return `$${value.toFixed(0)}`;
 }
 
 function formatCompactNumber(value: number): string {
     if (value >= 1e12) return `${(value / 1e12).toFixed(1)}T`;
-    if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-    if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-    if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+    if (value >= 1e6) {
+        const b = +(value / 1e9).toFixed(1);
+        if (b >= 1) return `${b}B`;
+        return `${(value / 1e6).toFixed(1)}M`;
+    }
+    if (value >= 1e3) {
+        const m = +(value / 1e6).toFixed(1);
+        if (m >= 1) return `${m}M`;
+        return `${(value / 1e3).toFixed(1)}K`;
+    }
     return value.toLocaleString();
 }
