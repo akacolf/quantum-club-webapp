@@ -23,7 +23,10 @@ import { queryClient } from "@/lib/query-client";
 // Helpers
 // =====================================================
 
-/** Clear user-specific localStorage keys to prevent stale data across accounts. */
+/** Clear user-specific localStorage keys to prevent stale data across accounts.
+ *  `keepLoggedIn` is intentionally preserved so the auth listener can detect
+ *  that the user explicitly signed out (value "false") vs a fresh install
+ *  (value absent → defaults to true). */
 function clearUserLocalStorage() {
   if (typeof window === "undefined") return;
   const keys = Object.keys(localStorage);
@@ -37,7 +40,6 @@ function clearUserLocalStorage() {
       key === "username" ||
       key === "telegramId" ||
       key === "telegramIdNM" ||
-      key === "keepLoggedIn" ||
       key === "lastactivetime" ||
       key === "miningTime"
     ) {

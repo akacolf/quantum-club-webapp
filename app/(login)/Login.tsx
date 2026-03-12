@@ -88,8 +88,11 @@ export default function Login() {
   // onAuthStateChanged → authLoading=false race.
   useEffect(() => {
     if (!authContext?.authLoading && authContext?.currentUser && !hasRedirected.current) {
-      // If an explicit login is in progress (isLoading=true), wait for dataReady
+      // If an explicit login is in progress, wait for dataReady.
+      // Also block if the login failed (rootError set) — the user needs to see the
+      // error instead of being redirected into a loop with the middleware.
       if (isLoading && !dataReady.current) return;
+      if (rootError) return;
 
       hasRedirected.current = true;
 
@@ -151,7 +154,7 @@ export default function Login() {
       })();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- setters are stable references
-  }, [authContext?.currentUser, authContext?.authLoading, isLoading, router]);
+  }, [authContext?.currentUser, authContext?.authLoading, isLoading, rootError, router]);
 
   // Show loader while auth is resolving
   const showLoader = isPageLoading || authContext?.authLoading;

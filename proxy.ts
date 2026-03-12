@@ -90,6 +90,14 @@ export async function proxy(request: NextRequest) {
       return await updateSession(request);
     } catch (err) {
       console.error("[proxy] Session update failed:", err);
+      // Session is invalid — delete it. If a valid Firebase token exists,
+      // let the request through instead of redirecting to avoid a loop
+      // (login page would see the Firebase user and redirect right back).
+      if (firebaseToken) {
+        const response = NextResponse.next();
+        response.cookies.delete("session");
+        return response;
+      }
       const response = NextResponse.redirect(new URL("/", request.url));
       response.cookies.delete("session");
       return response;

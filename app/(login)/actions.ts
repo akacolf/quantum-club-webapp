@@ -55,22 +55,13 @@ export const authenticateTelegram = actionClient
   .schema(authenticateTelegramSchema)
   .action(async ({ parsedInput: { initData } }) => {
     let rawTelegramId: string | null = null;
-    let sessionSetFromInitData = false;
 
-    // 1) Check existing session cookie
     const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session")?.value;
-    if (sessionCookie) {
-      try {
-        const sessionData = await decrypt(sessionCookie);
-        rawTelegramId = String(sessionData.user.telegramId);
-      } catch {
-        rawTelegramId = null;
-      }
-    }
 
-    // 2) Fallback: validate initData and bootstrap session
-    if (!rawTelegramId && initData) {
+    // Always validate initData when provided — ensures a fresh session on
+    // every explicit login, preventing stale session cookies from causing
+    // auth loops after sign-out.
+    if (initData) {
       const validationResult = validateTelegramWebAppData(initData);
       const user = validationResult.user as { id?: string | number };
       if (!validationResult.validatedData || user?.id == null) {
@@ -78,6 +69,7 @@ export const authenticateTelegram = actionClient
       }
       rawTelegramId = String(user.id);
 
+      // Always create a fresh session cookie
       const expires = new Date(Date.now() + SESSION_DURATION);
       const session = await encrypt({ user: { telegramId: rawTelegramId }, expires });
       cookieStore.set("session", session, {
@@ -87,7 +79,21 @@ export const authenticateTelegram = actionClient
         sameSite: "lax",
         path: "/",
       });
-      sessionSetFromInitData = true;
+    }
+
+    // Fallback: try existing session cookie (e.g. rehydration calls without fresh initData)
+    if (!rawTelegramId) {
+      const sessionCookie = cookieStore.get("session")?.value;
+      if (sessionCookie) {
+        try {
+          const sessionData = await decrypt(sessionCookie);
+          rawTelegramId = String(sessionData.user.telegramId);
+        } catch {
+          // Session cookie is invalid/expired — clear it
+          cookieStore.delete("session");
+          rawTelegramId = null;
+        }
+      }
     }
 
     if (!rawTelegramId) {
@@ -99,7 +105,7 @@ export const authenticateTelegram = actionClient
     const telegramIdEncrypted = encryptTelegramId(rawTelegramId);
     const customToken = await firebaseAuth.createCustomToken(telegramIdEncrypted);
 
-    return { customToken, telegramIdEncrypted, sessionSetFromInitData };
+    return { customToken, telegramIdEncrypted };
   });
 
 // ---------------------------------------------------------------------------
