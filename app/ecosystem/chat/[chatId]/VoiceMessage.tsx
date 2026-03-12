@@ -82,6 +82,8 @@ export default function VoiceMessage({
     audio.addEventListener("ended", onEnded);
 
     return () => {
+      audio.removeEventListener("canplaythrough", onReady);
+      audio.removeEventListener("ended", onEnded);
       cancelAnimationFrame(rafRef.current);
       audio.pause();
       audio.src = "";

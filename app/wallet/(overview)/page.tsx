@@ -348,7 +348,7 @@ export default function WalletPage() {
     }, 7000);
 
     return () => clearInterval(timer);
-  }, [carouselApi, carouselCurrent]);
+  }, [carouselApi]);
 
   // URL-synced wallet tab (shareable)
   const [walletTab, setWalletTab] = useQueryState("tab", parseAsStringLiteral(["assets", "nfts"] as const).withDefault("assets").withOptions({ history: "replace" }));

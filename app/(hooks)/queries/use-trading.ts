@@ -131,7 +131,7 @@ export function useMyTokens(telegramId: string | null, walletAddress: string) {
                 return bTime - aTime;
             });
         },
-        enabled: !!telegramId || !!walletAddress,
+        enabled: !!telegramId && !!walletAddress,
         staleTime: 30_000,
     });
 }

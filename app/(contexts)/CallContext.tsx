@@ -1038,6 +1038,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // ── Sync actions into store ─────────────────────────────────────────────
 
+  // Sync action implementations into the Zustand store once on mount.
+  // All functions read current state via useCallStore.getState() and use refs,
+  // so they're stable across renders and don't need to be re-synced.
   useEffect(() => {
     useCallStore.setState({
       initiateCall,
@@ -1049,7 +1052,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       joinGroupCall: joinGroupCallFn,
       leaveGroupCall: leaveGroupCallFn,
     });
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- functions use getState() + refs, stable
+  }, []);
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
 

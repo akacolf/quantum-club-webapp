@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, getDocs } from "firebase/firestore";
 import { useUserContext } from "./UserContext";
@@ -28,6 +28,17 @@ function useGroupsBridge() {
     const joinGroupMutation = useJoinGroupMutation(telegramId, username, walletAddress);
     const leaveGroupMutation = useLeaveGroupMutation(telegramId);
 
+    // Stabilize TanStack Query/mutation references to avoid infinite effect loops.
+    // Query and mutation objects create new references every render.
+    const groupsQueryRef = useRef(groupsQuery);
+    groupsQueryRef.current = groupsQuery;
+    const createGroupRef = useRef(createGroupMutation);
+    createGroupRef.current = createGroupMutation;
+    const joinGroupRef = useRef(joinGroupMutation);
+    joinGroupRef.current = joinGroupMutation;
+    const leaveGroupRef = useRef(leaveGroupMutation);
+    leaveGroupRef.current = leaveGroupMutation;
+
     // Sync query data into the store
     useEffect(() => {
         useGroupsStore.setState({
@@ -37,10 +48,11 @@ function useGroupsBridge() {
         });
     }, [groupsQuery.data, groupsQuery.isFetching]);
 
-    // Wire up action implementations that depend on React hooks
+    // Wire up action implementations that depend on React hooks.
+    // Uses refs so we only need to run this once (avoids infinite re-creation).
     useEffect(() => {
         useGroupsStore.setState({
-            refreshGroups: async () => { groupsQuery.refetch(); },
+            refreshGroups: async () => { groupsQueryRef.current.refetch(); },
 
             createGroup: async (
                 name: string,
@@ -52,7 +64,7 @@ function useGroupsBridge() {
                 requiredNftCollectionName?: string
             ): Promise<string | null> => {
                 try {
-                    return await createGroupMutation.mutateAsync({
+                    return await createGroupRef.current.mutateAsync({
                         name, description, tokenId, tokenSymbol,
                         nftGated, requiredNftCollection, requiredNftCollectionName,
                     });
@@ -64,7 +76,7 @@ function useGroupsBridge() {
 
             joinGroup: async (groupId: string): Promise<boolean> => {
                 try {
-                    await joinGroupMutation.mutateAsync(groupId);
+                    await joinGroupRef.current.mutateAsync(groupId);
                     return true;
                 } catch (error) {
                     console.error("Error joining group:", error);
@@ -74,7 +86,7 @@ function useGroupsBridge() {
 
             leaveGroup: async (groupId: string): Promise<boolean> => {
                 try {
-                    await leaveGroupMutation.mutateAsync(groupId);
+                    await leaveGroupRef.current.mutateAsync(groupId);
                     return true;
                 } catch (error) {
                     console.error("Error leaving group:", error);
@@ -104,7 +116,8 @@ function useGroupsBridge() {
             isGroupMember: (groupId: string) =>
                 useGroupsStore.getState().myGroupIds.has(groupId),
         });
-    }, [groupsQuery, createGroupMutation, joinGroupMutation, leaveGroupMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are stable, only run once
+    }, []);
 }
 
 /**

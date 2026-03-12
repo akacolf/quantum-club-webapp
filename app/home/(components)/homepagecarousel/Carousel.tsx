@@ -87,7 +87,7 @@ const HomeCarousel = () => {
     }, 7000);
 
     return () => clearInterval(timer);
-  }, [api, current]); // Reset timer when current slide changes
+  }, [api]);
 
   const task = tasks.find(
     (task) => task.id === "ba1e3046074448f8acb2bfe9797436db"
