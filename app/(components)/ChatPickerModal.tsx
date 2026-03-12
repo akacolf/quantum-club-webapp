@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useChat } from "@/app/(contexts)/ChatContext";
+import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useAuth } from "@/app/(contexts)/auth";
+import { useChatConversations } from "@/app/(hooks)/queries/use-chat-list";
 
 interface ChatPickerModalProps {
   open: boolean;
@@ -15,17 +16,13 @@ interface ChatPickerModalProps {
 }
 
 export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerModalProps) {
-  const { chats, loading, refreshChats } = useChat();
-  // Refresh chats when modal opens to ensure latest data
-  useEffect(() => {
-    if (open && refreshChats) {
-      refreshChats();
-    }
-  }, [open, refreshChats]);
+  const { telegramId } = useUserContext();
+  const { currentUser } = useAuth();
+  const isAuthenticated = !!currentUser;
+  const { data: conversations = [], isLoading } = useChatConversations(telegramId, isAuthenticated);
 
-  // Show skeleton only on initial load (chats retain data during background refreshes)
-  const showSkeleton = loading && chats.length === 0;
-  const showEmpty = !loading && chats.length === 0;
+  const showSkeleton = isLoading && conversations.length === 0;
+  const showEmpty = !isLoading && conversations.length === 0;
 
   return (
     <AnimatePresence>
@@ -74,8 +71,14 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                   <p className="text-sm text-muted-foreground">No chats yet</p>
                 </div>
               )}
-              {chats.map((chat) => {
-                const chatName = chat.groupName || chat.participantNames?.filter(Boolean).join(", ") || "Chat";
+              {conversations.map((chat) => {
+                const names = telegramId
+                  ? Object.entries(chat.participantNames)
+                      .filter(([uid]) => uid !== telegramId)
+                      .map(([, name]) => name)
+                      .join(", ")
+                  : "";
+                const chatName = chat.groupName || names || "Chat";
                 return (
                   <button
                     key={chat.id}
@@ -90,7 +93,7 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-medium truncate">{chatName}</p>
                       {chat.lastMessage && (
-                        <p className="text-xs text-muted-foreground truncate">{chat.lastMessage.text}</p>
+                        <p className="text-xs text-muted-foreground truncate">{chat.lastMessage}</p>
                       )}
                     </div>
                     <Icon icon="solar:arrow-right-linear" className="w-4 h-4 text-muted-foreground shrink-0" />
