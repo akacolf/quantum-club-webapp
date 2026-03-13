@@ -445,7 +445,7 @@ export default function SendPage() {
     // Load saved addresses
     const storedAddresses = localStorage.getItem(`quantum_address_book_${telegramId}`);
     if (storedAddresses) {
-      setSavedAddresses(JSON.parse(storedAddresses));
+      try { setSavedAddresses(JSON.parse(storedAddresses)); } catch {}
     }
   }, [router, telegramId]);
 

@@ -30,6 +30,7 @@ function useGroupsBridge() {
 
     // Stabilize TanStack Query/mutation references to avoid infinite effect loops.
     // Query and mutation objects create new references every render.
+    /* eslint-disable react-hooks/refs -- "latest ref" pattern to stabilize TanStack Query/mutation refs */
     const groupsQueryRef = useRef(groupsQuery);
     groupsQueryRef.current = groupsQuery;
     const createGroupRef = useRef(createGroupMutation);
@@ -38,6 +39,7 @@ function useGroupsBridge() {
     joinGroupRef.current = joinGroupMutation;
     const leaveGroupRef = useRef(leaveGroupMutation);
     leaveGroupRef.current = leaveGroupMutation;
+    /* eslint-enable react-hooks/refs */
 
     // Sync query data into the store
     useEffect(() => {
@@ -116,7 +118,6 @@ function useGroupsBridge() {
             isGroupMember: (groupId: string) =>
                 useGroupsStore.getState().myGroupIds.has(groupId),
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are stable, only run once
     }, []);
 }
 

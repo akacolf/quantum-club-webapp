@@ -332,7 +332,7 @@ const EarnContent = () => {
               }
             } else {
               if (task && task.url) {
-                openTelegramGroup(task.url, task);
+                openTelegramGroup(task.url!);
                 setButtonText(task.id, <ButtonLoader />);
                 setTimeout(() => {
                   setButtonText(task.id, task.buttontitle);
@@ -570,13 +570,15 @@ const EarnContent = () => {
     }
   };
 
-  const openTelegramGroup = (link: string, task: EarnTask) => {
+  const openTelegramGroup = (link: string) => {
     if (!link.startsWith("http://") && !link.startsWith("https://")) {
       link = "https://" + link;
     }
     const tg = window.Telegram?.WebApp;
-    if (tg) {
-      completeTask(task);
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(link);
+    } else {
+      window.open(link, "_blank");
     }
   };
   return (

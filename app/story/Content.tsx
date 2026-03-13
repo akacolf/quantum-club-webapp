@@ -121,6 +121,9 @@ const StoryContent = () => {
     const timer = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
+          clearInterval(timer);
+          // Use queueMicrotask to avoid synchronous setState within the updater
+          queueMicrotask(() => handleNext());
           return 100;
         }
         return prev + 1;
@@ -128,13 +131,7 @@ const StoryContent = () => {
     }, 50);
 
     return () => clearInterval(timer);
-  }, [currentStory, isPaused]);
-
-  useEffect(() => {
-    if (progress >= 100) {
-      handleNext();
-    }
-  }, [progress, handleNext]);
+  }, [currentStory, isPaused, handleNext]);
 
   const current = stories[currentStory];
 

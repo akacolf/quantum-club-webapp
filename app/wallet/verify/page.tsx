@@ -78,7 +78,8 @@ export default function VerifyPhrasePage() {
     }
 
     const mnemonicArr = pendingMnemonic.split(" ");
-    const indicesArr: number[] = JSON.parse(indices);
+    let indicesArr: number[];
+    try { indicesArr = JSON.parse(indices); } catch { router.push("/wallet"); return; }
 
     requestAnimationFrame(() => {
       setMnemonic(mnemonicArr);

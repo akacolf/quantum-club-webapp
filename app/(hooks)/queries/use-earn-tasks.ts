@@ -83,7 +83,7 @@ export function useEarnTasksQuery(
                                 : whichPlatform === "connectwallet" &&
                                     typeof window !== "undefined" &&
                                     localStorage.getItem(
-                                        "walletAddress_" + telegramId,
+                                        `quantum_wallet_address_${telegramId}`,
                                     )
                                   ? "Claim"
                                   : task.buttontitle,
