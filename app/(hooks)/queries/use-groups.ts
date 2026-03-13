@@ -136,8 +136,9 @@ export function useCreateGroup(telegramId: string | null, username: string | nul
 
             return groupId;
         },
-        onSuccess: () => {
+        onSuccess: (_data, _vars) => {
             queryClient.invalidateQueries({ queryKey: ["groups", telegramId] });
+            queryClient.invalidateQueries({ queryKey: ["groupMembers"] });
         },
     });
 }
@@ -188,8 +189,9 @@ export function useJoinGroup(telegramId: string | null, username: string | null,
             const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
             await setDoc(userGroupRef, { joinedAt: serverTimestamp() });
         },
-        onSuccess: () => {
+        onSuccess: (_data, groupId) => {
             queryClient.invalidateQueries({ queryKey: ["groups", telegramId] });
+            queryClient.invalidateQueries({ queryKey: ["groupMembers", groupId] });
         },
     });
 }
@@ -207,8 +209,9 @@ export function useLeaveGroup(telegramId: string | null) {
             const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
             await deleteDoc(userGroupRef);
         },
-        onSuccess: () => {
+        onSuccess: (_data, groupId) => {
             queryClient.invalidateQueries({ queryKey: ["groups", telegramId] });
+            queryClient.invalidateQueries({ queryKey: ["groupMembers", groupId] });
         },
     });
 }

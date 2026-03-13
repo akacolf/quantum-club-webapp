@@ -62,21 +62,22 @@ service cloud.firestore {
     }
     
     // Tokens - trading platform
+    // All token/trade/holder mutations use Admin SDK (server actions + Cloud Functions)
     match /tokens/{tokenId} {
       allow read: if true; // Anyone can view tokens
-      allow create: if request.auth != null; // Only authenticated users can create
-      allow update: if request.auth != null; // Trading updates (validated server-side)
-      
+      allow create: if false; // Only server actions with Admin SDK can create
+      allow update: if false; // Only server actions with Admin SDK can update
+
       match /trades/{tradeId} {
         allow read: if true; // Trade history is public
-        allow create: if request.auth != null;
+        allow create: if false; // Only server actions with Admin SDK can create
       }
-      
+
       match /holders/{holderId} {
         allow read: if true; // Holder data is public
-        allow write: if request.auth != null;
+        allow write: if false; // Only server actions with Admin SDK can write
       }
-      
+
       match /chat/{messageId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
