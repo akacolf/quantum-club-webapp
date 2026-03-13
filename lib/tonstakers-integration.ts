@@ -10,7 +10,7 @@
 
 import { Tonstakers } from "tonstakers-sdk";
 import { toNano, Address, Cell, internal, external, beginCell, storeMessage } from "@ton/core";
-import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
+import { WalletContractV5R1 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
@@ -62,8 +62,7 @@ export interface StakingOperationResult {
 function createWalletConnector(
     walletAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false,
-    telegramId: string = ""
+    isTestnet: boolean = false
 ): WalletConnectorLike {
     let statusCallback: ((wallet: any) => void) | null = null;
 
@@ -79,24 +78,14 @@ function createWalletConnector(
             // Get keypair from mnemonic
             const keypair = await mnemonicToPrivateKey(mnemonic);
             
-            // Get the stored wallet version to create the correct wallet contract
-            const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
-            let wallet;
-            switch (storedVersion) {
-                case "v4r2":
-                    wallet = WalletContractV4.create({ workchain: 0, publicKey: keypair.publicKey });
-                    break;
-                case "v3r2":
-                    wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keypair.publicKey });
-                    break;
-                case "v5r1":
-                default:
-                    wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keypair.publicKey });
-                    break;
-            }
-
+            // Create wallet contract
+            const wallet = WalletContractV5R1.create({
+                workchain: 0,
+                publicKey: keypair.publicKey,
+            });
+            
             const adapter = isTestnet
-                ? new ContractAdapter(new TonApiClient({ baseUrl: "https://testnet.tonapi.io", apiKey: env.NEXT_PUBLIC_TONAPI_KEY }))
+                ? new ContractAdapter(new TonApiClient({ baseUrl: "https://testnet.tonapi.io" }))
                 : getCentralAdapter();
             const contract = adapter.open(wallet);
             
@@ -178,16 +167,15 @@ let currentWalletAddress: string | null = null;
 export async function getTonStakers(
     walletAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false,
-    telegramId: string = ""
+    isTestnet: boolean = false
 ): Promise<Tonstakers> {
     // If instance exists with same wallet, return it
     if (tonstakersInstance && currentWalletAddress === walletAddress) {
         return tonstakersInstance;
     }
-
+    
     // Create new instance
-    const connector = createWalletConnector(walletAddress, mnemonic, isTestnet, telegramId);
+    const connector = createWalletConnector(walletAddress, mnemonic, isTestnet);
     
     tonstakersInstance = new Tonstakers({
         connector: connector as any,
@@ -218,10 +206,9 @@ export async function getTonStakers(
 export async function getTonStakersInfo(
     walletAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false,
-    telegramId: string = ""
+    isTestnet: boolean = false
 ): Promise<TonStakersInfo> {
-    const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet, telegramId);
+    const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet);
     
     const [apy, tvl, stakersCount, stakedBalance, availableBalance, instantLiquidity, rates] = await Promise.all([
         sdk.getCurrentApy(),
@@ -251,11 +238,10 @@ export async function stakeTon(
     amount: string,
     walletAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false,
-    telegramId: string = ""
+    isTestnet: boolean = false
 ): Promise<StakingOperationResult> {
     try {
-        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet, telegramId);
+        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet);
         const amountNano = toNano(amount);
         
         const result = await sdk.stake(amountNano);
@@ -280,11 +266,10 @@ export async function unstakeTsTon(
     amount: string,
     walletAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false,
-    telegramId: string = ""
+    isTestnet: boolean = false
 ): Promise<StakingOperationResult> {
     try {
-        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet, telegramId);
+        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet);
         const amountNano = toNano(amount);
         
         const result = await sdk.unstakeBestRate(amountNano);
@@ -309,11 +294,10 @@ export async function unstakeInstantTsTon(
     amount: string,
     walletAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false,
-    telegramId: string = ""
+    isTestnet: boolean = false
 ): Promise<StakingOperationResult> {
     try {
-        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet, telegramId);
+        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet);
         const amountNano = toNano(amount);
         
         const result = await sdk.unstakeInstant(amountNano);
@@ -337,11 +321,10 @@ export async function unstakeInstantTsTon(
 export async function getActiveWithdrawals(
     walletAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false,
-    telegramId: string = ""
+    isTestnet: boolean = false
 ) {
     try {
-        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet, telegramId);
+        const sdk = await getTonStakers(walletAddress, mnemonic, isTestnet);
         return await sdk.getActiveWithdrawalNFTs();
     } catch (error) {
         console.error("[TonStakers] GetActiveWithdrawals failed:", error);

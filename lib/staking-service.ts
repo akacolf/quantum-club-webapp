@@ -11,7 +11,7 @@
  */
 
 import { Address, toNano, Cell, internal, SendMode, beginCell } from "@ton/core";
-import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
+import { WalletContractV5R1 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { getContractAdapter } from "@/lib/ton-api";
 
@@ -173,39 +173,28 @@ async function buildStakeTransaction(
 export async function executeStake(
     pool: StakingPool,
     amountTon: string,
-    mnemonic: string[],
-    telegramId: string = ""
+    mnemonic: string[]
 ): Promise<StakingResult> {
     try {
         // For TON Stakers, use the official SDK
         if (pool.id === "tonstakers") {
             const { stakeTon, getTonStakersInfo } = await import("./tonstakers-integration");
             
-            // Get wallet address from mnemonic (version-aware)
+            // Get wallet address from mnemonic
             const keyPair = await mnemonicToPrivateKey(mnemonic);
-            const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
-            let wallet;
-            switch (storedVersion) {
-                case "v4r2":
-                    wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
-                    break;
-                case "v3r2":
-                    wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
-                    break;
-                case "v5r1":
-                default:
-                    wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
-                    break;
-            }
+            const wallet = WalletContractV5R1.create({
+                workchain: 0,
+                publicKey: keyPair.publicKey,
+            });
             const walletAddress = wallet.address.toString();
-
+            
             // Get current rates to calculate liquid tokens
-            const info = await getTonStakersInfo(walletAddress, mnemonic, false, telegramId);
+            const info = await getTonStakersInfo(walletAddress, mnemonic);
             const exchangeRate = info.rates?.tsTONTON || 1;
             const estimatedLiquidTokens = (parseFloat(amountTon) / exchangeRate).toFixed(4);
-
+            
             // Execute stake via SDK
-            const result = await stakeTon(amountTon, walletAddress, mnemonic, false, telegramId);
+            const result = await stakeTon(amountTon, walletAddress, mnemonic, false);
             
             if (result.success) {
                 return {
@@ -232,7 +221,7 @@ export async function executeStake(
                 : amountTon;
             
             // Execute stake via Hipo
-            const result = await stakeWithHipo(amountTon, mnemonic, false, undefined, telegramId);
+            const result = await stakeWithHipo(amountTon, mnemonic, false);
             
             if (result.success) {
                 return {
@@ -256,22 +245,12 @@ export async function executeStake(
 
         const contractAdapter = getContractAdapter();
 
-        // Create wallet from mnemonic (version-aware)
+        // Create wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(mnemonic);
-        const bemoStoredVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
-        let wallet;
-        switch (bemoStoredVersion) {
-            case "v4r2":
-                wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
-                break;
-            case "v3r2":
-                wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
-                break;
-            case "v5r1":
-            default:
-                wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
-                break;
-        }
+        const wallet = WalletContractV5R1.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey,
+        });
         const contract = contractAdapter.open(wallet);
 
         // Get current seqno

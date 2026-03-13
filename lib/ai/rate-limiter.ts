@@ -1,5 +1,5 @@
 import { dbfs } from "@/app/(firebase)/client";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, runTransaction } from "firebase/firestore";
 
 const RATE_LIMIT_PER_DAY = 20;
 
@@ -11,7 +11,8 @@ interface RateLimitResult {
 }
 
 /**
- * Check and update rate limit for a user
+ * Check and update rate limit for a user using an atomic Firestore transaction.
+ * Prevents concurrent requests from bypassing the daily limit.
  * @param userId - The Telegram user ID
  * @returns RateLimitResult with allowed status and remaining count
  */
@@ -25,61 +26,54 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
 
     try {
         const rateLimitRef = doc(dbfs, `user/${userId}/aiUsage/daily`);
-        const rateLimitDoc = await getDoc(rateLimitRef);
 
-        if (!rateLimitDoc.exists()) {
-            // First time user - create new record
-            await setDoc(rateLimitRef, {
-                count: 1,
-                date: todayStr,
+        const result = await runTransaction(dbfs, async (transaction) => {
+            const rateLimitDoc = await transaction.get(rateLimitRef);
+
+            if (!rateLimitDoc.exists()) {
+                // First time user - create new record
+                transaction.set(rateLimitRef, {
+                    count: 1,
+                    date: todayStr,
+                    lastUsed: new Date().toISOString(),
+                });
+                return { allowed: true, remaining: RATE_LIMIT_PER_DAY - 1 };
+            }
+
+            const data = rateLimitDoc.data();
+
+            // New day — reset counter
+            if (data.date !== todayStr) {
+                transaction.set(rateLimitRef, {
+                    count: 1,
+                    date: todayStr,
+                    lastUsed: new Date().toISOString(),
+                });
+                return { allowed: true, remaining: RATE_LIMIT_PER_DAY - 1 };
+            }
+
+            // Same day — check limit
+            if (data.count >= RATE_LIMIT_PER_DAY) {
+                return { allowed: false, remaining: 0 };
+            }
+
+            // Increment counter atomically
+            transaction.update(rateLimitRef, {
+                count: data.count + 1,
                 lastUsed: new Date().toISOString(),
             });
+            return { allowed: true, remaining: RATE_LIMIT_PER_DAY - data.count - 1 };
+        });
 
+        if (!result.allowed) {
             return {
-                allowed: true,
-                remaining: RATE_LIMIT_PER_DAY - 1,
-                resetAt: tomorrow,
-            };
-        }
-
-        const data = rateLimitDoc.data();
-
-        // Check if it's a new day - reset counter
-        if (data.date !== todayStr) {
-            await setDoc(rateLimitRef, {
-                count: 1,
-                date: todayStr,
-                lastUsed: new Date().toISOString(),
-            });
-
-            return {
-                allowed: true,
-                remaining: RATE_LIMIT_PER_DAY - 1,
-                resetAt: tomorrow,
-            };
-        }
-
-        // Same day - check if within limit
-        if (data.count >= RATE_LIMIT_PER_DAY) {
-            return {
-                allowed: false,
-                remaining: 0,
+                ...result,
                 resetAt: tomorrow,
                 error: `Daily limit of ${RATE_LIMIT_PER_DAY} messages reached. Resets at midnight UTC.`,
             };
         }
 
-        // Increment counter
-        await updateDoc(rateLimitRef, {
-            count: data.count + 1,
-            lastUsed: new Date().toISOString(),
-        });
-
-        return {
-            allowed: true,
-            remaining: RATE_LIMIT_PER_DAY - data.count - 1,
-            resetAt: tomorrow,
-        };
+        return { ...result, resetAt: tomorrow };
     } catch (error) {
         console.error("Rate limit check error:", error);
         // Fail closed: deny the request on error to prevent abuse during outages

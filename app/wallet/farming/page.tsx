@@ -148,8 +148,7 @@ export default function FarmingPage() {
                 selectedFarm.lpAddress,
                 stakeAmount,
                 storedMnemonic.split(" "),
-                false,
-                telegramId
+                false
             );
             
             if (result.success) {
@@ -196,8 +195,7 @@ export default function FarmingPage() {
             const result = await unstakeLpTokens(
                 position.nftAddress,
                 storedMnemonic.split(" "),
-                false,
-                telegramId
+                false
             );
             
             if (result.success) {

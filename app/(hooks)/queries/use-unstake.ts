@@ -39,8 +39,8 @@ export function useUnstakeDataQuery(
 
             const mnemonic = storedMnemonic.split(" ");
             const [info, activeWithdrawals] = await Promise.all([
-                getTonStakersInfo(storedAddress, mnemonic, false, telegramId),
-                getActiveWithdrawals(storedAddress, mnemonic, false, telegramId),
+                getTonStakersInfo(storedAddress, mnemonic),
+                getActiveWithdrawals(storedAddress, mnemonic),
             ]);
 
             return {
