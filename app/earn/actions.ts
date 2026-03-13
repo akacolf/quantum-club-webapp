@@ -22,12 +22,6 @@ export const confirmTask = authWithQcIdClient
             return { error: true, message: "Invalid task reward" };
         }
 
-        // Check if task already completed
-        const existingTask = await firestore.collection("user").doc(qcId).collection("tasks").doc(taskId).get();
-        if (existingTask.exists && existingTask.data()?.completed) {
-            return { error: true, message: "Task already completed" };
-        }
-
         const date = new Date(Date.now());
         const formattedDate = `${date
             .getDate()
@@ -36,18 +30,31 @@ export const confirmTask = authWithQcIdClient
             .toString()
             .padStart(2, "0")}/${date.getFullYear()}`;
 
-        await firestore.collection("user").doc(qcId).collection("tasks").doc(taskId).set({
-            completed: true,
-            platform,
-            quant: quantReward,
-            date: formattedDate,
+        // Atomic transaction prevents double-claiming the same task reward
+        const userTaskRef = firestore.collection("user").doc(qcId).collection("tasks").doc(taskId);
+        const miningRef = firestore.collection("user").doc(qcId).collection("miningData").doc("values");
+
+        const result = await firestore.runTransaction(async (tx) => {
+            const existingTask = await tx.get(userTaskRef);
+            if (existingTask.exists && existingTask.data()?.completed) {
+                return { error: true as const, message: "Task already completed" };
+            }
+
+            tx.set(userTaskRef, {
+                completed: true,
+                platform,
+                quant: quantReward,
+                date: formattedDate,
+            });
+
+            tx.update(miningRef, {
+                QuantAmount: FieldValue.increment(quantReward),
+            });
+
+            return { error: false as const, message: "Task confirmed", quant: quantReward };
         });
 
-        await firestore.collection("user").doc(qcId).collection("miningData").doc("values").update({
-            QuantAmount: FieldValue.increment(quantReward),
-        });
-
-        return { error: false, message: "Task confirmed", quant: quantReward };
+        return result;
     });
 
 // ---------------------------------------------------------------------------
