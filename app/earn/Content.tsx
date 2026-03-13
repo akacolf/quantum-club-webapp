@@ -323,7 +323,6 @@ const EarnContent = () => {
             if (memberResult?.serverError) {
               setButtonText(task.id, task.buttontitle);
               setActiveTaskId(null);
-              task.completed = false;
               haptics.error();
               throw new Error(memberResult.serverError);
             }
@@ -344,7 +343,6 @@ const EarnContent = () => {
           } catch {
             setButtonText(task.id, task.buttontitle);
             setActiveTaskId(null);
-            task.completed = false;
             haptics.error();
           }
         }
@@ -358,7 +356,6 @@ const EarnContent = () => {
             if (memberResult2?.serverError) {
               setButtonText(task.id, task.buttontitle);
               setActiveTaskId(null);
-              task.completed = false;
               haptics.error();
               throw new Error(memberResult2.serverError);
             }
@@ -368,13 +365,11 @@ const EarnContent = () => {
             } else {
               setButtonText(task.id, task.buttontitle);
               setActiveTaskId(null);
-              task.completed = false;
               haptics.error();
             }
           } catch {
             setButtonText(task.id, task.buttontitle);
             setActiveTaskId(null);
-            task.completed = false;
             haptics.error();
           }
         }
@@ -386,17 +381,18 @@ const EarnContent = () => {
       }
       if (task.whichPlatform === "twitter") {
         if (task.buttonText === "Follow") {
+          let taskUrl = task.url ?? "";
           if (
-            !task.url?.startsWith("http://") &&
-            !task.url?.startsWith("https://")
+            !taskUrl.startsWith("http://") &&
+            !taskUrl.startsWith("https://")
           ) {
-            task.url = "https://" + task.url;
+            taskUrl = "https://" + taskUrl;
           }
           if (
             task?.whichPlatform &&
             task.whichPlatform !== ("telegram" as string)
           ) {
-            window.open(task.url, "_blank");
+            window.open(taskUrl, "_blank");
           }
           setButtonText(task.id, <ButtonLoader />);
           setTimeout(() => {
@@ -412,7 +408,7 @@ const EarnContent = () => {
       if (task.whichPlatform === "chemist") {
         if (task.buttonText === "Check") {
           try {
-            document.cookie = `taskId=${task.id}; path=@/app/earn/9CXx152NbBKOKE2; secure; SameSite=Strict`;
+            document.cookie = `taskId=${task.id}; path=/earn/9CXx152NbBKOKE2; secure; SameSite=Strict`;
             router.push("/earn/9CXx152NbBKOKE2");
           } catch (error) {
             if (error instanceof Error) {
@@ -423,14 +419,15 @@ const EarnContent = () => {
       }
       if (task.whichPlatform === "instagram") {
         if (task.buttonText === "Check") {
+          let taskUrl = task.url ?? "";
           if (
-            !task.url?.startsWith("http://") &&
-            !task.url?.startsWith("https://")
+            !taskUrl.startsWith("http://") &&
+            !taskUrl.startsWith("https://")
           ) {
-            task.url = "https://" + task.url;
+            taskUrl = "https://" + taskUrl;
           }
           if (task.whichPlatform != ("telegram" as string)) {
-            window.open(task.url, "_blank");
+            window.open(taskUrl, "_blank");
           }
           setButtonText(task.id, <ButtonLoader />);
           setTimeout(() => {
@@ -480,7 +477,7 @@ const EarnContent = () => {
       if (task.whichPlatform === "onchain") {
         if (task.buttonText === "Check") {
           try {
-            document.cookie = `taskId=${task.id}; path=@/app/earn/9CXx152NbBKOKE2; secure; SameSite=Strict`;
+            document.cookie = `taskId=${task.id}; path=/earn/9CXx152NbBKOKE2; secure; SameSite=Strict`;
             router.push("/earn/9CXx152NbBKOKE2");
           } catch (error) {
             if (error instanceof Error) {

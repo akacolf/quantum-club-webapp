@@ -51,6 +51,33 @@ const calculateRemainingTime = (timestamp: number) => {
   );
   return ` ${hours}h ${minutes}m`;
 };
+
+function getTomorrowMidnightUTC() {
+  const now = new Date();
+  return Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1,
+    0, 0, 0, 0
+  );
+}
+
+const TaskTimerComponent: React.FC = () => {
+  const [remainingTime, setRemainingTime] = useState(
+    calculateRemainingTime(getTomorrowMidnightUTC())
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRemainingTime(calculateRemainingTime(getTomorrowMidnightUTC()));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return <div>{remainingTime}</div>;
+};
+
 function getRankIcon(rank: string | null) {
   if (rank === "OG") {
     return (
@@ -214,35 +241,7 @@ const HomeContent = () => {
 
   const loadingDay = claimDailyMutation.isPending;
 
-  const TaskTimer = () => {
-    const now = new Date();
-    const tomorrowMidnightUTC = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() + 1,
-        0,
-        0,
-        0,
-        0
-      )
-    );
-
-    const tomorrowMidnightUTCTimestamp = tomorrowMidnightUTC.getTime();
-    const [remainingTime, setRemainingTime] = useState(
-      calculateRemainingTime(tomorrowMidnightUTCTimestamp)
-    );
-
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setRemainingTime(calculateRemainingTime(tomorrowMidnightUTCTimestamp));
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }, [tomorrowMidnightUTCTimestamp]);
-
-    return <div>{remainingTime}</div>;
-  };
+  const TaskTimer = TaskTimerComponent;
 
   return (
     <div className="flex flex-col min-h-screen">

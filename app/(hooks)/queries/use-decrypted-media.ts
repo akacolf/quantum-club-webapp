@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { decryptBlob } from "@/lib/chat-crypto";
 
 interface DecryptParams {
@@ -46,8 +47,28 @@ async function fetchAndDecrypt({
  */
 export function useDecryptedMedia(params: DecryptParams & { enabled?: boolean }) {
   const { url, encrypted, participantIds, chatId, enabled = true } = params;
+  const queryClient = useQueryClient();
 
   const needsDecryption = encrypted && participantIds && chatId;
+
+  // Revoke blob URLs when their query cache entries are garbage-collected
+  useEffect(() => {
+    const cache = queryClient.getQueryCache();
+    const unsubscribe = cache.subscribe((event) => {
+      if (
+        event.type === "removed" &&
+        Array.isArray(event.query.queryKey) &&
+        event.query.queryKey[0] === "decrypted-media" &&
+        event.query.queryKey[1] === url
+      ) {
+        const data = event.query.state.data as string | undefined;
+        if (data?.startsWith("blob:")) {
+          URL.revokeObjectURL(data);
+        }
+      }
+    });
+    return unsubscribe;
+  }, [queryClient, url]);
 
   return useQuery({
     queryKey: ["decrypted-media", url],

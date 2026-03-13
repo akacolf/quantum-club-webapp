@@ -143,8 +143,7 @@ async function fetchMiningData(telegramId: string): Promise<MiningData> {
             const diff = daysDiff(todayISO, checktime);
 
             if (diff > 2) {
-                // Streak broken — reset daily to 1
-                await setDoc(checkTimeRef, { daily: 1 }, { merge: true });
+                // Streak broken — daily resets to 1 (written on next claim, not here)
                 checkTime.daily = 1;
                 isClaimedToday = false;
             } else if (diff >= 1 && diff < 2) {
@@ -160,8 +159,7 @@ async function fetchMiningData(telegramId: string): Promise<MiningData> {
             checkTime.daily = 1;
         }
     } else {
-        // No checkTime doc — initialise it
-        await setDoc(checkTimeRef, { daily: 1 });
+        // No checkTime doc — will be created on first daily claim
         checkTime.daily = 1;
         isClaimedToday = false;
     }
