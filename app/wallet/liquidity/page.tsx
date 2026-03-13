@@ -33,7 +33,7 @@ import {
   useBiometricAuth,
 } from "@/components/ui/biometric-auth";
 import { Address, internal, SendMode, Cell } from "@ton/core";
-import { WalletContractV5R1 } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
@@ -463,10 +463,20 @@ export default function LiquidityPage() {
       // Create wallet from mnemonic
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
+      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
       const contract = contractAdapter.open(wallet);
 
       // Get current seqno
@@ -584,10 +594,20 @@ export default function LiquidityPage() {
       // Create wallet from mnemonic
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
+      const storedVersionBurn = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      let wallet;
+      switch (storedVersionBurn) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
       const contract = contractAdapter.open(wallet);
 
       // Get current seqno

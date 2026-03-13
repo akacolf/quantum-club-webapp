@@ -9,7 +9,7 @@
  */
 
 import { Address, toNano } from "@ton/core";
-import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, internal, SendMode } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
@@ -91,21 +91,34 @@ export async function stakeWithHipo(
     amountTon: string,
     mnemonic: string[],
     isTestnet: boolean = false,
-    referrer?: Address
+    referrer?: Address,
+    telegramId?: string
 ): Promise<HipoStakeResult> {
     try {
         const treasuryAddress = getTreasuryAddress(isTestnet);
-        
+
         const contractAdapter = isTestnet
             ? new ContractAdapter(new TonApiClient({ baseUrl: "https://testnet.tonapi.io" }))
             : getCentralAdapter();
 
-        // Create wallet from mnemonic
+        // Create version-aware wallet from mnemonic
         const keyPair = await mnemonicToPrivateKey(mnemonic);
-        const wallet = WalletContractV5R1.create({
-            workchain: 0,
-            publicKey: keyPair.publicKey,
-        });
+        const storedVersion = telegramId
+            ? localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1"
+            : "v5r1";
+        let wallet;
+        switch (storedVersion) {
+            case "v4r2":
+                wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+                break;
+            case "v3r2":
+                wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+                break;
+            case "v5r1":
+            default:
+                wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+                break;
+        }
         const contract = contractAdapter.open(wallet);
 
         // Get current seqno

@@ -24,7 +24,7 @@ import { resolveTonAddress } from "@/lib/tonAddressResolver";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { mnemonicToPrivateKey } from "@ton/crypto";
-import { WalletContractV5R1, internal, SendMode } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, internal, SendMode } from "@ton/ton";
 import { toNano, Address, beginCell } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
@@ -159,10 +159,20 @@ export default function SendNftPage() {
             const mnemonic = storedMnemonic.split(" ");
             const keyPair = await mnemonicToPrivateKey(mnemonic);
 
-            const wallet = WalletContractV5R1.create({
-                workchain: 0,
-                publicKey: keyPair.publicKey,
-            });
+            const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+            let wallet;
+            switch (storedVersion) {
+                case "v4r2":
+                    wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+                    break;
+                case "v3r2":
+                    wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+                    break;
+                case "v5r1":
+                default:
+                    wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+                    break;
+            }
 
             const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL });
             const adapter = new ContractAdapter(ta);
@@ -199,7 +209,7 @@ export default function SendNftPage() {
 
             if (!isWalletDeployed && seqno === 0) {
                 // Wallet not deployed - include StateInit
-                const transfer = wallet.createTransfer({
+                const transfer = (wallet as any).createTransfer({
                     seqno: 0,
                     secretKey: keyPair.secretKey,
                     sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
