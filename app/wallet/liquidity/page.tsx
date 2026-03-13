@@ -33,7 +33,7 @@ import {
   useBiometricAuth,
 } from "@/components/ui/biometric-auth";
 import { Address, internal, SendMode, Cell } from "@ton/core";
-import { WalletContractV5R1 } from "@ton/ton";
+import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
@@ -48,6 +48,7 @@ import {
 } from "@/lib/stonfi";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { addLiquiditySchema, removeLiquiditySchema } from "@/lib/validations";
+import { env } from "@/env";
 import { useSwapAssetsQuery, useLPPositionsQuery, type LPPosition } from "@/app/(hooks)/queries/use-liquidity";
 import { useQueryClient } from "@tanstack/react-query";
 import { StonApiClient } from "@ston-fi/api";
@@ -457,16 +458,27 @@ export default function LiquidityPage() {
       // Initialize TonAPI client
       const tonApiClient = new TonApiClient({
         baseUrl: "https://tonapi.io",
+        apiKey: env.NEXT_PUBLIC_TONAPI_KEY,
       });
       const contractAdapter = new ContractAdapter(tonApiClient);
 
-      // Create wallet from mnemonic
+      // Create wallet using the stored version (V5R1/V4R2/V3R2)
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
+      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
       const contract = contractAdapter.open(wallet);
 
       // Get current seqno
@@ -578,16 +590,27 @@ export default function LiquidityPage() {
       // Initialize TonAPI client
       const tonApiClient = new TonApiClient({
         baseUrl: "https://tonapi.io",
+        apiKey: env.NEXT_PUBLIC_TONAPI_KEY,
       });
       const contractAdapter = new ContractAdapter(tonApiClient);
 
-      // Create wallet from mnemonic
+      // Create wallet using the stored version (V5R1/V4R2/V3R2)
       const mnemonic = storedMnemonic.split(" ");
       const keyPair = await mnemonicToPrivateKey(mnemonic);
-      const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-      });
+      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      let wallet;
+      switch (storedVersion) {
+        case "v4r2":
+          wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v3r2":
+          wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+        case "v5r1":
+        default:
+          wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+          break;
+      }
       const contract = contractAdapter.open(wallet);
 
       // Get current seqno

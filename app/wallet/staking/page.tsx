@@ -161,7 +161,8 @@ export default function StakingPage() {
             const result = await executeStake(
                 selectedPool,
                 amount,
-                mnemonic
+                mnemonic,
+                telegramId
             );
 
             if (result.success) {

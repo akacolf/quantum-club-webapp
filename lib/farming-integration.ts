@@ -9,7 +9,7 @@
 
 import { FARM } from "@ston-fi/sdk";
 import { StonApiClient } from "@ston-fi/api";
-import { SendMode, WalletContractV5R1 } from "@ton/ton";
+import { SendMode, WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { toNano, internal } from "@ton/core";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { ContractAdapter } from "@ton-api/ton-adapter";
@@ -49,13 +49,25 @@ export interface FarmingResult {
 
 // Note: Uses central getContractAdapter() from ton-api.ts (mainnet only)
 
-// Get wallet from mnemonic
-async function getWallet(mnemonic: string[], contractAdapter: ContractAdapter) {
+// Get wallet from mnemonic (version-aware)
+async function getWallet(mnemonic: string[], contractAdapter: ContractAdapter, telegramId: string) {
     const keyPair = await mnemonicToPrivateKey(mnemonic);
-    const wallet = WalletContractV5R1.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey,
-    });
+
+    // Get the stored wallet version to create the correct wallet contract
+    const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+    let wallet;
+    switch (storedVersion) {
+        case "v4r2":
+            wallet = WalletContractV4.create({ workchain: 0, publicKey: keyPair.publicKey });
+            break;
+        case "v3r2":
+            wallet = WalletContractV3R2.create({ workchain: 0, publicKey: keyPair.publicKey });
+            break;
+        case "v5r1":
+        default:
+            wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
+            break;
+    }
     return {
         wallet,
         keyPair,
@@ -172,11 +184,12 @@ export async function stakeLpTokens(
     lpTokenAddress: string,
     amount: string,
     mnemonic: string[],
-    isTestnet: boolean = false
+    isTestnet: boolean = false,
+    telegramId: string = ""
 ): Promise<FarmingResult> {
     try {
         const contractAdapter = getContractAdapter();
-        const { keyPair, contract, address } = await getWallet(mnemonic, contractAdapter);
+        const { keyPair, contract, address } = await getWallet(mnemonic, contractAdapter, telegramId);
         
         // Get farm NFT minter contract
         const farmNftMinter = contractAdapter.open(
@@ -223,11 +236,12 @@ export async function stakeLpTokens(
 export async function unstakeLpTokens(
     farmNftAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false
+    isTestnet: boolean = false,
+    telegramId: string = ""
 ): Promise<FarmingResult> {
     try {
         const contractAdapter = getContractAdapter();
-        const { keyPair, contract } = await getWallet(mnemonic, contractAdapter);
+        const { keyPair, contract } = await getWallet(mnemonic, contractAdapter, telegramId);
         
         // Get farm NFT item contract
         const farmNftItem = contractAdapter.open(
@@ -270,11 +284,12 @@ export async function unstakeLpTokens(
 export async function claimFarmingRewards(
     farmNftAddress: string,
     mnemonic: string[],
-    isTestnet: boolean = false
+    isTestnet: boolean = false,
+    telegramId: string = ""
 ): Promise<FarmingResult> {
     try {
         const contractAdapter = getContractAdapter();
-        const { keyPair, contract } = await getWallet(mnemonic, contractAdapter);
+        const { keyPair, contract } = await getWallet(mnemonic, contractAdapter, telegramId);
         
         // Get farm NFT item contract
         const farmNftItem = contractAdapter.open(

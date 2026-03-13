@@ -124,9 +124,9 @@ export default function UnstakePage() {
 
             let result;
             if (unstakeMode === "instant") {
-                result = await unstakeInstantTsTon(amount, storedAddress, mnemonic, false);
+                result = await unstakeInstantTsTon(amount, storedAddress, mnemonic, false, telegramId);
             } else {
-                result = await unstakeTsTon(amount, storedAddress, mnemonic, false);
+                result = await unstakeTsTon(amount, storedAddress, mnemonic, false, telegramId);
             }
             
             if (result.success) {

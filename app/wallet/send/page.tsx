@@ -879,10 +879,10 @@ export default function SendPage() {
       const toAddress = Address.parse(resolvedAddress);
 
       if (selectedAsset?.type === "ton") {
-        // Calculate the actual amount recipient will receive (amount minus fees)
-        const inputAmount = parseFloat(amount);
-        const fee = parseFloat(estimatedFee);
-        const recipientAmount = Math.max(0, inputAmount - fee);
+        // Send the full user-entered amount to the recipient.
+        // PAY_GAS_SEPARATELY means gas comes from the sender's remaining balance,
+        // so the recipient receives exactly what the user typed.
+        const recipientAmount = parseFloat(amount);
 
         // Build comment body if provided - use encryption if enabled and recipient has public key
         let messageBody: Cell | undefined = undefined;
