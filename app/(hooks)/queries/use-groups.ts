@@ -180,14 +180,17 @@ export function useJoinGroup(telegramId: string | null, username: string | null,
             }
 
             const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
-            await setDoc(memberRef, {
+            const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
+
+            // Atomic batch write — both docs succeed or both fail
+            const batch = writeBatch(dbfs);
+            batch.set(memberRef, {
                 username: username || "Unknown",
                 role: "member",
                 joinedAt: serverTimestamp(),
             });
-
-            const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
-            await setDoc(userGroupRef, { joinedAt: serverTimestamp() });
+            batch.set(userGroupRef, { joinedAt: serverTimestamp() });
+            await batch.commit();
         },
         onSuccess: (_data, groupId) => {
             queryClient.invalidateQueries({ queryKey: ["groups", telegramId] });
@@ -204,10 +207,13 @@ export function useLeaveGroup(telegramId: string | null) {
             if (!telegramId) throw new Error("Not authenticated");
 
             const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
-            await deleteDoc(memberRef);
-
             const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
-            await deleteDoc(userGroupRef);
+
+            // Atomic batch delete — both docs removed or neither
+            const batch = writeBatch(dbfs);
+            batch.delete(memberRef);
+            batch.delete(userGroupRef);
+            await batch.commit();
         },
         onSuccess: (_data, groupId) => {
             queryClient.invalidateQueries({ queryKey: ["groups", telegramId] });
