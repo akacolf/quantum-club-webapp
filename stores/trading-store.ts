@@ -194,6 +194,10 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       return;
     }
 
+    // Track request ID to prevent stale search results from overwriting newer ones
+    const requestId = Date.now();
+    (useTradingStore as any)._lastSearchRequestId = requestId;
+
     set({ isSearching: true });
     try {
       const q = searchQuery.toLowerCase();
@@ -204,12 +208,16 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
         limit(30)
       );
       const snapshot = await getDocs(searchQ);
+      // Abort if a newer search was made while we were fetching
+      if ((useTradingStore as any)._lastSearchRequestId !== requestId) return;
       const tokens = snapshot.docs.map(docToToken).filter((t) => t.isOnChain);
       set({ searchResults: tokens.slice(0, 20) });
     } catch (error) {
       console.error("Search error:", error);
     } finally {
-      set({ isSearching: false });
+      if ((useTradingStore as any)._lastSearchRequestId === requestId) {
+        set({ isSearching: false });
+      }
     }
   },
 

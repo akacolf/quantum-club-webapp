@@ -124,15 +124,19 @@ const checkUserRankSchema = z.object({
 
 const processReferralSchema = z.object({
   referrerId: z.string().min(1),
-  newUserQcId: z.string().min(1),
-  quantValue: z.number(),
 });
 
-export const processReferral = actionClient
+export const processReferral = authWithQcIdClient
   .schema(processReferralSchema)
-  .action(async ({ parsedInput: { referrerId, newUserQcId, quantValue } }) => {
+  .action(async ({ ctx: { qcId }, parsedInput: { referrerId } }) => {
+    const newUserQcId = qcId;
+
     // Don't allow self-referral
     if (referrerId === newUserQcId) return { processed: false };
+
+    // Fetch quantValue server-side instead of trusting client input
+    const newUserValuesSnap = await firestore.doc(`user/${newUserQcId}/miningData/values`).get();
+    const quantValue = newUserValuesSnap.exists ? Number(newUserValuesSnap.data()?.QuantAmount ?? 0) : 0;
 
     const referrerValuesRef = firestore.doc(`user/${referrerId}/miningData/values`);
     const referralDocRef = firestore.doc(`user/${referrerId}/referrals/${newUserQcId}`);

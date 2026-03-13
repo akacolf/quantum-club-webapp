@@ -259,8 +259,6 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
             const { processReferral } = await import("@/app/(login)/actions");
             await processReferral({
               referrerId: referrerID,
-              newUserQcId: telegramIdEncrypted,
-              quantValue: Number(quantValue),
             });
           } catch (err) {
             console.error("Referral processing error:", err);

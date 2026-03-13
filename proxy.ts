@@ -55,10 +55,6 @@ export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname === "/unsupported-region") {
     return NextResponse.next();
   }
-  if (request.method === "POST") {
-    return NextResponse.next();
-  }
-
   // Check for either auth system: session cookie (Telegram) or Firebase auth token.
   // Also check the refresh token: the ID token cookie expires in ~1h (scoped to
   // Firebase's token lifetime), but the client silently refreshes it. The 30-day

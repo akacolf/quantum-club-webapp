@@ -8,6 +8,7 @@ import {
     setDoc,
     deleteDoc,
     serverTimestamp,
+    writeBatch,
 } from "firebase/firestore";
 import type { Group, GroupMember } from "@/app/(contexts)/GroupsContext";
 import { getAccountNfts } from "@/lib/nft-marketplace";
@@ -108,8 +109,12 @@ export function useCreateGroup(telegramId: string | null, username: string | nul
 
             const groupId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const groupRef = doc(dbfs, `groups/${groupId}`);
+            const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
+            const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
 
-            await setDoc(groupRef, {
+            // Atomic batch write — all three docs succeed or all fail
+            const batch = writeBatch(dbfs);
+            batch.set(groupRef, {
                 name,
                 description,
                 createdBy: telegramId,
@@ -121,16 +126,13 @@ export function useCreateGroup(telegramId: string | null, username: string | nul
                 ...(requiredNftCollection && { requiredNftCollection }),
                 ...(requiredNftCollectionName && { requiredNftCollectionName }),
             });
-
-            const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);
-            await setDoc(memberRef, {
+            batch.set(memberRef, {
                 username: username || "Unknown",
                 role: "admin",
                 joinedAt: serverTimestamp(),
             });
-
-            const userGroupRef = doc(dbfs, `user/${telegramId}/groups/${groupId}`);
-            await setDoc(userGroupRef, { joinedAt: serverTimestamp() });
+            batch.set(userGroupRef, { joinedAt: serverTimestamp() });
+            await batch.commit();
 
             return groupId;
         },

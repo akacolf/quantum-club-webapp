@@ -58,7 +58,9 @@ const EcosystemNavigation = () => {
         count += data.unreadCounts?.[telegramId] || 0;
       });
       setTotalUnread(count);
-    }, () => {});
+    }, (err) => {
+      console.error("[EcosystemNavigation] Unread count listener error:", err);
+    });
     return () => unsub();
   }, [currentUser, telegramId]);
 

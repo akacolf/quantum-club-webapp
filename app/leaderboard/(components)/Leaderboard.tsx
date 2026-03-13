@@ -35,7 +35,7 @@ export default function LeaderboardList() {
                             const index = virtualItem.index;
                             return (
                                 <div
-                                    key={index}
+                                    key={item.username}
                                     className="absolute top-0 left-0 w-full"
                                     style={{ transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)` }}
                                     data-index={virtualItem.index}

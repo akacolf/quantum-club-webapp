@@ -71,9 +71,15 @@ const HomeCarousel = () => {
       setCurrent(api.selectedScrollSnap());
     });
 
-    api.on("select", () => {
+    const handleSelect = () => {
       setCurrent(api.selectedScrollSnap());
-    });
+    };
+
+    api.on("select", handleSelect);
+
+    return () => {
+      api.off("select", handleSelect);
+    };
   }, [api]);
 
   // Auto-play timer

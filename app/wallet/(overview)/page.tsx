@@ -334,9 +334,15 @@ export default function WalletPage() {
       setCarouselCurrent(carouselApi.selectedScrollSnap());
     });
 
-    carouselApi.on("select", () => {
+    const handleSelect = () => {
       setCarouselCurrent(carouselApi.selectedScrollSnap());
-    });
+    };
+
+    carouselApi.on("select", handleSelect);
+
+    return () => {
+      carouselApi.off("select", handleSelect);
+    };
   }, [carouselApi]);
 
   // Features Carousel - auto-play timer (7 seconds like home page)
@@ -1051,7 +1057,7 @@ export default function WalletPage() {
                   const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
                   return (
                     <div
-                      key={index}
+                      key={jetton.jettonAddress ?? `jetton-${index}`}
                       className="absolute top-0 left-0 w-full"
                       style={{ transform: `translateY(${virtualItem.start - (jettonsVirtualizer.options.scrollMargin ?? 0)}px)` }}
                       ref={jettonsVirtualizer.measureElement}

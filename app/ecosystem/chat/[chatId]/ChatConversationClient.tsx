@@ -1569,7 +1569,7 @@ export default function ChatConversationClient() {
     setReactionPickerMsgId(null);
     try {
       const chatsRef = collection(dbfs, "qc-chats");
-      const q2 = query(chatsRef, where("participants", "array-contains", telegramId));
+      const q2 = query(chatsRef, where("participants", "array-contains", telegramId), limit(50));
       const snap = await getDocs(q2);
       const chats: any[] = [];
       snap.forEach((d) => {

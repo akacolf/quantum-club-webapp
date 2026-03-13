@@ -109,8 +109,8 @@ export const onTokenUpdate = functions.firestore
             return null;
         }
 
-        // Skip if already processed
-        if (before.marketCap === after.marketCap) {
+        // Skip if already queued for graduation
+        if (after.graduationPending) {
             return null;
         }
 
@@ -208,11 +208,12 @@ export const processGraduationQueue = functions.pubsub
             } catch (error) {
                 functions.logger.error(`Graduation failed for ${graduation.tokenSymbol}:`, error);
 
+                const newRetryCount = (graduation.retryCount || 0) + 1;
                 await doc.ref.update({
-                    status: "failed",
+                    status: newRetryCount < 3 ? "pending" : "abandoned",
                     failedAt: admin.firestore.FieldValue.serverTimestamp(),
                     error: error instanceof Error ? error.message : "Unknown error",
-                    retryCount: (graduation.retryCount || 0) + 1,
+                    retryCount: newRetryCount,
                 });
             }
         }
