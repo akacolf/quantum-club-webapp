@@ -169,6 +169,7 @@ export const deployJetton = authActionClient
             }
         } catch (firestoreError) {
             console.error("Firestore write error:", firestoreError);
+            return { success: false, error: "Failed to save token record. Please try again." };
         }
 
         const deploymentGasNano = Math.floor(FEE_CONFIG.tokenDeployment * 1e9).toString();
