@@ -537,7 +537,7 @@ export default function AnalyticsPage() {
             </Card>
           ) : (
             portfolioAllocation.map((asset, index) => (
-              <Card key={index} className="bg-[#111] border-[#222] rounded-xl hover:bg-[#161616] transition-colors">
+              <Card key={asset.symbol} className="bg-[#111] border-[#222] rounded-xl hover:bg-[#161616] transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div

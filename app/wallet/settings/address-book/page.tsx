@@ -87,13 +87,14 @@ export default function AddressBookPage() {
             return;
         }
 
-        if (addresses.some(a => a.address.toLowerCase() === data.address.toLowerCase())) {
+        const normalizedAddress = formatAddress(data.address);
+        if (addresses.some(a => a.address === normalizedAddress)) {
             setAddressError("Address already saved");
             return;
         }
 
         const newEntry: SavedAddress = {
-            address: formatAddress(data.address),
+            address: normalizedAddress,
             name: data.name.trim(),
             createdAt: Date.now(),
         };
