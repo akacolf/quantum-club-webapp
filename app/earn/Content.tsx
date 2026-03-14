@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";
-import Loader from "../(components)/Loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { ButtonLoader } from "../(components)/ButtonLoader";
 import { useRouter } from "next/navigation";
@@ -158,11 +158,7 @@ const EarnContent = () => {
   // Helper function to render task list
   const renderTaskList = (tasks: EarnTask[]) => (
     <div className="space-y-3">
-      {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <Loader />
-        </div>
-      ) : tasks.length > 0 ? (
+      {tasks.length > 0 ? (
         tasks.map((task) => (
           <Card
             key={task.id}
@@ -671,9 +667,29 @@ const EarnContent = () => {
             </div>
           </>
         ) : (
-          <div className="flex justify-center items-center h-screen">
-            <Loader />
-          </div>
+          <>
+            <div className="p-6 pt-8">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-4 w-48 mt-2" />
+            </div>
+            <div className="px-4 mb-6">
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+            <div className="px-4 space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Card key={i} className="border-[#333] bg-[#1a1a1a]/60">
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <Skeleton className="w-12 h-12 rounded-xl shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                    <Skeleton className="h-9 w-16 rounded-lg shrink-0" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
