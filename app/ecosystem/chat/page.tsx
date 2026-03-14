@@ -852,7 +852,7 @@ export default function QCChatListPage() {
                       )}
                     </div>
                     {hasErrors && (
-                      <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} className="text-[10px]" />
+                      <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} className="text-[10px]" />
                     )}
                     {usernameAvailability === "available" && (
                       <p className="text-[10px] text-green-400 flex items-center gap-1">

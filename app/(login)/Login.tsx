@@ -421,7 +421,7 @@ export default function Login() {
                           disabled={isLoading}
                           autoComplete="email"
                         />
-                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       </Field>
                     );
                   }}
@@ -470,7 +470,7 @@ export default function Login() {
                             />
                           </button>
                         </div>
-                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                        {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       </Field>
                     );
                   }}

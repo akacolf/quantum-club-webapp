@@ -146,7 +146,7 @@ export default function ManageWalletsPage() {
                                         if (e.key === "Escape") setEditingWallet(null);
                                       }}
                                     />
-                                    <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                    <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />
                                   </Field>
                                 )}
                               </renameForm.Field>

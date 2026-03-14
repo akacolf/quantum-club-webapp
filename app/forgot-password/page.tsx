@@ -212,7 +212,7 @@ export default function ForgotPassword() {
                             autoComplete="email"
                             autoFocus
                           />
-                          {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                          {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                         </Field>
                       );
                     }}

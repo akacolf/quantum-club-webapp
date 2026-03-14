@@ -110,7 +110,7 @@ export default function CreateGroupPage() {
                                         />
                                         <div className="flex justify-between">
                                             {hasErrors ? (
-                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />
                                             ) : <span />}
                                             <p className="text-xs text-muted-foreground">{field.state.value.length}/30</p>
                                         </div>
@@ -140,7 +140,7 @@ export default function CreateGroupPage() {
                                         />
                                         <div className="flex justify-between">
                                             {hasErrors ? (
-                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />
                                             ) : <span />}
                                             <p className="text-xs text-muted-foreground">{field.state.value.length}/100</p>
                                         </div>

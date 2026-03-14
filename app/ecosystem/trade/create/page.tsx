@@ -460,7 +460,7 @@ export default function CreateTokenPage() {
                                                     className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground ${hasErrors ? "border-destructive" : ""}`}
                                                     maxLength={32}
                                                 />
-                                                {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                             </Field>
                                         );
                                     }}
@@ -515,7 +515,7 @@ export default function CreateTokenPage() {
                                                         )}
                                                     </div>
                                                 </div>
-                                                {hasFormErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                {hasFormErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                                 {!hasFormErrors && hasSymbolError && <FieldError errors={[{ message: symbolError }]} />}
                                                 {!isInvalid && symbolAvailable === true && watchedSymbol.length >= 2 && (
                                                     <p className="text-xs text-green-400">Symbol is available!</p>
@@ -545,7 +545,7 @@ export default function CreateTokenPage() {
                                                     maxLength={500}
                                                 />
                                                 <div className="flex justify-between text-xs text-muted-foreground">
-                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                                     <span className="ml-auto">{field.state.value.length}/500</span>
                                                 </div>
                                             </Field>

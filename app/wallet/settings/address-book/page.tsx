@@ -178,7 +178,7 @@ export default function AddressBookPage() {
                                                         placeholder="Name (e.g., My Friend)"
                                                         className="bg-muted border-border text-foreground"
                                                     />
-                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                                 </Field>
                                             );
                                         }}
@@ -201,7 +201,7 @@ export default function AddressBookPage() {
                                                         placeholder="TON Address"
                                                         className={`bg-muted border-border text-foreground font-mono text-sm ${isInvalid ? "border-destructive" : ""}`}
                                                     />
-                                                    {hasFormErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                    {hasFormErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                                     {!hasFormErrors && hasManualError && <FieldError errors={[{ message: addressError }]} />}
                                                 </Field>
                                             );

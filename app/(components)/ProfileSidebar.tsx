@@ -303,7 +303,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                       <p className="text-[10px] text-destructive">{realtimeError}</p>
                     )}
                     {hasErrors && !realtimeError && (
-                      <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                      <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />
                     )}
                     {usernameAvailability === "available" && (
                       <p className="text-[10px] text-green-400 flex items-center gap-1">
@@ -431,7 +431,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                           className="h-8 text-xs"
                           disabled={isLinkingEmail}
                         />
-                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       </Field>
                     );
                   }}
@@ -450,7 +450,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                           className="h-8 text-xs"
                           disabled={isLinkingEmail}
                         />
-                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       </Field>
                     );
                   }}

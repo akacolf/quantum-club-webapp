@@ -618,7 +618,7 @@ export default function NftDetailPage() {
                                                 </span>
                                             </div>
                                             {field.state.meta.errors.length > 0 && (
-                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                                                <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />
                                             )}
                                         </div>
                                     )}

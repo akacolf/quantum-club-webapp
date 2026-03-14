@@ -314,7 +314,7 @@ export default function PriceAlertsPage() {
                                                             className="bg-muted border-border text-foreground pl-7"
                                                         />
                                                     </div>
-                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                                    {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                                 </Field>
                                             );
                                         }}

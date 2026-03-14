@@ -149,7 +149,7 @@ export default function TransferDrawer({
                         <p className="text-[10px] text-red-500 mt-1">Invalid TON address</p>
                       )}
                       {field.state.meta.errors.length > 0 && (
-                        <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} className="text-[10px] mt-1" />
+                        <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} className="text-[10px] mt-1" />
                       )}
                     </div>
                   )}
@@ -197,7 +197,7 @@ export default function TransferDrawer({
                     </p>
                   )}
                   {field.state.meta.errors.length > 0 && (
-                    <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} className="text-[11px] mt-1" />
+                    <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} className="text-[11px] mt-1" />
                   )}
                 </div>
               )}

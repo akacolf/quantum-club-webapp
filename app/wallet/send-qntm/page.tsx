@@ -251,7 +251,7 @@ export default function SendQNTMPage() {
                         />
                         <Icon icon="lucide:user" className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
                       </div>
-                      {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       {qcIdError ? (
                         <p className="text-xs text-destructive ml-1 flex items-center gap-1">
                           <Icon icon="lucide:info" className="w-3 h-3"/>
@@ -319,7 +319,7 @@ export default function SendQNTMPage() {
                           <div className="text-sm font-bold text-primary">QNTM</div>
                         </div>
                       </div>
-                      {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                      {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       {insufficientFunds && (
                         <p className="text-xs text-destructive ml-1 flex items-center gap-1">
                           <Icon icon="lucide:info" className="w-3 h-3"/>

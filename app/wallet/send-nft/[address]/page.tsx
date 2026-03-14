@@ -359,7 +359,7 @@ export default function SendNftPage() {
                                                     )}
                                                 </div>
                                             </div>
-                                            {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />}
+                                            {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                             {isDomainAddress && resolvedAddress && (
                                                 <p className="text-xs text-green-400 ml-1 flex items-center gap-1">
                                                     <Icon icon="lucide:check" className="w-3 h-3" />
