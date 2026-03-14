@@ -47,6 +47,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     const WebApp = window.Telegram?.WebApp;
     if (!WebApp) return;
 
+    WebApp.ready();
     WebApp.setHeaderColor("#000000");
     WebApp.setBackgroundColor("#000000");
     WebApp.disableVerticalSwipes();
