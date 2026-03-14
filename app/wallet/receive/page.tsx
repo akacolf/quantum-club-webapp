@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryState } from "nuqs";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export default function ReceivePage() {
     trxAddress,
   } = useWallet();
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useQueryState("q", { defaultValue: "" });
   const [selectedChain, setSelectedChain] = useState<ChainType | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
