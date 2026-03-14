@@ -17,6 +17,7 @@ import { useUserContext } from "../(contexts)/UserContext";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useWalletAssetsQuery, useNftsQuery, useMultiChainBalancesQuery, useInvalidateWalletQueries } from "@/app/(hooks)/queries/use-wallet";
 import { useWalletStore } from "@/stores/wallet-store";
+import { useUserStore } from "@/stores/user-store";
 import { useShallow } from "zustand/shallow";
 
 // Re-export types from store for backward compatibility
@@ -57,11 +58,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
   }, [telegramId, invalidateWalletQueries, refetchAssets, refetchNfts, refetchMultiChain]);
 
-  // Hydrate all wallet settings from localStorage after mount
+  // Hydrate all wallet settings from localStorage after mount.
+  // Falls back to UserStore walletAddress (set by Login.tsx from Firestore)
+  // if localStorage is empty (e.g. cleared between sessions).
+  const userStoreWalletAddress = useUserStore((s) => s.walletAddress);
   useEffect(() => {
     if (!telegramId) return;
 
-    const storedAddress = localStorage.getItem(`quantum_wallet_address_${telegramId}`) || "";
+    let storedAddress = localStorage.getItem(`quantum_wallet_address_${telegramId}`) || "";
+
+    // Fallback: if localStorage doesn't have the address, use UserStore
+    // (populated by Login.tsx from Firestore). Also persist it so future
+    // hydrations find it directly.
+    if (!storedAddress && userStoreWalletAddress) {
+      storedAddress = userStoreWalletAddress;
+      localStorage.setItem(`quantum_wallet_address_${telegramId}`, storedAddress);
+    }
+
     const storedTestnet = localStorage.getItem("quantum_ton_testnet") === "true";
     const storedNetwork = localStorage.getItem("quantum_selected_network");
     const storedHideBalance = localStorage.getItem("quantum_hide_balance") === "true";
@@ -88,7 +101,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       storedWallets,
       hiddenAssets,
     });
-  }, [telegramId]);
+
+    // Force-invalidate wallet queries so fresh data is fetched from TonAPI.
+    // This handles the case where queries were in error/stale state from a
+    // previous session (e.g. queryClient.clear() during logout triggered
+    // re-fetches that failed with expired auth).
+    if (storedAddress) {
+      invalidateWalletQueries(storedAddress);
+    }
+  }, [telegramId, userStoreWalletAddress, invalidateWalletQueries]);
 
   // Derive multi-chain addresses from mnemonic
   useEffect(() => {

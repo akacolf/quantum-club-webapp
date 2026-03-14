@@ -391,10 +391,13 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
     set({ storedWallets: updated });
   },
 
-  /** Reset balance/asset state without touching wallet address, mnemonic, or stored wallets.
-   *  Used on logout to ensure fresh data is fetched on re-login. */
+  /** Reset all wallet state on logout.
+   *  Clears walletAddress so queries become disabled before queryClient.clear(),
+   *  preventing failed re-fetches with expired auth. On re-login, WalletProvider
+   *  hydration will restore the address from localStorage / UserStore. */
   resetBalances: () => {
     set({
+      walletAddress: "",
       tonBalance: "0",
       tonPrice: 0,
       tonUsdValue: "0.00",
@@ -405,6 +408,10 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
       isLoadingAssets: false,
       isLoadingNfts: false,
       isLoadingMultiChain: false,
+      ethAddress: "",
+      btcAddress: "",
+      solAddress: "",
+      trxAddress: "",
       ethBalance: 0,
       btcBalance: 0,
       solBalance: 0,
