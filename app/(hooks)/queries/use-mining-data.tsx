@@ -362,10 +362,10 @@ async function performDailyClaim({
             }
         }
     } else {
-        // No checkTime doc at all
+        // No checkTime doc at all — first claim ever
         await setDoc(
             checkTimeRef,
-            { checktime: formattedDateMMDDYYYY, daily: 2 },
+            { checktime: formattedDateMMDDYYYY, daily: 1 },
             { merge: true },
         );
         newDaily = 1;

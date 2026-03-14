@@ -2,7 +2,6 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import EcosystemNavigation from "./(navigation)/EcosystemNavigation";
-import Loader from "@/app/(components)/Loader";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { usePresence } from "@/app/(hooks)/usePresence";
@@ -33,7 +32,7 @@ export default function EcosystemLayout({
     tg?.BackButton.show();
   }, []);
 
-  if (!isMounted) return <Loader />;
+  if (!isMounted) return null;
 
   return (
     <div className="ecosystem-app">
