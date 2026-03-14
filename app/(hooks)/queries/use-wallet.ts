@@ -1,12 +1,35 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fromNano } from "@ton/core";
 
+interface TonApiTokenRate {
+    prices?: Record<string, number>;
+    diff_24h?: Record<string, string>;
+    diff24h?: Record<string, string>;
+}
+
+interface TonApiRatesResponse {
+    rates: Record<string, TonApiTokenRate>;
+}
+
+/** Parse TonAPI diff percentage strings like "-1.28%" or "+5.67%" to a number */
+function parseDiffPercent(diff: string | undefined | null): number | null {
+    if (!diff) return null;
+    const num = parseFloat(diff.replace('%', ''));
+    return isNaN(num) ? null : num;
+}
+
+function getDiff24h(rate: TonApiTokenRate | undefined): number | null {
+    if (!rate) return null;
+    return parseDiffPercent(rate.diff_24h?.USD ?? rate.diff24h?.USD);
+}
+
 interface WalletAssetsData {
     tonBalance: string;
     tonPrice: number;
     tonUsdValue: string;
     totalUsdBalance: string;
     walletStatus: string;
+    change24h: number | null;
     jettons: {
         symbol: string;
         name: string;
@@ -26,16 +49,19 @@ async function fetchWalletAssetsData(
 ): Promise<WalletAssetsData> {
     // Fetch TON price from TonAPI
     let tonPrice = 0;
+    let tonDiff24h: number | null = null;
     if (isTestnet) {
         tonPrice = 5.0;
     } else {
         try {
             const { tonApiGet } = await import("@/lib/tonapi-client");
-            const ratesData = await tonApiGet<{ rates: Record<string, { prices: Record<string, number> }> }>(
+            const ratesData = await tonApiGet<TonApiRatesResponse>(
                 `/v2/rates?tokens=ton&currencies=usd`
             );
             // TonAPI returns the key as uppercase "TON"
-            tonPrice = ratesData.rates?.TON?.prices?.USD ?? ratesData.rates?.ton?.prices?.USD ?? 0;
+            const tonRate = ratesData.rates?.TON ?? ratesData.rates?.ton;
+            tonPrice = tonRate?.prices?.USD ?? 0;
+            tonDiff24h = getDiff24h(tonRate);
         } catch {
             // Fallback to DeFiLlama
             const { fetchTonPrice } = await import("@/lib/price-api");
@@ -91,12 +117,68 @@ async function fetchWalletAssetsData(
         console.error("Failed to fetch jettons:", err);
     }
 
+    // Compute weighted portfolio 24h change using TonAPI diff data
+    let change24h: number | null = null;
+    if (!isTestnet) {
+        const totalValue = tonUsd + jettonsUsdTotal;
+        if (totalValue > 0) {
+            try {
+                // Fetch diff_24h for jettons that have meaningful USD value
+                const valuedJettons = jettons.filter(j => j.jettonAddress && (j.usdValue ?? 0) > 0.01);
+                const jettonDiffs: Record<string, number | null> = {};
+
+                if (valuedJettons.length > 0) {
+                    const { tonApiGet } = await import("@/lib/tonapi-client");
+                    const jettonAddrs = valuedJettons.map(j => j.jettonAddress!);
+                    const ratesData = await tonApiGet<TonApiRatesResponse>(
+                        `/v2/rates?tokens=${jettonAddrs.join(',')}&currencies=usd`
+                    );
+                    for (const jetton of valuedJettons) {
+                        const addr = jetton.jettonAddress!;
+                        jettonDiffs[addr] = getDiff24h(ratesData.rates?.[addr]);
+                    }
+                }
+
+                // Reconstruct yesterday's portfolio value from per-asset 24h diffs
+                let totalValueYesterday = 0;
+
+                // TON contribution
+                if (tonUsd > 0 && tonDiff24h !== null) {
+                    const divisor = 1 + tonDiff24h / 100;
+                    totalValueYesterday += divisor > 0 ? tonUsd / divisor : tonUsd;
+                } else {
+                    totalValueYesterday += tonUsd;
+                }
+
+                // Jetton contributions
+                for (const jetton of jettons) {
+                    const usdVal = jetton.usdValue ?? 0;
+                    if (usdVal <= 0) continue;
+                    const diff = jetton.jettonAddress ? (jettonDiffs[jetton.jettonAddress] ?? null) : null;
+                    if (diff !== null) {
+                        const divisor = 1 + diff / 100;
+                        totalValueYesterday += divisor > 0 ? usdVal / divisor : usdVal;
+                    } else {
+                        totalValueYesterday += usdVal;
+                    }
+                }
+
+                if (totalValueYesterday > 0) {
+                    change24h = ((totalValue / totalValueYesterday) - 1) * 100;
+                }
+            } catch {
+                // Failed to fetch diffs, change24h stays null
+            }
+        }
+    }
+
     return {
         tonBalance,
         tonPrice,
         tonUsdValue: tonUsd.toFixed(2),
         totalUsdBalance: (tonUsd + jettonsUsdTotal).toFixed(2),
         walletStatus,
+        change24h,
         jettons,
     };
 }

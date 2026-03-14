@@ -84,6 +84,7 @@ interface WalletState {
   btcPrice: number;
   solPrice: number;
   trxPrice: number;
+  change24h: number | null;
   isLoadingMultiChain: boolean;
   _deps: WalletDeps;
 }
@@ -160,6 +161,7 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
   btcPrice: 0,
   solPrice: 0,
   trxPrice: 0,
+  change24h: null,
   isLoadingMultiChain: false,
   _deps: defaultDeps,
 
@@ -405,6 +407,7 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
       jettons: [],
       nfts: [],
       hasFetched: false,
+      change24h: null,
       isLoadingAssets: false,
       isLoadingNfts: false,
       isLoadingMultiChain: false,
@@ -442,6 +445,7 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
       jettons: [],
       nfts: [],
       hasFetched: false,
+      change24h: null,
       walletStatus: "nonexist",
       storedWallets: [],
       activeWalletIndex: 0,

@@ -289,7 +289,8 @@ export default function WalletPage() {
     btcPrice,
     solPrice,
     trxPrice,
-    isLoadingMultiChain
+    isLoadingMultiChain,
+    change24h,
   } = useWallet();
 
   const { telegramId } = useUserContext();
@@ -362,7 +363,6 @@ export default function WalletPage() {
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
   const [chartPeriod, setChartPeriod] = useQueryState("period", parseAsStringLiteral(['1H', '1D', '1W', '1M', '6M', '1Y'] as const).withDefault('1D').withOptions({ history: "replace" }));
   const queryClient = useQueryClient();
-  const [change24h, setChange24h] = useState<number | null>(null);
 
   // Virtualized jettons list
   const jettonsContainerRef = useRef<HTMLDivElement>(null);
@@ -373,62 +373,6 @@ export default function WalletPage() {
     overscan: 5,
     scrollMargin: jettonsContainerRef.current?.offsetTop ?? 0,
   });
-
-  // Track wallet balance history for 24h change
-  useEffect(() => {
-    if (!walletAddress || !hasFetched || isLoadingAssets) return;
-
-    const currentValue = parseFloat(totalUsdBalance) || 0;
-    if (currentValue === 0) {
-      setChange24h(null);
-      return;
-    }
-
-    const storageKey = `wallet_balance_history_${walletAddress}`;
-    const now = Date.now();
-    const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
-
-    // Load existing history
-    let history: Array<{ timestamp: number; value: number }> = [];
-    try {
-      const stored = localStorage.getItem(storageKey+`_${telegramId}`);
-      if (stored) {
-        history = JSON.parse(stored);
-      }
-    } catch {
-      history = [];
-    }
-
-    // Add current snapshot (throttle to max 1 per 5 minutes)
-    const lastEntry = history[history.length - 1];
-    if (!lastEntry || now - lastEntry.timestamp > 5 * 60 * 1000) {
-      history.push({ timestamp: now, value: currentValue });
-    }
-
-    // Remove entries older than 25 hours (keep some buffer)
-    history = history.filter(h => h.timestamp > now - 25 * 60 * 60 * 1000);
-
-    // Save updated history
-    try {
-      localStorage.setItem(storageKey+`_${telegramId}`, JSON.stringify(history));
-    } catch {
-      // Storage full, clear old entries
-    }
-
-    // Find the oldest entry within 24h range
-    const oldEntries = history.filter(h => h.timestamp <= twentyFourHoursAgo + 60 * 60 * 1000);
-    const referenceEntry = oldEntries.length > 0
-      ? oldEntries[0]
-      : history.length > 1 ? history[0] : null;
-
-    if (referenceEntry && referenceEntry.value > 0) {
-      const change = ((currentValue - referenceEntry.value) / referenceEntry.value) * 100;
-      setChange24h(change);
-    } else {
-      // Not enough history yet
-      setChange24h(0);
-    }
-  }, [walletAddress, totalUsdBalance, hasFetched, isLoadingAssets, telegramId]);
 
   // Price history via TanStack Query (auto-refreshes every 30s for 1H period)
   const { data: priceHistory = [], isLoading: isLoadingPrice } = usePriceHistoryQuery(

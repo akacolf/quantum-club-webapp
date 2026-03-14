@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -25,7 +25,6 @@ import {
   CartesianGrid,
 } from "recharts";
 import Loader from "@/app/(components)/Loader";
-import { useUserContext } from "@/app/(contexts)/UserContext";
 import { PortfolioHealthCard } from "@/components/ai";
 
 const COLORS = [
@@ -50,10 +49,6 @@ interface AssetAllocation {
   image?: string;
 }
 
-interface BalanceHistoryEntry {
-  timestamp: number;
-  value: number;
-}
 
 export default function AnalyticsPage() {
   useTelegramBackButton("/wallet");
@@ -67,56 +62,16 @@ export default function AnalyticsPage() {
     isLoadingAssets,
     hideBalance,
     isTestnet,
+    change24h,
     // Multi-chain
     ethUsdValue,
     btcUsdValue,
     solUsdValue,
     trxUsdValue,
   } = useWallet();
-  const { telegramId } = useUserContext();
   useEffect(() => {
     router.prefetch("/wallet");
   }, [router]);
-
-  const [change24h, setChange24h] = useState<number | null>(null);
-  const [change7d, setChange7d] = useState<number | null>(null);
-
-  // Load balance history from localStorage
-  useEffect(() => {
-    if (!walletAddress) return;
-
-    const storageKey = `wallet_balance_history_${walletAddress}`;
-    try {
-      const stored = localStorage.getItem(storageKey+`_${telegramId}`);
-      if (stored) {
-        const history = JSON.parse(stored) as BalanceHistoryEntry[];
-
-        // Calculate 24h and 7d changes
-        const now = Date.now();
-        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
-        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-        const currentValue = parseFloat(totalUsdBalance) || 0;
-
-        // 24h change
-        const old24h = history.filter(h => h.timestamp <= twentyFourHoursAgo + 60 * 60 * 1000);
-        if (old24h.length > 0 && old24h[0].value > 0) {
-          requestAnimationFrame(() => {
-            setChange24h(((currentValue - old24h[0].value) / old24h[0].value) * 100);
-          });
-        }
-
-        // 7d change
-        const old7d = history.filter(h => h.timestamp <= sevenDaysAgo + 60 * 60 * 1000);
-        if (old7d.length > 0 && old7d[0].value > 0) {
-          requestAnimationFrame(() => {
-            setChange7d(((currentValue - old7d[0].value) / old7d[0].value) * 100);
-          });
-        }
-      }
-    } catch {
-      // Ignore errors
-    }
-  }, [walletAddress, totalUsdBalance, telegramId]);
 
   // Calculate portfolio allocation
   const portfolioAllocation = ((): AssetAllocation[] => {
@@ -303,22 +258,6 @@ export default function AnalyticsPage() {
                       <Icon icon="lucide:arrow-down-right" className="w-3 h-3 mr-1"/>
                     )}
                     {hideBalance ? "••" : `${change24h >= 0 ? "+" : ""}${change24h.toFixed(2)}%`} 24h
-                  </Badge>
-                )}
-                {change7d !== null && (
-                  <Badge
-                    variant="secondary"
-                    className={`${change7d >= 0
-                      ? "bg-green-500/10 text-green-500 border-green-500/20"
-                      : "bg-red-500/10 text-red-500 border-red-500/20"
-                      } text-xs`}
-                  >
-                    {change7d >= 0 ? (
-                      <Icon icon="lucide:arrow-up-right" className="w-3 h-3 mr-1"/>
-                    ) : (
-                      <Icon icon="lucide:arrow-down-right" className="w-3 h-3 mr-1"/>
-                    )}
-                    {hideBalance ? "••" : `${change7d >= 0 ? "+" : ""}${change7d.toFixed(2)}%`} 7d
                   </Badge>
                 )}
               </div>

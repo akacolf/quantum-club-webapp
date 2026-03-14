@@ -149,6 +149,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         tonUsdValue: d.tonUsdValue,
         totalUsdBalance: d.totalUsdBalance,
         walletStatus: d.walletStatus,
+        change24h: d.change24h,
         jettons: d.jettons,
         hasFetched: true,
       });
@@ -208,6 +209,7 @@ export const useWallet = () =>
       tonPrice: s.tonPrice,
       tonUsdValue: s.tonUsdValue,
       totalUsdBalance: s.totalUsdBalance,
+      change24h: s.change24h,
       jettons: s.jettons,
       nfts: s.nfts,
       hiddenAssets: s.hiddenAssets,
