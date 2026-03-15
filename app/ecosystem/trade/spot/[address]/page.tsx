@@ -48,7 +48,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
 
     if (!token) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 flex items-center justify-center">
+            <div className="fixed inset-0 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-lg font-bold text-white mb-2">Token not found</p>
                     <p className="text-sm text-muted-foreground">This token may not be available on STON.fi</p>

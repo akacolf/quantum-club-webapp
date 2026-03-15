@@ -269,7 +269,7 @@ export default function TokenDetailClient() {
     if (!selectedToken) {
         if (tokenLoadError) {
             return (
-                <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+                <div className="fixed inset-0 flex flex-col items-center justify-center p-6 text-center">
                     <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4 border border-red-500/20">
                         <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-red-500" />
                     </div>

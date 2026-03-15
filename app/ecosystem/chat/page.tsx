@@ -106,7 +106,7 @@ function ChatListItem({
   const displayName = (() => {
     if (chat.isGlobal) return "QC Global";
     if (chat.isGroup && chat.groupName) return chat.groupName;
-    if (isSelfChat) return "Saved Messages";
+    if (isSelfChat) return "Saved Messages (You)";
     if (otherParticipantId && chat.participantNames[otherParticipantId]) {
       return chat.participantNames[otherParticipantId];
     }
@@ -484,7 +484,7 @@ export default function QCChatListPage() {
     if (chat.isGlobal) return "QC Global";
     if (chat.isGroup && chat.groupName) return chat.groupName;
     if (chat.participants.length === 1 && chat.participants[0] === telegramId) {
-      return "Saved Messages";
+      return "Saved Messages (You)";
     }
     const otherParticipant = chat.participants.find((p) => p !== telegramId);
     if (otherParticipant && chat.participantNames[otherParticipant]) {

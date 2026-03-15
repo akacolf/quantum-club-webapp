@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "Chat on Quantum Club.",
 };
 
-export default function ChatConversationPage() {
-  return <ChatConversationClient />;
+export default async function ChatConversationPage({
+  params,
+}: {
+  params: Promise<{ chatId: string }>;
+}) {
+  const { chatId } = await params;
+  return <ChatConversationClient key={chatId} />;
 }

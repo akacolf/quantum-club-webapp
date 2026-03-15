@@ -2035,7 +2035,7 @@ export default function ChatConversationClient() {
                 {headerName}
               </button>
             ) : isSelfChat ? (
-              <h1 className="text-sm font-semibold text-foreground truncate">Saved Messages</h1>
+              <h1 className="text-sm font-semibold text-foreground truncate">Saved Messages <span className="text-muted-foreground font-normal">(You)</span></h1>
             ) : (
               <button
                 onClick={() => otherParticipantId && router.push(`/user/${otherParticipantId}`)}
@@ -2290,7 +2290,7 @@ export default function ChatConversationClient() {
                   ? fc.groupName || "Group"
                   : fc.participants?.find((p: string) => p !== telegramId)
                     ? fc.participantNames?.[fc.participants.find((p: string) => p !== telegramId)!] || "Chat"
-                    : "Saved Messages";
+                    : "Saved Messages (You)";
                 return (
                   <button
                     key={fc.id}
