@@ -139,8 +139,11 @@ export default function GroupInfoPage() {
 
   if (!chatMeta || !chatMeta.isGroup) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <p className="text-muted-foreground">Group not found</p>
+      <div className="fixed inset-0 flex flex-col items-center justify-center text-center p-6">
+        <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">
+          <Icon icon="solar:users-group-rounded-bold" className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground text-sm">Group not found</p>
       </div>
     );
   }

@@ -697,27 +697,50 @@ export default function ChatConversationClient() {
 
       // Helper to look up epoch nonce for a message (use epochRef to avoid stale closure)
       const getEpochNonce = (epoch?: number) => {
-        if (epoch === undefined) return undefined;
         const ep = epochRef.current;
-        return ep.nonces?.[epoch] ?? (epoch === ep.counter ? ep.nonce : undefined);
+        // Default to epoch 0 for messages that pre-date the encEpoch field
+        const resolvedEpoch = epoch ?? 0;
+        return ep.nonces?.[resolvedEpoch] ?? (resolvedEpoch === ep.counter ? ep.nonce : undefined);
+      };
+
+      // Try decrypting with a specific epoch, returns null on failure
+      const tryDecrypt = async (raw: string, senderId: string, nonce: string, counter: number) => {
+        try {
+          const result = await decryptMessage(raw, participants, chatId, senderId, isGroupRef.current, nonce, counter);
+          return result !== "Old encrypted message" ? result : null;
+        } catch { return null; }
       };
 
       const decryptedMsgs = await Promise.all(
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
           const msgEpochNonce = getEpochNonce(msg.encEpoch);
+          const msgEpochCounter = msg.encEpoch ?? 0;
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            try {
-              text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
-            } catch {
-              text = "[Decryption failed]";
+            // Primary attempt with resolved epoch
+            if (msgEpochNonce) {
+              const result = await tryDecrypt(msg.rawText, msg.senderId, msgEpochNonce, msgEpochCounter);
+              if (result) { text = result; }
+              else { text = "[Decryption failed]"; }
+            } else {
+              // Epoch nonce not found — try all available epochs as fallback
+              const ep = epochRef.current;
+              const allEpochs = new Map<number, string>();
+              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
+              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
+              let decrypted = false;
+              for (const [counter, nonce] of allEpochs) {
+                const result = await tryDecrypt(msg.rawText, msg.senderId, nonce, counter);
+                if (result) { text = result; decrypted = true; break; }
+              }
+              if (!decrypted) text = "[Decryption failed]";
             }
           }
           // Decrypt reply preview if present
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
             try {
-              const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               replyData = { ...replyData, text: decryptedReply };
             } catch {
               replyData = { ...replyData, text: "[Encrypted message]" };
@@ -727,7 +750,7 @@ export default function ChatConversationClient() {
           let pollData = msg.poll;
           if (msg.type === "poll" && pollData?.encData) {
             try {
-              const decryptedPoll = await decryptMessage(pollData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedPoll = await decryptMessage(pollData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               const parsed = JSON.parse(decryptedPoll);
               pollData = { ...pollData, question: parsed.question, options: parsed.options };
             } catch {
@@ -739,7 +762,7 @@ export default function ChatConversationClient() {
           let transferData = msg.transfer;
           if (msg.type === "transfer" && transferData?.encData) {
             try {
-              const decryptedTransfer = await decryptMessage(transferData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedTransfer = await decryptMessage(transferData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               const parsed = JSON.parse(decryptedTransfer);
               transferData = { ...transferData, ...parsed };
             } catch {
@@ -751,7 +774,7 @@ export default function ChatConversationClient() {
           let fileData = msg.file;
           if (msg.type === "file" && fileData?.encName) {
             try {
-              const decryptedName = await decryptMessage(fileData.encName, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedName = await decryptMessage(fileData.encName, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               fileData = { ...fileData, name: decryptedName };
             } catch {
               fileData = { ...fileData, name: "Encrypted file" };
