@@ -128,6 +128,8 @@ function setupForceAuthListener() {
       auth.signOut();
       removeToken().catch(() => {});
       useAuthStore.setState({ currentUser: null });
+      // Hard redirect to login — full reload clears all in-memory state
+      window.location.href = "/";
     }
   }, () => {}); // Silently ignore snapshot errors (offline, permissions)
 }
