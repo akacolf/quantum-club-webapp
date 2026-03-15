@@ -71,21 +71,6 @@ function getTodayMMDDYYYY(): string {
     return `${month}/${day}/${year}`;
 }
 
-function getTodayDDMMYYYY(): string {
-    const now = new Date(
-        Date.UTC(
-            new Date().getUTCFullYear(),
-            new Date().getUTCMonth(),
-            new Date().getUTCDate(),
-        ),
-    );
-    return (
-        `${now.getUTCDate().toString().padStart(2, "0")}/` +
-        `${(now.getUTCMonth() + 1).toString().padStart(2, "0")}/` +
-        `${now.getUTCFullYear()}`
-    );
-}
-
 function daysDiff(dateA: string, dateB: string): number {
     // Parse both formats as UTC to avoid timezone mismatch
     // (YYYY-MM-DD is parsed as UTC by Date, but MM/DD/YYYY is parsed as local)
@@ -198,7 +183,7 @@ export function useSolveToEarnMutation(telegramId: string | null) {
         mutationFn: async () => {
             if (!telegramId) throw new Error("No telegramId");
 
-            const formattedDate = getTodayDDMMYYYY();
+            const formattedDate = getTodayMMDDYYYY();
             const ref = doc(dbfs, `user/${telegramId}/miningData/values`);
             const snap = await getDoc(ref);
             const remaining: number = snap.data()?.remainingSolveToEarn ?? 0;
@@ -253,7 +238,7 @@ interface ClaimDailyResult {
 async function performDailyClaim({
     telegramId,
 }: ClaimDailyParams): Promise<ClaimDailyResult> {
-    const formattedDate = getTodayDDMMYYYY();
+    const formattedDate = getTodayMMDDYYYY();
     const formattedDateMMDDYYYY = getTodayMMDDYYYY();
     const formattedSlash = getTodaySlash();
     const todayISO = getTodayISO();
@@ -280,34 +265,29 @@ async function performDailyClaim({
     const valuesData = valuesSnap.exists() ? valuesSnap.data() : null;
     const quant: number = valuesData?.QuantAmount ?? 0;
 
-    if (valuesData) {
-        const remaining = valuesData.remainingSolveToEarn ?? null;
-        const lastDate = valuesData.lastSolveToEarnDate ?? null;
+    const lastDate = valuesData?.lastSolveToEarnDate ?? null;
+    let shouldAddPasses = false;
 
-        if (remaining != null && lastDate) {
-            const [daySTE, monthSTE, yearSTE] = lastDate.split("/");
-            const steISO = `${yearSTE}-${monthSTE}-${daySTE}`;
-            const diff = daysDiff(todayISO, steISO);
+    if (!lastDate) {
+        // First time ever or missing date — initialize passes
+        shouldAddPasses = true;
+    } else {
+        const [daySTE, monthSTE, yearSTE] = lastDate.split("/");
+        const steISO = `${yearSTE}-${monthSTE}-${daySTE}`;
+        const diff = daysDiff(todayISO, steISO);
+        if (diff >= 1) shouldAddPasses = true;
+    }
 
-            if (diff >= 1) {
-                const updated = remaining + 7;
-                await updateDoc(valuesRef, {
-                    remainingSolveToEarn: updated,
-                    lastSolveToEarnDate: formattedDate,
-                });
-                passesAdded = true;
-            }
-        } else {
-            await setDoc(
-                valuesRef,
-                {
-                    remainingSolveToEarn: 7,
-                    lastSolveToEarnDate: formattedDate,
-                },
-                { merge: true },
-            );
-            passesAdded = true;
-        }
+    if (shouldAddPasses) {
+        await setDoc(
+            valuesRef,
+            {
+                remainingSolveToEarn: increment(7),
+                lastSolveToEarnDate: formattedDate,
+            },
+            { merge: true },
+        );
+        passesAdded = true;
     }
 
     // ---- Daily check-in logic ----
@@ -406,7 +386,7 @@ async function performGameSave({
     correctAnswers,
 }: GameSaveParams): Promise<string | null> {
     const date = new Date();
-    const formattedDate = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
+    const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getDate().toString().padStart(2, "0")}/${date.getFullYear()}`;
 
     const historyRef = doc(
         dbfs,
