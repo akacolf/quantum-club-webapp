@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbfs } from "@/app/(firebase)/client";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { haptics } from "@/lib/haptics";
 import { toast } from "sonner";
 
@@ -334,7 +334,7 @@ async function performDailyClaim({
             if (diff >= 1 && diff < 2) {
                 // Streak continues
                 newDaily = dailyDay + 1;
-                quantReward = dailyDay <= 7 ? (dailyDay - 1) * 100 + 50 : 650;
+                quantReward = Math.min((newDaily - 1) * 100 + 50, 600);
                 await setDoc(
                     checkTimeRef,
                     { checktime: formattedDateMMDDYYYY, daily: newDaily },
@@ -372,9 +372,9 @@ async function performDailyClaim({
         quantReward = 50;
     }
 
-    // Update QuantAmount
+    // Update QuantAmount atomically to prevent double-claim race conditions
+    await updateDoc(valuesRef, { QuantAmount: increment(quantReward) });
     const newQuant = quant + quantReward;
-    await updateDoc(valuesRef, { QuantAmount: newQuant });
 
     // Write rewards history
     await setDoc(rewardsHistoryRef, {
