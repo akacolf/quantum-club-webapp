@@ -272,7 +272,7 @@ async function performDailyClaim({
         // First time ever or missing date — initialize passes
         shouldAddPasses = true;
     } else {
-        const [daySTE, monthSTE, yearSTE] = lastDate.split("/");
+        const [monthSTE, daySTE, yearSTE] = lastDate.split("/");
         const steISO = `${yearSTE}-${monthSTE}-${daySTE}`;
         const diff = daysDiff(todayISO, steISO);
         if (diff >= 1) shouldAddPasses = true;
