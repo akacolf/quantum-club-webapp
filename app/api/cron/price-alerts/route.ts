@@ -147,6 +147,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export const dynamic = "force-dynamic";
+
 // POST endpoint can also trigger the check (for testing)
 export async function POST(request: NextRequest) {
   return GET(request);
