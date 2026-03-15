@@ -24,6 +24,9 @@ export const env = createEnv({
     GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
     GEMINI_API_KEY: z.string().optional(),
 
+    // Google OAuth
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+
     // Platform
     ADMIN_API_KEY: z.string().optional(),
     ADMIN_TELEGRAM_IDS: z.string().optional(),
@@ -89,6 +92,7 @@ export const env = createEnv({
     TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET,
     GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     ADMIN_API_KEY: process.env.ADMIN_API_KEY,
     ADMIN_TELEGRAM_IDS: process.env.ADMIN_TELEGRAM_IDS,
     PLATFORM_WALLET_MNEMONIC: process.env.PLATFORM_WALLET_MNEMONIC,
