@@ -197,11 +197,11 @@ export default function GroupInfoPage() {
                 <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Created By</p>
                 <div className="flex items-center gap-1.5">
                   <p className="font-bold text-white text-sm">
-                    @{resolvedNames[chatMeta.createdBy] || "Unknown"}
+                    {chatMeta.createdBy === "system" ? "The Quantum Club Team" : `@${resolvedNames[chatMeta.createdBy] || "Unknown"}`}
                   </p>
-                  {isQcTeamMember(resolvedNames[chatMeta.createdBy]) && (
+                  {(chatMeta.createdBy === "system" || isQcTeamMember(resolvedNames[chatMeta.createdBy])) && (
                     <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
-                      <Image src="/png/qc-global-logo.png" alt="QC" width={10} height={10} className="rounded-full" />
+                      <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
                       QC
                     </Badge>
                   )}
@@ -258,7 +258,7 @@ export default function GroupInfoPage() {
                         <p className="font-bold text-white text-sm">@{name}</p>
                         {isQcTeamMember(name) && (
                           <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
-                                  <Image src="/png/qc-global-logo.png" alt="QC" width={10} height={10} className="rounded-full" />
+                                  <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
                             QC
                           </Badge>
                         )}

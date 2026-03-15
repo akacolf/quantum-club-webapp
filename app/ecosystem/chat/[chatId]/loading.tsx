@@ -4,7 +4,10 @@ export default function Loading() {
   return (
     <div className="fixed inset-x-0 top-0 z-40 flex flex-col bg-background" style={{ height: "100dvh" }}>
       {/* Chat Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border">
+      <div
+        className="flex items-center gap-3 px-4 pb-4 border-b border-border"
+        style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
+      >
         <Skeleton className="w-10 h-10 rounded-full shrink-0" />
         <div className="flex-1 min-w-0 space-y-1">
           <Skeleton className="h-5 w-32" />
@@ -96,7 +99,10 @@ export default function Loading() {
       </div>
 
       {/* Message Input */}
-      <div className="p-3 border-t border-border">
+      <div
+        className="px-3 pt-3 border-t border-border"
+        style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}
+      >
         <div className="flex items-center gap-2">
           <Skeleton className="w-8 h-8 rounded-full shrink-0" />
           <Skeleton className="h-10 flex-1 rounded-full" />

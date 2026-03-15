@@ -2628,7 +2628,7 @@ export default function ChatConversationClient() {
                         </span>
                         {isQcTeamMember(resolveSenderName(msg)) && (
                           <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
-                            <Image src="/png/qc-global-logo.png" alt="QC" width={10} height={10} className="rounded-full" />
+                            <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
                             QC
                           </Badge>
                         )}
