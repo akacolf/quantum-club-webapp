@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, connection } from "next/server";
 import { firestore as adminDb } from "@/app/(firebase)/server";
 import { env } from "@/env";
 
 export async function GET(req: NextRequest) {
+  await connection();
   try {
     if (!env.CRON_SECRET) {
       console.error("CRON_SECRET not configured");

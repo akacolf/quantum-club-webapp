@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, connection } from "next/server";
 import { firestore as db } from "@/app/(firebase)/server";
 import { sendPriceAlertNotification } from "@/lib/notifications";
 import { env } from "@/env";
@@ -45,6 +45,7 @@ async function fetchPrices(): Promise<PriceData> {
 
 // GET endpoint for cron job
 export async function GET(request: NextRequest) {
+  await connection();
   try {
     // SECURITY: Always require CRON_SECRET authentication
     if (!CRON_SECRET) {
