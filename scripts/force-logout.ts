@@ -24,17 +24,30 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function revokeAllRefreshTokens() {
   let revokedCount = 0;
   let nextPageToken: string | undefined;
   do {
     const listResult = await admin.auth().listUsers(1000, nextPageToken);
-    await Promise.all(
-      listResult.users.map((user) =>
-        admin.auth().revokeRefreshTokens(user.uid)
-      )
-    );
-    revokedCount += listResult.users.length;
+    for (const user of listResult.users) {
+      try {
+        await admin.auth().revokeRefreshTokens(user.uid);
+      } catch (e: any) {
+        if (e?.errorInfo?.code === "auth/quota-exceeded") {
+          console.log("  Rate limited — waiting 10s...");
+          await sleep(10_000);
+          await admin.auth().revokeRefreshTokens(user.uid);
+        } else {
+          throw e;
+        }
+      }
+      revokedCount++;
+      if (revokedCount % 100 === 0) {
+        console.log(`  Revoked ${revokedCount} tokens...`);
+      }
+    }
     nextPageToken = listResult.pageToken;
   } while (nextPageToken);
   return revokedCount;
