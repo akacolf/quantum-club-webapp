@@ -199,7 +199,7 @@ export default function GroupInfoPage() {
                   <p className="font-bold text-white text-sm">
                     {chatMeta.createdBy === "system" ? "The Quantum Club Team" : `@${resolvedNames[chatMeta.createdBy] || "Unknown"}`}
                   </p>
-                  {(chatMeta.createdBy === "system" || isQcTeamMember(resolvedNames[chatMeta.createdBy])) && (
+                  {chatMeta.createdBy !== "system" && isQcTeamMember(resolvedNames[chatMeta.createdBy]) && (
                     <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
                       <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
                       QC
