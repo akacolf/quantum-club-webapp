@@ -2,8 +2,6 @@
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 
-import { getMaintenance } from "@/lib/getMaintenance";
-
 function freshUserData() {
   return {
     telegramId: "",
@@ -28,13 +26,6 @@ export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
   const result = { ...freshUserData(), telegramId: telegramIdEncrypted, status: "" };
   try {
     localStorage.setItem("telegramId", telegramIdEncrypted);
-
-    const [maintenance] = await Promise.all([getMaintenance()]);
-    sessionStorage.setItem("maintenance", maintenance);
-    if (process.env.NODE_ENV === "production" && maintenance) {
-      result.status = "maintenance";
-      return result;
-    }
 
     const userRef = doc(dbfs, "user", telegramIdEncrypted);
     const valueData = doc(dbfs, "user", telegramIdEncrypted, "miningData", "values");
@@ -190,17 +181,6 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
       }
       let newUser;
 
-      //paralelling maintenance and rawData
-      const [maintenance] = await Promise.all([
-        getMaintenance(),
-      ]);
-      sessionStorage.setItem("maintenance", maintenance);
-      if (process.env.NODE_ENV === "production" && maintenance) {
-        userData.status = "maintenance";
-        return userData;
-      }
-
-      //does the user exist?
       const userReference = doc(dbfs, "user", telegramIdEncrypted);
 
       const valueData = doc(dbfs, "user", telegramIdEncrypted, "miningData", "values");

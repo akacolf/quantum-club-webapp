@@ -144,16 +144,6 @@ const HomeContent = () => {
     tg?.disableClosingConfirmation();
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const mp = sessionStorage.getItem("maintenance");
-    if (mp === "true") {
-      router.replace("/maintenance");
-      return;
-    }
-  }, [router]);
-
   // Prefetch subpages for faster navigation
   useEffect(() => {
     router.prefetch("/home/rewardshistory");

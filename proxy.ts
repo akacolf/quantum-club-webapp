@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/session";
 import { decodeJwt } from "jose";
 
+// =====================================================
+// Maintenance mode check (Firestore REST API, Edge-compatible)
+// =====================================================
+
+const FIRESTORE_PROJECT_ID = "nekoq-875e2";
+const FIRESTORE_SETTINGS_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/set/settings`;
+
+let maintenanceCache: { value: boolean; expiry: number } | null = null;
+
+async function isMaintenanceMode(): Promise<boolean> {
+  if (maintenanceCache && Date.now() < maintenanceCache.expiry) {
+    return maintenanceCache.value;
+  }
+  try {
+    const res = await fetch(FIRESTORE_SETTINGS_URL);
+    const data = await res.json();
+    const maintenance = data.fields?.maintenance_mode?.booleanValue === true;
+    maintenanceCache = { value: maintenance, expiry: Date.now() + 30_000 };
+    return maintenance;
+  } catch {
+    // If Firestore is unreachable, don't block users
+    return maintenanceCache?.value ?? false;
+  }
+}
+
 // OFAC sanctioned countries (ISO 3166-1 alpha-2 codes)
 // This list should be kept up-to-date with current sanctions
 const SANCTIONED_COUNTRIES = [
@@ -51,8 +76,29 @@ function isFromSanctionedLocation(request: NextRequest): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  // Allow unsupported region page without restrictions
-  if (request.nextUrl.pathname === "/unsupported-region") {
+  const { pathname } = request.nextUrl;
+
+  // Allow static/status pages without restrictions
+  if (pathname === "/unsupported-region") {
+    return NextResponse.next();
+  }
+
+  // Maintenance mode — block ALL routes except /maintenance itself
+  const maintenance = await isMaintenanceMode();
+  if (maintenance && pathname !== "/maintenance") {
+    return NextResponse.redirect(new URL("/maintenance", request.url));
+  }
+  // If maintenance is OFF but user is on /maintenance, send them to login
+  if (!maintenance && pathname === "/maintenance") {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+  // Let /maintenance page through
+  if (pathname === "/maintenance") {
+    return NextResponse.next();
+  }
+
+  // Login page (/) and signup don't need auth checks
+  if (pathname === "/" || pathname === "/signup") {
     return NextResponse.next();
   }
   // Check for either auth system: session cookie (Telegram) or Firebase auth token.
@@ -119,9 +165,11 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-// paths middleware would work in //
 export const config = {
   matcher: [
+    "/",
+    "/signup",
+    "/maintenance",
     "/home/:path*",
     "/frens/:path*",
     "/earn/:path*",

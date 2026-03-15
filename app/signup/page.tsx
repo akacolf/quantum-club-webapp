@@ -154,11 +154,6 @@ export default function SignUp() {
           email: data.email,
         });
 
-        if (regData.status === "maintenance") {
-          router.replace("/maintenance");
-          return;
-        }
-
         if (regData.status === "completed") {
           setTelegramId(regData.telegramId);
           SetMainQuantAmount(regData.MainQuantAmount);
@@ -269,11 +264,6 @@ export default function SignUp() {
             });
             if (finalData.status !== "error") break;
           }
-        }
-
-        if (finalData.status === "maintenance") {
-          router.replace("/maintenance");
-          return;
         }
 
         if (finalData.status === "error") {

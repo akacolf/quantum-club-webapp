@@ -196,11 +196,6 @@ export default function Login() {
         // Load existing user data using their stored QC ID
         const data = await LoadExistingUserByQCId(existingQCId);
 
-        if (data.status === "maintenance") {
-          router.replace("/maintenance");
-          return;
-        }
-
         if (data.status === "completed") {
           setTelegramId(data.telegramId);
           SetMainQuantAmount(data.MainQuantAmount);
@@ -297,11 +292,6 @@ export default function Login() {
             });
             if (finalData.status !== "error") break;
           }
-        }
-
-        if (finalData.status === "maintenance") {
-          router.replace("/maintenance");
-          return;
         }
 
         if (finalData.status === "error") {
