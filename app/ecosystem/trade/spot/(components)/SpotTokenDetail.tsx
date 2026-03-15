@@ -70,9 +70,11 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
         ?? token.marketCapUsd
         ?? (() => {
             if (!priceUsd || !detail?.totalSupply) return undefined;
-            const decimals = detail.decimals ?? 9;
-            const supply = Number(BigInt(detail.totalSupply) / BigInt(10 ** decimals));
-            return supply > 0 ? priceUsd * supply : undefined;
+            const decimals = Number.isSafeInteger(detail.decimals) ? detail.decimals! : 9;
+            try {
+                const supply = Number(BigInt(detail.totalSupply) / BigInt(10 ** decimals));
+                return supply > 0 ? priceUsd * supply : undefined;
+            } catch { return undefined; }
         })();
 
     const volume24h = dyor?.volume24hUsd
@@ -86,11 +88,13 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
     // Format total supply with decimals
     const formattedSupply = (() => {
         if (!detail?.totalSupply) return undefined;
-        const decimals = detail.decimals ?? 9;
-        const raw = BigInt(detail.totalSupply);
-        const divisor = BigInt(10 ** decimals);
-        const whole = raw / divisor;
-        return formatCompactNumber(Number(whole));
+        const decimals = Number.isSafeInteger(detail.decimals) ? detail.decimals! : 9;
+        try {
+            const raw = BigInt(detail.totalSupply);
+            const divisor = BigInt(10 ** decimals);
+            const whole = raw / divisor;
+            return formatCompactNumber(Number(whole));
+        } catch { return undefined; }
     })();
 
     return (

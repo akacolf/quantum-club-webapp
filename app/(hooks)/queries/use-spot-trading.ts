@@ -122,7 +122,7 @@ export function useSpotTokenDetail(address: string | undefined) {
             return {
                 holders: data.holders_count ?? 0,
                 totalSupply: data.total_supply ?? "0",
-                decimals: data.metadata?.decimals ? parseInt(data.metadata.decimals) : 9,
+                decimals: data.metadata?.decimals ? (parseInt(data.metadata.decimals) || 9) : 9,
                 description: data.metadata?.description,
                 mintable: data.mintable ?? false,
                 verification: data.verification,
@@ -344,7 +344,9 @@ async function dyorFetch<T>(path: string): Promise<T | null> {
 
 function parseDyorDecimal(val: { value: string; decimals: number } | undefined | null): number | undefined {
     if (!val?.value) return undefined;
-    return parseInt(val.value) * Math.pow(10, -val.decimals);
+    const parsed = parseInt(val.value);
+    if (isNaN(parsed) || !Number.isFinite(val.decimals)) return undefined;
+    return parsed * Math.pow(10, -val.decimals);
 }
 
 interface DyorJettonResponse {

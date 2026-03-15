@@ -40,7 +40,12 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const { telegramId, username, MainQuantAmount, daily, qcUsername, setQcUsername, walletAddress } = useUserContext();
 
   // Profile photo: prefer Telegram SDK photo_url, fall back to API fetch
-  const tgUser = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
+  // Deferred to state to avoid hydration mismatch (window.Telegram is client-only)
+  const [tgUser, setTgUser] = useState<{ photo_url?: string; username?: string; first_name?: string } | null>(null);
+  useEffect(() => {
+    const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (u) setTgUser({ photo_url: u.photo_url, username: u.username ?? undefined, first_name: u.first_name });
+  }, []);
   const tgPhotoUrl = tgUser?.photo_url ?? null;
   const apiPhotoUrl = useProfilePhoto(!tgPhotoUrl ? telegramId : null);
   const photoUrl = tgPhotoUrl || apiPhotoUrl;
