@@ -24,47 +24,11 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function revokeAllRefreshTokens() {
-  let revokedCount = 0;
-  let nextPageToken: string | undefined;
-  do {
-    const listResult = await admin.auth().listUsers(1000, nextPageToken);
-    for (const user of listResult.users) {
-      try {
-        await admin.auth().revokeRefreshTokens(user.uid);
-      } catch (e: any) {
-        if (e?.errorInfo?.code === "auth/quota-exceeded") {
-          console.log("  Rate limited — waiting 10s...");
-          await sleep(10_000);
-          await admin.auth().revokeRefreshTokens(user.uid);
-        } else {
-          throw e;
-        }
-      }
-      revokedCount++;
-      if (revokedCount % 100 === 0) {
-        console.log(`  Revoked ${revokedCount} tokens...`);
-      }
-    }
-    nextPageToken = listResult.pageToken;
-  } while (nextPageToken);
-  return revokedCount;
-}
-
 async function main() {
   const version = Date.now().toString();
-
-  // 1. Bump Firestore version → triggers real-time logout for active users
   await db.doc("set/settings").set({ forceAuthVersion: version }, { merge: true });
   console.log(`[OK] forceAuthVersion set to: ${version}`);
-
-  // 2. Revoke all Firebase refresh tokens → invalidates server-side sessions
-  const revokedCount = await revokeAllRefreshTokens();
-  console.log(`[OK] Revoked refresh tokens for ${revokedCount} users`);
-
-  console.log("All users will be force-logged out.");
+  console.log("All users will be force-logged out via real-time listener.");
   process.exit(0);
 }
 
