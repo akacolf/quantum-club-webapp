@@ -58,14 +58,10 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       WebApp.requestFullscreen();
     }
 
-    // Re-apply colors and fullscreen when returning from background to prevent grey gap
+    // Re-request fullscreen when returning from background to prevent grey header gap
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        WebApp.setHeaderColor("#000000");
-        WebApp.setBackgroundColor("#000000");
-        if (platform === "android" || platform === "ios") {
-          WebApp.requestFullscreen();
-        }
+      if (document.visibilityState === "visible" && (platform === "android" || platform === "ios")) {
+        WebApp.requestFullscreen();
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
