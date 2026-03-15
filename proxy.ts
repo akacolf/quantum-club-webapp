@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/session";
 import { decodeJwt } from "jose";
+import { env } from "@/env";
 
 // =====================================================
 // Maintenance mode check (Firestore REST API, Edge-compatible)
 // =====================================================
 
-const FIRESTORE_PROJECT_ID = "nekoq-875e2";
-const FIRESTORE_SETTINGS_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/set/settings`;
+const FIRESTORE_SETTINGS_URL = `https://firestore.googleapis.com/v1/projects/${env.NEXT_PUBLIC_PROJECT_ID}/databases/(default)/documents/set/settings`;
 
 let maintenanceCache: { value: boolean; expiry: number } | null = null;
 
