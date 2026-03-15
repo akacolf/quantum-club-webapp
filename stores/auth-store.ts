@@ -123,13 +123,15 @@ function setupForceAuthListener() {
     if (String(remoteVersion) !== localVersion) {
       localStorage.setItem("forceAuthVersion", String(remoteVersion));
       teardownForceAuthListener();
-      clearUserLocalStorage();
-      clearMnemonicCache();
-      auth.signOut();
-      removeToken().catch(() => {});
-      useAuthStore.setState({ currentUser: null });
-      // Hard redirect to login — full reload clears all in-memory state
-      window.location.href = "/";
+      // Clear auth cookies + sign out, then hard redirect.
+      // Don't reset Zustand/localStorage here — it triggers re-renders
+      // that flash zeroed data. The full page reload handles cleanup.
+      Promise.all([
+        auth.signOut(),
+        removeToken().catch(() => {}),
+      ]).finally(() => {
+        window.location.href = "/";
+      });
     }
   }, () => {}); // Silently ignore snapshot errors (offline, permissions)
 }
