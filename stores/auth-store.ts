@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { env } from "@/env";
 import { auth, dbfs } from "@/app/(firebase)/client";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   GoogleAuthProvider,
   EmailAuthProvider,
@@ -94,6 +94,44 @@ let isExplicitLogin = false;
  *  visible "double loader" flashes. */
 let lastSetTokenValue: string | null = null;
 
+// =====================================================
+// Force re-auth listener (real-time via Firestore onSnapshot)
+// =====================================================
+
+let forceAuthUnsubscribe: (() => void) | null = null;
+
+function teardownForceAuthListener() {
+  forceAuthUnsubscribe?.();
+  forceAuthUnsubscribe = null;
+}
+
+function setupForceAuthListener() {
+  teardownForceAuthListener();
+
+  const settingsRef = doc(dbfs, "set", "settings");
+  forceAuthUnsubscribe = onSnapshot(settingsRef, (snap) => {
+    const remoteVersion = snap.data()?.forceAuthVersion;
+    if (!remoteVersion) return;
+
+    const localVersion = localStorage.getItem("forceAuthVersion");
+    if (localVersion === null) {
+      // First time seeing this — store it without forcing logout
+      localStorage.setItem("forceAuthVersion", String(remoteVersion));
+      return;
+    }
+
+    if (String(remoteVersion) !== localVersion) {
+      localStorage.setItem("forceAuthVersion", String(remoteVersion));
+      teardownForceAuthListener();
+      clearUserLocalStorage();
+      clearMnemonicCache();
+      auth.signOut();
+      removeToken().catch(() => {});
+      useAuthStore.setState({ currentUser: null });
+    }
+  }, () => {}); // Silently ignore snapshot errors (offline, permissions)
+}
+
 export const useAuthStore = create<AuthStore>()((set) => ({
   currentUser: null,
   authLoading: true,
@@ -110,6 +148,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
   logout: async () => {
     clearUserLocalStorage();
     clearMnemonicCache();
+    teardownForceAuthListener();
     // Reset all user-specific stores to prevent stale data on re-login
     useWalletStore.getState().resetBalances();
     useTradingStore.setState({
@@ -301,30 +340,10 @@ export function initAuthListener() {
     }
     useAuthStore.setState({ authLoading: false });
 
-    // Deferred: check force re-auth version
+    // Real-time force re-auth listener — logs user out immediately
+    // when forceAuthVersion is bumped in Firestore
     if (user) {
-      (async () => {
-        try {
-          const settingsRef = doc(dbfs, "set", "settings");
-          const settingsSnap = await getDoc(settingsRef);
-          const remoteVersion = settingsSnap.data()?.forceAuthVersion;
-          const localVersion = localStorage.getItem("forceAuthVersion");
-          if (remoteVersion && localVersion === null) {
-            localStorage.setItem("forceAuthVersion", String(remoteVersion));
-          }
-          if (
-            remoteVersion &&
-            localVersion !== null &&
-            String(remoteVersion) !== localVersion
-          ) {
-            localStorage.setItem("forceAuthVersion", String(remoteVersion));
-            clearUserLocalStorage();
-            await auth.signOut();
-            try { await removeToken(); } catch {}
-            useAuthStore.setState({ currentUser: null });
-          }
-        } catch {}
-      })();
+      setupForceAuthListener();
     }
   });
 

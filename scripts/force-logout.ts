@@ -1,5 +1,7 @@
 // Run: npx tsx scripts/force-logout.ts
-// Sets forceAuthVersion in Firestore to log out all users
+// Bumps forceAuthVersion in Firestore AND revokes all Firebase refresh tokens.
+// Active users get logged out in real-time via onSnapshot listener.
+// Inactive users get logged out on next app load + their tokens are revoked server-side.
 
 import * as admin from "firebase-admin";
 import * as dotenv from "dotenv";
@@ -22,11 +24,34 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+async function revokeAllRefreshTokens() {
+  let revokedCount = 0;
+  let nextPageToken: string | undefined;
+  do {
+    const listResult = await admin.auth().listUsers(1000, nextPageToken);
+    await Promise.all(
+      listResult.users.map((user) =>
+        admin.auth().revokeRefreshTokens(user.uid)
+      )
+    );
+    revokedCount += listResult.users.length;
+    nextPageToken = listResult.pageToken;
+  } while (nextPageToken);
+  return revokedCount;
+}
+
 async function main() {
   const version = Date.now().toString();
+
+  // 1. Bump Firestore version → triggers real-time logout for active users
   await db.doc("set/settings").set({ forceAuthVersion: version }, { merge: true });
   console.log(`[OK] forceAuthVersion set to: ${version}`);
-  console.log("All users will be logged out on next app load.");
+
+  // 2. Revoke all Firebase refresh tokens → invalidates server-side sessions
+  const revokedCount = await revokeAllRefreshTokens();
+  console.log(`[OK] Revoked refresh tokens for ${revokedCount} users`);
+
+  console.log("All users will be force-logged out.");
   process.exit(0);
 }
 
