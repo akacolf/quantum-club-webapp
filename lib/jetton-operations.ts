@@ -298,7 +298,10 @@ export async function getBondingCurveData(
     try {
         const address = Address.parse(jettonMasterAddress);
         const provider = contractAdapter.provider(address);
-        const result = await provider.get("get_curve_data", []);
+        const result = await Promise.race([
+            provider.get("get_curve_data", []),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Contract call timed out")), 8_000)),
+        ]);
 
         const totalSupply = result.stack.readBigNumber();
         const tonReserve = result.stack.readBigNumber();

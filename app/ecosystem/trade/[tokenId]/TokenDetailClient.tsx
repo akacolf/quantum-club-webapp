@@ -19,6 +19,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { useTrading } from "@/app/(contexts)/TradingContext";
+import { useTradingStore } from "@/stores/trading-store";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useGroups } from "@/app/(contexts)/GroupsContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -86,6 +87,7 @@ export default function TokenDetailClient() {
     } | null>(null);
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
     const [tradingOpen, setTradingOpen] = useState(false);
+    const [tokenLoadError, setTokenLoadError] = useState<string | null>(null);
 
     // On-chain stats from TONAPI via TanStack Query
     const { data: onChainStats = EMPTY_ON_CHAIN_STATS, isLoading: isLoadingStats } = useOnChainStats(
@@ -112,9 +114,31 @@ export default function TokenDetailClient() {
 
     // Load token and refresh balance
     useEffect(() => {
-        if (tokenId) {
-            selectToken(tokenId);
-        }
+        if (!tokenId) return;
+        setTokenLoadError(null);
+
+        let cancelled = false;
+
+        // 10s timeout — if selectToken hasn't resolved, show error
+        const timeout = setTimeout(() => {
+            if (!cancelled && !useTradingStore.getState().selectedToken) {
+                setTokenLoadError("Loading timed out. The token may not exist or the network is slow.");
+            }
+        }, 10_000);
+
+        selectToken(tokenId).then(() => {
+            if (cancelled) return;
+            clearTimeout(timeout);
+            if (!useTradingStore.getState().selectedToken) {
+                setTokenLoadError("Token not found.");
+            }
+        }).catch(() => {
+            if (!cancelled) {
+                clearTimeout(timeout);
+                setTokenLoadError("Failed to load token.");
+            }
+        });
+
         // Refresh wallet balance on page load
         if (walletAddress) {
             fetchWalletAssets();
@@ -122,6 +146,8 @@ export default function TokenDetailClient() {
         // Reset preview when switching tokens
         setPreview(null);
         setAmount("");
+
+        return () => { cancelled = true; clearTimeout(timeout); };
     }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
 
     // Get user position
@@ -241,6 +267,25 @@ export default function TokenDetailClient() {
     };
 
     if (!selectedToken) {
+        if (tokenLoadError) {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+                    <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4 border border-red-500/20">
+                        <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-red-500" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-6">{tokenLoadError}</p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" className="rounded-xl" onClick={() => router.back()}>
+                            Go Back
+                        </Button>
+                        <Button className="rounded-xl" onClick={() => { setTokenLoadError(null); selectToken(tokenId); }}>
+                            <Icon icon="lucide:refresh-cw" className="w-4 h-4 mr-2" />
+                            Retry
+                        </Button>
+                    </div>
+                </div>
+            );
+        }
         return (
             <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32 px-4 pt-16">
                 <TokenDetailSkeleton />
