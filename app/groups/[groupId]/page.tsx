@@ -24,10 +24,10 @@ export default function GroupDetailPage() {
     const groupId = params.groupId as string;
 
     const { telegramId } = useUserContext();
-    const { groups, leaveGroup, getGroupMembers } = useGroups();
+    const { groups, loading: groupsLoading, leaveGroup, getGroupMembers } = useGroups();
 
     const [members, setMembers] = useState<GroupMember[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [membersLoading, setMembersLoading] = useState(true);
     const [leaving, setLeaving] = useState(false);
     const [copied, setCopied] = useState(false);
 
@@ -51,7 +51,7 @@ export default function GroupDetailPage() {
         const loadMembers = async () => {
             const membersList = await getGroupMembers(groupId);
             setMembers(membersList);
-            setLoading(false);
+            setMembersLoading(false);
         };
         loadMembers();
     }, [groupId, getGroupMembers]);
@@ -111,7 +111,7 @@ export default function GroupDetailPage() {
         }
     };
 
-    if (loading) {
+    if (groupsLoading || membersLoading) {
         return <Loader />;
     }
 

@@ -114,18 +114,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Derive multi-chain addresses from mnemonic
   useEffect(() => {
     if (!telegramId || !walletAddress) return;
+    // Skip if addresses were already pre-derived (e.g. during wallet import)
+    const { ethAddress: existingEth } = useWalletStore.getState();
+    if (existingEth) return;
     let stale = false;
     (async () => {
       try {
         const storedMnemonic = await getSecureMnemonic(telegramId);
         if (!storedMnemonic || stale) return;
-        const [eth, trx] = await Promise.all([
+        const [eth, trx, btc, sol] = await Promise.all([
           deriveEthAddress(storedMnemonic),
           deriveTronAddress(storedMnemonic),
+          Promise.resolve(deriveBtcAddress(storedMnemonic, false)),
+          Promise.resolve(deriveSolAddress(storedMnemonic)),
         ]);
         if (stale) return;
-        const btc = deriveBtcAddress(storedMnemonic, false);
-        const sol = deriveSolAddress(storedMnemonic);
         useWalletStore.setState({
           ethAddress: eth,
           btcAddress: btc,

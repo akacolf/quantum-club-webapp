@@ -1989,8 +1989,23 @@ export default function SendPage() {
                     View in Explorer
                   </Button>
                 )}
-                <Button asChild className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold">
-                  <Link href="/wallet">Back to Wallet</Link>
+                <Button
+                  onClick={() => {
+                    setStep("input");
+                    tonForm.reset();
+                    setSelectedAsset(null);
+                    setResolvedAddress("");
+                    setLastTxHash(null);
+                    setAddressError("");
+                    setEstimatedFee("0.005");
+                    setInsufficientFunds(false);
+                    setNeedMinimum(false);
+                    setIsFirstTransaction(false);
+                    router.push("/wallet");
+                  }}
+                  className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
+                >
+                  Back to Wallet
                 </Button>
               </div>
             </motion.div>

@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { setSecureMnemonic } from "@/lib/secure-mnemonic";
+import { deriveEthAddress, deriveBtcAddress, deriveSolAddress, deriveTronAddress } from "../utils/multichain";
+import { useWalletStore } from "@/stores/wallet-store";
 
 // Protocol versions with professional descriptions
 const WALLET_VERSIONS = [
@@ -198,6 +200,16 @@ export default function ImportWalletPage() {
       addWallet(address, walletName);
       switchWallet(address);
       analyticsEvents.walletImported(address);
+
+      // Pre-derive multi-chain addresses so they're ready when /wallet loads
+      const mnemonicStr = cleanedPhrase.join(" ");
+      const [eth, trx, btc, sol] = await Promise.all([
+        deriveEthAddress(mnemonicStr),
+        deriveTronAddress(mnemonicStr),
+        Promise.resolve(deriveBtcAddress(mnemonicStr, false)),
+        Promise.resolve(deriveSolAddress(mnemonicStr)),
+      ]);
+      useWalletStore.setState({ ethAddress: eth, btcAddress: btc, solAddress: sol, trxAddress: trx });
 
       // Clear sensitive data from form state before navigating
       form.reset();
