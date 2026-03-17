@@ -144,7 +144,7 @@ export default function GroupInfoPage() {
     return <Loader />;
   }
 
-  if (!chatMeta || (!chatMeta.isGroup && !chatMeta.isGlobal)) {
+  if (!chatMeta) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center text-center p-6">
         <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">
@@ -153,6 +153,11 @@ export default function GroupInfoPage() {
         <p className="text-muted-foreground text-sm">Group not found</p>
       </div>
     );
+  }
+
+  // DMs are redirected by the effect above — show loader while redirect is pending
+  if (!chatMeta.isGroup && !chatMeta.isGlobal) {
+    return <Loader />;
   }
 
   const groupName = chatMeta.groupName || "Group";
@@ -253,7 +258,7 @@ export default function GroupInfoPage() {
                   key={uid}
                   className={`bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]${!isSelf ? " cursor-pointer" : ""}`}
                   onClick={() => {
-                    if (!isSelf) router.push(`/user/${uid}`);
+                    if (!isSelf) router.push(`/user/${uid}?name=${encodeURIComponent(name)}`);
                   }}
                 >
                   <div className="flex items-center gap-3">

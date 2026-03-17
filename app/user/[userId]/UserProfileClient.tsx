@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,7 +36,9 @@ function getAvatarColor(name: string): string {
 export default function UserProfileClient() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const userId = params.userId as string;
+  const fallbackName = searchParams.get("name");
 
   // Telegram back button → go back to previous page (the chat)
   useEffect(() => {
@@ -56,11 +58,14 @@ export default function UserProfileClient() {
   const { data: profile, isLoading } = useUserProfile(userId);
   const profilePhoto = useProfilePhoto(userId);
 
+  // Resolve display name: query result > URL fallback from chat participantNames
+  const resolvedProfile = profile ?? (fallbackName ? { displayName: fallbackName, memberSince: null } : null);
+
   if (isLoading) {
     return <Loader />;
   }
 
-  if (!profile) {
+  if (!resolvedProfile) {
     return (
       <div className="fixed inset-0 bg-background text-foreground flex flex-col items-center justify-center gap-3">
         <Icon icon="solar:user-cross-rounded-bold" className="w-12 h-12 text-muted-foreground/50" />
@@ -69,7 +74,7 @@ export default function UserProfileClient() {
     );
   }
 
-  const name = profile.displayName;
+  const name = resolvedProfile.displayName;
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 relative overflow-hidden">
@@ -128,14 +133,14 @@ export default function UserProfileClient() {
             <Icon icon="solar:copy-linear" className="w-4 h-4 text-white/40 shrink-0" />
           </button>
 
-          {profile.memberSince && (
+          {resolvedProfile.memberSince && (
             <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Icon icon="solar:calendar-bold" className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Member Since</p>
-                <p className="font-bold text-white text-sm">{profile.memberSince}</p>
+                <p className="font-bold text-white text-sm">{resolvedProfile.memberSince}</p>
               </div>
             </div>
           )}

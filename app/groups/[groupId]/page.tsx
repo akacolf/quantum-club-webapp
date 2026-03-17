@@ -199,7 +199,7 @@ export default function GroupDetailPage() {
                                 className={`bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]${member.telegramId !== telegramId ? " cursor-pointer" : ""}`}
                                 onClick={() => {
                                     if (member.telegramId !== telegramId) {
-                                        router.push(`/user/${member.telegramId}`);
+                                        router.push(`/user/${member.telegramId}?name=${encodeURIComponent(member.username)}`);
                                     }
                                 }}
                             >

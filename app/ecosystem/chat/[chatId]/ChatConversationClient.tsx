@@ -686,6 +686,8 @@ export default function ChatConversationClient() {
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        // Skip messages hidden by this user ("delete for me")
+        if (telegramId && data.hiddenBy?.[telegramId]) return;
         rawMsgs.push({
           id: docSnap.id,
           rawText: data.text || "",
@@ -1753,7 +1755,22 @@ export default function ChatConversationClient() {
   }
 
   // Delete message
-  async function handleDeleteMessage(msgId: string) {
+  async function handleDeleteForMe(msgId: string) {
+    if (!chatId || !telegramId) return;
+    try {
+      await updateDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId), {
+        [`hiddenBy.${telegramId}`]: true,
+      });
+      setMessages((prev) => prev.filter((m) => m.id !== msgId));
+      toast.success("Message hidden");
+    } catch (err) {
+      console.error("Failed to hide message:", err);
+      toast.error("Failed to hide message");
+    }
+    setReactionPickerMsgId(null);
+  }
+
+  async function handleDeleteForEveryone(msgId: string) {
     if (!chatId) return;
     try {
       await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
@@ -1761,7 +1778,7 @@ export default function ChatConversationClient() {
       // If deleting the last message, update chat doc preview
       const remaining = messages.filter((m) => m.id !== msgId);
       const lastMsg = remaining[remaining.length - 1];
-      if (!lastMsg || messages[messages.length - 1]?.id === msgId) {
+      if (messages[messages.length - 1]?.id === msgId) {
         if (lastMsg) {
           updateDoc(doc(dbfs, "qc-chats", chatId), {
             lastMessage: lastMsg.encrypted ? "New message" : lastMsg.text,
@@ -1778,8 +1795,10 @@ export default function ChatConversationClient() {
           try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
         }
       }
+      toast.success("Message deleted");
     } catch (err) {
       console.error("Failed to delete message:", err);
+      toast.error("Failed to delete message");
     }
     setReactionPickerMsgId(null);
   }
@@ -2167,7 +2186,7 @@ export default function ChatConversationClient() {
               <h1 className="text-sm font-semibold text-foreground truncate">Saved Messages <span className="text-muted-foreground font-normal">(You)</span></h1>
             ) : (
               <button
-                onClick={() => otherParticipantId && router.push(`/user/${otherParticipantId}`)}
+                onClick={() => otherParticipantId && router.push(`/user/${otherParticipantId}?name=${encodeURIComponent(headerName)}`)}
                 className="text-sm font-semibold text-foreground truncate hover:underline text-left"
               >
                 @{headerName}
@@ -2524,18 +2543,26 @@ export default function ChatConversationClient() {
 
               {(() => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
-                const canDelete = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
-                if (!canDelete) return null;
+                const canDeleteForEveryone = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
                 return (
                   <>
                     <div className="mx-3 border-t border-border/50" />
                     <button
-                      onClick={() => handleDeleteMessage(reactionPickerMsgId)}
+                      onClick={() => handleDeleteForMe(reactionPickerMsgId!)}
                       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
                     >
-                      <Icon icon="lucide:trash-2" className="w-[18px] h-[18px] text-red-500" />
-                      <span className="text-[13px] font-medium text-red-500">Delete</span>
+                      <Icon icon="lucide:eye-off" className="w-[18px] h-[18px] text-red-500" />
+                      <span className="text-[13px] font-medium text-red-500">Delete for Me</span>
                     </button>
+                    {canDeleteForEveryone && (
+                      <button
+                        onClick={() => handleDeleteForEveryone(reactionPickerMsgId!)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Icon icon="lucide:trash-2" className="w-[18px] h-[18px] text-red-500" />
+                        <span className="text-[13px] font-medium text-red-500">Delete for Everyone</span>
+                      </button>
+                    )}
                   </>
                 );
               })()}
