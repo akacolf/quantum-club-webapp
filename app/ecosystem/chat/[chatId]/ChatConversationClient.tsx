@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { parseAsString, parseAsInteger, useQueryState } from "nuqs";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useDrag } from "@use-gesture/react";
@@ -581,7 +581,7 @@ export default function ChatConversationClient() {
   // Auto-initialize epoch if this chat doesn't have one (required for v6 encryption)
   const ensureEpochRef = useRef<Promise<{ nonce: string; counter: number }> | null>(null);
 
-  async function ensureEpoch(): Promise<{ nonce: string; counter: number }> {
+  const ensureEpoch = useCallback(async (): Promise<{ nonce: string; counter: number }> => {
     if (chatMeta?.epochNonce && chatMeta.epochCounter !== undefined) {
       return { nonce: chatMeta.epochNonce, counter: chatMeta.epochCounter };
     }
@@ -608,14 +608,13 @@ export default function ChatConversationClient() {
     })();
     ensureEpochRef.current = promise;
     try { return await promise; } finally { ensureEpochRef.current = null; }
-  }
+  }, [chatMeta?.epochNonce, chatMeta?.epochCounter, chatId]);
 
   useEffect(() => {
     if (!chatMeta || !chatId || !currentUser) return;
     if (chatMeta.epochNonce && chatMeta.epochCounter !== undefined) return;
     ensureEpoch().catch((err) => console.error("Failed to init epoch:", err));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- ensureEpoch is used in multiple message handlers
-  }, [chatMeta, chatId, currentUser]);
+  }, [chatMeta, chatId, currentUser, ensureEpoch]);
 
   // Resolve recipient's wallet address for DM transfers via TanStack Query
   const recipientId = (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId)
@@ -877,14 +876,16 @@ export default function ChatConversationClient() {
     return () => unsubscribe();
   }, [currentUser, chatId, messagesReady, telegramId, epochReady]);
 
-  // Initial scroll — wait for DOM paint
+  // Initial scroll — wait for DOM paint (isLoading transitions false only once)
+  const didInitialScrollRef = useRef(false);
   useEffect(() => {
-    if (!isLoading && messages.length > 0) {
+    if (!isLoading && !didInitialScrollRef.current) {
+      didInitialScrollRef.current = true;
       requestAnimationFrame(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
       });
     }
-  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   // Load older messages when scrolling to top
   async function loadOlderMessages() {
@@ -1829,7 +1830,7 @@ export default function ChatConversationClient() {
   }
 
   // Scroll to a specific message by ID (uses virtualizer to ensure item is rendered)
-  function scrollToMessage(msgId: string) {
+  const scrollToMessage = useCallback((msgId: string) => {
     const idx = messagesArrayRef.current.findIndex(m => m.id === msgId);
     if (idx >= 0) {
       messagesVirtualizer.scrollToIndex(idx, { align: "center" });
@@ -1845,14 +1846,16 @@ export default function ChatConversationClient() {
         }
       }, 150);
     }
-  }
+  }, [messagesVirtualizer]);
 
   // Search matches
-  const searchMatches = showSearch && searchQuery.trim()
-    ? messages
-        .map((m, i) => ({ idx: i, msg: m }))
-        .filter(({ msg }) => msg.text.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
+  const searchMatches = useMemo(() =>
+    showSearch && searchQuery.trim()
+      ? messages
+          .map((m, i) => ({ idx: i, msg: m }))
+          .filter(({ msg }) => msg.text.toLowerCase().includes(searchQuery.toLowerCase()))
+      : []
+  , [showSearch, searchQuery, messages]);
 
   // Scroll to first match when search changes
   useEffect(() => {
@@ -1860,7 +1863,7 @@ export default function ChatConversationClient() {
       setSearchMatchIndex(0);
       scrollToMessage(searchMatches[0].msg.id);
     }
-  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchQuery, searchMatches, searchMatchIndex, setSearchMatchIndex, scrollToMessage]);
 
   // Close reaction picker on outside tap
   useEffect(() => {
