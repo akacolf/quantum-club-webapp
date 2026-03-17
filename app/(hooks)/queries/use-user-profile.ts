@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc } from "firebase/firestore";
+import { resolveQcUsername } from "@/app/ecosystem/chat/actions";
 
 export interface UserProfile {
   displayName: string;
@@ -14,23 +15,36 @@ function parseCreatedAt(userArray: string | undefined): string | null {
 }
 
 async function fetchUserProfile(userId: string): Promise<UserProfile | null> {
+  // Try the "user" collection first
   const userDoc = await getDoc(doc(dbfs, "user", userId));
-  if (!userDoc.exists()) return null;
+  if (userDoc.exists()) {
+    const data = userDoc.data();
+    const displayName = data.qcUsername || data.username || "Quantum User";
 
-  const data = userDoc.data();
-  const displayName = data.qcUsername || data.username || "Quantum User";
+    let memberSince: string | null = null;
+    const createdAt = parseCreatedAt(data.userArray);
+    if (createdAt) {
+      const date = new Date(isNaN(Number(createdAt)) ? createdAt : Number(createdAt));
+      memberSince = date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+    }
 
-  let memberSince: string | null = null;
-  const createdAt = parseCreatedAt(data.userArray);
-  if (createdAt) {
-    const date = new Date(isNaN(Number(createdAt)) ? createdAt : Number(createdAt));
-    memberSince = date.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
+    return { displayName, memberSince };
   }
 
-  return { displayName, memberSince };
+  // Fallback: resolve via qc-username collection
+  try {
+    const result = await resolveQcUsername({ qcId: userId });
+    if (result?.data?.username) {
+      return { displayName: result.data.username, memberSince: null };
+    }
+  } catch {
+    // qc-username lookup failed, fall through
+  }
+
+  return null;
 }
 
 export function useUserProfile(userId: string | undefined) {

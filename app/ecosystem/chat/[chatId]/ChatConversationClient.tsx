@@ -936,9 +936,10 @@ export default function ChatConversationClient() {
       });
 
       const getEpochNonceOlder = (epoch?: number) => {
-        if (epoch === undefined) return undefined;
         const ep = epochRef.current;
-        return ep.nonces?.[epoch] ?? (epoch === ep.counter ? ep.nonce : undefined);
+        // Default to epoch 0 for messages that pre-date the encEpoch field
+        const resolvedEpoch = epoch ?? 0;
+        return ep.nonces?.[resolvedEpoch] ?? (resolvedEpoch === ep.counter ? ep.nonce : undefined);
       };
 
       const olderDecrypted = await Promise.all(
@@ -2628,6 +2629,7 @@ export default function ChatConversationClient() {
                   ref={(el) => { messageRefs.current[msg.id] = el; }}
                   className={`flex items-start gap-2 ${isOwnMessage ? "justify-end" : "justify-start"} ${reactionPickerMsgId === msg.id ? "relative z-[1000]" : ""}`}
                   style={{ touchAction: "pan-y" }}
+                  onContextMenu={(e) => { e.preventDefault(); openReactionPicker(msg.id); }}
                   {...bindMessageGesture(msg)}
                 >
                   {!isOwnMessage && !consecutive && (

@@ -25,6 +25,7 @@ import { dbfs } from "@/app/(firebase)/client";
 import {
   decryptMessage,
   isEncryptedMessage,
+  generateEpochNonce,
 } from "@/lib/chat-crypto";
 import {
   collection,
@@ -447,6 +448,7 @@ export default function QCChatListPage() {
       const selfName = qcUsername.replace(/^@+/, "").trim() || "Unknown";
 
       if (!globalSnap.exists()) {
+        const epochNonce = generateEpochNonce();
         await setDoc(globalRef, {
           isGroup: true,
           isGlobal: true,
@@ -458,6 +460,9 @@ export default function QCChatListPage() {
           lastMessageBy: "system",
           lastMessageAt: serverTimestamp(),
           createdAt: serverTimestamp(),
+          epochNonce,
+          epochCounter: 0,
+          epochNonces: { 0: epochNonce },
         });
       } else {
         const data = globalSnap.data();
@@ -469,6 +474,13 @@ export default function QCChatListPage() {
         // Fix legacy globe emoji in existing global chats
         if (data.lastMessage?.includes("🌍")) {
           updates.lastMessage = data.lastMessage.replace(/\s*🌍/, "");
+        }
+        // Backfill epoch if missing (legacy chats created before epoch support)
+        if (!data.epochNonce || data.epochCounter === undefined) {
+          const epochNonce = generateEpochNonce();
+          updates.epochNonce = epochNonce;
+          updates.epochCounter = 0;
+          updates["epochNonces.0"] = epochNonce;
         }
         if (Object.keys(updates).length > 0) {
           await updateDoc(globalRef, updates);
