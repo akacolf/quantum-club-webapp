@@ -28,10 +28,12 @@ export function WalletPriceChart({ data, color }: WalletPriceChartProps) {
     const chartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<ISeriesApi<"Area"> | null>(null);
     const [tooltip, setTooltip] = useState<{ price: number; visible: boolean; x: number; y: number } | null>(null);
+    const nowRef = useRef(0);
+    useEffect(() => { nowRef.current = Math.floor(Date.now() / 1000); }, [data]);
 
     // Parse time strings to timestamps for TradingView
     const chartData: AreaData<UTCTimestamp>[] = data.map((point, index) => ({
-        time: (Math.floor(Date.now() / 1000) - (data.length - index) * 60) as UTCTimestamp,
+        time: (nowRef.current - (data.length - index) * 60) as UTCTimestamp,
         value: point.price,
     }));
 

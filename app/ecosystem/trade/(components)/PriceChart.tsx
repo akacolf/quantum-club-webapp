@@ -84,6 +84,9 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
     const { tonPrice } = useWallet();
     const { data: trades = [], isFetching: isLoading } = useTradeEvents(jettonAddress);
 
+    const nowRef = useRef(0);
+    useEffect(() => { nowRef.current = Date.now(); }, [trades, currentPrice]);
+
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const areaSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
@@ -102,8 +105,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
 
     // Filter data based on time range
     const filteredTrades = (() => {
-        const now = Date.now();
-        const cutoff = now - (timeRange.seconds * 1000);
+        const cutoff = nowRef.current - (timeRange.seconds * 1000);
         return trades.filter(t => t.timestamp >= cutoff);
     })();
 
@@ -128,7 +130,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
         const currentPriceNum = Number(currentPrice) / 1e9;
         if (currentPriceNum > 0) {
             data.push({
-                time: Math.floor(Date.now() / 1000) as UTCTimestamp,
+                time: Math.floor(nowRef.current / 1000) as UTCTimestamp,
                 value: currentPriceNum,
             });
         }
