@@ -67,6 +67,7 @@ import {
   limitToLast,
   limit,
   startAfter,
+  runTransaction,
 } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/app/(firebase)/client";
@@ -587,14 +588,23 @@ export default function ChatConversationClient() {
     // Deduplicate concurrent calls
     if (ensureEpochRef.current) return ensureEpochRef.current;
     const promise = (async () => {
-      const nonce = generateEpochNonce();
       const chatRef = doc(dbfs, "qc-chats", chatId);
-      await updateDoc(chatRef, {
-        epochNonce: nonce,
-        epochCounter: 0,
-        [`epochNonces.0`]: nonce,
+      // Use a transaction to prevent race conditions where multiple users
+      // could overwrite each other's epoch nonce
+      return await runTransaction(dbfs, async (txn) => {
+        const snap = await txn.get(chatRef);
+        const data = snap.data();
+        if (data?.epochNonce && data?.epochCounter !== undefined) {
+          return { nonce: data.epochNonce as string, counter: data.epochCounter as number };
+        }
+        const nonce = generateEpochNonce();
+        txn.update(chatRef, {
+          epochNonce: nonce,
+          epochCounter: 0,
+          [`epochNonces.0`]: nonce,
+        });
+        return { nonce, counter: 0 };
       });
-      return { nonce, counter: 0 };
     })();
     ensureEpochRef.current = promise;
     try { return await promise; } finally { ensureEpochRef.current = null; }
@@ -627,12 +637,16 @@ export default function ChatConversationClient() {
   // Track whether we've set up the messages subscription (only needs chatId + auth)
   const [messagesReady, setMessagesReady] = useState(false);
 
-  // Wait for initial chatMeta to arrive before subscribing to messages
+  // Wait for chatMeta AND epoch data before subscribing to messages.
+  // Epoch is required for decryption — without it messages show as "sent a message".
+  // If epoch is missing, ensureEpoch auto-init will create it, triggering a chatMeta
+  // update that re-evaluates this effect.
+  const epochReady = !!(chatMeta?.epochNonce && chatMeta?.epochCounter !== undefined);
   useEffect(() => {
-    if (chatMeta && !messagesReady) {
+    if (chatMeta && epochReady && !messagesReady) {
       requestAnimationFrame(() => setMessagesReady(true));
     }
-  }, [chatMeta, messagesReady]);
+  }, [chatMeta, epochReady, messagesReady]);
 
   useEffect(() => {
     if (!currentUser || !chatId || !messagesReady) return;
@@ -861,7 +875,7 @@ export default function ChatConversationClient() {
     });
 
     return () => unsubscribe();
-  }, [currentUser, chatId, messagesReady, telegramId]);
+  }, [currentUser, chatId, messagesReady, telegramId, epochReady]);
 
   // Initial scroll — wait for DOM paint
   useEffect(() => {
