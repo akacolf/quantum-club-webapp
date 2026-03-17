@@ -129,6 +129,13 @@ export default function GroupInfoPage() {
     }
   }, [chatMeta, telegramId, router]);
 
+  // Redirect DMs back to the chat — this page is only for groups/global chats
+  useEffect(() => {
+    if (!loading && chatMeta && !chatMeta.isGroup && !chatMeta.isGlobal) {
+      router.replace(`/ecosystem/chat/${chatId}`);
+    }
+  }, [loading, chatMeta, chatId, router]);
+
   // Fetch profile photos for all members
   const memberIds = chatMeta?.participants || [];
   const photos = useProfilePhotos(memberIds);
@@ -137,7 +144,7 @@ export default function GroupInfoPage() {
     return <Loader />;
   }
 
-  if (!chatMeta || !chatMeta.isGroup) {
+  if (!chatMeta || (!chatMeta.isGroup && !chatMeta.isGlobal)) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center text-center p-6">
         <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">

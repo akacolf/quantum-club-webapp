@@ -614,6 +614,7 @@ export default function QCChatListPage() {
         participantNames[otherUserId] = otherDisplayName;
       }
 
+      const epochNonceDm = generateEpochNonce();
       await setDoc(
         doc(dbfs, "qc-chats", chatId),
         {
@@ -625,6 +626,9 @@ export default function QCChatListPage() {
           lastMessageBy: "",
           lastMessageAt: serverTimestamp(),
           createdAt: serverTimestamp(),
+          epochNonce: epochNonceDm,
+          epochCounter: 0,
+          epochNonces: [epochNonceDm],
         },
         { merge: true }
       );
@@ -661,6 +665,7 @@ export default function QCChatListPage() {
       const code = generateJoinCode();
       const chatId = `group_${telegramId}_${Date.now()}`;
 
+      const epochNonceGroup = generateEpochNonce();
       await setDoc(doc(dbfs, "qc-chats", chatId), {
         isGroup: true,
         isGlobal: false,
@@ -673,6 +678,9 @@ export default function QCChatListPage() {
         lastMessageBy: "system",
         lastMessageAt: serverTimestamp(),
         createdAt: serverTimestamp(),
+        epochNonce: epochNonceGroup,
+        epochCounter: 0,
+        epochNonces: [epochNonceGroup],
       });
 
       setFormMode("none");
