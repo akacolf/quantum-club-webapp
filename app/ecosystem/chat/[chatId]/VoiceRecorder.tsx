@@ -157,7 +157,6 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- handleCancel is used in multiple event handlers
   }, [recording]);
 
   const formatTime = (sec: number) => {

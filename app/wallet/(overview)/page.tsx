@@ -103,14 +103,12 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
 
   const rowCount = Math.ceil(filteredNfts.length / 2);
 
-  /* eslint-disable react-hooks/refs -- TanStack Virtual reads ref during render for scrollMargin */
   const nftVirtualizer = useWindowVirtualizer({
     count: rowCount,
     estimateSize: () => 220,
     overscan: 3,
     scrollMargin: nftGridRef.current?.offsetTop ?? 0,
   });
-  /* eslint-enable react-hooks/refs */
 
   const filters: { value: NftFilterType; label: string; icon: string }[] = [
     { value: "all", label: "All", icon: "solar:widget-linear" },
@@ -403,7 +401,6 @@ export default function WalletPage() {
         );
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedAsset is intentionally accessed by .symbol only; priceHistory.length avoids deep comparison
   }, [livePrice, selectedAsset?.symbol, chartPeriod, priceHistory.length]);
 
   useEffect(() => {

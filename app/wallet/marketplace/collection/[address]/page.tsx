@@ -32,14 +32,12 @@ export default function CollectionDetailPage() {
     const gridRef = useRef<HTMLDivElement>(null);
 
     const rowCount = Math.ceil(items.length / 2);
-    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const virtualizer = useWindowVirtualizer({
         count: rowCount,
         estimateSize: () => 240,
         overscan: 3,
         scrollMargin: gridRef.current?.offsetTop ?? 0,
     });
-    /* eslint-enable react-hooks/refs */
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 

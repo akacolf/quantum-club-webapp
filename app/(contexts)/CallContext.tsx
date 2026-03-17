@@ -1052,7 +1052,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       joinGroupCall: joinGroupCallFn,
       leaveGroupCall: leaveGroupCallFn,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- functions use getState() + refs, stable
   }, []);
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
@@ -1062,7 +1061,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       cleanup({ skipHistoryWrite: true });
       cleanupGroupCall();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <>{children}</>;

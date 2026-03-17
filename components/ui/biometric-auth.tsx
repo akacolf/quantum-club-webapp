@@ -105,7 +105,6 @@ export function BiometricAuth({
       }
     };
     checkAuthMethods();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- getPin is also used in verifyPin
   }, [isOpen, telegramId]);
 
   // Verify PIN

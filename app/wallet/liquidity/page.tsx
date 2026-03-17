@@ -342,7 +342,6 @@ export default function LiquidityPage() {
     }, 500);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokenA, tokenB, amountA, isSingleSided]);
 
   // Clear amountB when single-sided mode is enabled (user only provides tokenA)

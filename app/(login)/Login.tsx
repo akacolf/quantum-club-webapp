@@ -164,7 +164,6 @@ export default function Login() {
         router.replace(getDeepLinkDestination());
       })();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- setters are stable references
   }, [authContext?.currentUser, authContext?.authLoading, isLoading, rootError, router]);
 
   // Show loader while auth is resolving

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { parseAsString, parseAsInteger, useQueryState } from "nuqs";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useDrag } from "@use-gesture/react";
@@ -581,7 +581,7 @@ export default function ChatConversationClient() {
   // Auto-initialize epoch if this chat doesn't have one (required for v6 encryption)
   const ensureEpochRef = useRef<Promise<{ nonce: string; counter: number }> | null>(null);
 
-  const ensureEpoch = useCallback(async (): Promise<{ nonce: string; counter: number }> => {
+  async function ensureEpoch(): Promise<{ nonce: string; counter: number }> {
     if (chatMeta?.epochNonce && chatMeta.epochCounter !== undefined) {
       return { nonce: chatMeta.epochNonce, counter: chatMeta.epochCounter };
     }
@@ -608,13 +608,13 @@ export default function ChatConversationClient() {
     })();
     ensureEpochRef.current = promise;
     try { return await promise; } finally { ensureEpochRef.current = null; }
-  }, [chatMeta?.epochNonce, chatMeta?.epochCounter, chatId]);
+  }
 
   useEffect(() => {
     if (!chatMeta || !chatId || !currentUser) return;
     if (chatMeta.epochNonce && chatMeta.epochCounter !== undefined) return;
     ensureEpoch().catch((err) => console.error("Failed to init epoch:", err));
-  }, [chatMeta, chatId, currentUser, ensureEpoch]);
+  }, [chatMeta, chatId, currentUser]);
 
   // Resolve recipient's wallet address for DM transfers via TanStack Query
   const recipientId = (!chatMeta || chatMeta.isGroup || chatMeta.isGlobal || !telegramId)
@@ -1830,7 +1830,7 @@ export default function ChatConversationClient() {
   }
 
   // Scroll to a specific message by ID (uses virtualizer to ensure item is rendered)
-  const scrollToMessage = useCallback((msgId: string) => {
+  function scrollToMessage(msgId: string) {
     const idx = messagesArrayRef.current.findIndex(m => m.id === msgId);
     if (idx >= 0) {
       messagesVirtualizer.scrollToIndex(idx, { align: "center" });
@@ -1846,16 +1846,14 @@ export default function ChatConversationClient() {
         }
       }, 150);
     }
-  }, [messagesVirtualizer]);
+  }
 
   // Search matches
-  const searchMatches = useMemo(() =>
-    showSearch && searchQuery.trim()
-      ? messages
-          .map((m, i) => ({ idx: i, msg: m }))
-          .filter(({ msg }) => msg.text.toLowerCase().includes(searchQuery.toLowerCase()))
-      : []
-  , [showSearch, searchQuery, messages]);
+  const searchMatches = showSearch && searchQuery.trim()
+    ? messages
+        .map((m, i) => ({ idx: i, msg: m }))
+        .filter(({ msg }) => msg.text.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
 
   // Scroll to first match when search changes
   useEffect(() => {
@@ -1863,7 +1861,7 @@ export default function ChatConversationClient() {
       setSearchMatchIndex(0);
       scrollToMessage(searchMatches[0].msg.id);
     }
-  }, [searchQuery, searchMatches, searchMatchIndex, setSearchMatchIndex, scrollToMessage]);
+  }, [searchQuery]);
 
   // Close reaction picker on outside tap
   useEffect(() => {

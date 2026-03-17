@@ -73,7 +73,6 @@ export default function GroupMembersPanel({
   const mutedSet = new Set(chatMeta.mutedUsers || []);
   const bannedList = chatMeta.bannedUsers || [];
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const membersVirtualizer = useVirtualizer({
     count: chatMeta.participants.length,
     getScrollElement: () => scrollContainerRef.current,

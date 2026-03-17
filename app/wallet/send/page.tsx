@@ -433,7 +433,6 @@ export default function SendPage() {
 
     const debounceTimer = setTimeout(resolveAddress, 500);
     return () => clearTimeout(debounceTimer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- setEncryptComment is a stable wrapper around form.setFieldValue
   }, [recipient, isTestnet]);
 
   // Redirect if no wallet

@@ -72,7 +72,6 @@ export default function GroupsPage() {
     }, [groups, router]);
 
     const listRef = useRef<HTMLDivElement>(null);
-    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const virtualizer = useWindowVirtualizer({
         count: groups.length,
         estimateSize: () => 80,

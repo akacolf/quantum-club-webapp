@@ -82,7 +82,6 @@ const LeaderboardContent = () => {
 
   useEffect(() => {
     if (telegramId) syncQuantMutation.mutate(telegramId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [telegramId]);
 
   return (

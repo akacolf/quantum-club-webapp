@@ -237,7 +237,6 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
             areaSeriesRef.current = null;
             candleSeriesRef.current = null;
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange.seconds, chartMode]);
 
     // Update series data

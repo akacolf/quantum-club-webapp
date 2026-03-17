@@ -118,7 +118,6 @@ export function WalletPriceChart({ data, color }: WalletPriceChartProps) {
             chartRef.current = null;
             seriesRef.current = null;
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data, color]);
 
     return (

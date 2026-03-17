@@ -205,7 +205,6 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
             chartRef.current = null;
             seriesRef.current = null;
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [candles, effectiveMode]);
 
     return (

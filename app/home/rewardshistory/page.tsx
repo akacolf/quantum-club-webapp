@@ -280,7 +280,6 @@ export default function RewardsHistory() {
   const { data: taskhistoryList = [], isLoading: tasksLoading } = useRewardsHistoryQuery(telegramId);
   const listRef = useRef<HTMLDivElement>(null);
 
-  /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
   const virtualizer = useWindowVirtualizer({
     count: taskhistoryList.length,
     estimateSize: () => 72,

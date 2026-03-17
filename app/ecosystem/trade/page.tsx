@@ -400,7 +400,6 @@ export default function TradePage() {
     const validPositions = positions.filter(p => p.token);
     const deployedTokens = myTokens.filter(t => t.isDeployed);
 
-    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const tokenVirtualizer = useWindowVirtualizer({
         count: displayTokens.length,
         estimateSize: () => 140,
@@ -428,7 +427,6 @@ export default function TradePage() {
         overscan: 3,
         scrollMargin: myTokensListRef.current?.offsetTop ?? 0,
     });
-    /* eslint-enable react-hooks/refs */
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">

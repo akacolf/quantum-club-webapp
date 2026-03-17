@@ -107,14 +107,12 @@ export default function SpotTradingPage() {
 
     const totalPositionValue = positions.reduce((sum, p) => sum + (p.valueUsd || 0), 0);
 
-    /* eslint-disable react-hooks/refs -- TanStack Virtual is designed to read refs during render for scrollMargin */
     const virtualizer = useWindowVirtualizer({
         count: filtered.length,
         estimateSize: () => 80,
         overscan: 5,
         scrollMargin: listRef.current?.offsetTop ?? 0,
     });
-    /* eslint-enable react-hooks/refs */
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">

@@ -226,7 +226,6 @@ export function WalletKitProvider({
                 registerWallet(mnemonic);
             }
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- registerWallet is stable, depends on refs
     }, []);
 
     // Approve connection request
@@ -434,7 +433,6 @@ export function WalletKitProvider({
             handleTonConnectUrl,
             registerWallet,
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- functions are stable, synced once into store
     }, []);
 
     return (

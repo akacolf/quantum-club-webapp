@@ -116,7 +116,6 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         {...bindDrag()}
         onContextMenu={(e) => e.preventDefault()}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={alt}
@@ -243,7 +242,6 @@ export default function FileMessage({
               onContextMenu={(e) => e.preventDefault()}
               className="block w-full"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={decryptedUrl}
                 alt={file.name}

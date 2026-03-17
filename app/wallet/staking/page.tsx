@@ -86,7 +86,6 @@ export default function StakingPage() {
         return () => {
             tg?.BackButton.offClick(handleBackButtonClick);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- form is a stable TanStack Form instance; only re-register when viewMode or router changes
     }, [router, viewMode]);
 
 
