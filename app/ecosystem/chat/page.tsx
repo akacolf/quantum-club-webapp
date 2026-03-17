@@ -480,7 +480,7 @@ export default function QCChatListPage() {
           const epochNonce = generateEpochNonce();
           updates.epochNonce = epochNonce;
           updates.epochCounter = 0;
-          updates["epochNonces.0"] = epochNonce;
+          updates.epochNonces = { 0: epochNonce };
         }
         if (Object.keys(updates).length > 0) {
           await updateDoc(globalRef, updates);
@@ -628,7 +628,7 @@ export default function QCChatListPage() {
           createdAt: serverTimestamp(),
           epochNonce: epochNonceDm,
           epochCounter: 0,
-          epochNonces: [epochNonceDm],
+          epochNonces: { 0: epochNonceDm },
         },
         { merge: true }
       );
@@ -680,7 +680,7 @@ export default function QCChatListPage() {
         createdAt: serverTimestamp(),
         epochNonce: epochNonceGroup,
         epochCounter: 0,
-        epochNonces: [epochNonceGroup],
+        epochNonces: { 0: epochNonceGroup },
       });
 
       setFormMode("none");

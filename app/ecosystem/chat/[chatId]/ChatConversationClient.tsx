@@ -1006,7 +1006,7 @@ export default function ChatConversationClient() {
           let pollData = msg.poll;
           if (msg.type === "poll" && pollData?.encData) {
             try {
-              const decryptedPoll = await decryptMessage(pollData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedPoll = await decryptMessage(pollData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               const parsed = JSON.parse(decryptedPoll);
               pollData = { ...pollData, question: parsed.question, options: parsed.options };
             } catch {
@@ -1018,7 +1018,7 @@ export default function ChatConversationClient() {
           let transferData = msg.transfer;
           if (msg.type === "transfer" && transferData?.encData) {
             try {
-              const decryptedTransfer = await decryptMessage(transferData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedTransfer = await decryptMessage(transferData.encData, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               const parsed = JSON.parse(decryptedTransfer);
               transferData = { ...transferData, ...parsed };
             } catch {
@@ -1030,7 +1030,7 @@ export default function ChatConversationClient() {
           let fileData = msg.file;
           if (msg.type === "file" && fileData?.encName) {
             try {
-              const decryptedName = await decryptMessage(fileData.encName, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedName = await decryptMessage(fileData.encName, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               fileData = { ...fileData, name: decryptedName };
             } catch {
               fileData = { ...fileData, name: "Encrypted file" };
