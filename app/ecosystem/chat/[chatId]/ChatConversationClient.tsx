@@ -756,7 +756,17 @@ export default function ChatConversationClient() {
               const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               replyData = { ...replyData, text: decryptedReply };
             } catch {
-              replyData = { ...replyData, text: "[Encrypted message]" };
+              // Epoch fallback: try all available epochs
+              const ep = epochRef.current;
+              const allEpochs = new Map<number, string>();
+              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
+              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
+              let replyDecrypted = false;
+              for (const [counter, nonce] of allEpochs) {
+                const result = await tryDecrypt(replyData.text, msg.senderId, nonce, counter);
+                if (result) { replyData = { ...replyData, text: result }; replyDecrypted = true; break; }
+              }
+              if (!replyDecrypted) replyData = { ...replyData, text: "[Encrypted message]" };
             }
           }
           // Decrypt poll content if encrypted
@@ -942,24 +952,54 @@ export default function ChatConversationClient() {
         return ep.nonces?.[resolvedEpoch] ?? (resolvedEpoch === ep.counter ? ep.nonce : undefined);
       };
 
+      const tryDecryptOlder = async (raw: string, senderId: string, nonce: string, counter: number) => {
+        try {
+          const result = await decryptMessage(raw, participants, chatId, senderId, isGroupRef.current, nonce, counter);
+          return result !== "Old encrypted message" ? result : null;
+        } catch { return null; }
+      };
+
       const olderDecrypted = await Promise.all(
         rawMsgs.map(async (msg) => {
           let text = msg.rawText;
           const msgEpochNonce = getEpochNonceOlder(msg.encEpoch);
+          const msgEpochCounter = msg.encEpoch ?? 0;
           if (msg.encrypted && isEncryptedMessage(msg.rawText)) {
-            try {
-              text = await decryptMessage(msg.rawText, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
-            } catch {
-              text = "[Decryption failed]";
+            if (msgEpochNonce) {
+              const result = await tryDecryptOlder(msg.rawText, msg.senderId, msgEpochNonce, msgEpochCounter);
+              if (result) { text = result; }
+              else { text = "[Decryption failed]"; }
+            } else {
+              // Epoch nonce not found — try all available epochs as fallback
+              const ep = epochRef.current;
+              const allEpochs = new Map<number, string>();
+              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
+              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
+              let decrypted = false;
+              for (const [counter, nonce] of allEpochs) {
+                const result = await tryDecryptOlder(msg.rawText, msg.senderId, nonce, counter);
+                if (result) { text = result; decrypted = true; break; }
+              }
+              if (!decrypted) text = "[Decryption failed]";
             }
           }
           let replyData = msg.replyTo;
           if (replyData?.text && isEncryptedMessage(replyData.text)) {
             try {
-              const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msg.encEpoch);
+              const decryptedReply = await decryptMessage(replyData.text, participants, chatId, msg.senderId, isGroupRef.current, msgEpochNonce, msgEpochCounter);
               replyData = { ...replyData, text: decryptedReply };
             } catch {
-              replyData = { ...replyData, text: "[Encrypted message]" };
+              // Epoch fallback: try all available epochs
+              const ep = epochRef.current;
+              const allEpochs = new Map<number, string>();
+              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
+              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
+              let replyDecrypted = false;
+              for (const [counter, nonce] of allEpochs) {
+                const result = await tryDecryptOlder(replyData.text, msg.senderId, nonce, counter);
+                if (result) { replyData = { ...replyData, text: result }; replyDecrypted = true; break; }
+              }
+              if (!replyDecrypted) replyData = { ...replyData, text: "[Encrypted message]" };
             }
           }
           // Decrypt poll content if encrypted
@@ -1074,6 +1114,10 @@ export default function ChatConversationClient() {
   const handleSend = async () => {
     const text = newMessage.trim();
     if (!text || !telegramId || !chatId || !chatMeta || isSending) return;
+    if (isMuted) {
+      toast.error("You are muted in this chat");
+      return;
+    }
 
     setIsSending(true);
     setNewMessage("");
@@ -1170,6 +1214,10 @@ export default function ChatConversationClient() {
   // Send voice message
   const handleSendVoice = async (blob: Blob, durationSec: number) => {
     if (!telegramId || !chatId || !chatMeta) return;
+    if (isMuted) {
+      toast.error("You are muted in this chat");
+      return;
+    }
 
     if (!currentUser) {
       toast.error("Not authenticated. Please re-open the app.");
@@ -1284,6 +1332,10 @@ export default function ChatConversationClient() {
 
   const handleSendFile = async (file: File) => {
     if (!telegramId || !chatId || !chatMeta) return;
+    if (isMuted) {
+      toast.error("You are muted in this chat");
+      return;
+    }
 
     if (!currentUser) {
       toast.error("Not authenticated. Please re-open the app.");
@@ -1424,6 +1476,10 @@ export default function ChatConversationClient() {
   // Send transfer message (after successful TON transaction)
   const handleSendTransfer = async (amount: string, txHash: string, toAddress: string) => {
     if (!telegramId || !chatId || !chatMeta || !walletAddress) return;
+    if (isMuted) {
+      toast.error("You are muted in this chat");
+      return;
+    }
 
     const senderName = qcUsername || "Unknown";
     try {
@@ -1512,6 +1568,10 @@ export default function ChatConversationClient() {
 
   const handleCreatePoll = async (question: string, options: string[]) => {
     if (!telegramId || !chatId || !chatMeta) return;
+    if (isMuted) {
+      toast.error("You are muted in this chat");
+      return;
+    }
     if (!question.trim() || options.length < 2 || options.some((o) => !o.trim())) return;
     try {
       const senderName = qcUsername || "Unknown";
@@ -1629,6 +1689,13 @@ export default function ChatConversationClient() {
     if (!forwardMsgId || !telegramId) return;
     const msg = messages.find((m) => m.id === forwardMsgId);
     if (!msg) return;
+    // Only text messages can be forwarded — non-text types (voice, file, poll, transfer, nftShare) would lose their type
+    if (msg.type && msg.type !== "text") {
+      toast.error("Only text messages can be forwarded");
+      setShowForwardDialog(false);
+      setForwardMsgId(null);
+      return;
+    }
     setIsForwarding(true);
     try {
         // Fetch fresh destination chat data to get current epoch & participants
@@ -1751,17 +1818,24 @@ export default function ChatConversationClient() {
 
       try {
         if (action === "kick") {
-          const updatedNames = { ...chatMeta.participantNames };
-          delete updatedNames[targetUserId];
-          // Rotate epoch for post-removal forward secrecy
-          const newEpoch = (chatMeta.epochCounter ?? 0) + 1;
-          const newNonce = generateEpochNonce();
-          await updateDoc(chatRef, {
-            participants: arrayRemove(targetUserId),
-            participantNames: updatedNames,
-            epochNonce: newNonce,
-            epochCounter: newEpoch,
-            [`epochNonces.${newEpoch}`]: newNonce,
+          // Use transaction to atomically read epoch, rotate, and remove participant
+          await runTransaction(dbfs, async (txn) => {
+            const snap = await txn.get(chatRef);
+            const data = snap.data();
+            if (!data) return;
+            const currentCounter = data.epochCounter ?? 0;
+            const newEpoch = currentCounter + 1;
+            const newNonce = generateEpochNonce();
+            const updatedParticipants = (data.participants || []).filter((p: string) => p !== targetUserId);
+            const updatedNames = { ...data.participantNames };
+            delete updatedNames[targetUserId];
+            txn.update(chatRef, {
+              participants: updatedParticipants,
+              participantNames: updatedNames,
+              epochNonce: newNonce,
+              epochCounter: newEpoch,
+              [`epochNonces.${newEpoch}`]: newNonce,
+            });
           });
           await addDoc(messagesRef, {
             text: `@${adminName} kicked @${targetName}`,
@@ -1771,18 +1845,26 @@ export default function ChatConversationClient() {
             encrypted: false,
           });
         } else if (action === "ban") {
-          const updatedNames = { ...chatMeta.participantNames };
-          delete updatedNames[targetUserId];
-          // Rotate epoch for post-removal forward secrecy
-          const newEpoch = (chatMeta.epochCounter ?? 0) + 1;
-          const newNonce = generateEpochNonce();
-          await updateDoc(chatRef, {
-            participants: arrayRemove(targetUserId),
-            participantNames: updatedNames,
-            bannedUsers: arrayUnion(targetUserId),
-            epochNonce: newNonce,
-            epochCounter: newEpoch,
-            [`epochNonces.${newEpoch}`]: newNonce,
+          // Use transaction to atomically read epoch, rotate, remove participant, and ban
+          await runTransaction(dbfs, async (txn) => {
+            const snap = await txn.get(chatRef);
+            const data = snap.data();
+            if (!data) return;
+            const currentCounter = data.epochCounter ?? 0;
+            const newEpoch = currentCounter + 1;
+            const newNonce = generateEpochNonce();
+            const updatedParticipants = (data.participants || []).filter((p: string) => p !== targetUserId);
+            const updatedNames = { ...data.participantNames };
+            delete updatedNames[targetUserId];
+            const updatedBanned = [...(data.bannedUsers || []), targetUserId];
+            txn.update(chatRef, {
+              participants: updatedParticipants,
+              participantNames: updatedNames,
+              bannedUsers: updatedBanned,
+              epochNonce: newNonce,
+              epochCounter: newEpoch,
+              [`epochNonces.${newEpoch}`]: newNonce,
+            });
           });
           await addDoc(messagesRef, {
             text: `@${adminName} banned @${targetName}`,
@@ -1881,21 +1963,29 @@ export default function ChatConversationClient() {
     };
   }, [reactionPickerMsgId]);
 
-  // Disappearing messages: periodically filter expired messages from UI
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMessages((prev) => {
-        const now = Date.now();
-        const filtered = prev.filter((m) => {
-          if (!m.expiresAt) return true;
-          const expiry = m.expiresAt?.toMillis?.() ?? m.expiresAt ?? Infinity;
-          return expiry > now;
-        });
-        return filtered.length === prev.length ? prev : filtered;
+  // Disappearing messages: filter expired messages from UI
+  const filterExpiredMessages = useCallback(() => {
+    setMessages((prev) => {
+      const now = Date.now();
+      const filtered = prev.filter((m) => {
+        if (!m.expiresAt) return true;
+        const expiry = m.expiresAt?.toMillis?.() ?? m.expiresAt ?? Infinity;
+        return expiry > now;
       });
-    }, 30_000);
-    return () => clearInterval(interval);
+      return filtered.length === prev.length ? prev : filtered;
+    });
   }, []);
+
+  // Periodically check for expired messages
+  useEffect(() => {
+    const interval = setInterval(filterExpiredMessages, 5_000);
+    return () => clearInterval(interval);
+  }, [filterExpiredMessages]);
+
+  // Immediately check for expired messages when messages change
+  useEffect(() => {
+    filterExpiredMessages();
+  }, [messages.length, filterExpiredMessages]);
 
   // Date divider logic
   const shouldShowDateDivider = (index: number): boolean => {
