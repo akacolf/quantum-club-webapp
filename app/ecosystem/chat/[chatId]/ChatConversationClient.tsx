@@ -108,7 +108,7 @@ interface ChatMessage {
     from: string;
     originalChatId: string;
   };
-  expiresAt?: any;
+  expiresAt?: Timestamp | number;
   type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share" | "call";
   poll?: {
     question: string;
@@ -674,7 +674,7 @@ export default function ChatConversationClient() {
         reactions?: Record<string, string[]>;
         replyTo?: { id: string; text: string; senderName: string };
         forwarded?: { from: string; originalChatId: string };
-        expiresAt?: any;
+        expiresAt?: Timestamp | number;
         type?: string;
         poll?: ChatMessage["poll"];
         voice?: ChatMessage["voice"];
@@ -710,13 +710,21 @@ export default function ChatConversationClient() {
         });
       });
 
-      // Helper to look up epoch nonce for a message (use epochRef to avoid stale closure)
+      // Snapshot epoch state once per listener invocation to avoid race conditions
+      // during parallel decryption (epochRef.current could change mid-batch)
+      const epochSnapshot = { ...epochRef.current };
+
+      // Helper to look up epoch nonce for a message
       const getEpochNonce = (epoch?: number) => {
-        const ep = epochRef.current;
         // Default to epoch 0 for messages that pre-date the encEpoch field
         const resolvedEpoch = epoch ?? 0;
-        return ep.nonces?.[resolvedEpoch] ?? (resolvedEpoch === ep.counter ? ep.nonce : undefined);
+        return epochSnapshot.nonces?.[resolvedEpoch] ?? (resolvedEpoch === epochSnapshot.counter ? epochSnapshot.nonce : undefined);
       };
+
+      // Build a map of all available epochs once for fallback decryption
+      const allEpochs = new Map<number, string>();
+      if (epochSnapshot.nonces) for (const [k, v] of Object.entries(epochSnapshot.nonces)) allEpochs.set(Number(k), v);
+      if (epochSnapshot.nonce !== undefined && epochSnapshot.counter !== undefined) allEpochs.set(epochSnapshot.counter, epochSnapshot.nonce);
 
       // Try decrypting with a specific epoch, returns null on failure
       const tryDecrypt = async (raw: string, senderId: string, nonce: string, counter: number) => {
@@ -739,10 +747,6 @@ export default function ChatConversationClient() {
               else { text = "[Decryption failed]"; }
             } else {
               // Epoch nonce not found — try all available epochs as fallback
-              const ep = epochRef.current;
-              const allEpochs = new Map<number, string>();
-              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
-              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
               let decrypted = false;
               for (const [counter, nonce] of allEpochs) {
                 const result = await tryDecrypt(msg.rawText, msg.senderId, nonce, counter);
@@ -759,10 +763,6 @@ export default function ChatConversationClient() {
               replyData = { ...replyData, text: decryptedReply };
             } catch {
               // Epoch fallback: try all available epochs
-              const ep = epochRef.current;
-              const allEpochs = new Map<number, string>();
-              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
-              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
               let replyDecrypted = false;
               for (const [counter, nonce] of allEpochs) {
                 const result = await tryDecrypt(replyData.text, msg.senderId, nonce, counter);
@@ -947,12 +947,19 @@ export default function ChatConversationClient() {
         };
       });
 
+      // Snapshot epoch state once to avoid race conditions during parallel decryption
+      const epochSnapshotOlder = { ...epochRef.current };
+
       const getEpochNonceOlder = (epoch?: number) => {
-        const ep = epochRef.current;
         // Default to epoch 0 for messages that pre-date the encEpoch field
         const resolvedEpoch = epoch ?? 0;
-        return ep.nonces?.[resolvedEpoch] ?? (resolvedEpoch === ep.counter ? ep.nonce : undefined);
+        return epochSnapshotOlder.nonces?.[resolvedEpoch] ?? (resolvedEpoch === epochSnapshotOlder.counter ? epochSnapshotOlder.nonce : undefined);
       };
+
+      // Build a map of all available epochs once for fallback decryption
+      const allEpochsOlder = new Map<number, string>();
+      if (epochSnapshotOlder.nonces) for (const [k, v] of Object.entries(epochSnapshotOlder.nonces)) allEpochsOlder.set(Number(k), v);
+      if (epochSnapshotOlder.nonce !== undefined && epochSnapshotOlder.counter !== undefined) allEpochsOlder.set(epochSnapshotOlder.counter, epochSnapshotOlder.nonce);
 
       const tryDecryptOlder = async (raw: string, senderId: string, nonce: string, counter: number) => {
         try {
@@ -973,12 +980,8 @@ export default function ChatConversationClient() {
               else { text = "[Decryption failed]"; }
             } else {
               // Epoch nonce not found — try all available epochs as fallback
-              const ep = epochRef.current;
-              const allEpochs = new Map<number, string>();
-              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
-              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
               let decrypted = false;
-              for (const [counter, nonce] of allEpochs) {
+              for (const [counter, nonce] of allEpochsOlder) {
                 const result = await tryDecryptOlder(msg.rawText, msg.senderId, nonce, counter);
                 if (result) { text = result; decrypted = true; break; }
               }
@@ -992,12 +995,8 @@ export default function ChatConversationClient() {
               replyData = { ...replyData, text: decryptedReply };
             } catch {
               // Epoch fallback: try all available epochs
-              const ep = epochRef.current;
-              const allEpochs = new Map<number, string>();
-              if (ep.nonces) for (const [k, v] of Object.entries(ep.nonces)) allEpochs.set(Number(k), v);
-              if (ep.nonce !== undefined && ep.counter !== undefined) allEpochs.set(ep.counter, ep.nonce);
               let replyDecrypted = false;
-              for (const [counter, nonce] of allEpochs) {
+              for (const [counter, nonce] of allEpochsOlder) {
                 const result = await tryDecryptOlder(replyData.text, msg.senderId, nonce, counter);
                 if (result) { replyData = { ...replyData, text: result }; replyDecrypted = true; break; }
               }
@@ -1761,6 +1760,7 @@ export default function ChatConversationClient() {
       await updateDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId), {
         [`hiddenBy.${telegramId}`]: true,
       });
+      // Pessimistic: only remove from UI after successful Firestore write
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
       toast.success("Message hidden");
     } catch (err) {
@@ -1773,17 +1773,23 @@ export default function ChatConversationClient() {
   async function handleDeleteForEveryone(msgId: string) {
     if (!chatId) return;
     try {
+      const wasLastMessage = messages[messages.length - 1]?.id === msgId;
       await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
 
-      // If deleting the last message, update chat doc preview
-      const remaining = messages.filter((m) => m.id !== msgId);
-      const lastMsg = remaining[remaining.length - 1];
-      if (messages[messages.length - 1]?.id === msgId) {
-        if (lastMsg) {
+      // If deleting the last message, query Firestore for the actual last remaining message
+      if (wasLastMessage) {
+        const lastMsgQuery = query(
+          collection(dbfs, "qc-chats", chatId, "messages"),
+          orderBy("createdAt", "desc"),
+          limit(1),
+        );
+        const lastMsgSnap = await getDocs(lastMsgQuery);
+        if (!lastMsgSnap.empty) {
+          const lastMsgData = lastMsgSnap.docs[0].data();
           updateDoc(doc(dbfs, "qc-chats", chatId), {
-            lastMessage: lastMsg.encrypted ? "New message" : lastMsg.text,
-            lastMessageBy: lastMsg.senderId,
-            lastMessageAt: lastMsg.createdAt || serverTimestamp(),
+            lastMessage: lastMsgData.encrypted ? "New message" : (lastMsgData.text || ""),
+            lastMessageBy: lastMsgData.senderId || "",
+            lastMessageAt: lastMsgData.createdAt || serverTimestamp(),
           }).catch(() => {});
         } else {
           updateDoc(doc(dbfs, "qc-chats", chatId), {
@@ -1988,7 +1994,7 @@ export default function ChatConversationClient() {
       const now = Date.now();
       const filtered = prev.filter((m) => {
         if (!m.expiresAt) return true;
-        const expiry = m.expiresAt?.toMillis?.() ?? m.expiresAt ?? Infinity;
+        const expiry = typeof m.expiresAt === "number" ? m.expiresAt : m.expiresAt?.toMillis() ?? Infinity;
         return expiry > now;
       });
       return filtered.length === prev.length ? prev : filtered;
