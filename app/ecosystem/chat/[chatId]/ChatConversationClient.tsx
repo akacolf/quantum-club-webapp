@@ -2757,10 +2757,11 @@ export default function ChatConversationClient() {
                 >
                   {!isOwnMessage && !consecutive && (
                     <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-                      {(() => {
-                        const senderPhoto = msg.senderId === telegramId ? myPhoto : otherPhoto;
-                        return senderPhoto ? <AvatarImage src={senderPhoto} /> : null;
-                      })()}
+                      {/* Only show photo in DMs where otherPhoto is the correct sender;
+                          in group chats otherPhoto is just one member — use initials instead */}
+                      {!isGroupChat && otherPhoto && (
+                        <AvatarImage src={otherPhoto} />
+                      )}
                       <AvatarFallback className={`${getAvatarColor(resolveSenderName(msg))} text-white text-[10px] font-semibold`}>
                         {getInitials(resolveSenderName(msg))}
                       </AvatarFallback>
