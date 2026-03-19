@@ -91,6 +91,7 @@ function docToToken(d: { id: string; data: () => Record<string, unknown> }): Tok
     volume24h: (data.volume24h as number) || 0,
     priceChange24h: (data.priceChange24h as number) || 0,
     creatorEarnings: (data.creatorEarnings as string) || "0",
+    communityChatId: (data.communityChatId as string) || undefined,
     bondingCurve: (data.bondingCurve as BondingCurveParams) || DEFAULT_BONDING_CURVE,
     graduationThreshold: (data.graduationThreshold as string) || DEFAULT_GRADUATION_THRESHOLD_TON,
     isGraduated: (data.isGraduated as boolean) || false,

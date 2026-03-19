@@ -54,6 +54,9 @@ export interface Token {
     // Creator earnings (accumulated from 0.5% trading fee)
     creatorEarnings?: string; // Total earnings in nanoTON
 
+    // Community
+    communityChatId?: string; // QC Chat group ID for token community
+
     // DEX info (when graduated)
     dexPoolAddress?: string;
     graduatedAt?: Date;

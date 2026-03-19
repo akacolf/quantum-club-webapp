@@ -14,7 +14,6 @@ import {
     setDoc,
     query,
     orderBy,
-    limit,
     onSnapshot,
     serverTimestamp,
     Timestamp,
@@ -50,7 +49,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
         if (!tokenId) return;
 
         const messagesRef = collection(dbfs, `tokens/${tokenId}/chat`);
-        const q = query(messagesRef, orderBy("timestamp", "desc"), limit(50));
+        const q = query(messagesRef, orderBy("timestamp", "desc"));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const msgs: TokenChatMessage[] = snapshot.docs.map((docSnap) => {

@@ -21,8 +21,10 @@ import {
 import { useTrading } from "@/app/(contexts)/TradingContext";
 import { useTradingStore } from "@/stores/trading-store";
 import { useWallet } from "@/app/wallet/WalletContext";
-import { useGroups } from "@/app/(contexts)/GroupsContext";
+import { useTokenCommunityChat } from "@/app/(hooks)/queries/use-token-community";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { createTokenCommunityChat } from "@/app/ecosystem/chat/actions";
 import { formatPrice, formatMarketCap, formatCompactNumber } from "@/lib/jetton-operations";
 import { toast } from "sonner";
 import { tradeAmountSchema } from "@/lib/validations";
@@ -49,6 +51,8 @@ import {
 } from "@/components/ui/popover";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { TokenAnalysisCard } from "@/components/ai";
+import { dbfs } from "@/app/(firebase)/client";
+import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
 
 export default function TokenDetailClient() {
     const params = useParams();
@@ -65,11 +69,8 @@ export default function TokenDetailClient() {
         sellTokens,
     } = useTrading();
     const { walletAddress, tonBalance, tonPrice, isTestnet, fetchWalletAssets } = useWallet();
-    const { getGroupByToken, joinGroup, isGroupMember, createGroup } = useGroups();
+    const { telegramId, qcUsername } = useUserContext();
     const queryClient = useQueryClient();
-
-    // Get linked community group for this token
-    const tokenGroup = getGroupByToken(tokenId);
 
     // Telegram back button
     useTelegramBackButton("/ecosystem/trade");
@@ -88,6 +89,14 @@ export default function TokenDetailClient() {
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
     const [tradingOpen, setTradingOpen] = useState(false);
     const [tokenLoadError, setTokenLoadError] = useState<string | null>(null);
+
+    // Token community chat (QC Chat group linked to this token)
+    const { data: communityChat, isLoading: isCommunityLoading } = useTokenCommunityChat(
+        tokenId,
+        selectedToken?.communityChatId,
+    );
+    const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
+    const [isJoiningCommunity, setIsJoiningCommunity] = useState(false);
 
     // On-chain stats from TONAPI via TanStack Query
     const { data: onChainStats = EMPTY_ON_CHAIN_STATS, isLoading: isLoadingStats } = useOnChainStats(
@@ -109,8 +118,8 @@ export default function TokenDetailClient() {
     }, [router]);
 
     useEffect(() => {
-        if (tokenGroup?.id) router.prefetch(`/groups/${tokenGroup.id}`);
-    }, [router, tokenGroup?.id]);
+        if (communityChat?.chatId) router.prefetch(`/ecosystem/chat/${communityChat.chatId}`);
+    }, [router, communityChat?.chatId]);
 
     // Load token and refresh balance
     useEffect(() => {
@@ -539,7 +548,7 @@ export default function TokenDetailClient() {
                     </Card>
                 )}
 
-                {/* Community Group */}
+                {/* Community Group (QC Chat) */}
                 <Card className="bg-white/5 border-white/5">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
@@ -547,66 +556,110 @@ export default function TokenDetailClient() {
                                 <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-primary" />
                                 <h3 className="font-semibold text-white text-sm">Community</h3>
                             </div>
-                            {tokenGroup && (
-                                <span className="text-[10px] text-muted-foreground">{tokenGroup.memberCount} members</span>
+                            {communityChat && (
+                                <span className="text-[10px] text-muted-foreground">{communityChat.participantCount} members</span>
                             )}
                         </div>
 
-                        {tokenGroup ? (
+                        {isCommunityLoading ? (
+                            <Skeleton className="h-11 w-full rounded-xl" />
+                        ) : communityChat ? (
                             <div className="space-y-3">
-                                <p className="text-xs text-muted-foreground">{tokenGroup.description || `Join the ${selectedToken.symbol} community`}</p>
-                                {isGroupMember(tokenGroup.id) ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Join the {selectedToken.symbol} community chat — reactions, voice messages, polls, and more.
+                                </p>
+                                {telegramId && communityChat.participants.includes(telegramId) ? (
                                     <Button
-                                        onClick={() => router.push(`/groups/${tokenGroup.id}`)}
+                                        onClick={() => router.push(`/ecosystem/chat/${communityChat.chatId}`)}
                                         className="w-full bg-primary/20 hover:bg-primary/30 text-primary h-11 rounded-xl font-bold text-sm"
                                     >
                                         <Icon icon="solar:chat-round-line-bold" className="w-4 h-4 mr-2" />
-                                        Open Group Chat
+                                        Open Community Chat
                                     </Button>
                                 ) : (
                                     <Button
+                                        disabled={isJoiningCommunity || !telegramId || !qcUsername}
                                         onClick={async () => {
-                                            const success = await joinGroup(tokenGroup.id);
-                                            if (success) {
+                                            if (!telegramId || !qcUsername) {
+                                                toast.error("Set up a QC username in QC Chat first");
+                                                return;
+                                            }
+                                            setIsJoiningCommunity(true);
+                                            try {
+                                                const selfName = qcUsername.replace(/^@+/, "").trim() || "Unknown";
+                                                await updateDoc(doc(dbfs, "qc-chats", communityChat.chatId), {
+                                                    participants: arrayUnion(telegramId),
+                                                    [`participantNames.${telegramId}`]: selfName,
+                                                    lastMessage: `${selfName} joined the community`,
+                                                    lastMessageBy: "system",
+                                                    lastMessageAt: serverTimestamp(),
+                                                });
+                                                queryClient.invalidateQueries({ queryKey: ["tokenCommunityChat", tokenId] });
+                                                haptics.success();
                                                 toast.success("Joined community!");
-                                                router.push(`/groups/${tokenGroup.id}`);
-                                            } else {
-                                                toast.error("Failed to join");
+                                                router.push(`/ecosystem/chat/${communityChat.chatId}`);
+                                            } catch {
+                                                toast.error("Failed to join community");
+                                            } finally {
+                                                setIsJoiningCommunity(false);
                                             }
                                         }}
                                         className="w-full bg-white hover:bg-white/90 text-black h-11 rounded-xl font-bold text-sm"
                                     >
-                                        <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
-                                        Join Community
+                                        {isJoiningCommunity ? (
+                                            <ButtonLoader />
+                                        ) : (
+                                            <>
+                                                <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
+                                                Join Community
+                                            </>
+                                        )}
                                     </Button>
                                 )}
                             </div>
                         ) : (
                             <div className="space-y-3 text-center py-2">
-                                <p className="text-xs text-muted-foreground">No community group yet</p>
-                                {selectedToken.creatorId && (
-                                    <Button
-                                        onClick={async () => {
-                                            const groupId = await createGroup(
-                                                `${selectedToken.symbol} Community`,
-                                                `Official community for ${selectedToken.name} token holders`,
+                                <p className="text-xs text-muted-foreground">No community chat yet</p>
+                                <Button
+                                    disabled={isCreatingCommunity || !telegramId || !qcUsername}
+                                    onClick={async () => {
+                                        if (!telegramId || !qcUsername) {
+                                            toast.error("Set up a QC username in QC Chat first");
+                                            return;
+                                        }
+                                        setIsCreatingCommunity(true);
+                                        try {
+                                            const result = await createTokenCommunityChat({
                                                 tokenId,
-                                                selectedToken.symbol
-                                            );
-                                            if (groupId) {
+                                                tokenSymbol: selectedToken.symbol,
+                                                tokenName: selectedToken.name,
+                                            });
+                                            if (result?.data?.success && result.data.chatId) {
+                                                queryClient.invalidateQueries({ queryKey: ["tokenCommunityChat", tokenId] });
+                                                haptics.success();
                                                 toast.success("Community created!");
-                                                router.push(`/groups/${groupId}`);
+                                                router.push(`/ecosystem/chat/${result.data.chatId}`);
                                             } else {
-                                                toast.error("Failed to create community");
+                                                toast.error(result?.serverError || "Failed to create community");
                                             }
-                                        }}
-                                        variant="outline"
-                                        className="w-full border-white/20 text-white hover:bg-white/10 h-10 rounded-xl text-sm"
-                                    >
-                                        <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
-                                        Create Community
-                                    </Button>
-                                )}
+                                        } catch {
+                                            toast.error("Failed to create community");
+                                        } finally {
+                                            setIsCreatingCommunity(false);
+                                        }
+                                    }}
+                                    variant="outline"
+                                    className="w-full border-white/20 text-white hover:bg-white/10 h-10 rounded-xl text-sm"
+                                >
+                                    {isCreatingCommunity ? (
+                                        <ButtonLoader />
+                                    ) : (
+                                        <>
+                                            <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
+                                            Create Community
+                                        </>
+                                    )}
+                                </Button>
                             </div>
                         )}
                     </CardContent>
