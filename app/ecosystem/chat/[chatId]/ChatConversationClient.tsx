@@ -2143,7 +2143,9 @@ export default function ChatConversationClient() {
   const subtitle = getSubtitle();
 
   return (
-    <div ref={chatRootRef} className="fixed inset-x-0 top-0 z-40 flex flex-col bg-background" style={{ height: "100dvh" }}>
+    <>
+    <div className="fixed inset-0 z-40 bg-background" aria-hidden />
+    <div ref={chatRootRef} className="fixed inset-x-0 top-0 z-[41] flex flex-col" style={{ height: "100dvh" }}>
       <style>{`
         @keyframes highlightMessage {
           0% { box-shadow: 0 0 0 0 transparent; }
@@ -3120,5 +3122,6 @@ export default function ChatConversationClient() {
         />
       )}
     </div>
+    </>
   );
 }
