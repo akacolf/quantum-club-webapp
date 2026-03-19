@@ -397,15 +397,23 @@ export default function ChatConversationClient() {
     },
   );
 
-  // iOS keyboard: resize chat container when virtual keyboard opens/closes
+  // iOS/Android keyboard: resize chat container when virtual keyboard opens/closes
   const chatRootRef = useRef<HTMLDivElement>(null);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
     const onResize = () => {
-      if (chatRootRef.current) {
-        chatRootRef.current.style.height = `${vv.height}px`;
+      if (!chatRootRef.current) return;
+      chatRootRef.current.style.height = `${vv.height}px`;
+      // When keyboard is open, the viewport is noticeably shorter — remove safe area
+      // bottom padding so there's no grey gap between input and keyboard
+      const keyboardOpen = vv.height < window.innerHeight * 0.85;
+      if (inputContainerRef.current) {
+        inputContainerRef.current.style.paddingBottom = keyboardOpen
+          ? "0.625rem"
+          : `max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))`;
       }
     };
 
@@ -2281,14 +2289,8 @@ export default function ChatConversationClient() {
                 <span className="ml-auto text-[10px] text-primary">On</span>
               )}
             </DropdownMenuItem>
-            {isGroupChat && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setShowMembersPanel(true)}>
-                  <Icon icon="solar:users-group-rounded-linear" className="w-4 h-4 mr-2" />
-                  Members
-                </DropdownMenuItem>
-              </>
+            {isGroupChat && chatMeta?.joinCode && (
+              <DropdownMenuSeparator />
             )}
             {isGroupChat && chatMeta?.joinCode && (
               <DropdownMenuItem onClick={() => setShowShareModal(true)}>
@@ -2321,12 +2323,18 @@ export default function ChatConversationClient() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-center">
-                <p className="text-[10px] text-muted-foreground mb-1">Join Code</p>
+              <button
+                className="w-full rounded-xl border border-border/60 bg-muted/30 p-3 text-center hover:bg-muted/50 active:scale-[0.98] transition-all"
+                onClick={() => {
+                  navigator.clipboard.writeText(chatMeta.joinCode!);
+                  toast.success("Join code copied!");
+                }}
+              >
+                <p className="text-[10px] text-muted-foreground mb-1">Join Code — tap to copy</p>
                 <p className="text-lg font-mono font-bold tracking-[0.3em] text-foreground">
                   {chatMeta.joinCode}
                 </p>
-              </div>
+              </button>
 
               <div className="flex gap-2">
                 <Button
@@ -3007,6 +3015,7 @@ export default function ChatConversationClient() {
 
       {/* Message Input */}
       <div
+        ref={inputContainerRef}
         className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5 shrink-0"
         style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}
       >

@@ -566,12 +566,12 @@ export default function TokenDetailClient() {
                         ) : communityChat ? (
                             <div className="space-y-3">
                                 <p className="text-xs text-muted-foreground">
-                                    Join the {selectedToken.symbol} community chat — reactions, voice messages, polls, and more.
+                                    Join the {selectedToken.symbol} community chat on QC Chat!
                                 </p>
                                 {telegramId && communityChat.participants.includes(telegramId) ? (
                                     <Button
                                         onClick={() => router.push(`/ecosystem/chat/${communityChat.chatId}`)}
-                                        className="w-full bg-primary/20 hover:bg-primary/30 text-primary h-11 rounded-xl font-bold text-sm"
+                                        className="w-full bg-white/10 hover:bg-white/15 text-white h-11 rounded-xl font-bold text-sm border border-white/10"
                                     >
                                         <Icon icon="solar:chat-round-line-bold" className="w-4 h-4 mr-2" />
                                         Open Community Chat

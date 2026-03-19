@@ -139,7 +139,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
             >
                 <div className="flex items-center gap-2">
                     <Icon icon="solar:chat-round-dots-bold" className="w-5 h-5 text-primary" />
-                    <span className="font-semibold text-white">{tokenSymbol} Chat</span>
+                    <span className="font-semibold text-white">{tokenSymbol} Live Chat</span>
                     {messages.length > 0 && (
                         <span className="px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
                             {messages.length}
