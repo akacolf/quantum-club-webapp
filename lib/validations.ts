@@ -343,3 +343,10 @@ export const chatGroupSchema = z.object({
 export const chatJoinSchema = z.object({
   code: z.string().length(6, "Enter 6-character code"),
 });
+
+/** Token community chat creation */
+export const createTokenCommunityChatSchema = z.object({
+  tokenId: z.string().min(1, "Token ID is required"),
+  tokenSymbol: z.string().min(1, "Token symbol is required"),
+  tokenName: z.string().min(1, "Token name is required"),
+});

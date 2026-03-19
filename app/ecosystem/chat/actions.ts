@@ -10,6 +10,7 @@ import {
   USERNAME_MAX_LENGTH,
   USERNAME_REGEX,
   RESERVED_USERNAMES,
+  createTokenCommunityChatSchema,
 } from "@/lib/validations";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -322,3 +323,72 @@ export const getTurnCredentials = authActionClient
     const data = await res.json();
     return data.iceServers;
   });
+
+// ---------------------------------------------------------------------------
+// createTokenCommunityChat — create a QC Chat group linked to a token
+// ---------------------------------------------------------------------------
+
+export const createTokenCommunityChat = authWithQcIdClient
+  .schema(createTokenCommunityChatSchema)
+  .action(
+    async ({
+      parsedInput: { tokenId, tokenSymbol, tokenName },
+      ctx: { qcId },
+    }) => {
+      // Idempotency: check if a community chat already exists for this token
+      const existingSnap = await firestore
+        .collection("qc-chats")
+        .where("linkedTokenId", "==", tokenId)
+        .where("isGroup", "==", true)
+        .limit(1)
+        .get();
+
+      if (!existingSnap.empty) {
+        return { success: true, chatId: existingSnap.docs[0].id };
+      }
+
+      // Resolve display name from QC username
+      const usernameSnap = await firestore
+        .collection("qcUsernames")
+        .where("qcId", "==", qcId)
+        .limit(1)
+        .get();
+
+      const displayName = usernameSnap.empty
+        ? "Unknown"
+        : usernameSnap.docs[0].data().displayUsername || usernameSnap.docs[0].id;
+
+      // Generate join code and epoch nonce
+      const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const { randomBytes } = await import("crypto");
+      const epochNonce = randomBytes(16).toString("hex");
+
+      const chatId = `token_${tokenId}_${Date.now()}`;
+
+      await firestore.collection("qc-chats").doc(chatId).set({
+        isGroup: true,
+        isGlobal: false,
+        groupName: `${tokenSymbol} Community`,
+        participants: [qcId],
+        participantNames: { [qcId]: displayName },
+        createdBy: qcId,
+        joinCode,
+        linkedTokenId: tokenId,
+        linkedTokenSymbol: tokenSymbol,
+        lastMessage: `${displayName} created the ${tokenName} community`,
+        lastMessageBy: "system",
+        lastMessageAt: new Date(),
+        createdAt: new Date(),
+        epochNonce,
+        epochCounter: 0,
+        epochNonces: { 0: epochNonce },
+      });
+
+      // Write communityChatId back to the token doc for fast lookup
+      await firestore
+        .doc(`tokens/${tokenId}`)
+        .update({ communityChatId: chatId });
+
+      return { success: true, chatId };
+    },
+  );

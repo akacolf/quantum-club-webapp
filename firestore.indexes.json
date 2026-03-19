@@ -197,6 +197,20 @@
       ]
     },
     {
+      "collectionGroup": "qc-chats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "linkedTokenId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isGroup",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "nft_listings",
       "queryScope": "COLLECTION",
       "fields": [

@@ -32,6 +32,8 @@ export interface ChatConversation {
     epochNonce?: string;
     epochCounter?: number;
     epochNonces?: Record<number, string>;
+    linkedTokenId?: string;
+    linkedTokenSymbol?: string;
 }
 
 /**
@@ -144,6 +146,8 @@ export function useChatConversations(telegramId: string | null, isAuthenticated:
                         epochNonce: data.epochNonce,
                         epochCounter: data.epochCounter,
                         epochNonces: data.epochNonces,
+                        linkedTokenId: data.linkedTokenId,
+                        linkedTokenSymbol: data.linkedTokenSymbol,
                     });
                 });
                 queryClient.setQueryData(
