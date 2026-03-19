@@ -7,7 +7,6 @@ import { flushSync } from "react-dom";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { sendBoc } from "@/lib/tonapi-client";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
-import { useForm } from "@tanstack/react-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -122,10 +121,8 @@ export default function SwapPage() {
         ? "https://testnet.tonapi.io"
         : "https://tonapi.io";
 
-    // Swap form — TanStack Form for amount field; full validation via swapSchema at submit boundary
-    const form = useForm({ defaultValues: { amount: "" } });
-    const amount = form.state.values.amount;
-    const setAmount = (val: string) => form.setFieldValue("amount", val);
+    // Amount input — plain useState for snappy keystroke handling
+    const [amount, setAmount] = useState("");
 
     // State
     const [step, setStep] = useState<"input" | "confirm" | "processing" | "success">("input");
@@ -443,7 +440,7 @@ export default function SwapPage() {
     // Handle continue to confirm — validates form values via Zod
     const handleContinue = () => {
         const parsed = swapSchema.safeParse({
-            amount: form.getFieldValue("amount") || "",
+            amount: amount || "",
             fromAsset: fromAsset?.symbol || "",
             toAsset: toAsset?.symbol || "",
         });
@@ -696,13 +693,13 @@ export default function SwapPage() {
                                         setFromChain("TON");
                                         setToChain("TRON");
                                         setToAsset(null);
-                                        form.setFieldValue("amount", "");
+                                        setAmount("");
                                     } else {
                                         setFromChain("TON");
                                         setToChain("TON");
                                         setToAsset(null);
                                         setTronDestAddress("");
-                                        form.setFieldValue("amount", "");
+                                        setAmount("");
                                     }
                                 }}
                                 className="mb-2"
