@@ -40,11 +40,14 @@ const FrensContent = () => {
   const [isClaimingTon, setIsClaimingTon] = useState(false);
 
   // Fetch referral counts, pending rewards, and TON earnings via TanStack Query
-  const { data: frensData } = useFrensDataQuery(telegramId);
+  const { data: frensData, isPending: dataPending, error: dataError } = useFrensDataQuery(telegramId);
   const secondTierCount = frensData?.secondTierCount ?? 0;
 
   // Fetch referral list via TanStack Query
-  const { data: referralList = [], isLoading: loading } = useReferralListQuery(telegramId);
+  const { data: referralList = [], isPending: listPending, error: listError } = useReferralListQuery(telegramId);
+
+  // Show skeleton while either query hasn't resolved yet (covers disabled + fetching states)
+  const loading = dataPending || listPending;
 
   // Sync query data into local state and context
   useEffect(() => {
@@ -137,7 +140,17 @@ const FrensContent = () => {
     <div className="min-h-screen pb-24">
 
       <div>
-        {!loading ? (
+        {(dataError || listError) ? (
+          <div className="p-4 space-y-6">
+            <h1 className="text-3xl font-bold text-white">Frens</h1>
+            <Card className="bg-red-500/10 border-red-500/20 text-white">
+              <CardContent className="p-5 flex flex-col items-center gap-3 text-center">
+                <Icon icon="lucide:wifi-off" className="w-10 h-10 text-red-400" />
+                <p className="text-sm text-gray-300">Failed to load referrals. Pull down to retry.</p>
+              </CardContent>
+            </Card>
+          </div>
+        ) : !loading ? (
           <div className="p-4 space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold text-white">Frens</h1>
