@@ -2,11 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getLeaderboardData } from "@/app/(hooks)/actions";
 
 interface LeaderboardEntry {
-  rank: number;
+  id: string;
   username: string;
   QuantAmount: number;
-  miningActive: boolean;
-  telegramId: string;
 }
 
 interface LeaderboardData {
