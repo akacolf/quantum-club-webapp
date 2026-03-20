@@ -1,5 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
-import { SYSTEM_PROMPT, AI_MODEL } from "@/lib/ai/system-prompt";
+import {
+    SYSTEM_PROMPT,
+    AI_MODEL,
+    buildUserContextBlock,
+    type UserAIContext,
+} from "@/lib/ai/system-prompt";
 import { checkRateLimit } from "@/lib/ai/rate-limiter";
 import { getSession } from "@/utils/session";
 import { encryptTelegramId } from "@/utils/encrypt-telegram-id";
@@ -11,6 +16,14 @@ import { env } from "@/env";
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_LENGTH = 20;
 
+const userContextSchema = z.object({
+    qntmBalance: z.string().max(50).optional(),
+    rank: z.string().max(20).optional(),
+    streak: z.number().int().min(0).max(99999).optional(),
+    walletConnected: z.boolean().optional(),
+    referralCount: z.number().int().min(0).max(999999).optional(),
+}).optional();
+
 const chatRequestSchema = z.object({
     message: z.string().min(1, "Message cannot be empty").max(MAX_MESSAGE_LENGTH, `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`),
     history: z.array(
@@ -20,29 +33,58 @@ const chatRequestSchema = z.object({
         })
     ).max(MAX_HISTORY_LENGTH).default([]),
     currentPage: z.string().max(200).optional(),
+    userContext: userContextSchema,
 });
 
 function sanitizeMessage(message: string): string {
     return message.trim().slice(0, MAX_MESSAGE_LENGTH);
 }
 
-// Get context-aware system prompt based on current page
-function getContextualSystemPrompt(currentPage?: string): string {
-    let contextHint = "";
+// Context hints with detailed feature knowledge per page
+function getContextHint(currentPage?: string): string {
+    if (!currentPage) return "";
 
-    if (currentPage) {
-        if (currentPage.startsWith("/wallet")) {
-            contextHint = "\n\n[Context: User is currently viewing their wallet. They may have questions about sending/receiving crypto, managing assets, or understanding transaction fees.]";
-        } else if (currentPage.startsWith("/groups") || currentPage.startsWith("/ecosystem/chat")) {
-            contextHint = "\n\n[Context: User is in the social/community section. They may have questions about groups, messaging, or connecting with others.]";
-        } else if (currentPage.startsWith("/earn")) {
-            contextHint = "\n\n[Context: User is in the earn section. They may have questions about earning QNTM, daily rewards, referrals, or ranks.]";
-        } else if (currentPage.startsWith("/frens")) {
-            contextHint = "\n\n[Context: User is viewing referrals. They may have questions about inviting friends or referral rewards.]";
-        }
+    if (currentPage.match(/\/ecosystem\/trade\/[^/]+/) || currentPage.match(/\/trade\/[^/]+/)) {
+        return `\n\n[Context: User is viewing a specific token's trading page. They can buy/sell via the bonding curve, see the price chart, holder count, market cap, and creator info. Help with: trading mechanics, bonding curves, slippage, graduation threshold (2000 TON), fees (1.1% total), and reading token metrics.]`;
+    }
+    if (currentPage.includes("/trade/create") || currentPage.includes("/ecosystem/trade/create")) {
+        return `\n\n[Context: User is creating a new token. Token creation is FREE, deployment costs 0.05 TON. They need a name, ticker, description, and optional image. Guide them through the process and explain what happens after launch (bonding curve starts, others can trade it).]`;
+    }
+    if (currentPage.startsWith("/ecosystem/trade") || currentPage.startsWith("/trade")) {
+        return `\n\n[Context: User is browsing the token marketplace. They can see Trending, New, and Graduated tokens. Help with: understanding token metrics, how to evaluate tokens, what graduation means, and how to start trading.]`;
+    }
+    if (currentPage.startsWith("/wallet/staking")) {
+        return `\n\n[Context: User is viewing staking options. They can stake TON via liquid staking protocols for ~5% APY. Explain: liquid staking tokens (tsTON, stTON, hTON), normal vs instant unstaking, and staking rewards.]`;
+    }
+    if (currentPage.startsWith("/wallet/nft")) {
+        return `\n\n[Context: User is viewing their NFT collection. They can view, send, and trade NFTs. Marketplace fee is 0.5%.]`;
+    }
+    if (currentPage.startsWith("/wallet")) {
+        return `\n\n[Context: User is in their wallet. Features: send/receive TON and Jettons, view multi-chain balances (TON, ETH, BTC, SOL, TRON), manage assets, access staking, and view NFTs. Help with: transactions, gas fees, recovery phrase security, and asset management.]`;
+    }
+    if (currentPage.startsWith("/groups")) {
+        return `\n\n[Context: User is in the groups section. They can create/join groups, link groups to tokens, and chat in real-time. Some groups are NFT-gated. Help with: group features, creating communities around tokens, and group management.]`;
+    }
+    if (currentPage.startsWith("/ecosystem/chat") || currentPage.startsWith("/chat")) {
+        return `\n\n[Context: User is in a chat conversation. Real-time messaging with other community members.]`;
+    }
+    if (currentPage.startsWith("/earn/solvetoearn")) {
+        return `\n\n[Context: User is playing Solve-to-Earn puzzles. Each game costs 1 pass (earned from daily check-in, +7 per day). Help with: game mechanics and earning strategy.]`;
+    }
+    if (currentPage.startsWith("/earn")) {
+        return `\n\n[Context: User is in the Earn section. Features: daily mining check-in (streak-based QNTM rewards), Solve-to-Earn puzzles, and tasks (Limited, In-App, Partner). Help with: maximizing earnings, streak maintenance, and task completion.]`;
+    }
+    if (currentPage.startsWith("/frens")) {
+        return `\n\n[Context: User is viewing their referrals. They earn QNTM for invites and 0.1% of referred users' trades. Milestones: Networker (1), Team Builder (5), Referral King (10+). Help with: referral strategy and sharing invite links.]`;
+    }
+    if (currentPage.startsWith("/leaderboard")) {
+        return `\n\n[Context: User is viewing the global leaderboard ranked by QNTM balance. Help with: understanding rankings and how to climb the leaderboard (daily mining, tasks, referrals, puzzles).]`;
+    }
+    if (currentPage.startsWith("/home/profile")) {
+        return `\n\n[Context: User is viewing their profile with achievements, badges, stats, and rank. Help with: understanding achievement requirements and how to unlock more.]`;
     }
 
-    return SYSTEM_PROMPT + contextHint;
+    return "";
 }
 
 export async function POST(req: NextRequest) {
@@ -91,7 +133,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { message, history, currentPage } = parsed.data;
+        const { message, history, currentPage, userContext } = parsed.data;
 
         // Security: Sanitize message content
         const sanitizedMessage = sanitizeMessage(message);
@@ -116,10 +158,12 @@ export async function POST(req: NextRequest) {
             { role: "user", parts: [{ text: sanitizedMessage }] },
         ];
 
-        // Get context-aware system prompt
-        const systemPrompt = getContextualSystemPrompt(currentPage);
+        // Build context-aware system prompt with user profile and page context
+        const contextHint = getContextHint(currentPage);
+        const userContextBlock = buildUserContextBlock(userContext as UserAIContext | undefined);
+        const systemPrompt = SYSTEM_PROMPT + userContextBlock + contextHint;
 
-        // Generate streaming response
+        // Generate streaming response with thinking enabled
         const streamResponse = await ai.models.generateContentStream({
             model: AI_MODEL,
             contents: contents,
@@ -128,7 +172,10 @@ export async function POST(req: NextRequest) {
                 temperature: 0.7,
                 topP: 0.95,
                 topK: 40,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 4096,
+                thinkingConfig: {
+                    thinkingBudget: 2048,
+                },
             },
         });
 
@@ -146,6 +193,7 @@ export async function POST(req: NextRequest) {
 
                     const streamPromise = (async () => {
                         for await (const chunk of streamResponse) {
+                            // Only stream the text output, not thinking
                             const text = chunk.text;
                             if (text) {
                                 controller.enqueue(encoder.encode(text));
@@ -185,5 +233,3 @@ export async function POST(req: NextRequest) {
         }, { status: 500 });
     }
 }
-
-

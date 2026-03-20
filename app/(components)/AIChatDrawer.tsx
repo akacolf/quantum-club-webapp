@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { ButtonLoader } from "./ButtonLoader";
 import Image from "next/image";
+import { useUserStore } from "@/stores/user-store";
+import { useFrensStore } from "@/stores/frens-store";
 
 interface Message {
     id: string;
@@ -158,36 +160,84 @@ function ChatInputForm({
 
 // Dynamic suggested prompts based on current page
 function getContextualPrompts(pathname: string): string[] {
-    if (pathname.startsWith("/wallet")) {
+    if (pathname.match(/\/ecosystem\/trade\/[^/]+/) || pathname.match(/\/trade\/[^/]+/)) {
         return [
-            "What's a recovery phrase?",
-            "How do I send TON?",
-            "Explain Jettons",
-            "What are gas fees?",
+            "How does the bonding curve work?",
+            "When does a token graduate?",
+            "What are the trading fees?",
+            "How do I read token metrics?",
         ];
     }
-    if (pathname.startsWith("/groups") || pathname.startsWith("/ecosystem/chat")) {
+    if (pathname.includes("/trade/create")) {
         return [
-            "How do groups work?",
-            "What is Quantum Club?",
-            "How many members per group?",
-            "How do I invite friends?",
+            "How much does it cost to launch?",
+            "What happens after I create a token?",
+            "How does graduation work?",
+            "Tips for a successful launch",
+        ];
+    }
+    if (pathname.startsWith("/ecosystem/trade") || pathname.startsWith("/trade")) {
+        return [
+            "How does token trading work?",
+            "What are graduated tokens?",
+            "How to spot good tokens?",
+            "What fees do I pay?",
+        ];
+    }
+    if (pathname.startsWith("/wallet/staking")) {
+        return [
+            "How does TON staking work?",
+            "What APY can I expect?",
+            "Normal vs instant unstake?",
+            "What are liquid staking tokens?",
+        ];
+    }
+    if (pathname.startsWith("/wallet")) {
+        return [
+            "How do I send TON?",
+            "What chains are supported?",
+            "How to keep my wallet secure?",
+            "What are gas fees on TON?",
+        ];
+    }
+    if (pathname.startsWith("/groups")) {
+        return [
+            "How do I create a group?",
+            "Can I link a group to my token?",
+            "What is NFT gating?",
+            "How do group roles work?",
         ];
     }
     if (pathname.startsWith("/earn")) {
         return [
-            "How do I earn QNTM?",
-            "What are daily rewards?",
-            "Explain referrals",
-            "What are the ranks?",
+            "How do I maximize QNTM earnings?",
+            "How do daily streaks work?",
+            "What is Solve-to-Earn?",
+            "What tasks give the most QNTM?",
+        ];
+    }
+    if (pathname.startsWith("/frens")) {
+        return [
+            "How do referral rewards work?",
+            "What's the 0.1% trade fee?",
+            "How do I share my invite link?",
+            "What are referral milestones?",
+        ];
+    }
+    if (pathname.startsWith("/leaderboard")) {
+        return [
+            "How is the leaderboard ranked?",
+            "How do I climb the rankings?",
+            "What counts toward my score?",
+            "How often does it update?",
         ];
     }
     // Default prompts
     return [
-        "What is TON blockchain?",
+        "What can I do in Quantum Club?",
         "How do I earn QNTM?",
-        "Explain staking",
-        "What are Jettons?",
+        "How does token trading work?",
+        "What ranks can I unlock?",
     ];
 }
 
@@ -211,6 +261,17 @@ export default function AIChatDrawer() {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Gather user context for personalized AI responses
+    const { MainQuantAmount, rank, daily, walletAddress } = useUserStore();
+    const { referralsNum } = useFrensStore();
+    const userContext = {
+        qntmBalance: MainQuantAmount || undefined,
+        rank: rank || undefined,
+        streak: daily || undefined,
+        walletConnected: !!walletAddress,
+        referralCount: referralsNum || undefined,
+    };
 
     // Get current session's messages
     const currentSession = sessions.find(s => s.id === currentSessionId);
@@ -378,8 +439,12 @@ export default function AIChatDrawer() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: messageText,
-                    history: messagesRef.current.slice(-10),
+                    history: messagesRef.current.slice(-10).map(m => ({
+                        role: m.role === "assistant" ? "model" : "user",
+                        content: m.content,
+                    })),
                     currentPage: pathname,
+                    userContext,
                 }),
                 signal: abortControllerRef.current.signal,
             });
