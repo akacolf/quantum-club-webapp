@@ -3,6 +3,7 @@
 import { create } from "zustand";
 
 interface Leaderboard {
+  id: string;
   username: string;
   QuantAmount: number;
 }
