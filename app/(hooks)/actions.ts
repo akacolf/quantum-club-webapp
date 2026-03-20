@@ -65,49 +65,67 @@ export const getProfilePhoto = authActionClient
 // getLeaderboardData — fetch leaderboard rankings
 // ---------------------------------------------------------------------------
 
+const LEADERBOARD_PAGE_SIZE = 50;
+
 const getLeaderboardSchema = z.object({
     telegramId: z.string().min(1).optional(),
+    lastDocId: z.string().optional(),
 });
 
 export const getLeaderboardData = authActionClient
     .schema(getLeaderboardSchema)
-    .action(async ({ ctx: { session }, parsedInput: { telegramId: requestedTelegramId } }) => {
+    .action(async ({ ctx: { session }, parsedInput: { telegramId: requestedTelegramId, lastDocId } }) => {
         // Resolve telegram ID from session
         const rawTelegramId = String(session.user?.telegramId || "");
         const telegramId = rawTelegramId ? encryptTelegramId(rawTelegramId) : requestedTelegramId || null;
 
-        const valuesSnapshot = await admin.firestore()
+        let query = admin.firestore()
             .collection("userRanks")
             .orderBy("QuantAmount", "desc")
-            .limit(50)
-            .get();
+            .limit(LEADERBOARD_PAGE_SIZE);
 
+        if (lastDocId) {
+            const lastDoc = await admin.firestore().doc(`userRanks/${lastDocId}`).get();
+            if (lastDoc.exists) {
+                query = query.startAfter(lastDoc);
+            }
+        }
+
+        const valuesSnapshot = await query.get();
         const allValues = valuesSnapshot.docs.map((rankDoc) => ({
             id: rankDoc.id,
             username: rankDoc.data().username,
             QuantAmount: Math.round(Number(rankDoc.data().QuantAmount || 0)),
         }));
 
-        let rank = 0;
-        if (telegramId) {
-            const rankSnapshot = await admin.firestore().doc(`userRanks/${telegramId}`).get();
-            if (rankSnapshot.exists) {
-                rank = Number(rankSnapshot.data()?.rank || 0);
+        const lastVisible = valuesSnapshot.docs[valuesSnapshot.docs.length - 1];
+        const nextCursor = allValues.length === LEADERBOARD_PAGE_SIZE ? lastVisible?.id : undefined;
+
+        // Only fetch aggregate stats on the first page
+        if (!lastDocId) {
+            let rank = 0;
+            if (telegramId) {
+                const rankSnapshot = await admin.firestore().doc(`userRanks/${telegramId}`).get();
+                if (rankSnapshot.exists) {
+                    rank = Number(rankSnapshot.data()?.rank || 0);
+                }
             }
+
+            const colsnap = admin.firestore().collectionGroup("miningData");
+            const snapshot = await colsnap
+                .aggregate({
+                    totalAmount: admin.firestore.AggregateField.sum("QuantAmount"),
+                })
+                .get();
+
+            const totalAmount = Math.round(Number(snapshot.data().totalAmount || 0));
+            const usersnapshot = await admin.firestore().collection("user").count().get();
+            const userCount = usersnapshot.data().count;
+
+            return { allValues, totalAmount, rank, userCount, nextCursor };
         }
 
-        const colsnap = admin.firestore().collectionGroup("miningData");
-        const snapshot = await colsnap
-            .aggregate({
-                totalAmount: admin.firestore.AggregateField.sum("QuantAmount"),
-            })
-            .get();
-
-        const totalAmount = Math.round(Number(snapshot.data().totalAmount || 0));
-        const usersnapshot = await admin.firestore().collection("user").count().get();
-        const userCount = usersnapshot.data().count;
-
-        return { allValues, totalAmount, rank, userCount };
+        return { allValues, nextCursor };
     });
 
 // ---------------------------------------------------------------------------

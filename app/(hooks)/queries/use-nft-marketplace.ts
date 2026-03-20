@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { getPopularCollections, type NftCollection } from "@/lib/nft-marketplace";
 import { getNftListings } from "@/app/wallet/nft/actions";
 
@@ -23,14 +23,26 @@ interface QCListing {
     createdAt: string;
 }
 
+interface QCListingsPage {
+    listings: QCListing[];
+    nextCursor?: string;
+}
+
 export function useQCListingsQuery() {
-    return useQuery<QCListing[]>({
+    return useInfiniteQuery({
         queryKey: ["nft-qc-listings"],
-        queryFn: async () => {
-            const result = await getNftListings({});
-            if (!result?.data?.listings) return [];
-            return result.data.listings as QCListing[];
+        queryFn: async ({ pageParam }): Promise<QCListingsPage> => {
+            const result = await getNftListings({
+                lastDocId: pageParam,
+            });
+            if (!result?.data) return { listings: [], nextCursor: undefined };
+            return {
+                listings: (result.data.listings ?? []) as QCListing[],
+                nextCursor: result.data.nextCursor,
+            };
         },
+        initialPageParam: undefined as string | undefined,
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
         staleTime: 30_000, // 30 seconds
     });
 }

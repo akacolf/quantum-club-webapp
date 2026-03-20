@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { dbfs } from "@/app/(firebase)/client";
 import {
     collection,
@@ -7,10 +7,15 @@ import {
     orderBy,
     limit,
     getDocs,
+    startAfter,
     Timestamp,
+    type QueryDocumentSnapshot,
+    type DocumentData,
 } from "firebase/firestore";
 import type { Token } from "@/types/trading";
 import { DEFAULT_BONDING_CURVE, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
+
+const TOKEN_PAGE_SIZE = 20;
 
 function docToToken(doc: any): Token {
     const data = doc.data();
@@ -46,90 +51,134 @@ function docToToken(doc: any): Token {
     };
 }
 
+interface TokenPage {
+    tokens: Token[];
+    lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+}
+
 export function useTrendingTokens() {
-    return useQuery<Token[]>({
+    return useInfiniteQuery({
         queryKey: ["tokens", "trending"],
-        queryFn: async () => {
-            const q = query(
-                collection(dbfs, "tokens"),
+        queryFn: async ({ pageParam }): Promise<TokenPage> => {
+            const constraints = [
                 where("isOnChain", "==", true),
                 orderBy("volume24h", "desc"),
-                limit(20)
-            );
+                ...(pageParam ? [startAfter(pageParam)] : []),
+                limit(TOKEN_PAGE_SIZE),
+            ];
+            const q = query(collection(dbfs, "tokens"), ...constraints);
             const snapshot = await getDocs(q);
-            return snapshot.docs.map(docToToken);
+            return {
+                tokens: snapshot.docs.map(docToToken),
+                lastDoc: snapshot.docs[snapshot.docs.length - 1] ?? null,
+            };
+        },
+        initialPageParam: null as QueryDocumentSnapshot<DocumentData> | null,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.tokens.length < TOKEN_PAGE_SIZE) return undefined;
+            return lastPage.lastDoc;
         },
         staleTime: 30_000,
     });
 }
 
 export function useNewTokens() {
-    return useQuery<Token[]>({
+    return useInfiniteQuery({
         queryKey: ["tokens", "new"],
-        queryFn: async () => {
-            const q = query(
-                collection(dbfs, "tokens"),
+        queryFn: async ({ pageParam }): Promise<TokenPage> => {
+            const constraints = [
                 where("isOnChain", "==", true),
                 orderBy("createdAt", "desc"),
-                limit(20)
-            );
+                ...(pageParam ? [startAfter(pageParam)] : []),
+                limit(TOKEN_PAGE_SIZE),
+            ];
+            const q = query(collection(dbfs, "tokens"), ...constraints);
             const snapshot = await getDocs(q);
-            return snapshot.docs.map(docToToken);
+            return {
+                tokens: snapshot.docs.map(docToToken),
+                lastDoc: snapshot.docs[snapshot.docs.length - 1] ?? null,
+            };
+        },
+        initialPageParam: null as QueryDocumentSnapshot<DocumentData> | null,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.tokens.length < TOKEN_PAGE_SIZE) return undefined;
+            return lastPage.lastDoc;
         },
         staleTime: 30_000,
     });
 }
 
 export function useGraduatedTokens() {
-    return useQuery<Token[]>({
+    return useInfiniteQuery({
         queryKey: ["tokens", "graduated"],
-        queryFn: async () => {
-            const q = query(
-                collection(dbfs, "tokens"),
+        queryFn: async ({ pageParam }): Promise<TokenPage> => {
+            const constraints = [
                 where("isGraduated", "==", true),
                 orderBy("graduatedAt", "desc"),
-                limit(20)
-            );
+                ...(pageParam ? [startAfter(pageParam)] : []),
+                limit(TOKEN_PAGE_SIZE),
+            ];
+            const q = query(collection(dbfs, "tokens"), ...constraints);
             const snapshot = await getDocs(q);
-            return snapshot.docs.map(docToToken);
+            return {
+                tokens: snapshot.docs.map(docToToken),
+                lastDoc: snapshot.docs[snapshot.docs.length - 1] ?? null,
+            };
+        },
+        initialPageParam: null as QueryDocumentSnapshot<DocumentData> | null,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.tokens.length < TOKEN_PAGE_SIZE) return undefined;
+            return lastPage.lastDoc;
         },
         staleTime: 30_000,
     });
 }
 
 export function useMyTokens(telegramId: string | null, walletAddress: string) {
-    return useQuery<Token[]>({
+    return useInfiniteQuery({
         queryKey: ["tokens", "my", telegramId, walletAddress],
-        queryFn: async () => {
-            const tokenMap = new Map<string, Token>();
+        queryFn: async ({ pageParam }): Promise<TokenPage> => {
+            const tokenMap = new Map<string, { token: Token; doc: QueryDocumentSnapshot<DocumentData> }>();
 
             if (telegramId) {
-                const q = query(
-                    collection(dbfs, "tokens"),
+                const constraints = [
                     where("creatorUserId", "==", telegramId),
                     orderBy("createdAt", "desc"),
-                    limit(50)
-                );
+                    ...(pageParam ? [startAfter(pageParam)] : []),
+                    limit(TOKEN_PAGE_SIZE),
+                ];
+                const q = query(collection(dbfs, "tokens"), ...constraints);
                 const snapshot = await getDocs(q);
-                snapshot.docs.forEach((doc) => tokenMap.set(doc.id, docToToken(doc)));
+                snapshot.docs.forEach((doc) => tokenMap.set(doc.id, { token: docToToken(doc), doc }));
             }
 
             if (walletAddress) {
-                const q = query(
-                    collection(dbfs, "tokens"),
+                const constraints = [
                     where("creatorAddress", "==", walletAddress),
                     orderBy("createdAt", "desc"),
-                    limit(50)
-                );
+                    ...(pageParam ? [startAfter(pageParam)] : []),
+                    limit(TOKEN_PAGE_SIZE),
+                ];
+                const q = query(collection(dbfs, "tokens"), ...constraints);
                 const snapshot = await getDocs(q);
-                snapshot.docs.forEach((doc) => tokenMap.set(doc.id, docToToken(doc)));
+                snapshot.docs.forEach((doc) => tokenMap.set(doc.id, { token: docToToken(doc), doc }));
             }
 
-            return Array.from(tokenMap.values()).sort((a, b) => {
-                const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            const entries = Array.from(tokenMap.values()).sort((a, b) => {
+                const aTime = a.token.createdAt ? new Date(a.token.createdAt).getTime() : 0;
+                const bTime = b.token.createdAt ? new Date(b.token.createdAt).getTime() : 0;
                 return bTime - aTime;
             });
+
+            return {
+                tokens: entries.map(e => e.token),
+                lastDoc: entries[entries.length - 1]?.doc ?? null,
+            };
+        },
+        initialPageParam: null as QueryDocumentSnapshot<DocumentData> | null,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.tokens.length < TOKEN_PAGE_SIZE) return undefined;
+            return lastPage.lastDoc;
         },
         enabled: !!telegramId && !!walletAddress,
         staleTime: 30_000,

@@ -1,6 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { dbfs } from "@/app/(firebase)/client";
-import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import {
+    collection,
+    getDocs,
+    orderBy,
+    query,
+    limit,
+    startAfter,
+    type QueryDocumentSnapshot,
+    type DocumentData,
+} from "firebase/firestore";
 
 export interface HistoryEvent {
     event_id: string;
@@ -49,18 +58,40 @@ export interface QNTMTransfer {
     timestamp?: number;
 }
 
-async function fetchTonHistory(walletAddress: string, isTestnet: boolean): Promise<HistoryEvent[]> {
-    const { tonApiGet } = await import("@/lib/tonapi-client");
-    const data = await tonApiGet<{ events: HistoryEvent[] }>(
-        `/v2/accounts/${encodeURIComponent(walletAddress)}/events?limit=50&subject_only=true`,
-        { testnet: isTestnet },
-    );
-    return data.events || [];
+const PAGE_SIZE = 30;
+
+interface TonHistoryPage {
+    events: HistoryEvent[];
+    next_from: number;
 }
 
-async function fetchQntmHistory(telegramId: string): Promise<QNTMTransfer[]> {
+async function fetchTonHistoryPage(
+    walletAddress: string,
+    isTestnet: boolean,
+    beforeLt?: number,
+): Promise<TonHistoryPage> {
+    const { tonApiGet } = await import("@/lib/tonapi-client");
+    const cursor = beforeLt ? `&before_lt=${beforeLt}` : "";
+    return tonApiGet<TonHistoryPage>(
+        `/v2/accounts/${encodeURIComponent(walletAddress)}/events?limit=${PAGE_SIZE}&subject_only=true${cursor}`,
+        { testnet: isTestnet },
+    );
+}
+
+interface QntmHistoryPage {
+    transfers: QNTMTransfer[];
+    lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+}
+
+async function fetchQntmHistoryPage(
+    telegramId: string,
+    lastDoc?: QueryDocumentSnapshot<DocumentData> | null,
+): Promise<QntmHistoryPage> {
     const transferHistoryRef = collection(dbfs, `user/${telegramId}/transferHistory`);
-    const q = query(transferHistoryRef, orderBy("timestamp", "desc"), limit(50));
+    const constraints = lastDoc
+        ? [orderBy("timestamp", "desc"), startAfter(lastDoc), limit(PAGE_SIZE)]
+        : [orderBy("timestamp", "desc"), limit(PAGE_SIZE)];
+    const q = query(transferHistoryRef, ...constraints);
     const snapshot = await getDocs(q);
 
     const transfers: QNTMTransfer[] = [];
@@ -76,22 +107,36 @@ async function fetchQntmHistory(telegramId: string): Promise<QNTMTransfer[]> {
             timestamp: data.timestamp?.seconds || parseInt(doc.id),
         });
     });
-    return transfers;
+
+    return {
+        transfers,
+        lastDoc: snapshot.docs[snapshot.docs.length - 1] ?? null,
+    };
 }
 
 export function useTonHistoryQuery(walletAddress: string | null | undefined, isTestnet: boolean) {
-    return useQuery<HistoryEvent[]>({
+    return useInfiniteQuery({
         queryKey: ["wallet-history", walletAddress, isTestnet],
-        queryFn: () => fetchTonHistory(walletAddress!, isTestnet),
+        queryFn: ({ pageParam }) => fetchTonHistoryPage(walletAddress!, isTestnet, pageParam),
+        initialPageParam: undefined as number | undefined,
+        getNextPageParam: (lastPage) => {
+            if (!lastPage.events?.length || lastPage.events.length < PAGE_SIZE) return undefined;
+            return lastPage.next_from;
+        },
         enabled: !!walletAddress,
         staleTime: 30_000,
     });
 }
 
 export function useQntmHistoryQuery(telegramId: string | null | undefined) {
-    return useQuery<QNTMTransfer[]>({
+    return useInfiniteQuery({
         queryKey: ["qntm-history", telegramId],
-        queryFn: () => fetchQntmHistory(telegramId!),
+        queryFn: ({ pageParam }) => fetchQntmHistoryPage(telegramId!, pageParam),
+        initialPageParam: null as QueryDocumentSnapshot<DocumentData> | null,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.transfers.length < PAGE_SIZE) return undefined;
+            return lastPage.lastDoc;
+        },
         enabled: !!telegramId,
         staleTime: 60_000,
     });

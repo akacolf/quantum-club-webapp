@@ -40,7 +40,7 @@ export default function MarketplacePage() {
     })();
 
     const filteredListings = (() => {
-        const listings = listingsQuery.data ?? [];
+        const listings = listingsQuery.data?.pages.flatMap(p => p.listings) ?? [];
         if (!searchQuery.trim()) return listings;
         const lower = searchQuery.toLowerCase();
         return listings.filter(
