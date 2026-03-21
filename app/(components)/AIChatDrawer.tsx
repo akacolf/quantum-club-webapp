@@ -281,7 +281,18 @@ export default function AIChatDrawer() {
     const { MainQuantAmount, rank, daily, walletAddress, telegramId } = useUserStore();
     const { referralsNum } = useFrensStore();
     const { data: miningData } = useMiningDataQuery(telegramId);
-    const userContext = {
+
+    // Refs to keep transport body fresh without recreating the transport
+    const userContextRef = useRef({
+        qntmBalance: MainQuantAmount || undefined,
+        rank: rank || undefined,
+        streak: daily || undefined,
+        walletConnected: !!walletAddress,
+        referralCount: referralsNum || undefined,
+        solveToEarnPasses: miningData?.values.remainingSolveToEarn,
+    });
+    const pathnameRef = useRef(pathname);
+    userContextRef.current = {
         qntmBalance: MainQuantAmount || undefined,
         rank: rank || undefined,
         streak: daily || undefined,
@@ -289,6 +300,19 @@ export default function AIChatDrawer() {
         referralCount: referralsNum || undefined,
         solveToEarnPasses: miningData?.values.remainingSolveToEarn,
     };
+    pathnameRef.current = pathname;
+
+    // Stable transport instance — body resolver reads latest values from refs
+    const [transport] = useState(
+        () =>
+            new DefaultChatTransport({
+                api: "/api/ai/chat",
+                body: () => ({
+                    currentPage: pathnameRef.current,
+                    userContext: userContextRef.current,
+                }),
+            })
+    );
 
     // AI SDK chat hook
     const {
@@ -298,10 +322,7 @@ export default function AIChatDrawer() {
         stop,
         setMessages,
     } = useChat({
-        transport: new DefaultChatTransport({
-            api: "/api/ai/chat",
-            body: { currentPage: pathname, userContext },
-        }),
+        transport,
         onError: (error) => {
             toast.error(error.message || "Failed to get response");
         },
