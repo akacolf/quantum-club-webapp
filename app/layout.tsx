@@ -11,7 +11,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
 import dynamic from "next/dynamic";
 
-const WebVitals = dynamic(() => import("./(components)/WebVitals").then(m => ({ default: m.WebVitals })));
 const CallOverlay = dynamic(() => import("./(components)/CallOverlay"));
 const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"));
 const GroupCallOverlay = dynamic(() => import("./(components)/GroupCallOverlay"));
@@ -76,7 +75,6 @@ export default function RootLayout({
           <CallOverlay />
           <IncomingCallOverlay />
           <GroupCallOverlay />
-          <WebVitals />
           <Toaster />
         </ClientProviders>
         </AuthProvider>
