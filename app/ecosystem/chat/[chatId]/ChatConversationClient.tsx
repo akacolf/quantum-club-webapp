@@ -407,10 +407,14 @@ export default function ChatConversationClient() {
 
     const onResize = () => {
       if (!chatRootRef.current) return;
-      chatRootRef.current.style.height = `${vv.height}px`;
       // When keyboard is open, the viewport is noticeably shorter — remove safe area
       // bottom padding so there's no grey gap between input and keyboard
       const keyboardOpen = vv.height < window.innerHeight * 0.85;
+      // Use exact pixel height only when keyboard is open; reset to 100dvh when
+      // closed so the browser's dynamic viewport handling prevents grey gaps
+      chatRootRef.current.style.height = keyboardOpen
+        ? `${vv.height}px`
+        : "100dvh";
       if (inputContainerRef.current) {
         inputContainerRef.current.style.paddingBottom = keyboardOpen
           ? "0.625rem"
