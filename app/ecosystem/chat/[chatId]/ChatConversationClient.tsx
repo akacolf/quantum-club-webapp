@@ -398,38 +398,6 @@ export default function ChatConversationClient() {
     },
   );
 
-  // iOS/Android keyboard: resize chat container when virtual keyboard opens/closes
-  const chatRootRef = useRef<HTMLDivElement>(null);
-  const inputContainerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const onResize = () => {
-      if (!chatRootRef.current) return;
-      // When keyboard is open, the viewport is noticeably shorter — remove safe area
-      // bottom padding so there's no grey gap between input and keyboard
-      const keyboardOpen = vv.height < window.innerHeight * 0.85;
-      // Use exact pixel height only when keyboard is open; reset to 100dvh when
-      // closed so the browser's dynamic viewport handling prevents grey gaps
-      chatRootRef.current.style.height = keyboardOpen
-        ? `${vv.height}px`
-        : "100dvh";
-      if (inputContainerRef.current) {
-        inputContainerRef.current.style.paddingBottom = keyboardOpen
-          ? "0.625rem"
-          : `max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))`;
-      }
-    };
-
-    vv.addEventListener("resize", onResize);
-    vv.addEventListener("scroll", onResize);
-    return () => {
-      vv.removeEventListener("resize", onResize);
-      vv.removeEventListener("scroll", onResize);
-    };
-  }, []);
-
   // Reply state
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
 
@@ -2150,7 +2118,7 @@ export default function ChatConversationClient() {
   return (
     <>
     <div className="fixed inset-0 z-40 bg-background" aria-hidden />
-    <div ref={chatRootRef} className="fixed inset-x-0 top-0 z-[41] flex flex-col" style={{ height: "100dvh" }}>
+    <div className="fixed inset-0 z-[41] flex flex-col">
       <style>{`
         @keyframes highlightMessage {
           0% { box-shadow: 0 0 0 0 transparent; }
@@ -3022,7 +2990,6 @@ export default function ChatConversationClient() {
 
       {/* Message Input */}
       <div
-        ref={inputContainerRef}
         className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5 shrink-0"
         style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}
       >

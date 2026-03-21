@@ -50,6 +50,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     WebApp.ready();
     WebApp.setHeaderColor("#000000");
     WebApp.setBackgroundColor("#000000");
+    WebApp.setBottomBarColor("#000000");
     WebApp.disableVerticalSwipes();
 
     // Request fullscreen on mobile platforms only
@@ -58,7 +59,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       WebApp.requestFullscreen();
     }
 
-    // Re-request fullscreen when returning from background to prevent grey header gap
+    // Re-request fullscreen when returning from background (Telegram can exit fullscreen on resume)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && (platform === "android" || platform === "ios")) {
         WebApp.requestFullscreen();

@@ -30,6 +30,7 @@ declare global {
         expand: () => void;
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
+        setBottomBarColor: (color: string) => void;
         requestFullscreen: () => void;
         openTelegramLink: (link: string | undefined) => void;
         navigator: () => void;
