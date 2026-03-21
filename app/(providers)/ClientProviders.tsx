@@ -50,6 +50,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     WebApp.ready();
     WebApp.setHeaderColor("#000000");
     WebApp.setBackgroundColor("#000000");
+    WebApp.setBottomBarColor("#000000");
     WebApp.disableVerticalSwipes();
 
     // Request fullscreen on mobile platforms only
