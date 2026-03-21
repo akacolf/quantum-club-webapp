@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -131,7 +132,7 @@ export function TokenAnalysisCard({
                         </div>
                         <div className="flex items-center gap-2">
                             {isLoading ? (
-                                <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin text-primary" />
+                                <span className="text-primary"><ButtonLoader size="sm" /></span>
                             ) : analysis ? (
                                 <>
                                     <Badge className={getRiskBadge(analysis.riskScore).className}>

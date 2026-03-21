@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -268,7 +269,7 @@ export default function ConnectedAppsPage() {
             >
                 {isProcessing ? (
                     <>
-                        <Icon icon="lucide:loader-2" className="w-5 h-5 mr-2 animate-spin" />
+                        <ButtonLoader />
                         Processing...
                     </>
                 ) : (

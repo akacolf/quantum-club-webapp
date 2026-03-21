@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "../WalletContext";
@@ -317,7 +318,7 @@ export default function FarmingPage() {
                                                     size="sm"
                                                     className="w-full border-[#333] text-gray-400"
                                                 >
-                                                    {isProcessing ? <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin"/> : "Unstake & Claim"}
+                                                    {isProcessing ? <ButtonLoader size="sm" /> : "Unstake & Claim"}
                                                 </Button>
                                             </CardContent>
                                         </Card>
@@ -330,8 +331,8 @@ export default function FarmingPage() {
                                 <h3 className="font-semibold text-white">Available Farms</h3>
                                 
                                 {isLoading ? (
-                                    <div className="flex items-center justify-center py-12">
-                                        <Icon icon="lucide:loader-2" className="w-6 h-6 animate-spin text-gray-500"/>
+                                    <div className="flex items-center justify-center py-12 text-gray-500">
+                                        <ButtonLoader size="lg" />
                                     </div>
                                 ) : farms.length === 0 ? (
                                     <Card className="bg-[#111] border-[#222]">
@@ -502,7 +503,7 @@ export default function FarmingPage() {
                                         className="w-full h-12 bg-primary text-black font-semibold rounded-xl"
                                     >
                                         {isProcessing ? (
-                                            <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin"/>
+                                            <ButtonLoader />
                                         ) : (
                                             <>
                                                 <Icon icon="lucide:sprout" className="w-4 h-4 mr-2"/>
@@ -515,7 +516,7 @@ export default function FarmingPage() {
 
                             {step === "processing" && (
                                 <div className="flex flex-col items-center justify-center py-16 space-y-4">
-                                    <Icon icon="lucide:loader-2" className="w-12 h-12 text-primary animate-spin"/>
+                                    <span className="text-primary"><ButtonLoader size="lg" /></span>
                                     <p className="text-white font-medium">Staking LP tokens...</p>
                                     <p className="text-sm text-gray-500">This may take a few seconds</p>
                                 </div>

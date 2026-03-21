@@ -5,6 +5,7 @@ import Image from "next/image";
 import { firstPlaceMedal, secondPlaceMedal, thirdPlaceMedal, logoWhite } from "@/public";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
 interface LeaderboardListProps {
@@ -98,8 +99,8 @@ export default function LeaderboardList({ fetchNextPage, hasNextPage, isFetching
                         })}
                     </div>
                     {isFetchingNextPage && (
-                        <div className="flex items-center justify-center py-4">
-                            <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-white/40" />
+                        <div className="flex items-center justify-center py-4 text-white/40">
+                            <ButtonLoader />
                         </div>
                     )}
                 </div>

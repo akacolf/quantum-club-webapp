@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
 import { Document, Page, pdfjs } from "react-pdf";
 import { usePinch, useDrag } from "@use-gesture/react";
@@ -230,8 +231,8 @@ export default function FileMessage({
       <>
         <div ref={containerRef} className="max-w-[220px] rounded-lg overflow-hidden">
           {!decryptedUrl ? (
-            <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg">
-              <Icon icon="lucide:loader-2" className="w-6 h-6 text-muted-foreground/50 animate-spin" />
+            <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg text-muted-foreground/50">
+              <ButtonLoader size="lg" />
             </div>
           ) : (
             <button
@@ -287,7 +288,7 @@ export default function FileMessage({
           <p className="text-[10px] text-muted-foreground/70">{formatFileSize(file.size)}</p>
         </div>
         {isLoading && (
-          <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted-foreground/50 shrink-0 animate-spin" />
+          <span className="text-muted-foreground/50 shrink-0"><ButtonLoader size="sm" /></span>
         )}
       </div>
 
@@ -336,8 +337,8 @@ export default function FileMessage({
               file={pdfQuery.data}
               onLoadSuccess={({ numPages: n }) => setNumPages(n)}
               loading={
-                <div className="flex items-center justify-center py-20">
-                  <Icon icon="lucide:loader-2" className="w-8 h-8 text-neutral-400 animate-spin" />
+                <div className="flex items-center justify-center py-20 text-neutral-400">
+                  <ButtonLoader size="lg" />
                 </div>
               }
               error={

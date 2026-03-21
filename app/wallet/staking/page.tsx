@@ -601,7 +601,7 @@ export default function StakingPage() {
                                         >
                                             {isStaking ? (
                                                 <>
-                                                    <Icon icon="lucide:loader-2" className="w-5 h-5 mr-2 animate-spin"/>
+                                                    <ButtonLoader />
                                                     Processing...
                                                 </>
                                             ) : !stakeAmount ? (

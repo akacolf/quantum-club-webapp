@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Image from "next/image";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -493,7 +494,7 @@ export default function SendMultiplePage() {
                 className="w-full h-12 bg-primary text-black font-semibold rounded-xl"
               >
                 {isSending ? (
-                  <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin"/>
+                  <ButtonLoader />
                 ) : (
                   <>
                     <Icon icon="lucide:send" className="w-4 h-4 mr-2"/>
@@ -511,7 +512,7 @@ export default function SendMultiplePage() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center justify-center py-16 space-y-4"
             >
-              <Icon icon="lucide:loader-2" className="w-12 h-12 text-primary animate-spin"/>
+              <span className="text-primary"><ButtonLoader size="lg" /></span>
               <p className="text-white font-medium">
                 Processing batch transaction...
               </p>

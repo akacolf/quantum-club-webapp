@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
 
@@ -139,7 +140,7 @@ export default function VoiceMessage({
         }`}
       >
         {decrypting ? (
-          <Icon icon="lucide:loader-2" className="w-4 h-4 text-white animate-spin" />
+          <span className="text-white"><ButtonLoader size="sm" /></span>
         ) : (
           <Icon
             icon={playing ? "material-symbols:pause-rounded" : "material-symbols:play-arrow-rounded"}

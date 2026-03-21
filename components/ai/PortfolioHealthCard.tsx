@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AIGlowBorder } from "./AIGlow";
@@ -84,7 +85,7 @@ export function PortfolioHealthCard({
                 className="gap-2"
             >
                 {isLoading ? (
-                    <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                    <ButtonLoader size="sm" />
                 ) : (
                     <Icon icon="lucide:sparkles" className="w-4 h-4" />
                 )}
@@ -135,7 +136,7 @@ export function PortfolioHealthCard({
                                 </div>
                             </div>
                             {isLoading ? (
-                                <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-primary" />
+                                <span className="text-primary"><ButtonLoader /></span>
                             ) : (
                                 <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-500" />
                             )}

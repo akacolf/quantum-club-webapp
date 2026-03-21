@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -406,7 +407,7 @@ export default function LaunchNftPage() {
                                     className="flex-1 h-12 rounded-xl font-bold"
                                 >
                                     {isDeploying ? (
-                                        <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                                        <ButtonLoader size="sm" />
                                     ) : deploySuccess ? (
                                         "Done"
                                     ) : (
