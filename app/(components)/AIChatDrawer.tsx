@@ -16,7 +16,6 @@ import { ButtonLoader } from "./ButtonLoader";
 import Image from "next/image";
 import { useUserStore } from "@/stores/user-store";
 import { useFrensStore } from "@/stores/frens-store";
-import { useMiningDataQuery } from "@/app/(hooks)/queries/use-mining-data";
 
 function getMessageText(message: UIMessage): string {
     return message.parts
@@ -278,9 +277,8 @@ export default function AIChatDrawer() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Gather user context for personalized AI responses
-    const { MainQuantAmount, rank, daily, walletAddress, telegramId } = useUserStore();
+    const { MainQuantAmount, rank, daily, walletAddress, remainingSolveToEarn } = useUserStore();
     const { referralsNum } = useFrensStore();
-    const { data: miningData } = useMiningDataQuery(telegramId);
 
     // Refs to keep transport body fresh without recreating the transport
     const userContextRef = useRef({
@@ -289,7 +287,7 @@ export default function AIChatDrawer() {
         streak: daily || undefined,
         walletConnected: !!walletAddress,
         referralCount: referralsNum || undefined,
-        solveToEarnPasses: miningData?.values.remainingSolveToEarn,
+        solveToEarnPasses: remainingSolveToEarn,
     });
     const pathnameRef = useRef(pathname);
     userContextRef.current = {
@@ -298,7 +296,7 @@ export default function AIChatDrawer() {
         streak: daily || undefined,
         walletConnected: !!walletAddress,
         referralCount: referralsNum || undefined,
-        solveToEarnPasses: miningData?.values.remainingSolveToEarn,
+        solveToEarnPasses: remainingSolveToEarn,
     };
     pathnameRef.current = pathname;
 
