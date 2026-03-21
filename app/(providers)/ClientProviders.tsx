@@ -59,7 +59,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       WebApp.requestFullscreen();
     }
 
-    // Re-request fullscreen when returning from background to prevent grey header gap
+    // Re-request fullscreen when returning from background (Telegram can exit fullscreen on resume)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && (platform === "android" || platform === "ios")) {
         WebApp.requestFullscreen();
