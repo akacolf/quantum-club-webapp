@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm } from "@tanstack/react-form";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUnstakeDataQuery } from "@/app/(hooks)/queries/use-unstake";
@@ -386,7 +387,7 @@ export default function UnstakePage() {
                                 className="w-full h-12 bg-primary text-black font-semibold rounded-xl"
                             >
                                 {isProcessing ? (
-                                    <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin"/>
+                                    <ButtonLoader />
                                 ) : (
                                     <>
                                         {unstakeMode === "instant" ? (
@@ -408,7 +409,7 @@ export default function UnstakePage() {
                             animate={{ opacity: 1 }}
                             className="flex flex-col items-center justify-center py-16 space-y-4"
                         >
-                            <Icon icon="lucide:loader-2" className="w-12 h-12 text-primary animate-spin"/>
+                            <span className="text-primary"><ButtonLoader size="lg" /></span>
                             <p className="text-white font-medium">
                                 {unstakeMode === "instant" ? "Unstaking instantly..." : "Initiating unstake..."}
                             </p>

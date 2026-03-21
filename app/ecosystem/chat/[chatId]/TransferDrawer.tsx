@@ -6,6 +6,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FieldError } from "@/components/ui/field";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import {
   Drawer,
   DrawerContent,
@@ -216,7 +217,7 @@ export default function TransferDrawer({
             >
               {isSending ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  <ButtonLoader size="sm" />
                   Sending...
                 </div>
               ) : (

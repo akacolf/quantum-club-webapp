@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -268,8 +269,8 @@ export default function BuyNftPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-center space-y-6"
                 >
-                    <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                        <Icon icon="lucide:loader-2" className="w-10 h-10 text-primary animate-spin" />
+                    <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <ButtonLoader size="lg" />
                     </div>
                     <div>
                         <h2 className="text-xl font-bold">Processing Purchase</h2>

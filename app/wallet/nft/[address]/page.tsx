@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -377,7 +378,7 @@ export default function NftDetailPage() {
                                         className="h-12 px-6 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
                                     >
                                         {isBuying ? (
-                                            <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                                            <ButtonLoader size="sm" />
                                         ) : (
                                             <>
                                                 <Icon icon="lucide:shopping-cart" className="w-4 h-4 mr-2" />
@@ -670,7 +671,7 @@ export default function NftDetailPage() {
                                     className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
                                 >
                                     {isListing ? (
-                                        <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                                        <ButtonLoader size="sm" />
                                     ) : (
                                         <>
                                             <Icon icon="lucide:tag" className="w-4 h-4 mr-2" />

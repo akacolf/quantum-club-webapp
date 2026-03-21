@@ -17,6 +17,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Icon } from "@iconify/react";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { fromNano, Address } from "@ton/core";
 import { toast } from "sonner";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -785,8 +786,8 @@ export default function HistoryPage() {
                   })}
                 </div>
                 {isFetchingNextTonPage && (
-                  <div className="flex items-center justify-center py-4">
-                    <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-muted-foreground" />
+                  <div className="flex items-center justify-center py-4 text-muted-foreground">
+                    <ButtonLoader />
                   </div>
                 )}
               </div>
@@ -916,8 +917,8 @@ export default function HistoryPage() {
                   })}
                 </div>
                 {isFetchingNextQntmPage && (
-                  <div className="flex items-center justify-center py-4">
-                    <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-muted-foreground" />
+                  <div className="flex items-center justify-center py-4 text-muted-foreground">
+                    <ButtonLoader />
                   </div>
                 )}
               </div>

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import {
   Dialog,
   DialogContent,
@@ -406,10 +407,14 @@ export default function ChatConversationClient() {
 
     const onResize = () => {
       if (!chatRootRef.current) return;
-      chatRootRef.current.style.height = `${vv.height}px`;
       // When keyboard is open, the viewport is noticeably shorter — remove safe area
       // bottom padding so there's no grey gap between input and keyboard
       const keyboardOpen = vv.height < window.innerHeight * 0.85;
+      // Use exact pixel height only when keyboard is open; reset to 100dvh when
+      // closed so the browser's dynamic viewport handling prevents grey gaps
+      chatRootRef.current.style.height = keyboardOpen
+        ? `${vv.height}px`
+        : "100dvh";
       if (inputContainerRef.current) {
         inputContainerRef.current.style.paddingBottom = keyboardOpen
           ? "0.625rem"
@@ -2474,7 +2479,7 @@ export default function ChatConversationClient() {
                       </p>
                     </div>
                     {isForwarding && (
-                      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      <span className="text-primary"><ButtonLoader size="sm" /></span>
                     )}
                   </button>
                 );
@@ -2677,7 +2682,7 @@ export default function ChatConversationClient() {
         {!isLoading && messages.length > 0 && (
           <div className="flex justify-center py-2">
             {loadingOlder ? (
-              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <span className="text-primary"><ButtonLoader /></span>
             ) : !hasMoreMessages ? (
               <span className="text-[10px] text-muted-foreground">No more messages</span>
             ) : null}
@@ -2706,8 +2711,8 @@ export default function ChatConversationClient() {
         )}
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-primary">
+            <ButtonLoader size="lg" />
             <p className="text-xs text-muted-foreground">Loading messages...</p>
           </div>
         ) : messages.length === 0 ? (
@@ -3070,7 +3075,7 @@ export default function ChatConversationClient() {
               disabled={isSendingFile}
             >
               {isSendingFile ? (
-                <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                <ButtonLoader size="sm" />
               ) : (
                 <Icon icon="solar:paperclip-linear" className="w-5 h-5 text-muted-foreground" />
               )}
@@ -3093,7 +3098,7 @@ export default function ChatConversationClient() {
                 className="w-10 h-10 rounded-full shrink-0 shadow-lg shadow-primary/20"
               >
                 {isSending ? (
-                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  <ButtonLoader size="sm" />
                 ) : (
                   <Icon icon="material-symbols:send-rounded" className="w-5 h-5" />
                 )}
