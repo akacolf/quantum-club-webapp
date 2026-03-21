@@ -16,6 +16,7 @@ import { ButtonLoader } from "./ButtonLoader";
 import Image from "next/image";
 import { useUserStore } from "@/stores/user-store";
 import { useFrensStore } from "@/stores/frens-store";
+import { useMiningDataQuery } from "@/app/(hooks)/queries/use-mining-data";
 
 function getMessageText(message: UIMessage): string {
     return message.parts
@@ -277,15 +278,16 @@ export default function AIChatDrawer() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Gather user context for personalized AI responses
-    const { MainQuantAmount, rank, daily, walletAddress, remainingSolveToEarn } = useUserStore();
+    const { MainQuantAmount, rank, daily, walletAddress, telegramId } = useUserStore();
     const { referralsNum } = useFrensStore();
+    const { data: miningData } = useMiningDataQuery(telegramId);
     const userContext = {
         qntmBalance: MainQuantAmount || undefined,
         rank: rank || undefined,
         streak: daily || undefined,
         walletConnected: !!walletAddress,
         referralCount: referralsNum || undefined,
-        solveToEarnPasses: remainingSolveToEarn,
+        solveToEarnPasses: miningData?.values.remainingSolveToEarn,
     };
 
     // AI SDK chat hook
