@@ -1273,7 +1273,7 @@ export default function SwapPage() {
                             className="flex flex-col items-center justify-center py-20"
                         >
                             <div className="relative flex items-center justify-center mb-6">
-                                <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                                <div className="w-12 h-12 rounded-full border-2 animate-spin text-primary" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
                             </div>
                             <h2 className="text-xl font-bold mb-2">Processing Swap</h2>
                             <p className="text-muted-foreground text-center">

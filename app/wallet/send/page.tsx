@@ -1461,9 +1461,9 @@ export default function SendPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center py-16 space-y-6"
               >
-                <div className="relative flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full border-2 border-primary/20 border-t-primary animate-spin shadow-[0_0_15px] shadow-primary/30" />
-                  <div className="absolute w-10 h-10 rounded-full border-2 border-primary/20 border-b-primary animate-[spin_1.5s_linear_infinite_reverse]" />
+                <div className="relative flex items-center justify-center text-primary">
+                  <div className="w-16 h-16 rounded-full border-2 animate-spin shadow-[0_0_15px] shadow-primary/30" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
+                  <div className="absolute w-10 h-10 rounded-full border-2 animate-[spin_1.5s_linear_infinite_reverse]" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderBottomColor: "currentColor" }} />
                   <div className="absolute w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px] shadow-primary/80" />
                 </div>
                 <div className="text-center">
@@ -1948,7 +1948,7 @@ export default function SendPage() {
               className="flex flex-col items-center justify-center py-20 space-y-6"
             >
               <div className="relative">
-                <div className="w-20 h-20 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                <div className="w-20 h-20 border-4 rounded-full animate-spin text-blue-500" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Icon icon="lucide:wallet" className="w-8 h-8 text-primary"/>
                 </div>

@@ -623,7 +623,7 @@ export default function StakingPage() {
                                         className="text-center py-16 space-y-4"
                                     >
                                         <div className="relative mx-auto w-20 h-20">
-                                            <div className="w-full h-full rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                                            <div className="w-full h-full rounded-full border-4 animate-spin text-primary" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
                                         </div>
                                         <h2 className="text-xl font-bold text-white">Staking in Progress...</h2>
                                         <p className="text-gray-500 text-sm">

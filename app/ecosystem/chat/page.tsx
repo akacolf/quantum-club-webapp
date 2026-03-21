@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -854,7 +855,7 @@ export default function QCChatListPage() {
                           className="h-9 px-4 rounded-lg"
                         >
                           {isRegisteringUsername ? (
-                            <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            <ButtonLoader size="sm" />
                           ) : "Claim"}
                         </Button>
                       ) : (
@@ -866,7 +867,7 @@ export default function QCChatListPage() {
                           className="h-9 px-4 rounded-lg"
                         >
                           {isCheckingUsername ? (
-                            <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                            <ButtonLoader size="sm" />
                           ) : "Check"}
                         </Button>
                       )}
@@ -968,7 +969,7 @@ export default function QCChatListPage() {
                         className="h-9 px-4 rounded-lg"
                       >
                         {isStartingChat ? (
-                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          <ButtonLoader size="sm" />
                         ) : (
                           "Chat"
                         )}
@@ -1015,7 +1016,7 @@ export default function QCChatListPage() {
                         className="h-9 px-4 rounded-lg"
                       >
                         {isStartingChat ? (
-                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          <ButtonLoader size="sm" />
                         ) : (
                           "Create"
                         )}
@@ -1058,7 +1059,7 @@ export default function QCChatListPage() {
                         className="h-9 px-4 rounded-lg"
                       >
                         {isStartingChat ? (
-                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          <ButtonLoader size="sm" />
                         ) : (
                           "Join"
                         )}
@@ -1087,8 +1088,8 @@ export default function QCChatListPage() {
       {/* Chat list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-primary">
+            <ButtonLoader size="lg" />
             <p className="text-xs text-muted-foreground">Loading chats...</p>
           </div>
         ) : !telegramId ? (
