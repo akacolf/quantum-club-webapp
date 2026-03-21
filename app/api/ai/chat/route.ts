@@ -22,6 +22,7 @@ const userContextSchema = z.object({
     streak: z.number().int().min(0).max(99999).optional(),
     walletConnected: z.boolean().optional(),
     referralCount: z.number().int().min(0).max(999999).optional(),
+    solveToEarnPasses: z.number().int().min(0).max(100).optional(),
 }).optional();
 
 const chatRequestSchema = z.object({
@@ -69,7 +70,7 @@ function getContextHint(currentPage?: string): string {
         return `\n\n[Context: User is in a chat conversation. Real-time messaging with other community members.]`;
     }
     if (currentPage.startsWith("/earn/solvetoearn")) {
-        return `\n\n[Context: User is playing Solve-to-Earn puzzles. Each game costs 1 pass (earned from daily check-in, +7 per day). Help with: game mechanics and earning strategy.]`;
+        return `\n\n[Context: User is in Solve-to-Earn -- a timed math quiz where they solve arithmetic problems in 60 seconds. +3 QNTM per correct answer, -1 per wrong. Each game costs 1 pass (earned from daily check-in, +7 per day). Help with: game strategy and earning tips.]`;
     }
     if (currentPage.startsWith("/earn")) {
         return `\n\n[Context: User is in the Earn section. Features: daily mining check-in (streak-based QNTM rewards), Solve-to-Earn puzzles, and tasks (Limited, In-App, Partner). Help with: maximizing earnings, streak maintenance, and task completion.]`;

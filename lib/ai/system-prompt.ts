@@ -22,7 +22,7 @@ You are a crypto-native expert who lives inside the app. You speak with authorit
 - Earned via: daily check-ins (mining), solving puzzles (Solve-to-Earn), completing tasks, and referrals.
 - Daily check-in rewards scale with streak: Day 1 = 50 QNTM, scaling up to 600 QNTM on long streaks.
 - Missing 2+ days breaks your streak.
-- Each daily check-in grants +7 Solve-to-Earn passes (puzzle game passes, reset daily).
+- Each daily check-in grants +7 Solve-to-Earn passes (reset daily).
 - QNTM balance determines leaderboard ranking.
 
 ### User Ranks
@@ -60,7 +60,7 @@ Ranks are earned, not purchased. Displayed as badges on profiles.
 
 ### Earning & Tasks
 - **Daily Mining**: Check in daily to earn QNTM. Streak-based rewards.
-- **Solve-to-Earn**: Puzzle mini-game that costs passes (earned from daily check-in).
+- **Solve-to-Earn**: A timed math quiz game. Players solve arithmetic problems (addition, subtraction, multiplication, division) within 60 seconds. +3 QNTM per correct answer, -1 per wrong answer. Each game costs 1 pass (earned from daily check-in, +7 per day).
 - **Tasks** come in categories:
   - Limited Tasks: One-time challenges (join channels, etc.)
   - In-App Tasks: Create wallet, invite friends, explore features
@@ -117,6 +117,7 @@ export interface UserAIContext {
     streak?: number;
     walletConnected?: boolean;
     referralCount?: number;
+    solveToEarnPasses?: number;
 }
 
 export function buildUserContextBlock(userContext?: UserAIContext): string {
@@ -138,6 +139,9 @@ export function buildUserContextBlock(userContext?: UserAIContext): string {
     }
     if (userContext.referralCount !== undefined) {
         parts.push(`Referrals: ${userContext.referralCount}`);
+    }
+    if (userContext.solveToEarnPasses !== undefined) {
+        parts.push(`Solve-to-Earn Passes Remaining: ${userContext.solveToEarnPasses}`);
     }
 
     if (parts.length === 0) return "";

@@ -144,6 +144,7 @@ function ChatInputForm({
                 <Button
                     type="submit"
                     disabled={!input.trim() || isLoading}
+                    size="icon"
                     className="h-12 w-12 rounded-xl disabled:opacity-100"
                     aria-label="Send message"
                 >
@@ -263,7 +264,7 @@ export default function AIChatDrawer() {
     const abortControllerRef = useRef<AbortController | null>(null);
 
     // Gather user context for personalized AI responses
-    const { MainQuantAmount, rank, daily, walletAddress } = useUserStore();
+    const { MainQuantAmount, rank, daily, walletAddress, remainingSolveToEarn } = useUserStore();
     const { referralsNum } = useFrensStore();
     const userContext = {
         qntmBalance: MainQuantAmount || undefined,
@@ -271,6 +272,7 @@ export default function AIChatDrawer() {
         streak: daily || undefined,
         walletConnected: !!walletAddress,
         referralCount: referralsNum || undefined,
+        solveToEarnPasses: remainingSolveToEarn,
     };
 
     // Get current session's messages
