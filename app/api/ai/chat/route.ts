@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
         const rateLimitResult = await checkRateLimit(userId);
         if (!rateLimitResult.allowed) {
             return NextResponse.json({
-                error: "You've reached your daily limit of 20 messages. Please try again tomorrow!",
+                error: "You've reached your daily limit of 50 messages. Please try again tomorrow!",
                 remaining: 0,
                 resetAt: rateLimitResult.resetAt.toISOString(),
             }, { status: 429 });

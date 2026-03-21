@@ -1,7 +1,7 @@
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, runTransaction } from "firebase/firestore";
 
-const RATE_LIMIT_PER_DAY = 20;
+const RATE_LIMIT_PER_DAY = 50;
 
 interface RateLimitResult {
     allowed: boolean;
@@ -76,12 +76,11 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
         return { ...result, resetAt: tomorrow };
     } catch (error) {
         console.error("Rate limit check error:", error);
-        // Fail closed: deny the request on error to prevent abuse during outages
+        // Fail open: allow the request on error to avoid falsely blocking users
         return {
-            allowed: false,
-            remaining: 0,
+            allowed: true,
+            remaining: RATE_LIMIT_PER_DAY,
             resetAt: tomorrow,
-            error: "Rate limit check temporarily unavailable. Please try again.",
         };
     }
 }

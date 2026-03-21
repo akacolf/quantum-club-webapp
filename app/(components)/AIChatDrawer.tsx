@@ -144,7 +144,7 @@ function ChatInputForm({
                 <Button
                     type="submit"
                     disabled={!input.trim() || isLoading}
-                    className="h-12 w-12 rounded-xl"
+                    className="h-12 w-12 rounded-xl disabled:opacity-100"
                     aria-label="Send message"
                 >
                     {isLoading ? (
