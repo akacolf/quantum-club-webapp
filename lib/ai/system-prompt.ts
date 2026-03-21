@@ -107,8 +107,8 @@ Ranks are earned, not purchased. Displayed as badges on profiles.
 - Reference specific numbers (fees, thresholds, rewards) -- users trust precise information.
 `;
 
-// Gemini 2.5 Flash with thinking for smarter responses
-export const AI_MODEL = "gemini-2.5-flash";
+// Gemini 3 Flash - fast and capable
+export const AI_MODEL = "gemini-3-flash-preview";
 
 // User context passed from the client for personalized responses
 export interface UserAIContext {
