@@ -398,23 +398,37 @@ export default function ChatConversationClient() {
     },
   );
 
-  // iOS/Android keyboard: resize chat container when virtual keyboard opens/closes
+  // iOS/Android keyboard: adjust chat container when virtual keyboard opens/closes
+  // Strategy: use `inset-0` (CSS) so the container always fills the layout viewport.
+  // - Android: layout viewport resizes with keyboard → inset-0 handles it automatically
+  // - iOS: layout viewport stays full-size → we push `bottom` up by the keyboard height
   const chatRootRef = useRef<HTMLDivElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
+  const initialVvHeight = useRef(0);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
+    // Capture initial visual viewport height (before any keyboard)
+    initialVvHeight.current = vv.height;
+
     const onResize = () => {
       if (!chatRootRef.current) return;
-      // When keyboard is open, the viewport is noticeably shorter — remove safe area
-      // bottom padding so there's no grey gap between input and keyboard
-      const keyboardOpen = vv.height < window.innerHeight * 0.85;
-      // Use exact pixel height only when keyboard is open; reset to 100dvh when
-      // closed so the browser's dynamic viewport handling prevents grey gaps
-      chatRootRef.current.style.height = keyboardOpen
-        ? `${vv.height}px`
-        : "100dvh";
+
+      // How much of the layout viewport the visual viewport does NOT cover.
+      // iOS: equals keyboard height (layout viewport doesn't resize)
+      // Android: ≈ 0 (layout viewport resizes with keyboard, so inset-0 handles it)
+      const bottomOffset = Math.max(
+        0,
+        window.innerHeight - vv.height - vv.offsetTop,
+      );
+      chatRootRef.current.style.bottom =
+        bottomOffset > 10 ? `${bottomOffset}px` : "";
+
+      // Detect keyboard using stable initial height (works on both platforms
+      // even when Android's window.innerHeight shrinks alongside vv.height)
+      const keyboardOpen = vv.height < initialVvHeight.current * 0.85;
+
       if (inputContainerRef.current) {
         inputContainerRef.current.style.paddingBottom = keyboardOpen
           ? "0.625rem"
@@ -2150,7 +2164,7 @@ export default function ChatConversationClient() {
   return (
     <>
     <div className="fixed inset-0 z-40 bg-background" aria-hidden />
-    <div ref={chatRootRef} className="fixed inset-x-0 top-0 z-[41] flex flex-col" style={{ height: "100dvh" }}>
+    <div ref={chatRootRef} className="fixed inset-0 z-[41] flex flex-col">
       <style>{`
         @keyframes highlightMessage {
           0% { box-shadow: 0 0 0 0 transparent; }
