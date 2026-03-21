@@ -1,4 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
+import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import {
     SYSTEM_PROMPT,
     AI_MODEL,
@@ -12,10 +13,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { env } from "@/env";
 
-// Security: Input validation
-const MAX_MESSAGE_LENGTH = 2000;
-const MAX_HISTORY_LENGTH = 20;
-
 const userContextSchema = z.object({
     qntmBalance: z.string().max(50).optional(),
     rank: z.string().max(20).optional(),
@@ -24,22 +21,6 @@ const userContextSchema = z.object({
     referralCount: z.number().int().min(0).max(999999).optional(),
     solveToEarnPasses: z.number().int().min(0).max(100).optional(),
 }).optional();
-
-const chatRequestSchema = z.object({
-    message: z.string().min(1, "Message cannot be empty").max(MAX_MESSAGE_LENGTH, `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`),
-    history: z.array(
-        z.object({
-            role: z.enum(["user", "model"]),
-            content: z.string().max(MAX_MESSAGE_LENGTH),
-        })
-    ).max(MAX_HISTORY_LENGTH).default([]),
-    currentPage: z.string().max(200).optional(),
-    userContext: userContextSchema,
-});
-
-function sanitizeMessage(message: string): string {
-    return message.trim().slice(0, MAX_MESSAGE_LENGTH);
-}
 
 // Context hints with detailed feature knowledge per page
 function getContextHint(currentPage?: string): string {
@@ -73,13 +54,13 @@ function getContextHint(currentPage?: string): string {
         return `\n\n[Context: User is in Solve-to-Earn -- a timed math quiz where they solve arithmetic problems in 60 seconds. +3 QNTM per correct answer, -1 per wrong. Each game costs 1 pass (earned from daily check-in, +7 per day). Help with: game strategy and earning tips.]`;
     }
     if (currentPage.startsWith("/earn")) {
-        return `\n\n[Context: User is in the Earn section. Features: daily mining check-in (streak-based QNTM rewards), Solve-to-Earn puzzles, and tasks (Limited, In-App, Partner). Help with: maximizing earnings, streak maintenance, and task completion.]`;
+        return `\n\n[Context: User is in the Earn section. Features: daily mining check-in (streak-based QNTM rewards), Solve-to-Earn (timed math quiz), and tasks (Limited, In-App, Partner). Help with: maximizing earnings, streak maintenance, and task completion.]`;
     }
     if (currentPage.startsWith("/frens")) {
         return `\n\n[Context: User is viewing their referrals. They earn QNTM for invites and 0.1% of referred users' trades. Milestones: Networker (1), Team Builder (5), Referral King (10+). Help with: referral strategy and sharing invite links.]`;
     }
     if (currentPage.startsWith("/leaderboard")) {
-        return `\n\n[Context: User is viewing the global leaderboard ranked by QNTM balance. Help with: understanding rankings and how to climb the leaderboard (daily mining, tasks, referrals, puzzles).]`;
+        return `\n\n[Context: User is viewing the global leaderboard ranked by QNTM balance. Help with: understanding rankings and how to climb the leaderboard (daily mining, tasks, referrals, Solve-to-Earn).]`;
     }
     if (currentPage.startsWith("/home/profile")) {
         return `\n\n[Context: User is viewing their profile with achievements, badges, stats, and rank. Help with: understanding achievement requirements and how to unlock more.]`;
@@ -118,7 +99,7 @@ export async function POST(req: NextRequest) {
             }, { status: 429 });
         }
 
-        // Security: Parse and validate request body
+        // Parse request body
         let body;
         try {
             body = await req.json();
@@ -126,99 +107,47 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
         }
 
-        const parsed = chatRequestSchema.safeParse(body);
-        if (!parsed.success) {
-            return NextResponse.json(
-                { error: parsed.error.issues[0].message },
-                { status: 400 }
-            );
+        const { messages, currentPage, userContext: rawUserContext } = body as {
+            messages: UIMessage[];
+            currentPage?: string;
+            userContext?: unknown;
+        };
+
+        if (!Array.isArray(messages)) {
+            return NextResponse.json({ error: "Invalid messages format" }, { status: 400 });
         }
 
-        const { message, history, currentPage, userContext } = parsed.data;
+        // Validate user context
+        const userContextParsed = userContextSchema.safeParse(rawUserContext);
+        const userContext = userContextParsed.success ? userContextParsed.data : undefined;
 
-        // Security: Sanitize message content
-        const sanitizedMessage = sanitizeMessage(message);
-        if (!sanitizedMessage) {
-            return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
-        }
-
-        // Security: Sanitize history entries
-        const sanitizedHistory = history
-            .slice(-MAX_HISTORY_LENGTH)
-            .map(msg => ({
-                role: msg.role === "user" ? "user" : "model",
-                parts: [{ text: sanitizeMessage(msg.content) }],
-            }));
-
-        // Initialize AI
-        const ai = new GoogleGenAI({ apiKey });
-
-        // Build conversation
-        const contents = [
-            ...sanitizedHistory,
-            { role: "user", parts: [{ text: sanitizedMessage }] },
-        ];
-
-        // Build context-aware system prompt with user profile and page context
+        // Build context-aware system prompt
         const contextHint = getContextHint(currentPage);
         const userContextBlock = buildUserContextBlock(userContext as UserAIContext | undefined);
         const systemPrompt = SYSTEM_PROMPT + userContextBlock + contextHint;
 
-        // Generate streaming response with thinking enabled
-        const streamResponse = await ai.models.generateContentStream({
-            model: AI_MODEL,
-            contents: contents,
-            config: {
-                systemInstruction: systemPrompt,
-                temperature: 0.7,
-                topP: 0.95,
-                topK: 40,
-                maxOutputTokens: 4096,
-                thinkingConfig: {
-                    thinkingBudget: 2048,
+        // Initialize Google provider
+        const google = createGoogleGenerativeAI({ apiKey });
+
+        // Stream response via AI SDK
+        const result = streamText({
+            model: google(AI_MODEL),
+            system: systemPrompt,
+            messages: await convertToModelMessages(messages),
+            maxOutputTokens: 4096,
+            temperature: 0.7,
+            topP: 0.95,
+            topK: 40,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: "medium",
+                    },
                 },
             },
         });
 
-        // Create a TransformStream for more reliable streaming
-        const encoder = new TextEncoder();
-
-        const STREAM_TIMEOUT_MS = 60_000; // 60 second timeout
-        const readable = new ReadableStream({
-            async start(controller) {
-                let timeoutId: ReturnType<typeof setTimeout> | undefined;
-                try {
-                    const timeoutPromise = new Promise<never>((_, reject) => {
-                        timeoutId = setTimeout(() => reject(new Error("Stream timeout")), STREAM_TIMEOUT_MS);
-                    });
-
-                    const streamPromise = (async () => {
-                        for await (const chunk of streamResponse) {
-                            // Only stream the text output, not thinking
-                            const text = chunk.text;
-                            if (text) {
-                                controller.enqueue(encoder.encode(text));
-                            }
-                        }
-                    })();
-
-                    await Promise.race([streamPromise, timeoutPromise]);
-                } catch (streamError) {
-                    console.error("Error during streaming:", streamError);
-                } finally {
-                    clearTimeout(timeoutId);
-                    controller.close();
-                }
-            },
-        });
-
-        return new Response(readable, {
-            headers: {
-                "Content-Type": "text/plain; charset=utf-8",
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-            },
-        });
+        return result.toUIMessageStreamResponse();
     } catch (error) {
         console.error("AI Chat Error:", error);
 
