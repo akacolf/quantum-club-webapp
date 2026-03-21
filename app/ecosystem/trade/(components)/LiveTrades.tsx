@@ -8,6 +8,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Icon } from "@iconify/react";
 import { useWallet } from "@/app/wallet/WalletContext";
@@ -78,8 +79,8 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                         </Badge>
                     </div>
                     <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
-                        <Icon icon="solar:refresh-bold" className="w-4 h-4 animate-spin mr-2" />
-                        Loading from blockchain...
+                        <ButtonLoader size="sm" />
+                        <span className="ml-2">Loading from blockchain...</span>
                     </div>
                 </CardContent>
             </Card>
