@@ -13,9 +13,10 @@
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.52",
+    "@ai-sdk/react": "^3.0.136",
     "@bitcoinerlab/secp256k1": "^1.2.0",
     "@evaafi/sdk": "^0.9.5",
-    "@google/genai": "^1.46.0",
     "@hipo-finance/sdk": "^2.0.1",
     "@iconify/react": "^6.0.2",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -56,6 +57,7 @@
     "@vercel/analytics": "^2.0.0",
     "@vercel/speed-insights": "^2.0.0",
     "aes-js": "^3.1.2",
+    "ai": "^6.0.134",
     "bitcoinjs-lib": "^7.0.1",
     "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",

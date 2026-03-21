@@ -309,26 +309,34 @@ async function updateMarketplaceStats(
 // getNftListings — get active QC Marketplace listings
 // ---------------------------------------------------------------------------
 
+const NFT_LISTINGS_PAGE_SIZE = 30;
+
 const getListingsSchema = z.object({
   collectionAddress: z.string().optional(),
   sellerAddress: z.string().optional(),
-  limit: z.number().max(100).optional(),
+  lastDocId: z.string().optional(),
 });
 
 export const getNftListings = authActionClient
   .schema(getListingsSchema)
-  .action(async ({ parsedInput: { collectionAddress, sellerAddress, limit: queryLimit = 50 } }) => {
+  .action(async ({ parsedInput: { collectionAddress, sellerAddress, lastDocId } }) => {
     let query = firestore
       .collection("nft_listings")
       .where("status", "==", "active")
       .orderBy("createdAt", "desc")
-      .limit(queryLimit);
+      .limit(NFT_LISTINGS_PAGE_SIZE);
 
     if (collectionAddress) {
       query = query.where("collectionAddress", "==", collectionAddress);
     }
     if (sellerAddress) {
       query = query.where("sellerAddress", "==", sellerAddress);
+    }
+    if (lastDocId) {
+      const lastDoc = await firestore.doc(`nft_listings/${lastDocId}`).get();
+      if (lastDoc.exists) {
+        query = query.startAfter(lastDoc);
+      }
     }
 
     const snapshot = await query.get();
@@ -337,7 +345,10 @@ export const getNftListings = authActionClient
       ...doc.data(),
     }));
 
-    return { success: true, listings, count: listings.length };
+    const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    const nextCursor = listings.length === NFT_LISTINGS_PAGE_SIZE ? lastVisible?.id : undefined;
+
+    return { success: true, listings, count: listings.length, nextCursor };
   });
 
 // ---------------------------------------------------------------------------

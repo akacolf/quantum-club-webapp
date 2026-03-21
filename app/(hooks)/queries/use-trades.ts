@@ -116,12 +116,12 @@ export function useLiveTrades(jettonAddress: string | undefined, isTestnet: bool
             if (!jettonAddress) return [];
             const { tonApiGet } = await import("@/lib/tonapi-client");
             const data = await tonApiGet<{ transactions?: unknown[] }>(
-                `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=50`,
+                `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=100`,
                 { testnet: isTestnet }
             );
             const trades = parseTrades(data, isTestnet);
             trades.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-            return trades.slice(0, 20);
+            return trades.slice(0, 50);
         },
         enabled: !!jettonAddress,
         staleTime: 10_000,
@@ -138,7 +138,7 @@ export function useTradeEvents(jettonAddress: string | undefined) {
             if (!jettonAddress) return [];
             const { tonApiGet } = await import("@/lib/tonapi-client");
             const data = await tonApiGet<{ transactions?: unknown[] }>(
-                `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=100`,
+                `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=200`,
                 { testnet: false }
             );
             const events = parseTradeEvents(data);
@@ -250,7 +250,7 @@ export function useOnChainStats(jettonAddress: string | undefined, isTestnet: bo
                     in_msg?: { op_code?: string; value?: number };
                     utime?: number;
                 }> }>(
-                    `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=50`,
+                    `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=100`,
                     { testnet: isTestnet }
                 ),
             ]);
@@ -387,7 +387,7 @@ export function useGlobalTrades(
             );
 
             allTrades.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-            return allTrades.slice(0, 10);
+            return allTrades.slice(0, 20);
         },
         enabled: tokens.length > 0,
         staleTime: 10_000,

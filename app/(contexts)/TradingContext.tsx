@@ -56,13 +56,13 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
     });
   }, [walletAddress, telegramId, sendTransaction, invalidateTokenQueries, refetchMyTokens, queryClient]);
 
-  // Sync TanStack Query results into the store
+  // Sync TanStack Query results into the store (flatten infinite query pages)
   useEffect(() => {
     useTradingStore.setState({
-      trendingTokens: trendingQuery.data ?? [],
-      newTokens: newQuery.data ?? [],
-      graduatedTokens: graduatedQuery.data ?? [],
-      myTokens: myTokensQuery.data ?? [],
+      trendingTokens: trendingQuery.data?.pages.flatMap(p => p.tokens) ?? [],
+      newTokens: newQuery.data?.pages.flatMap(p => p.tokens) ?? [],
+      graduatedTokens: graduatedQuery.data?.pages.flatMap(p => p.tokens) ?? [],
+      myTokens: myTokensQuery.data?.pages.flatMap(p => p.tokens) ?? [],
       isLoading,
     });
   }, [trendingQuery.data, newQuery.data, graduatedQuery.data, myTokensQuery.data, isLoading]);
@@ -76,13 +76,13 @@ export function TradingProvider({ children }: { children: React.ReactNode }) {
 
   // Initial on-chain enrichment when token lists first load
   useEffect(() => {
-    const trendingLen = trendingQuery.data?.length ?? 0;
-    const newLen = newQuery.data?.length ?? 0;
+    const trendingLen = trendingQuery.data?.pages[0]?.tokens.length ?? 0;
+    const newLen = newQuery.data?.pages[0]?.tokens.length ?? 0;
 
     if (trendingLen > 0 || newLen > 0) {
       useTradingStore.getState().refreshTokensOnChain();
     }
-  }, [trendingQuery.data?.length, newQuery.data?.length]);
+  }, [trendingQuery.data?.pages, newQuery.data?.pages]);
 
   return <>{children}</>;
 }

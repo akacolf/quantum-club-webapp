@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -12,14 +14,28 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { ButtonLoader } from "./ButtonLoader";
 import Image from "next/image";
+import { useUserStore } from "@/stores/user-store";
+import { useFrensStore } from "@/stores/frens-store";
 
-interface Message {
-    id: string;
-    role: "user" | "assistant";
-    content: string;
+function getMessageText(message: UIMessage): string {
+    return message.parts
+        .filter((p): p is Extract<typeof p, { type: "text" }> => p.type === "text")
+        .map((p) => p.text)
+        .join("");
 }
 
-const EMPTY_MESSAGES: Message[] = [];
+// Migrate old localStorage format ({ content }) to new UIMessage format ({ parts })
+function migrateMessages(messages: unknown[]): UIMessage[] {
+    return messages.map((msg) => {
+        const m = msg as Record<string, unknown>;
+        if ("parts" in m && Array.isArray(m.parts)) return m as unknown as UIMessage;
+        return {
+            id: (m.id as string) || String(Date.now()),
+            role: m.role === "assistant" ? "assistant" : "user",
+            parts: [{ type: "text" as const, text: (m.content as string) || "" }],
+        } as UIMessage;
+    });
+}
 
 function QuantumLogoBlackBg() {
     return (
@@ -37,12 +53,13 @@ function QuantumLogoBlackBg() {
     );
 }
 
-function ChatMessage({ message }: { message: Message }) {
+function ChatMessage({ message }: { message: UIMessage }) {
     const isUser = message.role === "user";
     const [copied, setCopied] = useState(false);
+    const textContent = getMessageText(message);
 
     function handleCopy() {
-        navigator.clipboard.writeText(message.content);
+        navigator.clipboard.writeText(textContent);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     }
@@ -73,15 +90,15 @@ function ChatMessage({ message }: { message: Message }) {
                         }`}
                 >
                     {isUser ? (
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <p className="whitespace-pre-wrap">{textContent}</p>
                     ) : (
                         <div className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0">
-                            <ReactMarkdown>{message.content}</ReactMarkdown>
+                            <ReactMarkdown>{textContent}</ReactMarkdown>
                         </div>
                     )}
                 </div>
                 {/* Copy button for AI responses */}
-                {!isUser && message.content && (
+                {!isUser && textContent && (
                     <Button
                         variant="ghost"
                         size="sm"
@@ -142,7 +159,8 @@ function ChatInputForm({
                 <Button
                     type="submit"
                     disabled={!input.trim() || isLoading}
-                    className="h-12 w-12 rounded-xl"
+                    size="icon"
+                    className="h-12 w-12 rounded-xl disabled:opacity-100"
                     aria-label="Send message"
                 >
                     {isLoading ? (
@@ -158,36 +176,84 @@ function ChatInputForm({
 
 // Dynamic suggested prompts based on current page
 function getContextualPrompts(pathname: string): string[] {
-    if (pathname.startsWith("/wallet")) {
+    if (pathname.match(/\/ecosystem\/trade\/[^/]+/) || pathname.match(/\/trade\/[^/]+/)) {
         return [
-            "What's a recovery phrase?",
-            "How do I send TON?",
-            "Explain Jettons",
-            "What are gas fees?",
+            "How does the bonding curve work?",
+            "When does a token graduate?",
+            "What are the trading fees?",
+            "How do I read token metrics?",
         ];
     }
-    if (pathname.startsWith("/groups") || pathname.startsWith("/ecosystem/chat")) {
+    if (pathname.includes("/trade/create")) {
         return [
-            "How do groups work?",
-            "What is Quantum Club?",
-            "How many members per group?",
-            "How do I invite friends?",
+            "How much does it cost to launch?",
+            "What happens after I create a token?",
+            "How does graduation work?",
+            "Tips for a successful launch",
+        ];
+    }
+    if (pathname.startsWith("/ecosystem/trade") || pathname.startsWith("/trade")) {
+        return [
+            "How does token trading work?",
+            "What are graduated tokens?",
+            "How to spot good tokens?",
+            "What fees do I pay?",
+        ];
+    }
+    if (pathname.startsWith("/wallet/staking")) {
+        return [
+            "How does TON staking work?",
+            "What APY can I expect?",
+            "Normal vs instant unstake?",
+            "What are liquid staking tokens?",
+        ];
+    }
+    if (pathname.startsWith("/wallet")) {
+        return [
+            "How do I send TON?",
+            "What chains are supported?",
+            "How to keep my wallet secure?",
+            "What are gas fees on TON?",
+        ];
+    }
+    if (pathname.startsWith("/groups")) {
+        return [
+            "How do I create a group?",
+            "Can I link a group to my token?",
+            "What is NFT gating?",
+            "How do group roles work?",
         ];
     }
     if (pathname.startsWith("/earn")) {
         return [
-            "How do I earn QNTM?",
-            "What are daily rewards?",
-            "Explain referrals",
-            "What are the ranks?",
+            "How do I maximize QNTM earnings?",
+            "How do daily streaks work?",
+            "What is Solve-to-Earn?",
+            "What tasks give the most QNTM?",
+        ];
+    }
+    if (pathname.startsWith("/frens")) {
+        return [
+            "How do referral rewards work?",
+            "What's the 0.1% trade fee?",
+            "How do I share my invite link?",
+            "What are referral milestones?",
+        ];
+    }
+    if (pathname.startsWith("/leaderboard")) {
+        return [
+            "How is the leaderboard ranked?",
+            "How do I climb the rankings?",
+            "What counts toward my score?",
+            "How often does it update?",
         ];
     }
     // Default prompts
     return [
-        "What is TON blockchain?",
+        "What can I do in Quantum Club?",
         "How do I earn QNTM?",
-        "Explain staking",
-        "What are Jettons?",
+        "How does token trading work?",
+        "What ranks can I unlock?",
     ];
 }
 
@@ -196,7 +262,7 @@ const CHAT_STORAGE_KEY = "qc_ai_chat_sessions";
 interface ChatSession {
     id: string;
     title: string;
-    messages: Message[];
+    messages: UIMessage[];
     createdAt: string;
     updatedAt: string;
 }
@@ -206,26 +272,62 @@ export default function AIChatDrawer() {
     const [isOpen, setIsOpen] = useState(false);
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [viewMode, setViewMode] = useState<"chat" | "history">("chat");
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Get current session's messages
-    const currentSession = sessions.find(s => s.id === currentSessionId);
-    const messages = currentSession?.messages ?? EMPTY_MESSAGES;
-    const messagesRef = useRef<Message[]>(messages);
-    messagesRef.current = messages;
+    // Gather user context for personalized AI responses
+    const { MainQuantAmount, rank, daily, walletAddress, remainingSolveToEarn } = useUserStore();
+    const { referralsNum } = useFrensStore();
 
+    // Refs to keep transport body fresh without recreating the transport
+    const userContextRef = useRef({
+        qntmBalance: MainQuantAmount || undefined,
+        rank: rank || undefined,
+        streak: daily || undefined,
+        walletConnected: !!walletAddress,
+        referralCount: referralsNum || undefined,
+        solveToEarnPasses: remainingSolveToEarn,
+    });
+    const pathnameRef = useRef(pathname);
+    userContextRef.current = {
+        qntmBalance: MainQuantAmount || undefined,
+        rank: rank || undefined,
+        streak: daily || undefined,
+        walletConnected: !!walletAddress,
+        referralCount: referralsNum || undefined,
+        solveToEarnPasses: remainingSolveToEarn,
+    };
+    pathnameRef.current = pathname;
+
+    // Stable transport instance — body resolver reads latest values from refs
+    const [transport] = useState(
+        () =>
+            new DefaultChatTransport({
+                api: "/api/ai/chat",
+                body: () => ({
+                    currentPage: pathnameRef.current,
+                    userContext: userContextRef.current,
+                }),
+            })
+    );
+
+    // AI SDK chat hook
+    const {
+        messages,
+        sendMessage,
+        status,
+        stop,
+        setMessages,
+    } = useChat({
+        transport,
+        onError: (error) => {
+            toast.error(error.message || "Failed to get response");
+        },
+    });
+
+    const isLoading = status === "submitted" || status === "streaming";
     const suggestedPrompts = getContextualPrompts(pathname);
-
-    // Cleanup abort controller on unmount
-    useEffect(() => {
-        return () => {
-            abortControllerRef.current?.abort();
-        };
-    }, []);
 
     // Load chat sessions from localStorage on mount
     useEffect(() => {
@@ -234,11 +336,14 @@ export default function AIChatDrawer() {
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    requestAnimationFrame(() => {
-                        setSessions(parsed);
-                        // Set the most recent session as current
-                        setCurrentSessionId(parsed[0].id);
-                    });
+                    // Migrate messages to UIMessage format
+                    const migrated = parsed.map((s: ChatSession) => ({
+                        ...s,
+                        messages: migrateMessages(s.messages),
+                    }));
+                    setSessions(migrated);
+                    setCurrentSessionId(migrated[0].id);
+                    setMessages(migrated[0].messages);
                 }
             }
         } catch (error) {
@@ -246,16 +351,26 @@ export default function AIChatDrawer() {
         }
     }, []);
 
-    // Save sessions to localStorage when they change
+    // Sync useChat messages back to current session when not streaming
     useEffect(() => {
-        if (sessions.length > 0) {
+        if (!currentSessionId || messages.length === 0) return;
+        if (status === "streaming") return;
+
+        setSessions((prev) => {
+            const updated = prev.map((s) =>
+                s.id === currentSessionId
+                    ? { ...s, messages, updatedAt: new Date().toISOString() }
+                    : s
+            );
+            // Persist to localStorage
             try {
-                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(sessions));
-            } catch (error) {
-                console.error("Failed to save chat sessions:", error);
+                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(updated));
+            } catch (e) {
+                console.error("Failed to save chat sessions:", e);
             }
-        }
-    }, [sessions]);
+            return updated;
+        });
+    }, [messages, status, currentSessionId]);
 
     // Create a new chat session
     function handleNewChat() {
@@ -266,23 +381,26 @@ export default function AIChatDrawer() {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
-        setSessions(prev => [newSession, ...prev]);
+        setSessions((prev) => [newSession, ...prev]);
         setCurrentSessionId(newSession.id);
+        setMessages([]);
         setViewMode("chat");
     }
 
     // Delete a chat session
     function handleDeleteSession(sessionId: string, e: React.MouseEvent) {
         e.stopPropagation();
-        setSessions(prev => {
-            const filtered = prev.filter(s => s.id !== sessionId);
-            // If we deleted the current session, switch to another or null
+        setSessions((prev) => {
+            const filtered = prev.filter((s) => s.id !== sessionId);
             if (sessionId === currentSessionId) {
-                setCurrentSessionId(filtered.length > 0 ? filtered[0].id : null);
+                const next = filtered.length > 0 ? filtered[0] : null;
+                setCurrentSessionId(next?.id ?? null);
+                setMessages(next?.messages ?? []);
             }
-            // Update localStorage
             if (filtered.length === 0) {
                 localStorage.removeItem(CHAT_STORAGE_KEY);
+            } else {
+                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(filtered));
             }
             return filtered;
         });
@@ -292,24 +410,31 @@ export default function AIChatDrawer() {
     // Switch to a session
     function handleSelectSession(sessionId: string) {
         setCurrentSessionId(sessionId);
+        const session = sessions.find((s) => s.id === sessionId);
+        setMessages(session?.messages ?? []);
         setViewMode("chat");
     }
 
     // Clear current chat (keep session but clear messages)
     function handleClearChat() {
         if (!currentSessionId) return;
-        setSessions(prev => prev.map(session =>
-            session.id === currentSessionId
-                ? { ...session, messages: [], title: "New Chat", updatedAt: new Date().toISOString() }
-                : session
-        ));
+        setMessages([]);
+        setSessions((prev) => {
+            const updated = prev.map((session) =>
+                session.id === currentSessionId
+                    ? { ...session, messages: [], title: "New Chat", updatedAt: new Date().toISOString() }
+                    : session
+            );
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(updated));
+            return updated;
+        });
         toast.success("Chat cleared");
     }
 
     // Scroll to bottom when messages change
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading]);
+    }, [messages, status]);
 
     // Handle body overflow when drawer opens
     useEffect(() => {
@@ -323,8 +448,8 @@ export default function AIChatDrawer() {
         };
     }, [isOpen]);
 
-    // Handle message submission with streaming
-    async function handleSendMessage(messageText: string) {
+    // Handle message submission
+    function handleSendMessage(messageText: string) {
         // Auto-create a session if none exists
         let sessionId = currentSessionId;
         if (!sessionId) {
@@ -335,137 +460,35 @@ export default function AIChatDrawer() {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             };
-            setSessions(prev => [newSession, ...prev]);
+            setSessions((prev) => [newSession, ...prev]);
             setCurrentSessionId(newSession.id);
             sessionId = newSession.id;
         }
 
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            role: "user",
-            content: messageText,
-        };
+        // Update title if still "New Chat"
+        setSessions((prev) =>
+            prev.map((s) =>
+                s.id === sessionId && s.title === "New Chat"
+                    ? { ...s, title: messageText.slice(0, 30) + (messageText.length > 30 ? "..." : "") }
+                    : s
+            )
+        );
 
-        // Add placeholder for assistant message
-        const assistantMessageId = (Date.now() + 1).toString();
-
-        // Directly update sessions instead of using setMessages wrapper
-        setSessions(prev => prev.map(session => {
-            if (session.id !== sessionId) return session;
-            return {
-                ...session,
-                messages: [...session.messages, userMessage, {
-                    id: assistantMessageId,
-                    role: "assistant" as const,
-                    content: "",
-                }],
-                title: session.title === "New Chat"
-                    ? messageText.slice(0, 30) + (messageText.length > 30 ? "..." : "")
-                    : session.title,
-                updatedAt: new Date().toISOString(),
-            };
-        }));
-
-        setIsLoading(true);
-
-        // Cancel any previous request
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = new AbortController();
-
-        try {
-            const response = await fetch("/api/ai/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: messageText,
-                    history: messagesRef.current.slice(-10),
-                    currentPage: pathname,
-                }),
-                signal: abortControllerRef.current.signal,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                toast.error(errorData.error || "Failed to get response");
-                // Remove both messages on error
-                setSessions(prev => prev.map(session => {
-                    if (session.id !== sessionId) return session;
-                    return {
-                        ...session,
-                        messages: session.messages.slice(0, -2),
-                        updatedAt: new Date().toISOString(),
-                    };
-                }));
-                return;
-            }
-
-            // Handle streaming response
-            const reader = response.body?.getReader();
-            const decoder = new TextDecoder();
-
-            if (!reader) {
-                throw new Error("No reader available");
-            }
-
-            let fullContent = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                fullContent += chunk;
-
-                // Update the assistant message with streamed content
-                setSessions(prev => prev.map(session => {
-                    if (session.id !== sessionId) return session;
-                    return {
-                        ...session,
-                        messages: session.messages.map(msg =>
-                            msg.id === assistantMessageId
-                                ? { ...msg, content: fullContent }
-                                : msg
-                        ),
-                        updatedAt: new Date().toISOString(),
-                    };
-                }));
-            }
-
-            // If we got an empty response, show error
-            if (!fullContent.trim()) {
-                toast.error("Received empty response");
-                setSessions(prev => prev.map(session => {
-                    if (session.id !== sessionId) return session;
-                    return {
-                        ...session,
-                        messages: session.messages.slice(0, -2),
-                        updatedAt: new Date().toISOString(),
-                    };
-                }));
-            }
-        } catch (error) {
-            // Ignore abort errors (user cancelled request)
-            if (error instanceof Error && error.name === 'AbortError') {
-                return;
-            }
-            console.error("AI Chat Error:", error);
-            toast.error("Failed to connect. Please try again.");
-            setSessions(prev => prev.map(session => {
-                if (session.id !== sessionId) return session;
-                return {
-                    ...session,
-                    messages: session.messages.slice(0, -2),
-                    updatedAt: new Date().toISOString(),
-                };
-            }));
-        } finally {
-            setIsLoading(false);
-        }
+        sendMessage({ text: messageText });
     }
 
     function handlePromptClick(prompt: string) {
         handleSendMessage(prompt);
     }
+
+    // Filter out assistant messages with no text content (empty streaming placeholder)
+    const visibleMessages = messages.filter((msg) => {
+        if (msg.role === "assistant") {
+            const text = getMessageText(msg);
+            return text.length > 0;
+        }
+        return true;
+    });
 
     return (
         <>
@@ -540,7 +563,7 @@ export default function AIChatDrawer() {
                                         </h2>
                                         <p className="text-xs text-muted-foreground">
                                             {viewMode === "history"
-                                                ? `${sessions.length} conversation${sessions.length !== 1 ? 's' : ''}`
+                                                ? `${sessions.length} conversation${sessions.length !== 1 ? "s" : ""}`
                                                 : "Your assistant"
                                             }
                                         </p>
@@ -576,6 +599,17 @@ export default function AIChatDrawer() {
                                                     aria-label="Clear chat"
                                                 >
                                                     <Icon icon="lucide:trash-2" className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                            {status === "streaming" && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={stop}
+                                                    className="h-8 w-8 rounded-full bg-secondary hover:bg-accent"
+                                                    aria-label="Stop generating"
+                                                >
+                                                    <Icon icon="lucide:square" className="w-3.5 h-3.5" />
                                                 </Button>
                                             )}
                                         </>
@@ -622,7 +656,7 @@ export default function AIChatDrawer() {
                                                         <div className="min-w-0 flex-1">
                                                             <p className="font-medium text-foreground truncate">{session.title}</p>
                                                             <p className="text-xs text-muted-foreground">
-                                                                {session.messages.length} message{session.messages.length !== 1 ? 's' : ''} • {new Date(session.updatedAt).toLocaleDateString()}
+                                                                {session.messages.length} message{session.messages.length !== 1 ? "s" : ""} • {new Date(session.updatedAt).toLocaleDateString()}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -644,7 +678,40 @@ export default function AIChatDrawer() {
                                 /* Messages */
                                 <ScrollArea className="flex-1 p-4">
                                     <div className="space-y-4">
-                                        {messages.length === 0 || !currentSessionId ? (
+                                        {visibleMessages.length === 0 && !currentSessionId ? (
+                                            <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
+                                                <Avatar className="h-16 w-16 mb-4">
+                                                    <AvatarFallback className="bg-card border border-border">
+                                                        <Image
+                                                            src="/svg/logo-white.svg"
+                                                            alt="Quantum Club AI"
+                                                            width={32}
+                                                            height={32}
+                                                            priority
+                                                        />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <h3 className="text-lg font-semibold text-foreground mb-2">
+                                                    How can I help?
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground mb-6">
+                                                    Ask about crypto, TON, or Quantum Club
+                                                </p>
+                                                <div className="flex flex-wrap gap-2 justify-center">
+                                                    {suggestedPrompts.map((prompt) => (
+                                                        <Button
+                                                            key={prompt}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handlePromptClick(prompt)}
+                                                            className="rounded-full"
+                                                        >
+                                                            {prompt}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : visibleMessages.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
                                                 <Avatar className="h-16 w-16 mb-4">
                                                     <AvatarFallback className="bg-card border border-border">
@@ -678,17 +745,15 @@ export default function AIChatDrawer() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            messages
-                                                .filter((msg) => !(msg.role === "assistant" && msg.content === ""))
-                                                .map((message) => (
-                                                    <ChatMessage
-                                                        key={message.id}
-                                                        message={message}
-                                                    />
-                                                ))
+                                            visibleMessages.map((message) => (
+                                                <ChatMessage
+                                                    key={message.id}
+                                                    message={message}
+                                                />
+                                            ))
                                         )}
 
-                                        {isLoading && messages[messages.length - 1]?.content === "" && (
+                                        {status === "submitted" && (
                                             <div className="flex gap-2">
                                                 <QuantumLogoBlackBg />
                                                 <div className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center">
@@ -720,4 +785,3 @@ export default function AIChatDrawer() {
         </>
     );
 }
-

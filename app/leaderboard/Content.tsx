@@ -26,7 +26,13 @@ const LeaderboardContent = () => {
   } = useLeaderboardContext();
   const { telegramId } = useUserContext();
 
-  const { data, isLoading } = useLeaderboardQuery(telegramId);
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useLeaderboardQuery(telegramId);
 
   // Sync query data to the Zustand leaderboard store
   useEffect(() => {
@@ -56,14 +62,23 @@ const LeaderboardContent = () => {
       return Math.round(amount).toLocaleString("en-US");
     };
 
-    setLeaderboardContext(data.allValues);
+    // Flatten all pages into a single leaderboard list
+    const allEntries = data.pages.flatMap(page => page.allValues);
+    setLeaderboardContext(allEntries);
 
-    if (typeof data.rank === "number") {
-      setUserRank(data.rank);
+    // Stats come from the first page only
+    const firstPage = data.pages[0];
+    if (firstPage) {
+      if (typeof firstPage.rank === "number") {
+        setUserRank(firstPage.rank);
+      }
+      if (firstPage.userCount !== undefined) {
+        setTotalUsers(firstPage.userCount);
+      }
+      if (firstPage.totalAmount !== undefined) {
+        setTotalQuant(formattedAmount(firstPage.totalAmount));
+      }
     }
-
-    setTotalUsers(data.userCount);
-    setTotalQuant(formattedAmount(data.totalAmount));
   }, [data, setLeaderboardContext, setTotalQuant, setTotalUsers, setUserRank]);
 
   // Firestore side-effect: update QuantAmount on the userRank doc
@@ -92,7 +107,11 @@ const LeaderboardContent = () => {
       <LeaderboardHeader />
       <LeaderboardStats />
       <UserStatsCard />
-      <LeaderboardList />
+      <LeaderboardList
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+      />
     </>
   )
   );

@@ -119,7 +119,6 @@ export function useCreateGroup(telegramId: string | null, username: string | nul
                 description,
                 createdBy: telegramId,
                 createdAt: serverTimestamp(),
-                maxMembers: tokenId ? 1000 : 5,
                 ...(tokenId && { linkedTokenId: tokenId }),
                 ...(tokenSymbol && { linkedTokenSymbol: tokenSymbol }),
                 ...(nftGated && { nftGated: true }),
@@ -170,13 +169,6 @@ export function useJoinGroup(telegramId: string | null, username: string | null,
                         `You need a ${groupData.requiredNftCollectionName || "required"} NFT to join this group`
                     );
                 }
-            }
-
-            const membersRef = collection(dbfs, `groups/${groupId}/members`);
-            const membersSnap = await getDocs(membersRef);
-
-            if (membersSnap.size >= (groupData.maxMembers || 5)) {
-                throw new Error("Group is full");
             }
 
             const memberRef = doc(dbfs, `groups/${groupId}/members/${telegramId}`);

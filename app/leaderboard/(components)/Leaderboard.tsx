@@ -1,13 +1,19 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import Image from "next/image";
 import { firstPlaceMedal, secondPlaceMedal, thirdPlaceMedal, logoWhite } from "@/public";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { Icon } from "@iconify/react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
-export default function LeaderboardList() {
+interface LeaderboardListProps {
+    fetchNextPage: () => void;
+    hasNextPage: boolean;
+    isFetchingNextPage: boolean;
+}
+
+export default function LeaderboardList({ fetchNextPage, hasNextPage, isFetchingNextPage }: LeaderboardListProps) {
     const { leaderboardContext } = useLeaderboardContext();
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -17,6 +23,21 @@ export default function LeaderboardList() {
         overscan: 5,
         scrollMargin: listRef.current?.offsetTop ?? 0,
     });
+
+    const virtualItems = virtualizer.getVirtualItems();
+
+    // Auto-fetch next page when scrolling near the end
+    useEffect(() => {
+        const lastItem = virtualItems[virtualItems.length - 1];
+        if (!lastItem) return;
+        if (
+            lastItem.index >= (leaderboardContext?.length ?? 0) - 5 &&
+            hasNextPage &&
+            !isFetchingNextPage
+        ) {
+            fetchNextPage();
+        }
+    }, [virtualItems, leaderboardContext?.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     return (
         <div className="mt-6 px-4 pb-24">
@@ -28,7 +49,7 @@ export default function LeaderboardList() {
             {leaderboardContext && leaderboardContext.length > 0 && (
                 <div ref={listRef}>
                     <div className="relative" style={{ height: `${virtualizer.getTotalSize()}px` }}>
-                        {virtualizer.getVirtualItems().map((virtualItem) => {
+                        {virtualItems.map((virtualItem) => {
                             const item = leaderboardContext[virtualItem.index];
                             const index = virtualItem.index;
                             return (
@@ -76,6 +97,11 @@ export default function LeaderboardList() {
                             );
                         })}
                     </div>
+                    {isFetchingNextPage && (
+                        <div className="flex items-center justify-center py-4">
+                            <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-white/40" />
+                        </div>
+                    )}
                 </div>
             )}
         </div>

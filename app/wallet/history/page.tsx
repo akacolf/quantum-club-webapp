@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,8 +39,24 @@ export default function HistoryPage() {
   useTelegramBackButton("/wallet");
   const { walletAddress, isTestnet } = useWallet();
   const { telegramId } = useUserContext();
-  const { data: history = [], isLoading: isLoadingHistory, error: historyError, refetch: refetchHistory } = useTonHistoryQuery(walletAddress, isTestnet);
-  const { data: qntmHistory = [], isLoading: isLoadingQntm } = useQntmHistoryQuery(telegramId);
+  const {
+    data: tonData,
+    isLoading: isLoadingHistory,
+    error: historyError,
+    refetch: refetchHistory,
+    fetchNextPage: fetchNextTonPage,
+    hasNextPage: hasNextTonPage,
+    isFetchingNextPage: isFetchingNextTonPage,
+  } = useTonHistoryQuery(walletAddress, isTestnet);
+  const {
+    data: qntmData,
+    isLoading: isLoadingQntm,
+    fetchNextPage: fetchNextQntmPage,
+    hasNextPage: hasNextQntmPage,
+    isFetchingNextPage: isFetchingNextQntmPage,
+  } = useQntmHistoryQuery(telegramId);
+  const history = tonData?.pages.flatMap(page => page.events) ?? [];
+  const qntmHistory = qntmData?.pages.flatMap(page => page.transfers) ?? [];
   const error = historyError ? "Failed to load transaction history." : null;
 
   // URL search params for tab, filter, and search
@@ -454,6 +470,25 @@ export default function HistoryPage() {
     scrollMargin: qntmListRef.current?.offsetTop ?? 0,
   });
 
+  // Auto-fetch next page when scrolling near the end
+  const tonVirtualItems = tonVirtualizer.getVirtualItems();
+  useEffect(() => {
+    const lastItem = tonVirtualItems[tonVirtualItems.length - 1];
+    if (!lastItem) return;
+    if (lastItem.index >= filteredHistory.length - 5 && hasNextTonPage && !isFetchingNextTonPage) {
+      fetchNextTonPage();
+    }
+  }, [tonVirtualItems, filteredHistory.length, hasNextTonPage, isFetchingNextTonPage, fetchNextTonPage]);
+
+  const qntmVirtualItems = qntmVirtualizer.getVirtualItems();
+  useEffect(() => {
+    const lastItem = qntmVirtualItems[qntmVirtualItems.length - 1];
+    if (!lastItem) return;
+    if (lastItem.index >= filteredQntmHistory.length - 5 && hasNextQntmPage && !isFetchingNextQntmPage) {
+      fetchNextQntmPage();
+    }
+  }, [qntmVirtualItems, filteredQntmHistory.length, hasNextQntmPage, isFetchingNextQntmPage, fetchNextQntmPage]);
+
   const filterOptions: { value: FilterType; label: string }[] = [
     { value: "all", label: "All" },
     { value: "sent", label: "Sent" },
@@ -632,7 +667,7 @@ export default function HistoryPage() {
             ) : (
               <div ref={tonListRef} className="pb-20">
                 <div className="relative" style={{ height: `${tonVirtualizer.getTotalSize()}px` }}>
-                  {tonVirtualizer.getVirtualItems().map((virtualItem) => {
+                  {tonVirtualItems.map((virtualItem) => {
                     const tx = filteredHistory[virtualItem.index];
                     return (
                       <div
@@ -749,6 +784,11 @@ export default function HistoryPage() {
                     );
                   })}
                 </div>
+                {isFetchingNextTonPage && (
+                  <div className="flex items-center justify-center py-4">
+                    <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -819,7 +859,7 @@ export default function HistoryPage() {
             ) : (
               <div ref={qntmListRef} className="pb-20">
                 <div className="relative" style={{ height: `${qntmVirtualizer.getTotalSize()}px` }}>
-                  {qntmVirtualizer.getVirtualItems().map((virtualItem) => {
+                  {qntmVirtualItems.map((virtualItem) => {
                     const transfer = filteredQntmHistory[virtualItem.index];
                     const isIncoming = transfer.type === 'received';
                     const counterparty = isIncoming ? transfer.from : transfer.to;
@@ -875,6 +915,11 @@ export default function HistoryPage() {
                     );
                   })}
                 </div>
+                {isFetchingNextQntmPage && (
+                  <div className="flex items-center justify-center py-4">
+                    <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </div>
             )}
           </div>
