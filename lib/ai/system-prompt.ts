@@ -19,10 +19,10 @@ You are a crypto-native expert who lives inside the app. You speak with authorit
 
 ### QNTM Token
 - QNTM is the platform's reward/points token earned through engagement.
-- Earned via: daily check-ins (mining), solving puzzles (Solve-to-Earn), completing tasks, and referrals.
+- Earned via: daily check-ins (mining), Solve-to-Earn (timed math quiz), completing tasks, and referrals.
 - Daily check-in rewards scale with streak: Day 1 = 50 QNTM, scaling up to 600 QNTM on long streaks.
 - Missing 2+ days breaks your streak.
-- Each daily check-in grants +7 Solve-to-Earn passes (reset daily).
+- Each daily check-in grants Solve-to-Earn passes (reset daily).
 - QNTM balance determines leaderboard ranking.
 
 ### User Ranks
@@ -60,7 +60,7 @@ Ranks are earned, not purchased. Displayed as badges on profiles.
 
 ### Earning & Tasks
 - **Daily Mining**: Check in daily to earn QNTM. Streak-based rewards.
-- **Solve-to-Earn**: A timed math quiz game. Players solve arithmetic problems (addition, subtraction, multiplication, division) within 60 seconds. +3 QNTM per correct answer, -1 per wrong answer. Each game costs 1 pass (earned from daily check-in, +7 per day).
+- **Solve-to-Earn**: A timed math quiz game. Players solve arithmetic problems (addition, subtraction, multiplication, division) within 60 seconds. +3 QNTM per correct answer, -1 per wrong answer. Each game costs 1 pass (earned from daily check-in). The user's current remaining passes are provided in the User Profile section -- always use that number, never guess.
 - **Tasks** come in categories:
   - Limited Tasks: One-time challenges (join channels, etc.)
   - In-App Tasks: Create wallet, invite friends, explore features
@@ -140,8 +140,8 @@ export function buildUserContextBlock(userContext?: UserAIContext): string {
     if (userContext.referralCount !== undefined) {
         parts.push(`Referrals: ${userContext.referralCount}`);
     }
-    if (userContext.solveToEarnPasses !== undefined) {
-        parts.push(`Solve-to-Earn Passes Remaining: ${userContext.solveToEarnPasses}`);
+    if (userContext.solveToEarnPasses !== undefined && userContext.solveToEarnPasses !== null) {
+        parts.push(`Solve-to-Earn Passes Remaining Today: ${userContext.solveToEarnPasses}`);
     }
 
     if (parts.length === 0) return "";
