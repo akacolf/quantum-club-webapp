@@ -288,12 +288,23 @@ fun handleBounce(inMsgBody: slice) {
     val bouncedOp = inMsgBody.loadUint(32);
     inMsgBody.skipBits(64); // skip query_id
 
-    // If an internal_transfer (mint) bounced, revert totalSupply
+    // If an internal_transfer (mint) bounced, revert totalSupply AND tonReserve.
+    // Without reverting tonReserve, the reserve becomes inflated relative to supply,
+    // allowing subsequent sellers to extract more TON than they should.
     if (bouncedOp == OP_INTERNAL_TRANSFER) {
         if (inMsgBody.remainingBitsCount() >= 4) {
             val jettonAmount = inMsgBody.loadCoins();
             var st = Storage.load();
+
+            // Calculate how much TON these tokens represent at the current (post-buy) supply
+            val tonToRevert = calculateSellReturn(jettonAmount, st.totalSupply);
+
             st.totalSupply -= jettonAmount;
+            if (tonToRevert > st.tonReserve) {
+                st.tonReserve = 0;
+            } else {
+                st.tonReserve -= tonToRevert;
+            }
             st.save();
         }
     }
@@ -342,16 +353,36 @@ fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody:
         return;
     }
 
-    // ----- SELL NOTIFICATION (Alternative sell path) -----
-    if (op == OP_SELL_NOTIFICATION) {
-        val jettonAmount = inMsgBody.loadCoins();
-        val fromAddress = inMsgBody.loadAddress();
+    // ----- TEP-89: Provide Wallet Address (discovery) -----
+    if (op == OP_PROVIDE_WALLET_ADDRESS) {
+        val ownerAddress = inMsgBody.loadAddress();
+        val includeAddress = inMsgBody.loadUint(1);
 
         val st = lazy Storage.load();
-        val expectedWallet = getJettonWalletAddress(fromAddress, contract.getAddress(), st.jettonWalletCode);
-        assert(senderAddress.bitsEqual(expectedWallet)) throw ERROR_NOT_FROM_WALLET;
+        val walletAddress = getJettonWalletAddress(ownerAddress, contract.getAddress(), st.jettonWalletCode);
 
-        handleSell(senderAddress, queryId, jettonAmount, fromAddress);
+        var body = beginCell()
+            .storeUint(OP_TAKE_WALLET_ADDRESS, 32)
+            .storeUint(queryId, 64)
+            .storeAddress(walletAddress);
+
+        if (includeAddress) {
+            body = body
+                .storeAddress(ownerAddress);
+        } else {
+            body = body
+                .storeUint(0, 2); // addr_none
+        }
+
+        val message: cell = beginCell()
+            .storeUint(0x10, 6)
+            .storeAddress(senderAddress)
+            .storeCoins(0)
+            .storeUint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .storeRef(body.endCell())
+            .endCell();
+
+        sendRawMessage(message, 64);
         return;
     }
 
@@ -361,36 +392,27 @@ fun onInternalMessage(myBalance: int, msgValue: int, inMsgFull: cell, inMsgBody:
         return;
     }
 
-    // ----- ADMIN: Mint (for initial distribution) -----
-    if (op == OP_MINT) {
-        val st = lazy Storage.load();
-        assert(senderAddress.bitsEqual(st.adminAddress)) throw ERROR_NOT_ADMIN;
-
-        // Admin minting logic here if needed
-        return;
-    }
-
     // ----- ADMIN: Withdraw excess TON (safety recovery) -----
     if (op == OP_WITHDRAW_FEES) {
         val st = lazy Storage.load();
         assert(senderAddress.bitsEqual(st.adminAddress)) throw ERROR_NOT_ADMIN;
 
-        // Only allow withdrawing excess above reserve + min storage
+        // Reserve the bonding curve TON + minimum storage, send everything else
         val locked = st.tonReserve + MIN_TON_FOR_STORAGE;
-        val available = myBalance - locked;
-        assert(!(available <= 0)) throw ERROR_INSUFFICIENT_LIQUIDITY;
+        assert(myBalance > locked) throw ERROR_INSUFFICIENT_LIQUIDITY;
 
-        // Send available excess to admin
+        reserveToncoinsOnBalance(locked, 0);
+
         val message: cell = beginCell()
             .storeUint(0x10, 6)
             .storeAddress(st.adminAddress)
-            .storeCoins(available)
+            .storeCoins(0)
             .storeUint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
             .storeUint(OP_EXCESSES, 32)
             .storeUint(queryId, 64)
             .endCell();
 
-        sendRawMessage(message, 1);
+        sendRawMessage(message, 128);
         return;
     }
 
