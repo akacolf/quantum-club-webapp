@@ -258,14 +258,15 @@ fun handleGraduate(
     // Send graduation fee to platform
     sendFee(st.adminAddress, graduationFee, queryId);
 
-    // Send liquidity to DEX router
+    // Send liquidity to DEX router (or admin wallet for manual DEX provisioning).
+    // Bounceable (0x18) so TON returns to contract on failure (recoverable via OP_WITHDRAW_FEES).
+    // No body — plain TON transfer is universally accepted; avoids rejection by
+    // routers that throw on unknown ops.
     val message: cell = beginCell()
-        .storeUint(0x10, 6)
+        .storeUint(0x18, 6)
         .storeAddress(dexRouter)
         .storeCoins(liquidityTon)
         .storeUint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-        .storeUint(`log::graduate`, 32)
-        .storeUint(queryId, 64)
         .endCell();
 
     sendRawMessage(message, 1);
