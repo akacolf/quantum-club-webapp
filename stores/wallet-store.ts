@@ -6,6 +6,7 @@ import { WalletContractV5R1, WalletContractV4, WalletContractV3R2 } from "@ton/t
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { toast } from "sonner";
 import { getContractAdapter as getCentralAdapter } from "@/lib/ton-api";
+import { getContractAdapter as getTestnetOrMainnetAdapter } from "@/lib/jetton-operations";
 import type { ChainType } from "@/app/wallet/utils/multichain";
 import { getSecureMnemonic, removeSecureMnemonic } from "@/lib/secure-mnemonic";
 
@@ -506,9 +507,10 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
           break;
       }
 
-      // Reuse central ContractAdapter singleton (includes API key)
-      // Note: testnet not supported here — wallet sendTransaction always uses mainnet
-      const contractAdapterInstance = getCentralAdapter();
+      // Use testnet or mainnet adapter based on wallet's network setting
+      const contractAdapterInstance = isTestnet
+        ? getTestnetOrMainnetAdapter(true)
+        : getCentralAdapter();
       const contract = contractAdapterInstance.open(wallet);
       const toAddress = Address.parse(params.to);
 
