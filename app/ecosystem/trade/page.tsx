@@ -451,6 +451,15 @@ export default function TradePage() {
                         </Button>
                     </div>
 
+                    {/* Testnet notice */}
+                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-2.5 flex items-center gap-2.5 mb-1">
+                        <Icon icon="lucide:flask-conical" className="w-4 h-4 text-orange-400 shrink-0"/>
+                        <p className="text-[11px] text-orange-400/90 leading-snug">
+                            Running on <span className="font-semibold">TON Testnet</span> — no real funds at risk. Get 2 TON/hour from{" "}
+                            <a href="https://t.me/testgiver_ton_bot" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-orange-400 hover:text-orange-300">@testgiver_ton_bot</a>.
+                        </p>
+                    </div>
+
                     {/* Search */}
                     <div className="relative group mb-1">
                         <Icon
