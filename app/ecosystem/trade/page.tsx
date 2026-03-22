@@ -455,7 +455,7 @@ export default function TradePage() {
                     <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-2.5 flex items-center gap-2.5 mb-1">
                         <Icon icon="lucide:flask-conical" className="w-4 h-4 text-orange-400 shrink-0"/>
                         <p className="text-[11px] text-orange-400/90 leading-snug">
-                            Running on <span className="font-semibold">TON Testnet</span> — no real funds at risk. Get 2 TON/hour from{" "}
+                            Running on <span className="font-semibold">TON Testnet</span> — no real funds at risk. Make sure to switch to testnet mode from your wallet&apos;s settings. Get 2 TON/hour from{" "}
                             <a href="https://t.me/testgiver_ton_bot" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-orange-400 hover:text-orange-300">@testgiver_ton_bot</a>.
                         </p>
                     </div>
@@ -486,10 +486,10 @@ export default function TradePage() {
                     {/* Tabs */}
                     {!searchQuery && (
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-3">
-                            <TabsList className="w-full bg-black/40 backdrop-blur-md p-1 h-12 rounded-2xl grid grid-cols-5 gap-1 border border-white/5 items-stretch shadow-inner">
+                            <TabsList className="w-full bg-black/40 backdrop-blur-md p-1 h-12 rounded-xl grid grid-cols-5 gap-1 border border-white/5 items-stretch shadow-inner">
                                 <TabsTrigger
                                     value="trending"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.fire ? (
@@ -507,7 +507,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="new"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.sparkles ? (
@@ -525,7 +525,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="holdings"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.diamond ? (
@@ -543,7 +543,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="created"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300 relative"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300 relative"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.rocket ? (
@@ -564,7 +564,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="dex"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-xl text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
