@@ -105,6 +105,11 @@ fun handleBuy(
     // Cannot buy after graduation
     assert(!st.graduated) throw ERROR_ALREADY_GRADUATED;
 
+    // Ensure enough TON to cover gas, wallet deployment, and forward fees.
+    // Without this, the action phase could fail silently (mint message skipped,
+    // state committed but no tokens delivered, no bounce to revert).
+    assert(msgValue >= GAS_CONSUMPTION + JETTON_WALLET_DEPLOY_GAS + FORWARD_FEE) throw ERROR_INSUFFICIENT_GAS;
+
     // Parse slippage protection (optional)
     var minTokensOut = 0;
     if (!inMsgBody.isEmpty()) {
@@ -113,7 +118,6 @@ fun handleBuy(
 
     // Calculate net amount after gas
     val grossAmount = msgValue - GAS_CONSUMPTION;
-    assert(!(grossAmount <= 0)) throw ERROR_INSUFFICIENT_GAS;
 
     // Calculate platform fee (1.1% - includes referral pool distributed off-chain)
     val platformFee = mulDivFloor(grossAmount, PLATFORM_FEE_BPS, 10000);

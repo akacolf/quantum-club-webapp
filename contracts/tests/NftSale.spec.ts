@@ -125,10 +125,6 @@ describe('NftSale', () => {
                 success: true,
             });
 
-            // Verify sale is complete
-            const isComplete = await nftSale.isSaleComplete();
-            expect(isComplete).toBe(true);
-
             // Verify outgoing transactions were sent to correct recipients
             // NFT transfer message to buyer
             expect(buyResult.transactions).toHaveTransaction({
@@ -151,8 +147,12 @@ describe('NftSale', () => {
                 success: true,
             });
 
-            // Note: Seller receives remaining balance via mode 128, which may not
-            // show as a separate transaction in all cases
+            // Seller receives remaining balance via mode 128+32 (self-destruct)
+            expect(buyResult.transactions).toHaveTransaction({
+                from: nftSale.address,
+                to: seller.address,
+                success: true,
+            });
         });
 
         it('should reject purchase with insufficient funds', async () => {
@@ -221,9 +221,13 @@ describe('NftSale', () => {
                 success: true,
             });
 
-            // Sale should be marked complete
-            const isComplete = await nftSale.isSaleComplete();
-            expect(isComplete).toBe(true);
+            // Contract self-destructs after cancel (mode 128+32)
+            // Verify NFT was returned to seller
+            expect(cancelResult.transactions).toHaveTransaction({
+                from: nftSale.address,
+                to: nftContract.address,
+                success: true,
+            });
         });
 
         it('should reject cancel from non-seller', async () => {
@@ -307,12 +311,12 @@ describe('NftSale', () => {
                 success: true,
             });
 
-            // Note: Seller receives remaining balance via mode 128
-            // This is handled by the contract's final message
-
-            // Verify sale is complete
-            const isComplete = await nftSale.isSaleComplete();
-            expect(isComplete).toBe(true);
+            // 4. Seller receives remaining balance via mode 128+32 (self-destruct)
+            expect(buyResult.transactions).toHaveTransaction({
+                from: nftSale.address,
+                to: seller.address,
+                success: true,
+            });
         });
 
         it('should handle zero royalty correctly', async () => {
@@ -571,8 +575,13 @@ describe('NftSale', () => {
                 success: true,
             });
 
-            const isComplete = await nftSale.isSaleComplete();
-            expect(isComplete).toBe(true);
+            // Contract self-destructs after sale (mode 128+32)
+            // Verify seller received payment
+            expect(result.transactions).toHaveTransaction({
+                from: nftSale.address,
+                to: seller.address,
+                success: true,
+            });
         });
 
         it('should reject buy with price but no gas', async () => {
