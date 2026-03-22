@@ -14,7 +14,9 @@ import {
 } from "firebase/firestore";
 import type { Token } from "@/types/trading";
 import { DEFAULT_BONDING_CURVE, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
+import { ROCKETSTART_TESTNET } from "@/lib/platform-config";
 
+const NETWORK_FILTER = ROCKETSTART_TESTNET ? "testnet" : "mainnet";
 const TOKEN_PAGE_SIZE = 20;
 
 function docToToken(doc: any): Token {
@@ -61,6 +63,7 @@ export function useTrendingTokens() {
         queryKey: ["tokens", "trending"],
         queryFn: async ({ pageParam }): Promise<TokenPage> => {
             const constraints = [
+                where("network", "==", NETWORK_FILTER),
                 where("isOnChain", "==", true),
                 orderBy("volume24h", "desc"),
                 ...(pageParam ? [startAfter(pageParam)] : []),
@@ -87,6 +90,7 @@ export function useNewTokens() {
         queryKey: ["tokens", "new"],
         queryFn: async ({ pageParam }): Promise<TokenPage> => {
             const constraints = [
+                where("network", "==", NETWORK_FILTER),
                 where("isOnChain", "==", true),
                 orderBy("createdAt", "desc"),
                 ...(pageParam ? [startAfter(pageParam)] : []),
@@ -113,6 +117,7 @@ export function useGraduatedTokens() {
         queryKey: ["tokens", "graduated"],
         queryFn: async ({ pageParam }): Promise<TokenPage> => {
             const constraints = [
+                where("network", "==", NETWORK_FILTER),
                 where("isGraduated", "==", true),
                 orderBy("graduatedAt", "desc"),
                 ...(pageParam ? [startAfter(pageParam)] : []),
@@ -142,6 +147,7 @@ export function useMyTokens(telegramId: string | null, walletAddress: string) {
 
             if (telegramId) {
                 const constraints = [
+                    where("network", "==", NETWORK_FILTER),
                     where("creatorUserId", "==", telegramId),
                     orderBy("createdAt", "desc"),
                     ...(pageParam ? [startAfter(pageParam)] : []),
@@ -154,6 +160,7 @@ export function useMyTokens(telegramId: string | null, walletAddress: string) {
 
             if (walletAddress) {
                 const constraints = [
+                    where("network", "==", NETWORK_FILTER),
                     where("creatorAddress", "==", walletAddress),
                     orderBy("createdAt", "desc"),
                     ...(pageParam ? [startAfter(pageParam)] : []),
