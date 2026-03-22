@@ -57,8 +57,9 @@ function TestnetToggle() {
           <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent focus:bg-accent">Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
-              toggleTestnet();
-              router.push("/wallet");
+              router.replace("/wallet");
+              // Toggle after navigation starts so the page transition is instant
+              requestAnimationFrame(() => toggleTestnet());
             }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
           >
