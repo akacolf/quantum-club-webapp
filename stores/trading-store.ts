@@ -202,10 +202,8 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
     set({ isSearching: true });
     try {
       const q = searchQuery.toLowerCase();
-      const networkFilter = ROCKETSTART_TESTNET ? "testnet" : "mainnet";
       const searchQ = query(
         collection(dbfs, "tokens"),
-        where("network", "==", networkFilter),
         where("nameLower", ">=", q),
         where("nameLower", "<=", q + "\uf8ff"),
         limit(30)
@@ -825,9 +823,8 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
     }
 
     try {
-      const networkFilter = ROCKETSTART_TESTNET ? "testnet" : "mainnet";
       const tokensSnapshot = await getDocs(
-        query(collection(dbfs, "tokens"), where("network", "==", networkFilter), where("isOnChain", "==", true))
+        query(collection(dbfs, "tokens"), where("isOnChain", "==", true))
       );
 
       const tokens = tokensSnapshot.docs.map(docToToken).filter((t) => t.jettonMasterAddress);

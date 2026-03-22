@@ -6,7 +6,7 @@ import { firestore as adminDb } from "@/app/(firebase)/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { Address } from "@ton/core";
 import { buildJettonDeploy } from "@/lib/jetton-real";
-import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG, ROCKETSTART_TESTNET } from "@/lib/platform-config";
+import { PLATFORM_WALLET_ADDRESS, FEE_CONFIG } from "@/lib/platform-config";
 import { checkSymbolSchema, uploadImageSchema, graduateSchema } from "@/lib/validations";
 import { calculateGraduationLiquidity } from "@/lib/graduation";
 import { v2 as cloudinary } from "cloudinary";
@@ -164,7 +164,6 @@ export const deployJetton = authActionClient
                     platformWallet: PLATFORM_WALLET_ADDRESS,
                     serviceFeePercent: FEE_CONFIG.serviceFeePercent,
                     referralFeePercent: FEE_CONFIG.referralFeePercent,
-                    network: ROCKETSTART_TESTNET ? "testnet" : "mainnet",
                     createdAt: FieldValue.serverTimestamp(),
                 });
             }
