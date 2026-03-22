@@ -59,9 +59,11 @@ fun Storage.save(self) {
 // =============================================================================
 
 // Send TON to an address
+// Note: mode 128 overrides the amount field with remaining balance,
+// so we must NOT skip when amount is 0 and mode includes 128.
 @inline
 fun sendTon(toAddress: address, amount: int, mode: int) {
-    if (amount > 0) {
+    if ((amount > 0) || (mode & 128)) {
         val msg: cell = beginCell()
             .storeUint(0x10, 6)  // nobounce
             .storeAddress(toAddress)
