@@ -15,6 +15,7 @@ import {
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { getContractAdapter as getCentralAdapter } from "@/lib/ton-api";
+import { env } from "@/env";
 
 // =====================================================
 // Operation Codes (TEP-74 Standard + Blum/BigPump Compatible)
@@ -141,14 +142,17 @@ let cachedTestnetAdapter: ContractAdapter | null = null;
 /**
  * Get or create a ContractAdapter for blockchain queries.
  * Mainnet delegates to the central singleton in ton-api.ts (includes API key).
- * Testnet creates a separate instance.
+ * Testnet creates a separate instance with API key.
  */
 export function getContractAdapter(testnet: boolean = false): ContractAdapter {
     if (!testnet) return getCentralAdapter();
 
     if (cachedTestnetAdapter) return cachedTestnetAdapter;
+    const apiKey =
+      typeof window === "undefined" ? env.TONAPI_KEY ?? env.NEXT_PUBLIC_TONAPI_KEY : env.NEXT_PUBLIC_TONAPI_KEY;
     const tonApiClient = new TonApiClient({
         baseUrl: "https://testnet.tonapi.io",
+        ...(apiKey ? { apiKey } : {}),
     });
     cachedTestnetAdapter = new ContractAdapter(tonApiClient);
     return cachedTestnetAdapter;
@@ -161,7 +165,8 @@ export function getContractAdapter(testnet: boolean = false): ContractAdapter {
 export async function getJettonWalletAddress(
     jettonMasterAddress: string,
     ownerAddress: string,
-    contractAdapter: ContractAdapter
+    contractAdapter: ContractAdapter,
+    testnet: boolean = false
 ): Promise<string | null> {
     // Check cache first (wallet addresses are deterministic)
     const cacheKey = `${jettonMasterAddress}:${ownerAddress}`;
@@ -197,8 +202,9 @@ export async function getJettonWalletAddress(
 
     // Fallback: Use TONAPI
     try {
+        const baseUrl = testnet ? "https://testnet.tonapi.io" : "https://tonapi.io";
         const response = await fetch(
-            `https://tonapi.io/v2/accounts/${ownerAddress}/jettons/${jettonMasterAddress}`,
+            `${baseUrl}/v2/accounts/${ownerAddress}/jettons/${jettonMasterAddress}`,
             { signal: AbortSignal.timeout(5000) }
         );
 

@@ -16,9 +16,10 @@ import {
   getBondingCurveData,
   getContractAdapter,
 } from "@/lib/jetton-operations";
+import { ROCKETSTART_TESTNET } from "@/lib/platform-config";
 import type { Token } from "@/types/trading";
 
-const contractAdapter = getContractAdapter(false);
+const contractAdapter = getContractAdapter(ROCKETSTART_TESTNET);
 
 export function useTonApiStream() {
   const queryClient = useQueryClient();

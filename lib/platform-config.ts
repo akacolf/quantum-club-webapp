@@ -2,6 +2,9 @@
 
 import { env } from "@/env";
 
+// RocketStart uses TON Testnet so users can trade with no real funds risk
+export const ROCKETSTART_TESTNET = true;
+
 // Platform wallet address that receives fees (validated by T3 Env)
 export const PLATFORM_WALLET_ADDRESS = env.NEXT_PUBLIC_PLATFORM_WALLET;
 

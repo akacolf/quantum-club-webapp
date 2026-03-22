@@ -1,5 +1,6 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Address } from "@ton/core";
+import { ROCKETSTART_TESTNET } from "@/lib/platform-config";
 
 interface Trade {
     id: string;
@@ -139,7 +140,7 @@ export function useTradeEvents(jettonAddress: string | undefined) {
             const { tonApiGet } = await import("@/lib/tonapi-client");
             const data = await tonApiGet<{ transactions?: unknown[] }>(
                 `/v2/blockchain/accounts/${jettonAddress}/transactions?limit=200`,
-                { testnet: false }
+                { testnet: ROCKETSTART_TESTNET }
             );
             const events = parseTradeEvents(data);
             events.sort((a, b) => a.timestamp - b.timestamp);
