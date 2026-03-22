@@ -21,6 +21,7 @@ const IS_TESTNET = NETWORK === "testnet";
 
 // Cache for TonAPI client and adapter
 let cachedTonApiClient: TonApiClient | null = null;
+let cachedTestnetTonApiClient: TonApiClient | null = null;
 let cachedContractAdapter: ContractAdapter | null = null;
 
 // =====================================================
@@ -49,6 +50,21 @@ export function getTonApiClient(): TonApiClient {
  */
 export async function getTonClient(): Promise<ContractAdapter> {
     return getContractAdapter();
+}
+
+/**
+ * Get TonAPI client for testnet (cached, separate from mainnet)
+ */
+function getTestnetTonApiClient(): TonApiClient {
+    if (cachedTestnetTonApiClient) return cachedTestnetTonApiClient;
+
+    const apiKey =
+      typeof window === "undefined" ? env.TONAPI_KEY ?? env.NEXT_PUBLIC_TONAPI_KEY : env.NEXT_PUBLIC_TONAPI_KEY;
+    cachedTestnetTonApiClient = new TonApiClient({
+        baseUrl: "https://testnet.tonapi.io",
+        ...(apiKey ? { apiKey } : {}),
+    });
+    return cachedTestnetTonApiClient;
 }
 
 /**
@@ -95,9 +111,9 @@ export async function getAccountInfo(address: string): Promise<AccountInfo | nul
 /**
  * Get account balance in nanoTON
  */
-export async function getBalance(address: string): Promise<bigint> {
+export async function getBalance(address: string, testnet?: boolean): Promise<bigint> {
     try {
-        const client = getTonApiClient();
+        const client = testnet ? getTestnetTonApiClient() : getTonApiClient();
         const account = await client.accounts.getAccount(Address.parse(address));
         return account.balance;
     } catch (error) {
@@ -109,9 +125,9 @@ export async function getBalance(address: string): Promise<bigint> {
 /**
  * Check if a contract is deployed and active
  */
-export async function isContractActive(address: string): Promise<boolean> {
+export async function isContractActive(address: string, testnet?: boolean): Promise<boolean> {
     try {
-        const client = getTonApiClient();
+        const client = testnet ? getTestnetTonApiClient() : getTonApiClient();
         const account = await client.accounts.getAccount(Address.parse(address));
         return account.status === "active";
     } catch (error) {

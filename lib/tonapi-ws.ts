@@ -10,8 +10,11 @@
  */
 
 import { env } from "@/env";
+import { ROCKETSTART_TESTNET } from "@/lib/platform-config";
 
-const WS_URL = "wss://tonapi.io/v2/websocket";
+const WS_URL = ROCKETSTART_TESTNET
+  ? "wss://testnet.tonapi.io/v2/websocket"
+  : "wss://tonapi.io/v2/websocket";
 
 // Trade opcodes
 const OP_BUY = "0xaf750d34";

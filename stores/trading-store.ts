@@ -38,7 +38,7 @@ import {
 } from "@/lib/jetton-operations";
 import { uploadTokenImage } from "@/lib/upload-image";
 import { deployJetton as deployJettonAction, confirmJettonDeployment } from "@/app/ecosystem/trade/actions";
-import { FEE_CONFIG } from "@/lib/platform-config";
+import { FEE_CONFIG, ROCKETSTART_TESTNET } from "@/lib/platform-config";
 import { getBalance, isContractActive } from "@/lib/ton-api";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
 import type { QueryClient } from "@tanstack/react-query";
@@ -99,8 +99,8 @@ function docToToken(d: { id: string; data: () => Record<string, unknown> }): Tok
   };
 }
 
-// Contract adapter (stable, mainnet)
-const contractAdapter = getContractAdapter(false);
+// Contract adapter (testnet for RocketStart)
+const contractAdapter = getContractAdapter(ROCKETSTART_TESTNET);
 
 // =====================================================
 // Store
@@ -413,7 +413,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
 
       if (!isInitialBuy) {
         try {
-          const balanceInNano = await getBalance(walletAddress);
+          const balanceInNano = await getBalance(walletAddress, ROCKETSTART_TESTNET);
           const balanceInTon = Number(balanceInNano) / 1e9;
           const requiredTon = tonAmountNum + 0.1;
           if (balanceInTon < requiredTon) {
@@ -439,7 +439,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
 
       if (!isInitialBuy) {
         try {
-          const isActive = await isContractActive(token.jettonMasterAddress);
+          const isActive = await isContractActive(token.jettonMasterAddress, ROCKETSTART_TESTNET);
           if (!isActive) {
             return { success: false, error: "Contract not active on blockchain. Deployment may have failed." };
           }
@@ -510,7 +510,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       }
 
       try {
-        const balanceInNano = await getBalance(walletAddress);
+        const balanceInNano = await getBalance(walletAddress, ROCKETSTART_TESTNET);
         const balanceInTon = Number(balanceInNano) / 1e9;
         const requiredGas = 0.15;
         if (balanceInTon < requiredGas) {
@@ -534,7 +534,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       }
 
       try {
-        const isActive = await isContractActive(token.jettonMasterAddress);
+        const isActive = await isContractActive(token.jettonMasterAddress, ROCKETSTART_TESTNET);
         if (!isActive) {
           return { success: false, error: "Contract not active on blockchain" };
         }
@@ -549,7 +549,8 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
       const jettonWalletAddress = await getJettonWalletAddress(
         token.jettonMasterAddress,
         walletAddress,
-        contractAdapter
+        contractAdapter,
+        ROCKETSTART_TESTNET
       );
       if (!jettonWalletAddress) {
         return { success: false, error: "Jetton wallet not found" };
@@ -667,7 +668,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
           for (let attempt = 1; attempt <= maxRetries; attempt++) {
             await new Promise((resolve) => setTimeout(resolve, retryDelay));
             try {
-              const isActive = await isContractActive(jettonAddress);
+              const isActive = await isContractActive(jettonAddress, ROCKETSTART_TESTNET);
               if (isActive) {
                 isDeployedOnChain = true;
                 break;
@@ -854,7 +855,7 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
                     in_msg?: { op_code?: string; value?: number; source?: { address?: string } };
                   }> }>(
                     `/v2/blockchain/accounts/${token.jettonMasterAddress}/transactions?limit=100`,
-                    { testnet: false }
+                    { testnet: ROCKETSTART_TESTNET }
                   );
                   for (const tx of txData.transactions || []) {
                     if (!tx.success) continue;
