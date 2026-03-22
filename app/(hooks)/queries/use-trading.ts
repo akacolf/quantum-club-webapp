@@ -17,7 +17,6 @@ import { DEFAULT_BONDING_CURVE, DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types
 import { ROCKETSTART_TESTNET } from "@/lib/platform-config";
 
 const NETWORK_FILTER = ROCKETSTART_TESTNET ? "testnet" : "mainnet";
-
 const TOKEN_PAGE_SIZE = 20;
 
 function docToToken(doc: any): Token {
