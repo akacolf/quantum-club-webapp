@@ -489,7 +489,7 @@ export default function CreateTokenPage() {
                                                         }}
                                                         aria-invalid={isInvalid}
                                                         placeholder="e.g., QNTM"
-                                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground uppercase pr-10 ${
+                                                        className={`bg-white/5 border-white/10 text-white placeholder:text-muted-foreground placeholder:normal-case uppercase pr-10 ${
                                                             isInvalid ? "border-destructive" :
                                                             symbolAvailable === true ? "border-green-500" : ""
                                                         }`}
