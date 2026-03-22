@@ -923,9 +923,10 @@ export default function WalletPage() {
         {isTestnet ? (
           <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
             <Icon icon="lucide:flask-conical" className="w-4 h-4 text-blue-400 mt-0.5 shrink-0"/>
-            <p className="text-xs text-blue-400/90 leading-relaxed">
-              You&apos;re on TON Testnet. Assets here have no real value. Switch to mainnet in settings for real transactions.
-            </p>
+            <div className="text-xs text-blue-400/90 leading-relaxed space-y-1">
+              <p>You&apos;re on TON Testnet. Assets here have no real value.</p>
+              <p>Need testnet TON? Get 2 TON/hour from <a href="https://t.me/testgiver_ton_bot" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-blue-400 hover:text-blue-300">@testgiver_ton_bot</a>.</p>
+            </div>
           </div>
         ) : null}
 
