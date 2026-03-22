@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -33,6 +35,9 @@ import {
 function TestnetToggle() {
   const { isTestnet, toggleTestnet } = useWallet();
   const router = useRouter();
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  if (isSwitching) return <Loader />;
 
   return (
     <AlertDialog>
@@ -57,9 +62,9 @@ function TestnetToggle() {
           <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent focus:bg-accent">Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
+              setIsSwitching(true);
+              toggleTestnet();
               router.replace("/wallet");
-              // Toggle after navigation starts so the page transition is instant
-              requestAnimationFrame(() => toggleTestnet());
             }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
           >
