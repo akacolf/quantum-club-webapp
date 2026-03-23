@@ -1,12 +1,10 @@
 "use client";
 
-import { useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
-import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -35,47 +33,40 @@ import {
 function TestnetToggle() {
   const { isTestnet, toggleTestnet } = useWallet();
   const router = useRouter();
-  const loaderRef = useRef<HTMLDivElement>(null);
 
   return (
-    <>
-      <div ref={loaderRef} className="hidden">
-        <Loader />
-      </div>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <div className="flex items-center space-x-2 cursor-pointer">
-            <Switch
-              checked={isTestnet}
-              onCheckedChange={() => { }} // Controlled by dialog action
-              className="data-[state=checked]:bg-orange-500"
-            />
-          </div>
-        </AlertDialogTrigger>
-        <AlertDialogContent className="bg-card border-border text-foreground">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Switch to {isTestnet ? "Mainnet" : "Testnet"}?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              Switching networks will reset your wallet balance and assets for the new network.
-              This is only for developers and testing.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent focus:bg-accent">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (loaderRef.current) loaderRef.current.className = "";
-                toggleTestnet();
-                router.replace("/wallet");
-              }}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <div className="flex items-center space-x-2 cursor-pointer">
+          <Switch
+            checked={isTestnet}
+            onCheckedChange={() => { }} // Controlled by dialog action
+            className="data-[state=checked]:bg-orange-500"
+          />
+        </div>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="bg-card border-border text-foreground">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Switch to {isTestnet ? "Mainnet" : "Testnet"}?</AlertDialogTitle>
+          <AlertDialogDescription className="text-muted-foreground">
+            Switching networks will reset your wallet balance and assets for the new network.
+            This is only for developers and testing.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent focus:bg-accent">Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              toggleTestnet();
+              router.replace("/wallet");
+            }}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+          >
+            Confirm
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
