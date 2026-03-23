@@ -58,7 +58,7 @@ function TestnetToggle() {
           <AlertDialogAction
             onClick={() => {
               toggleTestnet();
-              router.push("/wallet");
+              router.replace("/wallet");
             }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground border-0"
           >
