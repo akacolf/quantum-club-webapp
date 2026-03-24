@@ -74,8 +74,9 @@ const nextConfig: import('next').NextConfig = {
   // React Compiler - auto-memoizes components/hooks at build time
   reactCompiler: true,
 
-  // Partial Prerendering - static shells served instantly, dynamic parts stream in
-  cacheComponents: true,
+  // cacheComponents disabled — app relies on real-time Firestore/blockchain data;
+  // cached pages cause stale state (solve-to-earn timer, wallet balances, prices).
+  cacheComponents: false,
 
   // Type-safe route validation — catches broken <Link href> at build time
   typedRoutes: true,
