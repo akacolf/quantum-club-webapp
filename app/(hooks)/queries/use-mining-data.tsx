@@ -233,6 +233,7 @@ interface ClaimDailyResult {
     quantReward: number;
     newQuantAmount: string;
     passesAdded: boolean;
+    newRemaining: number;
 }
 
 async function performDailyClaim({
@@ -264,6 +265,8 @@ async function performDailyClaim({
     const valuesSnap = await getDoc(valuesRef);
     const valuesData = valuesSnap.exists() ? valuesSnap.data() : null;
     const quant: number = valuesData?.QuantAmount ?? 0;
+    const currentRemaining: number = valuesData?.remainingSolveToEarn ?? 0;
+    let newRemaining = currentRemaining;
 
     const lastDate = valuesData?.lastSolveToEarnDate ?? null;
     let shouldAddPasses = false;
@@ -288,6 +291,7 @@ async function performDailyClaim({
             { merge: true },
         );
         passesAdded = true;
+        newRemaining = currentRemaining + 7;
     }
 
     // ---- Daily check-in logic ----
@@ -338,6 +342,7 @@ async function performDailyClaim({
                         maximumFractionDigits: 0,
                     }),
                     passesAdded: false,
+                    newRemaining,
                 };
             }
         }
@@ -367,7 +372,7 @@ async function performDailyClaim({
         maximumFractionDigits: 0,
     });
 
-    return { newDaily, quantReward, newQuantAmount, passesAdded };
+    return { newDaily, quantReward, newQuantAmount, passesAdded, newRemaining };
 }
 
 // ---------------------------------------------------------------------------
@@ -394,34 +399,31 @@ async function performGameSave({
     );
     const valuesRef = doc(dbfs, `user/${telegramId}/miningData/values`);
     const snap = await getDoc(valuesRef);
-    const remaining = snap.data()?.remainingSolveToEarn;
     const totalQuant = snap.data()?.QuantAmount ?? 0;
     const newQuant = totalQuant + earnedQuant;
 
     sessionStorage.setItem("correctAnswers", `${correctAnswers}`);
 
-    if (snap.exists() && remaining && Number(remaining) > 0) {
-        await updateDoc(valuesRef, { QuantAmount: newQuant });
-        await setDoc(
-            historyRef,
-            {
-                Date: formattedDate,
-                total: correctAnswers,
-                quant: earnedQuant,
-                platform: "solvetoearn",
-            },
-            { merge: true },
-        );
+    if (!snap.exists()) return null;
 
-        const formattedQuant = newQuant.toLocaleString("en-US", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        });
-        sessionStorage.setItem("TotalCorrectSolveToEarn", `${earnedQuant}`);
-        return formattedQuant;
-    }
+    await updateDoc(valuesRef, { QuantAmount: newQuant });
+    await setDoc(
+        historyRef,
+        {
+            Date: formattedDate,
+            total: correctAnswers,
+            quant: earnedQuant,
+            platform: "solvetoearn",
+        },
+        { merge: true },
+    );
 
-    return null;
+    const formattedQuant = newQuant.toLocaleString("en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    });
+    sessionStorage.setItem("TotalCorrectSolveToEarn", `${earnedQuant}`);
+    return formattedQuant;
 }
 
 export function useGameSaveMutation(telegramId: string | null) {
@@ -459,14 +461,12 @@ export function usePlayAgainMutation(telegramId: string | null) {
                 ? (snap.data().remainingSolveToEarn ?? 0)
                 : 0;
 
-            if (remaining > 0) {
-                await updateDoc(valuesRef, {
-                    remainingSolveToEarn: remaining - 1,
-                });
-                return remaining - 1;
-            }
+            if (remaining <= 0) throw new Error("No passes remaining");
 
-            return 0;
+            await updateDoc(valuesRef, {
+                remainingSolveToEarn: remaining - 1,
+            });
+            return remaining - 1;
         },
         onSuccess: () => {
             if (telegramId) {
@@ -510,11 +510,18 @@ export function useClaimDailyMutation(
             // Update Zustand store
             callbacks.setDaily(result.newDaily);
             callbacks.SetMainQuantAmount(result.newQuantAmount);
+            callbacks.setRemainingSolveToEarn(result.newRemaining);
 
-            // Update localStorage (legacy)
-            if (typeof window !== "undefined" && telegramId) {
-                localStorage.setItem(`QAmount_${telegramId}`, result.newQuantAmount);
-                localStorage.setItem(`daily_${telegramId}`, String(result.newDaily));
+            // Update localStorage (legacy) + sessionStorage
+            if (typeof window !== "undefined") {
+                sessionStorage.setItem(
+                    "remainingSolveToEarn",
+                    String(result.newRemaining),
+                );
+                if (telegramId) {
+                    localStorage.setItem(`QAmount_${telegramId}`, result.newQuantAmount);
+                    localStorage.setItem(`daily_${telegramId}`, String(result.newDaily));
+                }
             }
 
             // Toast for passes

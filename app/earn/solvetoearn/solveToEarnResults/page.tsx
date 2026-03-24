@@ -45,12 +45,9 @@ const SolveToEarnResults = () => {
     setButtonClicked(true);
     playAgainMutation.mutate(undefined, {
       onSuccess: (remainingAfter) => {
-        if (remainingAfter > 0) {
-          setRemainingSolveToEarn(remainingAfter);
-          router.push("/earn/solvetoearn");
-        } else {
-          router.push("/earn");
-        }
+        setRemainingSolveToEarn(remainingAfter);
+        sessionStorage.setItem("remainingSolveToEarn", String(remainingAfter));
+        router.push("/earn/solvetoearn");
       },
       onError: () => {
         router.push("/earn");
