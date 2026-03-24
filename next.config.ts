@@ -13,19 +13,13 @@ const withAnalyzer = createBundleAnalyzer({
   enabled: env.ANALYZE === "true",
 });
 
-/** @type {import('next').NextConfig} */
-
 const nextConfig: import('next').NextConfig = {
-  // Enable React Strict Mode for identifying potential problems
-  reactStrictMode: true,
-
   // Image Optimization Configuration
   images: {
     remotePatterns: [
       // Allow any HTTPS image — token/NFT metadata can come from any domain
       { protocol: 'https', hostname: '**' },
     ],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ['image/avif', 'image/webp'],
   },
@@ -37,11 +31,11 @@ const nextConfig: import('next').NextConfig = {
       exclude: ['error'],
     } : false,
 
-    // Enable React's experimental features
+    // Remove data-testid props in production
     reactRemoveProperties: process.env.NODE_ENV === 'production',
   },
 
-  // Headers configuration for security
+  // Security headers
   // NOTE: No X-Frame-Options — app runs inside Telegram's iframe/WebView
   async headers() {
     return [
@@ -69,29 +63,12 @@ const nextConfig: import('next').NextConfig = {
     ];
   },
 
-
-
   // React Compiler - auto-memoizes components/hooks at build time
   reactCompiler: true,
-
-  // cacheComponents disabled — app relies on real-time Firestore/blockchain data;
-  // cached pages cause stale state (solve-to-earn timer, wallet balances, prices).
-  cacheComponents: false,
 
   // Type-safe route validation — catches broken <Link href> at build time
   typedRoutes: true,
 
-  // Custom cache life profiles for 'use cache' directives
-  cacheLife: {
-    // Token metadata, leaderboard — changes infrequently
-    tokenData: { stale: 60, revalidate: 120, expire: 3600 },
-    // User profile, settings — moderate staleness OK
-    userData: { stale: 300, revalidate: 600, expire: 7200 },
-    // Price data, charts — needs freshness
-    priceData: { stale: 15, revalidate: 30, expire: 300 },
-  },
-
-  // Experimental features
   experimental: {
     viewTransition: true,
     // Persist Turbopack compilation cache across production builds
@@ -100,12 +77,7 @@ const nextConfig: import('next').NextConfig = {
     typedEnv: true,
     // Inline critical CSS — eliminates render-blocking stylesheets (faster FCP in TG WebView)
     inlineCss: true,
-    // Client router cache — instant back/forward navigation in TG Mini App
-    staleTimes: {
-      dynamic: 30,   // Dynamic pages (leaderboard, prices) refresh after 30s
-      static: 180,   // Static pages (token info, settings) cached 3 min
-    },
-    // Optimizations - tree-shake these large packages
+    // Tree-shake large packages that aren't auto-optimized by Next.js
     optimizePackageImports: [
       '@radix-ui/react-accordion',
       '@radix-ui/react-alert-dialog',
@@ -125,7 +97,6 @@ const nextConfig: import('next').NextConfig = {
       '@radix-ui/react-tabs',
       '@radix-ui/react-toast',
       '@radix-ui/react-tooltip',
-      // lucide-react, recharts, date-fns are auto-optimized by Next.js
       '@iconify/react',
       'lottie-react',
       'framer-motion',
@@ -168,9 +139,6 @@ const nextConfig: import('next').NextConfig = {
 
   // Allow cloudflared tunnel origins in dev mode
   allowedDevOrigins: ['*.trycloudflare.com'],
-
-  // Turbopack config (used in dev via `next dev --turbopack`)
-  turbopack: {},
 };
 
 export default withAnalyzer(withSerwist(nextConfig));
