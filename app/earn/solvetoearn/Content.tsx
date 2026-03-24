@@ -354,7 +354,7 @@ const SolveToEarnContent = () => {
                 if (formattedQuant) SetMainQuantAmount(formattedQuant);
               },
               onSettled: () => {
-                router.replace(`/earn/solvetoearn/solveToEarnResults?s=${Date.now()}`);
+                router.replace("/earn/solvetoearn/solveToEarnResults");
               },
             },
           );

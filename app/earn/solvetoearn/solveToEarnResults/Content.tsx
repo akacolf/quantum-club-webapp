@@ -47,7 +47,7 @@ const SolveToEarnResults = () => {
       onSuccess: (remainingAfter) => {
         setRemainingSolveToEarn(remainingAfter);
         sessionStorage.setItem("remainingSolveToEarn", String(remainingAfter));
-        router.push(`/earn/solvetoearn?s=${Date.now()}`);
+        router.push("/earn/solvetoearn");
       },
       onError: () => {
         router.push("/earn");

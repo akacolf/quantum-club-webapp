@@ -205,7 +205,7 @@ const HomeContent = () => {
       const newRemaining = await solveToEarnMutation.mutateAsync();
       setRemainingSolveToEarn(newRemaining);
       sessionStorage.setItem("remainingSolveToEarn", String(newRemaining));
-      router.push(`/earn/solvetoearn?s=${Date.now()}`);
+      router.push("/earn/solvetoearn");
     } catch {
       // Re-enable button on failure
       if (taskElement) {
