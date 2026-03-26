@@ -9,8 +9,12 @@ import type { Metadata, Viewport } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
-import { SerwistProvider } from "@serwist/turbopack/react";
 import dynamic from "next/dynamic";
+
+const SerwistProvider = dynamic(
+  () => import("@serwist/turbopack/react").then((mod) => mod.SerwistProvider),
+  { ssr: false }
+);
 
 const CallOverlay = dynamic(() => import("./(components)/CallOverlay"));
 const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"));
