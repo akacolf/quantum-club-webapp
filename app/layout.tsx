@@ -9,6 +9,7 @@ import type { Metadata, Viewport } from "next";
 import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
+import { SerwistProvider } from "@serwist/turbopack/react";
 import dynamic from "next/dynamic";
 
 const CallOverlay = dynamic(() => import("./(components)/CallOverlay"));
@@ -58,6 +59,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body className={`${onest.variable} antialiased`}>
+        <SerwistProvider swUrl="/serwist/sw.js">
         <Script src="https://telegram.org/js/telegram-web-app.js?57" strategy="beforeInteractive"></Script>
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload"></Script>
         <AuthProvider>
@@ -78,6 +80,7 @@ export default function RootLayout({
           <Toaster />
         </ClientProviders>
         </AuthProvider>
+        </SerwistProvider>
       </body>
     </html>
   );

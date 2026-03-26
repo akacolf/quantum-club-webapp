@@ -1,13 +1,7 @@
 // Validate env vars at build start (fails fast if any required var is missing)
 import { env } from "./env";
-import withSerwistInit from "@serwist/next";
+import { withSerwist } from "@serwist/turbopack";
 import createBundleAnalyzer from "@next/bundle-analyzer";
-
-const withSerwist = withSerwistInit({
-  swSrc: "app/sw.ts",
-  swDest: "public/sw.js",
-  disable: process.env.NODE_ENV !== "production",
-});
 
 const withAnalyzer = createBundleAnalyzer({
   enabled: env.ANALYZE === "true",
@@ -141,4 +135,4 @@ const nextConfig: import('next').NextConfig = {
   allowedDevOrigins: ['*.trycloudflare.com'],
 };
 
-export default withAnalyzer(withSerwist(nextConfig));
+export default withSerwist(withAnalyzer(nextConfig));
