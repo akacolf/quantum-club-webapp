@@ -108,7 +108,7 @@ function buildMockConversations(telegramId: string): ChatConversation[] {
       id: "mock-dm-satoshi",
       participants: [telegramId, "mock-satoshi"],
       participantNames: { "mock-satoshi": "satoshi" },
-      lastMessage: "yo did you know you could send TON within the chat?",
+      lastMessage: "wait you can send TON in chat?",
       lastMessageBy: "mock-satoshi",
       lastMessageAt: minutes(8),
       isGroup: false,
