@@ -174,6 +174,17 @@ function buildMockConversations(telegramId: string): ChatConversation[] {
       isGlobal: false,
       unreadCount: 0,
     },
+    {
+      id: "mock-dm-mira",
+      participants: [telegramId, "mock-mira"],
+      participantNames: { "mock-mira": "mira_eth" },
+      lastMessage: "gm 🌅 ready for the trading session?",
+      lastMessageBy: "mock-mira",
+      lastMessageAt: minutes(15),
+      isGroup: false,
+      isGlobal: false,
+      unreadCount: 1,
+    },
   ];
 }
 
