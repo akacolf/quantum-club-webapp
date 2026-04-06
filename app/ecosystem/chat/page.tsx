@@ -893,11 +893,10 @@ export default function QCChatListPage() {
                   Beta
                 </Badge>
               </div>
-              {qcUsername && (
-                <p className="text-[11px] text-muted-foreground">
-                  @{qcUsername}
-                </p>
-              )}
+              {/* TEMP: hardcoded for apps center listing screenshot */}
+              <p className="text-[11px] text-muted-foreground">
+                @YourQCUsername
+              </p>
             </div>
           </div>
           <Button
