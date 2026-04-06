@@ -14,7 +14,6 @@ const nextConfig: import('next').NextConfig = {
       // Allow any HTTPS image — token/NFT metadata can come from any domain
       { protocol: 'https', hostname: '**' },
     ],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ['image/avif', 'image/webp'],
   },
 
@@ -24,37 +23,6 @@ const nextConfig: import('next').NextConfig = {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error'],
     } : false,
-
-    // Remove data-testid props in production
-    reactRemoveProperties: process.env.NODE_ENV === 'production',
-  },
-
-  // Security headers
-  // NOTE: No X-Frame-Options — app runs inside Telegram's iframe/WebView
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self), geolocation=()',
-          },
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on',
-          },
-        ],
-      },
-    ];
   },
 
   // React Compiler - auto-memoizes components/hooks at build time
