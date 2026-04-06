@@ -37,7 +37,7 @@ import {
   arrayUnion,
   serverTimestamp,
   where,
-  type Timestamp,
+  Timestamp,
 } from "firebase/firestore";
 import { registerQcUsername, updateQcUsernameAddress, resolveQcUsername } from "./actions";
 
@@ -84,6 +84,97 @@ function formatLastTime(timestamp: Timestamp | null): string {
 
 function generateJoinCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// TEMP: hypothetical chats for apps center listing screenshots
+function buildMockConversations(telegramId: string): ChatConversation[] {
+  const now = Date.now();
+  const minutes = (m: number) => Timestamp.fromMillis(now - m * 60_000);
+  return [
+    {
+      id: "mock-quantum-apes",
+      participants: [telegramId, "mock-1", "mock-2", "mock-3", "mock-4"],
+      participantNames: { "mock-1": "alex", "mock-2": "max", "mock-3": "luna", "mock-4": "kai" },
+      lastMessage: "Floor's pumping! 🚀",
+      lastMessageBy: "mock-1",
+      lastMessageAt: minutes(2),
+      isGroup: true,
+      isGlobal: false,
+      groupName: "Quantum Apes",
+      memberCount: 247,
+      unreadCount: 3,
+    },
+    {
+      id: "mock-dm-satoshi",
+      participants: [telegramId, "mock-satoshi"],
+      participantNames: { "mock-satoshi": "satoshi" },
+      lastMessage: "send me 5 TON pls 🙏",
+      lastMessageBy: "mock-satoshi",
+      lastMessageAt: minutes(8),
+      isGroup: false,
+      isGlobal: false,
+      unreadCount: 1,
+    },
+    {
+      id: "mock-ton-maxis",
+      participants: [telegramId, "mock-a", "mock-b", "mock-c"],
+      participantNames: { "mock-a": "elena", "mock-b": "yuki", "mock-c": "diego" },
+      lastMessage: "anyone trading $QNTM right now?",
+      lastMessageBy: "mock-a",
+      lastMessageAt: minutes(23),
+      isGroup: true,
+      isGlobal: false,
+      groupName: "TON Maxis",
+      memberCount: 89,
+      unreadCount: 0,
+    },
+    {
+      id: "mock-dm-elena",
+      participants: [telegramId, "mock-elenacrypto"],
+      participantNames: { "mock-elenacrypto": "elenaCrypto" },
+      lastMessage: "did you see the new graduation? 👀",
+      lastMessageBy: "mock-elenacrypto",
+      lastMessageAt: minutes(47),
+      isGroup: false,
+      isGlobal: false,
+      unreadCount: 2,
+    },
+    {
+      id: "mock-dm-alex",
+      participants: [telegramId, "mock-alexq"],
+      participantNames: { "mock-alexq": "alex_quantum" },
+      lastMessage: "thanks for the airdrop bro 🫡",
+      lastMessageBy: telegramId,
+      lastMessageAt: minutes(120),
+      isGroup: false,
+      isGlobal: false,
+      unreadCount: 0,
+    },
+    {
+      id: "mock-rocketstart",
+      participants: [telegramId, "mock-r1", "mock-r2", "mock-r3"],
+      participantNames: { "mock-r1": "ivy", "mock-r2": "noah", "mock-r3": "zara" },
+      lastMessage: "next launch is dropping tomorrow",
+      lastMessageBy: "mock-r2",
+      lastMessageAt: minutes(180),
+      isGroup: true,
+      isGlobal: false,
+      groupName: "RocketStart Launchpad",
+      memberCount: 412,
+      unreadCount: 0,
+    },
+    {
+      id: "mock-dm-kim",
+      participants: [telegramId, "mock-kimbtc"],
+      participantNames: { "mock-kimbtc": "kim_btc" },
+      lastMessage: "lmk when the next launch is",
+      lastMessageBy: "mock-kimbtc",
+      lastMessageAt: minutes(360),
+      isGroup: false,
+      isGlobal: false,
+      unreadCount: 0,
+    },
+  ];
 }
 
 function ChatListItem({
@@ -506,8 +597,12 @@ export default function QCChatListPage() {
     return "Unknown User";
   };
 
+  // TEMP: merge hypothetical chats for apps center listing screenshots
+  const mockConversations = telegramId ? buildMockConversations(telegramId) : [];
+  const allConversations = [...mockConversations, ...conversations];
+
   // Filter conversations by search
-  const filteredConversations = conversations.filter((chat) => {
+  const filteredConversations = allConversations.filter((chat) => {
     if (!searchQuery.trim()) return true;
     const displayName = getChatDisplayName(chat).toLowerCase();
     return displayName.includes(searchQuery.toLowerCase());
