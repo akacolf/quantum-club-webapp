@@ -13,7 +13,7 @@ export default function PersonalizedGreeting() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string>("Quantum User");
+  const [displayName, setDisplayName] = useState<string>("your_username");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Prevent hydration mismatch
@@ -21,15 +21,9 @@ export default function PersonalizedGreeting() {
     setMounted(true);
 
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    
-    // Prefer DB-stored username (works for email login from different TG account)
-    if (username) {
-      setDisplayName(username);
-    } else if (tgUser?.username) {
-      setDisplayName(tgUser.username);
-    } else if (tgUser?.first_name) {
-      setDisplayName(tgUser.first_name);
-    }
+
+    // TEMP: hardcoded for apps center listing screenshot
+    setDisplayName("your_username");
 
     // Get user photo — use DB telegramId as fallback over initDataUnsafe
     if (tgUser?.photo_url) {
