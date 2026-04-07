@@ -91,8 +91,14 @@ export default function Login() {
   }, [authContext?.currentUser]);
 
   // Auto-redirect if user is already signed in (keepLoggedIn handled in auth context)
-  // Uses a ref to prevent multiple redirects / redirect loops
-  // Also rehydrates localStorage if it was cleared (e.g. cookies deleted externally)
+  // Uses a ref to prevent multiple redirects / redirect loops.
+  //
+  // On cold start the Telegram WebApp always provides a freshly-signed
+  // `initData` payload. We ALWAYS re-issue the session cookie from it so the
+  // middleware sees a valid session even if the previous cookie expired or
+  // was purged by the WebView. This is effectively free — HMAC verification
+  // against the bot token — and eliminates the "sometimes logged out after
+  // closing the app" class of bug.
   //
   // For explicit logins (Telegram / email), the login handler sets dataReady.current = true
   // after all data setters complete, preventing a premature redirect from the
@@ -107,33 +113,41 @@ export default function Login() {
 
       hasRedirected.current = true;
 
-      const storedTid = localStorage.getItem("telegramId");
-      if (storedTid) {
-        // localStorage intact → redirect immediately
-        router.replace(getDeepLinkDestination());
-        return;
-      }
-
-      // localStorage was cleared — rehydrate user data before redirecting
       (async () => {
         try {
           const user = authContext.currentUser!;
           let qcId: string | null = null;
 
-          // Email users: look up QC ID by email (server-side to bypass Firestore rules)
-          if (user.email) {
-            const result = await checkExistingUser({ email: user.email });
-            qcId = result?.data?.qcId ?? null;
-          }
-
-          // Telegram users: get encrypted ID from auth endpoint
-          if (!qcId && window.Telegram?.WebApp?.initData) {
+          // On cold-start cached restores (NOT explicit logins, where the
+          // cookie was just set) re-issue the session cookie from initData.
+          // Skipped for email users — their identity is the Firebase email
+          // account, not the Telegram user, so we don't want to overwrite
+          // the session cookie with a Telegram telegramId.
+          const initData = window.Telegram?.WebApp?.initData;
+          const isColdRestore = !dataReady.current;
+          if (initData && !user.email && isColdRestore) {
             try {
-              const authResult = await authenticateTelegram({ initData: window.Telegram.WebApp.initData as string });
+              const authResult = await authenticateTelegram({ initData: initData as string });
               if (authResult?.data?.telegramIdEncrypted) {
                 qcId = authResult.data.telegramIdEncrypted;
               }
-            } catch {}
+            } catch {
+              // Expired/invalid initData — fall through to existing paths
+            }
+          }
+
+          // localStorage intact → redirect immediately (session is now fresh above)
+          const storedTid = localStorage.getItem("telegramId");
+          if (storedTid) {
+            router.replace(getDeepLinkDestination());
+            return;
+          }
+
+          // localStorage was cleared — rehydrate user data before redirecting.
+          // Email users: look up QC ID by email (server-side to bypass Firestore rules)
+          if (!qcId && user.email) {
+            const result = await checkExistingUser({ email: user.email });
+            qcId = result?.data?.qcId ?? null;
           }
 
           if (!qcId) {

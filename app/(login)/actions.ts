@@ -75,8 +75,6 @@ export const authenticateTelegram = actionClient
       cookieStore.set("session", session, {
         expires,
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
         path: "/",
       });
     }

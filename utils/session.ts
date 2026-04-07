@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { env } from "@/env"
 
 const key = new TextEncoder().encode(env.JWT_SECRET)
-export const SESSION_DURATION = 24*60*60*1000
+export const SESSION_DURATION = 30*24*60*60*1000
 interface Payload extends JWTPayload {
     user: {
       telegramId: string;
@@ -16,7 +16,7 @@ export async function encrypt(payload:Payload) {
     return await new SignJWT(payload)
         .setProtectedHeader({alg:"HS256"})
         .setIssuedAt()
-        .setExpirationTime("24 Hours")
+        .setExpirationTime("30d")
         .sign(key)
 }
 
@@ -59,16 +59,14 @@ export async function updateSession(request:NextRequest) {
     if(!session) return
 
     const parsed = await decrypt(session)
-    parsed.expires = new Date(Date.now() + SESSION_DURATION) // updating the expires date to 24 hours from now //
+    parsed.expires = new Date(Date.now() + SESSION_DURATION)
     const res = NextResponse.next()
     res.cookies.set({
         name:   "session",
         value:  await encrypt(parsed),
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
         path: "/",
-        expires: new Date(parsed.expires), // explicitly stating the date of the parsed session //
+        expires: new Date(parsed.expires),
     })
     return res;
 }
