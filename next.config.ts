@@ -51,6 +51,7 @@ const nextConfig: import('next').NextConfig = {
       '@radix-ui/react-popover',
       '@radix-ui/react-progress',
       '@radix-ui/react-scroll-area',
+      '@radix-ui/react-select',
       '@radix-ui/react-separator',
       '@radix-ui/react-slider',
       '@radix-ui/react-slot',
