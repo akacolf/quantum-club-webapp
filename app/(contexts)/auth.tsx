@@ -27,7 +27,6 @@ export const useAuth = () =>
         useShallow((s) => ({
             currentUser: s.currentUser,
             authLoading: s.authLoading,
-            customClaims: s.customClaims,
             loginWithToken: s.loginWithToken,
         }))
     );

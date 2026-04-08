@@ -6,7 +6,6 @@ import { doc, onSnapshot } from "firebase/firestore";
 import {
   signInWithCustomToken,
   type User,
-  type ParsedToken,
 } from "firebase/auth";
 import { removeToken, setToken } from "@/app/(contexts)/actions";
 
@@ -17,7 +16,6 @@ import { removeToken, setToken } from "@/app/(contexts)/actions";
 interface AuthState {
   currentUser: User | null;
   authLoading: boolean;
-  customClaims: ParsedToken | null;
 }
 
 interface AuthActions {
@@ -75,7 +73,6 @@ function setupForceAuthListener() {
 export const useAuthStore = create<AuthStore>()(() => ({
   currentUser: null,
   authLoading: true,
-  customClaims: null,
 
   loginWithToken: async (customToken) => {
     const cred = await signInWithCustomToken(auth, customToken);
@@ -102,8 +99,6 @@ export function initAuthListener() {
         const tokenResult = await user.getIdTokenResult();
         const token = tokenResult.token;
         const refreshToken = user.refreshToken;
-        const claims = tokenResult.claims;
-        useAuthStore.setState({ customClaims: claims ?? null });
 
         // Keep the Firebase token cookie in sync with the live token. The
         // dedup on lastSetTokenValue prevents redundant cookie writes (each
