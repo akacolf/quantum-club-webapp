@@ -151,10 +151,12 @@ export function initAuthListener() {
     }
   });
 
-  // Safety timeout: if onAuthStateChanged never fires, stop loading after 5s
+  // Safety timeout: if onAuthStateChanged never fires (Firebase broken or
+  // offline), stop loading after 1.5s. Firebase normally fires the listener
+  // within ~50ms of subscription, so 1.5s is a ~30x margin.
   const timeout = setTimeout(
     () => useAuthStore.setState({ authLoading: false }),
-    5000
+    1500
   );
 
   return () => {

@@ -195,11 +195,14 @@ export default function Login() {
       const WebApp = window.Telegram.WebApp;
       WebApp.ready();
 
-      // Retry briefly if Telegram payload is not ready yet (up to 5s)
+      // initData is populated synchronously by telegram-web-app.js when it
+      // parses the URL hash, so on the happy path this loop doesn't run at
+      // all. 1s max (10 * 100ms) is a fail-fast guard for the rare case
+      // where the SDK script hasn't finished loading yet.
       let retries = 0;
       while (
         (!WebApp.initDataUnsafe?.user?.id || !WebApp.initData) &&
-        retries < 50
+        retries < 10
       ) {
         await new Promise((r) => setTimeout(r, 100));
         retries++;
@@ -225,22 +228,19 @@ export default function Login() {
 
       await authContext?.loginWithToken(customToken);
 
-      const data = await UseRegisterAndAuth({
+      let finalData = await UseRegisterAndAuth({
         telegramIdEncrypted,
         initDataUnsafe: WebApp.initDataUnsafe,
       });
 
-      // Retry up to 2 more times on error with backoff
-      let finalData = data;
-      if (data.status === "error") {
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          await new Promise((r) => setTimeout(r, 1500 * attempt));
-          finalData = await UseRegisterAndAuth({
-            telegramIdEncrypted,
-            initDataUnsafe: WebApp.initDataUnsafe,
-          });
-          if (finalData.status !== "error") break;
-        }
+      // Single immediate retry on transient failure — no backoff. Firestore
+      // errors either resolve instantly or are legitimate; exponential
+      // backoff added 4.5s of pure artificial wait on the failure path.
+      if (finalData.status === "error") {
+        finalData = await UseRegisterAndAuth({
+          telegramIdEncrypted,
+          initDataUnsafe: WebApp.initDataUnsafe,
+        });
       }
 
       if (finalData.status === "error") {
