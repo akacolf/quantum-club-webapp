@@ -9,7 +9,7 @@ import { UseRegisterAndAuth, LoadExistingUserByQCId } from "./registerAndAuth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 import { useDeviceDetection } from "./deviceDetection";
-import { authenticateTelegram } from "./actions";
+import { authenticateTelegram, refreshTelegramSession } from "./actions";
 import Loader from "@/app/(components)/Loader";
 
 /** Resolve deep link destination from Telegram start_param */
@@ -29,7 +29,6 @@ function getDeepLinkDestination() {
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const [rootError, setRootError] = useState<string | null>(null);
   const hasRedirected = useRef(false);
   /** Set to true once login data setters have completed (prevents redirect before data is ready) */
@@ -89,13 +88,17 @@ export default function Login() {
         try {
           let qcId: string | null = null;
 
+          // Cold-restore: refresh the session cookie from initData. Uses
+          // the lightweight refreshTelegramSession action (skips the
+          // ~150ms Firebase Admin createCustomToken call — we already
+          // have a cached Firebase user from IndexedDB).
           const initData = window.Telegram?.WebApp?.initData;
           const isColdRestore = !dataReady.current;
           if (initData && isColdRestore) {
             try {
-              const authResult = await authenticateTelegram({ initData: initData as string });
-              if (authResult?.data?.telegramIdEncrypted) {
-                qcId = authResult.data.telegramIdEncrypted;
+              const result = await refreshTelegramSession({ initData: initData as string });
+              if (result?.data?.telegramIdEncrypted) {
+                qcId = result.data.telegramIdEncrypted;
               }
             } catch {
               // Expired/invalid initData — fall through to existing path
@@ -165,18 +168,15 @@ export default function Login() {
   ]);
 
   // Show loader while auth is resolving OR while a Telegram login is in
-  // flight. The user should never see the manual sign-in button unless
-  // auto-login was skipped or has failed.
-  const showLoader = isPageLoading || authContext?.authLoading || isLoading;
+  // flight. The error state below only renders if both are false AND
+  // there's no cached user — i.e., auto-login was skipped or failed.
+  const showLoader = authContext?.authLoading || isLoading;
 
   useEffect(() => {
     // Prefetch destinations for faster post-login navigation
     router.prefetch("/legal/terms");
     router.prefetch("/legal/privacy");
     router.prefetch("/home");
-
-    const timer = setTimeout(() => setIsPageLoading(false), 500);
-    return () => clearTimeout(timer);
   }, [router]);
 
   const handleTelegramLogin = async () => {

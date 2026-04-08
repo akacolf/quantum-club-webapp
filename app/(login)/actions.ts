@@ -230,6 +230,36 @@ export const checkUserRank = authWithQcIdClient
   });
 
 // ---------------------------------------------------------------------------
+// refreshTelegramSession — cold-restore path for returning users. Validates
+// initData, re-issues the session cookie, and returns telegramIdEncrypted.
+// Skips the Firebase Admin createCustomToken call because returning users
+// already have a cached Firebase Auth user in IndexedDB — they only need
+// the session cookie refreshed so middleware keeps letting them through.
+// ---------------------------------------------------------------------------
+
+export const refreshTelegramSession = actionClient
+  .schema(z.object({ initData: z.string().min(1) }))
+  .action(async ({ parsedInput: { initData } }) => {
+    const validationResult = validateTelegramWebAppData(initData);
+    const user = validationResult.user as { id?: string | number };
+    if (!validationResult.validatedData || user?.id == null) {
+      throw new Error(validationResult.message || "Invalid Telegram initData");
+    }
+    const rawTelegramId = String(user.id);
+
+    const expires = new Date(Date.now() + SESSION_DURATION);
+    const session = await encrypt({ user: { telegramId: rawTelegramId }, expires });
+    const cookieStore = await cookies();
+    cookieStore.set("session", session, {
+      expires,
+      httpOnly: true,
+      path: "/",
+    });
+
+    return { telegramIdEncrypted: encryptTelegramId(rawTelegramId) };
+  });
+
+// ---------------------------------------------------------------------------
 // linkEmail — store an email as a contact field on the authenticated user's
 // Firestore doc. The QC ID is derived from the Telegram session, so the
 // client cannot write to anyone else's document.
