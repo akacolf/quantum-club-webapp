@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { auth } from "@/app/(firebase)/server";
 import { cookies } from "next/headers";
-import { actionClient, authActionClient } from "@/lib/safe-action";
+import { actionClient } from "@/lib/safe-action";
 
 export const removeToken = actionClient.action(async () => {
     const cookieStore = await cookies();
@@ -42,19 +42,5 @@ export const setToken = actionClient
             httpOnly: true,
             path: "/",
             maxAge,
-        });
-    });
-
-export const updateUserPassword = authActionClient
-    .schema(z.object({
-        token: z.string().min(1),
-        newPassword: z.string().min(6, "Password must be at least 6 characters"),
-    }))
-    .action(async ({ parsedInput: { token, newPassword } }) => {
-        const verifiedToken = await auth.verifyIdToken(token);
-        const userRecord = await auth.getUser(verifiedToken.uid);
-        if (!userRecord) return;
-        await auth.updateUser(verifiedToken.uid, {
-            password: newPassword,
         });
     });

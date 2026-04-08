@@ -65,9 +65,11 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [emailJustLinked, setEmailJustLinked] = useState(false);
 
-  // Link-email form (TanStack Form)
+  // Link-email form (TanStack Form). Email-only — no password.
+  // We collect the email as a contact field stored in the user's Firestore
+  // doc (for future native-platform contact), not as a Firebase Auth credential.
   const linkEmailForm = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "" },
     validators: { onSubmit: linkEmailSchema },
     onSubmit: async () => {
       await handleLinkEmail();
@@ -174,37 +176,25 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   };
 
   const handleLinkEmail = async () => {
-    const { email, password } = linkEmailForm.state.values;
-    if (!email || !password) {
-      toast.error("Please enter email and password");
+    const { email } = linkEmailForm.state.values;
+    if (!email) {
+      toast.error("Please enter an email");
+      return;
+    }
+    if (!telegramId) {
+      toast.error("Account not ready — try again in a moment");
       return;
     }
     setIsLinkingEmail(true);
     try {
-      await authContext?.linkEmailToAccount(email, password);
-      // Store email in Firestore user doc
-      if (telegramId) {
-        await linkEmailToUserDoc(telegramId, email);
-      }
+      await linkEmailToUserDoc(telegramId, email);
       haptics.success();
-      toast.success("Email linked! Verification pending.");
+      toast.success("Email saved");
       linkEmailForm.reset();
       setShowLinkForm(false);
       setEmailJustLinked(true);
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message.includes("email-already-in-use")) {
-          toast.error("This email is already linked to another account");
-        } else if (err.message.includes("provider-already-linked")) {
-          toast.error("An email is already linked to this account");
-        } else if (err.message.includes("invalid-email")) {
-          toast.error("Please enter a valid email address");
-        } else if (err.message.includes("weak-password")) {
-          toast.error("Password is too weak");
-        } else {
-          toast.error("Failed to link email. Please try again.");
-        }
-      }
+    } catch {
+      toast.error("Failed to save email. Please try again.");
     } finally {
       setIsLinkingEmail(false);
     }
@@ -441,35 +431,16 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                     );
                   }}
                 </linkEmailForm.Field>
-                <linkEmailForm.Field name="password">
-                  {(field) => {
-                    const hasErrors = field.state.meta.errors.length > 0;
-                    return (
-                      <Field>
-                        <Input
-                          type="password"
-                          placeholder="Create a password"
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          onBlur={field.handleBlur}
-                          className="h-8 text-xs"
-                          disabled={isLinkingEmail}
-                        />
-                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
-                      </Field>
-                    );
-                  }}
-                </linkEmailForm.Field>
                 <Button
                   size="sm"
                   className="w-full h-8 text-xs"
                   onClick={() => linkEmailForm.handleSubmit()}
-                  disabled={isLinkingEmail || !linkEmailForm.state.values.email || !linkEmailForm.state.values.password}
+                  disabled={isLinkingEmail || !linkEmailForm.state.values.email}
                 >
                   {isLinkingEmail ? (
                     <ButtonLoader size="sm" />
                   ) : (
-                    "Link Email"
+                    "Save Email"
                   )}
                 </Button>
               </div>

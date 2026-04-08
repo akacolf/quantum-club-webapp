@@ -1,17 +1,10 @@
 "use client";
 
 import { create } from "zustand";
-import { env } from "@/env";
 import { auth, dbfs } from "@/app/(firebase)/client";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
-  GoogleAuthProvider,
-  EmailAuthProvider,
-  signInWithCredential,
   signInWithCustomToken,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  linkWithCredential,
   type User,
   type ParsedToken,
 } from "firebase/auth";
@@ -72,11 +65,6 @@ interface AuthActions {
   setKeepLoggedIn: (value: boolean) => void;
   logout: () => Promise<void>;
   loginWithToken: (customToken: string) => Promise<void>;
-  loginWithEmail: (email: string, password: string) => Promise<User>;
-  signUpWithEmail: (email: string, password: string) => Promise<User>;
-  loginWithGoogle: () => Promise<void>;
-  linkEmailToAccount: (email: string, password: string) => Promise<void>;
-  linkGoogleToAccount: () => Promise<void>;
 }
 
 export type AuthStore = AuthState & AuthActions;
@@ -89,9 +77,8 @@ export type AuthStore = AuthState & AuthActions;
  */
 let isExplicitLogin = false;
 
-/** Track the last token sent to setToken to avoid redundant cookie writes.
- *  Each cookie write triggers a Next.js router refresh, so duplicates cause
- *  visible "double loader" flashes. */
+/** Track the last token sent to setToken to dedup cookie writes — each one
+ *  triggers a Next.js router refresh. */
 let lastSetTokenValue: string | null = null;
 
 // =====================================================
@@ -174,78 +161,6 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     const cred = await signInWithCustomToken(auth, customToken);
     await cred.user.getIdToken(true);
   },
-
-  loginWithEmail: async (email, password) => {
-    isExplicitLogin = true;
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    return result.user;
-  },
-
-  signUpWithEmail: async (email, password) => {
-    isExplicitLogin = true;
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    return result.user;
-  },
-
-  loginWithGoogle: async () => {
-    isExplicitLogin = true;
-    return new Promise<void>((resolve, reject) => {
-      const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-        scope: "https://www.googleapis.com/auth/userinfo.profile",
-        callback: async (tokenResponse: any) => {
-          try {
-            const credential = GoogleAuthProvider.credential(
-              null,
-              tokenResponse.access_token
-            );
-            await signInWithCredential(auth, credential);
-            resolve();
-          } catch (error) {
-            console.error("Google sign-in error:", error);
-            reject(error);
-          }
-        },
-      });
-      client.requestAccessToken();
-    });
-  },
-
-  linkEmailToAccount: async (email, password) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("No user signed in");
-    const credential = EmailAuthProvider.credential(email, password);
-    await linkWithCredential(user, credential);
-    // Reload the user so currentUser.email is populated immediately
-    await user.reload();
-    set({ currentUser: { ...auth.currentUser! } as User });
-  },
-
-  linkGoogleToAccount: async () => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("No user signed in");
-    return new Promise<void>((resolve, reject) => {
-      const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-        scope: "https://www.googleapis.com/auth/userinfo.profile",
-        callback: async (tokenResponse: any) => {
-          try {
-            const credential = GoogleAuthProvider.credential(
-              null,
-              tokenResponse.access_token
-            );
-            await linkWithCredential(user, credential);
-            await user.reload();
-            set({ currentUser: { ...auth.currentUser! } as User });
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        },
-      });
-      client.requestAccessToken();
-    });
-  },
 }));
 
 // =====================================================
@@ -277,9 +192,6 @@ export function initAuthListener() {
       });
       return;
     }
-    // Capture before reset — we need to know if this was triggered by
-    // an explicit login or a cached session restore.
-    const wasExplicitLogin = isExplicitLogin;
     isExplicitLogin = false;
 
     // Only set authLoading on the INITIAL auth check (when currentUser is null).
@@ -298,12 +210,10 @@ export function initAuthListener() {
         const claims = tokenResult.claims;
         useAuthStore.setState({ customClaims: claims ?? null });
 
-        // Only write the auth cookie on EXPLICIT logins (user clicked sign-in).
-        // On cached session restores the cookie from the previous login is still
-        // valid (30-day expiry). Writing cookies via server actions triggers a
-        // Next.js router refresh, which causes a visible "double loader" flash
-        // when it races with the redirect to /home.
-        if (token && refreshToken && wasExplicitLogin && token !== lastSetTokenValue) {
+        // Keep the Firebase token cookie in sync with the live token. The
+        // dedup on lastSetTokenValue prevents redundant cookie writes (each
+        // write triggers a Next.js router refresh).
+        if (token && refreshToken && token !== lastSetTokenValue) {
           const result = await setToken({ token, refreshToken });
           if (result?.serverError) {
             const freshResult = await user.getIdTokenResult(true);
