@@ -27,15 +27,6 @@ export const useAuth = () =>
         useShallow((s) => ({
             currentUser: s.currentUser,
             authLoading: s.authLoading,
-            customClaims: s.customClaims,
-            keepLoggedIn: s.keepLoggedIn,
-            setKeepLoggedIn: s.setKeepLoggedIn,
-            logout: s.logout,
             loginWithToken: s.loginWithToken,
-            loginWithEmail: s.loginWithEmail,
-            signUpWithEmail: s.signUpWithEmail,
-            loginWithGoogle: s.loginWithGoogle,
-            linkEmailToAccount: s.linkEmailToAccount,
-            linkGoogleToAccount: s.linkGoogleToAccount,
         }))
     );

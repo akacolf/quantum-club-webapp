@@ -21,7 +21,7 @@ export default function PersonalizedGreeting() {
     setMounted(true);
 
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    
+
     // Prefer DB-stored username (works for email login from different TG account)
     if (username) {
       setDisplayName(username);

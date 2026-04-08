@@ -27,23 +27,32 @@ export function validateTelegramWebAppData(telegramInitData:string) {
     return { message: 'auth_date is missing from initData', validatedData: null, user: {} };
   }
   
-  // Telegram initData may legitimately be reused within the same app session.
-  // Keep a bounded window to reduce false negatives while preserving replay protection.
-  const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60; // 24 hours
+  // Telegram regenerates initData on every Mini App launch, so a tight window
+  // is safe for legitimate flows. A shorter window limits the replay attack
+  // surface if initData is ever exfiltrated from a client.
+  const MAX_AUTH_AGE_SECONDS = 60 * 60; // 1 hour
   const authTimestamp = parseInt(authDate, 10);
   const currentTimestamp = Math.floor(Date.now() / 1000);
-  
+
   if (isNaN(authTimestamp) || currentTimestamp - authTimestamp > MAX_AUTH_AGE_SECONDS) {
     return { message: 'initData has expired (auth_date too old)', validatedData: null, user: {} };
   }
-  
+
   const dataCheckString = Array.from(initData.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
   const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
   const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-  if (calculatedHash === hash) {
+
+  // Constant-time comparison prevents timing side-channels on hash verification.
+  const calculatedBuf = Buffer.from(calculatedHash, 'hex');
+  const providedBuf = Buffer.from(hash, 'hex');
+  const hashMatches =
+    calculatedBuf.length === providedBuf.length &&
+    crypto.timingSafeEqual(calculatedBuf, providedBuf);
+
+  if (hashMatches) {
     validatedData = Object.fromEntries(initData.entries());
     message = 'Validation successful';
     const userString = validatedData['user'];

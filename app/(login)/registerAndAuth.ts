@@ -19,7 +19,8 @@ function freshUserData() {
 }
 
 /**
- * Load existing user data by QC ID (for email/Google login without Telegram).
+ * Load existing user data by QC ID (cold-restore rehydration path when
+ * localStorage has been cleared but we still have a valid Firebase session).
  * Returns the same userData shape as UseRegisterAndAuth.
  */
 export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
@@ -122,21 +123,7 @@ export async function LoadExistingUserByQCId(telegramIdEncrypted: string) {
   return result;
 }
 
-
-/**
- * Store a linked email on the user's Firestore document.
- */
-export async function linkEmailToUserDoc(telegramIdEncrypted: string, email: string): Promise<void> {
-  try {
-    const userRef = doc(dbfs, "user", telegramIdEncrypted);
-    await updateDoc(userRef, { email });
-  } catch (error) {
-    console.error("Error linking email to user doc:", error);
-    throw error;
-  }
-}
-
-export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, email }: { telegramIdEncrypted: string, initDataUnsafe: any, email?: string }) {
+export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }: { telegramIdEncrypted: string, initDataUnsafe: any }) {
   const userData = freshUserData();
   try {
     if (!telegramIdEncrypted || !initDataUnsafe) {
@@ -210,7 +197,6 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
           {
             userArray: userArray,
             username: username,
-            ...(email && { email }),
           },
           { merge: true }
         );
@@ -267,15 +253,8 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe, 
         if (userSnapshot.exists()) {
           const userData2 = userSnapshot.data();
           const dataUsername = userData2?.username;
-          const updates: Record<string, string> = {};
           if (username !== dataUsername) {
-            updates.username = username;
-          }
-          if (email && !userData2?.email) {
-            updates.email = email;
-          }
-          if (Object.keys(updates).length > 0) {
-            await updateDoc(userRef, updates);
+            await updateDoc(userRef, { username });
           }
           // Load qcUsername from Firestore for existing users
           if (userData2?.qcUsername) {

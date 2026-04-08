@@ -10,11 +10,7 @@ import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
 import dynamic from "next/dynamic";
-
-const SerwistProvider = dynamic(
-  () => import("@serwist/turbopack/react").then((mod) => mod.SerwistProvider),
-  { ssr: false }
-);
+import SerwistClientProvider from "./(components)/SerwistClientProvider";
 
 const CallOverlay = dynamic(() => import("./(components)/CallOverlay"));
 const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"));
@@ -63,9 +59,9 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body className={`${onest.variable} antialiased`}>
-        <SerwistProvider swUrl="/serwist/sw.js">
         <Script src="https://telegram.org/js/telegram-web-app.js?57" strategy="beforeInteractive"></Script>
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload"></Script>
+        <SerwistClientProvider>
         <AuthProvider>
         <ClientProviders>
           <div className="flex justify-center min-h-screen bg-background">
@@ -84,7 +80,7 @@ export default function RootLayout({
           <Toaster />
         </ClientProviders>
         </AuthProvider>
-        </SerwistProvider>
+        </SerwistClientProvider>
       </body>
     </html>
   );

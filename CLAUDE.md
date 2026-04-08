@@ -103,7 +103,7 @@ Single function `onTokenUpdate` - triggers on token document updates, checks gra
 - **Naming**: PascalCase components, camelCase hooks/utils, UPPER_SNAKE_CASE constants
 - **Styling**: Tailwind utility classes; use `cn()` from `@/lib/utils` for conditional classes
 - **State**: React Context for app state, TanStack Query for server state, Firestore `onSnapshot` for real-time data (chat/groups)
-- **Icons**: `@iconify/react` with Solar icon set (e.g., `solar:eye-linear`)
+- **Icons**: `@iconify/react` — any Iconify icon set is available (Solar is commonly used but not mandatory)
 - **Toast notifications**: Sonner library
 - **Max width**: App is constrained to `max-w-md` (mobile-first Telegram Mini App)
 - **TypeScript**: Strict mode enabled; trading types in `types/trading.ts`

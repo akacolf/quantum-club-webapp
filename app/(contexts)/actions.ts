@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { auth } from "@/app/(firebase)/server";
 import { cookies } from "next/headers";
-import { actionClient, authActionClient } from "@/lib/safe-action";
+import { actionClient } from "@/lib/safe-action";
 
 export const removeToken = actionClient.action(async () => {
     const cookieStore = await cookies();
@@ -28,37 +28,19 @@ export const setToken = actionClient
             throw new Error("User record not found");
         }
 
-        // Cap cookie lifetime to token expiry (Firebase ID tokens live ~1 hour,
-        // but client refreshes them — the refresh token cookie keeps the session alive)
-        const tokenExpirySeconds = Math.max(0, verifiedToken.exp - Math.floor(Date.now() / 1000));
-        const maxAge = 30 * 24 * 60 * 60; // 30 days for refresh token
+        // Both cookies live the full refresh-token window. The ID token cookie
+        // is decoded by middleware to check expiry and the client refreshes it
+        // silently, so its cookie lifetime doesn't need to match the JWT exp.
+        const maxAge = 30 * 24 * 60 * 60;
         const cookieStore = await cookies();
         cookieStore.set("firebaseAuthToken", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax", // "lax" allows cookies on initial navigation from Telegram
-            path: "/",
-            maxAge: tokenExpirySeconds, // Scoped to actual token expiry
-        });
-        cookieStore.set("firebaseAuthRefreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
             path: "/",
             maxAge,
         });
-    });
-
-export const updateUserPassword = authActionClient
-    .schema(z.object({
-        token: z.string().min(1),
-        newPassword: z.string().min(6, "Password must be at least 6 characters"),
-    }))
-    .action(async ({ parsedInput: { token, newPassword } }) => {
-        const verifiedToken = await auth.verifyIdToken(token);
-        const userRecord = await auth.getUser(verifiedToken.uid);
-        if (!userRecord) return;
-        await auth.updateUser(verifiedToken.uid, {
-            password: newPassword,
+        cookieStore.set("firebaseAuthRefreshToken", refreshToken, {
+            httpOnly: true,
+            path: "/",
+            maxAge,
         });
     });

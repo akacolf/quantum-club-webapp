@@ -9,10 +9,10 @@ export const actionClient = createSafeActionClient();
 
 /**
  * Authenticated action client — checks Telegram JWT session first,
- * then falls back to Firebase auth cookies (email/password users or
- * expired Telegram sessions where the refresh token is still valid).
- * Mirrors the auth logic in proxy.ts so server actions accept the same
- * credentials the middleware does.
+ * then falls back to Firebase auth cookies as a resilience path for
+ * cases where the session cookie is missing/corrupted but the user
+ * still has valid Firebase credentials. Mirrors the auth logic in
+ * proxy.ts so server actions accept the same credentials the middleware does.
  */
 export const authActionClient = createSafeActionClient().use(async ({ next }) => {
   // Primary: Telegram session cookie (JWT)
@@ -21,7 +21,7 @@ export const authActionClient = createSafeActionClient().use(async ({ next }) =>
     return next({ ctx: { session } });
   }
 
-  // Fallback: Firebase auth cookies (email/password users + expired Telegram sessions)
+  // Fallback: Firebase auth cookies (resilience path)
   const cookieStore = await cookies();
   const firebaseToken = cookieStore.get("firebaseAuthToken")?.value;
   const firebaseRefreshToken = cookieStore.get("firebaseAuthRefreshToken")?.value;

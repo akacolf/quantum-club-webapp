@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
+import { linkEmail } from "@/app/(login)/actions";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
@@ -58,16 +58,17 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   })();
 
   const [copied, setCopied] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Email linking state
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [emailJustLinked, setEmailJustLinked] = useState(false);
 
-  // Link-email form (TanStack Form)
+  // Link-email form (TanStack Form). Email-only — no password.
+  // We collect the email as a contact field stored in the user's Firestore
+  // doc (for future native-platform contact), not as a Firebase Auth credential.
   const linkEmailForm = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "" },
     validators: { onSubmit: linkEmailSchema },
     onSubmit: async () => {
       await handleLinkEmail();
@@ -153,58 +154,31 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
     );
   };
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      // Clear keepLoggedIn so user sees auth page on next visit
-      authContext?.setKeepLoggedIn(false);
-      await authContext?.logout();
-      onOpenChange(false);
-      router.replace("/");
-    } catch {
-      toast.error("Failed to sign out");
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
-
   const navigateTo = (path: Parameters<typeof router.push>[0]) => {
     onOpenChange(false);
     router.push(path);
   };
 
   const handleLinkEmail = async () => {
-    const { email, password } = linkEmailForm.state.values;
-    if (!email || !password) {
-      toast.error("Please enter email and password");
+    const { email } = linkEmailForm.state.values;
+    if (!email) {
+      toast.error("Please enter an email");
       return;
     }
     setIsLinkingEmail(true);
     try {
-      await authContext?.linkEmailToAccount(email, password);
-      // Store email in Firestore user doc
-      if (telegramId) {
-        await linkEmailToUserDoc(telegramId, email);
+      const result = await linkEmail({ email });
+      if (result?.serverError || result?.validationErrors) {
+        toast.error("Failed to save email. Please try again.");
+        return;
       }
       haptics.success();
-      toast.success("Email linked! Verification pending.");
+      toast.success("Email saved");
       linkEmailForm.reset();
       setShowLinkForm(false);
       setEmailJustLinked(true);
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message.includes("email-already-in-use")) {
-          toast.error("This email is already linked to another account");
-        } else if (err.message.includes("provider-already-linked")) {
-          toast.error("An email is already linked to this account");
-        } else if (err.message.includes("invalid-email")) {
-          toast.error("Please enter a valid email address");
-        } else if (err.message.includes("weak-password")) {
-          toast.error("Password is too weak");
-        } else {
-          toast.error("Failed to link email. Please try again.");
-        }
-      }
+    } catch {
+      toast.error("Failed to save email. Please try again.");
     } finally {
       setIsLinkingEmail(false);
     }
@@ -441,35 +415,16 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
                     );
                   }}
                 </linkEmailForm.Field>
-                <linkEmailForm.Field name="password">
-                  {(field) => {
-                    const hasErrors = field.state.meta.errors.length > 0;
-                    return (
-                      <Field>
-                        <Input
-                          type="password"
-                          placeholder="Create a password"
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          onBlur={field.handleBlur}
-                          className="h-8 text-xs"
-                          disabled={isLinkingEmail}
-                        />
-                        {hasErrors && <FieldError className="text-[10px]" errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
-                      </Field>
-                    );
-                  }}
-                </linkEmailForm.Field>
                 <Button
                   size="sm"
                   className="w-full h-8 text-xs"
                   onClick={() => linkEmailForm.handleSubmit()}
-                  disabled={isLinkingEmail || !linkEmailForm.state.values.email || !linkEmailForm.state.values.password}
+                  disabled={isLinkingEmail || !linkEmailForm.state.values.email}
                 >
                   {isLinkingEmail ? (
                     <ButtonLoader size="sm" />
                   ) : (
-                    "Link Email"
+                    "Save Email"
                   )}
                 </Button>
               </div>
@@ -519,18 +474,9 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
           </Link>
         </nav>
 
-        {/* Footer: Sign Out + Version */}
+        {/* Footer: Version */}
         <div className="p-4 pt-2 space-y-2 shrink-0">
           <Separator />
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-          >
-            <Icon icon="solar:logout-2-bold" className="w-5 h-5" />
-            {isSigningOut ? "Signing out..." : "Sign Out"}
-          </Button>
           <p className="text-center text-[10px] text-muted-foreground/50">
             Quantum Club v{APP_VERSION}
           </p>
