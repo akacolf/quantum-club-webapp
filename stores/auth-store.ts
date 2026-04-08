@@ -24,9 +24,15 @@ interface AuthActions {
 
 export type AuthStore = AuthState & AuthActions;
 
-/** Track the last token sent to setToken to dedup cookie writes — each one
- *  triggers a Next.js router refresh. */
-let lastSetTokenValue: string | null = null;
+/**
+ * Set to true by loginWithToken before signInWithCustomToken, then captured
+ * and reset by the onAuthStateChanged listener. Gates the setToken cookie
+ * write: only explicit logins refresh the Firebase auth cookie. On cached
+ * session restores (cold start with Firebase IndexedDB intact) the existing
+ * cookie is still valid and writing it again would trigger a Next.js router
+ * refresh, causing a visible double-loader on /home.
+ */
+let isExplicitLogin = false;
 
 // =====================================================
 // Force re-auth listener (real-time via Firestore onSnapshot)
@@ -75,6 +81,7 @@ export const useAuthStore = create<AuthStore>()(() => ({
   authLoading: true,
 
   loginWithToken: async (customToken) => {
+    isExplicitLogin = true;
     const cred = await signInWithCustomToken(auth, customToken);
     await cred.user.getIdToken(true);
   },
@@ -86,6 +93,12 @@ export const useAuthStore = create<AuthStore>()(() => ({
 
 export function initAuthListener() {
   const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    // Capture before reset — the setToken gate below needs to distinguish
+    // between an explicit login (user just called loginWithToken) and a
+    // cached session restore (Firebase restored the user from IndexedDB).
+    const wasExplicitLogin = isExplicitLogin;
+    isExplicitLogin = false;
+
     // Only set authLoading on the INITIAL auth check (when currentUser is null).
     // Subsequent onAuthStateChanged calls (token refresh) should NOT flash loading.
     const isInitialAuth = useAuthStore.getState().currentUser === null;
@@ -96,36 +109,36 @@ export function initAuthListener() {
 
     if (user) {
       try {
-        const tokenResult = await user.getIdTokenResult();
-        const token = tokenResult.token;
-        const refreshToken = user.refreshToken;
+        // Only write the Firebase auth cookie on EXPLICIT logins. On cached
+        // session restores the existing cookie is still valid, and writing
+        // it via a server action would trigger a Next.js router refresh,
+        // causing a visible double-loader flash on /home.
+        if (wasExplicitLogin) {
+          const tokenResult = await user.getIdTokenResult();
+          const token = tokenResult.token;
+          const refreshToken = user.refreshToken;
 
-        // Keep the Firebase token cookie in sync with the live token. The
-        // dedup on lastSetTokenValue prevents redundant cookie writes (each
-        // write triggers a Next.js router refresh).
-        if (token && refreshToken && token !== lastSetTokenValue) {
-          const result = await setToken({ token, refreshToken });
-          if (result?.serverError) {
-            const freshResult = await user.getIdTokenResult(true);
-            const retryResult = await setToken({
-              token: freshResult.token,
-              refreshToken: user.refreshToken,
-            });
-            if (retryResult?.serverError) {
-              console.error(
-                "Failed to set auth cookie after retry — signing out"
-              );
-              await auth.signOut();
-              try { await removeToken(); } catch {}
-              useAuthStore.setState({
-                currentUser: null,
-                authLoading: false,
+          if (token && refreshToken) {
+            const result = await setToken({ token, refreshToken });
+            if (result?.serverError) {
+              const freshResult = await user.getIdTokenResult(true);
+              const retryResult = await setToken({
+                token: freshResult.token,
+                refreshToken: user.refreshToken,
               });
-              return;
+              if (retryResult?.serverError) {
+                console.error(
+                  "Failed to set auth cookie after retry — signing out"
+                );
+                await auth.signOut();
+                try { await removeToken(); } catch {}
+                useAuthStore.setState({
+                  currentUser: null,
+                  authLoading: false,
+                });
+                return;
+              }
             }
-            lastSetTokenValue = freshResult.token;
-          } else {
-            lastSetTokenValue = token;
           }
         }
       } catch {
@@ -139,7 +152,6 @@ export function initAuthListener() {
         return;
       }
     } else {
-      lastSetTokenValue = null;
       try { await removeToken(); } catch {}
     }
     useAuthStore.setState({ authLoading: false });
