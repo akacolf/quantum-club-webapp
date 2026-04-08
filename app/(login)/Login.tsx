@@ -141,10 +141,9 @@ export default function Login() {
 
   // Auto-trigger Telegram login when no user is signed in. With Telegram-only
   // auth, initData is always available inside the Mini App — there is no
-  // reason to make the user click a button. Skipped if the user explicitly
-  // signed out (keepLoggedIn=false), so they can stay signed out if they
-  // chose to. The manual button below is the fallback for that case and for
-  // when the Telegram WebApp surface is somehow unavailable.
+  // reason to make the user click a button. The error state below is only
+  // reached if the Telegram WebApp surface is unavailable (browser, broken
+  // WebView) or auto-login failed outright.
   useEffect(() => {
     if (
       !authContext?.authLoading &&
@@ -152,7 +151,6 @@ export default function Login() {
       !autoLoginAttempted.current &&
       !isLoading &&
       !rootError &&
-      authContext?.keepLoggedIn !== false &&
       typeof window !== "undefined" &&
       window.Telegram?.WebApp?.initData
     ) {
@@ -162,7 +160,6 @@ export default function Login() {
   }, [
     authContext?.authLoading,
     authContext?.currentUser,
-    authContext?.keepLoggedIn,
     isLoading,
     rootError,
   ]);
@@ -226,8 +223,6 @@ export default function Login() {
         throw new Error("Telegram authentication response is incomplete.");
       }
 
-      // User is signing in; persist session across reloads.
-      authContext?.setKeepLoggedIn(true);
       await authContext?.loginWithToken(customToken);
 
       const data = await UseRegisterAndAuth({
@@ -287,7 +282,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
+    <div className="fixed inset-0 flex justify-center items-center bg-background p-6">
       <div className="w-full max-w-sm text-center space-y-6">
         <div className="flex justify-center">
           <Image
@@ -306,7 +301,7 @@ export default function Login() {
           />
         </div>
         <p className="text-sm text-muted-foreground">
-          {rootError ?? "Please open Quantum Club from Telegram to continue."}
+          {rootError ?? "Please open the app from Telegram to continue."}
         </p>
       </div>
     </div>

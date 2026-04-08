@@ -9,46 +9,6 @@ import {
   type ParsedToken,
 } from "firebase/auth";
 import { removeToken, setToken } from "@/app/(contexts)/actions";
-import { clearMnemonicCache } from "@/lib/secure-mnemonic";
-import { useUserStore } from "@/stores/user-store";
-import { useWalletStore } from "@/stores/wallet-store";
-import { useGroupsStore } from "@/stores/groups-store";
-import { useTradingStore } from "@/stores/trading-store";
-import { useLeaderboardStore } from "@/stores/leaderboard-store";
-import { useFrensStore } from "@/stores/frens-store";
-import { useCallStore } from "@/stores/call-store";
-import { queryClient } from "@/lib/query-client";
-
-// =====================================================
-// Helpers
-// =====================================================
-
-/** Clear user-specific localStorage keys to prevent stale data across accounts.
- *  `keepLoggedIn` is intentionally preserved so the auth listener can detect
- *  that the user explicitly signed out (value "false") vs a fresh install
- *  (value absent → defaults to true). */
-function clearUserLocalStorage() {
-  if (typeof window === "undefined") return;
-  const keys = Object.keys(localStorage);
-  for (const key of keys) {
-    if (
-      key.startsWith("QAmount_") ||
-      key.startsWith("daily_") ||
-      key.startsWith("rank_") ||
-      key.startsWith("walletAddress_") ||
-      key.startsWith("qcUsername_") ||
-      key === "username" ||
-      key === "telegramId" ||
-      key === "telegramIdNM" ||
-      key === "lastactivetime" ||
-      key === "miningTime"
-    ) {
-      localStorage.removeItem(key);
-    }
-  }
-  sessionStorage.clear();
-  useUserStore.getState().reset();
-}
 
 // =====================================================
 // Store
@@ -58,24 +18,13 @@ interface AuthState {
   currentUser: User | null;
   authLoading: boolean;
   customClaims: ParsedToken | null;
-  keepLoggedIn: boolean;
 }
 
 interface AuthActions {
-  setKeepLoggedIn: (value: boolean) => void;
-  logout: () => Promise<void>;
   loginWithToken: (customToken: string) => Promise<void>;
 }
 
 export type AuthStore = AuthState & AuthActions;
-
-/**
- * Flag to prevent onAuthStateChanged from signing out the user
- * during an active login flow when keepLoggedIn is false.
- * Stored outside the Zustand store because it's a synchronization
- * primitive, not UI state.
- */
-let isExplicitLogin = false;
 
 /** Track the last token sent to setToken to dedup cookie writes — each one
  *  triggers a Next.js router refresh. */
@@ -123,41 +72,12 @@ function setupForceAuthListener() {
   }, () => {}); // Silently ignore snapshot errors (offline, permissions)
 }
 
-export const useAuthStore = create<AuthStore>()((set) => ({
+export const useAuthStore = create<AuthStore>()(() => ({
   currentUser: null,
   authLoading: true,
   customClaims: null,
-  keepLoggedIn: true,
-
-  setKeepLoggedIn: (value) => {
-    set({ keepLoggedIn: value });
-    if (typeof window !== "undefined") {
-      localStorage.setItem("keepLoggedIn", JSON.stringify(value));
-    }
-  },
-
-  logout: async () => {
-    clearUserLocalStorage();
-    clearMnemonicCache();
-    teardownForceAuthListener();
-    // Reset all user-specific stores to prevent stale data on re-login
-    useWalletStore.getState().resetBalances();
-    useTradingStore.setState({
-      trendingTokens: [], newTokens: [], graduatedTokens: [],
-      searchResults: [], myTokens: [], positions: [], selectedToken: null,
-    });
-    useGroupsStore.setState({ groups: [], myGroupIds: new Set<string>(), loading: false });
-    useLeaderboardStore.setState({ leaderboardContext: [], userRank: null, totalUsers: null, totalQuant: "" });
-    useFrensStore.setState({ referralsContext: [], referralsNum: 0 });
-    useCallStore.setState({ callState: "idle", callInfo: null, groupCallState: "idle", groupCallInfo: null });
-    queryClient.clear();
-    lastSetTokenValue = null;
-    try { await removeToken(); } catch {}
-    await auth.signOut();
-  },
 
   loginWithToken: async (customToken) => {
-    isExplicitLogin = true;
     const cred = await signInWithCustomToken(auth, customToken);
     await cred.user.getIdToken(true);
   },
@@ -168,32 +88,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 // =====================================================
 
 export function initAuthListener() {
-  // Load keepLoggedIn preference from localStorage
-  if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("keepLoggedIn");
-    if (stored !== null) {
-      useAuthStore.setState({ keepLoggedIn: JSON.parse(stored) });
-    }
-  }
-
   const unsubscribe = auth.onAuthStateChanged(async (user) => {
-    const storedKeep =
-      typeof window !== "undefined"
-        ? localStorage.getItem("keepLoggedIn")
-        : null;
-    const shouldKeep = storedKeep !== null ? JSON.parse(storedKeep) : true;
-
-    if (user && !shouldKeep && !isExplicitLogin) {
-      await auth.signOut();
-      try { await removeToken(); } catch {}
-      useAuthStore.setState({
-        currentUser: null,
-        authLoading: false,
-      });
-      return;
-    }
-    isExplicitLogin = false;
-
     // Only set authLoading on the INITIAL auth check (when currentUser is null).
     // Subsequent onAuthStateChanged calls (token refresh) should NOT flash loading.
     const isInitialAuth = useAuthStore.getState().currentUser === null;

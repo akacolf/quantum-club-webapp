@@ -28,9 +28,6 @@ export const useAuth = () =>
             currentUser: s.currentUser,
             authLoading: s.authLoading,
             customClaims: s.customClaims,
-            keepLoggedIn: s.keepLoggedIn,
-            setKeepLoggedIn: s.setKeepLoggedIn,
-            logout: s.logout,
             loginWithToken: s.loginWithToken,
         }))
     );

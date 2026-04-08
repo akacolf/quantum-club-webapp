@@ -58,7 +58,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   })();
 
   const [copied, setCopied] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Email linking state
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
@@ -153,21 +152,6 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
         },
       }
     );
-  };
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      // Clear keepLoggedIn so user sees auth page on next visit
-      authContext?.setKeepLoggedIn(false);
-      await authContext?.logout();
-      onOpenChange(false);
-      router.replace("/");
-    } catch {
-      toast.error("Failed to sign out");
-    } finally {
-      setIsSigningOut(false);
-    }
   };
 
   const navigateTo = (path: Parameters<typeof router.push>[0]) => {
@@ -490,18 +474,9 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
           </Link>
         </nav>
 
-        {/* Footer: Sign Out + Version */}
+        {/* Footer: Version */}
         <div className="p-4 pt-2 space-y-2 shrink-0">
           <Separator />
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-          >
-            <Icon icon="solar:logout-2-bold" className="w-5 h-5" />
-            {isSigningOut ? "Signing out..." : "Sign Out"}
-          </Button>
           <p className="text-center text-[10px] text-muted-foreground/50">
             Quantum Club v{APP_VERSION}
           </p>
