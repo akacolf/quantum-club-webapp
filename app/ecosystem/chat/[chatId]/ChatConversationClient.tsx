@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { parseAsString, parseAsInteger, useQueryState } from "nuqs";
+import { parseAsString, useQueryState } from "nuqs";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useDrag } from "@use-gesture/react";
 import { useParams, useRouter } from "next/navigation";
@@ -263,7 +263,7 @@ export default function ChatConversationClient() {
   // Search state
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useQueryState("search", parseAsString.withDefault("").withOptions({ history: "replace" }));
-  const [searchMatchIndex, setSearchMatchIndex] = useQueryState("match", parseAsInteger.withDefault(-1).withOptions({ history: "replace" }));
+  const [searchMatchIndex, setSearchMatchIndex] = useState(-1);
 
   // Forward state
   const [forwardMsgId, setForwardMsgId] = useState<string | null>(null);
