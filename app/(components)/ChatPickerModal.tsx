@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useChatConversations } from "@/app/(hooks)/queries/use-chat-list";
+import { isEncryptedMessage } from "@/lib/chat-crypto";
 
 interface ChatPickerModalProps {
   open: boolean;
@@ -79,6 +80,15 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                       .join(", ")
                   : "";
                 const chatName = chat.groupName || names || "Chat";
+                // Show a clean preview: decrypted system messages pass through,
+                // ciphertext becomes "Encrypted message". Full async decryption
+                // isn't worth it here — the picker is transient and users are
+                // just identifying which chat to send into, not reading content.
+                const preview = chat.lastMessage
+                  ? isEncryptedMessage(chat.lastMessage)
+                    ? "Encrypted message"
+                    : chat.lastMessage
+                  : null;
                 return (
                   <button
                     key={chat.id}
@@ -92,8 +102,8 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                     </Avatar>
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-medium truncate">{chatName}</p>
-                      {chat.lastMessage && (
-                        <p className="text-xs text-muted-foreground truncate">{chat.lastMessage}</p>
+                      {preview && (
+                        <p className="text-xs text-muted-foreground truncate">{preview}</p>
                       )}
                     </div>
                     <Icon icon="solar:arrow-right-linear" className="w-4 h-4 text-muted-foreground shrink-0" />
