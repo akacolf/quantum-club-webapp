@@ -81,6 +81,7 @@ import VoiceMessage from "./VoiceMessage";
 import FileMessage from "./FileMessage";
 import GroupMembersPanel from "./GroupMembersPanel";
 import TransferMessage from "./TransferMessage";
+import { TokenMention, parseMessageSegments } from "./TokenMention";
 import NftShareMessage from "./NftShareMessage";
 import CallMessage from "./CallMessage";
 import GroupCallBanner from "@/app/(components)/GroupCallBanner";
@@ -2862,17 +2863,30 @@ export default function ChatConversationClient() {
                         remoteUserId={otherParticipantId || ""}
                         remoteName={headerName}
                       />
-                    ) : (
-                      <span className={`text-[13.5px] leading-[1.4] break-words whitespace-pre-wrap ${
-                        msg.text === "Unable to decrypt message" || msg.text === "Old encrypted message" || (msg.encrypted && isEncryptedMessage(msg.text))
-                          ? "text-muted-foreground italic"
-                          : "text-foreground"
-                      }`}>
-                        {msg.text === "Unable to decrypt message" || msg.text === "Old encrypted message" || (msg.encrypted && isEncryptedMessage(msg.text))
-                          ? `${resolveSenderName(msg)} sent a message`
-                          : msg.text}
-                      </span>
-                    )}
+                    ) : (() => {
+                      const isUndecryptable =
+                        msg.text === "Unable to decrypt message" ||
+                        msg.text === "Old encrypted message" ||
+                        (msg.encrypted && isEncryptedMessage(msg.text));
+                      const displayText = isUndecryptable
+                        ? `${resolveSenderName(msg)} sent a message`
+                        : msg.text;
+                      return (
+                        <span className={`text-[13.5px] leading-[1.4] break-words whitespace-pre-wrap ${
+                          isUndecryptable ? "text-muted-foreground italic" : "text-foreground"
+                        }`}>
+                          {isUndecryptable
+                            ? displayText
+                            : parseMessageSegments(displayText).map((seg, i) =>
+                                seg.type === "text" ? (
+                                  <span key={i}>{seg.content}</span>
+                                ) : (
+                                  <TokenMention key={i} symbol={seg.symbol} />
+                                ),
+                              )}
+                        </span>
+                      );
+                    })()}
                     {/* Invisible spacer reserves space for time+ticks so they don't overlap text */}
                     <span className={`inline-block ${status ? "w-[4.5rem]" : "w-[3.5rem]"} h-[1px]`} aria-hidden="true" />
                     {/* Time + ticks positioned at bottom-right */}
