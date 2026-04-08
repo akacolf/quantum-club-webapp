@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { linkEmailToUserDoc } from "@/app/(login)/registerAndAuth";
+import { linkEmail } from "@/app/(login)/actions";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
@@ -181,13 +181,13 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
       toast.error("Please enter an email");
       return;
     }
-    if (!telegramId) {
-      toast.error("Account not ready — try again in a moment");
-      return;
-    }
     setIsLinkingEmail(true);
     try {
-      await linkEmailToUserDoc(telegramId, email);
+      const result = await linkEmail({ email });
+      if (result?.serverError || result?.validationErrors) {
+        toast.error("Failed to save email. Please try again.");
+        return;
+      }
       haptics.success();
       toast.success("Email saved");
       linkEmailForm.reset();

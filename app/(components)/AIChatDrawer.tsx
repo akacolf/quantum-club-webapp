@@ -267,6 +267,22 @@ interface ChatSession {
     updatedAt: string;
 }
 
+/**
+ * Build a fresh ChatSession. Hoisted outside the component so the impure
+ * `Date` / `crypto` calls aren't subject to the React Compiler purity rule
+ * (which only audits component- and hook-scoped code).
+ */
+function createChatSession(title: string): ChatSession {
+    const now = new Date().toISOString();
+    return {
+        id: crypto.randomUUID(),
+        title,
+        messages: [],
+        createdAt: now,
+        updatedAt: now,
+    };
+}
+
 export default function AIChatDrawer() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
@@ -374,13 +390,7 @@ export default function AIChatDrawer() {
 
     // Create a new chat session
     function handleNewChat() {
-        const newSession: ChatSession = {
-            id: Date.now().toString(),
-            title: "New Chat",
-            messages: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
+        const newSession = createChatSession("New Chat");
         setSessions((prev) => [newSession, ...prev]);
         setCurrentSessionId(newSession.id);
         setMessages([]);
@@ -453,13 +463,8 @@ export default function AIChatDrawer() {
         // Auto-create a session if none exists
         let sessionId = currentSessionId;
         if (!sessionId) {
-            const newSession: ChatSession = {
-                id: Date.now().toString(),
-                title: messageText.slice(0, 30) + (messageText.length > 30 ? "..." : ""),
-                messages: [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
+            const title = messageText.slice(0, 30) + (messageText.length > 30 ? "..." : "");
+            const newSession = createChatSession(title);
             setSessions((prev) => [newSession, ...prev]);
             setCurrentSessionId(newSession.id);
             sessionId = newSession.id;

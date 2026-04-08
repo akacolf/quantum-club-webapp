@@ -3,10 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
-import { Icon } from "@iconify/react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 import { useAuth } from "@/app/(contexts)/auth";
 import { UseRegisterAndAuth, LoadExistingUserByQCId } from "./registerAndAuth";
@@ -281,77 +277,37 @@ export default function Login() {
     }
   };
 
-  if (showLoader) {
-    return <Loader />;
-  }
-
-  // If user is already signed in, show loader while redirecting
-  if (authContext?.currentUser) {
+  // Auto-init guarantees that anyone reaching this page from inside Telegram
+  // is signed in within ~1s. Show the loader for the entire normal path.
+  // The error state below is only reached if the WebApp surface is genuinely
+  // unavailable (browser open, broken WebView) — in which case there's no
+  // recoverable action the user can take from here.
+  if (showLoader || authContext?.currentUser) {
     return <Loader />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-background p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <div className={cn("flex flex-col gap-6")}>
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <Image
-                src="/svg/logo-white.svg"
-                alt="Quantum Club"
-                width={48}
-                height={48}
-                className="dark:block hidden"
-              />
-              <Image
-                src="/svg/logo-dark.svg"
-                alt="Quantum Club"
-                width={48}
-                height={48}
-                className="dark:hidden block"
-              />
-            </div>
-            <h1 className="text-xl font-semibold">Welcome to Quantum Club</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Sign in with Telegram to continue
-            </p>
-          </div>
-
-          {rootError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {rootError}
-            </div>
-          )}
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleTelegramLogin}
-            disabled={isLoading}
-          >
-            <Icon icon="logos:telegram" className="size-5" />
-            Continue with Telegram
-          </Button>
-
-          <p className="text-balance text-center text-xs text-muted-foreground">
-            By continuing, you agree to our{" "}
-            <Link
-              href="/legal/terms"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/legal/privacy"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Privacy Policy
-            </Link>
-            .
-          </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
+      <div className="w-full max-w-sm text-center space-y-6">
+        <div className="flex justify-center">
+          <Image
+            src="/svg/logo-white.svg"
+            alt="Quantum Club"
+            width={48}
+            height={48}
+            className="dark:block hidden"
+          />
+          <Image
+            src="/svg/logo-dark.svg"
+            alt="Quantum Club"
+            width={48}
+            height={48}
+            className="dark:hidden block"
+          />
         </div>
+        <p className="text-sm text-muted-foreground">
+          {rootError ?? "Please open Quantum Club from Telegram to continue."}
+        </p>
       </div>
     </div>
   );

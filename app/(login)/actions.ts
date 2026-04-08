@@ -7,6 +7,7 @@ import { firestore, auth as firebaseAuth } from "@/app/(firebase)/server";
 import { encrypt, decrypt, SESSION_DURATION } from "@/utils/session";
 import { validateTelegramWebAppData } from "@/utils/telegramAuth";
 import { encryptTelegramId } from "@/utils/encrypt-telegram-id";
+import { linkEmailSchema } from "@/lib/validations";
 
 // ---------------------------------------------------------------------------
 // checkExistingUser — public (no auth required), checks if user exists by email or QC ID
@@ -226,4 +227,21 @@ export const checkUserRank = authWithQcIdClient
     }, { merge: true });
 
     return { rank };
+  });
+
+// ---------------------------------------------------------------------------
+// linkEmail — store an email as a contact field on the authenticated user's
+// Firestore doc. The QC ID is derived from the Telegram session, so the
+// client cannot write to anyone else's document.
+// ---------------------------------------------------------------------------
+
+export const linkEmail = authWithQcIdClient
+  .schema(linkEmailSchema)
+  .action(async ({ parsedInput: { email }, ctx: { qcId } }) => {
+    const normalized = email.trim().toLowerCase();
+    await firestore.doc(`user/${qcId}`).set(
+      { email: normalized, emailLinkedAt: new Date().toISOString() },
+      { merge: true },
+    );
+    return { email: normalized };
   });
