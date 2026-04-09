@@ -129,8 +129,24 @@ export async function sendTradeNotification(
 }
 
 /**
+ * Format a crypto price with dynamic decimal precision. Prevents
+ * small-denomination prices from being rendered as "$0.00" via toFixed(2).
+ *   >= 1000 → no decimals       ($51,234)
+ *   >= 1    → 2 decimals        ($5.12)
+ *   >= 0.01 → 4 decimals        ($0.0342)
+ *   < 0.01  → 6 decimals        ($0.000321)
+ */
+function formatCryptoPrice(price: number): string {
+  if (!Number.isFinite(price) || price < 0) return "$0.00";
+  if (price >= 1000) return `$${price.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  if (price >= 1) return `$${price.toFixed(2)}`;
+  if (price >= 0.01) return `$${price.toFixed(4)}`;
+  return `$${price.toFixed(6)}`;
+}
+
+/**
  * Send a price alert notification
- * 
+ *
  * @param telegramId - User's Telegram ID
  * @param params - Alert details
  */
@@ -144,17 +160,39 @@ export async function sendPriceAlertNotification(
   }
 ): Promise<NotificationResult> {
   const { symbol, direction, targetPrice, currentPrice } = params;
-  
-  const directionText = direction === "above" ? "above" : "below";
+
+  // Percentage delta from the target price. For "above" alerts a positive
+  // delta means the price has climbed that many % past the target; for
+  // "below" alerts it means the price has dropped that many % past.
+  const rawDelta =
+    direction === "above"
+      ? ((currentPrice - targetPrice) / targetPrice) * 100
+      : ((targetPrice - currentPrice) / targetPrice) * 100;
+  const deltaPct = Number.isFinite(rawDelta) ? Math.abs(rawDelta) : 0;
+  const deltaLabel = direction === "above" ? "above target" : "below target";
+  const directionVerb = direction === "above" ? "climbed above" : "dropped below";
 
   const message =
-    `<b>Price Alert Triggered!</b>\n\n` +
-    `<b>${symbol}</b> is now ${directionText} your target.\n\n` +
-    `Target: $${targetPrice.toFixed(2)}\n` +
-    `Current: $${currentPrice.toFixed(2)}\n\n` +
-    `<i>Open Quantum Club wallet to manage your alerts.</i>`;
+    `<b>Price Alert</b>\n\n` +
+    `<b>${symbol}</b> just ${directionVerb} your target of <b>${formatCryptoPrice(targetPrice)}</b>.\n\n` +
+    `Current price: <b>${formatCryptoPrice(currentPrice)}</b>\n` +
+    `${deltaPct.toFixed(2)}% ${deltaLabel}\n\n` +
+    `<i>Tap below to open Quantum Club and manage your alerts.</i>`;
 
-  return sendNotification(telegramId, message);
+  const botUsername = env.BOT_USERNAME || "QuantumClubBot";
+
+  return sendNotification(telegramId, message, {
+    replyMarkup: {
+      inline_keyboard: [
+        [
+          {
+            text: "Open Quantum Club",
+            url: `https://t.me/${botUsername}/app?startapp=alerts`,
+          },
+        ],
+      ],
+    },
+  });
 }
 
 

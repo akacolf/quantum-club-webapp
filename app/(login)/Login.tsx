@@ -23,6 +23,9 @@ function getDeepLinkDestination() {
     if (startParam?.startsWith("join_")) {
       return "/ecosystem/chat" as const;
     }
+    if (startParam === "alerts") {
+      return "/wallet/settings/price-alerts" as const;
+    }
   } catch {}
   return "/home" as const;
 }
