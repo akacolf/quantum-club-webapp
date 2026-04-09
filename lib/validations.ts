@@ -8,23 +8,6 @@ export const emailSchema = z
 
 // ---- Form schemas ----
 
-export const createGroupSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Please enter a group name")
-    .max(30, "Group name must be 30 characters or less"),
-  description: z
-    .string()
-    .max(100, "Description must be 100 characters or less"),
-  nftGated: z.boolean(),
-  nftCollection: z.string(),
-  nftCollectionName: z.string(),
-}).refine(
-  (data) => !data.nftGated || (data.nftCollection && data.nftCollection.length > 0),
-  { message: "Please select a collection for NFT gating", path: ["nftCollection"] },
-);
-export type CreateGroupFormData = z.infer<typeof createGroupSchema>;
-
 export const pollSchema = z.object({
   question: z.string().min(1, "Question is required").max(200),
   options: z

@@ -44,9 +44,6 @@ function getContextHint(currentPage?: string): string {
     if (currentPage.startsWith("/wallet")) {
         return `\n\n[Context: User is in their wallet. Features: send/receive TON and Jettons, view multi-chain balances (TON, ETH, BTC, SOL, TRON), manage assets, access staking, and view NFTs. Help with: transactions, gas fees, recovery phrase security, and asset management.]`;
     }
-    if (currentPage.startsWith("/groups")) {
-        return `\n\n[Context: User is in the groups section. They can create/join groups, link groups to tokens, and chat in real-time. Some groups are NFT-gated. Help with: group features, creating communities around tokens, and group management.]`;
-    }
     if (currentPage.startsWith("/ecosystem/chat") || currentPage.startsWith("/chat")) {
         return `\n\n[Context: User is in a chat conversation. Real-time messaging with other community members.]`;
     }

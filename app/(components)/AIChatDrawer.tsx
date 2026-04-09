@@ -216,14 +216,6 @@ function getContextualPrompts(pathname: string): string[] {
             "What are gas fees on TON?",
         ];
     }
-    if (pathname.startsWith("/groups")) {
-        return [
-            "How do I create a group?",
-            "Can I link a group to my token?",
-            "What is NFT gating?",
-            "How do group roles work?",
-        ];
-    }
     if (pathname.startsWith("/earn")) {
         return [
             "How do I maximize QNTM earnings?",
