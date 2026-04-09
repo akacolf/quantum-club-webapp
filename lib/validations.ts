@@ -188,14 +188,6 @@ export const analyzeTokenSchema = z.object({
   }).optional(),
 });
 
-export const explainTransactionSchema = z.object({
-  hash: z.string().min(1, "Transaction hash is required"),
-  type: z.string().optional().default(""),
-  amount: z.string().optional().default(""),
-  from: z.string().optional().default(""),
-  to: z.string().optional().default(""),
-});
-
 export const portfolioHealthSchema = z.object({
   assets: z.array(z.object({
     symbol: z.string(),
