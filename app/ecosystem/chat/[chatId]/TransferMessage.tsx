@@ -9,6 +9,17 @@ interface TransferMessageProps {
   txHash?: string;
   isMine: boolean;
   isTestnet: boolean;
+  /**
+   * Optional jetton metadata. When present, the bubble renders the jetton
+   * symbol/icon instead of the default TON branding.
+   */
+  jetton?: {
+    master: string;
+    symbol: string;
+    name: string;
+    decimals: number;
+    image?: string;
+  };
 }
 
 export default function TransferMessage({
@@ -17,19 +28,38 @@ export default function TransferMessage({
   txHash,
   isMine,
   isTestnet,
+  jetton,
 }: TransferMessageProps) {
   const explorerBase = isTestnet
     ? "https://testnet.tonviewer.com"
     : "https://tonviewer.com";
 
+  const symbol = jetton?.symbol ?? "TON";
+  const imageSrc = jetton?.image ?? "/svg/ton-logo.svg";
+  const hasImage = !!imageSrc;
+
   return (
     <div className="flex flex-col gap-1.5 min-w-[180px]">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden">
-          <Image src="/svg/ton-logo.svg" alt="TON" width={32} height={32} />
+        <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden bg-muted/40 flex items-center justify-center">
+          {hasImage ? (
+            <Image
+              src={imageSrc}
+              alt={symbol}
+              width={32}
+              height={32}
+              className="object-cover"
+            />
+          ) : (
+            <span className="text-[11px] font-bold text-primary">
+              {symbol.charAt(0)}
+            </span>
+          )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">{amount} TON</p>
+          <p className="text-sm font-semibold">
+            {amount} {symbol}
+          </p>
           <p className="text-[10px] text-muted-foreground">
             {isMine ? "You sent" : "Received"}
           </p>

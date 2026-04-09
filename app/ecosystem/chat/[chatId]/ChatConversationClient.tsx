@@ -141,6 +141,15 @@ interface ChatMessage {
     txHash?: string;
     status: "sent" | "failed";
     encData?: string;
+    // Optional jetton metadata — present when the transfer was a jetton
+    // (not TON). TransferMessage uses this to render the right symbol/icon.
+    jetton?: {
+      master: string;
+      symbol: string;
+      name: string;
+      decimals: number;
+      image?: string;
+    };
   };
   nftShare?: {
     nftAddress: string;
@@ -1456,8 +1465,22 @@ export default function ChatConversationClient() {
     }
   };
 
-  // Send transfer message (after successful TON transaction)
-  const handleSendTransfer = async (amount: string, txHash: string, toAddress: string) => {
+  // Send transfer message (after successful TON or jetton transaction).
+  // jetton is undefined for TON transfers; for jetton transfers it carries
+  // the master / symbol / decimals so the recipient renders the right asset.
+  const handleSendTransfer = async (payload: {
+    amount: string;
+    txHash: string;
+    recipientAddress: string;
+    jetton?: {
+      master: string;
+      symbol: string;
+      name: string;
+      decimals: number;
+      image?: string;
+    };
+  }) => {
+    const { amount, txHash, recipientAddress: toAddress, jetton } = payload;
     if (!telegramId || !chatId || !chatMeta || !walletAddress) return;
     if (isMuted) {
       toast.error("You are muted in this chat");
@@ -1468,16 +1491,19 @@ export default function ChatConversationClient() {
     try {
       const participants = participantsRef.current;
       const epoch = await ensureEpoch();
-      const previewText = `Sent ${amount} TON`;
+      const assetSymbol = jetton ? jetton.symbol : "TON";
+      const previewText = `Sent ${amount} ${assetSymbol}`;
       const encryptedPreview = await encryptMessage(previewText, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
 
-      // Encrypt transfer details
+      // Encrypt transfer details. Jetton metadata is included so the
+      // recipient renders the right symbol / icon after decryption.
       const transferContent = JSON.stringify({
         amount,
         senderAddress: walletAddress,
         recipientAddress: toAddress,
         txHash,
         status: "sent",
+        ...(jetton ? { jetton } : {}),
       });
       const encTransferData = await encryptMessage(transferContent, participants, chatId, telegramId, isGroupRef.current, epoch.nonce, epoch.counter);
 
@@ -2841,6 +2867,7 @@ export default function ChatConversationClient() {
                         txHash={msg.transfer.txHash}
                         isMine={isOwnMessage}
                         isTestnet={isTestnet}
+                        jetton={msg.transfer.jetton}
                       />
                     ) : msg.type === "nft_share" && msg.nftShare ? (
                       <NftShareMessage

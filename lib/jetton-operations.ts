@@ -129,6 +129,58 @@ export function buildGraduateMessage(params: {
         .endCell();
 }
 
+/**
+ * Build standard TEP-74 jetton transfer message (op 0xf8a7ea5).
+ * Sent FROM the sender's jetton wallet TO transfer jettons to a new owner.
+ *
+ * Per TEP-74:
+ *   transfer#0f8a7ea5
+ *     query_id:uint64
+ *     amount:(VarUInteger 16)            // jetton base units
+ *     destination:MsgAddress             // new OWNER address (not jetton wallet)
+ *     response_destination:MsgAddress    // where to return gas excesses
+ *     custom_payload:(Maybe ^Cell)
+ *     forward_ton_amount:(VarUInteger 16) // TON forwarded with the notification
+ *     forward_payload:(Either Cell ^Cell) // optional comment / notification body
+ *
+ * Usage: call `sendTransaction({ to: senderJettonWalletAddress, value: gasTon, body: thisCell })`.
+ * The sender's jetton wallet address is derived via `getJettonWalletAddress(jettonMaster, sender)`.
+ */
+export function buildJettonTransferMessage(params: {
+    queryId?: bigint;
+    jettonAmount: bigint;
+    toOwnerAddress: Address;
+    responseAddress: Address;
+    forwardTonAmount?: bigint;
+    forwardPayload?: Cell;
+    customPayload?: Cell;
+}): Cell {
+    const builder = beginCell()
+        .storeUint(JettonOps.TRANSFER, 32)
+        .storeUint(params.queryId ?? BigInt(0), 64)
+        .storeCoins(params.jettonAmount)
+        .storeAddress(params.toOwnerAddress)
+        .storeAddress(params.responseAddress);
+
+    // custom_payload:(Maybe ^Cell)
+    if (params.customPayload) {
+        builder.storeBit(true).storeRef(params.customPayload);
+    } else {
+        builder.storeBit(false);
+    }
+
+    builder.storeCoins(params.forwardTonAmount ?? BigInt(0));
+
+    // forward_payload:(Either Cell ^Cell) — true = ref, false = in-place
+    if (params.forwardPayload) {
+        builder.storeBit(true).storeRef(params.forwardPayload);
+    } else {
+        builder.storeBit(false);
+    }
+
+    return builder.endCell();
+}
+
 // =====================================================
 // On-Chain Queries (GET Methods) - Using TonAPI
 // =====================================================
