@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useChatConversations } from "@/app/(hooks)/queries/use-chat-list";
-import { isEncryptedMessage } from "@/lib/chat-crypto";
 
 interface ChatPickerModalProps {
   open: boolean;
@@ -58,10 +57,7 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="flex-1 space-y-1.5">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
+                      <Skeleton className="h-4 w-32" />
                     </div>
                   ))}
                 </div>
@@ -80,15 +76,6 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                       .join(", ")
                   : "";
                 const chatName = chat.groupName || names || "Chat";
-                // Show a clean preview: decrypted system messages pass through,
-                // ciphertext becomes "Encrypted message". Full async decryption
-                // isn't worth it here — the picker is transient and users are
-                // just identifying which chat to send into, not reading content.
-                const preview = chat.lastMessage
-                  ? isEncryptedMessage(chat.lastMessage)
-                    ? "Encrypted message"
-                    : chat.lastMessage
-                  : null;
                 return (
                   <button
                     key={chat.id}
@@ -100,12 +87,9 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                         {chatName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-medium truncate">{chatName}</p>
-                      {preview && (
-                        <p className="text-xs text-muted-foreground truncate">{preview}</p>
-                      )}
-                    </div>
+                    <p className="flex-1 min-w-0 text-left text-sm font-medium truncate">
+                      {chatName}
+                    </p>
                     <Icon icon="solar:arrow-right-linear" className="w-4 h-4 text-muted-foreground shrink-0" />
                   </button>
                 );
