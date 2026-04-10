@@ -87,6 +87,7 @@ import CallMessage from "./CallMessage";
 import GroupCallBanner from "@/app/(components)/GroupCallBanner";
 import { useCallContext } from "@/app/(contexts)/CallContext";
 import TransferDrawer from "./TransferDrawer";
+import UserProfilePopover from "./UserProfilePopover";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useQcUsernamesBatch, useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
 import { isQcTeamMember } from "@/lib/qc-team";
@@ -98,6 +99,7 @@ interface ChatMessage {
   senderName: string;
   senderId: string;
   createdAt: Timestamp | null;
+  editedAt?: Timestamp | null;
   encrypted?: boolean;
   encEpoch?: number;
   reactions?: Record<string, string[]>;
@@ -293,7 +295,25 @@ export default function ChatConversationClient() {
   // Transfer state
   const [showTransferDrawer, setShowTransferDrawer] = useState(false);
   const [recipientWalletAddress, setRecipientWalletAddress] = useState<string | null>(null);
+  // Override that lets the user-profile popover redirect TransferDrawer to a
+  // specific recipient (used so "Send TON" works in groups too).
+  const [transferOverride, setTransferOverride] = useState<{ address: string; name: string } | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+
+  // User profile popover state — opened when tapping a username/avatar in chat
+  const [profilePopoverUserId, setProfilePopoverUserId] = useState<string | null>(null);
+  const [profilePopoverFallbackName, setProfilePopoverFallbackName] = useState<string | null>(null);
+
+  function openProfilePopover(userId: string | null, fallbackName?: string) {
+    if (!userId) return;
+    setProfilePopoverFallbackName(fallbackName ?? null);
+    setProfilePopoverUserId(userId);
+  }
+
+  function handleSendTonFromProfile(address: string, name: string) {
+    setTransferOverride({ address, name });
+    setShowTransferDrawer(true);
+  }
 
   const { walletAddress, isTestnet } = useWallet();
 
@@ -410,6 +430,18 @@ export default function ChatConversationClient() {
 
   // Reply state
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  // Edit state — when non-null, handleSend runs in update mode instead of create
+  const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
+
+  // Window within which a text message can still be edited (15 min)
+  const EDIT_WINDOW_MS = 15 * 60 * 1000;
+  const canEditMessage = (msg: ChatMessage): boolean => {
+    if (msg.senderId !== telegramId) return false;
+    if (msg.type && msg.type !== "text") return false;
+    if (msg.senderId === "system") return false;
+    if (!msg.createdAt) return false;
+    return Date.now() - msg.createdAt.toMillis() < EDIT_WINDOW_MS;
+  };
 
   const otherParticipantId = chatMeta?.participants.find((p) => p !== telegramId) ?? null;
   const myPhoto = useProfilePhoto(telegramId);
@@ -660,6 +692,7 @@ export default function ChatConversationClient() {
         senderName: string;
         senderId: string;
         createdAt: Timestamp | null;
+        editedAt?: Timestamp | null;
         encrypted: boolean;
         encEpoch?: number;
         reactions?: Record<string, string[]>;
@@ -685,6 +718,7 @@ export default function ChatConversationClient() {
           senderName: data.senderName || "Unknown",
           senderId: data.senderId || "",
           createdAt: data.createdAt,
+          editedAt: data.editedAt || null,
           encrypted: data.encrypted === true,
           encEpoch: data.encEpoch,
           reactions: data.reactions || undefined,
@@ -803,6 +837,7 @@ export default function ChatConversationClient() {
             senderName: msg.senderName,
             senderId: msg.senderId,
             createdAt: msg.createdAt,
+            editedAt: msg.editedAt,
             encrypted: msg.encrypted,
             encEpoch: msg.encEpoch,
             reactions: msg.reactions,
@@ -922,6 +957,7 @@ export default function ChatConversationClient() {
           senderName: data.senderName || "Unknown",
           senderId: data.senderId || "",
           createdAt: data.createdAt,
+          editedAt: (data.editedAt || null) as Timestamp | null,
           encrypted: data.encrypted === true,
           encEpoch: data.encEpoch as number | undefined,
           reactions: data.reactions || undefined,
@@ -1035,6 +1071,7 @@ export default function ChatConversationClient() {
             senderName: msg.senderName,
             senderId: msg.senderId,
             createdAt: msg.createdAt,
+            editedAt: msg.editedAt,
             encrypted: msg.encrypted,
             encEpoch: msg.encEpoch,
             reactions: msg.reactions,
@@ -1102,8 +1139,94 @@ export default function ChatConversationClient() {
     typingTimeoutRef.current = setTimeout(() => setTyping(false), TYPING_TIMEOUT_MS);
   };
 
+  // Start editing a message — load its text into the input
+  function handleStartEdit(msg: ChatMessage) {
+    if (!canEditMessage(msg)) {
+      toast.error("Message can no longer be edited");
+      setReactionPickerMsgId(null);
+      return;
+    }
+    setEditingMsg(msg);
+    setReplyTo(null);
+    setNewMessage(msg.text);
+    setReactionPickerMsgId(null);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  // Save an edited message — re-encrypts with current epoch, bumps editedAt
+  async function handleSaveEdit() {
+    const original = editingMsg;
+    if (!original) return;
+    const newText = newMessage.trim();
+    if (!newText || !telegramId || !chatId || !chatMeta || isSending) return;
+    if (newText === original.text) {
+      // Nothing changed — just exit edit mode
+      setEditingMsg(null);
+      setNewMessage("");
+      return;
+    }
+    // Re-check edit window at save time — user could have hovered past 15 min
+    if (!canEditMessage(original)) {
+      toast.error("Edit window expired");
+      setEditingMsg(null);
+      setNewMessage("");
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const participants = participantsRef.current;
+      const epoch = await ensureEpoch();
+      const encryptedText = await encryptMessage(
+        newText,
+        participants,
+        chatId,
+        telegramId,
+        isGroupRef.current,
+        epoch.nonce,
+        epoch.counter,
+      );
+
+      const msgRef = doc(dbfs, "qc-chats", chatId, "messages", original.id);
+      await updateDoc(msgRef, {
+        text: encryptedText,
+        encEpoch: epoch.counter,
+        editedAt: serverTimestamp(),
+      });
+
+      // If this was the last message in the chat, refresh the preview so the
+      // chat list shows the edited text. (encEpoch also needs updating so the
+      // preview decrypts with the correct epoch.)
+      const isLast = messages[messages.length - 1]?.id === original.id;
+      if (isLast) {
+        const preview = newText.length > 50 ? newText.slice(0, 50) + "…" : newText;
+        try { localStorage.setItem(`qc-preview-${chatId}`, preview); } catch {}
+        updateDoc(doc(dbfs, "qc-chats", chatId), {
+          lastMessage: encryptedText,
+          lastMessageEpoch: epoch.counter,
+        }).catch(() => {});
+      }
+
+      setEditingMsg(null);
+      setNewMessage("");
+      toast.success("Message edited");
+    } catch (err) {
+      console.error("Failed to edit message:", err);
+      toast.error("Failed to edit message");
+    } finally {
+      setIsSending(false);
+      inputRef.current?.focus();
+    }
+  }
+
   // Send encrypted message
   const handleSend = async () => {
+    // Edit branch — when editing, route to handleSaveEdit instead of creating new
+    if (editingMsg) {
+      await handleSaveEdit();
+      return;
+    }
+
     const text = newMessage.trim();
     if (!text || !telegramId || !chatId || !chatMeta || isSending) return;
     if (isMuted) {
@@ -2202,7 +2325,7 @@ export default function ChatConversationClient() {
               <h1 className="text-sm font-semibold text-foreground truncate">Saved Messages <span className="text-muted-foreground font-normal">(You)</span></h1>
             ) : (
               <button
-                onClick={() => otherParticipantId && router.push(`/user/${otherParticipantId}?name=${encodeURIComponent(headerName)}`)}
+                onClick={() => openProfilePopover(otherParticipantId, headerName)}
                 className="text-sm font-semibold text-foreground truncate hover:underline text-left"
               >
                 @{headerName}
@@ -2560,8 +2683,18 @@ export default function ChatConversationClient() {
               {(() => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
                 const canDeleteForEveryone = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
+                const canEdit = !!activeMsg && canEditMessage(activeMsg);
                 return (
                   <>
+                    {canEdit && (
+                      <button
+                        onClick={() => activeMsg && handleStartEdit(activeMsg)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon icon="lucide:pencil" className="w-[18px] h-[18px] text-muted-foreground" />
+                        <span className="text-[13px] font-medium">Edit</span>
+                      </button>
+                    )}
                     <div className="mx-3 border-t border-border/50" />
                     <button
                       onClick={() => handleDeleteForMe(reactionPickerMsgId!)}
@@ -2766,16 +2899,25 @@ export default function ChatConversationClient() {
                   {...bindMessageGesture(msg)}
                 >
                   {!isOwnMessage && !consecutive && (
-                    <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-                      {/* Only show photo in DMs where otherPhoto is the correct sender;
-                          in group chats otherPhoto is just one member — use initials instead */}
-                      {!isGroupChat && otherPhoto && (
-                        <AvatarImage src={otherPhoto} />
-                      )}
-                      <AvatarFallback className={`${getAvatarColor(resolveSenderName(msg))} text-white text-[10px] font-semibold`}>
-                        {getInitials(resolveSenderName(msg))}
-                      </AvatarFallback>
-                    </Avatar>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openProfilePopover(msg.senderId, resolveSenderName(msg));
+                      }}
+                      className="shrink-0 mt-0.5"
+                    >
+                      <Avatar className="h-7 w-7">
+                        {/* Only show photo in DMs where otherPhoto is the correct sender;
+                            in group chats otherPhoto is just one member — use initials instead */}
+                        {!isGroupChat && otherPhoto && (
+                          <AvatarImage src={otherPhoto} />
+                        )}
+                        <AvatarFallback className={`${getAvatarColor(resolveSenderName(msg))} text-white text-[10px] font-semibold`}>
+                          {getInitials(resolveSenderName(msg))}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
                   )}
                   {!isOwnMessage && consecutive && <div className="w-7 shrink-0" />}
 
@@ -2797,9 +2939,16 @@ export default function ChatConversationClient() {
                     >
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1 mb-0.5">
-                        <span className="text-[11px] font-semibold text-primary">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openProfilePopover(msg.senderId, resolveSenderName(msg));
+                          }}
+                          className="text-[11px] font-semibold text-primary hover:underline"
+                        >
                           @{resolveSenderName(msg)}
-                        </span>
+                        </button>
                         {isQcTeamMember(resolveSenderName(msg)) && (
                           <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
                             <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
@@ -2915,11 +3064,16 @@ export default function ChatConversationClient() {
                       );
                     })()}
                     {/* Invisible spacer reserves space for time+ticks so they don't overlap text */}
-                    <span className={`inline-block ${status ? "w-[4.5rem]" : "w-[3.5rem]"} h-[1px]`} aria-hidden="true" />
+                    <span className={`inline-block ${msg.editedAt ? (status ? "w-[6rem]" : "w-[5rem]") : status ? "w-[4.5rem]" : "w-[3.5rem]"} h-[1px]`} aria-hidden="true" />
                     {/* Time + ticks positioned at bottom-right */}
                     <span className="absolute bottom-[5px] right-[8px] flex items-center gap-0.5">
                       {msg.expiresAt && (
                         <Icon icon="lucide:timer" className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
+                      )}
+                      {msg.editedAt && (
+                        <span className="text-[10px] text-muted-foreground/60 italic leading-none">
+                          edited
+                        </span>
                       )}
                       <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap leading-none">
                         {formatTime(msg.createdAt)}
@@ -3008,7 +3162,7 @@ export default function ChatConversationClient() {
       )}
 
       {/* Reply preview bar */}
-      {replyTo && (
+      {replyTo && !editingMsg && (
         <div className="px-3 py-2 border-t border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
           <div className="flex-1 min-w-0 border-l-2 border-primary pl-2">
             <p className="text-[11px] font-semibold text-primary truncate">
@@ -3022,6 +3176,29 @@ export default function ChatConversationClient() {
             variant="ghost"
             size="icon"
             onClick={() => setReplyTo(null)}
+            className="shrink-0 w-7 h-7 rounded-full"
+          >
+            <Icon icon="lucide:x" className="w-4 h-4 text-muted-foreground" />
+          </Button>
+        </div>
+      )}
+
+      {/* Edit preview bar */}
+      {editingMsg && (
+        <div className="px-3 py-2 border-t border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
+          <Icon icon="lucide:pencil" className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0 border-l-2 border-primary pl-2">
+            <p className="text-[11px] font-semibold text-primary truncate">
+              Editing message
+            </p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {editingMsg.text}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setEditingMsg(null); setNewMessage(""); }}
             className="shrink-0 w-7 h-7 rounded-full"
           >
             <Icon icon="lucide:x" className="w-4 h-4 text-muted-foreground" />
@@ -3094,11 +3271,11 @@ export default function ChatConversationClient() {
               value={newMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder={replyTo ? "Reply..." : "Type a message..."}
+              placeholder={editingMsg ? "Edit message..." : replyTo ? "Reply..." : "Type a message..."}
               maxLength={500}
               className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-base placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
             />
-            {newMessage.trim() ? (
+            {newMessage.trim() || editingMsg ? (
               <Button
                 onClick={handleSend}
                 disabled={!newMessage.trim() || isSending}
@@ -3108,7 +3285,10 @@ export default function ChatConversationClient() {
                 {isSending ? (
                   <ButtonLoader size="sm" />
                 ) : (
-                  <Icon icon="material-symbols:send-rounded" className="w-5 h-5" />
+                  <Icon
+                    icon={editingMsg ? "lucide:check" : "material-symbols:send-rounded"}
+                    className="w-5 h-5"
+                  />
                 )}
               </Button>
             ) : (
@@ -3124,7 +3304,9 @@ export default function ChatConversationClient() {
         onCreatePoll={handleCreatePoll}
       />
 
-      {!isGroupChat && chatMeta && (
+      {/* DM TransferDrawer — wired to the per-chat recipient (only mounts when no
+          override is active so the two instances don't fight over the same `open` flag) */}
+      {!isGroupChat && chatMeta && !transferOverride && (
         <TransferDrawer
           open={showTransferDrawer}
           onOpenChange={setShowTransferDrawer}
@@ -3134,6 +3316,34 @@ export default function ChatConversationClient() {
           onFailed={handleTransferFailed}
         />
       )}
+
+      {/* Override TransferDrawer — used by the user-profile popover so Send TON
+          works in groups too. Recipient is provided by the popover. */}
+      {transferOverride && chatMeta && (
+        <TransferDrawer
+          open={showTransferDrawer}
+          onOpenChange={(open) => {
+            setShowTransferDrawer(open);
+            if (!open) setTransferOverride(null);
+          }}
+          recipientName={transferOverride.name}
+          recipientAddress={transferOverride.address}
+          onSend={handleSendTransfer}
+          onFailed={handleTransferFailed}
+        />
+      )}
+
+      {/* User profile popover — opened from username/avatar taps */}
+      <UserProfilePopover
+        open={!!profilePopoverUserId}
+        onOpenChange={(open) => {
+          if (!open) setProfilePopoverUserId(null);
+        }}
+        userId={profilePopoverUserId}
+        fallbackName={profilePopoverFallbackName ?? undefined}
+        currentUserId={telegramId}
+        onSendTon={handleSendTonFromProfile}
+      />
     </div>
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { parseAsString, useQueryState } from "nuqs";
+import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FieldError } from "@/components/ui/field";
-import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema } from "@/lib/validations";
+import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema, GROUP_CATEGORIES, type GroupCategory } from "@/lib/validations";
+import GroupDirectory from "./GroupDirectory";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -36,6 +37,7 @@ import {
   updateDoc,
   arrayUnion,
   serverTimestamp,
+  increment,
   where,
   type Timestamp,
 } from "firebase/firestore";
@@ -273,6 +275,10 @@ export default function QCChatListPage() {
   const { data: conversations = [], isLoading: isConversationsLoading } = useChatConversations(telegramId, isAuthenticated);
   const { data: globalChat = null } = useGlobalChat(telegramId, isAuthenticated);
   const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault("").withOptions({ history: "replace" }));
+  const [tab, setTab] = useQueryState<"chats" | "discover">(
+    "tab",
+    parseAsStringEnum<"chats" | "discover">(["chats", "discover"]).withDefault("chats").withOptions({ history: "replace" }),
+  );
   const [formMode, setFormMode] = useState<FormMode>("none");
   const isLoading = isAuthenticated && isConversationsLoading;
 
@@ -284,9 +290,14 @@ export default function QCChatListPage() {
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Group form
+  // Group form — name + optional discoverability settings
   const groupForm = useForm({
-    defaultValues: { name: "" },
+    defaultValues: {
+      name: "",
+      isPublic: false,
+      category: "General" as GroupCategory,
+      description: "",
+    },
     validators: { onSubmit: chatGroupSchema },
   });
 
@@ -411,6 +422,7 @@ export default function QCChatListPage() {
           await updateDoc(doc(dbfs, "qc-chats", groupDoc.id), {
             participants: arrayUnion(telegramId),
             [`participantNames.${telegramId}`]: selfDisplayName,
+            memberCount: increment(1),
             lastMessage: `${selfDisplayName} joined the group`,
             lastMessageBy: "system",
             lastMessageAt: serverTimestamp(),
@@ -648,7 +660,10 @@ export default function QCChatListPage() {
   // Create group
   const handleCreateGroup = async () => {
     const name = groupForm.getFieldValue("name").trim();
-    const parsed = chatGroupSchema.safeParse({ name });
+    const isPublic = groupForm.getFieldValue("isPublic");
+    const category = groupForm.getFieldValue("category");
+    const description = groupForm.getFieldValue("description").trim();
+    const parsed = chatGroupSchema.safeParse({ name, isPublic, category, description });
     if (!parsed.success) {
       setFormError(parsed.error.issues[0].message);
       return;
@@ -667,12 +682,22 @@ export default function QCChatListPage() {
       const chatId = `group_${telegramId}_${Date.now()}`;
 
       const epochNonceGroup = generateEpochNonce();
+      // Only persist discovery fields when isPublic is set, so we don't pollute
+      // private group docs with unused fields.
+      const discoveryFields = isPublic
+        ? {
+            isPublic: true,
+            category,
+            description,
+          }
+        : {};
       await setDoc(doc(dbfs, "qc-chats", chatId), {
         isGroup: true,
         isGlobal: false,
         groupName: name,
         participants: [telegramId],
         participantNames: { [telegramId]: selfDisplayName },
+        memberCount: 1,
         createdBy: telegramId,
         joinCode: code,
         lastMessage: `${selfDisplayName} created the group`,
@@ -682,6 +707,7 @@ export default function QCChatListPage() {
         epochNonce: epochNonceGroup,
         epochCounter: 0,
         epochNonces: { 0: epochNonceGroup },
+        ...discoveryFields,
       });
 
       setFormMode("none");
@@ -755,6 +781,7 @@ export default function QCChatListPage() {
       await updateDoc(doc(dbfs, "qc-chats", groupDoc.id), {
         participants: arrayUnion(telegramId),
         [`participantNames.${telegramId}`]: selfDisplayName,
+        memberCount: increment(1),
         lastMessage: `${selfDisplayName} joined the group`,
         lastMessageBy: "system",
         lastMessageAt: serverTimestamp(),
@@ -992,40 +1019,115 @@ export default function QCChatListPage() {
               <>
                 <groupForm.Field name="name">
                   {(field) => (
-                    <div className="flex gap-2">
-                      <Input
-                        value={field.state.value}
-                        onChange={(e) => {
-                          field.handleChange(e.target.value);
-                          setFormError(null);
-                        }}
-                        onBlur={field.handleBlur}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { e.preventDefault(); handleCreateGroup(); }
-                        }}
-                        placeholder="Group name"
-                        maxLength={50}
-                        className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm"
-                        disabled={isStartingChat}
-                        autoFocus
-                      />
-                      <Button
-                        onClick={handleCreateGroup}
-                        disabled={isStartingChat || !field.state.value.trim()}
-                        size="sm"
-                        className="h-9 px-4 rounded-lg"
-                      >
-                        {isStartingChat ? (
-                          <ButtonLoader size="sm" />
-                        ) : (
-                          "Create"
-                        )}
-                      </Button>
-                    </div>
+                    <Input
+                      value={field.state.value}
+                      onChange={(e) => {
+                        field.handleChange(e.target.value);
+                        setFormError(null);
+                      }}
+                      onBlur={field.handleBlur}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleCreateGroup(); }
+                      }}
+                      placeholder="Group name"
+                      maxLength={50}
+                      className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
+                      disabled={isStartingChat}
+                      autoFocus
+                    />
                   )}
                 </groupForm.Field>
+
+                {/* Make discoverable toggle */}
+                <groupForm.Field name="isPublic">
+                  {(field) => (
+                    <button
+                      type="button"
+                      onClick={() => field.handleChange(!field.state.value)}
+                      className="w-full flex items-center justify-between p-2.5 rounded-lg bg-background/40 border border-border/60 hover:bg-background/60 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Icon icon="solar:global-bold" className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-semibold text-foreground">Discoverable</p>
+                          <p className="text-[10px] text-muted-foreground">Anyone can find &amp; join</p>
+                        </div>
+                      </div>
+                      <div
+                        className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${
+                          field.state.value ? "bg-primary" : "bg-muted"
+                        }`}
+                      >
+                        <div
+                          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                            field.state.value ? "translate-x-[18px]" : "translate-x-0.5"
+                          }`}
+                        />
+                      </div>
+                    </button>
+                  )}
+                </groupForm.Field>
+
+                {/* Discovery-only fields — only shown when toggle is on */}
+                <groupForm.Subscribe selector={(s) => s.values.isPublic}>
+                  {(isPublic) =>
+                    isPublic ? (
+                      <>
+                        {/* Category select */}
+                        <groupForm.Field name="category">
+                          {(field) => (
+                            <div className="flex flex-wrap gap-1">
+                              {GROUP_CATEGORIES.map((cat) => {
+                                const active = field.state.value === cat;
+                                return (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => field.handleChange(cat)}
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
+                                      active
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                                    }`}
+                                  >
+                                    {cat}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </groupForm.Field>
+
+                        {/* Description */}
+                        <groupForm.Field name="description">
+                          {(field) => (
+                            <Input
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              placeholder="Short description (optional)"
+                              maxLength={200}
+                              className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
+                              disabled={isStartingChat}
+                            />
+                          )}
+                        </groupForm.Field>
+                      </>
+                    ) : null
+                  }
+                </groupForm.Subscribe>
+
+                <Button
+                  onClick={handleCreateGroup}
+                  disabled={isStartingChat}
+                  size="sm"
+                  className="h-9 w-full rounded-lg"
+                >
+                  {isStartingChat ? <ButtonLoader size="sm" /> : "Create Group"}
+                </Button>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Create a group and share the join code with others to invite them.
+                  Discoverable groups appear in the Discover tab. Private groups can only be joined with the 6-character code.
                 </p>
               </>
             )}
@@ -1085,9 +1187,45 @@ export default function QCChatListPage() {
 
       <Separator className="opacity-50" />
 
+      {/* Tab switcher */}
+      <div className="px-4 pt-2 pb-1 shrink-0">
+        <div className="flex gap-1 p-0.5 rounded-lg bg-muted/40">
+          {(["chats", "discover"] as const).map((t) => {
+            const active = tab === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon
+                  icon={t === "chats" ? "solar:chat-round-line-bold" : "solar:compass-bold"}
+                  className="w-3.5 h-3.5"
+                />
+                {t === "chats" ? "My Chats" : "Discover"}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Chat list */}
       <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
+        {tab === "discover" ? (
+          telegramId && qcUsername ? (
+            <GroupDirectory telegramId={telegramId} qcUsername={qcUsername} />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
+              <Icon icon="solar:compass-bold" className="w-10 h-10 text-muted-foreground/50" />
+              <p className="text-xs text-muted-foreground">Sign in to discover public groups</p>
+            </div>
+          )
+        ) : isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-primary">
             <ButtonLoader size="lg" />
             <p className="text-xs text-muted-foreground">Loading chats...</p>
