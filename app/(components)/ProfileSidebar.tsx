@@ -9,7 +9,6 @@ import { z } from "zod";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/app/(firebase)/client";
 import { usernameSchema, linkEmailSchema, USERNAME_MAX_LENGTH } from "@/lib/validations";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -43,23 +42,20 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const authContext = useAuth();
   const { telegramId, username, MainQuantAmount, daily, qcUsername, setQcUsername, walletAddress } = useUserContext();
 
-  // Profile photo fallback chain:
-  //   1. Custom QC photo (from qcUsernames doc) — set by the upload flow below
-  //   2. Telegram SDK photo_url (instant, no network)
-  //   3. Telegram Bot API photo (server action, slower fallback)
-  const [tgUser, setTgUser] = useState<{ photo_url?: string; username?: string; first_name?: string } | null>(null);
+  // Keep tgUser around only for name resolution (display name when no QC
+  // username is claimed yet). Profile photos come from the QC pp uploaded
+  // to qcUsernames — no Telegram photo fallback.
+  const [tgUser, setTgUser] = useState<{ username?: string; first_name?: string } | null>(null);
   useEffect(() => {
     const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (u) setTgUser({ photo_url: u.photo_url, username: u.username ?? undefined, first_name: u.first_name });
+    if (u) setTgUser({ username: u.username ?? undefined, first_name: u.first_name });
   }, []);
-  const tgPhotoUrl = tgUser?.photo_url ?? null;
-  const apiPhotoUrl = useProfilePhoto(!tgPhotoUrl ? telegramId : null);
+
   // Always-on photo query (separate from the username-resolution query below,
   // which is conditional on !qcUsername). TanStack Query dedupes under the
   // same cache key so this doesn't cause duplicate network calls.
   const photoQuery = useQcUsernameQuery(telegramId);
-  const customPhotoUrl = photoQuery.data?.profilePhotoUrl ?? null;
-  const photoUrl = customPhotoUrl || tgPhotoUrl || apiPhotoUrl;
+  const photoUrl = photoQuery.data?.profilePhotoUrl ?? null;
 
   const displayName = (() => {
     if (username) return username;

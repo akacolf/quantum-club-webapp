@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallContext } from "@/app/(contexts)/CallContext";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
@@ -36,7 +36,7 @@ export default function CallOverlay() {
     toggleMinimize,
   } = useCallContext();
 
-  const photo = useProfilePhoto(callInfo?.remoteUserId ?? null);
+  const photo = useQcProfilePhoto(callInfo?.remoteUserId ?? null);
 
   const visible =
     callState === "outgoing_ringing" || callState === "connected";

@@ -7,14 +7,17 @@ import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProfileSidebar from "@/app/(components)/ProfileSidebar";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 
 export default function PersonalizedGreeting() {
   const { username, telegramId } = useUserContext();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("Quantum User");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // QC profile photo (null → render initials fallback)
+  const photoUrl = useQcProfilePhoto(telegramId);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -31,19 +34,8 @@ export default function PersonalizedGreeting() {
       setDisplayName(tgUser.first_name);
     }
 
-    // Get user photo — use DB telegramId as fallback over initDataUnsafe
-    if (tgUser?.photo_url) {
-      setPhotoUrl(tgUser.photo_url);
-    } else if (telegramId) {
-      import("@/app/(hooks)/actions").then(({ getProfilePhoto }) =>
-        getProfilePhoto({ telegramId })
-          .then((result) => { if (result?.data?.photoUrl) setPhotoUrl(result.data.photoUrl); })
-          .catch(() => { })
-      );
-    }
-
     router.prefetch('/home/profile');
-  }, [router, username, telegramId]);
+  }, [router, username]);
 
   if (!mounted) return null;
 

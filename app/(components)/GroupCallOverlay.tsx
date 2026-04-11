@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallContext } from "@/app/(contexts)/CallContext";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
@@ -24,7 +24,7 @@ function formatDuration(seconds: number): string {
 }
 
 function ParticipantAvatar({ userId, name }: { userId: string; name: string }) {
-  const photo = useProfilePhoto(userId);
+  const photo = useQcProfilePhoto(userId);
   return (
     <div className="flex flex-col items-center gap-2">
       <Avatar className="w-16 h-16 ring-2 ring-white/10">

@@ -25,7 +25,7 @@ import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import Image from "next/image";
-import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhotosBatch } from "@/app/(hooks)/useQcProfilePhoto";
 import { claimTier2Rewards, claimReferralTon } from "./actions";
 
 const FrensContent = () => {
@@ -59,8 +59,8 @@ const FrensContent = () => {
 
 
 
-  // Profile photos for referral list — TanStack Query handles caching/dedup
-  const photoUrls = useProfilePhotos(referralList.map((r) => r.id));
+  // Profile photos for referral list — custom QC pp only, initials fallback
+  const photoUrls = useQcProfilePhotosBatch(referralList.map((r) => r.id));
 
   const referralsListRef = useRef<HTMLDivElement>(null);
   const referralsVirtualizer = useWindowVirtualizer({
