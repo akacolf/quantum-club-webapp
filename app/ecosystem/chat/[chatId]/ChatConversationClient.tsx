@@ -2173,7 +2173,7 @@ export default function ChatConversationClient() {
     if (chatMeta.isGlobal) return "QC Global";
     if (chatMeta.isGroup && chatMeta.groupName) return chatMeta.groupName;
     if (!chatMeta.isGroup && chatMeta.participants.length === 1 && chatMeta.participants[0] === telegramId) {
-      return "Saved Messages";
+      return qcUsername?.replace(/^@+/, "").trim() || "You";
     }
     const other = chatMeta.participants.find((p) => p !== telegramId);
     if (other && chatMeta.participantNames[other] && chatMeta.participantNames[other] !== "Unknown") {
@@ -2321,7 +2321,9 @@ export default function ChatConversationClient() {
                 {headerName}
               </button>
             ) : isSelfChat ? (
-              <h1 className="text-sm font-semibold text-foreground truncate">Saved Messages <span className="text-muted-foreground font-normal">(You)</span></h1>
+              <h1 className="text-sm font-semibold text-foreground truncate">
+                {headerName} <span className="text-muted-foreground font-normal">(You)</span>
+              </h1>
             ) : (
               <button
                 onClick={() => openProfilePopover(otherParticipantId, headerName)}
@@ -2580,7 +2582,7 @@ export default function ChatConversationClient() {
                   ? fc.groupName || "Group"
                   : fc.participants?.find((p: string) => p !== telegramId)
                     ? fc.participantNames?.[fc.participants.find((p: string) => p !== telegramId)!] || "Chat"
-                    : "Saved Messages (You)";
+                    : `${qcUsername?.replace(/^@+/, "").trim() || "You"} (You)`;
                 return (
                   <button
                     key={fc.id}
