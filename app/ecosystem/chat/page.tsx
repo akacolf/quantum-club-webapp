@@ -322,8 +322,8 @@ function QcAiChatListItem({
     >
       <div className="relative shrink-0">
         <Avatar className="h-12 w-12 border border-primary/30">
-          <AvatarFallback className="bg-background">
-            <Image src="/svg/logo-white.svg" alt="QC AI" width={22} height={22} />
+          <AvatarFallback className="bg-white">
+            <Image src="/svg/logo-dark.svg" alt="QC AI" width={22} height={22} />
           </AvatarFallback>
         </Avatar>
         <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary/90 border-2 border-background flex items-center justify-center">

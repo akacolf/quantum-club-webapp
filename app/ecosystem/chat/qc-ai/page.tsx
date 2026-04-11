@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useChat } from "@ai-sdk/react";
@@ -33,7 +32,6 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export default function QcAiChatPage() {
-  const router = useRouter();
   useTelegramBackButton("/ecosystem/chat");
 
   // Gather user context for personalized responses (same shape as AIChatDrawer)
@@ -145,21 +143,17 @@ export default function QcAiChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-70px)] bg-background">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 px-3 py-2 border-b border-border/50 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push("/ecosystem/chat")}
-          className="w-9 h-9 rounded-full shrink-0"
-          aria-label="Back"
-        >
-          <Icon icon="lucide:arrow-left" className="w-5 h-5" />
-        </Button>
-        <Avatar className="h-9 w-9 shrink-0">
-          <AvatarFallback className="bg-background border border-primary/30">
-            <Image src="/svg/logo-white.svg" alt="QC AI" width={18} height={18} />
+    <>
+    <div className="fixed inset-0 z-40 bg-background" aria-hidden />
+    <div className="fixed inset-0 z-[41] flex flex-col">
+      {/* Header — native Telegram back button handles navigation */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
+        style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
+      >
+        <Avatar className="h-10 w-10 shrink-0 border border-primary/30">
+          <AvatarFallback className="bg-white">
+            <Image src="/svg/logo-dark.svg" alt="QC AI" width={20} height={20} />
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
@@ -308,5 +302,6 @@ export default function QcAiChatPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
