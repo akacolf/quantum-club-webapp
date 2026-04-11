@@ -7,7 +7,7 @@ import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { useProfilePhotos } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhotosBatch } from "@/app/(hooks)/useQcProfilePhoto";
 import { useQcUsernamesBatch } from "@/app/(hooks)/queries/use-qc-username";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, onSnapshot, updateDoc, Timestamp } from "firebase/firestore";
@@ -130,9 +130,10 @@ export default function GroupInfoPage() {
     }
   }, [loading, chatMeta, chatId, router]);
 
-  // Fetch profile photos for all members
+  // Fetch profile photos for all members — prefers custom QC photo over
+  // the Telegram photo so uploaded avatars surface in the member list.
   const memberIds = chatMeta?.participants || [];
-  const photos = useProfilePhotos(memberIds);
+  const photos = useQcProfilePhotosBatch(memberIds);
 
   if (loading) {
     return <Loader />;

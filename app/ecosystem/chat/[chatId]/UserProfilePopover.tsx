@@ -16,7 +16,7 @@ import {
 import { useUserProfile } from "@/app/(hooks)/queries/use-user-profile";
 import { useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
 import { useUserRank } from "@/app/(hooks)/queries/use-user-rank";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { isQcTeamMember } from "@/lib/qc-team";
 import { toast } from "sonner";
 
@@ -72,7 +72,7 @@ export default function UserProfilePopover({
   // Profile (display name + join date — join date only available for self
   // because user/{id} is self-read only; hidden when absent)
   const { data: profile, isLoading: profileLoading } = useUserProfile(userId || undefined);
-  const profilePhoto = useProfilePhoto(userId);
+  const profilePhoto = useQcProfilePhoto(userId);
 
   // Wallet address via qc-usernames collection
   const { data: usernameData, isLoading: usernameLoading } = useQcUsernameQuery(userId);

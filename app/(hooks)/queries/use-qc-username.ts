@@ -4,6 +4,7 @@ import { registerQcUsername, updateQcUsernameAddress, resolveQcUsername } from "
 interface QcUsernameByIdResult {
   username: string | null;
   address: string | null;
+  profilePhotoUrl: string | null;
 }
 
 interface QcUsernameByNameResult {
@@ -12,6 +13,7 @@ interface QcUsernameByNameResult {
   resolved: boolean;
   address?: string | null;
   owner?: string | null;
+  profilePhotoUrl?: string | null;
 }
 
 /** Lookup a user's QC username by their telegramId / qcId */
@@ -21,7 +23,11 @@ export function useQcUsernameQuery(qcId: string | undefined | null) {
     queryFn: async () => {
       const result = await resolveQcUsername({ qcId: qcId! });
       if (!result?.data) throw new Error("Failed to fetch username");
-      return { username: result.data.username ?? null, address: result.data.address ?? null };
+      return {
+        username: result.data.username ?? null,
+        address: result.data.address ?? null,
+        profilePhotoUrl: result.data.profilePhotoUrl ?? null,
+      };
     },
     enabled: !!qcId,
     staleTime: 5 * 60 * 1000,

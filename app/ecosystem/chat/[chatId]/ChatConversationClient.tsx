@@ -37,7 +37,7 @@ import {
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { usePresenceActions, useUserPresence, useMultiplePresence, formatLastSeen } from "@/app/(hooks)/usePresence";
 import { dbfs } from "@/app/(firebase)/client";
 import {
@@ -444,8 +444,8 @@ export default function ChatConversationClient() {
   };
 
   const otherParticipantId = chatMeta?.participants.find((p) => p !== telegramId) ?? null;
-  const myPhoto = useProfilePhoto(telegramId);
-  const otherPhoto = useProfilePhoto(otherParticipantId);
+  const myPhoto = useQcProfilePhoto(telegramId);
+  const otherPhoto = useQcProfilePhoto(otherParticipantId);
 
   // Presence: track which chat we're viewing (heartbeat managed by layout)
   const { setCurrentChat } = usePresenceActions(telegramId);

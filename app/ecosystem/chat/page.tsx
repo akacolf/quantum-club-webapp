@@ -21,7 +21,7 @@ import GroupDirectory from "./GroupDirectory";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { useUserPresence } from "@/app/(hooks)/usePresence";
 import { useGlobalChat, useChatConversations, type ChatConversation } from "@/app/(hooks)/queries/use-chat-list";
 import { dbfs } from "@/app/(firebase)/client";
@@ -101,7 +101,7 @@ function ChatListItem({
   const isSelfChat = !chat.isGroup && !chat.isGlobal &&
     chat.participants.length === 1 && chat.participants[0] === telegramId;
   const otherParticipantId = chat.participants.find((p) => p !== telegramId) ?? null;
-  const photoUrl = useProfilePhoto(
+  const photoUrl = useQcProfilePhoto(
     chat.isGroup || chat.isGlobal ? null : isSelfChat ? telegramId : otherParticipantId
   );
   const otherPresence = useUserPresence(
