@@ -4,38 +4,40 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Icon } from "@iconify/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import ProfileSidebar from "@/app/(components)/ProfileSidebar";
 import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 
+// Client-only gate via useSyncExternalStore — React-approved pattern for
+// "is this running in the browser yet" without a setState-in-effect warning.
+// Server snapshot returns false; client snapshot returns true.
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export default function PersonalizedGreeting() {
   const { username, telegramId } = useUserContext();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [displayName, setDisplayName] = useState<string>("Quantum User");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
   // QC profile photo (null → render initials fallback)
   const photoUrl = useQcProfilePhoto(telegramId);
 
-  // Prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-
+  // Display name computed during render — re-evaluates whenever `username`
+  // or the component re-renders, so no effect/setState dance needed.
+  const displayName = (() => {
+    if (username) return username;
+    if (!mounted) return "Quantum User";
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    return tgUser?.username || tgUser?.first_name || "Quantum User";
+  })();
 
-    // Prefer DB-stored username (works for email login from different TG account)
-    if (username) {
-      setDisplayName(username);
-    } else if (tgUser?.username) {
-      setDisplayName(tgUser.username);
-    } else if (tgUser?.first_name) {
-      setDisplayName(tgUser.first_name);
-    }
-
-    router.prefetch('/home/profile');
-  }, [router, username]);
+  // Route prefetch is a pure side effect, not setState — fine in an effect.
+  useEffect(() => {
+    router.prefetch("/home/profile");
+  }, [router]);
 
   if (!mounted) return null;
 
