@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { FieldError } from "@/components/ui/field";
 import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema, GROUP_CATEGORIES, type GroupCategory } from "@/lib/validations";
 import GroupDirectory from "./GroupDirectory";
@@ -1041,11 +1042,7 @@ export default function QCChatListPage() {
                 {/* Make discoverable toggle */}
                 <groupForm.Field name="isPublic">
                   {(field) => (
-                    <button
-                      type="button"
-                      onClick={() => field.handleChange(!field.state.value)}
-                      className="w-full flex items-center justify-between p-2.5 rounded-lg bg-background/40 border border-border/60 hover:bg-background/60 transition-colors text-left"
-                    >
+                    <label className="w-full flex items-center justify-between p-2.5 rounded-lg bg-background/40 border border-border/60 hover:bg-background/60 transition-colors cursor-pointer">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                           <Icon icon="solar:global-bold" className="w-3.5 h-3.5 text-primary" />
@@ -1055,18 +1052,11 @@ export default function QCChatListPage() {
                           <p className="text-[10px] text-muted-foreground">Anyone can find &amp; join</p>
                         </div>
                       </div>
-                      <div
-                        className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${
-                          field.state.value ? "bg-primary" : "bg-muted"
-                        }`}
-                      >
-                        <div
-                          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                            field.state.value ? "translate-x-[18px]" : "translate-x-0.5"
-                          }`}
-                        />
-                      </div>
-                    </button>
+                      <Switch
+                        checked={field.state.value}
+                        onCheckedChange={(v) => field.handleChange(v)}
+                      />
+                    </label>
                   )}
                 </groupForm.Field>
 
