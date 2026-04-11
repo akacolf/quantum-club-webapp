@@ -331,16 +331,11 @@ function QcAiChatListItem({
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-sm font-semibold text-foreground truncate">
-              Quantum Club AI
-            </span>
-            <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
-          </div>
-          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md shrink-0">
-            AI
-          </Badge>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-sm font-semibold text-foreground truncate">
+            Quantum Club AI
+          </span>
+          <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
         </div>
         <p className="text-xs text-muted-foreground truncate leading-relaxed mt-0.5">
           {previewText}
