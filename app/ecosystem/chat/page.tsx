@@ -264,6 +264,92 @@ function ChatListItem({
   );
 }
 
+const QC_AI_STORAGE_KEY = "qc_ai_chat_main";
+
+interface StoredAiMessage {
+  role: "user" | "assistant" | "system";
+  parts?: { type: string; text?: string }[];
+}
+
+function readQcAiPreview(): string {
+  if (typeof window === "undefined") return "Ask me anything about Quantum Club";
+  try {
+    const saved = localStorage.getItem(QC_AI_STORAGE_KEY);
+    if (!saved) return "Ask me anything about Quantum Club";
+    const parsed = JSON.parse(saved) as StoredAiMessage[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return "Ask me anything about Quantum Club";
+    }
+    const last = parsed[parsed.length - 1];
+    const text = (last.parts ?? [])
+      .filter((p) => p.type === "text" && typeof p.text === "string")
+      .map((p) => p.text as string)
+      .join("")
+      .trim();
+    if (!text) return "Ask me anything about Quantum Club";
+    const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
+    return last.role === "user" ? `You: ${preview}` : preview;
+  } catch {
+    return "Ask me anything about Quantum Club";
+  }
+}
+
+/**
+ * Pinned Quantum Club AI entry for the chat list.
+ * Shows a live preview from the last message persisted by the /qc-ai route
+ * (localStorage key qc_ai_chat_main). Hidden when a search query excludes it.
+ */
+function QcAiChatListItem({
+  onNavigate,
+  searchQuery,
+}: {
+  onNavigate: () => void;
+  searchQuery: string;
+}) {
+  // Snapshot the preview at mount via a lazy useState initializer — avoids the
+  // set-state-in-effect lint rule and runs only once per component instance.
+  const [previewText] = useState<string>(readQcAiPreview);
+
+  // Hide when search query doesn't match
+  if (searchQuery.trim() && !"quantum club ai".includes(searchQuery.toLowerCase())) {
+    return null;
+  }
+
+  return (
+    <button
+      onClick={onNavigate}
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left"
+    >
+      <div className="relative shrink-0">
+        <Avatar className="h-12 w-12 border border-primary/30">
+          <AvatarFallback className="bg-background">
+            <Image src="/svg/logo-white.svg" alt="QC AI" width={22} height={22} />
+          </AvatarFallback>
+        </Avatar>
+        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary/90 border-2 border-background flex items-center justify-center">
+          <Icon icon="solar:magic-stick-3-bold" className="w-3 h-3 text-primary-foreground" />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-semibold text-foreground truncate">
+              Quantum Club AI
+            </span>
+            <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
+          </div>
+          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md shrink-0">
+            AI
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground truncate leading-relaxed mt-0.5">
+          {previewText}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 type FormMode = "none" | "dm" | "group" | "join";
 
 export default function QCChatListPage() {
@@ -541,6 +627,7 @@ export default function QCChatListPage() {
       router.prefetch(`/ecosystem/chat/${chat.id}`);
     });
     if (globalChat) router.prefetch(`/ecosystem/chat/${GLOBAL_CHAT_ID}`);
+    router.prefetch("/ecosystem/chat/qc-ai");
   }, [filteredConversations, globalChat, router]);
 
   // Show global chat in search results too
@@ -1232,6 +1319,12 @@ export default function QCChatListPage() {
           </div>
         ) : (
           <div>
+            {/* Quantum Club AI — always pinned at very top */}
+            <QcAiChatListItem
+              onNavigate={() => router.push("/ecosystem/chat/qc-ai")}
+              searchQuery={searchQuery}
+            />
+
             {/* Global Chat — always pinned at top */}
             {showGlobalChat && globalChat && (
               <ChatListItem

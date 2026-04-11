@@ -3074,7 +3074,7 @@ export default function ChatConversationClient() {
                         <Icon icon="lucide:timer" className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
                       )}
                       {msg.editedAt && (
-                        <span className="text-[10px] text-muted-foreground/60 italic leading-none">
+                        <span className="text-[10px] text-muted-foreground/60 leading-none">
                           edited
                         </span>
                       )}
