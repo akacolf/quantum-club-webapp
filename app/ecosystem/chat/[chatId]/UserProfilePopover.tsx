@@ -15,10 +15,8 @@ import {
 } from "@/components/ui/drawer";
 import { useUserProfile } from "@/app/(hooks)/queries/use-user-profile";
 import { useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
-import { useWalletAssetsQuery } from "@/app/(hooks)/queries/use-wallet";
-import { useLeaderboardQuery } from "@/app/(hooks)/queries/use-leaderboard";
+import { useUserRank } from "@/app/(hooks)/queries/use-user-rank";
 import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
-import { useWallet } from "@/app/wallet/WalletContext";
 import { isQcTeamMember } from "@/lib/qc-team";
 import { toast } from "sonner";
 
@@ -45,13 +43,6 @@ function getAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-function formatBalance(raw: string, decimals: number, maxFraction = 2): string {
-  const num = parseFloat(raw) / Math.pow(10, decimals);
-  if (!Number.isFinite(num)) return "0";
-  if (num < 0.01 && num > 0) return "<0.01";
-  return num.toLocaleString(undefined, { maximumFractionDigits: maxFraction });
-}
-
 interface UserProfilePopoverProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -63,8 +54,10 @@ interface UserProfilePopoverProps {
 
 /**
  * Tappable user profile popover shown on username/avatar tap in chat.
- * Fetches: profile, wallet address, balance, jetton holdings, leaderboard rank.
- * Shows a "Send TON" action when viewing another user's profile.
+ * Shows identity-only info (name, rank, member since) — NO wallet balance or
+ * portfolio data, since that would be a privacy leak. The wallet address is
+ * shown for convenience (addresses are already public on-chain) and to drive
+ * the Send TON action.
  */
 export default function UserProfilePopover({
   open,
@@ -74,10 +67,10 @@ export default function UserProfilePopover({
   currentUserId,
   onSendTon,
 }: UserProfilePopoverProps) {
-  const { isTestnet } = useWallet();
   const isSelf = !!userId && userId === currentUserId;
 
-  // Profile (display name + join date)
+  // Profile (display name + join date — join date only available for self
+  // because user/{id} is self-read only; hidden when absent)
   const { data: profile, isLoading: profileLoading } = useUserProfile(userId || undefined);
   const profilePhoto = useProfilePhoto(userId);
 
@@ -85,18 +78,8 @@ export default function UserProfilePopover({
   const { data: usernameData, isLoading: usernameLoading } = useQcUsernameQuery(userId);
   const walletAddress = usernameData?.address ?? null;
 
-  // Wallet balance + jettons (only when we have an address and the drawer is open)
-  const { data: walletData, isLoading: walletLoading } = useWalletAssetsQuery(
-    open && walletAddress ? walletAddress : "",
-    isTestnet,
-    false, // no auto-refetch — profile view is ephemeral
-  );
-
-  // Rank from leaderboard (uses first page only — rank is returned on every page)
-  const { data: leaderboardData, isLoading: rankLoading } = useLeaderboardQuery(
-    open ? userId : null,
-  );
-  const rank = leaderboardData?.pages?.[0]?.rank ?? null;
+  // Rank from userRanks/{userId} (per-user document, authed read allowed)
+  const { data: rank, isLoading: rankLoading } = useUserRank(open ? userId : null);
 
   const displayName =
     profile?.displayName ||
@@ -106,12 +89,6 @@ export default function UserProfilePopover({
   const initials = getInitials(displayName);
   const avatarColor = getAvatarColor(displayName);
   const isTeam = isQcTeamMember(displayName);
-
-  // Top 3 jettons by USD value
-  const topJettons = walletData?.jettons
-    ?.slice()
-    .sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0))
-    .slice(0, 3) ?? [];
 
   const handleCopyAddress = () => {
     if (!walletAddress) return;
@@ -172,51 +149,27 @@ export default function UserProfilePopover({
             )}
           </div>
 
-          {/* Stats row: rank + balance */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Leaderboard rank */}
-            <div className="bg-muted/30 border border-border/50 rounded-xl p-3 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Icon icon="solar:cup-star-bold" className="w-4 h-4 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
-                  Rank
-                </p>
-                {rankLoading ? (
-                  <Skeleton className="h-4 w-12 rounded" />
-                ) : rank ? (
-                  <p className="text-sm font-bold text-foreground">#{rank}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">—</p>
-                )}
-              </div>
+          {/* Leaderboard rank */}
+          <div className="bg-muted/30 border border-border/50 rounded-xl p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Icon icon="solar:cup-star-bold" className="w-4 h-4 text-primary" />
             </div>
-
-            {/* TON balance */}
-            <div className="bg-muted/30 border border-border/50 rounded-xl p-3 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Image src="/svg/ton-logo.svg" alt="TON" width={16} height={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
-                  Balance
-                </p>
-                {usernameLoading || walletLoading ? (
-                  <Skeleton className="h-4 w-16 rounded" />
-                ) : walletData ? (
-                  <p className="text-sm font-bold text-foreground truncate">
-                    {walletData.tonBalance} TON
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">—</p>
-                )}
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
+                Leaderboard Rank
+              </p>
+              {rankLoading ? (
+                <Skeleton className="h-4 w-16 rounded mt-0.5" />
+              ) : rank ? (
+                <p className="text-sm font-bold text-foreground">#{rank.toLocaleString()}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Unranked</p>
+              )}
             </div>
           </div>
 
-          {/* Wallet address */}
-          {walletAddress && (
+          {/* Wallet address — addresses are public on-chain, safe to show */}
+          {walletAddress ? (
             <button
               onClick={handleCopyAddress}
               className="w-full flex items-center gap-2 bg-muted/30 border border-border/50 rounded-xl p-3 hover:bg-muted/50 transition-colors text-left"
@@ -227,53 +180,9 @@ export default function UserProfilePopover({
               </code>
               <Icon icon="solar:copy-linear" className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             </button>
-          )}
-
-          {/* Top holdings */}
-          {topJettons.length > 0 && (
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5 px-1">
-                Top Holdings
-              </p>
-              <div className="space-y-1.5">
-                {topJettons.map((jetton) => (
-                  <div
-                    key={jetton.jettonAddress || jetton.symbol}
-                    className="flex items-center gap-2 bg-muted/30 border border-border/50 rounded-xl p-2.5"
-                  >
-                    {jetton.image ? (
-                      <Image
-                        src={jetton.image}
-                        alt={jetton.symbol}
-                        width={24}
-                        height={24}
-                        className="rounded-full shrink-0"
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0">
-                        <span className="text-[9px] font-bold text-muted-foreground">
-                          {jetton.symbol.slice(0, 2)}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-foreground truncate">
-                        {jetton.symbol}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {formatBalance(jetton.balance, jetton.decimals)} {jetton.symbol}
-                      </p>
-                    </div>
-                    {jetton.usdValue !== undefined && jetton.usdValue > 0 && (
-                      <span className="text-[11px] font-medium text-muted-foreground shrink-0">
-                        ${jetton.usdValue.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          ) : usernameLoading ? (
+            <Skeleton className="h-11 w-full rounded-xl" />
+          ) : null}
 
           {/* Send TON action */}
           {!isSelf && walletAddress && (

@@ -14,6 +14,7 @@ import { doc, onSnapshot, updateDoc, Timestamp } from "firebase/firestore";
 import Image from "next/image";
 import Loader from "@/app/(components)/Loader";
 import { isQcTeamMember } from "@/lib/qc-team";
+import UserProfilePopover from "../UserProfilePopover";
 
 interface ChatMeta {
   participants: string[];
@@ -58,6 +59,9 @@ export default function GroupInfoPage() {
 
   const [chatMeta, setChatMeta] = useState<ChatMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  // Profile popover state — opened on tapping a member
+  const [popoverUserId, setPopoverUserId] = useState<string | null>(null);
+  const [popoverName, setPopoverName] = useState<string | null>(null);
 
   // Telegram back button → go back to the chat
   useEffect(() => {
@@ -118,16 +122,6 @@ export default function GroupInfoPage() {
     }
     updateDoc(chatRef, firestoreUpdates).catch(() => {});
   }, [batchData, chatId]);
-
-  // Prefetch user profile routes
-  useEffect(() => {
-    if (!chatMeta) return;
-    for (const uid of chatMeta.participants) {
-      if (uid !== telegramId) {
-        router.prefetch(`/user/${uid}`);
-      }
-    }
-  }, [chatMeta, telegramId, router]);
 
   // Redirect DMs back to the chat — this page is only for groups/global chats
   useEffect(() => {
@@ -258,7 +252,10 @@ export default function GroupInfoPage() {
                   key={uid}
                   className={`bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]${!isSelf ? " cursor-pointer" : ""}`}
                   onClick={() => {
-                    if (!isSelf) router.push(`/user/${uid}?name=${encodeURIComponent(name)}`);
+                    if (!isSelf) {
+                      setPopoverName(name);
+                      setPopoverUserId(uid);
+                    }
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -294,6 +291,25 @@ export default function GroupInfoPage() {
           </div>
         </motion.div>
       </div>
+
+      <UserProfilePopover
+        open={!!popoverUserId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPopoverUserId(null);
+            setPopoverName(null);
+          }
+        }}
+        userId={popoverUserId}
+        fallbackName={popoverName ?? undefined}
+        currentUserId={telegramId}
+        onSendTon={() => {
+          // Group info page has no TransferDrawer context — deep-link to the
+          // chat so the user can hit Send TON from there. This is rare enough
+          // to not warrant duplicating the drawer here.
+          router.push(`/ecosystem/chat/${chatId}`);
+        }}
+      />
     </div>
   );
 }

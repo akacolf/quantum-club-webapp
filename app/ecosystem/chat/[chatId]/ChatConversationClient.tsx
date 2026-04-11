@@ -461,8 +461,7 @@ export default function ChatConversationClient() {
   // Prefetch navigation targets for clickable header names
   useEffect(() => {
     if (chatId) router.prefetch(`/ecosystem/chat/${chatId}/info`);
-    if (otherParticipantId) router.prefetch(`/user/${otherParticipantId}`);
-  }, [router, chatId, otherParticipantId]);
+  }, [router, chatId]);
 
   // Load chat theme from localStorage
   useEffect(() => {
@@ -2556,6 +2555,10 @@ export default function ChatConversationClient() {
           chatMeta={chatMeta}
           currentUserId={telegramId}
           onAction={handleAdminAction}
+          onTapUser={(uid, name) => {
+            setShowMembersPanel(false);
+            openProfilePopover(uid, name);
+          }}
         />
       )}
 
