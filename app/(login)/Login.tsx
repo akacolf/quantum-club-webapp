@@ -170,10 +170,13 @@ export default function Login() {
     rootError,
   ]);
 
-  // Show loader while auth is resolving OR while a Telegram login is in
-  // flight. The error state below only renders if both are false AND
-  // there's no cached user — i.e., auto-login was skipped or failed.
-  const showLoader = authContext?.authLoading || isLoading;
+  // Show loader while auth is resolving, during Telegram login, or when
+  // auto-login is about to fire (prevents a single-frame flash of the
+  // error screen between authLoading→false and the effect setting
+  // isLoading→true).
+  const willAutoLogin = !authContext?.currentUser && !rootError &&
+    typeof window !== "undefined" && !!window.Telegram?.WebApp?.initData;
+  const showLoader = authContext?.authLoading || isLoading || willAutoLogin;
 
   useEffect(() => {
     // Prefetch destinations for faster post-login navigation
