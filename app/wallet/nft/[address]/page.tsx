@@ -28,7 +28,7 @@ import { nftCreateListing, nftConfirmListing } from "../actions";
 import { useQueryClient } from "@tanstack/react-query";
 import ChatPickerModal from "@/app/(components)/ChatPickerModal";
 import { dbfs } from "@/app/(firebase)/client";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, getDoc, increment, serverTimestamp } from "firebase/firestore";
 
 export default function NftDetailPage() {
     const params = useParams();
@@ -261,6 +261,25 @@ export default function NftDetailPage() {
                     collectionName: nft.collectionName || null,
                 },
             });
+
+            // Update chat metadata so this chat bubbles to the top of the list
+            const chatRef = doc(dbfs, "qc-chats", chatId);
+            const chatSnap = await getDoc(chatRef);
+            const participants: string[] = chatSnap.data()?.participants ?? [];
+            const updates: Record<string, unknown> = {
+                lastMessage: `Shared NFT: ${nft.name}`,
+                lastMessageBy: telegramId,
+                lastMessageAt: serverTimestamp(),
+                [`readPositions.${telegramId}`]: serverTimestamp(),
+                [`unreadCounts.${telegramId}`]: 0,
+            };
+            for (const pid of participants) {
+                if (pid !== telegramId) {
+                    updates[`unreadCounts.${pid}`] = increment(1);
+                }
+            }
+            updateDoc(chatRef, updates).catch(() => {});
+
             setShowShareModal(false);
             toast.success(`Shared to ${chatName}`);
         } catch (error) {
