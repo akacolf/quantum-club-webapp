@@ -246,7 +246,7 @@ export default function NftDetailPage() {
     const handleShareToChat = async (chatId: string, chatName: string) => {
         if (!nft || !telegramId) return;
         try {
-            const messagesRef = collection(dbfs, `chats/${chatId}/messages`);
+            const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
             await addDoc(messagesRef, {
                 senderId: telegramId,
                 senderName: qcUsername || "Unknown",
