@@ -34,7 +34,7 @@ export default function NftDetailPage() {
     const params = useParams();
     const router = useRouter();
     const { isTestnet, walletAddress } = useWallet();
-    const { telegramId } = useUserContext();
+    const { telegramId, qcUsername } = useUserContext();
     const nftAddress = decodeURIComponent(params.address as string);
 
     const { sendTransaction } = useWallet();
@@ -249,7 +249,7 @@ export default function NftDetailPage() {
             const messagesRef = collection(dbfs, `chats/${chatId}/messages`);
             await addDoc(messagesRef, {
                 senderId: telegramId,
-                senderName: "You",
+                senderName: qcUsername || "Unknown",
                 text: `Shared NFT: ${nft.name}`,
                 createdAt: serverTimestamp(),
                 type: "nft_share",

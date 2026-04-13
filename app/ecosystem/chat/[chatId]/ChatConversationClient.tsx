@@ -3244,7 +3244,7 @@ export default function ChatConversationClient() {
                 className="w-9 h-9 rounded-full shrink-0"
                 onClick={() => setShowTransferDrawer(true)}
               >
-                <Image src="/svg/ton-logo.svg" alt="TON" width={20} height={20} className="opacity-60" />
+                <Icon icon="solar:wallet-money-bold-duotone" className="w-5 h-5 text-muted-foreground" />
               </Button>
             )}
             <input

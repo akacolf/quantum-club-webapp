@@ -69,13 +69,19 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                 </div>
               )}
               {conversations.map((chat) => {
+                const isSelfChat = chat.participants.length === 1 && chat.participants[0] === telegramId;
                 const names = telegramId
                   ? Object.entries(chat.participantNames)
                       .filter(([uid]) => uid !== telegramId)
                       .map(([, name]) => name)
                       .join(", ")
                   : "";
-                const chatName = chat.groupName || names || "Chat";
+                const chatName = chat.groupName || (isSelfChat
+                  ? (() => {
+                      const selfName = telegramId ? chat.participantNames[telegramId]?.replace(/^@+/, "").trim() : "";
+                      return selfName ? `${selfName} (You)` : "You";
+                    })()
+                  : names || "Chat");
                 return (
                   <button
                     key={chat.id}

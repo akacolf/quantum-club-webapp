@@ -75,9 +75,13 @@ export default function TransferDrawer({
   const [isSending, setIsSending] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset>({ type: "ton" });
 
+  /** Convert a jetton's raw base-unit balance to a human-readable number. */
+  const humanBalance = (j: JettonBalance) =>
+    parseFloat(j.balance) / Math.pow(10, j.decimals);
+
   // Only show jettons the user actually holds and hasn't hidden
   const visibleJettons = useMemo(
-    () => jettons.filter((j) => !j.isHidden && parseFloat(j.balance) > 0 && j.jettonAddress),
+    () => jettons.filter((j) => !j.isHidden && humanBalance(j) > 0 && j.jettonAddress),
     [jettons],
   );
 
@@ -104,7 +108,7 @@ export default function TransferDrawer({
   const assetSymbol = isJetton ? selectedAsset.data.symbol : "TON";
   const assetImage = isJetton ? selectedAsset.data.image : "/svg/ton-logo.svg";
   const assetBalance = isJetton
-    ? parseFloat(selectedAsset.data.balance) || 0
+    ? humanBalance(selectedAsset.data)
     : parseFloat(tonBalance) || 0;
   const FEE_RESERVE = isJetton ? 0 : 0.05;
   const maxSendable = Math.max(0, assetBalance - FEE_RESERVE);
@@ -299,7 +303,7 @@ export default function TransferDrawer({
                   renderAssetChip(
                     j.jettonAddress || j.symbol,
                     j.symbol,
-                    Number(j.balance).toLocaleString("en-US", { maximumFractionDigits: 2 }),
+                    humanBalance(j).toLocaleString("en-US", { maximumFractionDigits: 2 }),
                     j.image,
                     isJetton && selectedAsset.data.jettonAddress === j.jettonAddress,
                     () => handleSelectAsset({ type: "jetton", data: j }),
