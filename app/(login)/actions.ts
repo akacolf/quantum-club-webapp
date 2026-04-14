@@ -136,7 +136,7 @@ export const processReferral = authWithQcIdClient
       // 10% reward for referrer
       const referredAmount = referrerValuesSnap.data()?.QuantAmount;
       if (referredAmount != null) {
-        const referredTenAmount = ((quantValue + 122) * 10) / 100;
+        const referredTenAmount = quantValue * 0.10;
         const referredUpdatedAmount = Number(referredAmount) + referredTenAmount;
         tx.update(referrerValuesRef, { QuantAmount: referredUpdatedAmount });
       }
@@ -154,7 +154,7 @@ export const processReferral = authWithQcIdClient
         if (grandReferrerID && grandReferrerID !== newUserQcId && grandReferrerID !== referrerId) {
           const grandReferrerSnap = await firestore.doc(`user/${grandReferrerID}/miningData/values`).get();
           if (grandReferrerSnap.exists) {
-            const secondTierReward = ((quantValue + 122) * 2) / 100;
+            const secondTierReward = quantValue * 0.02;
             await firestore.doc(`user/${grandReferrerID}/secondTierReferrals/${newUserQcId}`).set({
               telegramId: newUserQcId,
               referredBy: referrerId,
