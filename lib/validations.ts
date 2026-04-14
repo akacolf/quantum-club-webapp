@@ -8,23 +8,6 @@ export const emailSchema = z
 
 // ---- Form schemas ----
 
-export const createGroupSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Please enter a group name")
-    .max(30, "Group name must be 30 characters or less"),
-  description: z
-    .string()
-    .max(100, "Description must be 100 characters or less"),
-  nftGated: z.boolean(),
-  nftCollection: z.string(),
-  nftCollectionName: z.string(),
-}).refine(
-  (data) => !data.nftGated || (data.nftCollection && data.nftCollection.length > 0),
-  { message: "Please select a collection for NFT gating", path: ["nftCollection"] },
-);
-export type CreateGroupFormData = z.infer<typeof createGroupSchema>;
-
 export const pollSchema = z.object({
   question: z.string().min(1, "Question is required").max(200),
   options: z
@@ -205,14 +188,6 @@ export const analyzeTokenSchema = z.object({
   }).optional(),
 });
 
-export const explainTransactionSchema = z.object({
-  hash: z.string().min(1, "Transaction hash is required"),
-  type: z.string().optional().default(""),
-  amount: z.string().optional().default(""),
-  from: z.string().optional().default(""),
-  to: z.string().optional().default(""),
-});
-
 export const portfolioHealthSchema = z.object({
   assets: z.array(z.object({
     symbol: z.string(),
@@ -302,9 +277,25 @@ export const chatDmSchema = z.object({
   username: z.string().min(1, "Enter a QC username"),
 });
 
+/** Categories used to classify discoverable public groups */
+export const GROUP_CATEGORIES = [
+  "General",
+  "Trading",
+  "NFTs",
+  "DeFi",
+  "Gaming",
+  "Memes",
+  "News",
+  "Tech",
+] as const;
+export type GroupCategory = (typeof GROUP_CATEGORIES)[number];
+
 /** Chat group creation validation */
 export const chatGroupSchema = z.object({
   name: z.string().min(1, "Group name required").max(50, "Group name must be 50 characters or less"),
+  isPublic: z.boolean(),
+  category: z.enum(GROUP_CATEGORIES),
+  description: z.string().max(200, "Description must be 200 characters or less"),
 });
 
 /** Chat join group validation */

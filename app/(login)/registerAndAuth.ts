@@ -248,20 +248,17 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
         userData.status = "completed";
         return userData;
       } else {
-        const userRef = doc(dbfs, "user", telegramIdEncrypted);
-        const userSnapshot = await getDoc(userRef);
-        if (userSnapshot.exists()) {
-          const userData2 = userSnapshot.data();
-          const dataUsername = userData2?.username;
-          if (username !== dataUsername) {
-            await updateDoc(userRef, { username });
+        // userDataSnapshot was already fetched above — reuse it instead of
+        // a second getDoc on the same document.
+        if (userDataSnapshot.exists()) {
+          const existingData = userDataSnapshot.data();
+          if (username !== existingData?.username) {
+            await updateDoc(userReference, { username });
           }
           // Load qcUsername from Firestore for existing users
-          if (userData2?.qcUsername) {
-            userData.qcUsername = userData2.qcUsername;
-            if (typeof window !== "undefined") {
-              localStorage.setItem(`qcUsername_${telegramIdEncrypted}`, userData2.qcUsername);
-            }
+          if (existingData?.qcUsername) {
+            userData.qcUsername = existingData.qcUsername;
+            localStorage.setItem(`qcUsername_${telegramIdEncrypted}`, existingData.qcUsername);
           }
         }
 

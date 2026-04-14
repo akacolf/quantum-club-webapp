@@ -232,6 +232,7 @@ export const resolveQcUsername = authActionClient
           resolved: false,
           address: null,
           owner: null,
+          profilePhotoUrl: null,
         };
       }
 
@@ -242,6 +243,7 @@ export const resolveQcUsername = authActionClient
         resolved: true,
         address: data.address || null,
         owner: data.qcId,
+        profilePhotoUrl: data.profilePhotoUrl || null,
       };
     }
 
@@ -253,13 +255,14 @@ export const resolveQcUsername = authActionClient
         .get();
 
       if (snapshot.empty) {
-        return { username: null, address: null };
+        return { username: null, address: null, profilePhotoUrl: null };
       }
 
       const doc = snapshot.docs[0];
       return {
         username: doc.data().displayUsername || doc.id,
         address: doc.data().address || null,
+        profilePhotoUrl: doc.data().profilePhotoUrl || null,
       };
     }
 
@@ -271,17 +274,55 @@ export const resolveQcUsername = authActionClient
         .get();
 
       if (snapshot.empty) {
-        return { username: null, address: null };
+        return { username: null, address: null, profilePhotoUrl: null };
       }
 
       const doc = snapshot.docs[0];
       return {
         username: doc.data().displayUsername || doc.id,
         address: doc.data().address,
+        profilePhotoUrl: doc.data().profilePhotoUrl || null,
       };
     }
 
     throw new Error("Provide username, qcId, or address parameter");
+  });
+
+// ---------------------------------------------------------------------------
+// updateProfilePhotoUrl — persist a new profile photo URL on the user's
+// qcUsername doc. The upload itself happens client-side directly to Firebase
+// Storage (see storage.rules: profile-photos/{userId}); this action only
+// writes the resulting download URL into the public qcUsernames collection
+// which is write-gated to the Admin SDK.
+// ---------------------------------------------------------------------------
+
+const updateProfilePhotoSchema = z.object({
+  url: z
+    .string()
+    .url("Invalid photo URL")
+    .max(2048, "URL too long"),
+});
+
+export const updateProfilePhotoUrl = authWithQcIdClient
+  .schema(updateProfilePhotoSchema)
+  .action(async ({ parsedInput: { url }, ctx: { qcId } }) => {
+    const snapshot = await firestore
+      .collection(USERNAMES_COLLECTION)
+      .where("qcId", "==", qcId)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      throw new Error("Claim a QC username before uploading a photo");
+    }
+
+    const usernameDocId = snapshot.docs[0].id;
+    await firestore
+      .collection(USERNAMES_COLLECTION)
+      .doc(usernameDocId)
+      .update({ profilePhotoUrl: url });
+
+    return { success: true, url };
   });
 
 // ---------------------------------------------------------------------------

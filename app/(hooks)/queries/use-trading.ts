@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dbfs } from "@/app/(firebase)/client";
 import {
     collection,
@@ -198,4 +198,31 @@ export function useMyTokens(telegramId: string | null, walletAddress: string) {
 export function useInvalidateTokenQueries() {
     const queryClient = useQueryClient();
     return () => queryClient.invalidateQueries({ queryKey: ["tokens"] });
+}
+
+/**
+ * Look up a single token by symbol from the `tokens` Firestore collection.
+ * Used by chat $SYMBOL mentions to render rich previews inline with messages.
+ * Returns null if no matching on-chain token exists on the current network.
+ */
+export function useTokenBySymbol(symbol: string) {
+    const normalized = symbol.toLowerCase();
+    return useQuery({
+        queryKey: ["tokens", "bySymbol", NETWORK_FILTER, normalized],
+        queryFn: async (): Promise<Token | null> => {
+            const q = query(
+                collection(dbfs, "tokens"),
+                where("network", "==", NETWORK_FILTER),
+                where("isOnChain", "==", true),
+                where("symbolLower", "==", normalized),
+                limit(1),
+            );
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) return null;
+            return docToToken(snapshot.docs[0]);
+        },
+        enabled: !!symbol,
+        staleTime: 60_000,
+        gcTime: 5 * 60_000,
+    });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { parseAsString, useQueryState } from "nuqs";
+import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -14,12 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { FieldError } from "@/components/ui/field";
-import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema } from "@/lib/validations";
+import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema, GROUP_CATEGORIES, type GroupCategory } from "@/lib/validations";
+import GroupDirectory from "./GroupDirectory";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { useUserPresence } from "@/app/(hooks)/usePresence";
 import { useGlobalChat, useChatConversations, type ChatConversation } from "@/app/(hooks)/queries/use-chat-list";
 import { dbfs } from "@/app/(firebase)/client";
@@ -36,6 +38,7 @@ import {
   updateDoc,
   arrayUnion,
   serverTimestamp,
+  increment,
   where,
   type Timestamp,
 } from "firebase/firestore";
@@ -98,7 +101,7 @@ function ChatListItem({
   const isSelfChat = !chat.isGroup && !chat.isGlobal &&
     chat.participants.length === 1 && chat.participants[0] === telegramId;
   const otherParticipantId = chat.participants.find((p) => p !== telegramId) ?? null;
-  const photoUrl = useProfilePhoto(
+  const photoUrl = useQcProfilePhoto(
     chat.isGroup || chat.isGlobal ? null : isSelfChat ? telegramId : otherParticipantId
   );
   const otherPresence = useUserPresence(
@@ -108,7 +111,10 @@ function ChatListItem({
   const displayName = (() => {
     if (chat.isGlobal) return "QC Global";
     if (chat.isGroup && chat.groupName) return chat.groupName;
-    if (isSelfChat) return "Saved Messages (You)";
+    if (isSelfChat) {
+      const selfName = chat.participantNames[telegramId]?.replace(/^@+/, "").trim();
+      return selfName ? `${selfName} (You)` : "You";
+    }
     if (otherParticipantId && chat.participantNames[otherParticipantId]) {
       return chat.participantNames[otherParticipantId];
     }
@@ -261,6 +267,87 @@ function ChatListItem({
   );
 }
 
+const QC_AI_STORAGE_KEY = "qc_ai_chat_main";
+
+interface StoredAiMessage {
+  role: "user" | "assistant" | "system";
+  parts?: { type: string; text?: string }[];
+}
+
+function readQcAiPreview(): string {
+  if (typeof window === "undefined") return "Ask me anything about Quantum Club";
+  try {
+    const saved = localStorage.getItem(QC_AI_STORAGE_KEY);
+    if (!saved) return "Ask me anything about Quantum Club";
+    const parsed = JSON.parse(saved) as StoredAiMessage[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return "Ask me anything about Quantum Club";
+    }
+    const last = parsed[parsed.length - 1];
+    const text = (last.parts ?? [])
+      .filter((p) => p.type === "text" && typeof p.text === "string")
+      .map((p) => p.text as string)
+      .join("")
+      .trim();
+    if (!text) return "Ask me anything about Quantum Club";
+    const preview = text.length > 50 ? text.slice(0, 50) + "…" : text;
+    return last.role === "user" ? `You: ${preview}` : preview;
+  } catch {
+    return "Ask me anything about Quantum Club";
+  }
+}
+
+/**
+ * Pinned Quantum Club AI entry for the chat list.
+ * Shows a live preview from the last message persisted by the /qc-ai route
+ * (localStorage key qc_ai_chat_main). Hidden when a search query excludes it.
+ */
+function QcAiChatListItem({
+  onNavigate,
+  searchQuery,
+}: {
+  onNavigate: () => void;
+  searchQuery: string;
+}) {
+  // Snapshot the preview at mount via a lazy useState initializer — avoids the
+  // set-state-in-effect lint rule and runs only once per component instance.
+  const [previewText] = useState<string>(readQcAiPreview);
+
+  // Hide when search query doesn't match
+  if (searchQuery.trim() && !"quantum club ai".includes(searchQuery.toLowerCase())) {
+    return null;
+  }
+
+  return (
+    <button
+      onClick={onNavigate}
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left"
+    >
+      <div className="relative shrink-0">
+        <Avatar className="h-12 w-12 border border-primary/30">
+          <AvatarFallback className="bg-white">
+            <Image src="/svg/logo-dark.svg" alt="QC AI" width={22} height={22} />
+          </AvatarFallback>
+        </Avatar>
+        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary/90 border-2 border-background flex items-center justify-center">
+          <Icon icon="solar:magic-stick-3-bold" className="w-3 h-3 text-primary-foreground" />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-sm font-semibold text-foreground truncate">
+            Quantum Club AI
+          </span>
+          <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-primary shrink-0" />
+        </div>
+        <p className="text-xs text-muted-foreground truncate leading-relaxed mt-0.5">
+          {previewText}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 type FormMode = "none" | "dm" | "group" | "join";
 
 export default function QCChatListPage() {
@@ -273,6 +360,10 @@ export default function QCChatListPage() {
   const { data: conversations = [], isLoading: isConversationsLoading } = useChatConversations(telegramId, isAuthenticated);
   const { data: globalChat = null } = useGlobalChat(telegramId, isAuthenticated);
   const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault("").withOptions({ history: "replace" }));
+  const [tab, setTab] = useQueryState<"chats" | "discover">(
+    "tab",
+    parseAsStringEnum<"chats" | "discover">(["chats", "discover"]).withDefault("chats").withOptions({ history: "replace" }),
+  );
   const [formMode, setFormMode] = useState<FormMode>("none");
   const isLoading = isAuthenticated && isConversationsLoading;
 
@@ -284,9 +375,14 @@ export default function QCChatListPage() {
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Group form
+  // Group form — name + optional discoverability settings
   const groupForm = useForm({
-    defaultValues: { name: "" },
+    defaultValues: {
+      name: "",
+      isPublic: false,
+      category: "General" as GroupCategory,
+      description: "",
+    },
     validators: { onSubmit: chatGroupSchema },
   });
 
@@ -411,6 +507,7 @@ export default function QCChatListPage() {
           await updateDoc(doc(dbfs, "qc-chats", groupDoc.id), {
             participants: arrayUnion(telegramId),
             [`participantNames.${telegramId}`]: selfDisplayName,
+            memberCount: increment(1),
             lastMessage: `${selfDisplayName} joined the group`,
             lastMessageBy: "system",
             lastMessageAt: serverTimestamp(),
@@ -497,7 +594,8 @@ export default function QCChatListPage() {
     if (chat.isGlobal) return "QC Global";
     if (chat.isGroup && chat.groupName) return chat.groupName;
     if (chat.participants.length === 1 && chat.participants[0] === telegramId) {
-      return "Saved Messages (You)";
+      const selfName = qcUsername?.replace(/^@+/, "").trim();
+      return selfName ? `${selfName} (You)` : "You";
     }
     const otherParticipant = chat.participants.find((p) => p !== telegramId);
     if (otherParticipant && chat.participantNames[otherParticipant]) {
@@ -528,6 +626,7 @@ export default function QCChatListPage() {
       router.prefetch(`/ecosystem/chat/${chat.id}`);
     });
     if (globalChat) router.prefetch(`/ecosystem/chat/${GLOBAL_CHAT_ID}`);
+    router.prefetch("/ecosystem/chat/qc-ai");
   }, [filteredConversations, globalChat, router]);
 
   // Show global chat in search results too
@@ -648,7 +747,10 @@ export default function QCChatListPage() {
   // Create group
   const handleCreateGroup = async () => {
     const name = groupForm.getFieldValue("name").trim();
-    const parsed = chatGroupSchema.safeParse({ name });
+    const isPublic = groupForm.getFieldValue("isPublic");
+    const category = groupForm.getFieldValue("category");
+    const description = groupForm.getFieldValue("description").trim();
+    const parsed = chatGroupSchema.safeParse({ name, isPublic, category, description });
     if (!parsed.success) {
       setFormError(parsed.error.issues[0].message);
       return;
@@ -667,12 +769,22 @@ export default function QCChatListPage() {
       const chatId = `group_${telegramId}_${Date.now()}`;
 
       const epochNonceGroup = generateEpochNonce();
+      // Only persist discovery fields when isPublic is set, so we don't pollute
+      // private group docs with unused fields.
+      const discoveryFields = isPublic
+        ? {
+            isPublic: true,
+            category,
+            description,
+          }
+        : {};
       await setDoc(doc(dbfs, "qc-chats", chatId), {
         isGroup: true,
         isGlobal: false,
         groupName: name,
         participants: [telegramId],
         participantNames: { [telegramId]: selfDisplayName },
+        memberCount: 1,
         createdBy: telegramId,
         joinCode: code,
         lastMessage: `${selfDisplayName} created the group`,
@@ -682,6 +794,7 @@ export default function QCChatListPage() {
         epochNonce: epochNonceGroup,
         epochCounter: 0,
         epochNonces: { 0: epochNonceGroup },
+        ...discoveryFields,
       });
 
       setFormMode("none");
@@ -755,6 +868,7 @@ export default function QCChatListPage() {
       await updateDoc(doc(dbfs, "qc-chats", groupDoc.id), {
         participants: arrayUnion(telegramId),
         [`participantNames.${telegramId}`]: selfDisplayName,
+        memberCount: increment(1),
         lastMessage: `${selfDisplayName} joined the group`,
         lastMessageBy: "system",
         lastMessageAt: serverTimestamp(),
@@ -992,40 +1106,104 @@ export default function QCChatListPage() {
               <>
                 <groupForm.Field name="name">
                   {(field) => (
-                    <div className="flex gap-2">
-                      <Input
-                        value={field.state.value}
-                        onChange={(e) => {
-                          field.handleChange(e.target.value);
-                          setFormError(null);
-                        }}
-                        onBlur={field.handleBlur}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { e.preventDefault(); handleCreateGroup(); }
-                        }}
-                        placeholder="Group name"
-                        maxLength={50}
-                        className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm"
-                        disabled={isStartingChat}
-                        autoFocus
-                      />
-                      <Button
-                        onClick={handleCreateGroup}
-                        disabled={isStartingChat || !field.state.value.trim()}
-                        size="sm"
-                        className="h-9 px-4 rounded-lg"
-                      >
-                        {isStartingChat ? (
-                          <ButtonLoader size="sm" />
-                        ) : (
-                          "Create"
-                        )}
-                      </Button>
-                    </div>
+                    <Input
+                      value={field.state.value}
+                      onChange={(e) => {
+                        field.handleChange(e.target.value);
+                        setFormError(null);
+                      }}
+                      onBlur={field.handleBlur}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleCreateGroup(); }
+                      }}
+                      placeholder="Group name"
+                      maxLength={50}
+                      className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
+                      disabled={isStartingChat}
+                      autoFocus
+                    />
                   )}
                 </groupForm.Field>
+
+                {/* Make discoverable toggle */}
+                <groupForm.Field name="isPublic">
+                  {(field) => (
+                    <label className="w-full flex items-center justify-between p-2.5 rounded-lg bg-background/40 border border-border/60 hover:bg-background/60 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Icon icon="solar:global-bold" className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-semibold text-foreground">Discoverable</p>
+                          <p className="text-[10px] text-muted-foreground">Anyone can find &amp; join</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={field.state.value}
+                        onCheckedChange={(v) => field.handleChange(v)}
+                      />
+                    </label>
+                  )}
+                </groupForm.Field>
+
+                {/* Discovery-only fields — only shown when toggle is on */}
+                <groupForm.Subscribe selector={(s) => s.values.isPublic}>
+                  {(isPublic) =>
+                    isPublic ? (
+                      <>
+                        {/* Category select */}
+                        <groupForm.Field name="category">
+                          {(field) => (
+                            <div className="flex flex-wrap gap-1">
+                              {GROUP_CATEGORIES.map((cat) => {
+                                const active = field.state.value === cat;
+                                return (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => field.handleChange(cat)}
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
+                                      active
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                                    }`}
+                                  >
+                                    {cat}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </groupForm.Field>
+
+                        {/* Description */}
+                        <groupForm.Field name="description">
+                          {(field) => (
+                            <Input
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              placeholder="Short description (optional)"
+                              maxLength={200}
+                              className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
+                              disabled={isStartingChat}
+                            />
+                          )}
+                        </groupForm.Field>
+                      </>
+                    ) : null
+                  }
+                </groupForm.Subscribe>
+
+                <Button
+                  onClick={handleCreateGroup}
+                  disabled={isStartingChat}
+                  size="sm"
+                  className="h-9 w-full rounded-lg"
+                >
+                  {isStartingChat ? <ButtonLoader size="sm" /> : "Create Group"}
+                </Button>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Create a group and share the join code with others to invite them.
+                  Discoverable groups appear in the Discover tab. Private groups can only be joined with the 6-character code.
                 </p>
               </>
             )}
@@ -1085,9 +1263,45 @@ export default function QCChatListPage() {
 
       <Separator className="opacity-50" />
 
+      {/* Tab switcher */}
+      <div className="px-4 pt-2 pb-1 shrink-0">
+        <div className="flex gap-1 p-0.5 rounded-lg bg-muted/40">
+          {(["chats", "discover"] as const).map((t) => {
+            const active = tab === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon
+                  icon={t === "chats" ? "solar:chat-round-line-bold" : "solar:compass-bold"}
+                  className="w-3.5 h-3.5"
+                />
+                {t === "chats" ? "My Chats" : "Discover"}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Chat list */}
       <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
+        {tab === "discover" ? (
+          telegramId && qcUsername ? (
+            <GroupDirectory telegramId={telegramId} qcUsername={qcUsername} />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
+              <Icon icon="solar:compass-bold" className="w-10 h-10 text-muted-foreground/50" />
+              <p className="text-xs text-muted-foreground">Sign in to discover public groups</p>
+            </div>
+          )
+        ) : isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-primary">
             <ButtonLoader size="lg" />
             <p className="text-xs text-muted-foreground">Loading chats...</p>
@@ -1104,6 +1318,12 @@ export default function QCChatListPage() {
           </div>
         ) : (
           <div>
+            {/* Quantum Club AI — always pinned at very top */}
+            <QcAiChatListItem
+              onNavigate={() => router.push("/ecosystem/chat/qc-ai")}
+              searchQuery={searchQuery}
+            />
+
             {/* Global Chat — always pinned at top */}
             {showGlobalChat && globalChat && (
               <ChatListItem

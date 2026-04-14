@@ -8,7 +8,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useUserStatsQuery } from "@/app/(hooks)/queries/use-user-stats";
 import { useServerAchievementsQuery } from "@/app/(hooks)/queries/use-badges";
-import { useProfilePhotoQuery } from "@/app/(hooks)/queries/use-profile-photo";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import Loader from "@/app/(components)/Loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,8 +36,7 @@ export default function ProfilePage() {
 
     const tgUser = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : undefined;
     const displayName = username || tgUser?.username || tgUser?.first_name || "";
-    const { data: profilePhotoData } = useProfilePhotoQuery(tgUser?.photo_url ? undefined : telegramId);
-    const photoUrl = tgUser?.photo_url || profilePhotoData || null;
+    const photoUrl = useQcProfilePhoto(telegramId);
 
     const { data: stats, isLoading: statsLoading } = useUserStatsQuery(telegramId, daily || 0);
     const { data: serverAchievements, isLoading: serverLoading } = useServerAchievementsQuery(telegramId ?? null);

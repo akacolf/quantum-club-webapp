@@ -177,7 +177,6 @@ export const config = {
     "/leaderboard/:path*",
     "/ecosystem/:path*",
     "/wallet/:path*",
-    "/groups/:path*",
     "/user/:path*",
     "/unsupported-region",
   ],

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -35,6 +34,7 @@ interface GroupMembersPanelProps {
   chatMeta: ChatMeta;
   currentUserId: string;
   onAction: (action: "kick" | "ban" | "unban" | "mute" | "unmute", userId: string) => void;
+  onTapUser: (userId: string, name: string) => void;
 }
 
 function getInitials(name: string): string {
@@ -66,8 +66,8 @@ export default function GroupMembersPanel({
   chatMeta,
   currentUserId,
   onAction,
+  onTapUser,
 }: GroupMembersPanelProps) {
-  const router = useRouter();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAdmin = chatMeta.createdBy === currentUserId;
   const mutedSet = new Set(chatMeta.mutedUsers || []);
@@ -79,16 +79,6 @@ export default function GroupMembersPanel({
     estimateSize: () => 44,
     overscan: 10,
   });
-
-  // Prefetch user profile routes for members
-  useEffect(() => {
-    if (!open) return;
-    for (const userId of chatMeta.participants) {
-      if (userId !== currentUserId) {
-        router.prefetch(`/user/${userId}`);
-      }
-    }
-  }, [open, chatMeta.participants, currentUserId, router]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -137,7 +127,7 @@ export default function GroupMembersPanel({
                           </span>
                         ) : (
                           <button
-                            onClick={() => router.push(`/user/${userId}`)}
+                            onClick={() => onTapUser(userId, name)}
                             className="text-sm font-medium truncate hover:underline text-left"
                           >
                             @{name}

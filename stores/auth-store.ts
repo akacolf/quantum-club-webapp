@@ -1,8 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { auth, dbfs } from "@/app/(firebase)/client";
-import { doc, onSnapshot } from "firebase/firestore";
+import { auth } from "@/app/(firebase)/client";
 import {
   signInWithCustomToken,
   type User,
@@ -33,48 +32,6 @@ export type AuthStore = AuthState & AuthActions;
  * refresh, causing a visible double-loader on /home.
  */
 let isExplicitLogin = false;
-
-// =====================================================
-// Force re-auth listener (real-time via Firestore onSnapshot)
-// =====================================================
-
-let forceAuthUnsubscribe: (() => void) | null = null;
-
-function teardownForceAuthListener() {
-  forceAuthUnsubscribe?.();
-  forceAuthUnsubscribe = null;
-}
-
-function setupForceAuthListener() {
-  teardownForceAuthListener();
-
-  const settingsRef = doc(dbfs, "set", "settings");
-  forceAuthUnsubscribe = onSnapshot(settingsRef, (snap) => {
-    const remoteVersion = snap.data()?.forceAuthVersion;
-    if (!remoteVersion) return;
-
-    const localVersion = localStorage.getItem("forceAuthVersion");
-    if (localVersion === null) {
-      // First time seeing this — store it without forcing logout
-      localStorage.setItem("forceAuthVersion", String(remoteVersion));
-      return;
-    }
-
-    if (String(remoteVersion) !== localVersion) {
-      localStorage.setItem("forceAuthVersion", String(remoteVersion));
-      teardownForceAuthListener();
-      // Clear auth cookies + sign out, then hard redirect.
-      // Don't reset Zustand/localStorage here — it triggers re-renders
-      // that flash zeroed data. The full page reload handles cleanup.
-      Promise.all([
-        auth.signOut(),
-        removeToken().catch(() => {}),
-      ]).finally(() => {
-        window.location.href = "/";
-      });
-    }
-  }, () => {}); // Silently ignore snapshot errors (offline, permissions)
-}
 
 export const useAuthStore = create<AuthStore>()(() => ({
   currentUser: null,
@@ -155,12 +112,6 @@ export function initAuthListener() {
       try { await removeToken(); } catch {}
     }
     useAuthStore.setState({ authLoading: false });
-
-    // Real-time force re-auth listener — logs user out immediately
-    // when forceAuthVersion is bumped in Firestore
-    if (user) {
-      setupForceAuthListener();
-    }
   });
 
   // Safety timeout: if onAuthStateChanged never fires (Firebase broken or

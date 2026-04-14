@@ -159,8 +159,13 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
+        // Allowed mutable keys: reactions (toggle), poll (vote), hiddenBy (delete-for-me),
+        // and the edit triplet (text + encEpoch + editedAt). Edit is only valid on
+        // text messages by the sender; app-level logic enforces the 15-min window
+        // and sender check — rules enforce the key allow-list.
         allow update: if request.auth != null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'poll', 'hiddenBy']);
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['reactions', 'poll', 'hiddenBy', 'text', 'encEpoch', 'editedAt']);
         allow delete: if request.auth != null;
       }
     }

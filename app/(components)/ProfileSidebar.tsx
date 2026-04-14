@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/app/(firebase)/client";
 import { usernameSchema, linkEmailSchema, USERNAME_MAX_LENGTH } from "@/lib/validations";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
 import { Icon } from "@iconify/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ import {
 import { useAuth } from "@/app/(contexts)/auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { linkEmail } from "@/app/(login)/actions";
+import { updateProfilePhotoUrl } from "@/app/ecosystem/chat/actions";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
@@ -39,16 +42,20 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const authContext = useAuth();
   const { telegramId, username, MainQuantAmount, daily, qcUsername, setQcUsername, walletAddress } = useUserContext();
 
-  // Profile photo: prefer Telegram SDK photo_url, fall back to API fetch
-  // Deferred to state to avoid hydration mismatch (window.Telegram is client-only)
-  const [tgUser, setTgUser] = useState<{ photo_url?: string; username?: string; first_name?: string } | null>(null);
+  // Keep tgUser around only for name resolution (display name when no QC
+  // username is claimed yet). Profile photos come from the QC pp uploaded
+  // to qcUsernames — no Telegram photo fallback.
+  const [tgUser, setTgUser] = useState<{ username?: string; first_name?: string } | null>(null);
   useEffect(() => {
     const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (u) setTgUser({ photo_url: u.photo_url, username: u.username ?? undefined, first_name: u.first_name });
+    if (u) setTgUser({ username: u.username ?? undefined, first_name: u.first_name });
   }, []);
-  const tgPhotoUrl = tgUser?.photo_url ?? null;
-  const apiPhotoUrl = useProfilePhoto(!tgPhotoUrl ? telegramId : null);
-  const photoUrl = tgPhotoUrl || apiPhotoUrl;
+
+  // Always-on photo query (separate from the username-resolution query below,
+  // which is conditional on !qcUsername). TanStack Query dedupes under the
+  // same cache key so this doesn't cause duplicate network calls.
+  const photoQuery = useQcUsernameQuery(telegramId);
+  const photoUrl = photoQuery.data?.profilePhotoUrl ?? null;
 
   const displayName = (() => {
     if (username) return username;
@@ -189,6 +196,84 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
   const hasEmail = !!currentUser?.email;
   const isEmailVerified = currentUser?.emailVerified ?? false;
 
+  // Profile photo upload state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const queryClient = useQueryClient();
+
+  /**
+   * Resize an image File to a square JPEG via canvas (no external deps).
+   * Keeps the photo well under the 2MB storage rule cap and normalizes
+   * all uploaded avatars to 512x512 center-cropped.
+   */
+  async function resizeToSquareJpeg(file: File, size = 512, quality = 0.85): Promise<Blob> {
+    const bitmap = await createImageBitmap(file);
+    const min = Math.min(bitmap.width, bitmap.height);
+    const sx = (bitmap.width - min) / 2;
+    const sy = (bitmap.height - min) / 2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not supported");
+    ctx.drawImage(bitmap, sx, sy, min, min, 0, 0, size, size);
+    bitmap.close();
+
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode image"))),
+        "image/jpeg",
+        quality,
+      );
+    });
+  }
+
+  async function handleProfilePhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset so selecting the same file twice still fires onChange
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+
+    if (!qcUsername) {
+      toast.error("Claim a QC username first");
+      return;
+    }
+    if (!telegramId) {
+      toast.error("Not signed in");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const resized = await resizeToSquareJpeg(file);
+      const path = `profile-photos/${telegramId}/${Date.now()}.jpg`;
+      const ref = storageRef(storage, path);
+      await uploadBytes(ref, resized, { contentType: "image/jpeg" });
+      const url = await getDownloadURL(ref);
+
+      const result = await updateProfilePhotoUrl({ url });
+      if (result?.serverError || !result?.data?.success) {
+        throw new Error(result?.serverError || "Failed to save photo");
+      }
+
+      // Invalidate all qcUsername-by-id caches so every avatar that reads
+      // from useQcProfilePhoto refreshes to the new URL.
+      queryClient.invalidateQueries({ queryKey: ["qc-username", "by-id"] });
+      haptics.success();
+      toast.success("Profile photo updated");
+    } catch (err) {
+      console.error("Profile photo upload failed:", err);
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -200,12 +285,34 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
       >
         <SheetHeader className="px-6 pt-4 pb-3">
           <div className="flex flex-col items-center gap-3">
-            <Avatar className="h-20 w-20 border-2 border-border">
-              <AvatarImage src={photoUrl || undefined} alt={displayName} />
-              <AvatarFallback className="bg-card text-muted-foreground">
-                <Icon icon="solar:user-bold" className="w-8 h-8" />
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-20 w-20 border-2 border-border">
+                <AvatarImage src={photoUrl || undefined} alt={displayName} />
+                <AvatarFallback className="bg-card text-muted-foreground">
+                  <Icon icon="solar:user-bold" className="w-8 h-8" />
+                </AvatarFallback>
+              </Avatar>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleProfilePhotoSelected}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto || !qcUsername}
+                aria-label="Change profile photo"
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploadingPhoto ? (
+                  <ButtonLoader size="sm" />
+                ) : (
+                  <Icon icon="solar:camera-bold" className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
             <div className="text-center">
               <SheetTitle className="text-lg">{displayName}</SheetTitle>
               {qcUsername ? (

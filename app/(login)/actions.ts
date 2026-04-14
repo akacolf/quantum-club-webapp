@@ -4,7 +4,7 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { actionClient, authWithQcIdClient } from "@/lib/safe-action";
 import { firestore, auth as firebaseAuth } from "@/app/(firebase)/server";
-import { encrypt, decrypt, SESSION_DURATION } from "@/utils/session";
+import { encrypt, SESSION_DURATION } from "@/utils/session";
 import { validateTelegramWebAppData } from "@/utils/telegramAuth";
 import { encryptTelegramId } from "@/utils/encrypt-telegram-id";
 import { linkEmailSchema } from "@/lib/validations";
@@ -55,49 +55,23 @@ const authenticateTelegramSchema = z.object({
 export const authenticateTelegram = actionClient
   .schema(authenticateTelegramSchema)
   .action(async ({ parsedInput: { initData } }) => {
-    let rawTelegramId: string | null = null;
+    const validationResult = validateTelegramWebAppData(initData);
+    const user = validationResult.user as { id?: string | number };
+    if (!validationResult.validatedData || user?.id == null) {
+      throw new Error(validationResult.message || "Invalid Telegram initData");
+    }
+    const rawTelegramId = String(user.id);
 
+    // Create a fresh session cookie on every explicit login, preventing
+    // stale cookies from causing auth loops after sign-out.
     const cookieStore = await cookies();
-
-    // Always validate initData when provided — ensures a fresh session on
-    // every explicit login, preventing stale session cookies from causing
-    // auth loops after sign-out.
-    if (initData) {
-      const validationResult = validateTelegramWebAppData(initData);
-      const user = validationResult.user as { id?: string | number };
-      if (!validationResult.validatedData || user?.id == null) {
-        throw new Error(validationResult.message || "Invalid Telegram initData");
-      }
-      rawTelegramId = String(user.id);
-
-      // Always create a fresh session cookie
-      const expires = new Date(Date.now() + SESSION_DURATION);
-      const session = await encrypt({ user: { telegramId: rawTelegramId }, expires });
-      cookieStore.set("session", session, {
-        expires,
-        httpOnly: true,
-        path: "/",
-      });
-    }
-
-    // Fallback: try existing session cookie (e.g. rehydration calls without fresh initData)
-    if (!rawTelegramId) {
-      const sessionCookie = cookieStore.get("session")?.value;
-      if (sessionCookie) {
-        try {
-          const sessionData = await decrypt(sessionCookie);
-          rawTelegramId = String(sessionData.user.telegramId);
-        } catch {
-          // Session cookie is invalid/expired — clear it
-          cookieStore.delete("session");
-          rawTelegramId = null;
-        }
-      }
-    }
-
-    if (!rawTelegramId) {
-      throw new Error("Unauthorized");
-    }
+    const expires = new Date(Date.now() + SESSION_DURATION);
+    const session = await encrypt({ user: { telegramId: rawTelegramId }, expires });
+    cookieStore.set("session", session, {
+      expires,
+      httpOnly: true,
+      path: "/",
+    });
 
     // Create Firebase custom token using encrypted QC ID so that
     // request.auth.uid matches Firestore document paths (user/{qcId}/...).
@@ -162,7 +136,7 @@ export const processReferral = authWithQcIdClient
       // 10% reward for referrer
       const referredAmount = referrerValuesSnap.data()?.QuantAmount;
       if (referredAmount != null) {
-        const referredTenAmount = ((quantValue + 122) * 10) / 100;
+        const referredTenAmount = quantValue * 0.10;
         const referredUpdatedAmount = Number(referredAmount) + referredTenAmount;
         tx.update(referrerValuesRef, { QuantAmount: referredUpdatedAmount });
       }
@@ -180,7 +154,7 @@ export const processReferral = authWithQcIdClient
         if (grandReferrerID && grandReferrerID !== newUserQcId && grandReferrerID !== referrerId) {
           const grandReferrerSnap = await firestore.doc(`user/${grandReferrerID}/miningData/values`).get();
           if (grandReferrerSnap.exists) {
-            const secondTierReward = ((quantValue + 122) * 2) / 100;
+            const secondTierReward = quantValue * 0.02;
             await firestore.doc(`user/${grandReferrerID}/secondTierReferrals/${newUserQcId}`).set({
               telegramId: newUserQcId,
               referredBy: referrerId,

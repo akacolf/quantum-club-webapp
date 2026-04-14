@@ -359,7 +359,7 @@ export default function WalletPage() {
 
   // Asset detail modal state
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
-  const [chartPeriod, setChartPeriod] = useQueryState("period", parseAsStringLiteral(['1H', '1D', '1W', '1M', '6M', '1Y'] as const).withDefault('1D').withOptions({ history: "replace" }));
+  const [chartPeriod, setChartPeriod] = useState<'1H' | '1D' | '1W' | '1M' | '6M' | '1Y'>('1D');
   const queryClient = useQueryClient();
 
   // Virtualized jettons list

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallContext } from "@/app/(contexts)/CallContext";
-import { useProfilePhoto } from "@/app/(hooks)/useProfilePhoto";
+import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
@@ -18,7 +18,7 @@ function getInitials(name: string): string {
 
 export default function IncomingCallOverlay() {
   const { callState, callInfo, acceptCall, declineCall } = useCallContext();
-  const photo = useProfilePhoto(callInfo?.remoteUserId ?? null);
+  const photo = useQcProfilePhoto(callInfo?.remoteUserId ?? null);
 
   const visible = callState === "incoming_ringing";
 

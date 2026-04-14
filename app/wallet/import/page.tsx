@@ -191,8 +191,8 @@ export default function ImportWalletPage() {
       }
 
       const address = wallet.address.toString({ bounceable: false, testOnly: isTestnet });
-      localStorage.setItem(`quantum_wallet_address_${telegramId}`, address);
       await setSecureMnemonic(telegramId, cleanedPhrase.join(" "));
+      localStorage.setItem(`quantum_wallet_address_${telegramId}`, address);
       localStorage.setItem(`quantum_wallet_version_${telegramId}`, formWalletVersion);
       setWalletAddress(address);
 

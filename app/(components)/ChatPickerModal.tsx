@@ -57,10 +57,7 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="flex-1 space-y-1.5">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
+                      <Skeleton className="h-4 w-32" />
                     </div>
                   ))}
                 </div>
@@ -72,13 +69,19 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                 </div>
               )}
               {conversations.map((chat) => {
+                const isSelfChat = chat.participants.length === 1 && chat.participants[0] === telegramId;
                 const names = telegramId
                   ? Object.entries(chat.participantNames)
                       .filter(([uid]) => uid !== telegramId)
                       .map(([, name]) => name)
                       .join(", ")
                   : "";
-                const chatName = chat.groupName || names || "Chat";
+                const chatName = chat.groupName || (isSelfChat
+                  ? (() => {
+                      const selfName = telegramId ? chat.participantNames[telegramId]?.replace(/^@+/, "").trim() : "";
+                      return selfName ? `${selfName} (You)` : "You";
+                    })()
+                  : names || "Chat");
                 return (
                   <button
                     key={chat.id}
@@ -90,12 +93,9 @@ export default function ChatPickerModal({ open, onClose, onSelect }: ChatPickerM
                         {chatName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-medium truncate">{chatName}</p>
-                      {chat.lastMessage && (
-                        <p className="text-xs text-muted-foreground truncate">{chat.lastMessage}</p>
-                      )}
-                    </div>
+                    <p className="flex-1 min-w-0 text-left text-sm font-medium truncate">
+                      {chatName}
+                    </p>
                     <Icon icon="solar:arrow-right-linear" className="w-4 h-4 text-muted-foreground shrink-0" />
                   </button>
                 );

@@ -21,10 +21,11 @@ export const authActionClient = createSafeActionClient().use(async ({ next }) =>
     return next({ ctx: { session } });
   }
 
-  // Fallback: Firebase auth cookies (resilience path)
+  // Fallback: Firebase auth ID token cookie (resilience path).
+  // Only accept a non-expired, decodable JWT — a bare refresh token
+  // cookie is not sufficient since its value is never validated here.
   const cookieStore = await cookies();
   const firebaseToken = cookieStore.get("firebaseAuthToken")?.value;
-  const firebaseRefreshToken = cookieStore.get("firebaseAuthRefreshToken")?.value;
 
   if (firebaseToken) {
     try {
@@ -33,13 +34,8 @@ export const authActionClient = createSafeActionClient().use(async ({ next }) =>
         return next({ ctx: { session: null } });
       }
     } catch {
-      // Invalid token — fall through to refresh token check
+      // Invalid/malformed token — reject
     }
-  }
-
-  // Refresh token still valid — client can renew the ID token
-  if (firebaseRefreshToken) {
-    return next({ ctx: { session: null } });
   }
 
   throw new Error("Unauthorized");

@@ -46,8 +46,13 @@ export default function VerifyPhrasePage() {
       }
 
       if (walletAddress && mnemonic.length > 0) {
+        try {
+          await setSecureMnemonic(telegramId, mnemonic.join(" "));
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Unable to save wallet securely. Please try again.");
+          return;
+        }
         localStorage.setItem(`quantum_wallet_address_${telegramId}`, walletAddress);
-        await setSecureMnemonic(telegramId, mnemonic.join(" "));
 
         const walletName = `Wallet ${storedWallets.length + 1}`;
         addWallet(walletAddress, walletName);

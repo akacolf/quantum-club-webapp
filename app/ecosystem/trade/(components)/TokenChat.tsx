@@ -27,7 +27,6 @@ interface TokenChatMessage {
     senderName: string;
     text: string;
     timestamp: Date;
-    isHolder?: boolean;
 }
 
 interface TokenChatProps {
@@ -62,7 +61,6 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
                     timestamp: data.timestamp instanceof Timestamp
                         ? data.timestamp.toDate()
                         : new Date(),
-                    isHolder: data.isHolder,
                 };
             }).reverse(); // Reverse to show oldest first
             setMessages(msgs);
@@ -92,7 +90,6 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
                 senderName: username || "Anon",
                 text: newMessage.trim(),
                 timestamp: serverTimestamp(),
-                isHolder: true, // TODO: Check if user actually holds the token
             });
 
             setNewMessage("");
