@@ -144,10 +144,11 @@ export async function setSecureMnemonic(telegramId: string | null, mnemonic: str
 
         localStorage.setItem(storageKey, ENCRYPTED_PREFIX + btoa(String.fromCharCode(...combined)));
         memoryCache.set(storageKey, mnemonic);
-    } catch {
-        // Fallback: store plaintext if Web Crypto / IndexedDB unavailable
-        localStorage.setItem(storageKey, mnemonic);
-        memoryCache.set(storageKey, mnemonic);
+    } catch (error) {
+        // Never silently downgrade to plaintext — a plaintext seed in localStorage
+        // is worse than a failed save. Surface the failure so the caller can retry.
+        console.error("Secure mnemonic storage failed:", error);
+        throw new Error("Unable to securely store your recovery phrase on this device.");
     }
 }
 
