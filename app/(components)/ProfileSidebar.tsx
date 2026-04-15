@@ -240,7 +240,7 @@ export default function ProfileSidebar({ open, onOpenChange }: ProfileSidebarPro
       return;
     }
     if (!telegramId) {
-      toast.error("Not signed in");
+      toast.error("Still connecting — try again in a moment");
       return;
     }
     if (!file.type.startsWith("image/")) {

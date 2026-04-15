@@ -1334,7 +1334,7 @@ export default function ChatConversationClient() {
     }
 
     if (!currentUser) {
-      toast.error("Not authenticated. Please re-open the app.");
+      toast.error("Connection lost — please re-open the app");
       console.error("Voice send blocked: Firebase Auth currentUser is null");
       return;
     }
@@ -1452,7 +1452,7 @@ export default function ChatConversationClient() {
     }
 
     if (!currentUser) {
-      toast.error("Not authenticated. Please re-open the app.");
+      toast.error("Connection lost — please re-open the app");
       return;
     }
 
