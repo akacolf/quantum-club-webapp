@@ -309,3 +309,56 @@ export const createTokenCommunityChatSchema = z.object({
   tokenSymbol: z.string().min(1, "Token symbol is required"),
   tokenName: z.string().min(1, "Token name is required"),
 });
+
+// ---- QC Broadcasts (Telegram-channel-like) ----
+
+export const BROADCAST_HANDLE_MIN = 3;
+export const BROADCAST_HANDLE_MAX = 24;
+export const BROADCAST_HANDLE_REGEX = /^[a-z0-9][a-z0-9_]*[a-z0-9]$/;
+export const BROADCAST_NAME_MAX = 48;
+export const BROADCAST_BIO_MAX = 240;
+
+export const BROADCAST_REACTIONS = ["🔥", "❤️", "👍", "😂", "😮", "😢"] as const;
+export type BroadcastReaction = (typeof BROADCAST_REACTIONS)[number];
+
+export const broadcastHandleSchema = z
+  .string()
+  .min(BROADCAST_HANDLE_MIN, `Handle must be at least ${BROADCAST_HANDLE_MIN} characters`)
+  .max(BROADCAST_HANDLE_MAX, `Handle must be ${BROADCAST_HANDLE_MAX} characters or less`)
+  .regex(
+    BROADCAST_HANDLE_REGEX,
+    "Lowercase letters, numbers, and underscores only (no leading/trailing underscores)",
+  );
+
+/** Verification request submitted by any authenticated user */
+export const verificationRequestSchema = z.object({
+  proposedHandle: broadcastHandleSchema,
+  proposedName: z
+    .string()
+    .min(1, "Broadcast name is required")
+    .max(BROADCAST_NAME_MAX, `Name must be ${BROADCAST_NAME_MAX} characters or less`),
+  bio: z
+    .string()
+    .max(BROADCAST_BIO_MAX, `Bio must be ${BROADCAST_BIO_MAX} characters or less`),
+  contactTelegram: z.string().max(64, "Telegram handle too long"),
+  socials: z.string().max(500, "Socials must be 500 characters or less"),
+  reason: z
+    .string()
+    .min(1, "Please describe what you will broadcast")
+    .max(500, "Reason must be 500 characters or less"),
+});
+export type VerificationRequestFormData = z.infer<typeof verificationRequestSchema>;
+
+export const broadcastSubscribeSchema = z.object({
+  broadcastId: z.string().min(1),
+});
+
+export const broadcastReactionSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+  emoji: z.enum(BROADCAST_REACTIONS),
+});
+
+/** Broadcast discovery tab (for nuqs) */
+export const BROADCAST_TABS = ["explore", "following"] as const;
+export type BroadcastTab = (typeof BROADCAST_TABS)[number];
