@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { FieldError } from "@/components/ui/field";
 import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema, GROUP_CATEGORIES, type GroupCategory } from "@/lib/validations";
 import GroupDirectory from "./GroupDirectory";
+import BroadcastsDirectory from "./BroadcastsDirectory";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -363,6 +364,10 @@ export default function QCChatListPage() {
   const [tab, setTab] = useQueryState<"chats" | "discover">(
     "tab",
     parseAsStringEnum<"chats" | "discover">(["chats", "discover"]).withDefault("chats").withOptions({ history: "replace" }),
+  );
+  const [discoverTab, setDiscoverTab] = useQueryState<"groups" | "broadcasts">(
+    "discoverTab",
+    parseAsStringEnum<"groups" | "broadcasts">(["groups", "broadcasts"]).withDefault("groups").withOptions({ history: "replace" }),
   );
   const [formMode, setFormMode] = useState<FormMode>("none");
   const isLoading = isAuthenticated && isConversationsLoading;
@@ -1294,11 +1299,47 @@ export default function QCChatListPage() {
       <div className="flex-1 overflow-y-auto">
         {tab === "discover" ? (
           telegramId && qcUsername ? (
-            <GroupDirectory telegramId={telegramId} qcUsername={qcUsername} />
+            <>
+              {/* Discover sub-tabs: Groups | Broadcasts */}
+              <div className="px-4 pt-2 pb-1 shrink-0">
+                <div className="flex gap-1 p-0.5 rounded-lg bg-muted/30">
+                  {(["groups", "broadcasts"] as const).map((t) => {
+                    const active = discoverTab === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setDiscoverTab(t)}
+                        className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                          active
+                            ? "bg-primary/15 text-primary"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Icon
+                          icon={
+                            t === "groups"
+                              ? "solar:users-group-rounded-bold"
+                              : "solar:radio-minimalistic-bold"
+                          }
+                          className="w-3.5 h-3.5"
+                        />
+                        {t === "groups" ? "Groups" : "Broadcasts"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {discoverTab === "groups" ? (
+                <GroupDirectory telegramId={telegramId} qcUsername={qcUsername} />
+              ) : (
+                <BroadcastsDirectory />
+              )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
               <Icon icon="solar:compass-bold" className="w-10 h-10 text-muted-foreground/50" />
-              <p className="text-xs text-muted-foreground">Sign in to discover public groups</p>
+              <p className="text-xs text-muted-foreground">Sign in to discover</p>
             </div>
           )
         ) : isLoading ? (

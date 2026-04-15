@@ -25,12 +25,6 @@ const navTabs = [
     icon: "proicons:chat",
   },
   {
-    id: "broadcasts",
-    href: "/ecosystem/broadcasts" as const,
-    label: "Broadcasts",
-    icon: "solar:radio-minimalistic-bold",
-  },
-  {
     id: "social",
     href: "/ecosystem/social" as const,
     label: "QC Social",
