@@ -7,7 +7,6 @@ import type { Route } from "next";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   ref as storageRef,
   uploadBytes,
@@ -56,7 +55,6 @@ export default function BroadcastManagePage({
 }) {
   const { handle } = use(params);
   const router = useRouter();
-  const queryClient = useQueryClient();
   useTelegramBackButton(`/ecosystem/broadcasts/${handle}` as Route);
 
   const { currentUser } = useAuth();
@@ -73,6 +71,14 @@ export default function BroadcastManagePage({
   const [uploadingCover, setUploadingCover] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  // Once we've seen a valid broadcast, a later transient null means the
+  // cache was briefly cleared (e.g. a listener hiccup) — not a real
+  // "not found". Treat it as loading instead of blanking the page.
+  const hasSeenBroadcast = useRef(false);
+  useEffect(() => {
+    if (broadcast) hasSeenBroadcast.current = true;
+  }, [broadcast]);
 
   const form = useForm({
     defaultValues: { name: "", bio: "" },
@@ -150,9 +156,8 @@ export default function BroadcastManagePage({
         avatar: url,
       });
       if (res?.serverError) throw new Error(res.serverError);
-      queryClient.invalidateQueries({
-        queryKey: ["broadcasts", "byHandle", handle],
-      });
+      // onSnapshot listener in useBroadcastByHandle picks up the new
+      // avatar automatically — no manual invalidation needed.
       haptics.success();
       toast.success("Avatar updated");
     } catch (err) {
@@ -177,9 +182,6 @@ export default function BroadcastManagePage({
         coverImage: url,
       });
       if (res?.serverError) throw new Error(res.serverError);
-      queryClient.invalidateQueries({
-        queryKey: ["broadcasts", "byHandle", handle],
-      });
       haptics.success();
       toast.success("Cover updated");
     } catch (err) {
@@ -191,7 +193,12 @@ export default function BroadcastManagePage({
     }
   };
 
-  if (broadcast === undefined || isAdminLoading) {
+  const stillLoading =
+    broadcast === undefined ||
+    isAdminLoading ||
+    (broadcast === null && hasSeenBroadcast.current);
+
+  if (stillLoading) {
     return (
       <div className="min-h-screen px-4 pt-6 pb-28 max-w-md mx-auto space-y-4">
         <Skeleton className="h-8 w-40" />
