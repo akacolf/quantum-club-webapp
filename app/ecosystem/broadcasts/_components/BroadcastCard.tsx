@@ -1,9 +1,19 @@
 "use client";
 
+import { useCallback, useRef } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+} from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Broadcast } from "@/lib/broadcasts-types";
+import { dbfs } from "@/app/(firebase)/client";
+import type { Broadcast, BroadcastPost } from "@/lib/broadcasts-types";
 
 function formatCount(n: number): string {
   if (n < 1_000) return String(n);
@@ -20,11 +30,66 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+const POSTS_PRELOAD = 25;
+
 export function BroadcastCard({ broadcast }: { broadcast: Broadcast }) {
+  const queryClient = useQueryClient();
+  // Prefetch at most once per card per mount — repeated hovers shouldn't
+  // refetch, the onSnapshot listener on the channel page will keep it fresh.
+  const prefetchedRef = useRef(false);
+
+  const warmChannelCache = useCallback(() => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+
+    // Seed the channel page's broadcast-by-handle cache with the data we
+    // already have in hand — the channel page shows immediately instead of
+    // waiting for the initial handle lookup + broadcast doc read.
+    queryClient.setQueryData<Broadcast>(
+      ["broadcasts", "byHandle", broadcast.handle],
+      broadcast,
+    );
+
+    // Kick off a one-shot posts fetch so the feed renders on arrival. The
+    // channel's live onSnapshot listener will take over from there.
+    const q = query(
+      collection(dbfs, "broadcasts", broadcast.id, "posts"),
+      orderBy("createdAt", "desc"),
+      limit(POSTS_PRELOAD),
+    );
+    getDocs(q)
+      .then((snap) => {
+        const posts: BroadcastPost[] = snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            broadcastId: broadcast.id,
+            content: (data.content as string) ?? "",
+            media: (data.media as string[]) ?? [],
+            createdAt: data.createdAt ?? null,
+            editedAt: data.editedAt ?? null,
+            parentPostId: (data.parentPostId as string | null) ?? null,
+            reactions: (data.reactions as BroadcastPost["reactions"]) ?? {},
+            viewCount: (data.viewCount as number) ?? 0,
+          };
+        });
+        queryClient.setQueryData(
+          ["broadcasts", "posts", broadcast.id],
+          posts,
+        );
+      })
+      .catch(() => {
+        /* best-effort prefetch — ignore errors */
+      });
+  }, [broadcast, queryClient]);
+
   return (
     <Link
       href={`/ecosystem/broadcasts/${broadcast.handle}` as const}
       prefetch
+      onMouseEnter={warmChannelCache}
+      onFocus={warmChannelCache}
+      onTouchStart={warmChannelCache}
       className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#111] border border-[#222] hover:border-[#333] transition-colors"
     >
       <Avatar className="w-12 h-12 shrink-0">

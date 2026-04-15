@@ -280,6 +280,9 @@ export default function BroadcastManagePage({
               Unsaved
             </Badge>
           )}
+          <span className="ml-auto text-[10px] text-muted-foreground/70 tabular-nums">
+            1200 × 450
+          </span>
         </div>
         <button
           type="button"
@@ -324,6 +327,9 @@ export default function BroadcastManagePage({
               Unsaved
             </Badge>
           )}
+          <span className="ml-auto text-[10px] text-muted-foreground/70 tabular-nums">
+            512 × 512
+          </span>
         </div>
         <button
           type="button"
