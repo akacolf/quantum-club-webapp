@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { Route } from "next";
@@ -270,6 +271,27 @@ export default function BroadcastManagePage({
           Handle can&apos;t be changed
         </p>
       </header>
+
+      {/* Subscribers shortcut */}
+      <Link
+        href={`/ecosystem/broadcasts/${broadcast.handle}/manage/subscribers` as Route}
+        prefetch
+        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#111] border border-[#222] hover:border-[#333] transition-colors mb-5"
+      >
+        <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+          <Icon icon="lucide:users" className="w-4 h-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white">Subscribers</p>
+          <p className="text-[11px] text-muted-foreground">
+            {broadcast.subscriberCount.toLocaleString()} total
+          </p>
+        </div>
+        <Icon
+          icon="lucide:chevron-right"
+          className="w-4 h-4 text-muted-foreground shrink-0"
+        />
+      </Link>
 
       {/* Cover with upload overlay */}
       <section className="mb-5">

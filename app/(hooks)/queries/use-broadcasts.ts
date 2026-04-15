@@ -452,6 +452,108 @@ export function useUserReaction(
 }
 
 // ---------------------------------------------------------------------------
+// Subscribers list (admin-only view). Returns the most recent 100
+// subscribers with their resolved QC username + profile photo when available.
+// Rules already gate the subcollection to the subscriber or admins of the
+// broadcast, so a non-admin call will return an empty list.
+// ---------------------------------------------------------------------------
+
+export interface BroadcastSubscriberRow {
+  qcId: string;
+  subscribedAt: Broadcast["createdAt"];
+  muted: boolean;
+  username: string | null;
+  profilePhotoUrl: string | null;
+}
+
+const SUBSCRIBERS_PAGE_SIZE = 100;
+const USERNAMES_BATCH_SIZE = 30; // Firestore 'in' operator cap
+
+async function resolveUsernamesForQcIds(
+  qcIds: string[],
+): Promise<Map<string, { displayUsername: string; profilePhotoUrl: string | null }>> {
+  const map = new Map<
+    string,
+    { displayUsername: string; profilePhotoUrl: string | null }
+  >();
+  for (let i = 0; i < qcIds.length; i += USERNAMES_BATCH_SIZE) {
+    const chunk = qcIds.slice(i, i + USERNAMES_BATCH_SIZE);
+    if (chunk.length === 0) continue;
+    const snap = await getDocs(
+      query(collection(dbfs, "qcUsernames"), where("qcId", "in", chunk)),
+    );
+    snap.forEach((d) => {
+      const data = d.data();
+      map.set(data.qcId as string, {
+        displayUsername: (data.displayUsername as string) ?? d.id,
+        profilePhotoUrl: (data.profilePhotoUrl as string) ?? null,
+      });
+    });
+  }
+  return map;
+}
+
+export function useBroadcastSubscribers(broadcastId: string | null) {
+  const queryClient = useQueryClient();
+  const queryKey = ["broadcasts", "subscribers", broadcastId];
+
+  useEffect(() => {
+    if (!broadcastId) return;
+    const q = query(
+      collection(dbfs, "broadcasts", broadcastId, "subscribers"),
+      orderBy("subscribedAt", "desc"),
+      limit(SUBSCRIBERS_PAGE_SIZE),
+    );
+    const unsub = onSnapshot(
+      q,
+      async (snap) => {
+        const rows: Omit<BroadcastSubscriberRow, "username" | "profilePhotoUrl">[] =
+          snap.docs.map((d) => ({
+            qcId: d.id,
+            subscribedAt: (d.data().subscribedAt as Broadcast["createdAt"]) ?? null,
+            muted: (d.data().muted as boolean) ?? false,
+          }));
+
+        // Paint the raw list immediately so the page renders fast, then
+        // hydrate usernames async.
+        queryClient.setQueryData<BroadcastSubscriberRow[]>(
+          queryKey,
+          rows.map((r) => ({ ...r, username: null, profilePhotoUrl: null })),
+        );
+
+        try {
+          const usernameMap = await resolveUsernamesForQcIds(
+            rows.map((r) => r.qcId),
+          );
+          queryClient.setQueryData<BroadcastSubscriberRow[]>(
+            queryKey,
+            rows.map((r) => ({
+              ...r,
+              username: usernameMap.get(r.qcId)?.displayUsername ?? null,
+              profilePhotoUrl:
+                usernameMap.get(r.qcId)?.profilePhotoUrl ?? null,
+            })),
+          );
+        } catch (err) {
+          console.error("[useBroadcastSubscribers] username resolve failed:", err);
+        }
+      },
+      (err) =>
+        console.error("[useBroadcastSubscribers] listener error:", err),
+    );
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [broadcastId]);
+
+  return useQuery<BroadcastSubscriberRow[]>({
+    queryKey,
+    queryFn: () => [],
+    enabled: !!broadcastId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Prefetch helper — one-shot fetch used for initial page loads
 // ---------------------------------------------------------------------------
 

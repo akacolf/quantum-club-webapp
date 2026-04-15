@@ -7,7 +7,9 @@ import type { Route } from "next";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/app/(contexts)/auth";
@@ -17,7 +19,8 @@ import {
   useBroadcastPost,
   useIsBroadcastAdmin,
 } from "@/app/(hooks)/queries/use-broadcasts";
-import { deletePost, recordPostView } from "../../actions";
+import { deletePost, editPost, recordPostView } from "../../actions";
+import { BROADCAST_POST_CONTENT_MAX } from "@/lib/validations";
 import { ReactionBar } from "../../_components/ReactionBar";
 
 function formatCount(n: number): string {
@@ -51,6 +54,50 @@ export default function BroadcastPostPage({
   const { data: post } = useBroadcastPost(broadcast?.id ?? null, postId);
   const { data: isAdmin } = useIsBroadcastAdmin(broadcast?.id ?? null, qcId);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEdit = () => {
+    if (!post) return;
+    setEditDraft(post.content);
+    setEditing(true);
+    haptics.light();
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setEditDraft("");
+  };
+
+  const saveEdit = async () => {
+    if (!broadcast || !post || savingEdit) return;
+    const trimmed = editDraft.trim();
+    if (!trimmed) {
+      toast.error("Post can't be empty");
+      return;
+    }
+    if (trimmed === post.content) {
+      cancelEdit();
+      return;
+    }
+    setSavingEdit(true);
+    haptics.medium();
+    const res = await editPost({
+      broadcastId: broadcast.id,
+      postId,
+      content: trimmed,
+    });
+    setSavingEdit(false);
+    if (res?.serverError) {
+      toast.error(res.serverError);
+      haptics.error();
+      return;
+    }
+    haptics.success();
+    toast.success("Saved");
+    setEditing(false);
+  };
 
   const handleDelete = async () => {
     if (!broadcast || deleting) return;
@@ -131,20 +178,30 @@ export default function BroadcastPostPage({
             @{broadcast.handle}
           </p>
         </div>
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            aria-label="Delete post"
-            className="w-9 h-9 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-muted-foreground hover:text-red-400 hover:border-red-400/40 transition-colors flex items-center justify-center disabled:opacity-60"
-          >
-            {deleting ? (
-              <ButtonLoader size="sm" />
-            ) : (
-              <Icon icon="lucide:trash-2" className="w-4 h-4" />
-            )}
-          </button>
+        {isAdmin && !editing && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={startEdit}
+              aria-label="Edit post"
+              className="w-9 h-9 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-muted-foreground hover:text-white hover:border-[#3a3a3a] transition-colors flex items-center justify-center"
+            >
+              <Icon icon="lucide:pencil" className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              aria-label="Delete post"
+              className="w-9 h-9 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-muted-foreground hover:text-red-400 hover:border-red-400/40 transition-colors flex items-center justify-center disabled:opacity-60"
+            >
+              {deleting ? (
+                <ButtonLoader size="sm" />
+              ) : (
+                <Icon icon="lucide:trash-2" className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         )}
       </header>
 
@@ -162,26 +219,65 @@ export default function BroadcastPostPage({
           </div>
         )}
         <div className="p-4">
-          {post.content && (
-            <p className="text-[15px] text-white whitespace-pre-wrap break-words">
-              {post.content}
-            </p>
+          {editing ? (
+            <div className="space-y-3">
+              <Textarea
+                value={editDraft}
+                onChange={(e) => setEditDraft(e.target.value)}
+                rows={6}
+                maxLength={BROADCAST_POST_CONTENT_MAX}
+                className="resize-none bg-[#0a0a0a] border-[#222] focus-visible:ring-primary/40"
+                autoFocus
+              />
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-muted-foreground tabular-nums">
+                  {BROADCAST_POST_CONTENT_MAX - editDraft.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={cancelEdit}
+                    disabled={savingEdit}
+                    variant="outline"
+                    className="h-9 px-4 rounded-full bg-[#1a1a1a] border-[#2a2a2a] text-white text-sm hover:bg-[#222]"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={saveEdit}
+                    disabled={savingEdit}
+                    className="h-9 px-4 rounded-full font-semibold text-sm"
+                  >
+                    {savingEdit ? <ButtonLoader size="sm" /> : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {post.content && (
+                <p className="text-[15px] text-white whitespace-pre-wrap break-words">
+                  {post.content}
+                </p>
+              )}
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-3">
+                <span>
+                  {post.createdAt
+                    ? post.createdAt.toDate().toLocaleString()
+                    : ""}
+                </span>
+                {post.editedAt ? <span>· edited</span> : null}
+                {post.viewCount > 0 && (
+                  <span className="flex items-center gap-1">
+                    ·
+                    <Icon icon="lucide:eye" className="w-3 h-3" />
+                    {formatCount(post.viewCount)} views
+                  </span>
+                )}
+              </div>
+            </>
           )}
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-3">
-            <span>
-              {post.createdAt
-                ? post.createdAt.toDate().toLocaleString()
-                : ""}
-            </span>
-            {post.editedAt ? <span>· edited</span> : null}
-            {post.viewCount > 0 && (
-              <span className="flex items-center gap-1">
-                ·
-                <Icon icon="lucide:eye" className="w-3 h-3" />
-                {formatCount(post.viewCount)} views
-              </span>
-            )}
-          </div>
         </div>
         <div className="px-4 pb-4">
           <ReactionBar post={post} qcId={qcId} />
