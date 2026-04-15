@@ -271,14 +271,7 @@ export default function BroadcastManagePage({
 
       {/* Cover with upload overlay */}
       <section className="mb-5">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-white">Cover</p>
-          {pendingCover && (
-            <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">
-              Unsaved
-            </span>
-          )}
-        </div>
+        <p className="text-sm font-semibold text-white mb-2">Cover</p>
         <button
           type="button"
           onClick={() => coverInputRef.current?.click()}
@@ -315,14 +308,7 @@ export default function BroadcastManagePage({
 
       {/* Avatar with upload overlay */}
       <section className="mb-5">
-        <div className="flex items-center gap-2 mb-2">
-          <p className="text-sm font-semibold text-white">Avatar</p>
-          {pendingAvatar && (
-            <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">
-              Unsaved
-            </span>
-          )}
-        </div>
+        <p className="text-sm font-semibold text-white mb-2">Avatar</p>
         <button
           type="button"
           onClick={() => avatarInputRef.current?.click()}
