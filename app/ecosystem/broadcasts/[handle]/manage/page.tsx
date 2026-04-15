@@ -211,7 +211,10 @@ export default function BroadcastManagePage({
           <h1 className="text-2xl font-bold">Manage broadcast</h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          @{broadcast.handle} · handle can&apos;t be changed
+          @{broadcast.handle}
+        </p>
+        <p className="text-xs text-muted-foreground/70 mt-0.5">
+          Handle can&apos;t be changed
         </p>
       </header>
 
