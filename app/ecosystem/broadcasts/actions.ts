@@ -7,8 +7,26 @@ import {
   broadcastReactionSchema,
   broadcastSubscribeSchema,
   broadcastViewSchema,
+  deleteBroadcastPostSchema,
+  editBroadcastPostSchema,
+  publishBroadcastPostSchema,
+  updateBroadcastSchema,
   verificationRequestSchema,
 } from "@/lib/validations";
+
+// ---------------------------------------------------------------------------
+// Admin membership helper — throws if the qcId is not in this broadcast's
+// admins subcollection. All admin-gated actions call this first.
+// ---------------------------------------------------------------------------
+
+async function assertBroadcastAdmin(qcId: string, broadcastId: string) {
+  const snap = await firestore
+    .doc(`broadcasts/${broadcastId}/admins/${qcId}`)
+    .get();
+  if (!snap.exists) {
+    throw new Error("You are not an admin of this broadcast");
+  }
+}
 
 // ---------------------------------------------------------------------------
 // submitVerificationRequest — any authed user can request a verified broadcast
@@ -215,5 +233,130 @@ export const recordPostView = authWithQcIdClient
       });
 
       return { success: true, counted };
+    },
+  );
+
+// ===========================================================================
+// Admin actions (Phase 2) — post publishing and broadcast management
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// publishPost — admin-only. Creates a post doc, increments postCount.
+// ---------------------------------------------------------------------------
+
+export const publishPost = authWithQcIdClient
+  .schema(publishBroadcastPostSchema)
+  .action(
+    async ({
+      parsedInput: { broadcastId, content, media },
+      ctx: { qcId },
+    }) => {
+      await assertBroadcastAdmin(qcId, broadcastId);
+
+      const broadcastRef = firestore.doc(`broadcasts/${broadcastId}`);
+      const postRef = broadcastRef.collection("posts").doc();
+
+      const now = FieldValue.serverTimestamp();
+      await firestore.runTransaction(async (tx) => {
+        tx.set(postRef, {
+          broadcastId,
+          content: content.trim(),
+          media,
+          createdAt: now,
+          editedAt: null,
+          parentPostId: null,
+          reactions: {},
+          viewCount: 0,
+        });
+        tx.update(broadcastRef, {
+          postCount: FieldValue.increment(1),
+        });
+      });
+
+      return { success: true, postId: postRef.id };
+    },
+  );
+
+// ---------------------------------------------------------------------------
+// editPost — admin-only. Updates content (not media) and stamps editedAt.
+// ---------------------------------------------------------------------------
+
+export const editPost = authWithQcIdClient
+  .schema(editBroadcastPostSchema)
+  .action(
+    async ({
+      parsedInput: { broadcastId, postId, content },
+      ctx: { qcId },
+    }) => {
+      await assertBroadcastAdmin(qcId, broadcastId);
+
+      const postRef = firestore.doc(
+        `broadcasts/${broadcastId}/posts/${postId}`,
+      );
+      const snap = await postRef.get();
+      if (!snap.exists) throw new Error("Post not found");
+
+      await postRef.update({
+        content: content.trim(),
+        editedAt: FieldValue.serverTimestamp(),
+      });
+
+      return { success: true };
+    },
+  );
+
+// ---------------------------------------------------------------------------
+// deletePost — admin-only. Removes the post and decrements postCount. Note:
+// the private viewers/userReactions subcollections are abandoned (they become
+// unreachable once the parent is deleted); they only consumed storage space
+// and contain no personally identifiable content beyond the owning user.
+// ---------------------------------------------------------------------------
+
+export const deletePost = authWithQcIdClient
+  .schema(deleteBroadcastPostSchema)
+  .action(
+    async ({ parsedInput: { broadcastId, postId }, ctx: { qcId } }) => {
+      await assertBroadcastAdmin(qcId, broadcastId);
+
+      const broadcastRef = firestore.doc(`broadcasts/${broadcastId}`);
+      const postRef = broadcastRef.collection("posts").doc(postId);
+
+      await firestore.runTransaction(async (tx) => {
+        const snap = await tx.get(postRef);
+        if (!snap.exists) return; // idempotent
+        tx.delete(postRef);
+        tx.update(broadcastRef, {
+          postCount: FieldValue.increment(-1),
+        });
+      });
+
+      return { success: true };
+    },
+  );
+
+// ---------------------------------------------------------------------------
+// updateBroadcast — admin-only. Patches name, bio, avatar, and/or coverImage.
+// Handle is immutable (would require migrating broadcastHandles + all deep
+// links; deliberately not supported in v1).
+// ---------------------------------------------------------------------------
+
+export const updateBroadcast = authWithQcIdClient
+  .schema(updateBroadcastSchema)
+  .action(
+    async ({
+      parsedInput: { broadcastId, name, bio, avatar, coverImage },
+      ctx: { qcId },
+    }) => {
+      await assertBroadcastAdmin(qcId, broadcastId);
+
+      const patch: Record<string, unknown> = {};
+      if (name !== undefined) patch.name = name.trim();
+      if (bio !== undefined) patch.bio = bio;
+      if (avatar !== undefined) patch.avatar = avatar;
+      if (coverImage !== undefined) patch.coverImage = coverImage;
+
+      await firestore.doc(`broadcasts/${broadcastId}`).update(patch);
+
+      return { success: true };
     },
   );

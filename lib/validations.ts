@@ -364,6 +364,57 @@ export const broadcastViewSchema = z.object({
   postId: z.string().min(1),
 });
 
+export const BROADCAST_POST_CONTENT_MAX = 2000;
+
+export const publishBroadcastPostSchema = z
+  .object({
+    broadcastId: z.string().min(1),
+    content: z.string().max(BROADCAST_POST_CONTENT_MAX, "Post is too long"),
+    media: z.array(z.string().url()).max(1, "One image per post for now"),
+  })
+  .refine(
+    (d) => d.content.trim().length > 0 || d.media.length > 0,
+    { message: "Write something or attach an image" },
+  );
+
+export const editBroadcastPostSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(BROADCAST_POST_CONTENT_MAX, "Post is too long"),
+});
+
+export const deleteBroadcastPostSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+});
+
+export const updateBroadcastSchema = z
+  .object({
+    broadcastId: z.string().min(1),
+    name: z
+      .string()
+      .min(1)
+      .max(BROADCAST_NAME_MAX, `Name must be ${BROADCAST_NAME_MAX} characters or less`)
+      .optional(),
+    bio: z
+      .string()
+      .max(BROADCAST_BIO_MAX, `Bio must be ${BROADCAST_BIO_MAX} characters or less`)
+      .optional(),
+    avatar: z.string().url().nullable().optional(),
+    coverImage: z.string().url().nullable().optional(),
+  })
+  .refine(
+    (d) =>
+      d.name !== undefined ||
+      d.bio !== undefined ||
+      d.avatar !== undefined ||
+      d.coverImage !== undefined,
+    { message: "No changes provided" },
+  );
+
 /** Broadcast discovery tab (for nuqs) */
 export const BROADCAST_TABS = ["explore", "following"] as const;
 export type BroadcastTab = (typeof BROADCAST_TABS)[number];

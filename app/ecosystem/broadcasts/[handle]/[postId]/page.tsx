@@ -1,18 +1,23 @@
 "use client";
 
-import { use, useEffect, useRef } from "react";
+import { use, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { Route } from "next";
 import { Icon } from "@iconify/react";
+import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
   useBroadcastByHandle,
   useBroadcastPost,
+  useIsBroadcastAdmin,
 } from "@/app/(hooks)/queries/use-broadcasts";
-import { recordPostView } from "../../actions";
+import { deletePost, recordPostView } from "../../actions";
 import { ReactionBar } from "../../_components/ReactionBar";
 
 function formatCount(n: number): string {
@@ -41,8 +46,28 @@ export default function BroadcastPostPage({
   const { currentUser } = useAuth();
   const qcId = currentUser?.uid ?? null;
 
+  const router = useRouter();
   const { data: broadcast } = useBroadcastByHandle(handle);
   const { data: post } = useBroadcastPost(broadcast?.id ?? null, postId);
+  const { data: isAdmin } = useIsBroadcastAdmin(broadcast?.id ?? null, qcId);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!broadcast || deleting) return;
+    if (!window.confirm("Delete this post? This cannot be undone.")) return;
+    setDeleting(true);
+    haptics.medium();
+    const res = await deletePost({ broadcastId: broadcast.id, postId });
+    setDeleting(false);
+    if (res?.serverError) {
+      toast.error(res.serverError);
+      haptics.error();
+      return;
+    }
+    haptics.success();
+    toast.success("Post deleted");
+    router.replace(`/ecosystem/broadcasts/${handle}` as Route);
+  };
 
   // Fire view once per (broadcast, post) per session. Server dedups across
   // sessions via the per-user viewers doc.
@@ -90,7 +115,7 @@ export default function BroadcastPostPage({
             {getInitials(broadcast.name)}
           </AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             <span className="font-semibold text-white truncate">
               {broadcast.name}
@@ -106,6 +131,21 @@ export default function BroadcastPostPage({
             @{broadcast.handle}
           </p>
         </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            aria-label="Delete post"
+            className="w-9 h-9 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-muted-foreground hover:text-red-400 hover:border-red-400/40 transition-colors flex items-center justify-center disabled:opacity-60"
+          >
+            {deleting ? (
+              <ButtonLoader size="sm" />
+            ) : (
+              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+            )}
+          </button>
+        )}
       </header>
 
       <article className="rounded-2xl bg-[#111] border border-[#222] overflow-hidden">

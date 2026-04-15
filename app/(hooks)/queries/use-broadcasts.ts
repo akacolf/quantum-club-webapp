@@ -310,6 +310,37 @@ export function useIsSubscribed(
 // Current user's reaction on a given post
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Is the current user an admin of this broadcast?
+// ---------------------------------------------------------------------------
+
+export function useIsBroadcastAdmin(
+  broadcastId: string | null,
+  qcId: string | null,
+) {
+  const queryClient = useQueryClient();
+  const queryKey = ["broadcasts", "isAdmin", broadcastId, qcId];
+
+  useEffect(() => {
+    if (!broadcastId || !qcId) return;
+    const ref = doc(dbfs, "broadcasts", broadcastId, "admins", qcId);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => queryClient.setQueryData(queryKey, snap.exists()),
+      (err) => console.error("[useIsBroadcastAdmin] listener error:", err),
+    );
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [broadcastId, qcId]);
+
+  return useQuery<boolean>({
+    queryKey,
+    queryFn: () => false,
+    enabled: !!broadcastId && !!qcId,
+    staleTime: Infinity,
+  });
+}
+
 export function useUserReaction(
   broadcastId: string | null,
   postId: string | null,
