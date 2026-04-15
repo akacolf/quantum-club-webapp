@@ -163,6 +163,7 @@ export default function BroadcastManagePage({
 
         haptics.success();
         toast.success("Saved");
+        router.replace(`/ecosystem/broadcasts/${handle}` as Route);
       } catch (err) {
         console.error("[manage] save failed:", err);
         toast.error(err instanceof Error ? err.message : "Save failed");
