@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Field,
@@ -272,7 +273,14 @@ export default function BroadcastManagePage({
 
       {/* Cover with upload overlay */}
       <section className="mb-5">
-        <p className="text-sm font-semibold text-white mb-2">Cover</p>
+        <div className="flex items-center gap-2 mb-2">
+          <p className="text-sm font-semibold text-white">Cover</p>
+          {pendingCover && (
+            <Badge className="h-4 px-1.5 text-[9px] font-semibold bg-primary/15 text-primary border-0 leading-none">
+              Unsaved
+            </Badge>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => coverInputRef.current?.click()}
@@ -309,7 +317,14 @@ export default function BroadcastManagePage({
 
       {/* Avatar with upload overlay */}
       <section className="mb-5">
-        <p className="text-sm font-semibold text-white mb-2">Avatar</p>
+        <div className="flex items-center gap-2 mb-2">
+          <p className="text-sm font-semibold text-white">Avatar</p>
+          {pendingAvatar && (
+            <Badge className="h-4 px-1.5 text-[9px] font-semibold bg-primary/15 text-primary border-0 leading-none">
+              Unsaved
+            </Badge>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => avatarInputRef.current?.click()}
