@@ -23,7 +23,7 @@ import { verificationRequestSchema } from "@/lib/validations";
 import { submitVerificationRequest } from "../actions";
 
 export default function BroadcastApplyPage() {
-  useTelegramBackButton("/ecosystem/broadcasts");
+  useTelegramBackButton("/ecosystem/chat?tab=discover&broadcastsView=explore&discoverTab=broadcasts");
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
@@ -53,7 +53,7 @@ export default function BroadcastApplyPage() {
       }
       haptics.success();
       toast.success("Request submitted — we'll review it soon");
-      router.replace("/ecosystem/broadcasts");
+      router.replace("/ecosystem/chat?tab=discover&broadcastsView=explore&discoverTab=broadcasts");
     },
   });
 

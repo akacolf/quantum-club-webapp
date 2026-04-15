@@ -2,20 +2,39 @@
 
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { parseAsStringEnum, useQueryState } from "nuqs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBroadcastsDiscovery } from "@/app/(hooks)/queries/use-broadcasts";
+import { useAuth } from "@/app/(contexts)/auth";
+import {
+  useBroadcastsDiscovery,
+  useMyBroadcastSubscriptions,
+} from "@/app/(hooks)/queries/use-broadcasts";
+import { BROADCAST_TABS, type BroadcastTab } from "@/lib/validations";
 import { BroadcastCard } from "@/app/ecosystem/broadcasts/_components/BroadcastCard";
 
 export default function BroadcastsDirectory() {
-  const { data: broadcasts } = useBroadcastsDiscovery();
+  const { currentUser } = useAuth();
+  const qcId = currentUser?.uid ?? null;
+
+  const [view, setView] = useQueryState<BroadcastTab>(
+    "broadcastsView",
+    parseAsStringEnum<BroadcastTab>([...BROADCAST_TABS])
+      .withDefault("explore")
+      .withOptions({ history: "replace" }),
+  );
+
+  const explore = useBroadcastsDiscovery(view === "explore");
+  const following = useMyBroadcastSubscriptions(qcId, view === "following");
+
+  const data = view === "following" ? following.data : explore.data;
 
   return (
     <div className="px-4 pt-3 pb-8">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold text-white">Verified broadcasts</p>
+          <p className="text-sm font-semibold text-white">Broadcasts</p>
           <p className="text-[11px] text-muted-foreground">
-            One-way feeds from trusted creators
+            One-way feeds from verified creators
           </p>
         </div>
         <Link
@@ -28,26 +47,70 @@ export default function BroadcastsDirectory() {
         </Link>
       </div>
 
-      {broadcasts === undefined ? (
+      {/* Explore | Following pills */}
+      <div className="flex gap-1 p-0.5 rounded-lg bg-muted/30 mb-3">
+        {(["explore", "following"] as const).map((v) => {
+          const active = view === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                active
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon
+                icon={
+                  v === "explore"
+                    ? "solar:compass-bold"
+                    : "solar:bell-bold"
+                }
+                className="w-3.5 h-3.5"
+              />
+              {v === "explore" ? "Explore" : "Following"}
+            </button>
+          );
+        })}
+      </div>
+
+      {data === undefined ? (
         <DirectorySkeleton />
-      ) : broadcasts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Icon
-            icon="solar:radio-minimalistic-linear"
-            className="w-10 h-10 text-muted-foreground/60 mb-2"
-          />
-          <p className="text-sm font-semibold text-white">No broadcasts yet</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
-            Verified broadcasts will appear here once approved.
-          </p>
-        </div>
+      ) : data.length === 0 ? (
+        <EmptyState view={view} />
       ) : (
         <div className="space-y-2">
-          {broadcasts.map((b) => (
+          {data.map((b) => (
             <BroadcastCard key={b.id} broadcast={b} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyState({ view }: { view: BroadcastTab }) {
+  const isFollowing = view === "following";
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <Icon
+        icon={
+          isFollowing
+            ? "solar:bell-off-linear"
+            : "solar:radio-minimalistic-linear"
+        }
+        className="w-10 h-10 text-muted-foreground/60 mb-2"
+      />
+      <p className="text-sm font-semibold text-white">
+        {isFollowing ? "Not following any broadcasts" : "No broadcasts yet"}
+      </p>
+      <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
+        {isFollowing
+          ? "Subscribe to a broadcast to see it here."
+          : "Verified broadcasts will appear here once approved."}
+      </p>
     </div>
   );
 }
