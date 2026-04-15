@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Route } from "next";
+import { Icon } from "@iconify/react";
 import type { BroadcastPost } from "@/lib/broadcasts-types";
 import type { Timestamp } from "firebase/firestore";
 import { ReactionBar } from "./ReactionBar";
@@ -19,6 +20,12 @@ function formatRelative(ts: Timestamp | null): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString();
+}
+
+function formatCount(n: number): string {
+  if (n < 1_000) return String(n);
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(n < 10_000 ? 1 : 0)}K`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
 interface Props {
@@ -51,10 +58,17 @@ export function PostCard({ post, handle, qcId }: Props) {
               {post.content}
             </p>
           )}
-          <p className="text-[11px] text-muted-foreground mt-2">
-            {formatRelative(post.createdAt)}
-            {post.editedAt ? " · edited" : ""}
-          </p>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-2">
+            <span>{formatRelative(post.createdAt)}</span>
+            {post.editedAt ? <span>· edited</span> : null}
+            {post.viewCount > 0 && (
+              <span className="flex items-center gap-1">
+                ·
+                <Icon icon="lucide:eye" className="w-3 h-3" />
+                {formatCount(post.viewCount)}
+              </span>
+            )}
+          </div>
         </div>
       </Link>
       <div className="px-4 pb-3">

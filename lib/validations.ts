@@ -359,6 +359,11 @@ export const broadcastReactionSchema = z.object({
   emoji: z.enum(BROADCAST_REACTIONS),
 });
 
+export const broadcastViewSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+});
+
 /** Broadcast discovery tab (for nuqs) */
 export const BROADCAST_TABS = ["explore", "following"] as const;
 export type BroadcastTab = (typeof BROADCAST_TABS)[number];

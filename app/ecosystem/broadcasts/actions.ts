@@ -6,6 +6,7 @@ import { firestore } from "@/app/(firebase)/server";
 import {
   broadcastReactionSchema,
   broadcastSubscribeSchema,
+  broadcastViewSchema,
   verificationRequestSchema,
 } from "@/lib/validations";
 
@@ -180,5 +181,39 @@ export const togglePostReaction = authWithQcIdClient
       });
 
       return { success: true, ...nextState };
+    },
+  );
+
+// ---------------------------------------------------------------------------
+// recordPostView — idempotent per-user view counter. Each user increments the
+// post's aggregate viewCount at most once. The per-user viewer doc is private
+// (self-only read) and is used only for dedup — admins never see individual
+// view identities, only the aggregate count.
+// ---------------------------------------------------------------------------
+
+export const recordPostView = authWithQcIdClient
+  .schema(broadcastViewSchema)
+  .action(
+    async ({ parsedInput: { broadcastId, postId }, ctx: { qcId } }) => {
+      const postRef = firestore.doc(
+        `broadcasts/${broadcastId}/posts/${postId}`,
+      );
+      const viewerRef = postRef.collection("viewers").doc(qcId);
+
+      const counted = await firestore.runTransaction(async (tx) => {
+        const [postSnap, viewerSnap] = await Promise.all([
+          tx.get(postRef),
+          tx.get(viewerRef),
+        ]);
+        if (!postSnap.exists) {
+          throw new Error("Post not found");
+        }
+        if (viewerSnap.exists) return false; // already counted
+        tx.set(viewerRef, { viewedAt: FieldValue.serverTimestamp() });
+        tx.update(postRef, { viewCount: FieldValue.increment(1) });
+        return true;
+      });
+
+      return { success: true, counted };
     },
   );

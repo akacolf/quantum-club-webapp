@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useRef } from "react";
 import Image from "next/image";
 import type { Route } from "next";
 import { Icon } from "@iconify/react";
@@ -12,7 +12,14 @@ import {
   useBroadcastByHandle,
   useBroadcastPost,
 } from "@/app/(hooks)/queries/use-broadcasts";
+import { recordPostView } from "../../actions";
 import { ReactionBar } from "../../_components/ReactionBar";
+
+function formatCount(n: number): string {
+  if (n < 1_000) return String(n);
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(n < 10_000 ? 1 : 0)}K`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
 
 function getInitials(name: string): string {
   return name
@@ -36,6 +43,17 @@ export default function BroadcastPostPage({
 
   const { data: broadcast } = useBroadcastByHandle(handle);
   const { data: post } = useBroadcastPost(broadcast?.id ?? null, postId);
+
+  // Fire view once per (broadcast, post) per session. Server dedups across
+  // sessions via the per-user viewers doc.
+  const viewedKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!broadcast?.id || !postId || !qcId) return;
+    const key = `${broadcast.id}:${postId}`;
+    if (viewedKeyRef.current === key) return;
+    viewedKeyRef.current = key;
+    void recordPostView({ broadcastId: broadcast.id, postId });
+  }, [broadcast?.id, postId, qcId]);
 
   if (broadcast === undefined || post === undefined) {
     return (
@@ -109,12 +127,21 @@ export default function BroadcastPostPage({
               {post.content}
             </p>
           )}
-          <p className="text-[11px] text-muted-foreground mt-3">
-            {post.createdAt
-              ? post.createdAt.toDate().toLocaleString()
-              : ""}
-            {post.editedAt ? " · edited" : ""}
-          </p>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-3">
+            <span>
+              {post.createdAt
+                ? post.createdAt.toDate().toLocaleString()
+                : ""}
+            </span>
+            {post.editedAt ? <span>· edited</span> : null}
+            {post.viewCount > 0 && (
+              <span className="flex items-center gap-1">
+                ·
+                <Icon icon="lucide:eye" className="w-3 h-3" />
+                {formatCount(post.viewCount)} views
+              </span>
+            )}
+          </div>
         </div>
         <div className="px-4 pb-4">
           <ReactionBar post={post} qcId={qcId} />

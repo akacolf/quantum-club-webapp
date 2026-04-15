@@ -242,9 +242,18 @@ service cloud.firestore {
         // Per-user reaction doc — each user tracks which emoji they chose.
         // Written only by the owning user; the aggregate reactions map on
         // the post doc is kept in sync via a server-side transaction.
+        // Reactions stay anonymous: only the user themselves can see their own
+        // doc; admins see aggregate counts only via the post's reactions map.
         match /userReactions/{userId} {
           allow read: if request.auth != null && request.auth.uid == userId;
           allow write: if false; // Server-only (transactional counter + doc)
+        }
+
+        // Per-user viewer dedup doc — counts each user once. Private to the
+        // user; admins see aggregate viewCount on the post only.
+        match /viewers/{userId} {
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow write: if false; // Server-only (transactional increment)
         }
       }
 
@@ -256,9 +265,12 @@ service cloud.firestore {
       }
 
       // Subscribers — each user owns their own subscription doc.
-      // Client writes are blocked; server actions handle counter increments.
+      // Readable by the subscriber themselves, and by admins of this broadcast
+      // (admins need the list for their dashboard). Writes are server-only.
       match /subscribers/{userId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null
+          && (request.auth.uid == userId
+              || exists(/databases/$(database)/documents/broadcasts/$(broadcastId)/admins/$(request.auth.uid)));
         allow write: if false;
       }
     }
