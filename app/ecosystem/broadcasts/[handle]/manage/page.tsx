@@ -66,9 +66,14 @@ export default function BroadcastManagePage({
     qcId,
   );
 
-  const [savingMeta, setSavingMeta] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
+  // Pending image selections — staged in memory until Save is clicked.
+  // We store the resized Blob (not the raw File) so the Save path doesn't
+  // have to re-resize and we can preview the exact bytes that will upload.
+  const [pendingAvatar, setPendingAvatar] = useState<Blob | null>(null);
+  const [pendingCover, setPendingCover] = useState<Blob | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,31 +85,91 @@ export default function BroadcastManagePage({
     if (broadcast) hasSeenBroadcast.current = true;
   }, [broadcast]);
 
+  // Revoke object URLs on unmount / replacement to avoid leaks.
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+      if (coverPreviewUrl) URL.revokeObjectURL(coverPreviewUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const form = useForm({
     defaultValues: { name: "", bio: "" },
     validators: { onSubmit: metaSchema },
     onSubmit: async ({ value }) => {
       if (!broadcast) return;
-      const patch: { broadcastId: string; name?: string; bio?: string } = {
-        broadcastId: broadcast.id,
-      };
-      if (value.name !== broadcast.name) patch.name = value.name;
-      if (value.bio !== broadcast.bio) patch.bio = value.bio;
-      if (patch.name === undefined && patch.bio === undefined) {
+
+      const nameChanged = value.name !== broadcast.name;
+      const bioChanged = value.bio !== (broadcast.bio ?? "");
+      const hasPendingAvatar = pendingAvatar !== null;
+      const hasPendingCover = pendingCover !== null;
+
+      if (
+        !nameChanged &&
+        !bioChanged &&
+        !hasPendingAvatar &&
+        !hasPendingCover
+      ) {
         toast.info("No changes to save");
         return;
       }
-      setSavingMeta(true);
+
+      setSaving(true);
       haptics.medium();
-      const res = await updateBroadcast(patch);
-      setSavingMeta(false);
-      if (res?.serverError) {
-        toast.error(res.serverError);
+      try {
+        // Upload any pending images first, then patch the broadcast doc in
+        // a single atomic update. If an upload fails, no Firestore write
+        // happens and the local previews stay so the user can retry.
+        const patch: {
+          broadcastId: string;
+          name?: string;
+          bio?: string;
+          avatar?: string;
+          coverImage?: string;
+        } = { broadcastId: broadcast.id };
+
+        if (hasPendingAvatar) {
+          const path = `broadcasts/${broadcast.id}/avatar/${Date.now()}.jpg`;
+          const ref = storageRef(storage, path);
+          await uploadBytes(ref, pendingAvatar, {
+            contentType: "image/jpeg",
+          });
+          patch.avatar = await getDownloadURL(ref);
+        }
+        if (hasPendingCover) {
+          const path = `broadcasts/${broadcast.id}/cover/${Date.now()}.jpg`;
+          const ref = storageRef(storage, path);
+          await uploadBytes(ref, pendingCover, {
+            contentType: "image/jpeg",
+          });
+          patch.coverImage = await getDownloadURL(ref);
+        }
+        if (nameChanged) patch.name = value.name;
+        if (bioChanged) patch.bio = value.bio;
+
+        const res = await updateBroadcast(patch);
+        if (res?.serverError) throw new Error(res.serverError);
+
+        // Clear pending state now that the doc has the canonical URLs.
+        // The onSnapshot listener will repaint the previews from the
+        // saved broadcast doc.
+        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+        if (coverPreviewUrl) URL.revokeObjectURL(coverPreviewUrl);
+        setPendingAvatar(null);
+        setPendingCover(null);
+        setAvatarPreviewUrl(null);
+        setCoverPreviewUrl(null);
+
+        haptics.success();
+        toast.success("Saved");
+      } catch (err) {
+        console.error("[manage] save failed:", err);
+        toast.error(err instanceof Error ? err.message : "Save failed");
         haptics.error();
-        return;
+      } finally {
+        setSaving(false);
       }
-      haptics.success();
-      toast.success("Saved");
     },
   });
 
@@ -124,73 +189,49 @@ export default function BroadcastManagePage({
     }
   }, [broadcast, isAdmin, isAdminLoading, handle, router]);
 
-  const uploadImage = async (
+  const stageImage = async (
     file: File,
     kind: "avatar" | "cover",
-  ): Promise<string | null> => {
-    if (!broadcast) return null;
+  ): Promise<{ blob: Blob; previewUrl: string } | null> => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please choose an image");
       return null;
     }
-    const resized =
-      kind === "avatar"
-        ? await resizeToSquareJpeg(file, 512)
-        : await resizeToAspectJpeg(file, 1200, 450);
-    const path = `broadcasts/${broadcast.id}/${kind}/${Date.now()}.jpg`;
-    const ref = storageRef(storage, path);
-    await uploadBytes(ref, resized, { contentType: "image/jpeg" });
-    return await getDownloadURL(ref);
+    try {
+      const blob =
+        kind === "avatar"
+          ? await resizeToSquareJpeg(file, 512)
+          : await resizeToAspectJpeg(file, 1200, 450);
+      return { blob, previewUrl: URL.createObjectURL(blob) };
+    } catch (err) {
+      console.error("[manage] resize failed:", err);
+      toast.error("Couldn't process image");
+      return null;
+    }
   };
 
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (avatarInputRef.current) avatarInputRef.current.value = "";
-    if (!file || !broadcast) return;
-    setUploadingAvatar(true);
-    try {
-      const url = await uploadImage(file, "avatar");
-      if (!url) return;
-      const res = await updateBroadcast({
-        broadcastId: broadcast.id,
-        avatar: url,
-      });
-      if (res?.serverError) throw new Error(res.serverError);
-      // onSnapshot listener in useBroadcastByHandle picks up the new
-      // avatar automatically — no manual invalidation needed.
-      haptics.success();
-      toast.success("Avatar updated");
-    } catch (err) {
-      console.error("[manage] avatar upload failed:", err);
-      toast.error(err instanceof Error ? err.message : "Upload failed");
-      haptics.error();
-    } finally {
-      setUploadingAvatar(false);
-    }
+    if (!file) return;
+    const staged = await stageImage(file, "avatar");
+    if (!staged) return;
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    setPendingAvatar(staged.blob);
+    setAvatarPreviewUrl(staged.previewUrl);
+    haptics.light();
   };
 
   const handleCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (coverInputRef.current) coverInputRef.current.value = "";
-    if (!file || !broadcast) return;
-    setUploadingCover(true);
-    try {
-      const url = await uploadImage(file, "cover");
-      if (!url) return;
-      const res = await updateBroadcast({
-        broadcastId: broadcast.id,
-        coverImage: url,
-      });
-      if (res?.serverError) throw new Error(res.serverError);
-      haptics.success();
-      toast.success("Cover updated");
-    } catch (err) {
-      console.error("[manage] cover upload failed:", err);
-      toast.error(err instanceof Error ? err.message : "Upload failed");
-      haptics.error();
-    } finally {
-      setUploadingCover(false);
-    }
+    if (!file) return;
+    const staged = await stageImage(file, "cover");
+    if (!staged) return;
+    if (coverPreviewUrl) URL.revokeObjectURL(coverPreviewUrl);
+    setPendingCover(staged.blob);
+    setCoverPreviewUrl(staged.previewUrl);
+    haptics.light();
   };
 
   const stillLoading =
@@ -210,6 +251,9 @@ export default function BroadcastManagePage({
 
   if (!broadcast || isAdmin === false) return null;
 
+  const displayedAvatar = avatarPreviewUrl ?? broadcast.avatar;
+  const displayedCover = coverPreviewUrl ?? broadcast.coverImage;
+
   return (
     <div className="min-h-screen px-4 pt-6 pb-28 max-w-md mx-auto">
       <header className="mb-5">
@@ -227,16 +271,23 @@ export default function BroadcastManagePage({
 
       {/* Cover with upload overlay */}
       <section className="mb-5">
-        <p className="text-sm font-semibold text-white mb-2">Cover</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-semibold text-white">Cover</p>
+          {pendingCover && (
+            <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+              Unsaved
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => coverInputRef.current?.click()}
-          disabled={uploadingCover}
+          disabled={saving}
           className="relative block w-full h-36 rounded-2xl overflow-hidden bg-[#111] border border-[#222] hover:border-[#333] disabled:opacity-60"
         >
-          {broadcast.coverImage ? (
+          {displayedCover ? (
             <Image
-              src={broadcast.coverImage}
+              src={displayedCover}
               alt="Cover"
               fill
               sizes="(max-width: 448px) 100vw, 448px"
@@ -249,14 +300,8 @@ export default function BroadcastManagePage({
             </div>
           )}
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-semibold gap-1.5">
-            {uploadingCover ? (
-              <ButtonLoader size="sm" />
-            ) : (
-              <>
-                <Icon icon="lucide:upload" className="w-4 h-4" />
-                Change cover
-              </>
-            )}
+            <Icon icon="lucide:upload" className="w-4 h-4" />
+            Change cover
           </div>
         </button>
         <input
@@ -270,16 +315,23 @@ export default function BroadcastManagePage({
 
       {/* Avatar with upload overlay */}
       <section className="mb-5">
-        <p className="text-sm font-semibold text-white mb-2">Avatar</p>
+        <div className="flex items-center gap-2 mb-2">
+          <p className="text-sm font-semibold text-white">Avatar</p>
+          {pendingAvatar && (
+            <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+              Unsaved
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => avatarInputRef.current?.click()}
-          disabled={uploadingAvatar}
+          disabled={saving}
           className="relative w-24 h-24 rounded-2xl overflow-hidden bg-[#111] border border-[#222] hover:border-[#333] disabled:opacity-60"
         >
-          {broadcast.avatar ? (
+          {displayedAvatar ? (
             <Image
-              src={broadcast.avatar}
+              src={displayedAvatar}
               alt="Avatar"
               fill
               sizes="96px"
@@ -292,11 +344,7 @@ export default function BroadcastManagePage({
             </div>
           )}
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
-            {uploadingAvatar ? (
-              <ButtonLoader size="sm" />
-            ) : (
-              <Icon icon="lucide:upload" className="w-4 h-4" />
-            )}
+            <Icon icon="lucide:upload" className="w-4 h-4" />
           </div>
         </button>
         <input
@@ -356,10 +404,10 @@ export default function BroadcastManagePage({
 
           <Button
             type="submit"
-            disabled={savingMeta}
+            disabled={saving}
             className="w-full h-11 rounded-full font-semibold mt-2"
           >
-            {savingMeta ? <ButtonLoader size="sm" /> : "Save changes"}
+            {saving ? <ButtonLoader size="sm" /> : "Save changes"}
           </Button>
         </FieldGroup>
       </form>
