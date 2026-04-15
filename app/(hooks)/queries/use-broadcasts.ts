@@ -307,6 +307,70 @@ export function useIsSubscribed(
 }
 
 // ---------------------------------------------------------------------------
+// Live subscription status — { subscribed, muted } for the current user.
+// Reads the subscriber doc directly so changes (mute toggle, subscribe,
+// unsubscribe) reflect instantly without a manual invalidate.
+// ---------------------------------------------------------------------------
+
+export interface BroadcastSubscriptionStatus {
+  subscribed: boolean;
+  muted: boolean;
+}
+
+export function useBroadcastSubscriptionStatus(
+  broadcastId: string | null,
+  qcId: string | null,
+) {
+  const queryClient = useQueryClient();
+  const queryKey = [
+    "broadcasts",
+    "subscriptionStatus",
+    broadcastId,
+    qcId,
+  ];
+
+  useEffect(() => {
+    if (!broadcastId || !qcId) return;
+    const ref = doc(
+      dbfs,
+      "broadcasts",
+      broadcastId,
+      "subscribers",
+      qcId,
+    );
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          queryClient.setQueryData<BroadcastSubscriptionStatus>(queryKey, {
+            subscribed: false,
+            muted: false,
+          });
+          return;
+        }
+        const data = snap.data();
+        queryClient.setQueryData<BroadcastSubscriptionStatus>(queryKey, {
+          subscribed: true,
+          muted: (data.muted as boolean) ?? false,
+        });
+      },
+      (err) =>
+        console.error("[useBroadcastSubscriptionStatus] listener error:", err),
+    );
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [broadcastId, qcId]);
+
+  return useQuery<BroadcastSubscriptionStatus>({
+    queryKey,
+    queryFn: () =>
+      ({ subscribed: false, muted: false }) satisfies BroadcastSubscriptionStatus,
+    enabled: !!broadcastId && !!qcId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Current user's reaction on a given post
 // ---------------------------------------------------------------------------
 

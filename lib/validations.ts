@@ -353,6 +353,11 @@ export const broadcastSubscribeSchema = z.object({
   broadcastId: z.string().min(1),
 });
 
+export const broadcastMuteSchema = z.object({
+  broadcastId: z.string().min(1),
+  muted: z.boolean(),
+});
+
 export const broadcastReactionSchema = z.object({
   broadcastId: z.string().min(1),
   postId: z.string().min(1),

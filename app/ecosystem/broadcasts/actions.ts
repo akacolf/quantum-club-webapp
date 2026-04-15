@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
 import {
+  broadcastMuteSchema,
   broadcastReactionSchema,
   broadcastSubscribeSchema,
   broadcastViewSchema,
@@ -111,6 +112,32 @@ export const subscribeToBroadcast = authWithQcIdClient
     });
 
     return { success: true };
+  });
+
+// Toggle mute on a broadcast subscription. Only subscribed users can mute;
+// attempting to mute without a subscription is a no-op error. Writes both the
+// canonical subscriber doc (read by the Cloud Function fan-out) and the
+// user's reverse index so the two stay in sync.
+export const setBroadcastMute = authWithQcIdClient
+  .schema(broadcastMuteSchema)
+  .action(async ({ parsedInput: { broadcastId, muted }, ctx: { qcId } }) => {
+    const subscriberRef = firestore.doc(
+      `broadcasts/${broadcastId}/subscribers/${qcId}`,
+    );
+    const userSubRef = firestore.doc(
+      `user/${qcId}/broadcastSubscriptions/${broadcastId}`,
+    );
+
+    await firestore.runTransaction(async (tx) => {
+      const subSnap = await tx.get(subscriberRef);
+      if (!subSnap.exists) {
+        throw new Error("Subscribe first to change notification settings");
+      }
+      tx.update(subscriberRef, { muted });
+      tx.set(userSubRef, { muted }, { merge: true });
+    });
+
+    return { success: true, muted };
   });
 
 export const unsubscribeFromBroadcast = authWithQcIdClient

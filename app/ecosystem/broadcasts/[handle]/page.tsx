@@ -16,6 +16,7 @@ import {
   useIsBroadcastAdmin,
 } from "@/app/(hooks)/queries/use-broadcasts";
 import { SubscribeButton } from "../_components/SubscribeButton";
+import { MuteButton } from "../_components/MuteButton";
 import { PostCard } from "../_components/PostCard";
 
 function getInitials(name: string): string {
@@ -127,6 +128,7 @@ export default function BroadcastChannelPage({
                 Manage
               </Link>
             )}
+            <MuteButton broadcastId={broadcast.id} qcId={qcId} />
             <SubscribeButton broadcastId={broadcast.id} qcId={qcId} />
           </div>
         </div>
