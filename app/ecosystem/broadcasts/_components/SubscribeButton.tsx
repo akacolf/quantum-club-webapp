@@ -24,7 +24,7 @@ export function SubscribeButton({ broadcastId, qcId }: Props) {
 
   const handleClick = async () => {
     if (!qcId) {
-      toast.error("Sign in to subscribe");
+      toast.error("Still connecting — try again in a moment");
       return;
     }
     if (pending) return;

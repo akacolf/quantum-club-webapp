@@ -75,11 +75,7 @@ export default function BroadcastsDiscoveryPage() {
 
         <TabsContent value="following" className="mt-4 space-y-2">
           {!qcId ? (
-            <EmptyState
-              icon="lucide:user-x"
-              title="Sign in required"
-              description="Log in to see the broadcasts you follow."
-            />
+            <BroadcastListSkeleton />
           ) : following.data === undefined ? (
             <BroadcastListSkeleton />
           ) : following.data.length === 0 ? (

@@ -659,7 +659,7 @@ export default function QCChatListPage() {
     const normalizedUsername = rawUsername.replace(/^@+/, "").toLowerCase();
 
     if (!telegramId) {
-      setFormError("Please sign in to start a chat.");
+      setFormError("Still connecting — try again in a moment.");
       return;
     }
 
@@ -761,7 +761,7 @@ export default function QCChatListPage() {
       return;
     }
     if (!telegramId) {
-      setFormError("Please sign in.");
+      setFormError("Still connecting — try again in a moment.");
       return;
     }
 
@@ -822,7 +822,7 @@ export default function QCChatListPage() {
       return;
     }
     if (!telegramId) {
-      setFormError("Please sign in.");
+      setFormError("Still connecting — try again in a moment.");
       return;
     }
 
@@ -1337,9 +1337,9 @@ export default function QCChatListPage() {
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
-              <Icon icon="solar:compass-bold" className="w-10 h-10 text-muted-foreground/50" />
-              <p className="text-xs text-muted-foreground">Sign in to discover</p>
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-primary">
+              <ButtonLoader size="lg" />
+              <p className="text-xs text-muted-foreground">Connecting…</p>
             </div>
           )
         ) : isLoading ? (
@@ -1348,14 +1348,9 @@ export default function QCChatListPage() {
             <p className="text-xs text-muted-foreground">Loading chats...</p>
           </div>
         ) : !telegramId ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={40} height={40} />
-            </div>
-            <p className="text-sm font-medium text-foreground">Sign in to chat</p>
-            <p className="text-xs text-muted-foreground">
-              Log in with your Telegram account to start chatting.
-            </p>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-primary">
+            <ButtonLoader size="lg" />
+            <p className="text-xs text-muted-foreground">Connecting to Telegram…</p>
           </div>
         ) : (
           <div>

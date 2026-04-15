@@ -3218,7 +3218,7 @@ export default function ChatConversationClient() {
       >
         {!telegramId ? (
           <div className="flex items-center justify-center py-2">
-            <p className="text-xs text-muted-foreground">Sign in to chat</p>
+            <p className="text-xs text-muted-foreground">Connecting…</p>
           </div>
         ) : isMuted ? (
           <div className="flex items-center justify-center py-2 gap-2">

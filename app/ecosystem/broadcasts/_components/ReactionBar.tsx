@@ -22,7 +22,7 @@ export function ReactionBar({ post, qcId }: Props) {
 
   const handleReact = async (emoji: BroadcastReaction) => {
     if (!qcId) {
-      toast.error("Sign in to react");
+      toast.error("Still connecting — try again in a moment");
       return;
     }
     if (pending) return;
