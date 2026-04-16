@@ -122,10 +122,10 @@ export default function BroadcastChannelPage({
               <Link
                 href={`/ecosystem/broadcasts/${broadcast.handle}/manage` as Route}
                 prefetch
-                className="flex items-center gap-1.5 h-9 px-3 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-white text-xs font-semibold hover:bg-[#222] transition-colors"
+                aria-label="Manage broadcast"
+                className="w-9 h-9 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-muted-foreground hover:text-white hover:border-[#3a3a3a] transition-colors flex items-center justify-center shrink-0"
               >
-                <Icon icon="lucide:settings" className="w-3.5 h-3.5" />
-                Manage
+                <Icon icon="lucide:settings" className="w-4 h-4" />
               </Link>
             )}
             <MuteButton broadcastId={broadcast.id} qcId={qcId} />
