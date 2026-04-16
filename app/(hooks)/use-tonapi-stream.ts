@@ -68,6 +68,17 @@ export function useTonApiStream() {
               isGraduated: curveData.graduated,
             };
 
+            // Estimate volume/trade delta from tonReserve change
+            const oldReserve = BigInt(matchedToken.tonReserve || matchedToken.marketCap || "0");
+            const newReserve = curveData.tonReserve;
+            const reserveDelta = newReserve > oldReserve
+              ? newReserve - oldReserve
+              : oldReserve - newReserve;
+            const tradeTonValue = Number(reserveDelta) / 1e9;
+
+            update.trades = (matchedToken.trades || 0) + 1;
+            update.volume24h = (matchedToken.volume24h || 0) + tradeTonValue;
+
             // Update TanStack Query cache directly
             const updateList = (tokens: Token[] | undefined) =>
               tokens?.map((t) =>

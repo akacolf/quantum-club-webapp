@@ -919,24 +919,56 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
 
     const enrichedUpdates: { id: string; data: Partial<Token> }[] = [];
 
+    // Lazy-load tonApiGet (server action) for on-chain stats
+    const { tonApiGet } = await import("@/lib/tonapi-client");
+
     await Promise.all(
       allTokens.map(async (token) => {
         try {
           if (!token.jettonMasterAddress) return;
-          const curveData = await getBondingCurveData(token.jettonMasterAddress, contractAdapter);
+
+          // Fetch curve data + TONAPI transaction stats in parallel
+          const [curveData, txData] = await Promise.all([
+            getBondingCurveData(token.jettonMasterAddress, contractAdapter),
+            tonApiGet<{ transactions?: Array<{
+              success?: boolean;
+              in_msg?: { op_code?: string; value?: number };
+              utime?: number;
+            }> }>(
+              `/v2/blockchain/accounts/${token.jettonMasterAddress}/transactions?limit=100`,
+              { testnet: ROCKETSTART_TESTNET },
+            ).catch(() => ({ transactions: [] as Array<{ success?: boolean; in_msg?: { op_code?: string; value?: number }; utime?: number }> })),
+          ]);
+
+          const update: Partial<Token> = {};
+
           if (curveData) {
-            enrichedUpdates.push({
-              id: token.id,
-              data: {
-                totalSupply: curveData.totalSupply.toString(),
-                currentPrice: curveData.currentPrice.toString(),
-                tonReserve: curveData.tonReserve.toString(),
-                marketCap: curveData.tonReserve.toString(),
-                graduationThreshold: curveData.graduationTarget.toString(),
-                isGraduated: curveData.graduated,
-              },
-            });
+            update.totalSupply = curveData.totalSupply.toString();
+            update.currentPrice = curveData.currentPrice.toString();
+            update.tonReserve = curveData.tonReserve.toString();
+            update.marketCap = curveData.tonReserve.toString();
+            update.graduationThreshold = curveData.graduationTarget.toString();
+            update.isGraduated = curveData.graduated;
           }
+
+          // Calculate volume24h + trades from TONAPI transactions
+          let trades = 0;
+          let volume24h = 0;
+          const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+          for (const tx of txData.transactions ?? []) {
+            if (!tx.success) continue;
+            const op = tx.in_msg?.op_code;
+            if (op === "0xaf750d34" || op === "0x7bdd97de") {
+              trades++;
+              if ((tx.utime || 0) * 1000 > oneDayAgo) {
+                volume24h += (tx.in_msg?.value || 0) / 1e9;
+              }
+            }
+          }
+          update.trades = trades;
+          update.volume24h = volume24h;
+
+          enrichedUpdates.push({ id: token.id, data: update });
         } catch (error) {
           console.warn(`Failed to fetch on-chain data for ${token.symbol}:`, error);
         }
