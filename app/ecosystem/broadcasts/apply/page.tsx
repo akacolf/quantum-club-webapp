@@ -187,7 +187,7 @@ export default function BroadcastApplyPage() {
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}
-                    placeholder="X, Telegram, website, prior work — anything that helps verify you"
+                    placeholder="X, Telegram, website, references"
                     rows={3}
                   />
                   <FieldError errors={field.state.meta.errors} />
