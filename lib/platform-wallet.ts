@@ -145,6 +145,113 @@ export async function sendFromPlatformWallet(params: {
 }
 
 /**
+ * Send multiple messages in a single wallet transfer (V5R1 supports up to 255).
+ * Used for LP creation where TON leg + Jetton leg must land in the same block.
+ */
+export async function sendMultipleFromPlatformWallet(params: {
+    messages: Array<{ to: string; value: bigint; body?: Cell }>;
+}): Promise<{ success: boolean; error?: string }> {
+    if (!isPlatformWalletConfigured()) {
+        return { success: false, error: "Platform wallet not configured" };
+    }
+
+    try {
+        const mnemonic = PLATFORM_MNEMONIC.split(" ");
+        if (mnemonic.length !== 24) {
+            return { success: false, error: "Invalid platform mnemonic" };
+        }
+
+        const keyPair = await mnemonicToPrivateKey(mnemonic);
+
+        let wallet;
+        switch (PLATFORM_WALLET_VERSION) {
+            case "v4r2":
+                wallet = WalletContractV4.create({
+                    workchain: 0,
+                    publicKey: keyPair.publicKey,
+                });
+                break;
+            case "v5r1":
+            default:
+                wallet = WalletContractV5R1.create({
+                    workchain: 0,
+                    publicKey: keyPair.publicKey,
+                });
+                break;
+        }
+
+        const derivedAddress = wallet.address.toString({ bounceable: false });
+        const expectedAddress = Address.parse(PLATFORM_WALLET_ADDRESS).toString({ bounceable: false });
+
+        if (derivedAddress !== expectedAddress) {
+            return { success: false, error: "Platform wallet address mismatch" };
+        }
+
+        const contractAdapter = getContractAdapter();
+        const contract = contractAdapter.open(wallet);
+
+        let seqno = 0;
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                seqno = await contract.getSeqno();
+                break;
+            } catch (err) {
+                const error = err as { response?: { status?: number } };
+                if (error?.response?.status === 429 && retries > 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    retries--;
+                    continue;
+                }
+                if (retries === 1) {
+                    seqno = 0;
+                    break;
+                }
+                retries--;
+            }
+        }
+
+        const msgs = params.messages.map((m) =>
+            internal({
+                to: Address.parse(m.to),
+                value: m.value,
+                body: m.body,
+                bounce: true,
+            }),
+        );
+
+        retries = 3;
+        while (retries > 0) {
+            try {
+                await contract.sendTransfer({
+                    seqno,
+                    secretKey: keyPair.secretKey,
+                    sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+                    messages: msgs,
+                });
+                break;
+            } catch (err) {
+                const error = err as { response?: { status?: number } };
+                if (error?.response?.status === 429 && retries > 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    retries--;
+                    continue;
+                }
+                throw err;
+            }
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Platform wallet multi-message failed:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Transaction failed",
+        };
+    }
+}
+
+/**
  * Build withdraw fees message
  */
 export function buildWithdrawFeesMessage(): Cell {
