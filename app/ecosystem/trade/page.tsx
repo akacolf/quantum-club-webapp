@@ -75,8 +75,7 @@ const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
 };
 
 function TokenCard({ token, index, showRank = true }: { token: Token; index: number; showRank?: boolean }) {
-    const priceChange = token.priceChange24h || 0;
-    const isPositive = priceChange >= 0;
+    const trades = token.trades || 0;
     // Use tonReserve (on-chain) or fall back to marketCap for progress
     const progress = calculateProgress(
         token.tonReserve || token.marketCap,
@@ -156,9 +155,9 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
                                     <div className="font-medium text-white text-sm tracking-tight">
                                         {formatPrice(BigInt(token.currentPrice || "0"))}
                                     </div>
-                                    <div className={`flex items-center justify-end gap-0.5 text-[10px] font-bold mt-0.5 ${isPositive ? "text-green-400" : "text-red-400"}`}>
-                                        <Icon icon={isPositive ? "solar:graph-up-bold" : "solar:graph-down-bold"} className="w-2.5 h-2.5" />
-                                        {Math.abs(priceChange).toFixed(2)}%
+                                    <div className="flex items-center justify-end gap-0.5 text-[10px] font-bold mt-0.5 text-muted-foreground">
+                                        <Icon icon="solar:transfer-horizontal-bold" className="w-2.5 h-2.5" />
+                                        {trades} trade{trades !== 1 ? "s" : ""}
                                     </div>
                                 </div>
                             </div>
