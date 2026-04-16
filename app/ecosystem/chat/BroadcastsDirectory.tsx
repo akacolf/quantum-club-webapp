@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/app/(contexts)/auth";
 import {
   useBroadcastsDiscovery,
@@ -24,11 +23,8 @@ export default function BroadcastsDirectory() {
       .withOptions({ history: "replace" }),
   );
 
-  // Keep both listeners attached regardless of which pill is active so
-  // switching tabs is instant (no skeleton flash, no double-tap issue
-  // from the empty queryFn placeholder flashing before the snapshot).
-  const explore = useBroadcastsDiscovery();
-  const following = useMyBroadcastSubscriptions(qcId);
+  const explore = useBroadcastsDiscovery(view === "explore");
+  const following = useMyBroadcastSubscriptions(qcId, view === "following");
 
   const data = view === "following" ? following.data : explore.data;
 
@@ -59,10 +55,7 @@ export default function BroadcastsDirectory() {
             <button
               key={v}
               type="button"
-              onClick={() => {
-                if (view !== v) haptics.light();
-                setView(v);
-              }}
+              onClick={() => setView(v)}
               className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${
                 active
                   ? "bg-primary/15 text-primary"
