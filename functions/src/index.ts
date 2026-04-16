@@ -801,13 +801,12 @@ async function sendBroadcastNotification(
     deepLink: string,
     channelLink: string,
 ): Promise<void> {
-    // Format: "<b>Name</b> (<a>@handle</a>)\n\n{content}"
     // Wrapping the @handle in a hyperlink prevents Telegram from auto-linking
     // it to an unrelated Telegram account with the same username.
     const message =
         `<b>${escapeHtml(notif.broadcastName)}</b> ` +
-        `(<a href="${channelLink}">@${escapeHtml(notif.broadcastHandle)}</a>)\n\n` +
-        escapeHtml(notif.preview);
+        `(<a href="${channelLink}">@${escapeHtml(notif.broadcastHandle)}</a>) ` +
+        `has published a post in their broadcast`;
 
     try {
         const res = await fetch(
