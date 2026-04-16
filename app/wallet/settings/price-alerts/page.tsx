@@ -75,7 +75,7 @@ export default function PriceAlertsPage() {
         const price = parseFloat(value.targetPrice);
 
         if (!telegramId) {
-            toast.error("Not logged in");
+            toast.error("Still connecting — try again in a moment");
             return;
         }
 

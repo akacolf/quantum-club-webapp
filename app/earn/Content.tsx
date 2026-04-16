@@ -300,7 +300,7 @@ const EarnContent = () => {
       const token = await auth?.currentUser?.getIdToken();
       if (!token) {
         haptics.error();
-        return toast.error("User not authenticated");
+        return toast.error("Still connecting — try again in a moment");
       }
       if (task.whichPlatform === "telegram") {
         if (task.buttonText === "Join" && task.url) {

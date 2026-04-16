@@ -28,6 +28,24 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // Broadcast media (avatar, cover, post images). Public read since
+    // broadcasts are verified and public by product definition.
+    //
+    // Writes are gated on auth + size + content-type only — admin-only
+    // enforcement happens at the server-action layer (publishPost /
+    // updateBroadcast), which is where URLs get persisted to Firestore.
+    // A non-admin could upload a blob but it would never be referenced
+    // by any broadcast or post (orphaned file; storage cost only).
+    // This avoids relying on cross-service Firestore lookups from
+    // Storage rules, which require project-level opt-in and fail
+    // silently when unavailable.
+    match /broadcasts/{broadcastId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
     // Default: deny all
     match /{allPaths=**} {
       allow read, write: if false;

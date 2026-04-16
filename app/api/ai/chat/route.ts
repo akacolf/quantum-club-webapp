@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         // Security: Validate session
         const session = await getSession();
         if (!session || !session.user?.telegramId) {
-            return NextResponse.json({ error: "Please log in to use AI" }, { status: 401 });
+            return NextResponse.json({ error: "Authentication required" }, { status: 401 });
         }
 
         // Use encrypted user ID for consistency with other Firebase operations

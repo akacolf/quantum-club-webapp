@@ -224,5 +224,72 @@ service cloud.firestore {
     match /pending_star_payments/{paymentId} {
       allow read, write: if false; // Server-only — sensitive payment data
     }
+
+    // QC Broadcasts — Telegram-channel-like one-to-many feeds.
+    // All mutations to broadcast docs, posts, admin roster, and verification
+    // approvals run via Admin SDK (server actions). Clients can only mutate
+    // their own subscription doc and their own reaction under userReactions.
+    match /broadcasts/{broadcastId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Server-only — creation happens via approval script
+
+      // Posts: authored by admins, read by anyone authenticated.
+      // Reactions counters are updated via transaction in server actions.
+      match /posts/{postId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Server-only
+
+        // Per-user reaction doc — each user tracks which emoji they chose.
+        // Written only by the owning user; the aggregate reactions map on
+        // the post doc is kept in sync via a server-side transaction.
+        // Reactions stay anonymous: only the user themselves can see their own
+        // doc; admins see aggregate counts only via the post's reactions map.
+        match /userReactions/{userId} {
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow write: if false; // Server-only (transactional counter + doc)
+        }
+
+        // Per-user viewer dedup doc — counts each user once. Private to the
+        // user; admins see aggregate viewCount on the post only.
+        match /viewers/{userId} {
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow write: if false; // Server-only (transactional increment)
+        }
+      }
+
+      // Admin roster — private. Only the admin themselves can read their doc;
+      // no client writes (roster is managed by owner via server actions).
+      match /admins/{adminId} {
+        allow read: if request.auth != null && request.auth.uid == adminId;
+        allow write: if false;
+      }
+
+      // Subscribers — each user owns their own subscription doc.
+      // Readable by the subscriber themselves, and by admins of this broadcast
+      // (admins need the list for their dashboard). Writes are server-only.
+      match /subscribers/{userId} {
+        allow read: if request.auth != null
+          && (request.auth.uid == userId
+              || exists(/databases/$(database)/documents/broadcasts/$(broadcastId)/admins/$(request.auth.uid)));
+        allow write: if false;
+      }
+    }
+
+    // Broadcast handle → id lookup. Public read for handle resolution,
+    // server-only write (created at approval time).
+    match /broadcastHandles/{handle} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Verification requests — any auth'd user can submit a request for
+    // themselves; only the requester can read their own request.
+    match /verificationRequests/{requestId} {
+      allow read: if request.auth != null
+        && resource.data.requesterQcId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.requesterQcId == request.auth.uid;
+      allow update, delete: if false; // Server-only moderation
+    }
   }
 }

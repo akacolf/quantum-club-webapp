@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "compile:contracts": "npx tsx scripts/compile-contracts.ts",
+    "approve-broadcast": "npx tsx --env-file=.env.local scripts/approve-broadcast.ts",
     "test:contracts": "cd contracts && npx jest --config jest.config.js",
     "analyze": "ANALYZE=true next build"
   },

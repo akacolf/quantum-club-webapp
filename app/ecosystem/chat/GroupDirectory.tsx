@@ -89,7 +89,7 @@ export default function GroupDirectory({ telegramId, qcUsername }: GroupDirector
 
   const handleJoin = async (group: PublicGroup) => {
     if (!telegramId || !qcUsername) {
-      toast.error("Sign in to join groups");
+      toast.error("Still connecting — try again in a moment");
       return;
     }
     if (group.bannedUsers.includes(telegramId)) {

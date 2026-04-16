@@ -309,3 +309,117 @@ export const createTokenCommunityChatSchema = z.object({
   tokenSymbol: z.string().min(1, "Token symbol is required"),
   tokenName: z.string().min(1, "Token name is required"),
 });
+
+// ---- QC Broadcasts (Telegram-channel-like) ----
+
+export const BROADCAST_HANDLE_MIN = 3;
+export const BROADCAST_HANDLE_MAX = 24;
+export const BROADCAST_HANDLE_REGEX = /^[a-z0-9][a-z0-9_]*[a-z0-9]$/;
+export const BROADCAST_NAME_MAX = 48;
+export const BROADCAST_BIO_MAX = 240;
+
+export const BROADCAST_REACTIONS = ["🔥", "❤️", "👍", "😂", "😮", "😢"] as const;
+export type BroadcastReaction = (typeof BROADCAST_REACTIONS)[number];
+
+export const broadcastHandleSchema = z
+  .string()
+  .min(BROADCAST_HANDLE_MIN, `Handle must be at least ${BROADCAST_HANDLE_MIN} characters`)
+  .max(BROADCAST_HANDLE_MAX, `Handle must be ${BROADCAST_HANDLE_MAX} characters or less`)
+  .regex(
+    BROADCAST_HANDLE_REGEX,
+    "Lowercase letters, numbers, and underscores only (no leading/trailing underscores)",
+  );
+
+/** Verification request submitted by any authenticated user */
+export const verificationRequestSchema = z.object({
+  proposedHandle: broadcastHandleSchema,
+  proposedName: z
+    .string()
+    .min(1, "Broadcast name is required")
+    .max(BROADCAST_NAME_MAX, `Name must be ${BROADCAST_NAME_MAX} characters or less`),
+  bio: z
+    .string()
+    .max(BROADCAST_BIO_MAX, `Bio must be ${BROADCAST_BIO_MAX} characters or less`),
+  contactTelegram: z.string().max(64, "Telegram handle too long"),
+  socials: z.string().max(500, "Socials must be 500 characters or less"),
+  reason: z
+    .string()
+    .min(1, "Please describe what you will broadcast")
+    .max(500, "Reason must be 500 characters or less"),
+});
+export type VerificationRequestFormData = z.infer<typeof verificationRequestSchema>;
+
+export const broadcastSubscribeSchema = z.object({
+  broadcastId: z.string().min(1),
+});
+
+export const broadcastMuteSchema = z.object({
+  broadcastId: z.string().min(1),
+  muted: z.boolean(),
+});
+
+export const broadcastReactionSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+  emoji: z.enum(BROADCAST_REACTIONS),
+});
+
+export const broadcastViewSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+});
+
+export const BROADCAST_POST_CONTENT_MAX = 2000;
+
+export const publishBroadcastPostSchema = z
+  .object({
+    broadcastId: z.string().min(1),
+    content: z.string().max(BROADCAST_POST_CONTENT_MAX, "Post is too long"),
+    media: z.array(z.string().url()).max(1, "One image per post for now"),
+  })
+  .refine(
+    (d) => d.content.trim().length > 0 || d.media.length > 0,
+    { message: "Write something or attach an image" },
+  );
+
+export const editBroadcastPostSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(BROADCAST_POST_CONTENT_MAX, "Post is too long"),
+});
+
+export const deleteBroadcastPostSchema = z.object({
+  broadcastId: z.string().min(1),
+  postId: z.string().min(1),
+});
+
+export const updateBroadcastSchema = z
+  .object({
+    broadcastId: z.string().min(1),
+    name: z
+      .string()
+      .min(1)
+      .max(BROADCAST_NAME_MAX, `Name must be ${BROADCAST_NAME_MAX} characters or less`)
+      .optional(),
+    bio: z
+      .string()
+      .max(BROADCAST_BIO_MAX, `Bio must be ${BROADCAST_BIO_MAX} characters or less`)
+      .optional(),
+    avatar: z.string().url().nullable().optional(),
+    coverImage: z.string().url().nullable().optional(),
+  })
+  .refine(
+    (d) =>
+      d.name !== undefined ||
+      d.bio !== undefined ||
+      d.avatar !== undefined ||
+      d.coverImage !== undefined,
+    { message: "No changes provided" },
+  );
+
+/** Broadcast discovery tab (for nuqs) */
+export const BROADCAST_TABS = ["explore", "following"] as const;
+export type BroadcastTab = (typeof BROADCAST_TABS)[number];

@@ -23,6 +23,27 @@ function getDeepLinkDestination() {
     if (startParam?.startsWith("join_")) {
       return "/ecosystem/chat" as const;
     }
+    // Broadcasts: `bcast-{handle}` for the channel, or
+    // `bcast-{handle}-{postId}` for a specific post (fan-out deep link).
+    if (startParam?.startsWith("bcast-")) {
+      const rest = startParam.slice("bcast-".length);
+      // Handles are [a-z0-9_]+ (no hyphens), so the first hyphen separates
+      // the handle from the optional postId.
+      const dashIdx = rest.indexOf("-");
+      if (dashIdx === -1) {
+        return rest
+          ? (`/ecosystem/broadcasts/${rest}` as `/ecosystem/broadcasts/${string}`)
+          : ("/ecosystem/chat?tab=discover&discoverTab=broadcasts" as const);
+      }
+      const handle = rest.slice(0, dashIdx);
+      const postId = rest.slice(dashIdx + 1);
+      if (handle && postId) {
+        return `/ecosystem/broadcasts/${handle}/${postId}` as `/ecosystem/broadcasts/${string}/${string}`;
+      }
+      if (handle) {
+        return `/ecosystem/broadcasts/${handle}` as `/ecosystem/broadcasts/${string}`;
+      }
+    }
     if (startParam === "alerts") {
       return "/wallet/settings/price-alerts" as const;
     }

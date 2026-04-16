@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { FieldError } from "@/components/ui/field";
 import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema, GROUP_CATEGORIES, type GroupCategory } from "@/lib/validations";
 import GroupDirectory from "./GroupDirectory";
+import BroadcastsDirectory from "./BroadcastsDirectory";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -364,6 +365,10 @@ export default function QCChatListPage() {
     "tab",
     parseAsStringEnum<"chats" | "discover">(["chats", "discover"]).withDefault("chats").withOptions({ history: "replace" }),
   );
+  const [discoverTab, setDiscoverTab] = useQueryState<"groups" | "broadcasts">(
+    "discoverTab",
+    parseAsStringEnum<"groups" | "broadcasts">(["groups", "broadcasts"]).withDefault("groups").withOptions({ history: "replace" }),
+  );
   const [formMode, setFormMode] = useState<FormMode>("none");
   const isLoading = isAuthenticated && isConversationsLoading;
 
@@ -445,6 +450,11 @@ export default function QCChatListPage() {
   };
 
   // Handle deep links: startapp=join_JOINCODE or startapp=chat_CHATID
+  // Consume the start_param once per WebApp session via sessionStorage.
+  // Without this, pressing Telegram's BackButton inside a deep-linked chat
+  // would land on this list, whose effect would re-read the still-sticky
+  // start_param and bounce the user right back into the chat — an
+  // inescapable loop.
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
     if (!currentUser || !telegramId || !qcUsername || deepLinkHandledRef.current) return;
@@ -452,9 +462,16 @@ export default function QCChatListPage() {
       const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
       if (!startParam) return;
 
+      const consumedKey = `qc-deeplink-consumed:${startParam}`;
+      if (typeof window !== "undefined" && sessionStorage.getItem(consumedKey)) {
+        deepLinkHandledRef.current = true;
+        return;
+      }
+
       // Handle chat deep link: navigate directly to chat
       if (startParam.startsWith("chat_")) {
         deepLinkHandledRef.current = true;
+        sessionStorage.setItem(consumedKey, "1");
         const targetChatId = startParam.replace("chat_", "");
         if (targetChatId) {
           router.push(`/ecosystem/chat/${targetChatId}`);
@@ -466,6 +483,7 @@ export default function QCChatListPage() {
       const code = startParam.replace("join_", "").toUpperCase();
       if (!code) return;
       deepLinkHandledRef.current = true;
+      sessionStorage.setItem(consumedKey, "1");
 
       // Auto-join: directly execute the join logic
       (async () => {
@@ -654,7 +672,7 @@ export default function QCChatListPage() {
     const normalizedUsername = rawUsername.replace(/^@+/, "").toLowerCase();
 
     if (!telegramId) {
-      setFormError("Please sign in to start a chat.");
+      setFormError("Still connecting — try again in a moment.");
       return;
     }
 
@@ -756,7 +774,7 @@ export default function QCChatListPage() {
       return;
     }
     if (!telegramId) {
-      setFormError("Please sign in.");
+      setFormError("Still connecting — try again in a moment.");
       return;
     }
 
@@ -817,7 +835,7 @@ export default function QCChatListPage() {
       return;
     }
     if (!telegramId) {
-      setFormError("Please sign in.");
+      setFormError("Still connecting — try again in a moment.");
       return;
     }
 
@@ -1294,11 +1312,47 @@ export default function QCChatListPage() {
       <div className="flex-1 overflow-y-auto">
         {tab === "discover" ? (
           telegramId && qcUsername ? (
-            <GroupDirectory telegramId={telegramId} qcUsername={qcUsername} />
+            <>
+              {/* Discover sub-tabs: Groups | Broadcasts */}
+              <div className="px-4 pt-2 pb-1 shrink-0">
+                <div className="flex gap-1 p-0.5 rounded-lg bg-muted/30">
+                  {(["groups", "broadcasts"] as const).map((t) => {
+                    const active = discoverTab === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setDiscoverTab(t)}
+                        className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                          active
+                            ? "bg-primary/15 text-primary"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Icon
+                          icon={
+                            t === "groups"
+                              ? "solar:users-group-rounded-bold"
+                              : "solar:radio-minimalistic-bold"
+                          }
+                          className="w-3.5 h-3.5"
+                        />
+                        {t === "groups" ? "Groups" : "Broadcasts"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {discoverTab === "groups" ? (
+                <GroupDirectory telegramId={telegramId} qcUsername={qcUsername} />
+              ) : (
+                <BroadcastsDirectory />
+              )}
+            </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
-              <Icon icon="solar:compass-bold" className="w-10 h-10 text-muted-foreground/50" />
-              <p className="text-xs text-muted-foreground">Sign in to discover public groups</p>
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-primary">
+              <ButtonLoader size="lg" />
+              <p className="text-xs text-muted-foreground">Connecting…</p>
             </div>
           )
         ) : isLoading ? (
@@ -1307,14 +1361,9 @@ export default function QCChatListPage() {
             <p className="text-xs text-muted-foreground">Loading chats...</p>
           </div>
         ) : !telegramId ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={40} height={40} />
-            </div>
-            <p className="text-sm font-medium text-foreground">Sign in to chat</p>
-            <p className="text-xs text-muted-foreground">
-              Log in with your Telegram account to start chatting.
-            </p>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-primary">
+            <ButtonLoader size="lg" />
+            <p className="text-xs text-muted-foreground">Connecting to Telegram…</p>
           </div>
         ) : (
           <div>

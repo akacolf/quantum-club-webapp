@@ -254,6 +254,11 @@ export async function UseRegisterAndAuth({ telegramIdEncrypted, initDataUnsafe }
           const existingData = userDataSnapshot.data();
           if (username !== existingData?.username) {
             await updateDoc(userReference, { username });
+            const userRankRef = doc(dbfs, "userRanks", telegramIdEncrypted);
+            const rankSnap = await getDoc(userRankRef);
+            if (rankSnap.exists()) {
+              await updateDoc(userRankRef, { username });
+            }
           }
           // Load qcUsername from Firestore for existing users
           if (existingData?.qcUsername) {
