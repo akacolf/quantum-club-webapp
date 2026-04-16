@@ -787,16 +787,27 @@ function buildPostPreview(post: admin.firestore.DocumentData): {
     return { preview: "New post", hasImage };
 }
 
+function escapeHtml(s: string): string {
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
 async function sendBroadcastNotification(
     botToken: string,
     telegramId: string,
     notif: BroadcastPostNotification,
     deepLink: string,
+    channelLink: string,
 ): Promise<void> {
+    // Format: "<b>Name</b> (<a>@handle</a>)\n\n{content}"
+    // Wrapping the @handle in a hyperlink prevents Telegram from auto-linking
+    // it to an unrelated Telegram account with the same username.
     const message =
-        `<b>${notif.broadcastName}</b>\n` +
-        `<i>@${notif.broadcastHandle}</i>\n\n` +
-        notif.preview;
+        `<b>${escapeHtml(notif.broadcastName)}</b> ` +
+        `(<a href="${channelLink}">@${escapeHtml(notif.broadcastHandle)}</a>)\n\n` +
+        escapeHtml(notif.preview);
 
     try {
         const res = await fetch(
@@ -866,6 +877,7 @@ export const onBroadcastPostCreate = functions.firestore
         const botUsername = getBroadcastBotUsername();
         const handle = String(broadcast.handle ?? broadcastId);
         const deepLink = `https://t.me/${botUsername}/app?startapp=bcast-${handle}-${postId}`;
+        const channelLink = `https://t.me/${botUsername}/app?startapp=bcast-${handle}`;
 
         const notif: BroadcastPostNotification = {
             broadcastId,
@@ -893,7 +905,13 @@ export const onBroadcastPostCreate = functions.firestore
                 if (!userSnap.exists) return;
                 const telegramId = resolveNumericalTelegramId(userSnap.data());
                 if (!telegramId) return;
-                await sendBroadcastNotification(botToken, telegramId, notif, deepLink);
+                await sendBroadcastNotification(
+                    botToken,
+                    telegramId,
+                    notif,
+                    deepLink,
+                    channelLink,
+                );
             } catch (err) {
                 functions.logger.error(
                     `[onBroadcastPostCreate] error for ${qcId}:`,

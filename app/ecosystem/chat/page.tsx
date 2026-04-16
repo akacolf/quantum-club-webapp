@@ -450,6 +450,11 @@ export default function QCChatListPage() {
   };
 
   // Handle deep links: startapp=join_JOINCODE or startapp=chat_CHATID
+  // Consume the start_param once per WebApp session via sessionStorage.
+  // Without this, pressing Telegram's BackButton inside a deep-linked chat
+  // would land on this list, whose effect would re-read the still-sticky
+  // start_param and bounce the user right back into the chat — an
+  // inescapable loop.
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
     if (!currentUser || !telegramId || !qcUsername || deepLinkHandledRef.current) return;
@@ -457,9 +462,16 @@ export default function QCChatListPage() {
       const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
       if (!startParam) return;
 
+      const consumedKey = `qc-deeplink-consumed:${startParam}`;
+      if (typeof window !== "undefined" && sessionStorage.getItem(consumedKey)) {
+        deepLinkHandledRef.current = true;
+        return;
+      }
+
       // Handle chat deep link: navigate directly to chat
       if (startParam.startsWith("chat_")) {
         deepLinkHandledRef.current = true;
+        sessionStorage.setItem(consumedKey, "1");
         const targetChatId = startParam.replace("chat_", "");
         if (targetChatId) {
           router.push(`/ecosystem/chat/${targetChatId}`);
@@ -471,6 +483,7 @@ export default function QCChatListPage() {
       const code = startParam.replace("join_", "").toUpperCase();
       if (!code) return;
       deepLinkHandledRef.current = true;
+      sessionStorage.setItem(consumedKey, "1");
 
       // Auto-join: directly execute the join logic
       (async () => {
