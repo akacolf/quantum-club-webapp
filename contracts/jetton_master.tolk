@@ -239,12 +239,28 @@ fun handleGraduate(
     assert(st.graduated) throw ERROR_NOT_GRADUATED;
     assert(st.tonReserve > 0) throw ERROR_INSUFFICIENT_LIQUIDITY;
 
-    // Parse DEX router address
-    val dexRouter = inMsgBody.loadAddress();
+    // Parse LP recipient address (platform wallet for automated LP provisioning)
+    val recipient = inMsgBody.loadAddress();
 
     // Calculate graduation fee (2%)
     val graduationFee = mulDivFloor(st.tonReserve, GRADUATION_FEE_BPS, 10000);
     val liquidityTon = st.tonReserve - graduationFee;
+
+    // Mint remaining supply for LP provisioning.
+    // The recipient receives these tokens to pair with liquidityTon in the DEX pool.
+    // After this, totalSupply == MAX_SUPPLY and no more tokens can ever be minted.
+    val lpTokens = MAX_SUPPLY - st.totalSupply;
+    if (lpTokens > 0) {
+        mintTokens(
+            recipient,
+            lpTokens,
+            queryId,
+            FORWARD_FEE,
+            st.jettonWalletCode,
+            JETTON_WALLET_DEPLOY_GAS
+        );
+        st.totalSupply = MAX_SUPPLY;
+    }
 
     // Clear reserve
     st.tonReserve = 0;
@@ -258,13 +274,11 @@ fun handleGraduate(
     // Send graduation fee to platform
     sendFee(st.adminAddress, graduationFee, queryId);
 
-    // Send liquidity to DEX router (or admin wallet for manual DEX provisioning).
+    // Send liquidity TON to recipient for LP provisioning.
     // Bounceable (0x18) so TON returns to contract on failure (recoverable via OP_WITHDRAW_FEES).
-    // No body — plain TON transfer is universally accepted; avoids rejection by
-    // routers that throw on unknown ops.
     val message: cell = beginCell()
         .storeUint(0x18, 6)
-        .storeAddress(dexRouter)
+        .storeAddress(recipient)
         .storeCoins(liquidityTon)
         .storeUint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
         .endCell();

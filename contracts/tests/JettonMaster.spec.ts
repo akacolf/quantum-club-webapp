@@ -521,21 +521,28 @@ describe('JettonMaster', () => {
             const curveData = await gradMaster.getCurveData();
             expect(curveData.graduated).toBe(true);
 
-            // Admin triggers graduation with DEX router address
-            const dexRouter = await blockchain.treasury('dex-router');
+            // Admin triggers graduation with platform wallet as LP recipient.
+            // The contract mints remaining supply to recipient and sends liquidity TON.
+            // Needs enough gas for: mint (0.15 TON wallet deploy) + fee transfer + TON transfer.
+            const lpRecipient = await blockchain.treasury('lp-recipient');
             const gradResult = await gradMaster.sendGraduate(
                 admin.getSender(),
-                toNano('0.1'),
-                dexRouter.address
+                toNano('0.5'),
+                lpRecipient.address
             );
 
-            // Should succeed — sends liquidity to DEX router
+            // Should succeed — mints LP tokens + sends liquidity TON to recipient
             expect(gradResult.transactions).toHaveTransaction({
                 from: admin.address,
                 to: gradMaster.address,
                 success: true,
                 op: OP_GRADUATE,
             });
+
+            // Verify total supply is now MAX_SUPPLY (all tokens minted)
+            const postGradData = await gradMaster.getCurveData();
+            expect(postGradData.totalSupply).toBe(1000000000000000000n); // MAX_SUPPLY
+            expect(postGradData.tonReserve).toBe(0n);
         });
     });
 });
