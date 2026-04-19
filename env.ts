@@ -18,14 +18,11 @@ export const env = createEnv({
     BOT_TOKEN: z.string().min(1),
     DEV_BOT_TOKEN: z.string().optional(),
     BOT_USERNAME: z.string().optional(),
-    TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
 
     // AI
     GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
     GEMINI_API_KEY: z.string().optional(),
 
-    // Google OAuth
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
 
     // Platform
     ADMIN_API_KEY: z.string().optional(),
@@ -67,7 +64,6 @@ export const env = createEnv({
 
     // Platform
     NEXT_PUBLIC_PLATFORM_WALLET: z.string().min(1),
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().min(1),
 
     // TON
     NEXT_PUBLIC_TONAPI_KEY: z.string().min(1),
@@ -89,10 +85,8 @@ export const env = createEnv({
     BOT_TOKEN: process.env.BOT_TOKEN,
     DEV_BOT_TOKEN: process.env.DEV_BOT_TOKEN,
     BOT_USERNAME: process.env.BOT_USERNAME,
-    TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET,
     GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     ADMIN_API_KEY: process.env.ADMIN_API_KEY,
     ADMIN_TELEGRAM_IDS: process.env.ADMIN_TELEGRAM_IDS,
     PLATFORM_WALLET_MNEMONIC: process.env.PLATFORM_WALLET_MNEMONIC,
@@ -115,7 +109,6 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_ID: process.env.NEXT_PUBLIC_APP_ID,
     NEXT_PUBLIC_MEASUREMENT_ID: process.env.NEXT_PUBLIC_MEASUREMENT_ID,
     NEXT_PUBLIC_PLATFORM_WALLET: process.env.NEXT_PUBLIC_PLATFORM_WALLET,
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     NEXT_PUBLIC_TONAPI_KEY: process.env.NEXT_PUBLIC_TONAPI_KEY,
     NEXT_PUBLIC_TON_NETWORK: process.env.NEXT_PUBLIC_TON_NETWORK,
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
