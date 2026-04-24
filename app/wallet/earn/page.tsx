@@ -13,7 +13,7 @@ import { useYieldProtocolsQuery } from "@/app/(hooks)/queries/use-yield-protocol
 
 // Risk level colors
 const RISK_COLORS = {
-    low: { bg: "bg-green-500/10", text: "text-green-500", border: "border-green-500/20" },
+    low: { bg: "bg-transparent", text: "text-green-500", border: "border-transparent" },
     medium: { bg: "bg-yellow-500/10", text: "text-yellow-500", border: "border-yellow-500/20" },
     high: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/20" },
 };

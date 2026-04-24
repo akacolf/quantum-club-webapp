@@ -1967,7 +1967,7 @@ export default function SendPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center justify-center py-10 space-y-6"
             >
-              <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/20">
+              <div className="flex items-center justify-center">
                 <Icon icon="lucide:check" className="w-12 h-12 text-green-500"/>
               </div>
               <div className="text-center space-y-2">

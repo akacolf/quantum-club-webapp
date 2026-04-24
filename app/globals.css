@@ -198,6 +198,35 @@ input, textarea, select {
     @apply bg-background text-foreground;
   }
 }
+
+/* App-wide no-gradient policy. Keep fallback background colors, but strip gradient images. */
+[class*="bg-gradient-to"],
+[class*="bg-linear-to"],
+[class*="radial-gradient"],
+[class*="linear-gradient"],
+[class*="conic-gradient"] {
+  background-image: none !important;
+}
+
+[class*="before:bg-gradient-to"]::before,
+[class*="before:bg-linear-to"]::before,
+[class*="before:radial-gradient"]::before,
+[class*="before:linear-gradient"]::before,
+[class*="before:conic-gradient"]::before,
+[class*="after:bg-gradient-to"]::after,
+[class*="after:bg-linear-to"]::after,
+[class*="after:radial-gradient"]::after,
+[class*="after:linear-gradient"]::after,
+[class*="after:conic-gradient"]::after {
+  background-image: none !important;
+}
+
+[class*="bg-clip-text"][class*="text-transparent"] {
+  background-image: none !important;
+  color: var(--foreground) !important;
+  -webkit-text-fill-color: currentColor;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {

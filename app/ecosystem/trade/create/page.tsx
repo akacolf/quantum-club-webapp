@@ -623,7 +623,7 @@ export default function CreateTokenPage() {
                                         </p>
                                     )}
 
-                                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex gap-3 items-start">
+                                    <div className="flex gap-3 items-start py-2">
                                         <Icon icon="solar:check-circle-bold" className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                                         <p className="text-xs text-emerald-300 leading-relaxed">
                                             Buying initially secures your position at the best possible entry price.
@@ -670,7 +670,7 @@ export default function CreateTokenPage() {
                             </CardContent>
                         </Card>
 
-                        <Alert className="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border-green-500/20">
+                        <Alert className="bg-card border-0">
                             <Icon icon="solar:gas-station-bold" className="w-4 h-4 text-green-400" />
                             <AlertDescription className="text-muted-foreground">
                                 <span className="font-medium text-green-400">Deployment Cost</span>

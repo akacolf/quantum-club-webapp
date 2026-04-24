@@ -54,7 +54,7 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
                     </div>
                     <Badge
                         className={`text-[10px] ${progress >= 100
-                            ? "bg-green-500/20 text-green-400"
+                            ? "bg-transparent text-green-400 border-0 px-0"
                             : progress >= 75
                                 ? "bg-amber-500/20 text-amber-400"
                                 : "bg-white/10 text-muted-foreground"
@@ -107,7 +107,7 @@ export default function GraduationProgress({ token, tonPriceUsd }: GraduationPro
 
                 {/* Graduation info */}
                 {progress >= 100 && (
-                    <div className="mt-3 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="mt-3 flex items-center gap-2 text-green-400">
                         <div className="flex items-center gap-2">
                             <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-green-400" />
                             <span className="text-xs text-green-400 font-medium">

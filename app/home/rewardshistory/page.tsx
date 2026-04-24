@@ -6,8 +6,31 @@ import TasksSkeleton from "./(components)/TasksSkeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRewardsHistoryQuery } from "@/app/(hooks)/queries/use-rewards-history";
+import { Icon } from "@iconify/react";
 
 function getPlatformIcon(platform: string | null) {
+  const iconClassName = "h-6 w-6 text-white";
+  const platformIcons: Record<string, string> = {
+    telegram: "ic:baseline-telegram",
+    "ic:baseline-telegram": "ic:baseline-telegram",
+    checktelegramAgain: "ic:baseline-telegram",
+    twitter: "simple-icons:x",
+    "pajamas:twitter": "simple-icons:x",
+    chemist: "lucide:flask-conical",
+    instagram: "simple-icons:instagram",
+    referrals: "lucide:users",
+    referrals10: "lucide:user-plus",
+    onchain: "lucide:infinity",
+    userMilestone: "lucide:trophy",
+    connectwallet: "lucide:wallet",
+    solvetoearnExplore: "lucide:brain",
+  };
+
+  const icon = platform ? platformIcons[platform] : null;
+  if (icon) {
+    return <Icon icon={icon} className={iconClassName} />;
+  }
+
   if (platform === "dailycheck-in-reward") {
     return (
       <svg
@@ -313,7 +336,7 @@ export default function RewardsHistory() {
                       <Card className="bg-[#111] border-[#333] hover:bg-[#161616] transition-colors">
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#222] border border-[#333] shrink-0">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center text-white">
                               {getPlatformIcon(task.platform)}
                             </div>
                             <div className="flex flex-col gap-0.5">
@@ -322,7 +345,7 @@ export default function RewardsHistory() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="flex items-center gap-1 bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20">
+                            <div className="flex items-center justify-end gap-1">
                               <span className="text-green-400 font-bold text-sm">
                                 +{task.quant}
                               </span>

@@ -232,7 +232,7 @@ export default function ProfilePage() {
                             <div className="space-y-4 pt-2">
                                 {isUnlocked(selectedAchievement) ? (
                                     <div className="flex flex-col items-center gap-2">
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
+                                        <div className="flex items-center gap-2 text-green-500">
                                             <Icon icon="solar:verified-check-bold" className="w-5 h-5 text-green-500" />
                                             <span className="text-sm font-medium text-green-500">Unlocked!</span>
                                         </div>

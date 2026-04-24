@@ -600,7 +600,7 @@ export default function TradePage() {
                         ) : (
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Badge className="bg-green-500/20 text-green-400 border-0">
+                                    <Badge className="bg-transparent text-green-400 border-0 px-0">
                                         <Icon icon="solar:verified-check-bold" className="w-3 h-3 mr-1" />
                                         Tradable on STON.fi
                                     </Badge>
@@ -732,7 +732,7 @@ export default function TradePage() {
                                 {deployedTokens.length > 0 && (
                                     <>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <Badge className="bg-green-500/20 text-green-400 border-0">
+                                            <Badge className="bg-transparent text-green-400 border-0 px-0">
                                                 <Icon icon="solar:verified-check-bold" className="w-3 h-3 mr-1" />
                                                 Live Tokens
                                             </Badge>

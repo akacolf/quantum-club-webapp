@@ -6,7 +6,7 @@ import { useRef } from "react";
 
 const Lottie = dynamic(() => import("lottie-react"), {
   ssr: false,
-  loading: () => <Skeleton className="w-[2.2em] h-[2.2em] rounded" />,
+  loading: () => <Skeleton className="w-[2.2em] h-[2.2em] rounded bg-white/10" />,
 });
 
 export default function LeaderboardHeader() {
@@ -15,7 +15,7 @@ export default function LeaderboardHeader() {
   return (
     <div className="items-center px-4 py-6 flex justify-between">
       <div className="flex items-center space-x-3">
-        <div className="w-14 h-14 flex items-center justify-center bg-white/5 rounded-2xl border border-white/10">
+        <div className="w-14 h-14 flex items-center justify-center">
           <Lottie
             lottieRef={lottieRef}
             animationData={trophyAnimationData}

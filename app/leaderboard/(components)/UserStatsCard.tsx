@@ -35,13 +35,11 @@ export default function UserStatsCard() {
         <span className="font-semibold text-white">Your Ranking</span>
       </div>
 
-      <Card className="bg-gradient-to-br from-white/10 to-transparent border-white/10 backdrop-blur-2xl overflow-hidden relative rounded-[24px]">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
-
-        <CardContent className="p-5 relative z-10">
+      <Card className="bg-[#141414] overflow-hidden relative rounded-[24px]">
+        <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-full border border-white/10">
+              <div className="w-12 h-12 flex items-center justify-center text-white">
                 <Logo width="2em" height="2em" />
               </div>
               <div>

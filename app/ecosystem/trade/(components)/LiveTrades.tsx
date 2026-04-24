@@ -74,7 +74,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                     <div className="flex items-center gap-2 mb-3">
                         <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary animate-pulse" />
                         <h3 className="font-semibold text-white">Live Trades</h3>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[9px] ml-auto">
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px] ml-auto">
                             ON-CHAIN
                         </Badge>
                     </div>
@@ -111,7 +111,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                     <div className="flex items-center gap-2 mb-3">
                         <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary" />
                         <h3 className="font-semibold text-white">Live Trades</h3>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[9px] ml-auto">
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px] ml-auto">
                             ON-CHAIN
                         </Badge>
                     </div>
@@ -135,7 +135,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                         </div>
                         <h3 className="font-semibold text-white">Live Trades</h3>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[9px]">
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px]">
                             ON-CHAIN
                         </Badge>
                     </div>
@@ -166,7 +166,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                                     <div className="flex items-center gap-2.5">
                                         <div
                                             className={`w-7 h-7 rounded-lg flex items-center justify-center ${isBuy
-                                                ? "bg-green-500/20 text-green-400"
+                                                ? "bg-transparent text-green-400"
                                                 : "bg-red-500/20 text-red-400"
                                                 }`}
                                         >

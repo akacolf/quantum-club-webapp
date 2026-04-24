@@ -285,7 +285,7 @@ export default function FarmingPage() {
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-white">Your Positions</h3>
-                                        <Badge variant="secondary" className="bg-green-500/10 text-green-400">
+                                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0">
                                             Earning
                                         </Badge>
                                     </div>
@@ -359,7 +359,7 @@ export default function FarmingPage() {
                                                             <p className="font-medium text-white text-sm">{farm.poolName}</p>
                                                             <div className="flex items-center gap-2 mt-1">
                                                                 {farm.apr && (
-                                                                    <Badge variant="secondary" className="bg-green-500/10 text-green-400 text-xs">
+                                                                    <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-xs">
                                                                         {farm.apr.toFixed(1)}% APR
                                                                     </Badge>
                                                                 )}

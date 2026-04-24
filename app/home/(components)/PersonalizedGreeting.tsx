@@ -21,8 +21,6 @@ export default function PersonalizedGreeting() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
-
-  // QC profile photo (null → render initials fallback)
   const photoUrl = useQcProfilePhoto(telegramId);
 
   // Display name computed during render — re-evaluates whenever `username`
@@ -48,15 +46,12 @@ export default function PersonalizedGreeting() {
           className="relative overflow-hidden border-0 bg-[#0a0a0a]/80 backdrop-blur-xl shadow-2xl group cursor-pointer hover:bg-black/80 transition-all duration-300"
           onClick={() => setSidebarOpen(true)}
         >
-          {/* Glow Effects */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[50px] pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
 
           <CardContent className="p-3 relative z-10">
             <div className="flex items-center justify-between gap-3">
-              {/* Left: Avatar & Info */}
               <div className="flex items-center gap-3 min-w-0">
-                {/* Avatar - Simple border, no gradient */}
                 <Avatar className="h-11 w-11 border border-[#333]">
                   <AvatarImage src={photoUrl || undefined} alt={displayName} />
                   <AvatarFallback className="bg-zinc-800 text-zinc-400">
@@ -64,7 +59,6 @@ export default function PersonalizedGreeting() {
                   </AvatarFallback>
                 </Avatar>
 
-                {/* Text Info */}
                 <div className="flex flex-col min-w-0">
                   <h3 className="font-bold text-base truncate pr-1">
                     <span className="text-white">Hi, </span>
@@ -73,7 +67,6 @@ export default function PersonalizedGreeting() {
                 </div>
               </div>
 
-              {/* Right: Menu Icon */}
               <div className="shrink-0">
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                   <Icon icon="lucide:menu" className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />

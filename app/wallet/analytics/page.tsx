@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
                   <Badge
                     variant="secondary"
                     className={`${change24h >= 0
-                      ? "bg-green-500/10 text-green-500 border-green-500/20"
+                      ? "bg-transparent text-green-500 border-0 px-0"
                       : "bg-red-500/10 text-red-500 border-red-500/20"
                       } text-xs`}
                   >

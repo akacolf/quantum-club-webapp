@@ -1,22 +1,15 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function Loading() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Personalized Greeting Card */}
-      <div className="w-[90%] mx-auto mt-4 mb-2">
-        <Card className="border-0 bg-[#0a0a0a]/80">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-11 w-11 rounded-full" />
-                <Skeleton className="h-5 w-36" />
-              </div>
-              <Skeleton className="h-8 w-8 rounded-full" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Personalized Greeting */}
+      <div className="px-5 pt-4 pb-4">
+        <Skeleton className="h-10 w-10 rounded-full" />
+        <div className="mt-3 flex flex-col items-center">
+          <Skeleton className="h-11 w-11 rounded" />
+          <Skeleton className="mt-4 h-4 w-72" />
+        </div>
       </div>
 
       {/* QNTM Balance — centered icon + amount + rank pill */}

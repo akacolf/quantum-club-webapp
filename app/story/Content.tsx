@@ -47,6 +47,8 @@ const TelegramSVG = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const STORY_COUNT = 2;
+
 const StoryContent = () => {
   useTelegramBackButton();
   const router = useRouter();
@@ -100,13 +102,16 @@ const StoryContent = () => {
 
   const handleNext = useCallback(() => {
     if (isExiting) return;
-    if (currentStory < stories.length - 1) {
-      setCurrentStory(prev => prev + 1);
+    setCurrentStory((prev) => {
+      if (prev >= STORY_COUNT - 1) {
+        queueMicrotask(() => closeStories());
+        return prev;
+      }
+
       setProgress(0);
-    } else {
-      closeStories();
-    }
-  }, [isExiting, currentStory, stories.length, closeStories]);
+      return prev + 1;
+    });
+  }, [isExiting, closeStories]);
 
   const handlePrev = useCallback(() => {
     if (isExiting) return;
@@ -133,7 +138,8 @@ const StoryContent = () => {
     return () => clearInterval(timer);
   }, [currentStory, isPaused, handleNext]);
 
-  const current = stories[currentStory];
+  const safeStoryIndex = Math.min(currentStory, stories.length - 1);
+  const current = stories[safeStoryIndex];
 
   const bindPrevDrag = useDrag(({ down }) => setIsPaused(down), { filterTaps: true });
   const bindNextDrag = useDrag(({ down }) => setIsPaused(down), { filterTaps: true });

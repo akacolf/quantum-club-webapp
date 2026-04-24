@@ -171,7 +171,7 @@ export default function QCDomainPage() {
                       <Icon icon="solar:verified-check-bold" className="w-5 h-5 text-green-400" />
                       <span className="text-sm font-medium text-foreground">Your Username</span>
                     </div>
-                    <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px]">
+                    <Badge className="bg-transparent text-green-400 border-0 text-[10px] px-0">
                       Active
                     </Badge>
                   </div>

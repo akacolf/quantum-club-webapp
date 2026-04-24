@@ -20,7 +20,7 @@ export default function LeaderboardList({ fetchNextPage, hasNextPage, isFetching
 
     const virtualizer = useWindowVirtualizer({
         count: leaderboardContext?.length ?? 0,
-        estimateSize: () => 64,
+        estimateSize: () => 76,
         overscan: 5,
         scrollMargin: listRef.current?.offsetTop ?? 0,
     });
@@ -56,13 +56,13 @@ export default function LeaderboardList({ fetchNextPage, hasNextPage, isFetching
                             return (
                                 <div
                                     key={virtualItem.index}
-                                    className="absolute top-0 left-0 w-full"
+                                    className="absolute top-0 left-0 w-full py-1.5"
                                     style={{ transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)` }}
                                     data-index={virtualItem.index}
                                     ref={virtualizer.measureElement}
                                 >
                                     <div
-                                        className={`p-4 flex items-center justify-between rounded-2xl transition-all active:scale-[0.98] border border-transparent ${index < 3 ? 'bg-white/5 border-white/5 shadow-sm' : 'hover:bg-white/5'}`}
+                                        className={`p-4 flex items-center justify-between rounded-2xl transition-all active:scale-[0.98] ${index < 3 ? 'bg-white/5 shadow-sm' : 'hover:bg-white/5'}`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 flex items-center justify-center">

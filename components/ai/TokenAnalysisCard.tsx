@@ -68,7 +68,7 @@ export function TokenAnalysisCard({
     };
 
     const getRiskBadge = (score: number) => {
-        if (score <= 3) return { label: "Low Risk", className: "bg-green-500/20 text-green-400" };
+        if (score <= 3) return { label: "Low Risk", className: "bg-transparent text-green-400 border-0 px-0" };
         if (score <= 6) return { label: "Medium Risk", className: "bg-yellow-500/20 text-yellow-400" };
         return { label: "High Risk", className: "bg-red-500/20 text-red-400" };
     };

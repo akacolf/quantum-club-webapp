@@ -93,6 +93,8 @@ import { useQcUsernamesBatch, useQcUsernameQuery } from "@/app/(hooks)/queries/u
 import { isQcTeamMember } from "@/lib/qc-team";
 import { toast } from "sonner";
 
+const gradientPattern = /(?:linear|radial|conic)-gradient/i;
+
 interface ChatMessage {
   id: string;
   text: string;
@@ -467,7 +469,12 @@ export default function ChatConversationClient() {
   useEffect(() => {
     if (!chatId) return;
     const saved = localStorage.getItem(`chatTheme_${chatId}`);
-    if (saved) requestAnimationFrame(() => setChatTheme(saved));
+    if (!saved) return;
+    if (gradientPattern.test(saved)) {
+      localStorage.removeItem(`chatTheme_${chatId}`);
+      return;
+    }
+    requestAnimationFrame(() => setChatTheme(saved));
   }, [chatId]);
 
   // Set current chat for presence tracking + mark as read
@@ -2809,7 +2816,7 @@ export default function ChatConversationClient() {
         ref={chatContainerRef}
         onScroll={() => { handleScroll(); handleScrollForPagination(); }}
         className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5"
-        style={chatTheme ? { background: chatTheme } : undefined}
+        style={chatTheme && !gradientPattern.test(chatTheme) ? { background: chatTheme } : undefined}
       >
         {/* Load older indicator */}
         {!isLoading && messages.length > 0 && (

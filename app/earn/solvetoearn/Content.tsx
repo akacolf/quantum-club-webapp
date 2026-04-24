@@ -369,7 +369,6 @@ const SolveToEarnContent = () => {
     !isLoading ? (
       <div className="fixed inset-0 z-100 bg-black text-white p-4 flex flex-col overflow-hidden h-dvh">
         {/* Background Effects */}
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_50%)] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
         {/* Main Game Area */}

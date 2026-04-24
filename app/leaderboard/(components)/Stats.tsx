@@ -11,13 +11,13 @@ const Lottie = dynamic(() => import("lottie-react"), {
 });
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext";
 
-function Logo({ width = "2.5em", height = "2.5em"}: SvgProps) {
+function Logo({ width = "2.5em", height = "2.5em" }: SvgProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width={width}
       height={height}
-      className="inline-block text-blue-400"
+      className="inline-block text-white"
       viewBox="0 0 32 32"
     >
       <path
@@ -29,37 +29,36 @@ function Logo({ width = "2.5em", height = "2.5em"}: SvgProps) {
 }
 
 export default function LeaderboardStats() {
+  const { totalQuant, totalUsers } = useLeaderboardContext();
+  const lottieRef = useRef<LottieRefCurrentProps>(null);
 
-    const { totalQuant, totalUsers } = useLeaderboardContext();
-    const lottieRef = useRef<LottieRefCurrentProps>(null);
+  return (
+    <div className="grid grid-cols-2 gap-4 px-4 mt-4">
+      <div className="flex flex-col items-center justify-center text-center space-y-2 py-4">
+        <div className="p-2">
+          <Logo width="2.5em" height="2.5em" />
+        </div>
+        <div>
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total QNTM</div>
+          <div className="text-xl font-bold text-white">{totalQuant}</div>
+        </div>
+      </div>
 
-    return (
-        <div className="grid grid-cols-2 gap-4 px-4 mt-4">
-            <div className="flex flex-col items-center justify-center text-center space-y-2 py-4">
-                <div className="p-2">
-                  <Logo width="2.5em" height="2.5em" />
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total QNTM</div>
-                  <div className="text-xl font-bold text-white">{totalQuant}</div>
-                </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center text-center space-y-2 py-4">
-                <div className="p-2">
-                  <Lottie
-                    animationData={smilingAnimationData}
-                    lottieRef={lottieRef}
-                    autoplay={true}
-                    loop={1}
-                    style={{ width: "2.5em", height: "2.5em" }}
-                  />
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Users</div>
-                  <div className="text-xl font-bold text-white">{totalUsers}</div>
-                </div>
-            </div>
-          </div>
-    )
+      <div className="flex flex-col items-center justify-center text-center space-y-2 py-4">
+        <div className="p-2">
+          <Lottie
+            animationData={smilingAnimationData}
+            lottieRef={lottieRef}
+            autoplay={true}
+            loop={1}
+            style={{ width: "2.5em", height: "2.5em" }}
+          />
+        </div>
+        <div>
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Users</div>
+          <div className="text-xl font-bold text-white">{totalUsers}</div>
+        </div>
+      </div>
+    </div>
+  );
 }

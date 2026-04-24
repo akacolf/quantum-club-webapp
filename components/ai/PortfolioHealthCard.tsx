@@ -66,7 +66,7 @@ export function PortfolioHealthCard({
     const getDiversificationBadge = (level: string) => {
         switch (level) {
             case "GOOD":
-                return { color: "text-green-400", bg: "bg-green-500/20" };
+                return { color: "text-green-400", bg: "bg-transparent" };
             case "MODERATE":
                 return { color: "text-yellow-400", bg: "bg-yellow-500/20" };
             default:

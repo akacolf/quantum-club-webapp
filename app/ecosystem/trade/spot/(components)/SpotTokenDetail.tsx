@@ -117,7 +117,7 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                             <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-blue-400 flex-shrink-0" />
                         )}
                         {trustScore !== undefined && trustScore >= 80 && (
-                            <Badge className="bg-green-500/10 text-green-400 border-0 text-[9px] h-4">
+                            <Badge className="bg-transparent text-green-400 border-0 text-[9px] h-4 px-0">
                                 {trustScore}/100
                             </Badge>
                         )}
@@ -136,7 +136,7 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                         >
                             <Icon icon="solar:link-round-bold" className="w-3.5 h-3.5" />
                         </a>
-                        <Badge className="bg-green-500/10 text-green-400 border-0 text-[9px] h-4">STON.fi</Badge>
+                        <Badge className="bg-transparent text-green-400 border-0 text-[9px] h-4 px-0">STON.fi</Badge>
                     </div>
                 </div>
             </div>

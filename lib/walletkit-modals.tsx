@@ -175,7 +175,7 @@ function TransactionModal() {
 
                 {/* Emulation result */}
                 {isEmulationSuccess && emulationPreview?.result === "success" && (
-                    <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="py-2">
                         <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                             <Icon icon="lucide:check-circle" className="w-4 h-4" />
                             <span>Transaction simulated successfully</span>

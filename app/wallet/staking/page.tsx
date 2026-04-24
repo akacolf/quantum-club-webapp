@@ -565,7 +565,7 @@ export default function StakingPage() {
 
                                         {/* Estimated Rewards */}
                                         {rewards && stakeAmountNum > 0 && (
-                                            <Card className="bg-green-500/10 border-green-500/20">
+                                            <Card className="bg-[#111]">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center gap-2 mb-3">
                                                         <Icon icon="lucide:gift" className="w-5 h-5 text-green-500"/>

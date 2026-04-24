@@ -41,7 +41,7 @@ import { deployJetton as deployJettonAction, confirmJettonDeployment } from "@/a
 import { FEE_CONFIG, ROCKETSTART_TESTNET } from "@/lib/platform-config";
 import { getBalance, isContractActive } from "@/lib/ton-api";
 import { analyticsEvents } from "@/lib/telegramAnalytics";
-import type { QueryClient } from "@tanstack/react-query";
+import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 
 // =====================================================
 // External dependencies injected by TradingProvider
@@ -159,6 +159,36 @@ const defaultDeps: TradingDeps = {
   refetchMyTokens: () => {},
   queryClient: null as unknown as QueryClient,
 };
+
+type TokenPage = {
+  tokens: Token[];
+  lastDoc?: unknown;
+};
+
+type TokenQueryData = Token[] | InfiniteData<TokenPage>;
+
+function updateTokenQueryData(
+  data: TokenQueryData | undefined,
+  updateToken: (token: Token) => Token,
+): TokenQueryData | undefined {
+  if (!data) return data;
+
+  if (Array.isArray(data)) {
+    return data.map(updateToken);
+  }
+
+  if (Array.isArray(data.pages)) {
+    return {
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        tokens: Array.isArray(page.tokens) ? page.tokens.map(updateToken) : page.tokens,
+      })),
+    };
+  }
+
+  return data;
+}
 
 export const useTradingStore = create<TradingStore>()((set, get) => ({
   // State defaults
@@ -976,16 +1006,14 @@ export const useTradingStore = create<TradingStore>()((set, get) => ({
     );
 
     if (enrichedUpdates.length > 0) {
-      const updateTokenList = (tokens: Token[] | undefined) => {
-        if (!tokens) return tokens;
-        return tokens.map((token) => {
+      const updateTokenList = (data: TokenQueryData | undefined) =>
+        updateTokenQueryData(data, (token) => {
           const update = enrichedUpdates.find((u) => u.id === token.id);
           return update ? { ...token, ...update.data } : token;
         });
-      };
 
-      queryClient.setQueryData<Token[]>(["tokens", "trending"], updateTokenList);
-      queryClient.setQueryData<Token[]>(["tokens", "new"], updateTokenList);
+      queryClient.setQueryData<TokenQueryData>(["tokens", "trending"], updateTokenList);
+      queryClient.setQueryData<TokenQueryData>(["tokens", "new"], updateTokenList);
     }
   },
 

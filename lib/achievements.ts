@@ -241,7 +241,7 @@ export const achievements: Achievement[] = [
 
 export const RARITY_CONFIG: Record<AchievementRarity, { label: string; bg: string }> = {
     common: { label: "Common", bg: "bg-gray-500/20 text-gray-400" },
-    uncommon: { label: "Uncommon", bg: "bg-green-500/20 text-green-400" },
+    uncommon: { label: "Uncommon", bg: "bg-transparent text-green-400 border-0 px-0" },
     rare: { label: "Rare", bg: "bg-blue-500/20 text-blue-400" },
     epic: { label: "Epic", bg: "bg-purple-500/20 text-purple-400" },
     legendary: { label: "Legendary", bg: "bg-amber-500/20 text-amber-400" },

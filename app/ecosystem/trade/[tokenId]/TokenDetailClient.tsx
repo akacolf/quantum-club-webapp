@@ -336,7 +336,7 @@ export default function TokenDetailClient() {
                             <Badge
                                 className={`text-[9px] h-4 border-0 font-semibold ${
                                     !selectedToken.isGraduated
-                                    ? "bg-green-500/10 text-green-400"
+                                    ? "bg-transparent text-green-400 px-0"
                                     : "bg-blue-500/10 text-blue-400"
                                 }`}
                             >
@@ -432,7 +432,7 @@ export default function TokenDetailClient() {
                             <p className="text-base font-semibold text-white">
                                 {formatPrice(BigInt(selectedToken.currentPrice || "0"))} TON
                             </p>
-                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
+                            <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px]">
                                 ON-CHAIN
                             </Badge>
                         </div>
@@ -523,7 +523,7 @@ export default function TokenDetailClient() {
                                                 {isPnlPositive ? "+" : ""}{formatCompactNumber(pnlTon, 4)} TON
                                             </p>
                                         </div>
-                                        <div className={`px-2 py-1 rounded-lg text-xs font-bold ${isPnlPositive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                                        <div className={`text-xs font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
                                             {isPnlPositive ? "+" : ""}{pnlPercent.toFixed(2)}%
                                         </div>
                                     </div>

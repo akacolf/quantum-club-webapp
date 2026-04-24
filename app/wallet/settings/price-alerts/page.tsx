@@ -270,7 +270,7 @@ export default function PriceAlertsPage() {
                                             onClick={() => form.setFieldValue("direction", "above")}
                                             className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${
                                                 direction === "above"
-                                                    ? "bg-green-500/20 border-green-500/50 text-green-500 hover:bg-green-500/30 hover:text-green-600"
+                                                    ? "bg-muted border-border text-green-500 hover:bg-muted hover:text-green-500"
                                                     : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                             }`}
                                         >
