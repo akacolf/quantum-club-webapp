@@ -175,26 +175,28 @@ export default function MarketPulse() {
         ) : null}
 
         {fearGreed ? (
-          <div className="w-48 flex-shrink-0 flex items-center gap-3 bg-[#111] rounded-xl px-3 py-2 shadow-sm">
-            <FearGreedGauge value={fearGreed.value} />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="whitespace-nowrap text-[10px] font-bold text-neutral-400">
-                Fear & Greed
-              </span>
-              <span className="flex items-baseline gap-2 text-sm font-bold text-white tracking-tight">
-                <span>{fearGreed.value}</span>
-                <span
-                  className={`text-xs font-bold whitespace-nowrap ${
-                    fearGreed.value >= 60
-                      ? "text-green-500"
-                      : fearGreed.value >= 40
-                        ? "text-amber-500"
-                        : "text-red-500"
-                  }`}
-                >
-                  {fearGreed.classification}
+          <div className="w-48 flex-shrink-0 flex items-center justify-between gap-3 bg-[#111] rounded-xl px-3 py-2 shadow-sm">
+            <div className="flex items-center gap-3 min-w-0">
+              <FearGreedGauge value={fearGreed.value} />
+              <span className="flex min-w-0 flex-col">
+                <span className="whitespace-nowrap text-[10px] font-bold text-neutral-400">
+                  Fear & Greed
+                </span>
+                <span className="text-sm font-bold text-white tracking-tight">
+                  {fearGreed.value}
                 </span>
               </span>
+            </div>
+            <div
+              className={`flex h-full items-center text-xs font-bold whitespace-nowrap ${
+                fearGreed.value >= 60
+                  ? "text-green-500"
+                  : fearGreed.value >= 40
+                    ? "text-amber-500"
+                    : "text-red-500"
+              }`}
+            >
+              {fearGreed.classification}
             </div>
           </div>
         ) : null}

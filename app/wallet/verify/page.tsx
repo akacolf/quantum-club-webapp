@@ -111,10 +111,10 @@ export default function VerifyPhrasePage() {
           className="space-y-6"
         >
           {/* Header */}
-          <div className="text-center space-y-3">
-            <Icon icon="lucide:check" className="mx-auto w-9 h-9 text-neutral-300"/>
+          <div className="text-left space-y-3">
+            <Icon icon="lucide:check" className="w-9 h-9 text-neutral-300"/>
             <h1 className="text-2xl font-bold">Verify your phrase</h1>
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+            <p className="text-muted-foreground text-sm max-w-xs">
               Enter the correct words from your recovery phrase to verify you saved it.
             </p>
           </div>
@@ -138,7 +138,7 @@ export default function VerifyPhrasePage() {
                           onBlur={field.handleBlur}
                           onChange={(e) => field.handleChange(e.target.value)}
                           placeholder={`Enter word #${item.index + 1}`}
-                          className="w-full bg-[#1a1a1a] border-0 rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:bg-[#222] focus:ring-0 font-mono transition-colors"
+                          className="w-full bg-secondary border-0 rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:bg-secondary/80 focus:ring-0 font-mono transition-colors"
                           autoComplete="off"
                           autoCorrect="off"
                           autoCapitalize="off"
@@ -157,8 +157,8 @@ export default function VerifyPhrasePage() {
           <div className="flex flex-col gap-3">
             <Button
               onClick={handleGoBack}
-              variant="outline"
-              className="w-full bg-[#1a1a1a] border-0 text-white hover:bg-[#222] h-12 transition-colors"
+              variant="secondary"
+              className="w-full h-12 transition-colors"
             >
               Go back
             </Button>

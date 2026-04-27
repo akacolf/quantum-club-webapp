@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
@@ -93,16 +92,14 @@ export default function BackupPhrasePage() {
 
 
           <div className="relative">
-            <ScrollArea className="h-64 rounded-xl bg-[#111]">
-              <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
-                {mnemonic.map((word, i) => (
-                  <div key={i} className="flex items-center space-x-2 bg-[#1a1a1a] rounded-lg px-3 py-2.5">
-                    <span className="text-[10px] font-mono text-muted-foreground/50 w-4 select-none">{i + 1}.</span>
-                    <span className="text-sm font-medium text-foreground font-mono">{word}</span>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+            <div className={`grid w-full grid-cols-2 sm:grid-cols-3 gap-3 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
+              {mnemonic.map((word, i) => (
+                <div key={i} className="flex items-center space-x-2 bg-secondary rounded-lg px-3 py-2.5">
+                  <span className="text-[10px] font-mono text-muted-foreground/50 w-4 select-none">{i + 1}.</span>
+                  <span className="text-sm font-medium text-foreground font-mono">{word}</span>
+                </div>
+              ))}
+            </div>
 
             {!isRevealed && (
               <div className="absolute inset-0 flex items-center justify-center z-10">

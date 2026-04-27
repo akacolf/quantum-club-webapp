@@ -327,7 +327,7 @@ export default function ImportWalletPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 p-4 bg-secondary/50 rounded-[32px] backdrop-blur-sm relative overflow-hidden">
+              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-2.5">
                 {seedPhrase.map((word, i) => (
                   <div key={i} className="group relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/30 font-bold font-mono tracking-tighter select-none pointer-events-none z-10 transition-colors group-hover:text-muted-foreground">
@@ -406,7 +406,7 @@ export default function ImportWalletPage() {
             </AnimatePresence>
 
             {/* Smart Security Banner - Primary Accent */}
-            <div className="bg-secondary/50 rounded-3xl p-5 space-y-4">
+            <div className="w-full space-y-4 px-1">
               <div className="flex gap-4">
                 <Icon icon="lucide:shield-check" className="w-6 h-6 text-primary shrink-0 mt-0.5"/>
                 <div className="space-y-1.5">
