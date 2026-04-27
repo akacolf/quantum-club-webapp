@@ -15,6 +15,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -84,7 +91,14 @@ const ETH_ICON = "/svg/eth-logo.svg";
 const BTC_ICON = "/svg/btc-logo.svg";
 const SOL_ICON = "/svg/sol-logo.svg";
 const TRX_ICON = "/svg/trx-logo.svg";
-const WALLET_SYMBOLS = ["◆", "◐", "✦", "●", "▲", "◈"];
+const WALLET_SYMBOLS = [
+  "solar:wallet-bold",
+  "solar:star-bold",
+  "solar:shield-keyhole-bold",
+  "solar:bolt-bold",
+  "solar:crown-bold",
+  "solar:planet-bold",
+];
 
 // Format amount to 2 decimal places for display
 const formatAmount = (value: number | string, decimals: number = 2): string => {
@@ -640,7 +654,7 @@ export default function WalletPage() {
                         variant="ghost"
                         className="h-9 max-w-52 rounded-full border-0 bg-transparent px-0 text-xs font-medium text-neutral-200 hover:bg-transparent hover:text-white"
                       >
-                        <span className="mr-2 text-sm text-neutral-300">{walletSymbol}</span>
+                        <Icon icon={walletSymbol} className="mr-2 h-4 w-4 text-neutral-300" />
                         <span className="truncate">
                           {storedWallets.find((wallet) => wallet.address === walletAddress)?.name ?? "Wallet"}
                         </span>
@@ -667,9 +681,9 @@ export default function WalletPage() {
                                 ? "bg-secondary text-white"
                                 : "text-neutral-500 hover:bg-secondary hover:text-neutral-200"
                             }`}
-                            aria-label={`Use ${symbol} as wallet symbol`}
+                            aria-label="Use wallet symbol"
                           >
-                            {symbol}
+                            <Icon icon={symbol} className="h-4 w-4" />
                           </button>
                         ))}
                       </div>
@@ -694,6 +708,13 @@ export default function WalletPage() {
                           ) : null}
                         </DropdownMenuItem>
                       ))}
+                      <DropdownMenuSeparator className="bg-secondary" />
+                      <DropdownMenuItem asChild className="rounded-xl text-neutral-200 focus:bg-secondary focus:text-white">
+                        <Link href="/wallet/import" className="flex items-center gap-2">
+                          <Icon icon="lucide:plus" className="h-4 w-4" />
+                          Add wallet
+                        </Link>
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <Button
@@ -756,7 +777,7 @@ export default function WalletPage() {
                       : 'group cursor-pointer'
                       }`}
                   >
-                    <div className={`flex h-8 items-center justify-center ${action.disabled
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary ${action.disabled
                       ? 'text-neutral-600'
                       : 'text-white transition-all duration-200 group-hover:scale-105'
                       }`}>
@@ -787,6 +808,7 @@ export default function WalletPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-white text-lg">QNTM</h4>
+                    <p className="text-xs text-neutral-400">The native token of Quantum Club</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -798,14 +820,13 @@ export default function WalletPage() {
                   ) : (
                     <>
                       <h4 className="font-bold text-orange-400 text-xl">{hideBalance ? "••••••" : MainQuantAmount}</h4>
-                      <p className="text-xs text-neutral-500">QC points</p>
                     </>
                   )}
                 </div>
               </div>
               <Button
                 asChild
-                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-bold transform-none hover:transform-none transition-opacity duration-200 hover:opacity-80 border-0 focus:ring-0 focus-visible:ring-0"
+                className="w-full font-bold"
               >
                 <Link href="/wallet/send-qntm">
                   <Icon icon="lucide:send" className="w-4 h-4 mr-2"/>
@@ -899,7 +920,7 @@ export default function WalletPage() {
                 key={index}
                 onClick={() => carouselApi?.scrollTo(index)}
                 className={`h-1.5 rounded-full transition-all duration-300 overflow-hidden relative cursor-pointer ${
-                  index === carouselCurrent ? "w-8 bg-[#333]" : "w-1.5 bg-[#333] hover:bg-[#444]"
+                  index === carouselCurrent ? "w-8 bg-secondary" : "w-1.5 bg-secondary hover:bg-secondary/80"
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               >
@@ -950,25 +971,15 @@ export default function WalletPage() {
           </TabsList>
 
           <TabsContent value="assets" className="mt-4 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { value: "ton", label: "TON" },
-                { value: "multichain", label: "Multi chain" },
-              ] as const).map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => setAssetChainTab(tab.value)}
-                  className={`h-10 rounded-xl text-sm font-semibold transition-colors ${
-                    assetChainTab === tab.value
-                      ? "bg-white text-black"
-                      : "bg-secondary text-neutral-400"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            <Select value={assetChainTab} onValueChange={(value) => setAssetChainTab(value as AssetChainTab)}>
+              <SelectTrigger className="h-11 rounded-xl font-semibold">
+                <SelectValue placeholder="Select chain" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl bg-popover">
+                <SelectItem value="ton">TON</SelectItem>
+                <SelectItem value="multichain">Multi chain</SelectItem>
+              </SelectContent>
+            </Select>
             {assetChainTab === "ton" ? (
               <>
             {/* TON network section header */}

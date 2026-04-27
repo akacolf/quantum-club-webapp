@@ -31,17 +31,17 @@ import HomeSearch from "./(components)/HomeSearch";
 // Below-fold / interactive components - lazy load for better FCP/LCP
 const HomeCarousel = dynamic(() => import("@/app/home/(components)/homepagecarousel/Carousel"), {
   ssr: false,
-  loading: () => <div className="w-[90%] mx-auto h-44 bg-[#1a1a1a] rounded-xl animate-pulse" />
+  loading: () => <div className="w-[90%] mx-auto h-44 bg-secondary rounded-xl animate-pulse" />
 });
 
 const DailyCheckIn = dynamic(() => import("./(components)/DailyCheck"), {
   ssr: false,
-  loading: () => <div className="w-[90%] mx-auto h-16 sm:h-20 bg-[#1a1a1a] rounded-xl animate-pulse" />
+  loading: () => <div className="w-[90%] mx-auto h-16 sm:h-20 bg-secondary rounded-xl animate-pulse" />
 });
 
 const QntmBalance = dynamic(() => import('./(components)/QntmBalance'), {
   ssr: false,
-  loading: () => <div className="w-[90%] mx-auto h-32 bg-[#1a1a1a] rounded-xl animate-pulse" />
+  loading: () => <div className="w-[90%] mx-auto h-32 bg-secondary rounded-xl animate-pulse" />
 });
 
 const MarketPulse = dynamic(() => import('./(components)/MarketPulse'), {
@@ -49,9 +49,9 @@ const MarketPulse = dynamic(() => import('./(components)/MarketPulse'), {
   loading: () => (
     <div className="w-full overflow-x-auto hide-scrollbar">
       <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
-        <div className="h-10 w-36 shrink-0 rounded-xl bg-[#1a1a1a] animate-pulse" />
-        <div className="h-10 w-40 shrink-0 rounded-xl bg-[#1a1a1a] animate-pulse" />
-        <div className="h-10 w-44 shrink-0 rounded-xl bg-[#1a1a1a] animate-pulse" />
+        <div className="h-10 w-36 shrink-0 rounded-xl bg-secondary animate-pulse" />
+        <div className="h-10 w-40 shrink-0 rounded-xl bg-secondary animate-pulse" />
+        <div className="h-10 w-44 shrink-0 rounded-xl bg-secondary animate-pulse" />
       </div>
     </div>
   )
@@ -60,7 +60,7 @@ const MarketPulse = dynamic(() => import('./(components)/MarketPulse'), {
 
 const SpotTokenCard = dynamic(() => import("@/app/ecosystem/trade/spot/(components)/SpotTokenCard"), {
   ssr: false,
-  loading: () => <div className="h-16 bg-[#1a1a1a] rounded-xl animate-pulse" />
+  loading: () => <div className="h-16 bg-secondary rounded-xl animate-pulse" />
 });
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
@@ -335,7 +335,7 @@ const HomeContent = () => {
           </Link>
 
           <Link href="/ecosystem/trade" className="flex-1">
-            <Button className="w-full h-11 rounded-xl font-bold text-sm bg-[#1a1a1a] text-white hover:bg-[#222] flex items-center justify-center gap-2 transition-all">
+            <Button variant="secondary" className="w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
               <Icon icon="lucide:arrow-left-right" width="18" height="18" />
               Trade
             </Button>
@@ -348,7 +348,7 @@ const HomeContent = () => {
             onClick={() => goToSolveToEarn()} 
             className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="w-12 h-12 rounded-2xl bg-[#111] flex items-center justify-center shadow-sm relative">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
               <Icon icon="lucide:brain" width="20" height="20" />
               {remainingSolveToEarn > 0 && (
                 <Badge className="absolute -top-2 -right-2 px-1.5 py-0 text-[10px] font-bold rounded-full bg-white text-black hover:bg-white border-[2px] border-black leading-none flex items-center justify-center min-w-[18px] min-h-[18px]">
@@ -360,30 +360,30 @@ const HomeContent = () => {
           </button>
 
           <Link href="/home/rewardshistory" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
-            <div className="w-12 h-12 rounded-2xl bg-[#111] flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
               <Icon icon="lucide:history" width="20" height="20" />
             </div>
             <span className="text-[11px] font-medium tracking-wide">History</span>
           </Link>
 
           <Link href="/ecosystem/chat" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
-            <div className="w-12 h-12 rounded-2xl bg-[#111] flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
               <Icon icon="lucide:message-circle" width="20" height="20" />
             </div>
             <span className="text-[11px] font-medium tracking-wide">Chat</span>
           </Link>
 
           <Link href="/ecosystem/chat/qc-ai" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
-            <div className="w-12 h-12 rounded-2xl bg-[#111] flex items-center justify-center shadow-sm relative">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
               <Icon icon="lucide:sparkles" width="20" height="20" />
             </div>
             <span className="text-[11px] font-medium tracking-wide">AI</span>
           </Link>
 
           <button disabled className="flex flex-col items-center gap-1.5 text-neutral-500 transition-colors cursor-not-allowed w-fit opacity-60">
-            <div className="w-12 h-12 rounded-2xl bg-[#111] flex items-center justify-center shadow-sm relative">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
               <Icon icon="lucide:pen-line" width="20" height="20" />
-              <Badge className="absolute -top-2 -right-3 px-1 py-0 text-[8px] font-bold rounded-full bg-[#333] text-white hover:bg-[#333] border-[2px] border-black leading-none flex items-center justify-center min-h-[16px]">
+              <Badge className="absolute -top-2 -right-3 px-1 py-0 text-[8px] font-bold rounded-full bg-secondary text-white hover:bg-secondary border-0 leading-none flex items-center justify-center min-h-[16px]">
                 SOON
               </Badge>
             </div>
@@ -440,7 +440,7 @@ function RocketStartTokenCard({ token, index }: { token: Token; index: number })
   return (
     <Link href={`/ecosystem/trade/${token.id}`} prefetch={true}>
       <div className="flex gap-3 items-center py-3 cursor-pointer group">
-        <div className="relative w-11 h-11 rounded-full overflow-hidden bg-[#222] shadow-inner ring-1 ring-white/5 flex-shrink-0">
+        <div className="relative w-11 h-11 rounded-full overflow-hidden bg-secondary shadow-inner ring-1 ring-white/5 flex-shrink-0">
           {token.image ? (
             <TokenImageFill src={token.image} alt={token.name} className="object-cover" />
           ) : (
@@ -458,7 +458,7 @@ function RocketStartTokenCard({ token, index }: { token: Token; index: number })
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <div className="h-1 flex-1 bg-[#333] rounded-full overflow-hidden max-w-[80px]">
+            <div className="h-1 flex-1 bg-secondary rounded-full overflow-hidden max-w-[80px]">
               <div
                 className={`h-full rounded-full ${progress >= 100 ? "bg-green-500" : "bg-white/70"}`}
                 style={{ width: `${progress}%` }}
@@ -540,14 +540,14 @@ function SpotTokensSection() {
               <Skeleton className="w-8 h-8 flex-shrink-0 bg-transparent" />
               <div className="flex-1 min-w-0 rounded-lg p-2">
                 <div className="flex gap-3 items-center">
-                  <Skeleton className="w-11 h-11 rounded-full bg-[#222]" />
+                  <Skeleton className="w-11 h-11 rounded-full bg-secondary" />
                   <div className="flex-1 min-w-0">
-                    <Skeleton className="h-4 w-16 bg-[#1a1a1a]" />
-                    <Skeleton className="h-3 w-28 mt-2 bg-[#1a1a1a]" />
+                    <Skeleton className="h-4 w-16 bg-secondary" />
+                    <Skeleton className="h-3 w-28 mt-2 bg-secondary" />
                   </div>
                   <div className="flex flex-col items-end">
-                    <Skeleton className="h-4 w-16 bg-[#1a1a1a]" />
-                    <Skeleton className="h-3 w-12 mt-2 bg-[#1a1a1a]" />
+                    <Skeleton className="h-4 w-16 bg-secondary" />
+                    <Skeleton className="h-3 w-12 mt-2 bg-secondary" />
                   </div>
                 </div>
               </div>
@@ -704,7 +704,7 @@ function SpotTokensSection() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-colors shrink-0 relative ${
                 activeTab === tab.id
-                  ? "bg-[#222] text-white"
+                  ? "bg-secondary text-white"
                   : "text-neutral-400 hover:text-white bg-transparent"
               }`}
             >
@@ -722,7 +722,7 @@ function SpotTokensSection() {
 
       {renderTokenList()}
 
-      <Button asChild className="w-full mt-4 h-11 rounded-xl font-bold text-sm bg-[#1a1a1a] text-white hover:bg-[#222] border-0 flex items-center justify-center gap-2 transition-all">
+      <Button asChild variant="secondary" className="w-full mt-4 h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
         <Link href={viewAllHref}>
           View all
           <Icon icon="lucide:arrow-right" width="16" height="16" />

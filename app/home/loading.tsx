@@ -25,14 +25,14 @@ export default function Loading() {
       {/* Market Pulse */}
       <div className="w-full overflow-x-auto hide-scrollbar">
         <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
-          <Skeleton className="h-10 w-36 shrink-0 rounded-xl bg-[#1a1a1a]" />
-          <Skeleton className="h-10 w-40 shrink-0 rounded-xl bg-[#1a1a1a]" />
-          <Skeleton className="h-10 w-44 shrink-0 rounded-xl bg-[#1a1a1a]" />
+          <Skeleton className="h-10 w-36 shrink-0 rounded-xl bg-secondary" />
+          <Skeleton className="h-10 w-40 shrink-0 rounded-xl bg-secondary" />
+          <Skeleton className="h-10 w-44 shrink-0 rounded-xl bg-secondary" />
         </div>
       </div>
 
       {/* Daily Check-In */}
-      <div className="w-[90%] mx-auto h-16 sm:h-20 bg-[#1a1a1a] rounded-xl">
+      <div className="w-[90%] mx-auto h-16 sm:h-20 bg-secondary rounded-xl">
         <div className="p-4 flex items-center justify-between h-full">
           <div className="flex items-center gap-3">
             <Skeleton className="h-8 w-8 rounded-full" />
@@ -68,21 +68,21 @@ export default function Loading() {
               <Skeleton className="w-8 h-8 flex-shrink-0 bg-transparent" />
               <div className="flex-1 min-w-0 rounded-lg p-2">
                 <div className="flex gap-3 items-center">
-                  <Skeleton className="w-11 h-11 rounded-full bg-[#222]" />
+                  <Skeleton className="w-11 h-11 rounded-full bg-secondary" />
                   <div className="flex-1 min-w-0">
-                    <Skeleton className="h-4 w-16 bg-[#1a1a1a]" />
-                    <Skeleton className="h-3 w-28 mt-2 bg-[#1a1a1a]" />
+                    <Skeleton className="h-4 w-16 bg-secondary" />
+                    <Skeleton className="h-3 w-28 mt-2 bg-secondary" />
                   </div>
                   <div className="flex flex-col items-end">
-                    <Skeleton className="h-4 w-16 bg-[#1a1a1a]" />
-                    <Skeleton className="h-3 w-12 mt-2 bg-[#1a1a1a]" />
+                    <Skeleton className="h-4 w-16 bg-secondary" />
+                    <Skeleton className="h-3 w-12 mt-2 bg-secondary" />
                   </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <Skeleton className="h-11 w-full rounded-xl mt-4 bg-[#1a1a1a]" />
+        <Skeleton className="h-11 w-full rounded-xl mt-4 bg-secondary" />
       </div>
     </div>
   );

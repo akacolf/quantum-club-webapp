@@ -269,7 +269,7 @@ export function BiometricAuth({
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           className="w-[92vw] max-w-sm"
         >
-          <Card className="bg-card border-border text-card-foreground shadow-2xl">
+          <Card className="bg-card border-0 text-card-foreground shadow-2xl">
             <CardHeader className="relative pb-4 text-center">
               <Button
                 variant="ghost"
@@ -295,7 +295,7 @@ export function BiometricAuth({
                   {hasBiometric && (
                     <Button
                       variant="outline"
-                      className="w-full h-14 justify-start gap-4 bg-secondary/50 border-border hover:bg-secondary"
+                      className="w-full h-14 justify-start gap-4 bg-secondary border-0 hover:bg-secondary/80"
                       onClick={() => {
                         setAuthMethod("biometric");
                         authenticateWithBiometric();
@@ -315,7 +315,7 @@ export function BiometricAuth({
 
                   <Button
                     variant="outline"
-                    className="w-full h-14 justify-start gap-4 bg-secondary/50 border-border hover:bg-secondary"
+                    className="w-full h-14 justify-start gap-4 bg-secondary border-0 hover:bg-secondary/80"
                     onClick={() => setAuthMethod("pin")}
                   >
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -386,7 +386,7 @@ export function BiometricAuth({
                       value={pin}
                       onChange={(e) => handlePinChange(e.target.value)}
                       placeholder="••••••"
-                      className="text-center text-2xl tracking-[0.5em] h-14 bg-secondary/50 border-border"
+                      className="text-center text-2xl tracking-[0.5em] h-14 bg-secondary border-0"
                       maxLength={6}
                       autoFocus
                     />

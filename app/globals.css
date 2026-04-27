@@ -46,9 +46,9 @@ input, textarea, select {
   --radius: 1rem;
   --background: #000; /* pure black */
   --foreground: #fff; /* pure white */
-  --card: #101011;
+  --card: #111;
   --card-foreground: #fff;
-  --popover: #000;
+  --popover: #111;
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;
@@ -116,9 +116,9 @@ input, textarea, select {
   /* enforce pure black/white */
   --background: #000;
   --foreground: #fff;
-  --card: #101011;
+  --card: #111;
   --card-foreground: #fff;
-  --popover: #000;
+  --popover: #111;
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;

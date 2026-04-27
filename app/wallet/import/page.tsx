@@ -273,13 +273,12 @@ export default function ImportWalletPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col items-start gap-0">
                         <span className="font-semibold text-sm">{selectedVersion?.name}</span>
-                        <span className="text-[10px] text-muted-foreground tracking-tight">Wallet architecture</span>
                       </div>
                     </div>
                     <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"/>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[calc(100vw-32px)] max-w-[512px] bg-[#111] border-0 text-popover-foreground rounded-2xl shadow-2xl p-2">
+                <DropdownMenuContent className="w-[calc(100vw-32px)] max-w-[512px] bg-popover border-0 text-popover-foreground rounded-2xl shadow-2xl p-2">
                   {WALLET_VERSIONS.map((version) => (
                     <DropdownMenuItem
                       key={version.id}

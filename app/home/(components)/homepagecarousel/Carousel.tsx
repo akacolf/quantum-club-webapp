@@ -46,8 +46,8 @@ const useLottieData = () => {
 };
 
 const cardClasses = "w-[90%] mx-auto h-28 bg-secondary border-0 relative overflow-hidden shadow-lg transition-transform active:scale-[0.98]";
-const cardBodyClasses = "relative z-10 flex h-full flex-row items-center gap-5 px-6 py-4";
-const iconWrapClasses = "flex h-16 w-16 shrink-0 items-center justify-center";
+const cardBodyClasses = "relative z-10 flex h-full flex-row items-center gap-3.5 px-5 py-4";
+const iconWrapClasses = "flex h-11 w-11 shrink-0 items-center justify-center [&_.lf-player-container]:!w-11 [&_.lf-player-container]:!h-11";
 const cardTitleClasses = "text-base font-bold text-neutral-400 leading-tight";
 const cardDescriptionClasses = "text-white text-sm leading-snug";
 
@@ -167,7 +167,7 @@ const HomeCarousel = () => {
                   </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
-                      The Race Is On
+                      The Race is on
                     </CardTitle>
                     <CardDescription className={cardDescriptionClasses}>
                       Check your standings on the global leaderboard.
@@ -242,7 +242,7 @@ const HomeCarousel = () => {
             key={index}
             variant="ghost"
             onClick={() => api?.scrollTo(index)}
-            className={`h-1.5 p-0 rounded-full transition-all duration-300 overflow-hidden relative cursor-pointer hover:bg-transparent ${index === current ? "w-8 bg-[#333]" : "w-1.5 bg-[#333] hover:bg-[#444]"
+            className={`h-1.5 p-0 rounded-full transition-all duration-300 overflow-hidden relative cursor-pointer hover:bg-transparent ${index === current ? "w-8 bg-secondary" : "w-1.5 bg-secondary hover:bg-secondary/80"
               }`}
             aria-label={`Go to slide ${index + 1}`}
           >
