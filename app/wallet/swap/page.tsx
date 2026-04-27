@@ -649,7 +649,7 @@ export default function SwapPage() {
                     <div className="text-center py-16 space-y-6">
                         <Icon icon="lucide:alert-triangle" className="mx-auto w-10 h-10 text-primary"/>
                         <div className="space-y-2">
-                            <h2 className="text-xl font-bold text-foreground">Not Available in Testnet</h2>
+                            <h2 className="text-xl font-bold text-foreground">Not available in testnet</h2>
                             <p className="text-muted-foreground text-sm max-w-sm mx-auto">
                                 Token swapping is only available on mainnet. Switch to mainnet mode in Settings to use this feature.
                             </p>
@@ -705,11 +705,11 @@ export default function SwapPage() {
                                 <TabsList className="w-full">
                                     <TabsTrigger value="ton" className="flex-1 gap-1.5">
                                         <Icon icon="cryptocurrency-color:ton" className="w-4 h-4" />
-                                        TON Swap
+                                        TON swap
                                     </TabsTrigger>
                                     <TabsTrigger value="cross-chain" className="flex-1 gap-1.5">
                                         <Icon icon="lucide:arrow-left-right" className="w-4 h-4" />
-                                        Cross-Chain
+                                        Cross-chain
                                     </TabsTrigger>
                                 </TabsList>
                             </Tabs>
@@ -719,7 +719,7 @@ export default function SwapPage() {
                                 <div className="py-16 text-center space-y-4">
                                         <Icon icon="lucide:globe" className="mx-auto w-8 h-8 text-primary" />
                                         <div>
-                                            <h3 className="text-lg font-bold text-foreground">Cross-Chain Swaps</h3>
+                                            <h3 className="text-lg font-bold text-foreground">Cross-chain swaps</h3>
                                             <p className="text-sm text-muted-foreground mt-1">Coming soon</p>
                                         </div>
                                         <p className="text-xs text-muted-foreground max-w-[260px] mx-auto">
@@ -844,12 +844,12 @@ export default function SwapPage() {
                             </Card>
 
                             {/* Swap Direction Toggle */}
-                            <div className="flex justify-center py-2 relative z-10">
+                            <div className="relative z-10 -my-5 flex justify-center">
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleToggleDirection}
-                                    className="w-10 h-10 bg-transparent hover:bg-transparent active:scale-95 rounded-xl flex items-center justify-center border-0 transition-all text-primary hover:text-primary/80"
+                                    className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-background bg-black text-primary transition-all hover:bg-black hover:text-primary/80 active:scale-95"
                                 >
                                     <Icon icon="lucide:arrow-down-up" className="w-5 h-5"/>
                                 </Button>

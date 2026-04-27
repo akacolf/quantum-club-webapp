@@ -45,7 +45,7 @@ function TestnetToggle() {
           />
         </div>
       </AlertDialogTrigger>
-      <AlertDialogContent className="bg-card border-border text-foreground">
+      <AlertDialogContent className="bg-card border-0 text-foreground">
         <AlertDialogHeader>
           <AlertDialogTitle>Switch to {isTestnet ? "Mainnet" : "Testnet"}?</AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground">
@@ -54,7 +54,7 @@ function TestnetToggle() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent focus:bg-accent">Cancel</AlertDialogCancel>
+          <AlertDialogCancel className="bg-secondary border-0 text-foreground hover:bg-secondary/80 focus:bg-secondary/80">Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
               toggleTestnet();
@@ -164,18 +164,16 @@ export default function WalletSettingsPage() {
         >
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="lucide:settings" className="w-7 h-7 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Wallet Settings</h1>
+            <Icon icon="lucide:settings" className="mx-auto h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-bold">Wallet settings</h1>
             <p className="text-muted-foreground text-sm">Manage security and preferences</p>
           </div>
 
           {/* Security Section */}
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider ml-1">Security</h2>
+            <h2 className="ml-1 text-sm font-semibold text-muted-foreground">Security</h2>
 
-            <Card className="bg-card border-border overflow-hidden">
+            <Card className="bg-card border-0 overflow-hidden">
               <CardContent className="p-0">
                 <Button
                   variant="ghost"
@@ -184,11 +182,9 @@ export default function WalletSettingsPage() {
                 >
                   <Link href="/wallet/settings/recovery-phrase">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
-                        <Icon icon="lucide:file-text" className="w-5 h-5 text-green-400" />
-                      </div>
+                      <Icon icon="lucide:file-text" className="h-5 w-5 text-green-400" />
                       <div className="text-left">
-                        <p className="text-sm font-medium text-foreground">Backup Recovery Phrase</p>
+                        <p className="text-sm font-medium text-foreground">Backup recovery phrase</p>
                         <p className="text-xs text-muted-foreground">View your 24-word seed phrase</p>
                       </div>
                     </div>
@@ -196,16 +192,12 @@ export default function WalletSettingsPage() {
                   </Link>
                 </Button>
 
-                <div className="border-t border-border" />
-
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/wallets">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
-                        <Icon icon="lucide:wallet" className="w-5 h-5 text-blue-400" />
-                      </div>
+                      <Icon icon="lucide:wallet" className="h-5 w-5 text-blue-400" />
                       <div className="text-left">
-                        <p className="text-sm font-medium text-foreground">Manage Wallets</p>
+                        <p className="text-sm font-medium text-foreground">Manage wallets</p>
                         <p className="text-xs text-muted-foreground">Add, switch, or remove wallets</p>
                       </div>
                     </div>
@@ -213,16 +205,12 @@ export default function WalletSettingsPage() {
                   </Link>
                 </Button>
 
-                <div className="border-t border-border" />
-
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/address-book">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
-                        <Icon icon="lucide:book-user" className="w-5 h-5 text-purple-400" />
-                      </div>
+                      <Icon icon="lucide:book-user" className="h-5 w-5 text-purple-400" />
                       <div className="text-left">
-                        <p className="font-medium text-foreground">Address Book</p>
+                        <p className="font-medium text-foreground">Address book</p>
                         <p className="text-xs text-muted-foreground">Save frequently used addresses</p>
                       </div>
                     </div>
@@ -230,14 +218,10 @@ export default function WalletSettingsPage() {
                   </Link>
                 </Button>
 
-                <div className="border-t border-border" />
-
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/username">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Icon icon="mdi:at" className="w-5 h-5 text-primary" />
-                      </div>
+                      <Icon icon="mdi:at" className="h-5 w-5 text-primary" />
                       <div className="text-left">
                         <p className="font-medium text-foreground">Username</p>
                         <p className="text-xs text-muted-foreground">Claim your unique @username</p>
@@ -247,16 +231,12 @@ export default function WalletSettingsPage() {
                   </Link>
                 </Button>
 
-                <div className="border-t border-border" />
-
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/price-alerts">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center">
-                        <Icon icon="lucide:bell" className="w-5 h-5 text-yellow-400" />
-                      </div>
+                      <Icon icon="lucide:bell" className="h-5 w-5 text-yellow-400" />
                       <div className="text-left">
-                        <p className="font-medium text-foreground">Price Alerts</p>
+                        <p className="font-medium text-foreground">Price alerts</p>
                         <p className="text-xs text-muted-foreground">Get notified when TON hits a target</p>
                       </div>
                     </div>
@@ -264,16 +244,12 @@ export default function WalletSettingsPage() {
                   </Link>
                 </Button>
 
-                <div className="border-t border-border" />
-
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/connected-apps">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center">
-                        <Icon icon="lucide:link-2" className="w-5 h-5 text-cyan-400" />
-                      </div>
+                      <Icon icon="lucide:link-2" className="h-5 w-5 text-cyan-400" />
                       <div className="text-left">
-                        <p className="font-medium text-foreground">Connected Apps</p>
+                        <p className="font-medium text-foreground">Connected apps</p>
                         <p className="text-xs text-muted-foreground">Manage TON Connect dApps</p>
                       </div>
                     </div>
@@ -286,17 +262,15 @@ export default function WalletSettingsPage() {
 
           {/* Developer Section */}
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider ml-1">Preferences</h2>
+            <h2 className="ml-1 text-sm font-semibold text-muted-foreground">Preferences</h2>
 
-            <Card className="bg-card border-border overflow-hidden">
+            <Card className="bg-card border-0 overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">
-                      <Icon icon="lucide:flask-conical" className="w-5 h-5 text-orange-400" />
-                    </div>
+                    <Icon icon="lucide:flask-conical" className="h-5 w-5 text-orange-400" />
                     <div className="text-left">
-                      <p className="text-sm font-medium text-foreground">TON Testnet Mode</p>
+                      <p className="text-sm font-medium text-foreground">TON testnet mode</p>
                       <p className="text-xs text-muted-foreground">Use TON testnet for testing</p>
                     </div>
                   </div>
@@ -308,9 +282,9 @@ export default function WalletSettingsPage() {
 
           {/* Danger Zone */}
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider ml-1">Danger Zone</h2>
+            <h2 className="ml-1 text-sm font-semibold text-muted-foreground">Danger zone</h2>
 
-            <Card className="bg-card border-destructive/20 overflow-hidden">
+            <Card className="bg-card border-0 overflow-hidden">
               <CardContent className="p-0">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -319,36 +293,32 @@ export default function WalletSettingsPage() {
                       className="w-full flex items-center justify-between h-auto p-4 hover:bg-red-500/5 rounded-none transition-colors group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
-                          <Icon icon="lucide:trash-2" className="w-5 h-5 text-red-400" />
-                        </div>
+                        <Icon icon="lucide:trash-2" className="h-5 w-5 text-red-400" />
                         <div className="text-left">
-                          <p className="font-medium text-destructive">Remove Wallet</p>
+                          <p className="font-medium text-destructive">Remove wallet</p>
                           <p className="text-xs text-muted-foreground">Delete wallet from this device</p>
                         </div>
                       </div>
                       <Icon icon="lucide:chevron-right" className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-card border-border text-foreground">
+                  <AlertDialogContent className="bg-card border-0 text-foreground">
                     <AlertDialogHeader>
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
-                          <Icon icon="lucide:alert-triangle" className="w-6 h-6 text-red-400" />
-                        </div>
+                        <Icon icon="lucide:alert-triangle" className="h-6 w-6 text-red-400" />
                         <div>
-                          <AlertDialogTitle>Remove Wallet?</AlertDialogTitle>
+                          <AlertDialogTitle>Remove wallet?</AlertDialogTitle>
                           <AlertDialogDescription className="text-muted-foreground text-xs">This action cannot be undone</AlertDialogDescription>
                         </div>
                       </div>
-                      <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mt-2">
+                      <div className="bg-red-500/10 border-0 rounded-xl p-3 mt-2">
                         <p className="text-xs text-red-400 leading-relaxed font-medium">
                           Warning: Make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
                         </p>
                       </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-4">
-                      <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent focus:bg-accent">Cancel</AlertDialogCancel>
+                      <AlertDialogCancel className="bg-secondary border-0 text-foreground hover:bg-secondary/80 focus:bg-secondary/80">Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDeleteWallet}
                         className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0"
@@ -364,9 +334,9 @@ export default function WalletSettingsPage() {
 
           {/* FAQ Section */}
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider ml-1 flex items-center gap-2">
+            <h2 className="ml-1 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <Icon icon="lucide:help-circle" className="w-4 h-4" />
-              Frequently Asked Questions
+              Frequently asked questions
             </h2>
 
             <Accordion type="single" collapsible className="space-y-2">
@@ -374,7 +344,7 @@ export default function WalletSettingsPage() {
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="bg-card border border-border rounded-xl overflow-hidden px-4"
+                  className="bg-card border-0 rounded-xl overflow-hidden px-4"
                 >
                   <AccordionTrigger className="text-sm font-medium text-foreground hover:no-underline py-4">
                     {item.question}
@@ -396,7 +366,7 @@ export default function WalletSettingsPage() {
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <Icon icon="lucide:external-link" className="w-3 h-3" />
-              Community & Announcements
+              Community and announcements
             </a>
             <a
               href="https://t.me/QCSupportBot"
@@ -405,7 +375,7 @@ export default function WalletSettingsPage() {
               className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
             >
               <Icon icon="lucide:help-circle" className="w-3 h-3" />
-              Get Support
+              Get support
             </a>
           </div>
         </motion.div>

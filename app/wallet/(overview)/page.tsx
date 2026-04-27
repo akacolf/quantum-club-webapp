@@ -645,8 +645,8 @@ export default function WalletPage() {
           className="w-[90%]"
         >
           <div className="relative overflow-hidden">
-            <div className="relative z-10 py-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="relative z-10 space-y-6 py-6">
+              <div className="flex items-center">
                 <div className="flex items-center gap-2 min-w-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -661,7 +661,7 @@ export default function WalletPage() {
                         <Icon icon="lucide:chevron-down" className="w-3.5 h-3.5 ml-1.5 shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="min-w-60 rounded-2xl border-0 bg-black/95 p-2 text-white shadow-2xl">
+                    <DropdownMenuContent align="start" className="min-w-60 rounded-2xl border-0 bg-popover p-2 text-white shadow-2xl">
                       <DropdownMenuLabel className="px-2 pb-2 pt-1 text-[11px] font-semibold text-neutral-500">
                         Wallet symbol
                       </DropdownMenuLabel>
@@ -760,7 +760,7 @@ export default function WalletPage() {
               </div>
 
               {/* Action Grid */}
-              <div className="grid grid-cols-4 gap-3 mt-8">
+              <div className="grid grid-cols-4 gap-3">
                 {([
                   { icon: <Icon icon="lucide:send" className="w-5 h-5"/>, label: "Send", path: "/wallet/send" as const, disabled: false },
                   { icon: <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>, label: "Receive", path: "/wallet/receive" as const, disabled: false },
@@ -808,7 +808,7 @@ export default function WalletPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-white text-lg">QNTM</h4>
-                    <p className="text-xs text-neutral-400">The native token of Quantum Club</p>
+                    <p className="text-xs text-neutral-400">The native token of QC</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -972,7 +972,7 @@ export default function WalletPage() {
 
           <TabsContent value="assets" className="mt-4 space-y-3">
             <Select value={assetChainTab} onValueChange={(value) => setAssetChainTab(value as AssetChainTab)}>
-              <SelectTrigger className="h-11 rounded-xl font-semibold">
+              <SelectTrigger className="h-11 w-fit min-w-36 rounded-xl font-semibold">
                 <SelectValue placeholder="Select chain" />
               </SelectTrigger>
               <SelectContent className="rounded-xl bg-popover">
@@ -982,12 +982,6 @@ export default function WalletPage() {
             </Select>
             {assetChainTab === "ton" ? (
               <>
-            {/* TON network section header */}
-            <div className="flex items-center gap-2 px-1">
-              <span className="text-xs font-semibold text-neutral-400">TON</span>
-
-            </div>
-
             {/* TON Card */}
             <Card
               className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
@@ -1125,15 +1119,6 @@ export default function WalletPage() {
             )}
               </>
             ) : null}
-
-            {/* Multi-chain section header - Only show in mainnet when addresses exist */}
-            {assetChainTab === "multichain" && !isTestnet && (ethAddress || btcAddress || solAddress || trxAddress) && (
-              <div className="flex items-center justify-between px-1 pt-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-neutral-400">Multi-chain</span>
-                </div>
-              </div>
-            )}
 
             {/* BTC Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && btcAddress && (
