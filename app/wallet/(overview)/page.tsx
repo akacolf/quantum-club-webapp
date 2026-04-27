@@ -49,7 +49,7 @@ const WalletPriceChart = dynamic(
 
 const WalletWelcomeCinematic = dynamic(
   () => import("./WalletWelcomeCinematic"),
-  { ssr: false, loading: () => <Skeleton className="h-64 w-full bg-[#111]" /> }
+  { ssr: false, loading: () => <Skeleton className="h-32 w-full bg-secondary" /> }
 );
 import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
 import { usePriceHistoryQuery } from "@/app/(hooks)/queries/use-price-history";
@@ -568,7 +568,6 @@ export default function WalletPage() {
             transition={{ delay: 0.08, duration: 0.5 }}
             className="relative"
           >
-            <div className="absolute inset-x-[-24px] top-6 h-44 bg-neutral-800/20 blur-3xl" />
             <WalletWelcomeCinematic />
           </motion.div>
 

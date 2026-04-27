@@ -52,7 +52,7 @@ input, textarea, select {
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;
-  --secondary: #1a1a1a;
+  --secondary: #111;
   --secondary-foreground: #fff;
   --muted: #262626;
   --muted-foreground: #a3a3a3;
@@ -60,7 +60,7 @@ input, textarea, select {
   --accent-foreground: #fff;
   --destructive: #ff5555;
   --border: #333;
-  --input: #1a1a1a;
+  --input: #111;
   --ring: #fff;
   --chart-1: #fff;
   --chart-2: #fff;
@@ -122,7 +122,7 @@ input, textarea, select {
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;
-  --secondary: #1a1a1a;
+  --secondary: #111;
   --secondary-foreground: #fff;
   --muted: #262626;
   --muted-foreground: #a3a3a3;
@@ -130,7 +130,7 @@ input, textarea, select {
   --accent-foreground: #fff;
   --destructive: #ff5555;
   --border: #333;
-  --input: #1a1a1a;
+  --input: #111;
   --ring: #fff;
   --chart-1: #fff;
   --chart-2: #fff;

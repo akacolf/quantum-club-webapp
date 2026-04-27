@@ -96,7 +96,7 @@ export default function MarketPulse() {
       <div className="w-full overflow-x-auto hide-scrollbar">
         <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-10 w-36 shrink-0 rounded-xl bg-[#1a1a1a]" />
+            <Skeleton key={i} className="h-10 w-36 shrink-0 rounded-xl bg-secondary" />
           ))}
         </div>
       </div>
@@ -114,7 +114,7 @@ export default function MarketPulse() {
           return (
             <div
               key={ton.symbol}
-              className="w-36 flex-shrink-0 flex items-center gap-3 bg-[#111] rounded-xl px-3 py-2 shadow-sm"
+              className="w-36 flex-shrink-0 flex items-center gap-3 bg-secondary rounded-xl px-3 py-2 shadow-sm"
             >
               {TOKEN_ICONS[ton.symbol] ? (
                 <Image
@@ -151,7 +151,7 @@ export default function MarketPulse() {
         })() : null}
 
         {totalMarketCapUsd ? (
-          <div className="w-40 flex-shrink-0 flex items-center gap-2.5 bg-[#111] rounded-xl px-3 py-2 shadow-sm">
+          <div className="w-40 flex-shrink-0 flex items-center gap-2.5 bg-secondary rounded-xl px-3 py-2 shadow-sm">
             <Icon icon="fluent-mdl2:market" width="20" height="20" className="text-white flex-shrink-0" />
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-neutral-400 tracking-wider whitespace-nowrap">
@@ -175,7 +175,7 @@ export default function MarketPulse() {
         ) : null}
 
         {fearGreed ? (
-          <div className="w-48 flex-shrink-0 flex items-center justify-between gap-3 bg-[#111] rounded-xl px-3 py-2 shadow-sm">
+          <div className="w-44 flex-shrink-0 flex items-center gap-2.5 bg-secondary rounded-xl px-3 py-2 shadow-sm">
             <div className="flex items-center gap-3 min-w-0">
               <FearGreedGauge value={fearGreed.value} />
               <span className="flex min-w-0 flex-col">
@@ -188,7 +188,7 @@ export default function MarketPulse() {
               </span>
             </div>
             <div
-              className={`flex h-full items-center text-xs font-bold whitespace-nowrap ${
+              className={`ml-1 flex h-full items-center text-xs font-bold whitespace-nowrap ${
                 fearGreed.value >= 60
                   ? "text-green-500"
                   : fearGreed.value >= 40
