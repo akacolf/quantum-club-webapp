@@ -654,7 +654,7 @@ export default function WalletPage() {
                         variant="ghost"
                         className="h-9 max-w-52 rounded-full border-0 bg-transparent px-0 text-xs font-medium text-neutral-200 hover:bg-transparent hover:text-white"
                       >
-                        <Icon icon={walletSymbol} className="mr-2 h-4 w-4 text-neutral-300" />
+                        <Icon icon={walletSymbol} className="mr-1 h-4 w-4 text-neutral-300" />
                         <span className="truncate">
                           {storedWallets.find((wallet) => wallet.address === walletAddress)?.name ?? "Wallet"}
                         </span>
@@ -772,12 +772,12 @@ export default function WalletPage() {
                     variant="ghost"
                     onClick={() => !action.disabled && router.push(action.path)}
                     disabled={action.disabled}
-                    className={`h-auto flex flex-col items-center gap-2 p-0 bg-transparent hover:bg-transparent transition-none ${action.disabled
+                    className={`h-auto w-full flex flex-col items-center gap-2 p-0 bg-transparent hover:bg-transparent transition-none ${action.disabled
                       ? 'cursor-not-allowed opacity-50'
                       : 'group cursor-pointer'
                       }`}
                   >
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary ${action.disabled
+                    <div className={`flex h-12 w-full items-center justify-center rounded-2xl bg-secondary ${action.disabled
                       ? 'text-neutral-600'
                       : 'text-white transition-all duration-200 group-hover:scale-105'
                       }`}>
@@ -970,7 +970,7 @@ export default function WalletPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="assets" className="mt-4 space-y-3">
+          <TabsContent value="assets" className="mt-4 w-full space-y-3">
             <Select value={assetChainTab} onValueChange={(value) => setAssetChainTab(value as AssetChainTab)}>
               <SelectTrigger className="h-11 w-fit min-w-36 rounded-xl font-semibold">
                 <SelectValue placeholder="Select chain" />
@@ -984,7 +984,7 @@ export default function WalletPage() {
               <>
             {/* TON Card */}
             <Card
-              className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+              className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
               onClick={() => {
                 setSelectedAsset({
                   name: "Toncoin",
@@ -1032,7 +1032,7 @@ export default function WalletPage() {
             {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
               <>
                 {[1, 2].map((i) => (
-                  <Card key={i} className="bg-transparent border-0 rounded-none shadow-none">
+                  <Card key={i} className="w-full bg-transparent border-0 rounded-none shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Skeleton className="w-10 h-10 rounded-full bg-secondary" />
@@ -1075,7 +1075,7 @@ export default function WalletPage() {
                       data-index={virtualItem.index}
                     >
                       <Card
-                        className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                        className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                         onClick={() => {
                           setSelectedAsset({
                             name: jetton.name,
@@ -1123,7 +1123,7 @@ export default function WalletPage() {
             {/* BTC Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && btcAddress && (
               <Card
-                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "Bitcoin",
@@ -1169,7 +1169,7 @@ export default function WalletPage() {
             {/* ETH Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && ethAddress && (
               <Card
-                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "Ethereum",
@@ -1215,7 +1215,7 @@ export default function WalletPage() {
             {/* SOL Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && solAddress && (
               <Card
-                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "Solana",
@@ -1261,7 +1261,7 @@ export default function WalletPage() {
             {/* TRX Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && trxAddress && (
               <Card
-                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "TRON",

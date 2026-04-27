@@ -46,21 +46,21 @@ input, textarea, select {
   --radius: 1rem;
   --background: #000; /* pure black */
   --foreground: #fff; /* pure white */
-  --card: #111;
+  --card: #161616;
   --card-foreground: #fff;
-  --popover: #111;
+  --popover: #161616;
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;
-  --secondary: #111;
+  --secondary: #161616;
   --secondary-foreground: #fff;
-  --muted: #111;
+  --muted: #161616;
   --muted-foreground: #a3a3a3;
-  --accent: #111;
+  --accent: #161616;
   --accent-foreground: #fff;
   --destructive: #ff5555;
   --border: #333;
-  --input: #111;
+  --input: #161616;
   --ring: #fff;
   --chart-1: #fff;
   --chart-2: #fff;
@@ -116,21 +116,21 @@ input, textarea, select {
   /* enforce pure black/white */
   --background: #000;
   --foreground: #fff;
-  --card: #111;
+  --card: #161616;
   --card-foreground: #fff;
-  --popover: #111;
+  --popover: #161616;
   --popover-foreground: #fff;
   --primary: #fff;
   --primary-foreground: #000;
-  --secondary: #111;
+  --secondary: #161616;
   --secondary-foreground: #fff;
-  --muted: #111;
+  --muted: #161616;
   --muted-foreground: #a3a3a3;
-  --accent: #111;
+  --accent: #161616;
   --accent-foreground: #fff;
   --destructive: #ff5555;
   --border: #333;
-  --input: #111;
+  --input: #161616;
   --ring: #fff;
   --chart-1: #fff;
   --chart-2: #fff;

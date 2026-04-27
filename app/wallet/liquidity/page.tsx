@@ -747,8 +747,8 @@ export default function LiquidityPage() {
                 <ButtonLoader />
               </div>
             ) : positions.length === 0 ? (
-              <Card className="bg-secondary border-0 rounded-2xl">
-                <CardContent className="p-8 text-center space-y-4">
+              <div>
+                <div className="p-8 text-center space-y-4">
                   <Icon icon="lucide:droplets" className="mx-auto h-8 w-8 text-muted-foreground"/>
                   <div>
                     <h3 className="text-lg font-bold">No LP positions</h3>
@@ -763,8 +763,8 @@ export default function LiquidityPage() {
                     <Icon icon="lucide:plus" className="w-4 h-4 mr-2"/>
                     Add liquidity
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : (
               <div className="space-y-3">
                 {positions.map((position, idx) => (
@@ -939,8 +939,10 @@ export default function LiquidityPage() {
                   </Card>
 
                   {/* Plus Icon */}
-                  <div className="flex justify-center -my-2 relative z-10">
-                    <Icon icon="lucide:plus" className="h-5 w-5 text-muted-foreground"/>
+                  <div className="relative z-10 -my-5 flex justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-background bg-black">
+                      <Icon icon="lucide:plus" className="h-5 w-5 text-muted-foreground"/>
+                    </div>
                   </div>
 
                   {/* Token B */}
