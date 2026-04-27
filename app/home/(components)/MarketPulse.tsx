@@ -175,7 +175,7 @@ export default function MarketPulse() {
         ) : null}
 
         {fearGreed ? (
-          <div className="w-44 flex-shrink-0 flex items-center gap-2.5 bg-secondary rounded-xl px-3 py-2 shadow-sm">
+          <div className="w-48 flex-shrink-0 flex items-center justify-between gap-3 bg-secondary rounded-xl px-3 py-2 shadow-sm">
             <div className="flex items-center gap-3 min-w-0">
               <FearGreedGauge value={fearGreed.value} />
               <span className="flex min-w-0 flex-col">
@@ -188,7 +188,7 @@ export default function MarketPulse() {
               </span>
             </div>
             <div
-              className={`ml-1 flex h-full items-center text-xs font-bold whitespace-nowrap ${
+              className={`flex h-full items-center text-xs font-bold whitespace-nowrap ${
                 fearGreed.value >= 60
                   ? "text-green-500"
                   : fearGreed.value >= 40

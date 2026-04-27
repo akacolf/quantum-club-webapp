@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import tasks from "@/app/earn/tasks";
 import dynamic from "next/dynamic";
@@ -46,24 +46,10 @@ const useLottieData = () => {
 };
 
 const cardClasses = "w-[90%] mx-auto h-28 bg-secondary border-0 relative overflow-hidden shadow-lg transition-transform active:scale-[0.98]";
-const cardBodyClasses = "relative z-10 flex h-full items-center gap-4 px-5 py-4";
-const iconWrapClasses = "relative flex h-16 w-20 shrink-0 items-center justify-center";
+const cardBodyClasses = "relative z-10 flex h-full flex-row items-center gap-5 px-6 py-4";
+const iconWrapClasses = "flex h-16 w-16 shrink-0 items-center justify-center";
 const cardTitleClasses = "text-base font-bold text-neutral-400 leading-tight";
 const cardDescriptionClasses = "text-white text-sm leading-snug";
-
-function IconCluster({ children }: { children: ReactNode }) {
-  return (
-    <div className={iconWrapClasses}>
-      <span className="absolute left-0 top-2 h-2.5 w-2.5 rotate-45 bg-white" />
-      <span className="absolute bottom-2 left-4 flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-lg">
-        <span className="h-3 w-3 rotate-45 border-2 border-black" />
-      </span>
-      <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-800 text-white shadow-2xl ring-1 ring-white/10">
-        {children}
-      </span>
-    </div>
-  );
-}
 
 const HomeCarousel = () => {
   const [api, setApi] = useState<CarouselApi>();
@@ -131,11 +117,11 @@ const HomeCarousel = () => {
           <CarouselItem>
             <Card className={`${cardClasses} opacity-75`}>
               <CardHeader className={cardBodyClasses}>
-                <IconCluster>
+                <div className={iconWrapClasses}>
                   {lottieData.diamond && (
                     <Lottie animationData={lottieData.diamond} autoplay loop />
                   )}
-                </IconCluster>
+                </div>
                 <div className="min-w-0 space-y-1">
                   <CardTitle className={cardTitleClasses}>
                     AI Powered Trading
@@ -152,11 +138,11 @@ const HomeCarousel = () => {
             <Link href="/story" className="block">
               <Card className={`${cardClasses} cursor-pointer`}>
                 <CardHeader className={cardBodyClasses}>
-                  <IconCluster>
+                  <div className={iconWrapClasses}>
                     {lottieData.story && (
                       <Lottie animationData={lottieData.story} loop autoplay />
                     )}
-                  </IconCluster>
+                  </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
                       The Quantum Era
@@ -174,11 +160,11 @@ const HomeCarousel = () => {
             <Link href="/leaderboard" className="block">
               <Card className={`${cardClasses} cursor-pointer`}>
                 <CardHeader className={cardBodyClasses}>
-                  <IconCluster>
+                  <div className={iconWrapClasses}>
                     {lottieData.goldMedal && (
                       <Lottie animationData={lottieData.goldMedal} loop autoplay />
                     )}
-                  </IconCluster>
+                  </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
                       The Race Is On
@@ -196,7 +182,7 @@ const HomeCarousel = () => {
             <button type="button" onClick={openTelegramGroup} className="block w-full text-left">
               <Card className={`${cardClasses} cursor-pointer`}>
                 <CardHeader className={cardBodyClasses}>
-                  <IconCluster>
+                  <div className={iconWrapClasses}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="28"
@@ -209,7 +195,7 @@ const HomeCarousel = () => {
                         d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19c-.14.75-.42 1-.68 1.03c-.58.05-1.02-.38-1.58-.75c-.88-.58-1.38-.94-2.23-1.5c-.99-.65-.35-1.01.22-1.59c.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02c-.09.02-1.49.95-4.22 2.79c-.4.27-.76.41-1.08.4c-.36-.01-1.04-.2-1.55-.37c-.63-.2-1.12-.31-1.08-.66c.02-.18.27-.36.74-.55c2.92-1.27 4.86-2.11 5.83-2.51c2.78-1.16 3.35-1.36 3.73-1.36c.08 0 .27.02.39.12c.1.08.13.19.14.27c-.01.06.01.24 0 .38"
                       />
                     </svg>
-                  </IconCluster>
+                  </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
                       The Club of OGs
@@ -227,14 +213,14 @@ const HomeCarousel = () => {
             <Link href="/home/roadmap" className="block">
               <Card className={`${cardClasses} cursor-pointer`}>
                 <CardHeader className={cardBodyClasses}>
-                  <IconCluster>
+                  <div className={iconWrapClasses}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" className="text-white" viewBox="0 0 24 24">
                       <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
                         <path d="m3 17l6-6l4 4l8-8" />
                         <path d="M17 7h4v4" />
                       </g>
                     </svg>
-                  </IconCluster>
+                  </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
                       The Progress

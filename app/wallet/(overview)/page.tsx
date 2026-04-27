@@ -24,13 +24,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { mnemonicNew, mnemonicToWalletKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useWallet } from "../WalletContext";
-import { DeletePin } from "@/components/ui/biometric-auth";
 import dynamic from "next/dynamic";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -62,6 +63,7 @@ interface PricePoint {
 }
 
 type ChartPeriod = '1H' | '1D' | '1W' | '1M' | '6M' | '1Y';
+type AssetChainTab = "ton" | "multichain";
 
 interface AssetDetail {
   name: string;
@@ -82,6 +84,7 @@ const ETH_ICON = "/svg/eth-logo.svg";
 const BTC_ICON = "/svg/btc-logo.svg";
 const SOL_ICON = "/svg/sol-logo.svg";
 const TRX_ICON = "/svg/trx-logo.svg";
+const WALLET_SYMBOLS = ["◆", "◐", "✦", "●", "▲", "◈"];
 
 // Format amount to 2 decimal places for display
 const formatAmount = (value: number | string, decimals: number = 2): string => {
@@ -137,7 +140,7 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               filter === f.value
                 ? "bg-primary text-primary-foreground"
-                : "bg-[#111] border-0 text-neutral-400 hover:bg-[#161616]"
+                : "bg-secondary border-0 text-neutral-400 hover:bg-secondary/80"
             }`}
           >
             <Icon icon={f.icon} className="w-3.5 h-3.5" />
@@ -174,8 +177,8 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
                   <div className="grid grid-cols-2 gap-3 pb-3">
                     {/* Left NFT card */}
                     <Link href={`/wallet/nft/${encodeURIComponent(leftNft.address)}`}>
-                      <Card className="bg-[#111] border-0 rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
-                        <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden" style={{ viewTransitionName: `nft-img-${leftNft.address.slice(-8)}` }}>
+                      <Card className="bg-secondary border-0 rounded-2xl shadow-none overflow-hidden hover:bg-secondary/80 transition-colors cursor-pointer">
+                        <div className="w-full aspect-square bg-secondary relative overflow-hidden" style={{ viewTransitionName: `nft-img-${leftNft.address.slice(-8)}` }}>
                           {leftNft.image ? (
                             <Image
                               src={leftNft.image}
@@ -213,8 +216,8 @@ function NftFilterChips({ nfts }: { nfts: Array<{ address: string; name: string;
                     {/* Right NFT card */}
                     {rightNft && (
                       <Link href={`/wallet/nft/${encodeURIComponent(rightNft.address)}`}>
-                        <Card className="bg-[#111] border-0 rounded-2xl shadow-none overflow-hidden hover:bg-[#161616] transition-colors cursor-pointer">
-                          <div className="w-full aspect-square bg-[#1a1a1a] relative overflow-hidden" style={{ viewTransitionName: `nft-img-${rightNft.address.slice(-8)}` }}>
+                        <Card className="bg-secondary border-0 rounded-2xl shadow-none overflow-hidden hover:bg-secondary/80 transition-colors cursor-pointer">
+                          <div className="w-full aspect-square bg-secondary relative overflow-hidden" style={{ viewTransitionName: `nft-img-${rightNft.address.slice(-8)}` }}>
                             {rightNft.image ? (
                               <Image
                                 src={rightNft.image}
@@ -276,11 +279,9 @@ export default function WalletPage() {
     hasFetched,
     hideBalance,
     isTestnet,
-    fetchWalletAssets,
     fetchNfts,
     toggleHideBalance,
     tonPrice,
-    clearWallet,
     storedWallets,
     switchWallet,
     // Multi-chain
@@ -319,8 +320,9 @@ export default function WalletPage() {
   const [hasWallet, setHasWallet] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [tgFirstName, setTgFirstName] = useState("Quantum User");
+  const [walletSymbol, setWalletSymbol] = useState(WALLET_SYMBOLS[0]);
+  const [assetChainTab, setAssetChainTab] = useState<AssetChainTab>("ton");
   const { data: stakingApyData } = useStakingApyQuery(hasWallet);
   const bestApy = stakingApyData?.bestApy ?? 5.0;
 
@@ -338,6 +340,14 @@ export default function WalletPage() {
     const firstName = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || username || "Quantum User";
     queueMicrotask(() => setTgFirstName(firstName));
   }, [username]);
+
+  useEffect(() => {
+    if (!telegramId) return;
+    const storedSymbol = localStorage.getItem(`quantum_wallet_symbol_${telegramId}`);
+    if (storedSymbol && WALLET_SYMBOLS.includes(storedSymbol)) {
+      queueMicrotask(() => setWalletSymbol(storedSymbol));
+    }
+  }, [telegramId]);
 
   // Features Carousel - track current slide
   useEffect(() => {
@@ -496,11 +506,6 @@ export default function WalletPage() {
     }
   };
 
-  const walletExit = () => {
-    clearWallet();
-    setHasWallet(false);
-    DeletePin(telegramId || "");
-  }
   if (isChecking) {
     return (
       <div className="min-h-screen">
@@ -532,7 +537,7 @@ export default function WalletPage() {
           <Skeleton className="h-10 w-full rounded-xl" />
           <div className="w-full space-y-3">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="bg-[#111] border-0">
+              <Card key={i} className="bg-secondary border-0">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Skeleton className="size-10 rounded-full" />
@@ -617,40 +622,58 @@ export default function WalletPage() {
     );
   }
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await fetchWalletAssets();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   return (
     <div className="min-h-screen">
-      <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
+      <div className="flex w-full flex-col items-center space-y-6">
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="w-full"
+          className="w-[90%]"
         >
           <div className="relative overflow-hidden">
-            <div className="p-6 relative z-10">
+            <div className="relative z-10 py-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 min-w-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="h-9 bg-[#1a1a1a] text-neutral-200 hover:bg-[#222] hover:text-white rounded-full px-3 text-xs font-medium border-0 max-w-40"
+                        className="h-9 max-w-52 rounded-full border-0 bg-transparent px-0 text-xs font-medium text-neutral-200 hover:bg-transparent hover:text-white"
                       >
+                        <span className="mr-2 text-sm text-neutral-300">{walletSymbol}</span>
                         <span className="truncate">
                           {storedWallets.find((wallet) => wallet.address === walletAddress)?.name ?? "Wallet"}
                         </span>
                         <Icon icon="lucide:chevron-down" className="w-3.5 h-3.5 ml-1.5 shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="min-w-56 bg-[#1a1a1a] border-0 text-white">
+                    <DropdownMenuContent align="start" className="min-w-60 rounded-2xl border-0 bg-black/95 p-2 text-white shadow-2xl">
+                      <DropdownMenuLabel className="px-2 pb-2 pt-1 text-[11px] font-semibold text-neutral-500">
+                        Wallet symbol
+                      </DropdownMenuLabel>
+                      <div className="grid grid-cols-6 gap-1 px-1 pb-2">
+                        {WALLET_SYMBOLS.map((symbol) => (
+                          <button
+                            key={symbol}
+                            type="button"
+                            onClick={() => {
+                              setWalletSymbol(symbol);
+                              if (telegramId) {
+                                localStorage.setItem(`quantum_wallet_symbol_${telegramId}`, symbol);
+                              }
+                            }}
+                            className={`flex size-8 items-center justify-center rounded-lg text-sm transition-colors ${
+                              walletSymbol === symbol
+                                ? "bg-secondary text-white"
+                                : "text-neutral-500 hover:bg-secondary hover:text-neutral-200"
+                            }`}
+                            aria-label={`Use ${symbol} as wallet symbol`}
+                          >
+                            {symbol}
+                          </button>
+                        ))}
+                      </div>
+                      <DropdownMenuSeparator className="bg-secondary" />
                       {(storedWallets.length > 0
                         ? storedWallets
                         : [{ address: walletAddress, name: "Wallet", isActive: true }]
@@ -658,7 +681,7 @@ export default function WalletPage() {
                         <DropdownMenuItem
                           key={wallet.address}
                           onClick={() => switchWallet(wallet.address)}
-                          className="flex items-center justify-between gap-3 rounded-lg text-neutral-300 focus:bg-[#222] focus:text-white"
+                          className="flex items-center justify-between gap-3 rounded-xl text-neutral-300 focus:bg-secondary focus:text-white"
                         >
                           <div className="min-w-0">
                             <div className="text-sm font-medium">{wallet.name}</div>
@@ -681,29 +704,10 @@ export default function WalletPage() {
                       navigator.clipboard.writeText(walletAddress);
                       toast.success("Address copied");
                     }}
-                    className="h-9 w-9 bg-[#1a1a1a] text-neutral-300 hover:bg-[#222] hover:text-white rounded-full border-0 shrink-0"
+                    className="h-9 w-9 shrink-0 rounded-full border-0 bg-transparent text-neutral-300 hover:bg-transparent hover:text-white"
                     aria-label="Copy wallet address"
                   >
                     <Icon icon="lucide:copy" className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="size-9 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white rounded-full disabled:opacity-50 transition-all active:scale-90"
-                  >
-                    <Icon icon="lucide:refresh-cw" className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => walletExit()}
-                    className="size-9 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-full transition-all active:scale-90"
-                  >
-                    <Icon icon="lucide:log-out" className="w-4 h-4"/>
                   </Button>
                 </div>
               </div>
@@ -716,7 +720,7 @@ export default function WalletPage() {
                   aria-label="Toggle wallet balance visibility"
                 >
                   {(isLoadingAssets || !hasFetched) ? (
-                    <Skeleton className="h-10 w-32 bg-[#222]" />
+                    <Skeleton className="h-10 w-32 bg-secondary" />
                   ) : (
                     <h2 className="text-4xl font-bold text-white tracking-tight">
                       {hideBalance ? "••••••" : formatUsd(totalUsdBalance)}
@@ -724,12 +728,12 @@ export default function WalletPage() {
                   )}
                 </button>
                 {!isLoadingAssets && hasFetched && change24h !== null && (
-                  <p className="text-xs text-neutral-500">
+                  <p className={change24h >= 0 ? "text-xs text-green-500" : "text-xs text-red-500"}>
                     {hideBalance ? "$••" : formatUsd((parseFloat(totalUsdBalance) || 0) * (change24h / 100))}{" "}
-                    <span className={change24h >= 0 ? "text-green-500" : "text-red-500"}>
+                    <span>
                       {hideBalance ? "••" : `(${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%)`}
                     </span>{" "}
-                    1D
+                    <span className="text-neutral-500">1D</span>
                   </p>
                 )}
               </div>
@@ -752,9 +756,9 @@ export default function WalletPage() {
                       : 'group cursor-pointer'
                       }`}
                   >
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-black/20 ${action.disabled
-                      ? 'bg-[#1a1a1a] text-neutral-600'
-                      : 'bg-[#1a1a1a] text-white transition-all duration-200 group-hover:bg-[#222] group-hover:scale-105'
+                    <div className={`flex h-8 items-center justify-center ${action.disabled
+                      ? 'text-neutral-600'
+                      : 'text-white transition-all duration-200 group-hover:scale-105'
                       }`}>
                       {action.icon}
                     </div>
@@ -772,28 +776,24 @@ export default function WalletPage() {
         </motion.div>
 
         <div className="w-full space-y-3 order-2">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-bold text-white">QNTM balance</h3>
-          </div>
-          <Card className="bg-gradient-to-br from-orange-500/10 to-yellow-500/5 border-0 rounded-2xl shadow-none">
+          <Card className="mx-auto w-[90%] rounded-2xl border-0 bg-secondary shadow-none">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-lg shadow-orange-500/10">
+                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32" className="text-white">
                       <path fill="currentColor" d="M27.328 12.036c-2.912-1.239-6.823-2.041-11-2.26a32 32 0 0 0-1.932-.057c3.088-3.771 6.401-6.303 8.583-6.385q.644-.022 1.084.26c.943.615 1.203 2.36.724 4.787c-.052.333.161.661.479.724a.61.61 0 0 0 .724-.479c.599-3.041.156-5.131-1.255-6.052c-.505-.333-1.12-.491-1.803-.464c-2.729.104-6.583 3.068-10.12 7.631a35 35 0 0 0-4.307.38c-.86-3.865-.521-6.636.792-7.303c.181-.099.38-.145.609-.167c.932-.072 2.213.527 3.615 1.693c.26.213.645.187.859-.079a.606.606 0 0 0-.077-.859c-1.683-1.391-3.229-2.073-4.496-1.98a3 3 0 0 0-1.072.292c-1.589.812-2.224 3.104-1.828 6.453c.093.692.213 1.416.391 2.156c-4.376.875-7.161 2.631-7.281 4.833c-.084 1.563 1.151 3.047 3.572 4.297a.61.61 0 0 0 .824-.265a.607.607 0 0 0-.267-.824c-1.932-.995-2.973-2.115-2.911-3.14c.068-1.443 2.364-2.923 6.349-3.708a36 36 0 0 0 1.4 4.119c-1.359 2.516-2.344 4.996-2.848 7.199c-.751 3.287-.349 5.631 1.145 6.599c.479.312 1.036.469 1.661.469c1.245 0 2.755-.615 4.464-1.833a.611.611 0 1 0-.71-.995c-2.057 1.473-3.791 1.963-4.749 1.337c-1.011-.661-1.235-2.588-.609-5.301c.421-1.849 1.208-3.907 2.276-6.027q.4.875.839 1.751c1.901 3.729 4.229 6.968 6.547 9.131c1.849 1.719 3.568 2.615 4.979 2.615c.469 0 .907-.1 1.303-.297c1.525-.781 2.188-2.948 1.864-6.099c-.296-2.953-1.411-6.548-3.14-10.136a.614.614 0 0 0-.812-.287a.614.614 0 0 0-.292.819c3.583 7.468 3.839 13.583 1.828 14.609c-2.125 1.088-7.235-3.141-11.188-10.907a36 36 0 0 1-1.203-2.573c.453-.807.932-1.625 1.464-2.437a44 44 0 0 1 1.629-2.328h.527c.719 0 1.5.016 2.312.063c8.703.459 14.631 3.416 14.511 5.781c-.052 1.02-1.235 2.052-3.235 2.828a.612.612 0 0 0 .443 1.14c2.541-.984 3.937-2.339 4.016-3.905c.093-1.772-1.557-3.48-4.667-4.803v-.011zm-16.557.563a39 39 0 0 0-1.016 1.661a31 31 0 0 1-.963-2.953a33 33 0 0 1 3.077-.323a33 33 0 0 0-1.093 1.615v-.015zm5.234 1.568c-2.443 0-2.443 3.667 0 3.667c2.448 0 2.448-3.667 0-3.667" />
                     </svg>
                   </div>
                   <div>
                     <h4 className="font-bold text-white text-lg">QNTM</h4>
-                    <p className="text-xs text-neutral-400">In-app currency</p>
                   </div>
                 </div>
                 <div className="text-right">
                   {!_hasHydrated ? (
                     <div className="space-y-1 flex flex-col items-end">
-                      <Skeleton className="h-6 w-20 bg-[#222]" />
-                      <Skeleton className="h-3 w-14 bg-[#222]" />
+                      <Skeleton className="h-6 w-20 bg-secondary" />
+                      <Skeleton className="h-3 w-14 bg-secondary" />
                     </div>
                   ) : (
                     <>
@@ -817,7 +817,7 @@ export default function WalletPage() {
         </div>
 
         {/* Features Carousel - Timed with dots navigation */}
-        <div className="flex flex-col gap-4 w-full order-1">
+        <div className="flex flex-col gap-4 w-full order-1 overflow-hidden">
           <style>{`
             @keyframes carouselProgress {
               from { width: 0%; }
@@ -831,12 +831,11 @@ export default function WalletPage() {
           >
             <CarouselContent className="ml-0">
               {/* Earn and stake slide */}
-              <CarouselItem className="pl-4 pr-4">
+              <CarouselItem className="pl-0">
                 <Link
                   href="/wallet/earn"
-                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-orange-500/10 to-yellow-500/5 border-0 flex items-center justify-between active:scale-[0.99] transition-all relative overflow-hidden"
+                  className="mx-auto flex h-32 w-[90%] items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
                 >
-                  {/* Left side - Text and CTA */}
                   <div className="flex flex-col items-start justify-between h-full z-10">
                     <div className="text-left">
                       <h4 className="font-bold text-white text-lg leading-tight">Earn and stake</h4>
@@ -847,22 +846,16 @@ export default function WalletPage() {
                       <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
                     </div>
                   </div>
-                  {/* Right side - Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Icon icon="lucide:trending-up" className="w-8 h-8 text-primary"/>
-                  </div>
-                  {/* Decorative blur */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                  <Icon icon="lucide:trending-up" className="w-8 h-8 shrink-0 text-primary"/>
                 </Link>
               </CarouselItem>
 
               {/* NFT marketplace slide */}
-              <CarouselItem className="pl-4 pr-4">
+              <CarouselItem className="pl-0">
                 <Link
                   href="/wallet/marketplace"
-                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#151515] to-[#0d0d0d] border-0 flex items-center justify-between active:scale-[0.99] transition-all relative overflow-hidden"
+                  className="mx-auto flex h-32 w-[90%] items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
                 >
-                  {/* Left side - Text and CTA */}
                   <div className="flex flex-col items-start justify-between h-full z-10">
                     <div className="text-left">
                       <h4 className="font-bold text-white text-lg leading-tight">NFT marketplace</h4>
@@ -873,20 +866,15 @@ export default function WalletPage() {
                       <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
                     </div>
                   </div>
-                  {/* Right side - Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
-                    <Icon icon="lucide:image" className="w-8 h-8 text-white/70"/>
-                  </div>
-                  {/* Decorative blur */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                  <Icon icon="lucide:image" className="w-8 h-8 shrink-0 text-white/70"/>
                 </Link>
               </CarouselItem>
 
               {/* Lending Card */}
-              <CarouselItem className="pl-4 pr-4">
+              <CarouselItem className="pl-0">
                 <Link
                   href="/wallet/lending"
-                  className="w-full h-32 p-5 rounded-2xl bg-gradient-to-br from-[#181818] to-[#0d0d0d] border-0 flex items-center justify-between active:scale-[0.99] transition-all relative overflow-hidden"
+                  className="mx-auto flex h-32 w-[90%] items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
                 >
                   <div className="flex flex-col items-start justify-between h-full z-10">
                     <div className="text-left">
@@ -898,10 +886,7 @@ export default function WalletPage() {
                       <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
                     </div>
                   </div>
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
-                    <Icon icon="lucide:landmark" className="w-8 h-8 text-white/70"/>
-                  </div>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                  <Icon icon="lucide:landmark" className="w-8 h-8 shrink-0 text-white/70"/>
                 </Link>
               </CarouselItem>
             </CarouselContent>
@@ -930,10 +915,10 @@ export default function WalletPage() {
             ))}
           </div>
         </div>
-        <div className="flex flex-col items-center w-full max-w-md mx-auto px-4 pt-4 space-y-6">
+        <div className="order-3 flex w-[90%] flex-col items-center space-y-6 pt-4">
 
         {isTestnet ? (
-          <div className="w-full bg-[#111] border-0 rounded-xl p-3 flex items-start gap-3">
+          <div className="w-full bg-secondary border-0 rounded-xl p-3 flex items-start gap-3">
             <Icon icon="lucide:flask-conical" className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0"/>
             <div className="text-xs text-neutral-400 leading-relaxed space-y-1">
               <p>You&apos;re on TON Testnet. Assets here have no real value.</p>
@@ -944,7 +929,7 @@ export default function WalletPage() {
 
 
         <Tabs value={walletTab} onValueChange={(v) => setWalletTab(v as typeof walletTab)} className="w-full pb-24">
-          <TabsList className="w-full h-12">
+          <TabsList className="w-full h-12 border-0 bg-secondary">
             <TabsTrigger
               value="assets"
               className="flex-1 h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg text-neutral-400"
@@ -957,7 +942,7 @@ export default function WalletPage() {
             >
               NFTs
               {nfts.length > 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-400 group-data-[state=active]:bg-black group-data-[state=active]:text-white transition-colors">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-semibold text-black group-data-[state=active]:bg-neutral-500 group-data-[state=active]:text-white transition-colors">
                   {nfts.length}
                 </span>
               )}
@@ -965,6 +950,27 @@ export default function WalletPage() {
           </TabsList>
 
           <TabsContent value="assets" className="mt-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { value: "ton", label: "TON" },
+                { value: "multichain", label: "Multi chain" },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setAssetChainTab(tab.value)}
+                  className={`h-10 rounded-xl text-sm font-semibold transition-colors ${
+                    assetChainTab === tab.value
+                      ? "bg-white text-black"
+                      : "bg-secondary text-neutral-400"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {assetChainTab === "ton" ? (
+              <>
             {/* TON network section header */}
             <div className="flex items-center gap-2 px-1">
               <span className="text-xs font-semibold text-neutral-400">TON</span>
@@ -973,7 +979,7 @@ export default function WalletPage() {
 
             {/* TON Card */}
             <Card
-              className="bg-[#111] border-0 rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+              className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
               onClick={() => {
                 setSelectedAsset({
                   name: "Toncoin",
@@ -1002,8 +1008,8 @@ export default function WalletPage() {
                   <div className="text-right">
                     {(isLoadingAssets || !hasFetched) ? (
                       <div className="space-y-1 flex flex-col items-end">
-                        <Skeleton className="h-5 w-24 bg-[#222]" />
-                        <Skeleton className="h-3 w-16 bg-[#222]" />
+                        <Skeleton className="h-5 w-24 bg-secondary" />
+                        <Skeleton className="h-3 w-16 bg-secondary" />
                       </div>
                     ) : (
                       <>
@@ -1021,18 +1027,18 @@ export default function WalletPage() {
             {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
               <>
                 {[1, 2].map((i) => (
-                  <Card key={i} className="bg-[#111] border-0 rounded-2xl shadow-none">
+                  <Card key={i} className="bg-transparent border-0 rounded-none shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-full bg-[#222]" />
+                        <Skeleton className="w-10 h-10 rounded-full bg-secondary" />
                         <div className="space-y-1.5">
-                          <Skeleton className="h-4 w-14 bg-[#222]" />
-                          <Skeleton className="h-3 w-20 bg-[#222]" />
+                          <Skeleton className="h-4 w-14 bg-secondary" />
+                          <Skeleton className="h-3 w-20 bg-secondary" />
                         </div>
                       </div>
                       <div className="space-y-1.5 flex flex-col items-end">
-                        <Skeleton className="h-4 w-16 bg-[#222]" />
-                        <Skeleton className="h-3 w-10 bg-[#222]" />
+                        <Skeleton className="h-4 w-16 bg-secondary" />
+                        <Skeleton className="h-3 w-10 bg-secondary" />
                       </div>
                     </CardContent>
                   </Card>
@@ -1042,7 +1048,7 @@ export default function WalletPage() {
 
             {/* No tokens message */}
             {!isLoadingAssets && hasFetched && jettons.length === 0 && (
-              <div className="py-4 text-center bg-[#111] rounded-xl border-0 ">
+              <div className="py-4 text-center">
                 <p className="text-xs text-neutral-500">Tokens will appear here automatically.</p>
               </div>
             )}
@@ -1064,7 +1070,7 @@ export default function WalletPage() {
                       data-index={virtualItem.index}
                     >
                       <Card
-                        className="bg-[#111] border-0 rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                        className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                         onClick={() => {
                           setSelectedAsset({
                             name: jetton.name,
@@ -1080,7 +1086,7 @@ export default function WalletPage() {
                       >
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center overflow-hidden border-0">
+                            <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center overflow-hidden border-0">
                               {jetton.image ? (
                                 <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                               ) : (
@@ -1106,9 +1112,11 @@ export default function WalletPage() {
                 })}
               </div>
             )}
+              </>
+            ) : null}
 
             {/* Multi-chain section header - Only show in mainnet when addresses exist */}
-            {!isTestnet && (ethAddress || btcAddress || solAddress || trxAddress) && (
+            {assetChainTab === "multichain" && !isTestnet && (ethAddress || btcAddress || solAddress || trxAddress) && (
               <div className="flex items-center justify-between px-1 pt-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-neutral-400">Multi-chain</span>
@@ -1117,9 +1125,9 @@ export default function WalletPage() {
             )}
 
             {/* BTC Balance Card - Only show in mainnet */}
-            {!isTestnet && btcAddress && (
+            {assetChainTab === "multichain" && !isTestnet && btcAddress && (
               <Card
-                className="bg-[#111] border-0 rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "Bitcoin",
@@ -1146,8 +1154,8 @@ export default function WalletPage() {
                     <div className="text-right">
                       {isLoadingMultiChain ? (
                         <div className="space-y-1 flex flex-col items-end">
-                          <Skeleton className="h-5 w-24 bg-[#222]" />
-                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                          <Skeleton className="h-5 w-24 bg-secondary" />
+                          <Skeleton className="h-3 w-16 bg-secondary" />
                         </div>
                       ) : (
                         <>
@@ -1163,9 +1171,9 @@ export default function WalletPage() {
             )}
 
             {/* ETH Balance Card - Only show in mainnet */}
-            {!isTestnet && ethAddress && (
+            {assetChainTab === "multichain" && !isTestnet && ethAddress && (
               <Card
-                className="bg-[#111] border-0 rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "Ethereum",
@@ -1192,8 +1200,8 @@ export default function WalletPage() {
                     <div className="text-right">
                       {isLoadingMultiChain ? (
                         <div className="space-y-1 flex flex-col items-end">
-                          <Skeleton className="h-5 w-24 bg-[#222]" />
-                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                          <Skeleton className="h-5 w-24 bg-secondary" />
+                          <Skeleton className="h-3 w-16 bg-secondary" />
                         </div>
                       ) : (
                         <>
@@ -1209,9 +1217,9 @@ export default function WalletPage() {
             )}
 
             {/* SOL Balance Card - Only show in mainnet */}
-            {!isTestnet && solAddress && (
+            {assetChainTab === "multichain" && !isTestnet && solAddress && (
               <Card
-                className="bg-[#111] border-0 rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "Solana",
@@ -1238,8 +1246,8 @@ export default function WalletPage() {
                     <div className="text-right">
                       {isLoadingMultiChain ? (
                         <div className="space-y-1 flex flex-col items-end">
-                          <Skeleton className="h-5 w-24 bg-[#222]" />
-                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                          <Skeleton className="h-5 w-24 bg-secondary" />
+                          <Skeleton className="h-3 w-16 bg-secondary" />
                         </div>
                       ) : (
                         <>
@@ -1255,9 +1263,9 @@ export default function WalletPage() {
             )}
 
             {/* TRX Balance Card - Only show in mainnet */}
-            {!isTestnet && trxAddress && (
+            {assetChainTab === "multichain" && !isTestnet && trxAddress && (
               <Card
-                className="bg-[#111] border-0 rounded-2xl shadow-none hover:bg-[#161616] transition-colors cursor-pointer active:scale-[0.99]"
+                className="bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
                   setSelectedAsset({
                     name: "TRON",
@@ -1284,8 +1292,8 @@ export default function WalletPage() {
                     <div className="text-right">
                       {isLoadingMultiChain ? (
                         <div className="space-y-1 flex flex-col items-end">
-                          <Skeleton className="h-5 w-24 bg-[#222]" />
-                          <Skeleton className="h-3 w-16 bg-[#222]" />
+                          <Skeleton className="h-5 w-24 bg-secondary" />
+                          <Skeleton className="h-3 w-16 bg-secondary" />
                         </div>
                       ) : (
                         <>
@@ -1310,11 +1318,11 @@ export default function WalletPage() {
             {isLoadingNfts && nfts.length === 0 && (
               <div className="grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((i) => (
-                  <Card key={i} className="bg-[#111] border-0 rounded-2xl shadow-none overflow-hidden">
-                    <Skeleton className="w-full aspect-square bg-[#222]" />
+                  <Card key={i} className="bg-secondary border-0 rounded-2xl shadow-none overflow-hidden">
+                    <Skeleton className="w-full aspect-square bg-secondary" />
                     <CardContent className="p-3 space-y-1.5">
-                      <Skeleton className="h-4 w-20 bg-[#222]" />
-                      <Skeleton className="h-3 w-24 bg-[#222]" />
+                      <Skeleton className="h-4 w-20 bg-secondary" />
+                      <Skeleton className="h-3 w-24 bg-secondary" />
                     </CardContent>
                   </Card>
                 ))}
@@ -1322,7 +1330,7 @@ export default function WalletPage() {
             )}
 
             {!isLoadingNfts && nfts.length === 0 && (
-              <div className="py-8 text-center bg-[#111] rounded-2xl border-0 ">
+              <div className="py-8 text-center">
                 <Icon icon="lucide:image" className="w-8 h-8 text-neutral-600 mx-auto mb-2"/>
                 <p className="text-sm text-neutral-500">No NFTs found</p>
                 <p className="text-xs text-neutral-600 mt-1">Your collectibles will appear here</p>
@@ -1349,7 +1357,7 @@ export default function WalletPage() {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="bg-[#111] border-t-0 rounded-t-3xl w-full max-w-md p-6 pb-24"
+                className="bg-secondary border-t-0 rounded-t-3xl w-full max-w-md p-6 pb-24"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
@@ -1385,7 +1393,7 @@ export default function WalletPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => setSelectedAsset(null)}
-                    className="w-8 h-8 bg-[#222] rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#333] transition-colors"
+                    className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-secondary/80 transition-colors"
                   >
                     <Icon icon="lucide:x" className="w-4 h-4"/>
                   </Button>
@@ -1417,7 +1425,7 @@ export default function WalletPage() {
                           onClick={() => setChartPeriod(period)}
                           className={`px-2.5 py-1 h-auto rounded-lg text-[10px] font-medium transition-colors ${chartPeriod === period
                             ? 'bg-white text-black hover:bg-white/90 shadow-sm'
-                            : 'bg-[#1a1a1a] text-neutral-500 hover:text-neutral-300 hover:bg-[#252525]'
+                            : 'bg-secondary text-neutral-500 hover:text-neutral-300 hover:bg-secondary/80'
                             }`}
                         >
                           {period}
@@ -1428,7 +1436,7 @@ export default function WalletPage() {
                   <div className="h-52 bg-[#0a0a0a] rounded-xl p-2">
                     {isLoadingPrice ? (
                       <div className="h-full flex items-center justify-center">
-                        <Skeleton className="w-full h-full bg-[#222]" />
+                        <Skeleton className="w-full h-full bg-secondary" />
                       </div>
                     ) : priceHistory.length > 0 ? (
                       <WalletPriceChart

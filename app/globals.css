@@ -54,9 +54,9 @@ input, textarea, select {
   --primary-foreground: #000;
   --secondary: #111;
   --secondary-foreground: #fff;
-  --muted: #262626;
+  --muted: #111;
   --muted-foreground: #a3a3a3;
-  --accent: #262626;
+  --accent: #111;
   --accent-foreground: #fff;
   --destructive: #ff5555;
   --border: #333;
@@ -124,9 +124,9 @@ input, textarea, select {
   --primary-foreground: #000;
   --secondary: #111;
   --secondary-foreground: #fff;
-  --muted: #262626;
+  --muted: #111;
   --muted-foreground: #a3a3a3;
-  --accent: #262626;
+  --accent: #111;
   --accent-foreground: #fff;
   --destructive: #ff5555;
   --border: #333;
