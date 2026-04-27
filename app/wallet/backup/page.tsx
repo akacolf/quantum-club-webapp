@@ -82,10 +82,10 @@ export default function BackupPhrasePage() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          <div className="text-center space-y-3">
-            <Icon icon="lucide:shield-alert" className="mx-auto w-9 h-9 text-neutral-300"/>
+          <div className="text-left space-y-3">
+            <Icon icon="lucide:shield-alert" className="w-9 h-9 text-neutral-300"/>
             <h1 className="text-2xl font-bold">Secret recovery phrase</h1>
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+            <p className="text-muted-foreground text-sm max-w-xs">
               This is the only way to recover your wallet. Write it down and keep it safe.
             </p>
           </div>
@@ -132,8 +132,8 @@ export default function BackupPhrasePage() {
           <div className="flex flex-col gap-3">
             <Button
               onClick={copyMnemonic}
-              variant="outline"
-              className="w-full bg-[#1a1a1a] border-0 text-white hover:bg-[#222] h-12 transition-colors"
+              variant="secondary"
+              className="w-full h-12 transition-colors"
             >
               {copied ? <Icon icon="lucide:check" className="w-4 h-4 mr-2 text-green-500"/> : <Icon icon="lucide:copy" className="w-4 h-4 mr-2"/>}
               {copied ? "Copied to clipboard" : "Copy to clipboard"}

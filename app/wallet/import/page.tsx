@@ -237,16 +237,15 @@ export default function ImportWalletPage() {
           transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="space-y-8"
         >
-          {/* Brand Header - Monochrome */}
-          <div className="text-center space-y-4">
-            <Icon icon="lucide:lock" className="mx-auto w-9 h-9 text-neutral-300"/>
+          <div className="space-y-4 text-left">
+            <Icon icon="solar:import-bold" className="w-9 h-9 text-neutral-300"/>
 
             <div className="space-y-2">
               <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-                Import account
+                Import wallet
               </h1>
-              <p className="text-muted-foreground text-sm max-w-[280px] mx-auto leading-relaxed">
-                Restore access to your assets using your 24-word secret phrase
+              <p className="text-muted-foreground text-sm max-w-[320px] leading-relaxed">
+                Restore access to your assets using your 24-word secret phrase.
               </p>
             </div>
           </div>
@@ -268,8 +267,8 @@ export default function ImportWalletPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="outline"
-                    className="w-full bg-[#1a1a1a] border-0 text-white hover:bg-[#222] justify-between h-14 rounded-2xl backdrop-blur-xl transition-all duration-300 group"
+                    variant="secondary"
+                    className="w-full justify-between h-14 rounded-2xl border-0 backdrop-blur-xl transition-all duration-300 group"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col items-start gap-0">
@@ -280,14 +279,14 @@ export default function ImportWalletPage() {
                     <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"/>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[calc(100vw-32px)] max-w-[512px] bg-popover border-0 text-popover-foreground rounded-2xl shadow-2xl p-2">
+                <DropdownMenuContent className="w-[calc(100vw-32px)] max-w-[512px] bg-[#111] border-0 text-popover-foreground rounded-2xl shadow-2xl p-2">
                   {WALLET_VERSIONS.map((version) => (
                     <DropdownMenuItem
                       key={version.id}
                       onClick={() => form.setFieldValue("walletVersion", version.id as "v5r1" | "v4r2" | "v3r2")}
                       className={`flex flex-col items-start gap-1 p-3 rounded-xl cursor-default mb-1 last:mb-0 transition-all ${walletVersion === version.id
-                        ? "bg-[#222]"
-                        : "hover:bg-[#222]"
+                        ? "bg-secondary text-secondary-foreground"
+                        : "hover:bg-secondary/80"
                         }`}
                       style={{ cursor: "pointer" }}
                     >
@@ -328,7 +327,7 @@ export default function ImportWalletPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 p-4 bg-[#111] rounded-[32px] backdrop-blur-sm relative overflow-hidden">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 p-4 bg-secondary/50 rounded-[32px] backdrop-blur-sm relative overflow-hidden">
                 {seedPhrase.map((word, i) => (
                   <div key={i} className="group relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/30 font-bold font-mono tracking-tighter select-none pointer-events-none z-10 transition-colors group-hover:text-muted-foreground">
@@ -340,10 +339,10 @@ export default function ImportWalletPage() {
                       onChange={(e) => handleWordChange(i, e.target.value)}
                       onPaste={(e) => handlePaste(e, i)}
                       className={`
-                        bg-[#1a1a1a] border-0 pl-9 pr-3 h-11 text-xs font-bold text-foreground rounded-xl
+                        bg-secondary border-0 pl-9 pr-3 h-11 text-xs font-bold text-foreground rounded-xl
                         transition-all duration-300
                         placeholder:text-muted-foreground/30
-                        focus:bg-[#222] focus:ring-0
+                        focus:bg-secondary/80 focus:ring-0
                         ${word ? 'shadow-sm' : ''}
                       `}
                       autoComplete="off"
@@ -365,7 +364,7 @@ export default function ImportWalletPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className={`relative p-5 rounded-3xl overflow-hidden ${isValidPhrase
                     ? 'bg-primary/5'
-                    : 'bg-muted'
+                    : 'bg-secondary/60'
                     }`}
                 >
                   <div className="flex items-start gap-4">
@@ -395,7 +394,7 @@ export default function ImportWalletPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] text-muted-foreground font-bold tracking-wide">Wallet address</span>
                       </div>
-                      <div className="bg-muted rounded-2xl p-3 group cursor-pointer active:scale-[0.98] transition-all">
+                      <div className="bg-secondary rounded-2xl p-3 group cursor-pointer active:scale-[0.98] transition-all">
                         <p className="text-[11px] text-foreground font-mono break-all leading-tight text-center">
                           {selectedPreviewAddress}
                         </p>
@@ -407,7 +406,7 @@ export default function ImportWalletPage() {
             </AnimatePresence>
 
             {/* Smart Security Banner - Primary Accent */}
-            <div className="bg-primary/5 rounded-3xl p-5 space-y-4">
+            <div className="bg-secondary/50 rounded-3xl p-5 space-y-4">
               <div className="flex gap-4">
                 <Icon icon="lucide:shield-check" className="w-6 h-6 text-primary shrink-0 mt-0.5"/>
                 <div className="space-y-1.5">
@@ -437,7 +436,7 @@ export default function ImportWalletPage() {
                   w-full h-14 rounded-[22px] font-extrabold text-base tracking-wider transition-all duration-500
                   ${isValidPhrase && !isLoading
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:-translate-y-1 active:translate-y-0.5'
-                    : 'bg-[#1a1a1a] text-neutral-500 border-0 cursor-not-allowed'}
+                    : 'bg-secondary text-neutral-500 border-0 cursor-not-allowed'}
                 `}
               >
                 {isLoading ? (

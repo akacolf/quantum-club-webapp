@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Critical above-fold components - load synchronously
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
+import HomeSearch from "./(components)/HomeSearch";
 
 // Below-fold / interactive components - lazy load for better FCP/LCP
 const HomeCarousel = dynamic(() => import("@/app/home/(components)/homepagecarousel/Carousel"), {
@@ -299,6 +300,8 @@ const HomeContent = () => {
   return (
     <div className="flex flex-col min-h-screen pb-16 pt-6 gap-6">
       <PersonalizedGreeting />
+
+      <HomeSearch />
       
       <div className="w-[90%] mx-auto">
         <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
