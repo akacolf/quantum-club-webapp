@@ -88,8 +88,10 @@ export default function ImportWalletPage() {
     if (allFilled) {
       mnemonicValidate(cleanedPhrase).then(setIsValidPhrase);
     } else {
-      setIsValidPhrase(null);
-      setPreviewAddresses([]);
+      queueMicrotask(() => {
+        setIsValidPhrase(null);
+        setPreviewAddresses([]);
+      });
     }
   }, [seedPhrase]);
 
@@ -237,13 +239,11 @@ export default function ImportWalletPage() {
         >
           {/* Brand Header - Monochrome */}
           <div className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-muted rounded-2xl flex items-center justify-center border border-border backdrop-blur-md shadow-sm">
-              <Icon icon="lucide:lock" className="w-8 h-8 text-primary"/>
-            </div>
+            <Icon icon="lucide:lock" className="mx-auto w-9 h-9 text-neutral-300"/>
 
             <div className="space-y-2">
               <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-                Import Account
+                Import account
               </h1>
               <p className="text-muted-foreground text-sm max-w-[280px] mx-auto leading-relaxed">
                 Restore access to your assets using your 24-word secret phrase
@@ -260,9 +260,8 @@ export default function ImportWalletPage() {
               className="space-y-3"
             >
               <div className="flex items-center gap-2 px-1">
-                <Icon icon="lucide:sparkles" className="w-4 h-4 text-muted-foreground/40"/>
-                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Select Version
+                <Label className="text-xs font-bold tracking-wide text-muted-foreground">
+                  Select version
                 </Label>
               </div>
 
@@ -270,12 +269,9 @@ export default function ImportWalletPage() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full bg-card border-border text-foreground hover:bg-muted justify-between h-14 rounded-2xl backdrop-blur-xl transition-all duration-300 group"
+                    className="w-full bg-[#1a1a1a] border-0 text-white hover:bg-[#222] justify-between h-14 rounded-2xl backdrop-blur-xl transition-all duration-300 group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center border border-border group-hover:border-primary/20 transition-colors">
-                        <Icon icon="lucide:info" className="w-4 h-4 text-muted-foreground"/>
-                      </div>
                       <div className="flex flex-col items-start gap-0">
                         <span className="font-semibold text-sm">{selectedVersion?.name}</span>
                         <span className="text-[10px] text-muted-foreground tracking-tight">Wallet architecture</span>
@@ -284,15 +280,15 @@ export default function ImportWalletPage() {
                     <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"/>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[calc(100vw-32px)] max-w-[512px] bg-popover border-border text-popover-foreground rounded-2xl shadow-2xl p-2">
+                <DropdownMenuContent className="w-[calc(100vw-32px)] max-w-[512px] bg-popover border-0 text-popover-foreground rounded-2xl shadow-2xl p-2">
                   {WALLET_VERSIONS.map((version) => (
                     <DropdownMenuItem
                       key={version.id}
                       onClick={() => form.setFieldValue("walletVersion", version.id as "v5r1" | "v4r2" | "v3r2")}
                       className={`flex flex-col items-start gap-1 p-3 rounded-xl cursor-default mb-1 last:mb-0 transition-all ${walletVersion === version.id
-                        ? "bg-muted border-border"
-                        : "hover:bg-muted/50 border-transparent"
-                        } border`}
+                        ? "bg-[#222]"
+                        : "hover:bg-[#222]"
+                        }`}
                       style={{ cursor: "pointer" }}
                     >
                       <div className="flex items-center justify-between w-full">
@@ -318,8 +314,8 @@ export default function ImportWalletPage() {
               className="space-y-4"
             >
               <div className="flex items-center justify-between px-1">
-                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Recovery Phrase
+                <Label className="text-xs font-bold tracking-wide text-muted-foreground">
+                  Recovery phrase
                 </Label>
                 <Button
                   variant="ghost"
@@ -328,11 +324,11 @@ export default function ImportWalletPage() {
                   className="h-7 px-3 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
                 >
                   <Icon icon="lucide:trash-2" className="w-3.5 h-3.5 mr-1.5"/>
-                  Clear All
+                  Clear all
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 p-4 bg-muted/30 rounded-[32px] border border-border backdrop-blur-sm relative overflow-hidden">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 p-4 bg-[#111] rounded-[32px] backdrop-blur-sm relative overflow-hidden">
                 {seedPhrase.map((word, i) => (
                   <div key={i} className="group relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/30 font-bold font-mono tracking-tighter select-none pointer-events-none z-10 transition-colors group-hover:text-muted-foreground">
@@ -344,11 +340,11 @@ export default function ImportWalletPage() {
                       onChange={(e) => handleWordChange(i, e.target.value)}
                       onPaste={(e) => handlePaste(e, i)}
                       className={`
-                        bg-background border border-border pl-9 pr-3 h-11 text-xs font-bold text-foreground rounded-xl
+                        bg-[#1a1a1a] border-0 pl-9 pr-3 h-11 text-xs font-bold text-foreground rounded-xl
                         transition-all duration-300
                         placeholder:text-muted-foreground/30
-                        focus:border-primary focus:bg-muted focus:ring-4 focus:ring-primary/5
-                        ${word ? 'border-primary/50 shadow-sm' : 'hover:border-border'}
+                        focus:bg-[#222] focus:ring-0
+                        ${word ? 'shadow-sm' : ''}
                       `}
                       autoComplete="off"
                       autoCorrect="off"
@@ -368,25 +364,23 @@ export default function ImportWalletPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   className={`relative p-5 rounded-3xl overflow-hidden ${isValidPhrase
-                    ? 'bg-primary/5 border border-primary/20'
-                    : 'bg-muted border border-border'
+                    ? 'bg-primary/5'
+                    : 'bg-muted'
                     }`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-white/10`}>
-                      {isValidPhrase ? (
-                        <Icon icon="lucide:check" className="w-5 h-5 text-white"/>
-                      ) : (
-                        <Icon icon="lucide:x" className="w-5 h-5 text-white/40"/>
-                      )}
-                    </div>
+                    {isValidPhrase ? (
+                      <Icon icon="lucide:check" className="mt-1 w-5 h-5 text-white shrink-0"/>
+                    ) : (
+                      <Icon icon="lucide:x" className="mt-1 w-5 h-5 text-white/40 shrink-0"/>
+                    )}
                     <div className="flex-1 space-y-1">
                       <p className={`text-sm font-bold text-foreground`}>
-                        {isValidPhrase ? 'Wallet Verified' : 'Check Sequence Failed'}
+                        {isValidPhrase ? 'Wallet exists' : 'Check sequence failed'}
                       </p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         {isValidPhrase
-                          ? 'The security check is complete and the phrase is valid.'
+                          ? 'The phrase is valid.'
                           : 'Please check for typos or incorrect word sequence.'}
                       </p>
                     </div>
@@ -396,13 +390,12 @@ export default function ImportWalletPage() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mt-4 pt-4 border-t border-border space-y-2"
+                      className="mt-4 pt-4 space-y-2"
                     >
                       <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Wallet Address</span>
+                        <span className="text-[10px] text-muted-foreground font-bold tracking-wide">Wallet address</span>
                       </div>
-                      <div className="bg-muted rounded-2xl p-3 border border-border group cursor-pointer active:scale-[0.98] transition-all">
+                      <div className="bg-muted rounded-2xl p-3 group cursor-pointer active:scale-[0.98] transition-all">
                         <p className="text-[11px] text-foreground font-mono break-all leading-tight text-center">
                           {selectedPreviewAddress}
                         </p>
@@ -414,13 +407,11 @@ export default function ImportWalletPage() {
             </AnimatePresence>
 
             {/* Smart Security Banner - Primary Accent */}
-            <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20 space-y-4">
+            <div className="bg-primary/5 rounded-3xl p-5 space-y-4">
               <div className="flex gap-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shrink-0">
-                  <Icon icon="lucide:shield-check" className="w-6 h-6 text-primary"/>
-                </div>
+                <Icon icon="lucide:shield-check" className="w-6 h-6 text-primary shrink-0 mt-0.5"/>
                 <div className="space-y-1.5">
-                  <h4 className="text-sm font-bold text-foreground tracking-wide">Important Notes</h4>
+                  <h4 className="text-sm font-bold text-foreground tracking-wide">Important notes</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed pr-2">
                     Quantum Club support will never ask for your secret recovery phrase. Make sure you are in a safe environment before importing your wallet.
                   </p>
@@ -428,7 +419,7 @@ export default function ImportWalletPage() {
               </div>
 
               {!isValidPhrase && (
-                <div className="pt-2 flex items-start gap-3 border-t border-primary/10 mt-2">
+                <div className="pt-2 flex items-start gap-3 mt-2">
                   <Icon icon="lucide:info" className="w-4 h-4 text-primary/50 mt-0.5 shrink-0"/>
                   <p className="text-[11px] text-muted-foreground/70 italic leading-relaxed">
                     If your assets do not appear, try re-importing with a different wallet version above.
@@ -446,14 +437,13 @@ export default function ImportWalletPage() {
                   w-full h-14 rounded-[22px] font-extrabold text-base tracking-wider transition-all duration-500
                   ${isValidPhrase && !isLoading
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:-translate-y-1 active:translate-y-0.5'
-                    : 'bg-muted text-muted-foreground/20 border border-border cursor-not-allowed'}
+                    : 'bg-[#1a1a1a] text-neutral-500 border-0 cursor-not-allowed'}
                 `}
               >
                 {isLoading ? (
                   <ButtonLoader />
                 ) : (
                   <div className="flex items-center gap-2">
-                    {isValidPhrase && <Icon icon="lucide:lock" className="w-4 h-4 mr-1"/>}
                     Import
                   </div>
                 )}

@@ -21,11 +21,9 @@ export default function DailyCheckIn({
   TaskTimer,
 }: DailyCheckInProps) {
   return loadingButtonDay ? (
-    <Skeleton className="w-[90%] mx-auto h-16 sm:h-20 rounded-xl bg-[#1a1a1a] mt-6" />
+    <Skeleton className="w-[90%] mx-auto h-16 sm:h-20 rounded-xl bg-[#1a1a1a]" />
   ) : (
-    <Card className="w-[90%] mx-auto mt-6 relative overflow-hidden border-[#333] bg-[#111] shadow-lg">
-      {/* Background Glow Effect */}
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
+    <Card className="w-[90%] mx-auto relative overflow-hidden border border-[#333] bg-[#111] shadow-sm">
 
       <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-2 relative z-10">
         <div className="flex items-center gap-3 min-w-0">
@@ -41,11 +39,11 @@ export default function DailyCheckIn({
 
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="text-sm sm:text-base font-bold text-white truncate">
-              {daily} Day Streak
+              {daily} day streak
             </div>
-            <div className="text-[10px] sm:text-xs font-medium text-gray-400 flex flex-wrap items-center gap-1">
+            <div className="text-[10px] sm:text-xs font-medium text-neutral-400 flex flex-wrap items-center gap-1">
               <span className="whitespace-nowrap">Next reward:</span>
-              <span className="text-orange-400 font-mono whitespace-nowrap">
+              <span className="text-white font-mono whitespace-nowrap">
                 <TaskTimer />
               </span>
             </div>
@@ -59,7 +57,7 @@ export default function DailyCheckIn({
           className={`
             h-9 px-4 rounded-xl font-bold transition-all duration-300 shrink-0 text-xs
             ${isClaimDay
-              ? "bg-white/5 text-gray-500 border border-white/5 hover:bg-white/5 cursor-default"
+              ? "bg-white/5 text-neutral-500 border border-white/5 hover:bg-white/5 cursor-default"
               : "bg-white hover:bg-white/90 text-black shadow-lg border-0"
             }
           `}

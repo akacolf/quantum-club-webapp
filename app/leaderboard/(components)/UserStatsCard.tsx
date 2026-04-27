@@ -2,7 +2,10 @@ import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext"
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { SvgProps } from "@/types/svg";
 import { Card, CardContent } from "@/components/ui/card";
-import { Icon } from "@iconify/react";
+import dynamic from "next/dynamic";
+import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 function Logo({ width = "2.5em", height = "2.5em" }: SvgProps) {
   return (
@@ -31,29 +34,30 @@ export default function UserStatsCard() {
   return (
     <div className="flex flex-col mt-6 px-4">
       <div className="flex items-center gap-2 mb-3">
-        <Icon icon="lucide:trophy" className="w-5 h-5 text-yellow-500" />
-        <span className="font-semibold text-white">Your Ranking</span>
+        <div className="w-5 h-5">
+          <Lottie animationData={trophyAnimationData} loop={false} autoplay={true} />
+        </div>
+        <span className="font-semibold text-white">Your ranking</span>
       </div>
 
       <Card className="bg-[#141414] overflow-hidden relative rounded-[24px]">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 flex items-center justify-center text-white">
+              <div className="w-9 h-12 flex items-center justify-start text-white">
                 <Logo width="2em" height="2em" />
               </div>
-              <div>
+              <div className="-ml-1">
                 <div className="text-white font-bold text-lg leading-tight">
                   {displayName}
                 </div>
-                <div className="text-white/60 text-sm font-medium">
+                <div className="text-neutral-400 text-sm font-medium">
                   {MainQuantAmount} QNTM
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] text-white/40 uppercase tracking-[0.1em] font-bold">Rank</span>
-              <span className="text-2xl font-black text-white">#{userRank}</span>
+            <div className="flex flex-col items-end justify-center">
+              <span className="text-2xl font-bold text-white">#{userRank}</span>
             </div>
           </div>
         </CardContent>

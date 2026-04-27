@@ -1,83 +1,50 @@
 "use client";
 
 import { useUserContext } from "@/app/(contexts)/UserContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Icon } from "@iconify/react";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
-import ProfileSidebar from "@/app/(components)/ProfileSidebar";
+import { useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 
-// Client-only gate via useSyncExternalStore — React-approved pattern for
-// "is this running in the browser yet" without a setState-in-effect warning.
-// Server snapshot returns false; client snapshot returns true.
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
 export default function PersonalizedGreeting() {
-  const { username, telegramId } = useUserContext();
-  const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { username, qcUsername, telegramId } = useUserContext();
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
   const photoUrl = useQcProfilePhoto(telegramId);
 
-  // Display name computed during render — re-evaluates whenever `username`
-  // or the component re-renders, so no effect/setState dance needed.
-  const displayName = (() => {
-    if (username) return username;
-    if (!mounted) return "Quantum User";
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    return tgUser?.username || tgUser?.first_name || "Quantum User";
-  })();
+  const tgUser = mounted ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
 
-  // Route prefetch is a pure side effect, not setState — fine in an effect.
-  useEffect(() => {
-    router.prefetch("/home/profile");
-  }, [router]);
+  // Priority: qcUsername → tg username → tg first_name → fallback
+  const displayName = qcUsername || username || tgUser?.username || tgUser?.first_name || "Quantum User";
+
+  // Generate initials from the best available name
+  const initials = (() => {
+    if (!displayName || displayName === "Quantum User") return "";
+    const parts = displayName.split(/[\s_-]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    } else if (parts.length === 1) {
+      return parts[0].substring(0, 2).toUpperCase();
+    }
+    return "";
+  })();
 
   if (!mounted) return null;
 
   return (
-    <>
-      <div className="w-[90%] mx-auto mt-4 mb-2">
-        <Card
-          className="relative overflow-hidden border-0 bg-[#0a0a0a]/80 backdrop-blur-xl shadow-2xl group cursor-pointer hover:bg-black/80 transition-all duration-300"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[50px] pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
-
-          <CardContent className="p-3 relative z-10">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <Avatar className="h-11 w-11 border border-[#333]">
-                  <AvatarImage src={photoUrl || undefined} alt={displayName} />
-                  <AvatarFallback className="bg-zinc-800 text-zinc-400">
-                    <Icon icon="lucide:user" className="h-5 w-5" />
-                  </AvatarFallback>
-                </Avatar>
-
-                <div className="flex flex-col min-w-0">
-                  <h3 className="font-bold text-base truncate pr-1">
-                    <span className="text-white">Hi, </span>
-                    <span className="bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 bg-clip-text text-transparent">{displayName}</span>
-                  </h3>
-                </div>
-              </div>
-
-              <div className="shrink-0">
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                  <Icon icon="lucide:menu" className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <ProfileSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
-    </>
+    <div className="w-[90%] mx-auto mb-4 flex justify-end">
+      <Link href="/home/profile">
+        <Avatar className="h-11 w-11 cursor-pointer hover:opacity-80 transition-opacity">
+          <AvatarImage src={photoUrl || undefined} alt={displayName} />
+          <AvatarFallback className="bg-[#111] text-neutral-300 text-sm font-semibold border-none flex items-center justify-center">
+            {initials || <Icon icon="solar:user-bold" className="w-5 h-5 text-neutral-500" />}
+          </AvatarFallback>
+        </Avatar>
+      </Link>
+    </div>
   );
 }

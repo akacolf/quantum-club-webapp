@@ -49,6 +49,32 @@ interface AssetAllocation {
   image?: string;
 }
 
+function PieTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; color: string } }> }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
+        <p className="text-white font-bold">{data.name}</p>
+        <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
+      </div>
+    );
+  }
+  return null;
+}
+
+function BarTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; percentage: number } }> }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
+        <p className="text-white font-bold">{data.name}</p>
+        <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
+        <p className="text-gray-500 text-xs">{data.percentage.toFixed(1)}%</p>
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function AnalyticsPage() {
   useTelegramBackButton("/wallet");
@@ -173,35 +199,6 @@ export default function AnalyticsPage() {
     percentage: asset.percentage,
     color: asset.color,
   }));
-
-  // Custom tooltip for pie chart
-  const PieTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; color: string } }> }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-white font-bold">{data.name}</p>
-          <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Custom tooltip for bar chart
-  const BarTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; percentage: number } }> }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-white font-bold">{data.name}</p>
-          <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
-          <p className="text-gray-500 text-xs">{data.percentage.toFixed(1)}%</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (!walletAddress) {
     router.push("/wallet");

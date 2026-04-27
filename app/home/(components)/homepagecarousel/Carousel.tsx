@@ -19,11 +19,7 @@ import Link from "next/link";
 import tasks from "@/app/earn/tasks";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import {
-  carouselBg,
-  carouselBgJoinTG,
-  bgTgeProgressCard,
-} from "@/public";
+
 
 // Dynamic import Lottie for better performance (don't load until needed)
 const Lottie = dynamic(() => import("lottie-react"), { 
@@ -122,7 +118,7 @@ const HomeCarousel = () => {
   const buttonClasses = "bg-white text-black hover:bg-gray-200 font-semibold h-8 px-6 rounded-lg text-xs transition-transform active:scale-95";
 
   return (
-    <div className="flex flex-col gap-4 mt-6 w-full max-w-md mx-auto">
+    <div className="flex flex-col gap-4 w-full max-w-md mx-auto">
       <style>{`
         @keyframes progress {
           from { width: 0%; }
@@ -134,8 +130,6 @@ const HomeCarousel = () => {
           {/* Card 1: AI Trading */}
           <CarouselItem>
             <Card className={cardClasses}>
-              {/* Abstract Background for non-image cards */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
 
               <CardHeader className="pb-2 relative z-10">
                 <div className="flex items-center gap-2 mb-1">
@@ -152,7 +146,7 @@ const HomeCarousel = () => {
                     )}
                   </div>
                 </div>
-                <CardDescription className="text-gray-400 text-xs leading-relaxed">
+                <CardDescription className="text-neutral-400 text-xs leading-relaxed">
                   Experience the future of trading with our AI-driven platform.
                 </CardDescription>
               </CardHeader>
@@ -167,14 +161,6 @@ const HomeCarousel = () => {
           {/* Card 2: Story */}
           <CarouselItem>
             <Card className={cardClasses}>
-              <Image
-                src={carouselBg.src}
-                alt="Story Card"
-                fill
-                className="object-cover z-0 opacity-60"
-                priority
-              />
-              <div className="absolute inset-0 bg-linear-to-r from-black/90 via-black/60 to-transparent z-0" />
 
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <CardHeader className="pb-2">
@@ -192,7 +178,7 @@ const HomeCarousel = () => {
                       )}
                     </div>
                   </div>
-                  <CardDescription className="text-gray-300 text-xs leading-relaxed max-w-[80%]">
+                  <CardDescription className="text-neutral-300 text-xs leading-relaxed max-w-[80%]">
                     Explore your TG story with us. Watch it unfold.
                   </CardDescription>
                 </CardHeader>
@@ -210,7 +196,7 @@ const HomeCarousel = () => {
           {/* Card 3: Leaderboard */}
           <CarouselItem>
             <Card className={cardClasses}>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+
               <CardHeader className="pb-2 relative z-10">
                 <div className="flex items-center gap-2 mb-1">
                   <CardTitle className="text-lg font-bold text-white">
@@ -226,7 +212,7 @@ const HomeCarousel = () => {
                     )}
                   </div>
                 </div>
-                <CardDescription className="text-gray-400 text-xs leading-relaxed">
+                <CardDescription className="text-neutral-400 text-xs leading-relaxed">
                   Check your standings on the global leaderboard.
                 </CardDescription>
               </CardHeader>
@@ -243,13 +229,6 @@ const HomeCarousel = () => {
           {/* Card 4: Join TG */}
           <CarouselItem>
             <Card className={cardClasses}>
-              <Image
-                src={carouselBgJoinTG.src}
-                alt="Join TG Card"
-                fill
-                className="object-cover z-0 opacity-60"
-              />
-              <div className="absolute inset-0 bg-linear-to-r from-black/90 via-black/60 to-transparent z-0" />
 
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <CardHeader className="pb-2">
@@ -270,7 +249,7 @@ const HomeCarousel = () => {
                       />
                     </svg>
                   </div>
-                  <CardDescription className="text-gray-300 text-xs leading-relaxed max-w-[80%]">
+                  <CardDescription className="text-neutral-300 text-xs leading-relaxed max-w-[80%]">
                     Stay updated with the latest news. Never miss a beat.
                   </CardDescription>
                 </CardHeader>
@@ -286,13 +265,6 @@ const HomeCarousel = () => {
           {/* Card 5: Roadmap */}
           <CarouselItem>
             <Card className={cardClasses}>
-              <Image
-                src={bgTgeProgressCard.src}
-                alt="Roadmap Card"
-                fill
-                className="object-cover z-0 opacity-50"
-              />
-              <div className="absolute inset-0 bg-linear-to-r from-black/90 via-black/60 to-transparent z-0" />
 
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <CardHeader className="pb-2">
@@ -307,7 +279,7 @@ const HomeCarousel = () => {
                       </g>
                     </svg>
                   </div>
-                  <CardDescription className="text-gray-300 text-xs leading-relaxed max-w-[80%]">
+                  <CardDescription className="text-neutral-300 text-xs leading-relaxed max-w-[80%]">
                     Building the future. See our roadmap.
                   </CardDescription>
                 </CardHeader>

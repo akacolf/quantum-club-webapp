@@ -112,10 +112,8 @@ export default function VerifyPhrasePage() {
         >
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="lucide:check" className="w-7 h-7 text-primary"/>
-            </div>
-            <h1 className="text-2xl font-bold">Verify Your Phrase</h1>
+            <Icon icon="lucide:check" className="mx-auto w-9 h-9 text-neutral-300"/>
+            <h1 className="text-2xl font-bold">Verify your phrase</h1>
             <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               Enter the correct words from your recovery phrase to verify you saved it.
             </p>
@@ -140,7 +138,7 @@ export default function VerifyPhrasePage() {
                           onBlur={field.handleBlur}
                           onChange={(e) => field.handleChange(e.target.value)}
                           placeholder={`Enter word #${item.index + 1}`}
-                          className="w-full bg-muted border border-border rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-mono transition-colors"
+                          className="w-full bg-[#1a1a1a] border-0 rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:bg-[#222] focus:ring-0 font-mono transition-colors"
                           autoComplete="off"
                           autoCorrect="off"
                           autoCapitalize="off"
@@ -160,9 +158,9 @@ export default function VerifyPhrasePage() {
             <Button
               onClick={handleGoBack}
               variant="outline"
-              className="w-full bg-card border-border text-foreground hover:bg-muted h-12 transition-colors"
+              className="w-full bg-[#1a1a1a] border-0 text-white hover:bg-[#222] h-12 transition-colors"
             >
-              Go Back
+              Go back
             </Button>
 
             <form.Subscribe selector={(state) => state.values}>
@@ -170,9 +168,9 @@ export default function VerifyPhrasePage() {
                 <Button
                   onClick={() => form.handleSubmit()}
                   disabled={!values.word0.trim() || !values.word1.trim() || !values.word2.trim()}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed border-0"
                 >
-                  Verify & Create Wallet
+                  Verify and create wallet
                 </Button>
               )}
             </form.Subscribe>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useFrenContext } from "@/app/(contexts)/FrensContext";
 
@@ -19,7 +19,6 @@ const Lottie = dynamic(() => import("lottie-react"), {
   loading: () => <Skeleton className="w-12 h-12 rounded-lg" />,
 });
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
@@ -28,10 +27,14 @@ import Image from "next/image";
 import { useQcProfilePhotosBatch } from "@/app/(hooks)/useQcProfilePhoto";
 import { claimTier2Rewards, claimReferralTon } from "./actions";
 
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 const FrensContent = () => {
   const lottieRef = useRef<LottieRefCurrentProps>(null);
   const { referralsNum, setReferralNum } = useFrenContext();
-  const { telegramId, SetMainQuantAmount } = useUserContext();
+  const { telegramId, username, SetMainQuantAmount } = useUserContext();
   const [pendingRewards, setPendingRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -42,6 +45,10 @@ const FrensContent = () => {
   // Fetch referral counts, pending rewards, and TON earnings via TanStack Query
   const { data: frensData, isPending: dataPending, error: dataError } = useFrensDataQuery(telegramId);
   const secondTierCount = frensData?.secondTierCount ?? 0;
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+  const tgFirstName = mounted
+    ? window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || username || "Quantum User"
+    : "Quantum User";
 
   // Fetch referral list via TanStack Query
   const { data: referralList = [], isPending: listPending, error: listError } = useReferralListQuery(telegramId);
@@ -52,9 +59,11 @@ const FrensContent = () => {
   // Sync query data into local state and context
   useEffect(() => {
     if (!frensData) return;
-    setReferralNum(frensData.referralCount);
-    setPendingRewards(frensData.pendingRewards);
-    setTonEarnings(frensData.tonEarnings);
+    queueMicrotask(() => {
+      setReferralNum(frensData.referralCount);
+      setPendingRewards(frensData.pendingRewards);
+      setTonEarnings(frensData.tonEarnings);
+    });
   }, [frensData, setReferralNum]);
 
 
@@ -143,22 +152,26 @@ const FrensContent = () => {
         {(dataError || listError) ? (
           <div className="p-4 space-y-6">
             <h1 className="text-3xl font-bold text-white">Frens</h1>
-            <Card className="bg-red-500/10 border-red-500/20 text-white">
+            <Card className="bg-red-500/10 text-white">
               <CardContent className="p-5 flex flex-col items-center gap-3 text-center">
                 <Icon icon="lucide:wifi-off" className="w-10 h-10 text-red-400" />
-                <p className="text-sm text-gray-300">Failed to load referrals. Pull down to retry.</p>
+                <p className="text-sm text-neutral-300">Failed to load referrals. Pull down to retry.</p>
               </CardContent>
             </Card>
           </div>
         ) : !loading ? (
           <div className="p-4 space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-white">Frens</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                Inviting your friends has never been easier, {tgFirstName}.
+              </h1>
+              <p className="text-sm text-neutral-400 mt-2">
+                Let your friend scan your QC QR code or just share your referral link. Done.
+              </p>
             </div>
 
             {/* TON Referral Earnings Card */}
-            <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-[#333] backdrop-blur-xl text-white overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
+            <Card className="bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_34%),linear-gradient(135deg,#1a1a1a,#0d0d0d)] backdrop-blur-xl text-white overflow-hidden relative">
               <CardContent className="p-5 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -166,9 +179,9 @@ const FrensContent = () => {
                       <Image src="/svg/ton-logo.svg" alt="TON" width={40} height={40} className="w-full h-full" />
                     </div>
                     <div>
-                      <div className="text-sm text-gray-400 font-medium">TON Referral Earnings</div>
+                      <div className="text-sm text-neutral-400 font-medium">TON referral earnings</div>
                       <div className="text-2xl font-bold text-white">
-                        {tonEarnings.toFixed(4)} <span className="text-base font-medium text-gray-400">TON</span>
+                        {tonEarnings.toFixed(2)} <span className="text-base font-medium text-neutral-400">TON</span>
                       </div>
                     </div>
                   </div>
@@ -180,21 +193,19 @@ const FrensContent = () => {
                     {isClaimingTon ? <ButtonLoader /> : "Claim"}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-neutral-500 mt-3">
                   Earn 0.1% from your referrals&apos; fees when they trade on QC RocketStart.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#1a1a1a]/80 border-[#333] backdrop-blur-xl text-white overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
+            <Card className="bg-[#1a1a1a]/80 backdrop-blur-xl text-white overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
               <CardContent className="p-6 space-y-4 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/20">
-                      EARN 10%
-                    </Badge>
-                    <div className="text-sm text-gray-400 font-medium">FROM YOUR INVITES</div>
+                    <div className="text-sm font-semibold text-amber-400">Earn 10%</div>
+                    <div className="text-sm text-neutral-400 font-medium">From your invites</div>
                   </div>
                   <div className="flex flex-col items-end">
                     <div className="flex items-center gap-2">
@@ -206,42 +217,40 @@ const FrensContent = () => {
                           autoplay={true}
                         />
                       </div>
-                      <div className="text-4xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                      <div className="text-4xl font-bold text-white">
                         {referralsNum}
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500 font-medium mt-1">INVITED FRENS</div>
+                    <div className="text-xs text-neutral-500 font-medium mt-1">Invited friends</div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#333]">
+                <div className="pt-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
-                      <Badge variant="secondary" className="bg-white/10 text-gray-300 hover:bg-white/20 border-white/10">
-                        EARN 2%
-                      </Badge>
-                      <div className="text-sm text-gray-400 font-medium">FROM THEIR INVITES</div>
+                      <div className="text-sm font-semibold text-amber-400">Earn 2%</div>
+                      <div className="text-sm text-neutral-400 font-medium">From their invites</div>
                     </div>
                     {secondTierCount > 0 && (
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
-                          <Icon icon="lucide:users-2" className="w-8 h-8 text-gray-400" />
-                          <div className="text-3xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                          <Icon icon="lucide:users-2" className="w-8 h-8 text-neutral-400" />
+                          <div className="text-3xl font-bold text-white">
                             {secondTierCount}
                           </div>
                         </div>
-                        <div className="text-xs text-gray-500 font-medium mt-1">2ND TIER FRENS</div>
+                        <div className="text-xs text-neutral-500 font-medium mt-1">2nd tier frens</div>
                       </div>
                     )}
                   </div>
 
                   {/* Pending Rewards Section */}
-                  <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+                  <div className="mt-4 p-3 bg-white/5 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Icon icon="lucide:gift" className="w-5 h-5 text-white" />
                         <div>
-                          <div className="text-sm font-medium text-white">Pending Rewards</div>
+                          <div className="text-sm font-medium text-white">Pending rewards</div>
                           <div className="text-lg font-bold text-white">
                             {pendingRewards.toFixed(0)} QNTM
                           </div>
@@ -257,7 +266,7 @@ const FrensContent = () => {
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                  <p className="text-xs text-neutral-500 mt-3 leading-relaxed">
                     When your invited friends invite others, you earn 2% of their earnings.
                   </p>
                 </div>
@@ -267,9 +276,8 @@ const FrensContent = () => {
             <InvitePopup />
 
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-blue-400 font-semibold">
-                <Icon icon="lucide:users" className="w-5 h-5" />
-                <span>Your Referrals</span>
+              <div className="flex items-center gap-2 text-neutral-300 font-semibold">
+                <span>Your referrals</span>
               </div>
 
               <div>
@@ -287,10 +295,10 @@ const FrensContent = () => {
                             data-index={virtualItem.index}
                           >
                             <div className="pb-3">
-                              <Card className="bg-white/5 border-white/5 text-white backdrop-blur-sm hover:bg-white/10 transition-all active:scale-[0.98]">
+                              <Card className="bg-white/5 text-white backdrop-blur-sm hover:bg-white/10 transition-all active:scale-[0.98]">
                                 <CardContent className="p-4 flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center border border-[#333] overflow-hidden">
+                                    <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
                                       {photoUrls[referral.id] ? (
                                         <Image
                                           src={photoUrls[referral.id]!}
@@ -301,14 +309,13 @@ const FrensContent = () => {
                                           unoptimized
                                         />
                                       ) : (
-                                        <Icon icon="lucide:user" className="w-5 h-5 text-gray-400" />
+                                        <Icon icon="lucide:user" className="w-5 h-5 text-neutral-400" />
                                       )}
                                     </div>
-                                    <div className="font-medium text-sm text-gray-200">{referral.username}</div>
+                                    <div className="font-medium text-sm text-neutral-200">{referral.username}</div>
                                   </div>
-                                  <div className="flex items-center gap-2 bg-[#2a2a2a]/50 px-3 py-1.5 rounded-lg border border-[#333]">
-                                    <Icon icon="lucide:trophy" className="w-3.5 h-3.5 text-yellow-500" />
-                                    <span className="font-bold text-sm text-yellow-500">
+                                  <div className="flex items-center px-3 py-1.5">
+                                    <span className="font-bold text-sm text-green-400">
                                       +{((referral.quantamount * 10) / 100).toFixed(0)} QNTM
                                     </span>
                                   </div>
@@ -321,7 +328,7 @@ const FrensContent = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                  <div className="flex flex-col items-center justify-center py-8 text-neutral-400">
                     <Icon icon="lucide:user-plus" className="w-16 h-16 mb-4 opacity-50" />
                     <span className="font-semibold text-base">Invite some frens to see them here!</span>
                   </div>
@@ -331,8 +338,9 @@ const FrensContent = () => {
           </div>
         ) : (
           <div className="p-4 space-y-6">
-            <Skeleton className="h-9 w-24" />
-            <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-[#333]">
+            <Skeleton className="h-16 w-[90%]" />
+            <Skeleton className="h-4 w-[86%]" />
+            <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -347,11 +355,11 @@ const FrensContent = () => {
                 <Skeleton className="h-3 w-full mt-3" />
               </CardContent>
             </Card>
-            <Card className="bg-[#1a1a1a]/80 border-[#333]">
+            <Card className="bg-[#1a1a1a]/80">
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-4 w-20" />
                     <Skeleton className="h-4 w-28" />
                   </div>
                   <div className="flex flex-col items-end">
@@ -359,8 +367,8 @@ const FrensContent = () => {
                     <Skeleton className="h-3 w-20 mt-1" />
                   </div>
                 </div>
-                <div className="border-t border-[#333] pt-4">
-                  <div className="p-3 bg-white/5 border border-white/10 rounded-lg">
+                <div className="pt-4">
+                  <div className="p-3 bg-white/5 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Skeleton className="w-5 h-5 rounded" />
@@ -382,7 +390,7 @@ const FrensContent = () => {
                 <Skeleton className="h-5 w-24" />
               </div>
               {[...Array(3)].map((_, i) => (
-                <Card key={i} className="bg-white/5 border-white/5">
+                <Card key={i} className="bg-white/5">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Skeleton className="w-10 h-10 rounded-full" />

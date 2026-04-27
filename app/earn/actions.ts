@@ -1,10 +1,24 @@
 "use server"
 
 import { z } from "zod";
+import { cookies } from "next/headers";
 import { FieldValue } from "firebase-admin/firestore";
 import { firestore } from "../(firebase)/server";
 import { authActionClient, authWithQcIdClient } from "@/lib/safe-action";
 import { env } from "@/env";
+
+export const setEarnTaskCookie = authActionClient
+    .schema(z.object({ taskId: z.string().min(1) }))
+    .action(async ({ parsedInput: { taskId } }) => {
+        const cookieStore = await cookies();
+        cookieStore.set("taskId", taskId, {
+            path: "/earn/9CXx152NbBKOKE2",
+            secure: true,
+            sameSite: "strict",
+        });
+
+        return { success: true };
+    });
 
 export const confirmTask = authWithQcIdClient
     .schema(z.object({

@@ -39,7 +39,7 @@ export default function LeaderboardStats() {
           <Logo width="2.5em" height="2.5em" />
         </div>
         <div>
-          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total QNTM</div>
+          <div className="text-xs text-neutral-400 font-medium">Total QNTM</div>
           <div className="text-xl font-bold text-white">{totalQuant}</div>
         </div>
       </div>
@@ -55,7 +55,7 @@ export default function LeaderboardStats() {
           />
         </div>
         <div>
-          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Users</div>
+          <div className="text-xs text-neutral-400 font-medium">Total users</div>
           <div className="text-xl font-bold text-white">{totalUsers}</div>
         </div>
       </div>

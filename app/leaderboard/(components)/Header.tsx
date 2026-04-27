@@ -1,34 +1,25 @@
-import dynamic from "next/dynamic";
-import type { LottieRefCurrentProps } from "lottie-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
-import { useRef } from "react";
+"use client";
 
-const Lottie = dynamic(() => import("lottie-react"), {
-  ssr: false,
-  loading: () => <Skeleton className="w-[2.2em] h-[2.2em] rounded bg-white/10" />,
-});
+import { useSyncExternalStore } from "react";
+import { useUserContext } from "@/app/(contexts)/UserContext";
+
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export default function LeaderboardHeader() {
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  const { username } = useUserContext();
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+  const tgFirstName = mounted
+    ? window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || username || "Quantum User"
+    : "Quantum User";
 
   return (
-    <div className="items-center px-4 py-6 flex justify-between">
-      <div className="flex items-center space-x-3">
-        <div className="w-14 h-14 flex items-center justify-center">
-          <Lottie
-            lottieRef={lottieRef}
-            animationData={trophyAnimationData}
-            loop={1}
-            autoplay={true}
-            style={{ width: "2.2em", height: "2.2em" }}
-          />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Leaderboard</h1>
-          <p className="text-sm text-gray-400">Top users ranking</p>
-        </div>
-      </div>
+    <div className="px-4 py-6">
+      <h1 className="text-2xl font-bold text-white tracking-tight">Here&apos;s your leaderboard, {tgFirstName}.</h1>
+      <p className="text-sm text-neutral-400 mt-1">
+        You can view your own personal ranking and everyone else&apos;s.
+      </p>
     </div>
   )
 }

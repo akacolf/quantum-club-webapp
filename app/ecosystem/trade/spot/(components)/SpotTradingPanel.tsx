@@ -48,6 +48,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
         rate: string;
     } | null>(null);
     const [simLoading, setSimLoading] = useState(false);
+    const [quoteParams, setQuoteParams] = useState<QuoteParams | null>(null);
 
     useEffect(() => {
         setAmount("");
@@ -73,9 +74,6 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
             return "0";
         }
     })();
-
-    // Build Omniston quote params
-    const [quoteParams, setQuoteParams] = useState<QuoteParams | null>(null);
 
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0) {
