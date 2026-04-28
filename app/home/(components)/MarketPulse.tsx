@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMarketPulse } from "@/app/(hooks)/queries/use-market-pulse";
 import { Icon } from "@iconify/react";
@@ -103,11 +104,32 @@ export default function MarketPulse() {
     );
   }
 
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
+
+  // GSAP stagger entrance for the pill chips
+  useEffect(() => {
+    if (isLoading || hasAnimated.current || !pillsRef.current) return;
+    const pills = pillsRef.current.children;
+    if (!pills.length) return;
+    hasAnimated.current = true;
+
+    import("@/lib/gsap")
+      .then((m) => m.loadGsap())
+      .then(({ gsap }) => {
+        gsap.fromTo(
+          pills,
+          { x: 30, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: "power3.out" },
+        );
+      });
+  }, [isLoading, ton, totalMarketCapUsd, fearGreed]);
+
   if (!ton && !totalMarketCapUsd && !fearGreed) return null;
 
   return (
     <div className="w-full overflow-x-auto scrollbar-hide">
-      <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
+      <div ref={pillsRef} className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
         {ton ? (() => {
           const change = formatChange(ton.change24h);
 

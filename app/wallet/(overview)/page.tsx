@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import { useGsapReveal } from "@/app/(hooks)/useGsapReveal";
+import { useGsapStagger } from "@/app/(hooks)/useGsapStagger";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -569,73 +571,27 @@ export default function WalletPage() {
   if (!hasWallet) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 w-full overflow-hidden">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-full max-w-md text-center space-y-8"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08, duration: 0.5 }}
-            className="relative"
-          >
-            <WalletWelcomeCinematic />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.16, duration: 0.45 }}
-            className="space-y-3 px-2"
-          >
-            <h3 className="text-3xl font-bold text-white tracking-tight">
-              Welcome to QC Wallet, {tgFirstName}.
-            </h3>
-            <p className="text-neutral-400 text-sm max-w-[340px] mx-auto leading-relaxed">
-              This is your secure, fast, and reliable home for your assets. Tap below to create or import your wallet.
-            </p>
-          </motion.div>
-
-          <div className="space-y-3 w-full">
-            <Button
-              onClick={createWallet}
-              disabled={isLoading}
-              className="w-full bg-white text-black hover:bg-neutral-200 h-12 rounded-xl font-semibold text-base shadow-lg shadow-white/5 border-0 inline-flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <ButtonLoader />
-              ) : (
-                <>
-                  <Icon icon="lucide:plus" className="w-4 h-4"/>
-                  Create new wallet
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="secondary"
-              asChild
-              className="w-full h-12 rounded-xl font-semibold text-base inline-flex items-center justify-center gap-2"
-            >
-              <Link href="/wallet/import">
-                <Icon icon="lucide:download" className="w-4 h-4"/>
-                Import existing wallet
-              </Link>
-            </Button>
-          </div>
-        </motion.div>
+        <WalletOnboardingReveal
+          tgFirstName={tgFirstName}
+          isLoading={isLoading}
+          createWallet={createWallet}
+        />
       </div>
     );
   }
 
+  // GSAP wallet header entrance
+  const walletHeaderRef = useGsapReveal<HTMLDivElement>({ y: 20, duration: 0.55, immediate: true });
+  // GSAP stagger for the action grid buttons
+  const actionGridRef = useGsapStagger<HTMLDivElement>({ y: 16, stagger: 0.06, delay: 0.25, duration: 0.4 });
+
   return (
     <div className="min-h-screen">
       <div className="flex w-full flex-col items-center space-y-6">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+        <div
+          ref={walletHeaderRef}
           className="w-[90%]"
+          style={{ opacity: 0 }}
         >
           <div className="relative overflow-hidden">
             <div className="relative z-10 space-y-6 py-6">
@@ -753,7 +709,7 @@ export default function WalletPage() {
               </div>
 
               {/* Action Grid */}
-              <div className="grid grid-cols-4 gap-3">
+              <div ref={actionGridRef} className="grid grid-cols-4 gap-3">
                 {([
                   { icon: <Icon icon="lucide:send" className="w-5 h-5"/>, label: "Send", path: "/wallet/send" as const, disabled: false },
                   { icon: <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>, label: "Receive", path: "/wallet/receive" as const, disabled: false },
@@ -787,7 +743,7 @@ export default function WalletPage() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         <div className="w-full space-y-3 order-2">
           <Card className="mx-auto w-[90%] rounded-2xl border-0 bg-secondary shadow-none">
@@ -1471,5 +1427,69 @@ export default function WalletPage() {
         }
       </AnimatePresence >
     </div >
+  );
+}
+
+// ─── GSAP-animated wallet onboarding ─────────────────────────────────
+function WalletOnboardingReveal({
+  tgFirstName,
+  isLoading,
+  createWallet,
+}: {
+  tgFirstName: string;
+  isLoading: boolean;
+  createWallet: () => Promise<void>;
+}) {
+  const containerRef = useGsapStagger<HTMLDivElement>({
+    y: 20,
+    stagger: 0.1,
+    delay: 0.05,
+    duration: 0.5,
+    ease: "power3.out",
+  });
+
+  return (
+    <div ref={containerRef} className="w-full max-w-md text-center space-y-8">
+      <div className="relative" style={{ opacity: 0 }}>
+        <WalletWelcomeCinematic />
+      </div>
+
+      <div className="space-y-3 px-2" style={{ opacity: 0 }}>
+        <h3 className="text-3xl font-bold text-white tracking-tight">
+          Welcome to QC Wallet, {tgFirstName}.
+        </h3>
+        <p className="text-neutral-400 text-sm max-w-[340px] mx-auto leading-relaxed">
+          This is your secure, fast, and reliable home for your assets. Tap below to create or import your wallet.
+        </p>
+      </div>
+
+      <div className="space-y-3 w-full" style={{ opacity: 0 }}>
+        <Button
+          onClick={createWallet}
+          disabled={isLoading}
+          className="w-full bg-white text-black hover:bg-neutral-200 h-12 rounded-xl font-semibold text-base shadow-lg shadow-white/5 border-0 inline-flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <ButtonLoader />
+          ) : (
+            <>
+              <Icon icon="lucide:plus" className="w-4 h-4" />
+              Create new wallet
+            </>
+          )}
+        </Button>
+
+        <Button
+          variant="secondary"
+          asChild
+          className="w-full h-12 rounded-xl font-semibold text-base inline-flex items-center justify-center gap-2"
+        >
+          <Link href="/wallet/import">
+            <Icon icon="lucide:download" className="w-4 h-4" />
+            Import existing wallet
+          </Link>
+        </Button>
+      </div>
+    </div>
   );
 }

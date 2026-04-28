@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useState, useCallback, useSyncExternalStore, useRef } from "react";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
+import { useGsapReveal } from "@/app/(hooks)/useGsapReveal";
 import {
   useMiningDataQuery,
   useSolveToEarnMutation,
@@ -303,14 +304,7 @@ const HomeContent = () => {
 
       <HomeSearch />
       
-      <div className="w-[90%] mx-auto">
-        <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
-          {greetingText}, {tgFirstName}.
-        </p>
-        <p className="text-[14px] text-neutral-400 mt-1">
-          {subtext}
-        </p>
-      </div>
+      <GreetingReveal greetingText={greetingText} tgFirstName={tgFirstName} subtext={subtext} />
 
       {/* Live crypto ticker */}
       <MarketPulse />
@@ -392,20 +386,16 @@ const HomeContent = () => {
         </div>
       </div>
 
-      <div>
-        <DailyCheckIn
-          loadingButtonDay={loadingButtonDay}
-          daily={daily}
-          isClaimDay={isClaimDay}
-          loadingDay={loadingDay}
-          ClaimDaily={ClaimDaily}
-          TaskTimer={TaskTimer}
-        />
-      </div>
+      <DailyCheckInReveal
+        loadingButtonDay={loadingButtonDay}
+        daily={daily}
+        isClaimDay={isClaimDay}
+        loadingDay={loadingDay}
+        ClaimDaily={ClaimDaily}
+        TaskTimer={TaskTimer}
+      />
 
-      <div>
-        <HomeCarousel />
-      </div>
+      <CarouselReveal />
 
       <SpotTokensSection />
     </div>
@@ -728,6 +718,40 @@ function SpotTokensSection() {
           <Icon icon="lucide:arrow-right" width="16" height="16" />
         </Link>
       </Button>
+    </div>
+  );
+}
+
+// ─── GSAP-animated wrapper components ─────────────────────────────────
+
+function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: string; tgFirstName: string; subtext: string }) {
+  const ref = useGsapReveal<HTMLDivElement>({ y: 24, duration: 0.6, immediate: true, delay: 0.05 });
+  return (
+    <div ref={ref} className="w-[90%] mx-auto" style={{ opacity: 0 }}>
+      <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
+        {greetingText}, {tgFirstName}.
+      </p>
+      <p className="text-[14px] text-neutral-400 mt-1">
+        {subtext}
+      </p>
+    </div>
+  );
+}
+
+function DailyCheckInReveal(props: React.ComponentProps<typeof DailyCheckIn>) {
+  const ref = useGsapReveal<HTMLDivElement>({ y: 30, duration: 0.55, start: "bottom-=40" });
+  return (
+    <div ref={ref} style={{ opacity: 0 }}>
+      <DailyCheckIn {...props} />
+    </div>
+  );
+}
+
+function CarouselReveal() {
+  const ref = useGsapReveal<HTMLDivElement>({ y: 30, duration: 0.6, start: "bottom-=40" });
+  return (
+    <div ref={ref} style={{ opacity: 0 }}>
+      <HomeCarousel />
     </div>
   );
 }

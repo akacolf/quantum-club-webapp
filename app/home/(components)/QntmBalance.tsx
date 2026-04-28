@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QntmBalanceProps } from "@/lib/interfaces";
 import { Icon } from "@iconify/react";
@@ -18,12 +18,77 @@ export default function QntmBalance({
   const [balanceMode, setBalanceMode] = useState<"qntm" | "wallet">("qntm");
   const showingWallet = balanceMode === "wallet";
   const loadingValue = showingWallet ? isWalletLoading : isLoading;
+
   const displayValue = showingWallet
     ? `$${Number(walletUsdBalance || "0").toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
     : MainQuantAmount;
+
+  // Animated balance ref
+  const balanceRef = useRef<HTMLDivElement>(null);
+  const prevValue = useRef<string | null>(null);
+
+  // GSAP-powered balance reveal + number change animation
+  useEffect(() => {
+    if (loadingValue || !balanceRef.current) return;
+    const el = balanceRef.current;
+
+    // First render: slide up from below
+    if (prevValue.current === null) {
+      prevValue.current = displayValue;
+      import("@/lib/gsap")
+        .then((m) => m.loadGsap())
+        .then(({ gsap }) => {
+          gsap.fromTo(
+            el,
+            { y: 20, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
+          );
+        });
+      return;
+    }
+
+    // Subsequent changes: subtle flip effect
+    if (prevValue.current !== displayValue) {
+      prevValue.current = displayValue;
+      import("@/lib/gsap")
+        .then((m) => m.loadGsap())
+        .then(({ gsap }) => {
+          gsap
+            .timeline()
+            .to(el, {
+              y: -8,
+              opacity: 0,
+              duration: 0.18,
+              ease: "power2.in",
+            })
+            .set(el, { y: 12 })
+            .to(el, {
+              y: 0,
+              opacity: 1,
+              duration: 0.35,
+              ease: "power3.out",
+            });
+        });
+    }
+  }, [displayValue, loadingValue]);
+
+  // Rank badge reveal animation
+  const rankRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isLoading || !rankRef.current || !rank) return;
+    import("@/lib/gsap")
+      .then((m) => m.loadGsap())
+      .then(({ gsap }) => {
+        gsap.fromTo(
+          rankRef.current,
+          { x: -12, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.5, delay: 0.3, ease: "power3.out" },
+        );
+      });
+  }, [isLoading, rank]);
 
   return (
     <div className="flex flex-col py-2 relative">
@@ -48,7 +113,11 @@ export default function QntmBalance({
         {loadingValue ? (
           <Skeleton className="h-12 w-40 rounded-lg bg-[#1a1a1a]" />
         ) : (
-          <div className="text-5xl font-bold text-white tracking-tight">
+          <div
+            ref={balanceRef}
+            className="text-5xl font-bold text-white tracking-tight"
+            style={{ opacity: 0 }}
+          >
             {isVisible ? displayValue : "********"}
           </div>
         )}
@@ -63,7 +132,7 @@ export default function QntmBalance({
         <div className="mt-2 text-xs text-neutral-500">No imported wallet</div>
       ) : null}
 
-      <div className="mt-3 flex items-center gap-1.5 text-sm">
+      <div ref={rankRef} className="mt-3 flex items-center gap-1.5 text-sm" style={{ opacity: 0 }}>
         <span className="text-neutral-400">Rank</span>
         <div className="font-bold text-white flex items-center gap-1">
           {isLoading ? (
