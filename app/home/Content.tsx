@@ -47,7 +47,7 @@ const QntmBalance = dynamic(() => import('./(components)/QntmBalance'), {
 const MarketPulse = dynamic(() => import('./(components)/MarketPulse'), {
   ssr: false,
   loading: () => (
-    <div className="w-full overflow-x-auto hide-scrollbar">
+    <div className="w-full overflow-x-auto scrollbar-hide">
       <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
         <div className="h-10 w-36 shrink-0 rounded-xl bg-secondary animate-pulse" />
         <div className="h-10 w-40 shrink-0 rounded-xl bg-secondary animate-pulse" />

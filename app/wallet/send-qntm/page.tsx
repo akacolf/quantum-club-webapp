@@ -195,7 +195,7 @@ export default function SendQNTMPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-md mx-auto">
-        <div className="mb-6 text-center">
+        <div className="mb-6 text-left">
           <h1 className="text-xl font-bold">Send QNTM</h1>
           <p className="text-sm text-muted-foreground mt-1">Transfer to another Quantum Club user</p>
         </div>

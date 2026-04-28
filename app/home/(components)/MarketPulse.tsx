@@ -93,7 +93,7 @@ export default function MarketPulse() {
 
   if (isLoading) {
     return (
-      <div className="w-full overflow-x-auto hide-scrollbar">
+      <div className="w-full overflow-x-auto scrollbar-hide">
         <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-10 w-36 shrink-0 rounded-xl bg-secondary" />
@@ -106,7 +106,7 @@ export default function MarketPulse() {
   if (!ton && !totalMarketCapUsd && !fearGreed) return null;
 
   return (
-    <div className="w-full overflow-x-auto hide-scrollbar">
+    <div className="w-full overflow-x-auto scrollbar-hide">
       <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
         {ton ? (() => {
           const change = formatChange(ton.change24h);

@@ -115,7 +115,7 @@ export function PortfolioHealthCard({
     if (!analysis) {
         return (
             <AIGlowBorder isLoading={isLoading}>
-                <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20 relative z-10">
+                <Card className="bg-secondary border-0 relative z-10">
                     <CardContent className="p-4">
                         <button
                             onClick={analyzePortfolio}
@@ -123,12 +123,10 @@ export function PortfolioHealthCard({
                             className="w-full flex items-center justify-between"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                    <Icon icon="lucide:heart" className="w-5 h-5 text-primary" />
-                                </div>
+                                <Icon icon="lucide:heart" className="w-5 h-5 text-primary" />
                                 <div className="text-left">
                                     <p className="font-medium text-white">Portfolio Health</p>
-                                    <p className="text-xs text-gray-400">
+                                    <p className="text-xs text-neutral-400">
                                         {assets.length === 0
                                             ? "Add assets to analyze"
                                             : "Tap for AI analysis"}
@@ -138,7 +136,7 @@ export function PortfolioHealthCard({
                             {isLoading ? (
                                 <span className="text-primary"><ButtonLoader /></span>
                             ) : (
-                                <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-500" />
+                                <Icon icon="lucide:chevron-right" className="w-5 h-5 text-neutral-500" />
                             )}
                         </button>
                     </CardContent>
@@ -151,7 +149,7 @@ export function PortfolioHealthCard({
 
     return (
         <AIGlowBorder isLoading={isLoading}>
-            <Card className="bg-[#111] border-[#222] overflow-hidden relative z-10">
+            <Card className="bg-secondary border-0 overflow-hidden relative z-10">
                 <CardContent className="p-4 space-y-4">
                     {/* Header with Score */}
                     <div className="flex items-center justify-between">
@@ -205,7 +203,7 @@ export function PortfolioHealthCard({
                     </div>
 
                     {/* Summary */}
-                    <p className="text-sm text-gray-300">{analysis.summary}</p>
+                    <p className="text-sm text-neutral-300">{analysis.summary}</p>
 
                     {/* Toggle Details */}
                     <button
@@ -228,7 +226,7 @@ export function PortfolioHealthCard({
                                 {/* Risks */}
                                 {analysis.risks.length > 0 && (
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                        <p className="text-xs text-neutral-500 mb-2 flex items-center gap-1">
                                             <Icon icon="lucide:alert-triangle" className="w-3 h-3" />
                                             Risks
                                         </p>
@@ -246,7 +244,7 @@ export function PortfolioHealthCard({
                                 {/* Opportunities */}
                                 {analysis.opportunities.length > 0 && (
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                        <p className="text-xs text-neutral-500 mb-2 flex items-center gap-1">
                                             <Icon icon="lucide:lightbulb" className="w-3 h-3" />
                                             Opportunities
                                         </p>
@@ -273,7 +271,7 @@ export function PortfolioHealthCard({
                     </AnimatePresence>
 
                     {/* Disclaimer */}
-                    <p className="text-[10px] text-gray-600 italic">
+                    <p className="text-[10px] text-neutral-600 italic">
                         AI-generated analysis. Not financial advice.
                     </p>
                 </CardContent>

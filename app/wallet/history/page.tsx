@@ -512,7 +512,7 @@ export default function HistoryPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by address, token, or amount..."
-            className="pl-10 pr-10 h-11 bg-card border-border rounded-xl text-sm"
+            className="pl-10 pr-10 h-11 bg-secondary border-0 rounded-xl text-sm"
           />
           {searchQuery && (
             <Button
@@ -557,7 +557,7 @@ export default function HistoryPage() {
 
         {/* Filter Options */}
         {showFilters && (
-          <div className="flex flex-wrap gap-2 p-3 bg-card rounded-xl border border-border">
+          <div className="flex flex-wrap gap-2 p-3 bg-secondary rounded-xl border-0">
             {filterOptions.map((option) => (
               <Button
                 key={option.value}
@@ -567,7 +567,7 @@ export default function HistoryPage() {
                 className={`h-8 px-3 rounded-lg text-xs ${
                   activeFilter === option.value 
                     ? "bg-primary text-primary-foreground" 
-                    : "bg-background hover:bg-muted"
+                    : "bg-secondary hover:bg-secondary/80"
                 }`}
               >
                 {option.label}
@@ -597,7 +597,7 @@ export default function HistoryPage() {
         {/* Blockchain History Tab */}
         <TabsContent value="ton" className="flex-1 mt-0">
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+            <div className="mb-4 p-3 bg-red-500/10 border-0 rounded-xl text-red-400 text-sm text-center">
               {error}
               <Button
                 variant="ghost"
@@ -623,18 +623,18 @@ export default function HistoryPage() {
             {isLoadingHistory ? (
               <div className="space-y-3 pb-20">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Card key={i} className="bg-card border-border shadow-none">
+                  <Card key={i} className="bg-secondary border-0 shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <Skeleton className="w-12 h-12 rounded-full bg-muted" />
+                        <Skeleton className="w-12 h-12 rounded-full bg-secondary" />
                         <div className="space-y-2">
-                          <Skeleton className="w-24 h-4 bg-muted" />
-                          <Skeleton className="w-16 h-3 bg-muted" />
+                          <Skeleton className="w-24 h-4 bg-secondary" />
+                          <Skeleton className="w-16 h-3 bg-secondary" />
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        <Skeleton className="w-20 h-5 bg-muted" />
-                        <Skeleton className="w-12 h-3 bg-muted" />
+                        <Skeleton className="w-20 h-5 bg-secondary" />
+                        <Skeleton className="w-12 h-3 bg-secondary" />
                       </div>
                     </CardContent>
                   </Card>
@@ -642,13 +642,11 @@ export default function HistoryPage() {
               </div>
             ) : filteredHistory.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
-                  {searchQuery || activeFilter !== "all" ? (
-                    <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
-                  ) : (
-                    <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
-                  )}
-                </div>
+                {searchQuery || activeFilter !== "all" ? (
+                  <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
+                ) : (
+                  <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
+                )}
                 <p>
                   {searchQuery || activeFilter !== "all"
                     ? "No matching transactions"
@@ -679,7 +677,7 @@ export default function HistoryPage() {
                         ref={tonVirtualizer.measureElement}
                       >
                         <Card
-                          className="bg-card border-border shadow-none hover:border-muted-foreground/20 transition-all active:scale-[0.99] cursor-pointer"
+                          className="bg-secondary border-0 shadow-none hover:bg-secondary/80 transition-all active:scale-[0.99] cursor-pointer"
                           onClick={() => window.open(`${EXPLORER_BASE_URL}/transaction/${tx.event_id}`, "_blank")}
                         >
                           <CardContent className="p-4">
@@ -703,7 +701,7 @@ export default function HistoryPage() {
                             </Button>
 
                             {txLabels[tx.event_id] && (
-                              <div className="mb-3 pb-3 border-b border-border">
+                              <div className="mb-3 pb-3 border-0">
                                 <div className="flex-1 min-w-0">
                                   {txLabels[tx.event_id].label && (
                                     <p className="text-sm text-foreground truncate mb-1.5">
@@ -713,9 +711,9 @@ export default function HistoryPage() {
                                   {txLabels[tx.event_id].tags.length > 0 && (
                                     <div className="flex flex-wrap gap-1">
                                       {txLabels[tx.event_id].tags.map(tag => (
-                                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                        <span key={tag} className="text-[10px] text-muted-foreground">
                                           {formatTag(tag)}
-                                        </Badge>
+                                        </span>
                                       ))}
                                     </div>
                                   )}
@@ -725,10 +723,10 @@ export default function HistoryPage() {
 
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center border border-border ${tx.type === 'Deploy' ? 'bg-primary/10 text-primary' :
-                                  tx.isSwap ? 'bg-purple-500/10 text-purple-400' :
-                                    tx.symbol === 'NFT' ? 'bg-purple-500/10 text-purple-400' :
-                                      tx.isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                                <div className={`shrink-0 ${tx.type === 'Deploy' ? 'text-primary' :
+                                  tx.isSwap ? 'text-purple-400' :
+                                    tx.symbol === 'NFT' ? 'text-purple-400' :
+                                      tx.isIncoming ? 'text-green-500' : 'text-red-500'
                                   }`}>
                                   {tx.type === 'Deploy' ? (
                                     <Icon icon="lucide:layers" className="w-4 h-4"/>
@@ -746,11 +744,11 @@ export default function HistoryPage() {
                                   <h4 className="font-bold text-foreground text-sm truncate">{tx.type}</h4>
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     {tx.isSwap ? (
-                                      <span className="font-mono bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400 truncate flex items-center gap-1">
+                                      <span className="font-mono text-purple-400 truncate flex items-center gap-1">
                                         {tx.fromSymbol} <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {tx.toSymbol}
                                       </span>
                                     ) : (
-                                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground truncate">
+                                      <span className="font-mono text-muted-foreground truncate">
                                         {formatAddress(tx.address)}
                                       </span>
                                     )}
@@ -810,18 +808,18 @@ export default function HistoryPage() {
             {isLoadingQntm ? (
               <div className="space-y-3 pb-20">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Card key={i} className="bg-card border-border shadow-none">
+                  <Card key={i} className="bg-secondary border-0 shadow-none">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <Skeleton className="w-12 h-12 rounded-full bg-muted" />
+                        <Skeleton className="w-12 h-12 rounded-full bg-secondary" />
                         <div className="space-y-2">
-                          <Skeleton className="w-24 h-4 bg-muted" />
-                          <Skeleton className="w-16 h-3 bg-muted" />
+                          <Skeleton className="w-24 h-4 bg-secondary" />
+                          <Skeleton className="w-16 h-3 bg-secondary" />
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        <Skeleton className="w-20 h-5 bg-muted" />
-                        <Skeleton className="w-12 h-3 bg-muted" />
+                        <Skeleton className="w-20 h-5 bg-secondary" />
+                        <Skeleton className="w-12 h-3 bg-secondary" />
                       </div>
                     </CardContent>
                   </Card>
@@ -829,13 +827,11 @@ export default function HistoryPage() {
               </div>
             ) : filteredQntmHistory.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border border-border">
-                  {searchQuery || activeFilter !== "all" ? (
-                    <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
-                  ) : (
-                    <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
-                  )}
-                </div>
+                {searchQuery || activeFilter !== "all" ? (
+                  <Icon icon="lucide:search" className="w-8 h-8 text-muted-foreground"/>
+                ) : (
+                  <Icon icon="lucide:clock" className="w-8 h-8 text-muted-foreground"/>
+                )}
                 <p>
                   {searchQuery || activeFilter !== "all"
                     ? "No matching transfers"
@@ -881,10 +877,10 @@ export default function HistoryPage() {
                         data-index={virtualItem.index}
                         ref={qntmVirtualizer.measureElement}
                       >
-                        <Card className="bg-card border-border shadow-none hover:border-orange-500/30 transition-all active:scale-[0.99]">
+                        <Card className="bg-secondary border-0 shadow-none hover:bg-secondary/80 transition-all active:scale-[0.99]">
                           <CardContent className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-border ${isIncoming ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                              <div className={`shrink-0 ${isIncoming ? 'text-green-500' : 'text-orange-500'}`}>
                                 {isIncoming ? (
                                   <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>
                                 ) : (
@@ -896,7 +892,7 @@ export default function HistoryPage() {
                                   {isIncoming ? 'Received' : 'Sent'}
                                 </h4>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span className="font-mono bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400">
+                                  <span className="font-mono text-orange-400">
                                     {formatQcId(counterparty || "")}
                                   </span>
                                 </div>
@@ -947,7 +943,7 @@ export default function HistoryPage() {
                 value={labelInput}
                 onChange={(e) => setLabelInput(e.target.value)}
                 placeholder="e.g., Payment for services"
-                className="h-11 bg-secondary border-border rounded-xl"
+                className="h-11 bg-secondary border-0 rounded-xl"
               />
             </div>
             
@@ -966,7 +962,7 @@ export default function HistoryPage() {
                     className={`h-8 rounded-full text-xs ${
                       tagsInput.includes(tag) 
                         ? "bg-primary text-primary-foreground" 
-                        : "bg-background hover:bg-muted"
+                        : "bg-secondary hover:bg-secondary/80"
                     }`}
                   >
                     {formatTag(tag)}

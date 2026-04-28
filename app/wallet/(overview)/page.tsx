@@ -15,13 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -646,8 +639,8 @@ export default function WalletPage() {
         >
           <div className="relative overflow-hidden">
             <div className="relative z-10 space-y-6 py-6">
-              <div className="flex items-center">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="flex w-full items-center justify-start">
+                <div className="flex min-w-0 items-center gap-1.5">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -971,15 +964,25 @@ export default function WalletPage() {
           </TabsList>
 
           <TabsContent value="assets" className="mt-4 w-full space-y-3">
-            <Select value={assetChainTab} onValueChange={(value) => setAssetChainTab(value as AssetChainTab)}>
-              <SelectTrigger className="h-11 w-fit min-w-36 rounded-xl font-semibold">
-                <SelectValue placeholder="Select chain" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl bg-popover">
-                <SelectItem value="ton">TON</SelectItem>
-                <SelectItem value="multichain">Multi chain</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              {([
+                { value: "ton", label: "TON" },
+                { value: "multichain", label: "Multi chain" },
+              ] as const).map((chain) => (
+                <button
+                  key={chain.value}
+                  type="button"
+                  onClick={() => setAssetChainTab(chain.value)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    assetChainTab === chain.value
+                      ? "bg-white text-black"
+                      : "bg-secondary text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  {chain.label}
+                </button>
+              ))}
+            </div>
             {assetChainTab === "ton" ? (
               <>
             {/* TON Card */}

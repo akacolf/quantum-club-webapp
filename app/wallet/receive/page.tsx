@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
@@ -109,8 +108,8 @@ export default function ReceivePage() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md mx-auto space-y-6"
       >
-        <div className="text-center space-y-2 mb-2">
-          <h1 className="text-2xl font-bold">Receive Assets</h1>
+        <div className="text-left space-y-2 mb-2">
+          <h1 className="text-2xl font-bold">Receive assets</h1>
           <p className="text-muted-foreground text-sm">
             Select a network to receive funds
           </p>
@@ -121,7 +120,7 @@ export default function ReceivePage() {
           <Icon icon="lucide:search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
           <Input
             placeholder="Search assets..."
-            className="pl-9 bg-muted border-border h-11 rounded-xl"
+            className="pl-9 bg-secondary border-0 h-11 rounded-xl"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -135,7 +134,7 @@ export default function ReceivePage() {
               <Card
                 key={chainKey}
                 onClick={() => handleSelectChain(chainKey)}
-                className="bg-[#111] border-[#222] hover:bg-[#161616] cursor-pointer transition-all active:scale-[0.99] rounded-2xl overflow-hidden"
+                className="bg-secondary border-0 hover:bg-secondary/80 cursor-pointer transition-all active:scale-[0.99] rounded-2xl overflow-hidden"
               >
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -151,13 +150,13 @@ export default function ReceivePage() {
                     <div className="flex flex-col justify-center">
                       <h3 className="font-bold text-white text-base leading-tight">{chain.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary" className="text-[10px] h-4.5 px-1.5 bg-muted/50 text-muted-foreground font-bold tracking-tight">
+                        <span className="text-[10px] font-bold tracking-tight text-muted-foreground">
                           {chain.symbol}
-                        </Badge>
+                        </span>
                         {chain.receiveOnly && (
-                          <Badge variant="outline" className="text-[9px] h-4.5 px-1.5 border-yellow-500/30 text-yellow-500/80 uppercase font-bold">
+                          <span className="text-[9px] font-bold text-yellow-500/80">
                             Receive only
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </div>
@@ -178,10 +177,10 @@ export default function ReceivePage() {
 
       {/* Receive Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-[32px] bg-[#0c0c0c] border-[#222] pb-8 pt-6 px-6 max-h-[85vh] overflow-y-auto scrollbar-hide">
+        <SheetContent side="bottom" className="rounded-t-[32px] bg-background border-0 pb-8 pt-6 px-6 max-h-[85vh] overflow-y-auto scrollbar-hide">
           <SheetHeader className="mb-8 text-center">
             <SheetTitle className="text-2xl font-bold text-white">Receive {selectedChain && (CHAIN_INFO[selectedChain].name === "Tron" ? "TRON" : CHAIN_INFO[selectedChain].name)}</SheetTitle>
-            <SheetDescription className="text-gray-400">
+            <SheetDescription className="text-neutral-400">
               Scan the QR code to deposit funds
             </SheetDescription>
           </SheetHeader>
@@ -200,9 +199,9 @@ export default function ReceivePage() {
               </div>
 
               {/* Warning */}
-              <Alert variant="warning" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-500">
+              <Alert variant="warning" className="bg-transparent border-0 p-0 text-yellow-500">
                 <Icon icon="lucide:shield-alert" className="w-4 h-4"/>
-                <AlertTitle className="text-xs font-bold uppercase tracking-wide opacity-80">Warning</AlertTitle>
+                <AlertTitle className="text-xs font-bold opacity-80">Warning</AlertTitle>
                 <AlertDescription className="text-xs leading-relaxed opacity-90 mt-1">
                   {CHAIN_INFO[selectedChain].warningText}
                 </AlertDescription>
@@ -211,15 +210,15 @@ export default function ReceivePage() {
               {/* QC Username (TON only) */}
               {selectedChain === "ton" && qcUsername && (
                 <div className="w-full space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold ml-1">
-                    Your QC Username
+                  <Label className="text-xs text-muted-foreground font-semibold ml-1">
+                    Your QC username
                   </Label>
                   <div
                     onClick={() => {
                       navigator.clipboard.writeText(`@${qcUsername}`);
                       toast.success("Username copied!");
                     }}
-                    className="w-full bg-[#161616] border border-[#222] active:border-primary/50 rounded-xl p-4 cursor-pointer transition-colors hover:bg-[#1a1a1a]"
+                    className="w-full bg-secondary border-0 rounded-xl p-4 cursor-pointer transition-colors hover:bg-secondary/80"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -239,14 +238,14 @@ export default function ReceivePage() {
 
               {/* Address Box */}
               <div className="w-full space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold ml-1">
-                  Your {CHAIN_INFO[selectedChain].symbol} Address
+                <Label className="text-xs text-muted-foreground font-semibold ml-1">
+                  Your {CHAIN_INFO[selectedChain].symbol} address
                 </Label>
                 <div
                   onClick={copyAddress}
-                  className="w-full bg-[#161616] border border-[#222] active:border-primary/50 rounded-xl p-4 cursor-pointer transition-colors hover:bg-[#1a1a1a]"
+                  className="w-full bg-secondary border-0 rounded-xl p-4 cursor-pointer transition-colors hover:bg-secondary/80"
                 >
-                  <p className="text-sm font-mono break-all text-gray-300 leading-relaxed">
+                  <p className="text-sm font-mono break-all text-neutral-300 leading-relaxed">
                     {getAddressForChain(selectedChain)}
                   </p>
                 </div>
@@ -263,7 +262,7 @@ export default function ReceivePage() {
                 <Button
                   onClick={handleShare}
                   variant="outline"
-                  className="bg-[#161616] border-[#222] text-white hover:bg-[#222] h-12 rounded-xl font-bold active:scale-[0.98] transition-transform"
+                  className="bg-secondary border-0 text-white hover:bg-secondary/80 h-12 rounded-xl font-bold active:scale-[0.98] transition-transform"
                 >
                   <Icon icon="lucide:share-2" className="w-4 h-4 mr-2"/> Share
                 </Button>
