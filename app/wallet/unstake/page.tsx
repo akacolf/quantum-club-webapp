@@ -462,7 +462,7 @@ export default function UnstakePage() {
                 isOpen={isAuthOpen}
                 onSuccess={handleAuthSuccess}
                 onCancel={handleAuthCancel}
-                title="Confirm Unstake"
+                title="Confirm unstake"
                 description={`Unstake ${unstakeAmountNum.toFixed(4)} tsTON`}
             />
         </div>

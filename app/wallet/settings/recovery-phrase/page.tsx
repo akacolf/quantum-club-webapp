@@ -23,23 +23,28 @@ export default function ViewRecoveryPhrasePage() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const {telegramId}  = useUserContext();
+  const { telegramId, _hasHydrated } = useUserContext();
   // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
   useEffect(() => {
-    // Only load mnemonic after authorization
-    if (isAuthorized) {
-      getSecureMnemonic(telegramId).then((storedMnemonic) => {
-        if (!storedMnemonic) {
-          toast.error("No wallet found");
-          router.push("/wallet/settings");
-          return;
-        }
-        setMnemonic(storedMnemonic.split(" "));
-      });
+    if (!isAuthorized || !_hasHydrated) return;
+
+    if (!telegramId) {
+      toast.error("No wallet found");
+      router.push("/wallet/settings");
+      return;
     }
-  }, [router, isAuthorized, telegramId]);
+
+    getSecureMnemonic(telegramId).then((storedMnemonic) => {
+      if (!storedMnemonic) {
+        toast.error("No wallet found");
+        router.push("/wallet/settings");
+        return;
+      }
+      setMnemonic(storedMnemonic.split(" "));
+    });
+  }, [router, isAuthorized, telegramId, _hasHydrated]);
 
   // Request auth on mount
   useEffect(() => {

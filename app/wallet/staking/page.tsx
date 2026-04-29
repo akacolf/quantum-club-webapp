@@ -674,7 +674,7 @@ export default function StakingPage() {
                 isOpen={isAuthOpen}
                 onSuccess={handleAuthSuccess}
                 onCancel={handleAuthCancel}
-                title="Confirm Stake"
+                title="Confirm stake"
                 description="Authenticate to stake your TON"
             />
         </div>

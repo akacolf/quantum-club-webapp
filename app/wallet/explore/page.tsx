@@ -92,7 +92,7 @@ const CATEGORIES = [
     { id: "all", name: "All", icon: "lucide:layout-grid" },
     { id: "exchange", name: "DEX", icon: "lucide:trending-up" },
     { id: "defi", name: "DeFi", icon: "lucide:droplets" },
-    { id: "nft", name: "NFT", icon: "lucide:star" },
+    { id: "nft", name: "NFT", icon: "lucide:image" },
     { id: "gaming", name: "Gaming", icon: "lucide:gamepad-2" },
     { id: "tools", name: "Tools", icon: "lucide:shield" },
 ];
@@ -116,7 +116,7 @@ function AppIcon({ app }: { app: DApp }) {
         switch (category) {
             case "exchange": return "lucide:trending-up";
             case "defi": return "lucide:droplets";
-            case "nft": return "lucide:star";
+            case "nft": return "lucide:image";
             case "gaming": return "lucide:gamepad-2";
             case "tools": return "lucide:shield";
             default: return "lucide:globe";
@@ -249,9 +249,6 @@ export default function ExplorePage() {
                                 <div className="flex-1 min-w-0 text-left">
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-medium text-white">{app.name}</h3>
-                                        {app.featured && (
-                                            <Icon icon="lucide:star" className="w-3 h-3 text-yellow-500 fill-yellow-500"/>
-                                        )}
                                     </div>
                                     <p className="truncate text-sm text-neutral-500">{app.description}</p>
                                 </div>

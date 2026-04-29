@@ -246,10 +246,9 @@ export default function SendQNTMPage() {
                           }}
                           placeholder="Enter recipient's Quantum Club ID"
                           aria-invalid={hasErrors || !!qcIdError}
-                          className={`bg-secondary border-0 h-14 pl-4 pr-10 text-foreground placeholder:text-neutral-500 rounded-xl transition-all ${qcIdError ? 'ring-1 ring-destructive' : ''
+                          className={`bg-secondary border-0 h-14 px-4 text-foreground placeholder:text-neutral-500 rounded-xl transition-all ${qcIdError ? 'ring-1 ring-destructive' : ''
                             }`}
                         />
-                        <Icon icon="lucide:user" className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500"/>
                       </div>
                       {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       {qcIdError ? (
@@ -257,9 +256,7 @@ export default function SendQNTMPage() {
                           <Icon icon="lucide:info" className="w-3 h-3"/>
                           {qcIdError}
                         </p>
-                      ) : (
-                        <p className="text-xs text-neutral-500 ml-1">Ask the recipient to share their QC ID from the Frens section</p>
-                      )}
+                      ) : null}
                     </div>
                   );
                 }}

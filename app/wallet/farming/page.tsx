@@ -562,7 +562,7 @@ export default function FarmingPage() {
                 isOpen={isAuthOpen}
                 onSuccess={handleAuthSuccess}
                 onCancel={handleAuthCancel}
-                title="Confirm Farming"
+                title="Confirm farming"
                 description="Authenticate to stake your LP tokens"
             />
         </div>

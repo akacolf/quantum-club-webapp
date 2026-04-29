@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Carousel,
@@ -592,13 +593,13 @@ export default function WalletPage() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="h-9 max-w-52 rounded-full border-0 bg-transparent px-0 text-lg font-semibold text-neutral-200 hover:bg-transparent hover:text-white"
+                        className="h-9 max-w-48 rounded-full border-0 bg-transparent px-0 text-base font-semibold text-neutral-200 hover:bg-transparent hover:text-white"
                       >
-                        <Icon icon={walletSymbol} className="mr-2 h-5 w-5 text-neutral-300" />
+                        <Icon icon={walletSymbol} className="mr-1.5 h-4 w-4 text-neutral-300" />
                         <span className="truncate">
                           {storedWallets.find((wallet) => wallet.address === walletAddress)?.name ?? "Wallet"}
                         </span>
-                        <Icon icon="lucide:chevron-down" className="ml-3 h-5 w-5 shrink-0" />
+                        <Icon icon="lucide:chevron-down" className="ml-1.5 h-4 w-4 shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="min-w-60 rounded-2xl border-0 bg-popover p-2 text-white shadow-2xl">
@@ -665,10 +666,10 @@ export default function WalletPage() {
                       navigator.clipboard.writeText(walletAddress);
                       toast.success("Address copied");
                     }}
-                    className="h-9 w-9 shrink-0 rounded-full border-0 bg-transparent text-neutral-300 hover:bg-transparent hover:text-white"
+                    className="h-9 w-7 shrink-0 rounded-full border-0 bg-transparent p-0 text-neutral-300 hover:bg-transparent hover:text-white"
                     aria-label="Copy wallet address"
                   >
-                    <Icon icon="lucide:copy" className="h-6 w-6" />
+                    <Icon icon="lucide:copy" className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -717,7 +718,7 @@ export default function WalletPage() {
                       : 'group cursor-pointer'
                       }`}
                   >
-                    <div className={`flex h-16 w-full items-center justify-center rounded-full bg-secondary ${action.disabled
+                    <div className={`flex h-16 w-16 items-center justify-center rounded-full bg-secondary ${action.disabled
                       ? 'text-neutral-600'
                       : 'text-white transition-all duration-200 group-hover:scale-105'
                       }`}>
@@ -879,7 +880,7 @@ export default function WalletPage() {
         <div className="order-3 flex w-[90%] flex-col items-center space-y-6 pt-4">
 
         {isTestnet ? (
-          <div className="w-[90%] bg-secondary border-0 rounded-xl p-3 flex items-start gap-3">
+          <div className="w-full bg-secondary border-0 rounded-xl p-3 flex items-start gap-3">
             <Icon icon="lucide:flask-conical" className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0"/>
             <div className="text-xs text-neutral-400 leading-relaxed space-y-1">
               <p>You&apos;re on TON Testnet. Assets here have no real value.</p>
@@ -889,7 +890,7 @@ export default function WalletPage() {
         ) : null}
 
 
-        <Tabs value={walletTab} onValueChange={(v) => setWalletTab(v as typeof walletTab)} className="w-[90%] pb-24">
+        <Tabs value={walletTab} onValueChange={(v) => setWalletTab(v as typeof walletTab)} className="w-full pb-24">
           <TabsList className="w-full h-12 border-0 bg-secondary">
             <TabsTrigger
               value="assets"
@@ -910,7 +911,7 @@ export default function WalletPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="assets" className="mt-4 w-full space-y-3">
+          <TabsContent value="assets" className="mt-4 flex w-full flex-col gap-2 text-sm">
             <div className="flex items-center gap-2">
               {([
                 { value: "ton", label: "TON" },
@@ -977,6 +978,7 @@ export default function WalletPage() {
                 </div>
               </CardContent>
             </Card>
+            <Separator />
 
             {/* Jetton loading skeleton */}
             {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
@@ -1062,6 +1064,7 @@ export default function WalletPage() {
                           </div>
                         </CardContent>
                       </Card>
+                      <Separator />
                     </div>
                   );
                 })}
@@ -1072,6 +1075,7 @@ export default function WalletPage() {
 
             {/* BTC Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && btcAddress && (
+              <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
@@ -1114,10 +1118,13 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
+              <Separator />
+              </>
             )}
 
             {/* ETH Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && ethAddress && (
+              <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
@@ -1160,10 +1167,13 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
+              <Separator />
+              </>
             )}
 
             {/* SOL Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && solAddress && (
+              <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
@@ -1206,10 +1216,13 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
+              <Separator />
+              </>
             )}
 
             {/* TRX Balance Card - Only show in mainnet */}
             {assetChainTab === "multichain" && !isTestnet && trxAddress && (
+              <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
                 onClick={() => {
@@ -1252,6 +1265,8 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
+              <Separator />
+              </>
             )}
             {assetChainTab === "multichain" && (
               <>

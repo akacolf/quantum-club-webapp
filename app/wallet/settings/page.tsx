@@ -41,7 +41,6 @@ function TestnetToggle() {
           <Switch
             checked={isTestnet}
             onCheckedChange={() => { }} // Controlled by dialog action
-            className="data-[state=checked]:bg-orange-500"
           />
         </div>
       </AlertDialogTrigger>
@@ -305,16 +304,14 @@ export default function WalletSettingsPage() {
                   <AlertDialogContent className="bg-card border-0 text-foreground">
                     <AlertDialogHeader className="text-left">
                       <div className="mb-2 flex items-start gap-3 text-left">
-                        <Icon icon="lucide:alert-triangle" className="h-6 w-6 text-red-400" />
-                        <div className="space-y-1 text-left">
+                        <Icon icon="lucide:alert-triangle" className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+                        <div className="space-y-3 text-left">
                           <AlertDialogTitle>Remove wallet?</AlertDialogTitle>
                           <AlertDialogDescription className="text-muted-foreground text-xs">This action cannot be undone</AlertDialogDescription>
+                          <p className="text-left text-xs font-medium leading-relaxed text-red-400">
+                            Warning: Make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
+                          </p>
                         </div>
-                      </div>
-                      <div className="mt-2 rounded-xl bg-red-500/10 p-3 text-left">
-                        <p className="text-left text-xs font-medium leading-relaxed text-red-400">
-                          Warning: Make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
-                        </p>
                       </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-4">

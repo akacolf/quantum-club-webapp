@@ -1456,7 +1456,7 @@ export default function LiquidityPage() {
         isOpen={isAuthOpen}
         onSuccess={handleAuthSuccess}
         onCancel={handleAuthCancel}
-        title="Confirm Liquidity"
+        title="Confirm liquidity"
         description="Authenticate to add liquidity"
       />
     </div>

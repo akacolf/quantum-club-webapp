@@ -40,7 +40,7 @@ export function BiometricAuth({
   isOpen,
   onSuccess,
   onCancel,
-  title = "Confirm Transaction",
+  title = "Confirm transaction",
   description = "Authenticate to sign and send this transaction",
 }: BiometricAuthProps) {
   const [authMethod, setAuthMethod] = useState<AuthMethod>("selecting");
@@ -322,7 +322,7 @@ export function BiometricAuth({
                       <Icon icon="lucide:key-round" className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <div className="font-semibold">PIN Code</div>
+                      <div className="font-semibold">PIN code</div>
                       <div className="text-xs text-muted-foreground">
                         {hasStoredPin ? "Enter your PIN" : "Set up a new PIN"}
                       </div>
@@ -355,7 +355,7 @@ export function BiometricAuth({
                         onClick={authenticateWithBiometric}
                         className="w-full"
                       >
-                        Try Again
+                        Try again
                       </Button>
                       <Button
                         variant="ghost"
@@ -403,7 +403,7 @@ export function BiometricAuth({
                     disabled={pin.length < 4}
                     className="w-full h-12"
                   >
-                    {hasStoredPin ? "Confirm" : "Set PIN & Continue"}
+                    {hasStoredPin ? "Confirm" : "Set PIN and continue"}
                   </Button>
 
                   {hasBiometric && (
@@ -417,7 +417,7 @@ export function BiometricAuth({
                       }}
                       className="w-full text-sm"
                     >
-                      Use Biometrics instead
+                      Use biometrics instead
                     </Button>
                   )}
                 </div>

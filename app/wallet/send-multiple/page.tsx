@@ -581,7 +581,7 @@ export default function SendMultiplePage() {
         isOpen={isAuthOpen}
         onSuccess={handleAuthSuccess}
         onCancel={handleAuthCancel}
-        title="Confirm Batch Send"
+        title="Confirm batch send"
         description="Authenticate to send to multiple recipients"
       />
     </div>

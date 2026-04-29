@@ -1026,9 +1026,9 @@ export default function SwapPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => setSlippage(s)}
-                                                            className={`h-auto px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-tight transition-all active:scale-95 ${slippage === s
-                                                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary hover:text-primary-foreground"
-                                                                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
+                                                            className={`h-auto rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight transition-all active:scale-95 ${slippage === s
+                                                                ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary hover:text-primary-foreground"
+                                                                : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
                                                                 }`}
                                                         >
                                                             {s}%
@@ -1079,7 +1079,7 @@ export default function SwapPage() {
 
                             {/* Info: Fee deduction explanation for MAX swaps */}
                             {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && omnistonQuote && swapDetails.hasEnoughForGas && (
-                                <div className="bg-blue-500/10 border-0 rounded-xl p-3 flex items-start gap-3">
+                                <div className="bg-secondary border-0 rounded-xl p-3 flex items-start gap-3">
                                     <Icon icon="lucide:info" className="w-4 h-4 text-primary mt-0.5 shrink-0"/>
                                     <p className="text-xs text-primary/90">
                                         <span className="font-semibold">~{swapDetails.estimatedGas.toFixed(4)} TON</span> network fee will be deducted from your swap amount.
@@ -1172,7 +1172,7 @@ export default function SwapPage() {
                         >
                             <Card className="bg-secondary border-0 rounded-2xl">
                                 <CardContent className="p-6 text-center space-y-4">
-                                    <h2 className="text-lg font-bold">Confirm Swap</h2>
+                                    <h2 className="text-lg font-bold">Confirm swap</h2>
 
                                     <div className="flex items-center justify-center gap-4 py-4">
                                         <div className="text-center">
@@ -1253,7 +1253,7 @@ export default function SwapPage() {
                                     disabled={isSwapping}
                                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground h-12"
                                 >
-                                    {isSwapping ? <ButtonLoader /> : "Confirm Swap"}
+                                    {isSwapping ? <ButtonLoader /> : "Confirm swap"}
                                 </Button>
                             </div>
                         </motion.div>
