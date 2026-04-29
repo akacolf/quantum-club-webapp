@@ -1,39 +1,17 @@
+"use client";
+
 /**
- * Central GSAP configuration and lazy-loader.
+ * Central GSAP setup — import from here to get a pre-configured gsap instance.
  *
- * Every consumer should import from here rather than from "gsap" directly.
- * This ensures that ScrollTrigger is registered exactly once and that we
- * tree-shake as much as possible on the server (all functions are async/
- * client-only).
+ * Following the official GSAP docs pattern:
+ * https://gsap.com/docs/v3/Installation
+ * https://gsap.com/resources/React/
  */
 
-let gsapReady: Promise<typeof import("gsap")> | null = null;
-let scrollTriggerReady: Promise<typeof import("gsap/ScrollTrigger")> | null = null;
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 
-/**
- * Lazy-load the core gsap module (client-only, deduped).
- */
-export function loadGsap() {
-  if (!gsapReady) {
-    gsapReady = import("gsap");
-  }
-  return gsapReady;
-}
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-/**
- * Lazy-load gsap + ScrollTrigger and register the plugin (client-only, deduped).
- */
-export async function loadGsapWithScrollTrigger() {
-  const [{ gsap }, { ScrollTrigger }] = await Promise.all([
-    loadGsap(),
-    (scrollTriggerReady ??= import("gsap/ScrollTrigger")),
-  ]);
-
-  // gsap.registerPlugin is idempotent — safe to call multiple times
-  gsap.registerPlugin(ScrollTrigger);
-
-  return { gsap, ScrollTrigger };
-}
-
-/** Re-export type for convenience */
-export type { ScrollTrigger } from "gsap/ScrollTrigger";
+export { gsap, ScrollTrigger, useGSAP };

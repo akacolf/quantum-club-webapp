@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import dynamic from "next/dynamic";
 import fireAnimationData from "@/public/lottie/fire-lottie.json";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -6,6 +6,7 @@ import { DailyCheckInProps } from "@/lib/interfaces";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { gsap, useGSAP } from "@/lib/gsap";
 
 // Dynamic import Lottie for better performance
 const Lottie = dynamic(() => import("lottie-react"), { 
@@ -26,7 +27,7 @@ export default function DailyCheckIn({
   const prevDaily = useRef<number>(daily);
 
   // Animate the streak number when it changes (claim success)
-  useEffect(() => {
+  useGSAP(() => {
     if (daily === prevDaily.current) return;
     prevDaily.current = daily;
 
@@ -34,24 +35,18 @@ export default function DailyCheckIn({
     const cardEl = cardRef.current;
     if (!streakEl || !cardEl) return;
 
-    import("@/lib/gsap")
-      .then((m) => m.loadGsap())
-      .then(({ gsap }) => {
-        // Streak number: scale bounce + color flash
-        gsap.fromTo(
-          streakEl,
-          { scale: 1.4, color: "#22c55e" },
-          { scale: 1, color: "#ffffff", duration: 0.6, ease: "elastic.out(1, 0.4)" },
-        );
+    gsap.fromTo(
+      streakEl,
+      { scale: 1.4, color: "#22c55e" },
+      { scale: 1, color: "#ffffff", duration: 0.6, ease: "elastic.out(1, 0.4)" },
+    );
 
-        // Card: subtle glow pulse
-        gsap.fromTo(
-          cardEl,
-          { boxShadow: "0 0 20px rgba(34,197,94,0.3)" },
-          { boxShadow: "0 0 0px rgba(34,197,94,0)", duration: 1, ease: "power2.out" },
-        );
-      });
-  }, [daily]);
+    gsap.fromTo(
+      cardEl,
+      { boxShadow: "0 0 20px rgba(34,197,94,0.3)" },
+      { boxShadow: "0 0 0px rgba(34,197,94,0)", duration: 1, ease: "power2.out" },
+    );
+  }, { scope: cardRef, dependencies: [daily] });
 
   return loadingButtonDay ? (
     <Skeleton className="w-[90%] mx-auto h-16 sm:h-20 rounded-xl bg-[#1a1a1a]" />

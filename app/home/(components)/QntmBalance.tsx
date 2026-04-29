@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QntmBalanceProps } from "@/lib/interfaces";
 import { Icon } from "@iconify/react";
+import { gsap, useGSAP } from "@/lib/gsap";
 
 export default function QntmBalance({
   MainQuantAmount,
@@ -31,64 +32,50 @@ export default function QntmBalance({
   const prevValue = useRef<string | null>(null);
 
   // GSAP-powered balance reveal + number change animation
-  useEffect(() => {
+  useGSAP(() => {
     if (loadingValue || !balanceRef.current) return;
     const el = balanceRef.current;
 
-    // First render: slide up from below
     if (prevValue.current === null) {
       prevValue.current = displayValue;
-      import("@/lib/gsap")
-        .then((m) => m.loadGsap())
-        .then(({ gsap }) => {
-          gsap.fromTo(
-            el,
-            { y: 20, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
-          );
-        });
+      gsap.fromTo(
+        el,
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
+      );
       return;
     }
 
-    // Subsequent changes: subtle flip effect
     if (prevValue.current !== displayValue) {
       prevValue.current = displayValue;
-      import("@/lib/gsap")
-        .then((m) => m.loadGsap())
-        .then(({ gsap }) => {
-          gsap
-            .timeline()
-            .to(el, {
-              y: -8,
-              opacity: 0,
-              duration: 0.18,
-              ease: "power2.in",
-            })
-            .set(el, { y: 12 })
-            .to(el, {
-              y: 0,
-              opacity: 1,
-              duration: 0.35,
-              ease: "power3.out",
-            });
+      gsap
+        .timeline()
+        .to(el, {
+          y: -8,
+          opacity: 0,
+          duration: 0.18,
+          ease: "power2.in",
+        })
+        .set(el, { y: 12 })
+        .to(el, {
+          y: 0,
+          opacity: 1,
+          duration: 0.35,
+          ease: "power3.out",
         });
     }
-  }, [displayValue, loadingValue]);
+  }, { scope: balanceRef, dependencies: [displayValue, loadingValue] });
 
   // Rank badge reveal animation
   const rankRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  useGSAP(() => {
     if (isLoading || !rankRef.current || !rank) return;
-    import("@/lib/gsap")
-      .then((m) => m.loadGsap())
-      .then(({ gsap }) => {
-        gsap.fromTo(
-          rankRef.current,
-          { x: -12, opacity: 0 },
-          { x: 0, opacity: 1, duration: 0.5, delay: 0.3, ease: "power3.out" },
-        );
-      });
-  }, [isLoading, rank]);
+    gsap.fromTo(
+      rankRef.current,
+      { x: -12, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.5, delay: 0.3, ease: "power3.out" },
+    );
+  }, { scope: rankRef, dependencies: [isLoading, rank] });
 
   return (
     <div className="flex flex-col py-2 relative">

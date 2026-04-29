@@ -18,6 +18,7 @@
     "@ai-sdk/react": "^3.0.161",
     "@bitcoinerlab/secp256k1": "^1.2.0",
     "@evaafi/sdk": "^0.9.5",
+    "@gsap/react": "^2.1.2",
     "@hipo-finance/sdk": "^2.0.1",
     "@iconify/react": "^6.0.2",
     "@radix-ui/react-accordion": "^1.2.12",

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useRef, type RefObject } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
 
 export interface GsapRevealOptions {
   /** Starting Y offset in px (default: 40) */
@@ -26,6 +27,8 @@ export interface GsapRevealOptions {
 /**
  * Smoothly reveals an element with GSAP — either on scroll or on mount.
  *
+ * Uses the official @gsap/react useGSAP() hook for proper cleanup.
+ *
  * Usage:
  * ```tsx
  * const ref = useGsapReveal<HTMLDivElement>({ y: 30 });
@@ -37,66 +40,56 @@ export function useGsapReveal<T extends HTMLElement = HTMLDivElement>(
 ): RefObject<T | null> {
   const ref = useRef<T>(null);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+  const {
+    y = 40,
+    x = 0,
+    opacity = 0,
+    duration = 0.7,
+    delay = 0,
+    ease = "power3.out",
+    start = "bottom-=60",
+    immediate = false,
+    scale = 1,
+  } = options;
 
-    const {
-      y = 40,
-      x = 0,
-      opacity = 0,
-      duration = 0.7,
-      delay = 0,
-      ease = "power3.out",
-      start = "bottom-=60",
-      immediate = false,
-      scale = 1,
-    } = options;
+  useGSAP(
+    () => {
+      const el = ref.current;
+      if (!el) return;
 
-    let ctx: any;
-
-    (async () => {
       if (immediate) {
-        const { gsap } = await import("@/lib/gsap").then((m) => m.loadGsap());
-        ctx = gsap.context(() => {
-          gsap.fromTo(
-            el,
-            { y, x, opacity, scale },
-            { y: 0, x: 0, opacity: 1, scale: 1, duration, delay, ease },
-          );
-        });
-      } else {
-        const { gsap, ScrollTrigger } = await import("@/lib/gsap").then((m) =>
-          m.loadGsapWithScrollTrigger(),
+        gsap.fromTo(
+          el,
+          { y, x, opacity, scale },
+          { y: 0, x: 0, opacity: 1, scale: 1, duration, delay, ease },
         );
-        ctx = gsap.context(() => {
-          gsap.fromTo(
-            el,
-            { y, x, opacity, scale },
-            {
-              y: 0,
-              x: 0,
-              opacity: 1,
-              scale: 1,
-              duration,
-              delay,
-              ease,
-              scrollTrigger: {
-                trigger: el,
-                start: `top ${start}`,
-                toggleActions: "play none none none",
-              },
+      } else {
+        gsap.fromTo(
+          el,
+          { y, x, opacity, scale },
+          {
+            y: 0,
+            x: 0,
+            opacity: 1,
+            scale: 1,
+            duration,
+            delay,
+            ease,
+            scrollTrigger: {
+              trigger: el,
+              start: `top ${start}`,
+              toggleActions: "play none none none",
             },
-          );
-        });
+          },
+        );
       }
-    })();
-
-    return () => {
-      ctx?.revert?.();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    },
+    {
+      scope: ref,
+      dependencies: [delay, duration, ease, immediate, opacity, scale, start, x, y],
+      revertOnUpdate: true,
+    },
+  );
 
   return ref;
 }

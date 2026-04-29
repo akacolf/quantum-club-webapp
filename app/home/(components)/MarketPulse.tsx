@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMarketPulse } from "@/app/(hooks)/queries/use-market-pulse";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
+import { gsap, useGSAP } from "@/lib/gsap";
 
 const TOKEN_ICONS: Record<string, string> = {
   TON: "/svg/ton-logo.svg",
@@ -91,6 +92,21 @@ export default function MarketPulse() {
   const totalMarketCapUsd = data?.totalMarketCapUsd ?? null;
   const totalMarketCapChange24h = data?.totalMarketCapChange24h ?? null;
   const fearGreed = data?.fearGreed ?? null;
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
+
+  useGSAP(() => {
+    if (isLoading || hasAnimated.current || !pillsRef.current) return;
+    const pills = pillsRef.current.children;
+    if (!pills.length) return;
+    hasAnimated.current = true;
+
+    gsap.fromTo(
+      pills,
+      { x: 30, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: "power3.out" },
+    );
+  }, { scope: pillsRef, dependencies: [fearGreed, isLoading, ton, totalMarketCapUsd] });
 
   if (isLoading) {
     return (
@@ -103,27 +119,6 @@ export default function MarketPulse() {
       </div>
     );
   }
-
-  const pillsRef = useRef<HTMLDivElement>(null);
-  const hasAnimated = useRef(false);
-
-  // GSAP stagger entrance for the pill chips
-  useEffect(() => {
-    if (isLoading || hasAnimated.current || !pillsRef.current) return;
-    const pills = pillsRef.current.children;
-    if (!pills.length) return;
-    hasAnimated.current = true;
-
-    import("@/lib/gsap")
-      .then((m) => m.loadGsap())
-      .then(({ gsap }) => {
-        gsap.fromTo(
-          pills,
-          { x: 30, opacity: 0 },
-          { x: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: "power3.out" },
-        );
-      });
-  }, [isLoading, ton, totalMarketCapUsd, fearGreed]);
 
   if (!ton && !totalMarketCapUsd && !fearGreed) return null;
 

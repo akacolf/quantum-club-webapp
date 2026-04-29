@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useRef, type RefObject } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
 
 export interface GsapStaggerOptions {
   /** CSS selector for children to stagger (default: "> *") */
@@ -33,42 +34,36 @@ export function useGsapStagger<T extends HTMLElement = HTMLDivElement>(
 ): RefObject<T | null> {
   const ref = useRef<T>(null);
 
-  useEffect(() => {
-    const container = ref.current;
-    if (!container) return;
+  const {
+    childSelector = "> *",
+    y = 30,
+    opacity = 0,
+    duration = 0.55,
+    stagger = 0.08,
+    delay = 0.1,
+    ease = "power3.out",
+  } = options;
 
-    const {
-      childSelector = "> *",
-      y = 30,
-      opacity = 0,
-      duration = 0.55,
-      stagger = 0.08,
-      delay = 0.1,
-      ease = "power3.out",
-    } = options;
+  useGSAP(
+    () => {
+      const container = ref.current;
+      if (!container) return;
 
-    let ctx: any;
+      const children = container.querySelectorAll(childSelector);
+      if (!children.length) return;
 
-    import("@/lib/gsap")
-      .then((m) => m.loadGsap())
-      .then(({ gsap }) => {
-        const children = container.querySelectorAll(childSelector);
-        if (!children.length) return;
-
-        ctx = gsap.context(() => {
-          gsap.fromTo(
-            children,
-            { y, opacity },
-            { y: 0, opacity: 1, duration, stagger, delay, ease },
-          );
-        });
-      });
-
-    return () => {
-      ctx?.revert?.();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      gsap.fromTo(
+        children,
+        { y, opacity },
+        { y: 0, opacity: 1, duration, stagger, delay, ease },
+      );
+    },
+    {
+      scope: ref,
+      dependencies: [childSelector, delay, duration, ease, opacity, stagger, y],
+      revertOnUpdate: true,
+    },
+  );
 
   return ref;
 }

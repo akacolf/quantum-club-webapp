@@ -2,7 +2,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useRef, useCallback } from "react";
-import { loadGsap } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 
 function HomeIcon() {
   return (
@@ -130,27 +130,21 @@ const NavigationBar = () => {
     const activeRect = activeEl.getBoundingClientRect();
 
     const targetX = activeRect.left - navRect.left + (activeRect.width - pill.offsetWidth) / 2;
-    const targetY = activeRect.top - navRect.top + 4;
+    if (prevActiveTab.current === activeTab) return;
 
-    loadGsap().then(({ gsap }) => {
-      // If same tab, subtle pulse; otherwise slide
-      if (prevActiveTab.current === activeTab) return;
-
-      gsap.to(pill, {
-        x: targetX,
-        duration: 0.45,
-        ease: "power3.out",
-      });
-
-      // Tiny scale bounce for tactile feedback
-      gsap.fromTo(
-        activeEl.querySelector("[data-tab-icon]"),
-        { scale: 0.85 },
-        { scale: 1, duration: 0.35, ease: "back.out(2)" },
-      );
-
-      prevActiveTab.current = activeTab;
+    gsap.to(pill, {
+      x: targetX,
+      duration: 0.45,
+      ease: "power3.out",
     });
+
+    gsap.fromTo(
+      activeEl.querySelector("[data-tab-icon]"),
+      { scale: 0.85 },
+      { scale: 1, duration: 0.35, ease: "back.out(2)" },
+    );
+
+    prevActiveTab.current = activeTab;
   }, [activeTab]);
 
   // Initial position (no animation) + animate on tab change
