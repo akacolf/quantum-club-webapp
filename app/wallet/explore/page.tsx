@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useQueryState, parseAsString } from "nuqs";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Image from "next/image";
@@ -186,9 +185,7 @@ export default function ExplorePage() {
                         </h2>
                         <div className="grid grid-cols-3 gap-3">
                             {featuredApps.map((app) => (
-                                <motion.button
-                                    key={app.id}
-                                    whileTap={{ scale: 0.95 }}
+                                <button key={app.id}
                                     onClick={() => openDApp(app.url)}
                                     className="flex flex-col items-center gap-2 rounded-xl bg-secondary p-3 transition-colors active:bg-secondary/80"
                                 >
@@ -198,7 +195,7 @@ export default function ExplorePage() {
                                     <span className="text-xs font-medium text-white text-center truncate w-full">
                                         {app.name}
                                     </span>
-                                </motion.button>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -209,9 +206,7 @@ export default function ExplorePage() {
                     {CATEGORIES.map((category) => {
                         const isActive = selectedCategory === category.id;
                         return (
-                            <motion.button
-                                key={category.id}
-                                whileTap={{ scale: 0.95 }}
+                            <button key={category.id}
                                 onClick={() => setSelectedCategory(category.id)}
                                 className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
                                     isActive
@@ -221,7 +216,7 @@ export default function ExplorePage() {
                             >
                                 <Icon icon={category.icon} className="w-4 h-4" />
                                 {category.name}
-                            </motion.button>
+                            </button>
                         );
                     })}
                 </div>
@@ -237,9 +232,7 @@ export default function ExplorePage() {
 
                     <div className="space-y-2">
                         {filteredDApps.map((app) => (
-                            <motion.button
-                                key={app.id}
-                                whileTap={{ scale: 0.98 }}
+                            <button key={app.id}
                                 onClick={() => openDApp(app.url)}
                                 className="flex w-full items-center gap-3 rounded-xl bg-secondary p-4 transition-colors active:bg-secondary/80"
                             >
@@ -253,7 +246,7 @@ export default function ExplorePage() {
                                     <p className="truncate text-sm text-neutral-500">{app.description}</p>
                                 </div>
                                 <Icon icon="lucide:external-link" className="w-4 h-4 flex-shrink-0 text-neutral-500"/>
-                            </motion.button>
+                            </button>
                         ))}
                     </div>
                 </div>

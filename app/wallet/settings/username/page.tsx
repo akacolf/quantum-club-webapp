@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
@@ -140,9 +139,7 @@ export default function QCDomainPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="space-y-6"
         >
           {/* Header */}
@@ -158,9 +155,7 @@ export default function QCDomainPage() {
 
           {/* Existing Username + Domain Display */}
           {qcUsername && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <div
               className="space-y-3"
             >
               {/* Username Card */}
@@ -212,15 +207,12 @@ export default function QCDomainPage() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           )}
 
           {/* Registration Form (only if no username yet) */}
           {!qcUsername && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+            <div
             >
               <Card className="bg-card border-border overflow-hidden">
                 <CardContent className="p-5 space-y-4">
@@ -276,24 +268,20 @@ export default function QCDomainPage() {
 
                     {/* Availability feedback */}
                     {availability === "available" && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <p
                         className="text-xs text-green-400 flex items-center gap-1"
                       >
                         <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
                         @{currentUsername} is available!
-                      </motion.p>
+                      </p>
                     )}
                     {availability === "taken" && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <p
                         className="text-xs text-destructive flex items-center gap-1"
                       >
                         <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
                         @{currentUsername} is already taken
-                      </motion.p>
+                      </p>
                     )}
                   </div>
 
@@ -336,14 +324,11 @@ export default function QCDomainPage() {
                   </Button>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           )}
 
           {/* How it works */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+          <div
           >
             <Card className="bg-card border-border">
               <CardContent className="p-5 space-y-4">
@@ -383,8 +368,8 @@ export default function QCDomainPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

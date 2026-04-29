@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { useWallet, StoredWallet } from "../../WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,9 +98,7 @@ export default function ManageWalletsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="text-center space-y-2"
         >
           <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
@@ -109,17 +106,13 @@ export default function ManageWalletsPage() {
           </div>
           <h1 className="text-2xl font-bold">Manage Wallets</h1>
           <p className="text-muted-foreground text-sm">Switch between or manage your wallets</p>
-        </motion.div>
+        </div>
 
         {/* Wallet List */}
         <div className="space-y-3">
           {storedWallets.length > 0 ? (
             storedWallets.map((wallet, index) => (
-              <motion.div
-                key={wallet.address}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+              <div key={wallet.address}
               >
                 <Card className={`bg-card border-border ${wallet.address === walletAddress ? 'ring-2 ring-primary/50' : ''}`}>
                   <CardContent className="p-4">
@@ -243,7 +236,7 @@ export default function ManageWalletsPage() {
 
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             ))
           ) : (
             <Card className="bg-card border-border">
@@ -257,10 +250,7 @@ export default function ManageWalletsPage() {
         </div>
 
         {/* Add Wallet Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: storedWallets.length * 0.05 + 0.1 }}
+        <div
           className="space-y-3"
         >
           <Button
@@ -273,7 +263,7 @@ export default function ManageWalletsPage() {
               Import Another Wallet
             </Link>
           </Button>
-        </motion.div>
+        </div>
 
         {/* Info */}
         <div className="text-center text-muted-foreground text-sm">

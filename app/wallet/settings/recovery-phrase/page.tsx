@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -103,9 +102,7 @@ export default function ViewRecoveryPhrasePage() {
       />
 
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="space-y-6"
         >
           {/* Header */}
@@ -175,7 +172,7 @@ export default function ViewRecoveryPhrasePage() {
               {copied ? "Copied to Clipboard" : "Copy to Clipboard"}
             </Button>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

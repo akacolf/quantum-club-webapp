@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -71,9 +70,7 @@ export default function MarketplacePage() {
         <div className="min-h-screen bg-background text-foreground pb-28">
             <div className="px-4 pt-4 space-y-4">
                 {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                <div
                     className="space-y-1"
                 >
                     <div className="flex items-center justify-between">
@@ -89,13 +86,10 @@ export default function MarketplacePage() {
                     <p className="text-sm text-muted-foreground">
                         Discover and collect unique NFTs on TON
                     </p>
-                </motion.div>
+                </div>
 
                 {/* Search Bar */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05 }}
+                <div
                     className="relative"
                 >
                     <Icon
@@ -108,13 +102,10 @@ export default function MarketplacePage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 bg-card border-border"
                     />
-                </motion.div>
+                </div>
 
                 {/* Tabs */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                <div
                 >
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <TabsList className="w-full">
@@ -213,7 +204,7 @@ export default function MarketplacePage() {
                                                                             </CardContent>
                                                                         </>
                                                                     ) : (
-                                                                        /* No cover — compact row layout with profile image */
+                                                                        /* No cover — compact row with profile image */
                                                                         <CardContent className="p-3 flex items-center gap-3">
                                                                             <div className="w-12 h-12 rounded-xl overflow-hidden bg-muted shrink-0">
                                                                                 {col.image ? (
@@ -340,7 +331,7 @@ export default function MarketplacePage() {
                             )}
                         </TabsContent>
                     </Tabs>
-                </motion.div>
+                </div>
             </div>
         </div>
     );

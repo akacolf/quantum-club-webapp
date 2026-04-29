@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Link from "next/link";
@@ -232,13 +231,9 @@ export default function FarmingPage() {
     return (
         <div className="flex flex-col min-h-screen bg-black pb-28">
             <div className="px-4 pt-2 pb-4 space-y-5">
-                <AnimatePresence mode="wait">
+                
                     {viewMode === "list" && (
-                        <motion.div
-                            key="list"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                        <div key="list"
                             className="space-y-5"
                         >
                             {/* Header */}
@@ -411,15 +406,11 @@ export default function FarmingPage() {
                                     Add Liquidity First
                                 </Link>
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
 
                     {viewMode === "stake" && selectedFarm && (
-                        <motion.div
-                            key="stake"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="stake"
                             className="space-y-5"
                         >
                             {/* Header */}
@@ -552,9 +543,9 @@ export default function FarmingPage() {
                                     </Button>
                                 </div>
                             )}
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
             </div>
 
             {/* Biometric Auth */}

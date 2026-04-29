@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -47,12 +46,17 @@ export default function VerifyPhrasePage() {
 
       if (walletAddress && mnemonic.length > 0) {
         try {
-          await setSecureMnemonic(telegramId, mnemonic.join(" "));
+          await setSecureMnemonic(telegramId, mnemonic.join(" "), walletAddress);
         } catch (error) {
           toast.error(error instanceof Error ? error.message : "Unable to save wallet securely. Please try again.");
           return;
         }
         localStorage.setItem(`quantum_wallet_address_${telegramId}`, walletAddress);
+        localStorage.setItem(`quantum_wallet_version_${telegramId}`, "v5r1");
+        localStorage.setItem(
+          `quantum_wallet_version_${telegramId}_${walletAddress.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+          "v5r1"
+        );
 
         const walletName = `Wallet ${storedWallets.length + 1}`;
         addWallet(walletAddress, walletName);
@@ -105,11 +109,7 @@ export default function VerifyPhrasePage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
+        <div className="space-y-6">
           {/* Header */}
           <div className="text-left space-y-3">
             <Icon icon="lucide:check" className="w-9 h-9 text-neutral-300"/>
@@ -175,7 +175,7 @@ export default function VerifyPhrasePage() {
               )}
             </form.Subscribe>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

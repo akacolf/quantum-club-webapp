@@ -37,6 +37,7 @@ export interface StoredWallet {
   name: string;
   createdAt: number;
   isActive: boolean;
+  version?: string;
 }
 
 // =====================================================
@@ -125,6 +126,9 @@ const defaultDeps: WalletDeps = {
   refetchNfts: () => {},
   refetchMultiChain: () => {},
 };
+
+const walletScopedKey = (telegramId: string, address: string, name: string) =>
+  `${name}_${telegramId}_${address.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 
 export const useWalletStore = create<WalletStore>()((set, get) => ({
   // State defaults
@@ -309,12 +313,17 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
     const { storedWallets, _deps } = get();
     if (!_deps.telegramId) return;
     if (storedWallets.some((w) => w.address === address)) return;
+    const version =
+      localStorage.getItem(walletScopedKey(_deps.telegramId, address, "quantum_wallet_version")) ||
+      localStorage.getItem(`quantum_wallet_version_${_deps.telegramId}`) ||
+      "v5r1";
 
     const newWallet: StoredWallet = {
       address,
       name: name || `Wallet ${storedWallets.length + 1}`,
       createdAt: Date.now(),
       isActive: storedWallets.length === 0,
+      version,
     };
     const updated = [
       ...storedWallets.map((w) => ({ ...w, isActive: false })),
@@ -372,6 +381,12 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
       `quantum_wallet_address_${_deps.telegramId}`,
       address
     );
+    const walletVersion =
+      updated.find((w) => w.address === address)?.version ||
+      localStorage.getItem(walletScopedKey(_deps.telegramId, address, "quantum_wallet_version"));
+    if (walletVersion) {
+      localStorage.setItem(`quantum_wallet_version_${_deps.telegramId}`, walletVersion);
+    }
     set({
       storedWallets: updated,
       activeWalletIndex: newIndex,
@@ -466,7 +481,7 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
   },
 
   sendTransaction: async (params) => {
-    const { isTestnet, _deps } = get();
+    const { isTestnet, walletAddress, _deps } = get();
     const { telegramId } = _deps;
 
     if (!telegramId) {
@@ -474,10 +489,14 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
     }
 
     const storedVersion =
-      localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      (walletAddress
+        ? localStorage.getItem(walletScopedKey(telegramId, walletAddress, "quantum_wallet_version"))
+        : null) ||
+      localStorage.getItem(`quantum_wallet_version_${telegramId}`) ||
+      "v5r1";
 
     try {
-      const storedMnemonic = await getSecureMnemonic(telegramId);
+      const storedMnemonic = await getSecureMnemonic(telegramId, walletAddress);
       if (!storedMnemonic) {
         return { success: false, error: "Wallet not found" };
       }
@@ -505,6 +524,13 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
             publicKey: keyPair.publicKey,
           });
           break;
+      }
+
+      if (walletAddress && !Address.parse(walletAddress).equals(wallet.address)) {
+        return {
+          success: false,
+          error: "Wallet credentials do not match the selected wallet. Re-import this wallet to send from it.",
+        };
       }
 
       // Use testnet or mainnet adapter based on wallet's network setting

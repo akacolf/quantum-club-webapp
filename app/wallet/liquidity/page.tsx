@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -830,18 +829,14 @@ export default function LiquidityPage() {
 
           {/* Add Liquidity Tab */}
           <TabsContent value="add" className="space-y-3">
-            <AnimatePresence mode="wait">
+            
               {step === "input" && (
-                <motion.div
-                  key="input"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-2"
+                <div key="input"
+                  className="space-y-3"
                 >
                   {/* Token A */}
-                  <Card className="bg-secondary border-0 rounded-2xl">
-                    <CardContent className="p-4">
+                  <Card className="bg-secondary border-0 rounded-3xl overflow-hidden relative group">
+                    <CardContent className="p-5 relative">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-muted-foreground">
                           Token A
@@ -934,22 +929,22 @@ export default function LiquidityPage() {
                               setAmountA(value);
                             }
                           }}
-                          className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-11 focus-visible:ring-0 p-0"
+                          className="flex-1 bg-transparent border-0 text-3xl font-bold text-right h-14 focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50"
                         />
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* Plus Icon */}
-                  <div className="relative z-10 -my-4 flex justify-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border-4 border-background bg-black">
-                      <Icon icon="lucide:plus" className="h-5 w-5 text-muted-foreground"/>
+                  <div className="relative z-10 -my-6 flex justify-center">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border-4 border-background bg-black text-primary">
+                      <Icon icon="lucide:plus" className="h-5 w-5"/>
                     </div>
                   </div>
 
                   {/* Token B */}
-                  <Card className="bg-secondary border-0 rounded-2xl">
-                    <CardContent className="p-4">
+                  <Card className="bg-secondary border-0 rounded-3xl overflow-hidden relative group">
+                    <CardContent className="p-5 relative">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-muted-foreground">
                           Token B
@@ -1061,7 +1056,7 @@ export default function LiquidityPage() {
                             }
                           }}
                           disabled={isSingleSided || !!simulationResult}
-                          className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-11 focus-visible:ring-0 p-0 disabled:opacity-50"
+                          className="flex-1 bg-transparent border-0 text-3xl font-bold text-right h-14 focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50 disabled:opacity-50"
                         />
                       </div>
                     </CardContent>
@@ -1151,14 +1146,11 @@ export default function LiquidityPage() {
                       "Add liquidity"
                     )}
                   </Button>
-                </motion.div>
+                </div>
               )}
 
               {step === "processing" && (
-                <motion.div
-                  key="processing"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="processing"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="relative mx-auto w-20 h-20">
@@ -1168,14 +1160,11 @@ export default function LiquidityPage() {
                   <p className="text-muted-foreground text-sm">
                     Please wait while your transaction is processed
                   </p>
-                </motion.div>
+                </div>
               )}
 
               {step === "success" && (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="success"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
@@ -1193,19 +1182,16 @@ export default function LiquidityPage() {
                       {tokenB.symbol}
                     </p>
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            
           </TabsContent>
 
           {/* Remove Liquidity Tab */}
           <TabsContent value="remove" className="space-y-4">
-            <AnimatePresence mode="wait">
+            
               {removeStep === "processing" && (
-                <motion.div
-                  key="remove-processing"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="remove-processing"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="relative mx-auto w-20 h-20">
@@ -1215,14 +1201,11 @@ export default function LiquidityPage() {
                   <p className="text-muted-foreground text-sm">
                     Please wait while your transaction is processed
                   </p>
-                </motion.div>
+                </div>
               )}
 
               {removeStep === "success" && (
-                <motion.div
-                  key="remove-success"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="remove-success"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
@@ -1239,14 +1222,11 @@ export default function LiquidityPage() {
                       Removed {removePercent}% from {selectedPosition.token0?.symbol}/{selectedPosition.token1?.symbol}
                     </p>
                   )}
-                </motion.div>
+                </div>
               )}
 
               {removeStep === "input" && positions.length === 0 && (
-                <motion.div
-                  key="remove-empty"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <div key="remove-empty"
                 >
                   <div>
                     <CardContent className="p-8 text-center space-y-4">
@@ -1264,14 +1244,11 @@ export default function LiquidityPage() {
                       </Button>
                     </CardContent>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {removeStep === "input" && positions.length > 0 && (
-                <motion.div
-                  key="remove-input"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <div key="remove-input"
                   className="space-y-4"
                 >
                   {/* Position selector */}
@@ -1446,9 +1423,9 @@ export default function LiquidityPage() {
                       </Button>
                     </>
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            
           </TabsContent>
         </Tabs>
       </div>

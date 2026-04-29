@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,12 +152,9 @@ export default function AddressBookPage() {
                     </Button>
                 </div>
 
-                <AnimatePresence>
+                
                     {isAdding && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
+                        <div
                         >
                             <Card className="bg-card border-border mb-4">
                                 <CardContent className="p-4 space-y-3">
@@ -228,9 +224,9 @@ export default function AddressBookPage() {
                                     </div>
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
 
                 {addresses.length === 0 && !isAdding ? (
                     <div className="text-center py-12">

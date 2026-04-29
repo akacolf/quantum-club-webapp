@@ -6,7 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { Icon } from "@iconify/react";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,7 @@ export default function SendQNTMPage() {
   const [isVerifyingQcId, setIsVerifyingQcId] = useState(false);
   const [qcIdError, setQcIdError] = useState<string | null>(null);
   const [recipientUsername, setRecipientUsername] = useState<string>("");
+  const recipientQcId = useStore(form.store, (s) => s.values.recipientQcId);
 
   // Parse balance (remove commas)
   const currentBalance = parseFloat(MainQuantAmount.replace(/,/g, '')) || 0;
@@ -88,8 +89,9 @@ export default function SendQNTMPage() {
     return true;
   }
 
-  async function verifyQcIdExists(): Promise<boolean> {
+  async function verifyQcIdExists(showToast = true): Promise<boolean> {
     const recipientQcId = form.getFieldValue("recipientQcId");
+    if (!recipientQcId.trim()) return false;
     try {
       setIsVerifyingQcId(true);
       setQcIdError(null);
@@ -98,13 +100,13 @@ export default function SendQNTMPage() {
 
       if (result?.serverError) {
         setQcIdError("Failed to verify QC ID. Please try again.");
-        toast.error("Failed to verify QC ID");
+        if (showToast) toast.error("Failed to verify QC ID");
         return false;
       }
 
       if (!result?.data?.exists) {
         setQcIdError("This QC ID doesn't exist. Please check and try again.");
-        toast.error("Recipient QC ID not found");
+        if (showToast) toast.error("Recipient QC ID not found");
         return false;
       }
 
@@ -113,17 +115,32 @@ export default function SendQNTMPage() {
     } catch (error) {
       console.error("Error verifying QC ID:", error);
       setQcIdError("Failed to verify QC ID. Please try again.");
-      toast.error("Failed to verify QC ID");
+      if (showToast) toast.error("Failed to verify QC ID");
       return false;
     } finally {
       setIsVerifyingQcId(false);
     }
   }
 
+  useEffect(() => {
+    const value = recipientQcId.trim();
+    queueMicrotask(() => {
+      setRecipientUsername("");
+      setQcIdError(null);
+    });
+    if (!value || value === telegramId) return;
+
+    const timer = window.setTimeout(() => {
+      verifyQcIdExists(false);
+    }, 650);
+
+    return () => window.clearTimeout(timer);
+  }, [recipientQcId, telegramId]);
+
   async function handleContinue() {
     if (validateInput()) {
       // Verify QC ID exists before proceeding
-      const exists = await verifyQcIdExists();
+      const exists = recipientUsername ? true : await verifyQcIdExists();
       if (exists) {
         setStep("confirm");
       }
@@ -194,10 +211,12 @@ export default function SendQNTMPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-md mx-auto">
-        <div className="mb-6 text-left">
-          <h1 className="text-xl font-bold">Send QNTM</h1>
-          <p className="text-sm text-muted-foreground mt-1">Transfer to another Quantum Club user</p>
-        </div>
+        {step === "input" && (
+          <div className="mb-6 text-left">
+            <h1 className="text-xl font-bold">Send QNTM</h1>
+            <p className="text-sm text-muted-foreground mt-1">Transfer to another Quantum Club user</p>
+          </div>
+        )}
 
         <>
           {step === "input" && (
@@ -366,16 +385,14 @@ export default function SendQNTMPage() {
                       </div>
 
                       <div className="flex items-center justify-center gap-4 py-4">
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                            <Icon icon="lucide:user" className="w-6 h-6 text-muted-foreground"/>
-                          </div>
-                          <span className="text-xs text-muted-foreground truncate max-w-[80px]">{username || "You"}</span>
+                        <div className="flex w-20 flex-col items-center text-center">
+                          <Icon icon="lucide:user" className="mb-2 h-12 w-12 rounded-full bg-muted p-3 text-muted-foreground"/>
+                          <span className="max-w-full truncate text-xs text-muted-foreground">{username || "You"}</span>
                         </div>
                         <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary self-start mt-3"/>
-                        <div className="text-center">
-                          <Icon icon="lucide:user" className="mx-auto mb-2 h-6 w-6 text-primary"/>
-                          <span className="text-xs text-muted-foreground truncate max-w-[80px]">{recipientUsername || "Recipient"}</span>
+                        <div className="flex w-20 flex-col items-center text-center">
+                          <Icon icon="lucide:user" className="mb-2 h-12 w-12 rounded-full bg-muted p-3 text-primary"/>
+                          <span className="max-w-full truncate text-xs text-muted-foreground">{recipientUsername || "Recipient"}</span>
                         </div>
                       </div>
 
@@ -455,9 +472,7 @@ export default function SendQNTMPage() {
               key="success"
               className="flex flex-col items-center justify-center py-16 space-y-6"
             >
-              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
-                <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
-              </div>
+              <Icon icon="lucide:check" className="h-20 w-20 text-green-500"/>
               <div className="text-center space-y-2">
                 <h3 className="text-xl font-bold text-foreground">Transfer complete</h3>
                 <form.Subscribe selector={(state) => state.values.amount}>

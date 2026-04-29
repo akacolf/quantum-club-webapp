@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -1328,21 +1327,14 @@ export default function WalletPage() {
       </div>
 
       {/* Asset Detail Modal */}
-      <AnimatePresence>
+      
         {
           selectedAsset && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
               className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center"
               onClick={() => setSelectedAsset(null)}
             >
-              <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              <div
                 className="bg-secondary border-t-0 rounded-t-3xl w-full max-w-md p-6 pb-24"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1452,11 +1444,10 @@ export default function WalletPage() {
                     </span>
                   </div>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           )
         }
-      </AnimatePresence >
     </div >
   );
 }
@@ -1472,7 +1463,7 @@ function WalletOnboardingReveal({
   createWallet: () => Promise<void>;
 }) {
   return (
-    <div className="w-full max-w-md text-center space-y-8">
+    <div className="w-full max-w-md translate-y-8 text-center space-y-8">
       <div className="relative">
         <WalletWelcomeCinematic />
       </div>

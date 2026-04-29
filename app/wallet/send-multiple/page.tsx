@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Image from "next/image";
@@ -268,13 +267,9 @@ export default function SendMultiplePage() {
           </Badge>
         </div>
 
-        <AnimatePresence mode="wait">
+        
           {viewMode === "input" && (
-            <motion.div
-              key="input"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
+            <div key="input"
               className="space-y-4"
             >
               {/* Balance Card */}
@@ -444,15 +439,11 @@ export default function SendMultiplePage() {
                 Continue
                 <Icon icon="lucide:arrow-right" className="w-4 h-4 ml-2"/>
               </Button>
-            </motion.div>
+            </div>
           )}
 
           {viewMode === "confirm" && (
-            <motion.div
-              key="confirm"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+            <div key="confirm"
               className="space-y-4"
             >
               <Card className="bg-[#111] border-0">
@@ -502,14 +493,11 @@ export default function SendMultiplePage() {
                   </>
                 )}
               </Button>
-            </motion.div>
+            </div>
           )}
 
           {viewMode === "processing" && (
-            <motion.div
-              key="processing"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <div key="processing"
               className="flex flex-col items-center justify-center py-16 space-y-4"
             >
               <span className="text-primary"><ButtonLoader size="lg" /></span>
@@ -519,14 +507,11 @@ export default function SendMultiplePage() {
                 <p className="text-sm text-muted-foreground">
                 This may take a few seconds
               </p>
-            </motion.div>
+            </div>
           )}
 
           {viewMode === "success" && (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <div key="success"
               className="flex flex-col items-center justify-center py-12 space-y-4"
             >
               <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -571,9 +556,9 @@ export default function SendMultiplePage() {
               <Button onClick={handleReset} variant="outline" className="mt-4">
                 Send another batch
               </Button>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        
       </div>
 
       {/* Biometric Auth */}

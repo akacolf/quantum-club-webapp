@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm } from "@tanstack/react-form";
@@ -197,13 +196,9 @@ export default function UnstakePage() {
                     </Button>
                 </div>
 
-                <AnimatePresence mode="wait">
+                
                     {step === "input" && (
-                        <motion.div
-                            key="input"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
+                        <div key="input"
                             className="space-y-4"
                         >
                             {/* tsTON Balance */}
@@ -399,14 +394,11 @@ export default function UnstakePage() {
                                     </>
                                 )}
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "processing" && (
-                        <motion.div
-                            key="processing"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
+                        <div key="processing"
                             className="flex flex-col items-center justify-center py-16 space-y-4"
                         >
                             <span className="text-primary"><ButtonLoader size="lg" /></span>
@@ -414,14 +406,11 @@ export default function UnstakePage() {
                                 {unstakeMode === "instant" ? "Unstaking instantly..." : "Initiating unstake..."}
                             </p>
                             <p className="text-sm text-gray-500">This may take a few seconds</p>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "success" && (
-                        <motion.div
-                            key="success"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                        <div key="success"
                             className="flex flex-col items-center justify-center py-12 space-y-4"
                         >
                             <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -452,9 +441,9 @@ export default function UnstakePage() {
                                 Back to Staking
                                 </Link>
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
             </div>
 
             {/* Biometric Auth */}

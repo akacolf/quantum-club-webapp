@@ -7,7 +7,6 @@ import { flushSync } from "react-dom";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { sendBoc } from "@/lib/tonapi-client";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -65,7 +64,7 @@ function useDebounce<T>(value: T, delay: number): T {
     return debouncedValue;
 }
 
-// Format large numbers to prevent layout issues
+// Format large numbers to prevent issues
 function formatDisplayNumber(value: string | number, maxDecimals: number = 4): string {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num) || num === 0) return "0.0";
@@ -675,13 +674,9 @@ export default function SwapPage() {
                     </p>
                 </div>
 
-                <AnimatePresence mode="wait">
+                
                     {step === "input" && (
-                        <motion.div
-                            key="input"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                        <div key="input"
                             className="space-y-3"
                         >
                             {/* Swap Mode Tabs */}
@@ -1159,15 +1154,11 @@ export default function SwapPage() {
                             </Button>
                             </>
                             )}
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "confirm" && confirmedQuote && (
-                        <motion.div
-                            key="confirm"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="confirm"
                             className="space-y-6"
                         >
                             <Card className="bg-secondary border-0 rounded-2xl">
@@ -1256,14 +1247,11 @@ export default function SwapPage() {
                                     {isSwapping ? <ButtonLoader /> : "Confirm swap"}
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "processing" && (
-                        <motion.div
-                            key="processing"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                        <div key="processing"
                             className="flex flex-col items-center justify-center py-20"
                         >
                             <div className="relative flex items-center justify-center mb-6">
@@ -1273,14 +1261,11 @@ export default function SwapPage() {
                             <p className="text-muted-foreground text-center">
                                 Please wait while your swap is being processed...
                             </p>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "success" && (
-                        <motion.div
-                            key="success"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                        <div key="success"
                             className="flex flex-col items-center justify-center py-8 space-y-6"
                         >
                             <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -1313,9 +1298,9 @@ export default function SwapPage() {
                                     </a>
                                 </Button>
                             )}
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
             </div>
 
             <BiometricAuth

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -76,9 +75,7 @@ export default function BackupPhrasePage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="space-y-6"
         >
           <div className="text-left space-y-3">
@@ -144,7 +141,7 @@ export default function BackupPhrasePage() {
               <Icon icon="lucide:arrow-right" className="w-4 h-4 ml-2"/>
             </Button>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

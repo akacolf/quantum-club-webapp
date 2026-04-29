@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Loader from "@/app/(components)/Loader";
@@ -189,12 +188,9 @@ export default function PriceAlertsPage() {
                     ))}
                 </div>
 
-                <AnimatePresence>
+                
                     {isAdding && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
+                        <div
                         >
                             <Card className="bg-card border-border mb-4">
                                 <CardContent className="p-4 space-y-4">
@@ -220,12 +216,9 @@ export default function PriceAlertsPage() {
                                             <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground" />
                                         </Button>
 
-                                        <AnimatePresence>
+                                        
                                             {showTokenPicker && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: -10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -10 }}
+                                                <div
                                                     className="absolute z-10 w-full mt-2 bg-card border border-border rounded-xl overflow-hidden shadow-lg"
                                                 >
                                                     {SUPPORTED_TOKENS.map((token) => (
@@ -258,9 +251,9 @@ export default function PriceAlertsPage() {
                                                             )}
                                                         </button>
                                                     ))}
-                                                </motion.div>
+                                                </div>
                                             )}
-                                        </AnimatePresence>
+                                        
                                     </div>
 
                                     {/* Direction Selector */}
@@ -355,9 +348,9 @@ export default function PriceAlertsPage() {
                                     </div>
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
 
                 {alerts.length === 0 && !isAdding ? (
                     <div className="text-center py-12">

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -156,9 +155,7 @@ export default function WalletSettingsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="space-y-6"
         >
           {/* Header */}
@@ -375,7 +372,7 @@ export default function WalletSettingsPage() {
               Get support
             </a>
           </div>
-        </motion.div>
+        </div>
 
 
       </div>

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm, useStore } from "@tanstack/react-form";
@@ -327,9 +326,7 @@ export default function NftDetailPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pb-24">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+            <div
                 className="max-w-md mx-auto space-y-6"
             >
                 {/* NFT Image */}
@@ -549,7 +546,7 @@ export default function NftDetailPage() {
                         View on Explorer
                     </Button>
                 </div>
-            </motion.div>
+            </div>
 
             {/* Share to Chat Modal */}
             <ChatPickerModal
@@ -559,19 +556,13 @@ export default function NftDetailPage() {
             />
 
             {/* Listing Modal */}
-            <AnimatePresence>
+            
                 {showListingModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                    <div
                         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
                         onClick={() => !isListing && setShowListingModal(false)}
                     >
-                        <motion.div
-                            initial={{ y: 100, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 100, opacity: 0 }}
+                        <div
                             onClick={(e) => e.stopPropagation()}
                             className="w-full max-w-md bg-card border border-border rounded-2xl overflow-hidden"
                         >
@@ -699,10 +690,10 @@ export default function NftDetailPage() {
                                     )}
                                 </Button>
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </div>
+                    </div>
                 )}
-            </AnimatePresence>
+            
 
             {/* Biometric Auth Modal */}
             <BiometricAuth

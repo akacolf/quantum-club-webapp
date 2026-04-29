@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,11 +65,11 @@ export function PortfolioHealthCard({
     const getDiversificationBadge = (level: string) => {
         switch (level) {
             case "GOOD":
-                return { color: "text-green-400", bg: "bg-transparent" };
+                return "text-green-400";
             case "MODERATE":
-                return { color: "text-yellow-400", bg: "bg-yellow-500/20" };
+                return "text-yellow-400";
             default:
-                return { color: "text-red-400", bg: "bg-red-500/20" };
+                return "text-red-400";
         }
     };
 
@@ -145,7 +144,7 @@ export function PortfolioHealthCard({
         );
     }
 
-    const divBadge = getDiversificationBadge(analysis.diversification);
+    const divColor = getDiversificationBadge(analysis.diversification);
 
     return (
         <AIGlowBorder isLoading={isLoading}>
@@ -185,9 +184,9 @@ export function PortfolioHealthCard({
                                     </span>
                                 </div>
                             </div>
-                            <div>
+                            <div className="space-y-0.5">
                                 <p className="font-medium text-white">Portfolio Health</p>
-                                <div className={`text-xs px-2 py-0.5 rounded-full ${divBadge.bg} ${divBadge.color} inline-block`}>
+                                <div className={`text-xs ${divColor}`}>
                                     {analysis.diversification} Diversification
                                 </div>
                             </div>
@@ -215,14 +214,8 @@ export function PortfolioHealthCard({
                     </button>
 
                     {/* Expanded Details */}
-                    <AnimatePresence>
-                        {showDetails && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="space-y-3 overflow-hidden"
-                            >
+                    {showDetails && (
+                            <div className="space-y-3 overflow-hidden">
                                 {/* Risks */}
                                 {analysis.risks.length > 0 && (
                                     <div>
@@ -261,14 +254,13 @@ export function PortfolioHealthCard({
 
                                 {/* Recommendation */}
                                 {analysis.recommendation && (
-                                    <div className="bg-primary/10 rounded-lg p-3">
+                                    <div className="bg-neutral-800/70 rounded-lg p-3">
                                         <p className="text-xs text-primary mb-1">Recommendation</p>
                                         <p className="text-sm text-white">{analysis.recommendation}</p>
                                     </div>
                                 )}
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
 
                     {/* Disclaimer */}
                     <p className="text-[10px] text-neutral-600 italic">

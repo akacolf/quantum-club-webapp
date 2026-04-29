@@ -186,12 +186,15 @@ export default function HistoryPage() {
     if (!payload || typeof payload !== "object") return "";
     const record = payload as Record<string, unknown>;
     const nft = record.nft && typeof record.nft === "object" ? record.nft as Record<string, unknown> : null;
-    return String(record.domain || record.name || nft?.dns || nft?.name || "");
+    const item = record.item && typeof record.item === "object" ? record.item as Record<string, unknown> : null;
+    const nftItem = record.nft_item && typeof record.nft_item === "object" ? record.nft_item as Record<string, unknown> : null;
+    return String(record.domain || record.dns || record.name || nft?.dns || nft?.name || item?.dns || item?.name || nftItem?.dns || nftItem?.name || "");
   };
 
   const getLiquidityDetails = (payload: unknown) => {
     if (!payload || typeof payload !== "object") return "";
     const record = payload as Record<string, unknown>;
+    const pool = record.pool && typeof record.pool === "object" ? record.pool as Record<string, unknown> : null;
     const assetOne = record.asset_1 || record.token_1 || record.jetton_1 || record.jetton_master_1;
     const assetTwo = record.asset_2 || record.token_2 || record.jetton_2 || record.jetton_master_2;
     const amountOne = formatTokenQuantity(record.amount_1 || record.amount1 || record.first_amount, Number((assetOne as Record<string, unknown> | undefined)?.decimals ?? 9));
@@ -200,12 +203,21 @@ export default function HistoryPage() {
       amountOne ? `${amountOne} ${getTokenSymbol(assetOne, "TOKEN")}` : "",
       amountTwo ? `${amountTwo} ${getTokenSymbol(assetTwo, "TOKEN")}` : "",
     ].filter(Boolean);
-    return parts.join(" + ");
+    const pairName = [getTokenSymbol(assetOne, ""), getTokenSymbol(assetTwo, "")]
+      .filter(Boolean)
+      .join("/");
+    const poolName = String(pool?.name || record.pool_name || "");
+    return [poolName || (pairName ? `${pairName} pool` : ""), parts.join(" + ")].filter(Boolean).join(" • ");
   };
 
   // Parse transaction data for filtering and display
   const parseTransaction = (event: HistoryEvent) => {
-    const action = event.actions && event.actions[0];
+    const action = event.actions?.find((candidate) => {
+      const normalized = candidate.type.toLowerCase().replace(/[_\s-]/g, "");
+      const payload = (candidate as unknown as Record<string, unknown>)[candidate.type];
+      const domainName = getDomainName(payload);
+      return normalized.includes("dns") || normalized.includes("domain") || normalized.includes("renew") || normalized.includes("liquidity") || domainName.toLowerCase().endsWith(".ton");
+    }) ?? event.actions?.[0];
     if (!action) return null;
 
     let type = "Unknown";
@@ -269,6 +281,7 @@ export default function HistoryPage() {
     } else if (action.type === "NftItemTransfer") {
       const transfer = action.NftItemTransfer;
       if (transfer) {
+        const domainName = getDomainName(transfer as unknown);
         let recipientRaw = "";
         try {
           recipientRaw = transfer.recipient?.address ? Address.parse(transfer.recipient.address).toRawString() : "";
@@ -278,7 +291,11 @@ export default function HistoryPage() {
 
         isIncoming = recipientRaw === normalizedWalletAddress;
         address = isIncoming ? (transfer.sender?.address || "") : (transfer.recipient?.address || "");
-        type = isIncoming ? "NFT Received" : "NFT Sent";
+        type = domainName.toLowerCase().endsWith(".ton")
+          ? "Domain renewal"
+          : isIncoming ? "NFT Received" : "NFT Sent";
+        detailText = domainName.toLowerCase().endsWith(".ton") ? domainName : "";
+        hideAmount = domainName.toLowerCase().endsWith(".ton");
         symbol = "NFT";
         amount = "1";
       }
@@ -945,7 +962,7 @@ export default function HistoryPage() {
                         <Card className="bg-secondary border-0 shadow-none hover:bg-secondary/80 transition-all active:scale-[0.99]">
                           <CardContent className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              <div className={`shrink-0 ${isIncoming ? 'text-green-500' : 'text-orange-500'}`}>
+                            <div className={`shrink-0 ${isIncoming ? 'text-green-500' : 'text-red-500'}`}>
                                 {isIncoming ? (
                                   <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>
                                 ) : (

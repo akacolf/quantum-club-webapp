@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -198,13 +197,9 @@ export default function StakingPage() {
     return (
         <div className="flex flex-col min-h-screen bg-black pb-28">
             <div className="px-4 pt-2 pb-4 space-y-5">
-                <AnimatePresence mode="wait">
+                
                     {viewMode === "list" ? (
-                        <motion.div
-                            key="list"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                        <div key="list"
                             className="space-y-5"
                         >
                             {/* Header */}
@@ -302,9 +297,7 @@ export default function StakingPage() {
                                             const poolRewards = calculateRewards(tonBalanceNum, pool.liveApy);
                                             
                                             return (
-                                                <motion.div
-                                                    key={pool.id}
-                                                    whileTap={{ scale: 0.98 }}
+                                                <div key={pool.id}
                                                     className="rounded-xl bg-[#111] border border-[#222] overflow-hidden"
                                                 >
                                                     <button
@@ -393,7 +386,7 @@ export default function StakingPage() {
                                                             <Icon icon="lucide:arrow-right" className="w-4 h-4"/>
                                                         </div>
                                                     </button>
-                                                </motion.div>
+                                                </div>
                                             );
                                         })}
                                     </div>
@@ -428,13 +421,9 @@ export default function StakingPage() {
                                     </div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     ) : (
-                        <motion.div
-                            key="stake"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="stake"
                             className="space-y-5"
                         >
                             {/* Header */}
@@ -445,13 +434,9 @@ export default function StakingPage() {
                                 </p>
                             </div>
 
-                            <AnimatePresence mode="wait">
+                            
                                 {step === "input" && (
-                                    <motion.div
-                                        key="stake-input"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
+                                    <div key="stake-input"
                                         className="space-y-4"
                                     >
                                         {/* Pool Info Card */}
@@ -612,14 +597,11 @@ export default function StakingPage() {
                                                 `Stake ${stakeAmountNum.toFixed(2)} TON`
                                             )}
                                         </Button>
-                                    </motion.div>
+                                    </div>
                                 )}
 
                                 {step === "processing" && (
-                                    <motion.div
-                                        key="stake-processing"
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
+                                    <div key="stake-processing"
                                         className="text-center py-16 space-y-4"
                                     >
                                         <div className="relative mx-auto w-20 h-20">
@@ -629,14 +611,11 @@ export default function StakingPage() {
                                         <p className="text-gray-500 text-sm">
                                             Please wait while your transaction is processed
                                         </p>
-                                    </motion.div>
+                                    </div>
                                 )}
 
                                 {step === "success" && (
-                                    <motion.div
-                                        key="stake-success"
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
+                                    <div key="stake-success"
                                         className="text-center py-16 space-y-4"
                                     >
                                         <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
@@ -661,12 +640,12 @@ export default function StakingPage() {
                                         >
                                             Back to Pools
                                         </Button>
-                                    </motion.div>
+                                    </div>
                                 )}
-                            </AnimatePresence>
-                        </motion.div>
+                            
+                        </div>
                     )}
-                </AnimatePresence>
+                
             </div>
 
             {/* Biometric Auth */}

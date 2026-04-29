@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useForm, useStore } from "@tanstack/react-form";
 import { sendNftSchema } from "@/lib/validations";
@@ -301,13 +300,9 @@ export default function SendNftPage() {
                     <h1 className="text-xl font-bold">Send NFT</h1>
                 </div>
 
-                <AnimatePresence mode="wait">
+                
                     {step === "input" && (
-                        <motion.div
-                            key="input"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                        <div key="input"
                             className="space-y-6"
                         >
                             {/* NFT Preview */}
@@ -398,15 +393,11 @@ export default function SendNftPage() {
                             >
                                 Continue
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "confirm" && (
-                        <motion.div
-                            key="confirm"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="confirm"
                             className="space-y-6"
                         >
                             <Card className="bg-card border-border overflow-hidden">
@@ -469,24 +460,18 @@ export default function SendNftPage() {
                                     {isSending ? <ButtonLoader /> : "Confirm"}
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "processing" && (
-                        <motion.div
-                            key="processing"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
+                        <div key="processing"
                         >
                             <Loader />
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "success" && (
-                        <motion.div
-                            key="success"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                        <div key="success"
                             className="text-center py-12"
                         >
                             <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
@@ -513,9 +498,9 @@ export default function SendNftPage() {
                                     <Link href="/wallet">Back to Wallet</Link>
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
             </div>
 
             <BiometricAuth

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -348,14 +347,9 @@ export default function ConnectedAppsPage() {
                     ) : (
                         // Sessions list
                         <>
-                            <AnimatePresence mode="popLayout">
+                            
                                 {sessions.map((session) => (
-                                    <motion.div
-                                        key={session.sessionId}
-                                        layout
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, x: -100 }}
+                                    <div key={session.sessionId}
                                     >
                                         <Card className="bg-card border-border hover:border-muted-foreground/20 transition-colors">
                                             <CardContent className="p-4">
@@ -457,9 +451,9 @@ export default function ConnectedAppsPage() {
                                                 </div>
                                             </CardContent>
                                         </Card>
-                                    </motion.div>
+                                    </div>
                                 ))}
-                            </AnimatePresence>
+                            
                             
                             {/* Disconnect All */}
                             {sessions.length > 1 && (

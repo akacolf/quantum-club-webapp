@@ -42,9 +42,7 @@ export function AnimatedPrice({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-lg px-1 transition-colors ${
-        direction === "up" ? "bg-green-500/10" : direction === "down" ? "bg-red-500/10" : ""
-      } ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg px-1 transition-colors ${className}`}
     >
       <span>
         {prefix}{value.toFixed(decimals)}

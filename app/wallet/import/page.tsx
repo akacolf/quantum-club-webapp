@@ -2,7 +2,6 @@
 
 import { useState, ClipboardEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { mnemonicToWalletKey, mnemonicValidate } from "@ton/crypto";
@@ -193,9 +192,13 @@ export default function ImportWalletPage() {
       }
 
       const address = wallet.address.toString({ bounceable: false, testOnly: isTestnet });
-      await setSecureMnemonic(telegramId, cleanedPhrase.join(" "));
+      await setSecureMnemonic(telegramId, cleanedPhrase.join(" "), address);
       localStorage.setItem(`quantum_wallet_address_${telegramId}`, address);
       localStorage.setItem(`quantum_wallet_version_${telegramId}`, formWalletVersion);
+      localStorage.setItem(
+        `quantum_wallet_version_${telegramId}_${address.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+        formWalletVersion
+      );
       setWalletAddress(address);
 
       const walletName = `Wallet ${storedWallets.length + 1} (${versionLabel})`;
@@ -231,10 +234,7 @@ export default function ImportWalletPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-8 overflow-x-hidden selection:bg-primary/20">
       <div className="max-w-xl mx-auto relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+        <div
           className="space-y-8"
         >
           <div className="space-y-4 text-left">
@@ -252,10 +252,7 @@ export default function ImportWalletPage() {
 
           <div className="space-y-6">
             {/* Protocol Selector - Grayscale */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.05, duration: 0.15 }}
+            <div
               className="space-y-3"
             >
               <div className="flex items-center gap-2 px-1">
@@ -302,13 +299,10 @@ export default function ImportWalletPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            </motion.div>
+            </div>
 
             {/* Phrase Input Container - Monochrome */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.08, duration: 0.15 }}
+            <div
               className="space-y-4"
             >
               <div className="flex items-center justify-between px-1">
@@ -352,15 +346,12 @@ export default function ImportWalletPage() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
 
             {/* Validation & Identity Status - Monochrome accented */}
-            <AnimatePresence mode="wait">
+            
               {isValidPhrase !== null && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                <div
                   className={`relative p-5 rounded-3xl overflow-hidden ${isValidPhrase
                     ? 'bg-primary/5'
                     : 'bg-secondary/60'
@@ -385,9 +376,7 @@ export default function ImportWalletPage() {
                   </div>
 
                   {isValidPhrase && selectedPreviewAddress && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                    <div
                       className="mt-4 pt-4 space-y-2"
                     >
                       <div className="flex items-center gap-1.5">
@@ -398,11 +387,11 @@ export default function ImportWalletPage() {
                           {selectedPreviewAddress}
                         </p>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            
 
             {/* Smart Security Banner - Primary Accent */}
             <div className="w-full space-y-4 px-1">
@@ -448,7 +437,7 @@ export default function ImportWalletPage() {
               </Button>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

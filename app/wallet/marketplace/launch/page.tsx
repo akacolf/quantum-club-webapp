@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm, useStore } from "@tanstack/react-form";
@@ -102,9 +101,7 @@ export default function LaunchNftPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pb-24">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+            <div
                 className="max-w-md mx-auto space-y-6"
             >
                 {/* Header */}
@@ -135,14 +132,10 @@ export default function LaunchNftPage() {
                     ))}
                 </div>
 
-                <AnimatePresence mode="wait">
+                
                     {/* Step 1: Upload Image */}
                     {step === 1 && (
-                        <motion.div
-                            key="step1"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step1"
                             className="space-y-4"
                         >
                             <Card
@@ -189,16 +182,12 @@ export default function LaunchNftPage() {
                             >
                                 Next: set details
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Step 2: Name, Description, Attributes */}
                     {step === 2 && (
-                        <motion.div
-                            key="step2"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step2"
                             className="space-y-4"
                         >
                             <form.Field name="name">
@@ -290,16 +279,12 @@ export default function LaunchNftPage() {
                                     Next: preview
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Step 3: Review */}
                     {step === 3 && (
-                        <motion.div
-                            key="step3"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step3"
                             className="space-y-4"
                         >
                             <Card className="bg-card border-border rounded-2xl overflow-hidden">
@@ -341,16 +326,12 @@ export default function LaunchNftPage() {
                                     Deploy
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Step 4: Deploy */}
                     {step === 4 && (
-                        <motion.div
-                            key="step4"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step4"
                             className="space-y-4"
                         >
                             {deploySuccess ? (
@@ -418,10 +399,10 @@ export default function LaunchNftPage() {
                                     )}
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
-            </motion.div>
+                
+            </div>
         </div>
     );
 }

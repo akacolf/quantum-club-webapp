@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
@@ -106,9 +105,7 @@ export default function CollectionDetailPage() {
 
             <div className={cn("px-4 relative z-10 space-y-6", collection.coverImage ? "-mt-12" : "pt-4")}>
                 {/* Collection Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                <div
                     className="space-y-4"
                 >
                     {/* Collection Avatar */}
@@ -182,13 +179,10 @@ export default function CollectionDetailPage() {
                         <Icon icon="lucide:external-link" className="w-4 h-4 mr-2" />
                         View on Explorer
                     </Button>
-                </motion.div>
+                </div>
 
                 {/* NFT Grid */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                <div
                     className="space-y-3"
                 >
                     <div className="flex items-center justify-between">
@@ -272,7 +266,7 @@ export default function CollectionDetailPage() {
                         </div>
                     )}
 
-                </motion.div>
+                </div>
             </div>
         </div>
     );

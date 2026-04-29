@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -367,13 +366,9 @@ export default function LendingPage() {
                     </Card>
                 )}
 
-                <AnimatePresence mode="wait">
+                
                     {viewMode === "markets" && (
-                        <motion.div
-                            key="markets"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                        <div key="markets"
                             className="space-y-3"
                         >
                             {/* User Positions */}
@@ -507,15 +502,11 @@ export default function LendingPage() {
                                     </CardContent>
                                 </Card>
                             ))}
-                        </motion.div>
+                        </div>
                     )}
 
                     {(viewMode === "supply" || viewMode === "withdraw") && selectedAsset && (
-                        <motion.div
-                            key={viewMode}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key={viewMode}
                             className="space-y-4"
                         >
                             <Card className="bg-card/80 backdrop-blur-xl border-border rounded-2xl">
@@ -627,9 +618,9 @@ export default function LendingPage() {
                                     </div>
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
 
                 <BiometricAuth
                     isOpen={isAuthOpen}

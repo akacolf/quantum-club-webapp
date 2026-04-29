@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -209,20 +208,15 @@ export default function AnalyticsPage() {
     <div className="min-h-screen pb-24">
       <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-4">
         {/* Header */}
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+        <div
           className="w-full"
         >
           <h1 className="text-2xl font-bold text-white mb-1">Portfolio analytics</h1>
           <p className="text-gray-400 text-sm">Track your asset performance</p>
-        </motion.div>
+        </div>
 
         {/* Total balance */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
+        <div
           className="w-full"
         >
           <div className="space-y-2">
@@ -253,13 +247,10 @@ export default function AnalyticsPage() {
                 )}
               </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* AI Portfolio Health */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.15 }}
+        <div
           className="w-full"
         >
           <PortfolioHealthCard
@@ -271,13 +262,10 @@ export default function AnalyticsPage() {
             totalValue={parseFloat(totalUsdBalance) || 0}
             stakedAmount={0}
           />
-        </motion.div>
+        </div>
 
         {/* Stats Cards */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
+        <div
           className="w-full grid grid-cols-2 gap-3"
         >
           <Card className="bg-[#111] border-[#222] rounded-xl">
@@ -307,13 +295,10 @@ export default function AnalyticsPage() {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Charts Tabs */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+        <div
           className="w-full"
         >
           <Tabs defaultValue="allocation" className="w-full">
@@ -427,13 +412,10 @@ export default function AnalyticsPage() {
               </Card>
             </TabsContent>
           </Tabs>
-        </motion.div>
+        </div>
 
         {/* Asset List */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
+        <div
           className="w-full space-y-3"
         >
           <h3 className="text-sm font-medium text-gray-400 px-1">All assets</h3>
@@ -503,7 +485,7 @@ export default function AnalyticsPage() {
               </Card>
             ))
           )}
-        </motion.div>
+        </div>
       </div>
     </div>
   );

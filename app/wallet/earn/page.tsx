@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -169,9 +168,7 @@ export default function EarnPage() {
                                 const typeIcon = TYPE_ICONS[protocol.type];
                                 
                                 return (
-                                    <motion.button
-                                        key={protocol.id}
-                                        whileTap={{ scale: 0.98 }}
+                                    <button key={protocol.id}
                                         onClick={() => router.push(protocol.route)}
                                         className="w-full p-4 rounded-xl bg-[#111] border border-[#222] active:bg-[#161616] transition-colors text-left"
                                     >
@@ -210,7 +207,7 @@ export default function EarnPage() {
                                                 <Icon icon="lucide:arrow-right" className="w-4 h-4 text-primary mt-2 ml-auto"/>
                                             </div>
                                         </div>
-                                    </motion.button>
+                                    </button>
                                 );
                             })}
                         </div>

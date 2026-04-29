@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useQueryState } from "nuqs";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -102,11 +101,7 @@ export default function ReceivePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 flex flex-col pt-6">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md mx-auto space-y-6"
-      >
+      <div className="w-full max-w-md mx-auto space-y-6">
         <div className="text-left space-y-2 mb-2">
           <h1 className="text-2xl font-bold">Receive assets</h1>
           <p className="text-muted-foreground text-sm">
@@ -172,11 +167,11 @@ export default function ReceivePage() {
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Receive Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-[32px] bg-background border-0 pb-8 pt-6 px-6 max-h-[85vh] overflow-y-auto scrollbar-hide">
+        <SheetContent side="bottom" className="rounded-t-[32px] bg-background border-0 pb-12 pt-7 px-6 min-h-[78vh] max-h-[92vh] overflow-y-auto scrollbar-hide">
           <SheetHeader className="mb-8 text-center">
             <SheetTitle className="text-2xl font-bold text-white">Receive {selectedChain && (CHAIN_INFO[selectedChain].name === "Tron" ? "TRON" : CHAIN_INFO[selectedChain].name)}</SheetTitle>
             <SheetDescription className="text-neutral-400">

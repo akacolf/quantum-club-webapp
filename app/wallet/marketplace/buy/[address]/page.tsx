@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -264,9 +263,7 @@ export default function BuyNftPage() {
     if (viewMode === "processing") {
         return (
             <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                <div
                     className="text-center space-y-6"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -278,7 +275,7 @@ export default function BuyNftPage() {
                             Please complete the transaction in the opened window
                         </p>
                     </div>
-                </motion.div>
+                </div>
             </div>
         );
     }
@@ -287,9 +284,7 @@ export default function BuyNftPage() {
     if (viewMode === "success") {
         return (
             <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                <div
                     className="text-center space-y-6 max-w-sm"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
@@ -321,7 +316,7 @@ export default function BuyNftPage() {
                             <Link href="/wallet/marketplace">Back to Marketplace</Link>
                         </Button>
                     </div>
-                </motion.div>
+                </div>
             </div>
         );
     }
@@ -330,9 +325,7 @@ export default function BuyNftPage() {
     if (viewMode === "error") {
         return (
             <div className="fixed inset-0 bg-background text-foreground p-4 flex items-center justify-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                <div
                     className="text-center space-y-6 max-w-sm"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
@@ -350,7 +343,7 @@ export default function BuyNftPage() {
                     >
                         Try Again
                     </Button>
-                </motion.div>
+                </div>
             </div>
         );
     }
@@ -358,9 +351,7 @@ export default function BuyNftPage() {
     // Preview View
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pb-28">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+            <div
                 className="max-w-md mx-auto space-y-6"
             >
                 {/* Header */}
@@ -499,7 +490,7 @@ export default function BuyNftPage() {
                         : `Buy for ${starsAmount || "..."} Stars`}
                     <Icon icon="lucide:arrow-right" className="w-5 h-5 ml-2" />
                 </Button>
-            </motion.div>
+            </div>
 
             {/* Biometric Auth Modal */}
             <BiometricAuth

@@ -630,7 +630,7 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      const storedMnemonic = await getSecureMnemonic(telegramId);
+      const storedMnemonic = await getSecureMnemonic(telegramId, walletAddress);
       if (!storedMnemonic) {
         throw new Error("Wallet not found");
       }
@@ -639,7 +639,12 @@ export default function SendPage() {
       const keyPair = await mnemonicToPrivateKey(mnemonic);
 
       // Get the stored wallet version to create the correct wallet contract
-      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      const storedVersion =
+        (walletAddress
+          ? localStorage.getItem(`quantum_wallet_version_${telegramId}_${walletAddress.replace(/[^a-zA-Z0-9_-]/g, "_")}`)
+          : null) ||
+        localStorage.getItem(`quantum_wallet_version_${telegramId}`) ||
+        "v5r1";
       let wallet;
       switch (storedVersion) {
         case "v4r2":
@@ -652,6 +657,10 @@ export default function SendPage() {
         default:
           wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
           break;
+      }
+
+      if (walletAddress && !Address.parse(walletAddress).equals(wallet.address)) {
+        throw new Error("Wallet credentials do not match the selected wallet. Re-import this wallet to send from it.");
       }
 
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL, apiKey: env.NEXT_PUBLIC_TONAPI_KEY });
@@ -818,7 +827,7 @@ export default function SendPage() {
   };
 
   const executeSend = async () => {
-    const storedMnemonic = await getSecureMnemonic(telegramId);
+    const storedMnemonic = await getSecureMnemonic(telegramId, walletAddress);
     if (!storedMnemonic) {
       toast.error("Wallet credentials not found");
       analyticsEvents.transactionSigningFailed("Wallet credentials not found");
@@ -833,7 +842,12 @@ export default function SendPage() {
       const keyPair = await mnemonicToPrivateKey(mnemonic);
 
       // Get the stored wallet version to create the correct wallet contract
-      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      const storedVersion =
+        (walletAddress
+          ? localStorage.getItem(`quantum_wallet_version_${telegramId}_${walletAddress.replace(/[^a-zA-Z0-9_-]/g, "_")}`)
+          : null) ||
+        localStorage.getItem(`quantum_wallet_version_${telegramId}`) ||
+        "v5r1";
       let wallet;
       switch (storedVersion) {
         case "v4r2":
@@ -846,6 +860,10 @@ export default function SendPage() {
         default:
           wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
           break;
+      }
+
+      if (walletAddress && !Address.parse(walletAddress).equals(wallet.address)) {
+        throw new Error("Wallet credentials do not match the selected wallet. Re-import this wallet to send from it.");
       }
 
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL, apiKey: env.NEXT_PUBLIC_TONAPI_KEY });
@@ -1044,7 +1062,7 @@ export default function SendPage() {
     setMultiChainStep("processing");
 
     try {
-      const mnemonic = await getSecureMnemonic(telegramId);
+      const mnemonic = await getSecureMnemonic(telegramId, walletAddress);
       if (!mnemonic) {
         throw new Error("Wallet not found");
       }
@@ -1135,12 +1153,14 @@ export default function SendPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-md mx-auto">
-        <div className="mb-6 text-left">
-          <h1 className="text-xl font-bold">Send assets</h1>
-        </div>
+        {((networkMode === "ton" || isTestnet) ? step === "input" : multiChainStep === "input") && (
+          <div className="mb-6 text-left">
+            <h1 className="text-xl font-bold">Send assets</h1>
+          </div>
+        )}
 
         {/* Network Toggle - Only show on mainnet */}
-        {!isTestnet && (
+        {!isTestnet && step === "input" && multiChainStep === "input" && (
           <Tabs value={networkMode} onValueChange={(v) => setNetworkMode(v as NetworkMode)} className="mb-6">
             <TabsList className="grid w-full grid-cols-2 h-12">
               <TabsTrigger
@@ -1426,9 +1446,7 @@ export default function SendPage() {
                 className="space-y-6"
               >
                 <div className="flex flex-col items-center justify-center py-8">
-                  <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                    <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
-                  </div>
+                  <Icon icon="lucide:check" className="mb-4 h-20 w-20 text-green-500"/>
                   <h2 className="text-xl font-bold">Transaction sent</h2>
                   <p className="text-muted-foreground text-sm mt-1 text-center">
                     Your {multiChainAmount} {currentChain.symbol} has been sent successfully.
@@ -1900,9 +1918,7 @@ export default function SendPage() {
               key="success"
               className="flex flex-col items-center justify-center py-10 space-y-6"
             >
-              <div className="flex items-center justify-center">
-                <Icon icon="lucide:check" className="w-12 h-12 text-green-500"/>
-              </div>
+              <Icon icon="lucide:check" className="h-20 w-20 text-green-500"/>
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-foreground">Transaction sent</h2>
                 <p className="text-muted-foreground text-sm max-w-xs mx-auto">
